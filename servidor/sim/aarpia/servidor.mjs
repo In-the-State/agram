@@ -2,7 +2,11 @@
 // `eventos` de AGRAM, sobre un relé Nostr en memoria. Para la carta basta con
 // apuntar su URL base aquí.
 //
-//   node servidor.mjs [--puerto 8788] [--secreto prueba]
+//   node servidor.mjs [--puerto 8788] [--host 127.0.0.1] [--secreto prueba] [--espejo ws://relé …]
+//                     [--archivo /datos/libro.jsonl] [--autoridad]
+//   (--host 0.0.0.0 dentro de Docker; --espejo, una vez por relé de la casa al que replicar;
+//    --archivo, el libro persistente; --autoridad, juzgar con el núcleo de AGRAM: 7701 o 7703)
+//   El secreto para crear ejes también puede venir de AGRAM_CREAR_EJES (mejor que por argumento).
 //
 // Rutas: /eventos/ejes (POST), /eventos (POST, GET ?eje&desde&cuantos), /eventos/recibo (GET ?eje&id).
 
@@ -20,20 +24,25 @@ async function aRequest(req, base) {
 }
 
 /** Arranca el servicio en `puerto` (0: uno libre). Devuelve { url, puerto, cerrar, servicio }. */
-export async function arrancar({ puerto = 0, secreto = 'prueba', ...opciones } = {}) {
+export async function arrancar({ puerto = 0, host = '127.0.0.1', secreto = 'prueba', ...opciones } = {}) {
   const servicio = crearServicio({ crearEjes: { secreto }, ...opciones });
+  if (opciones.archivo) await servicio.abrir(); // el libro guardado: relé, ejes y juicio de la autoridad
   const servidor = createServer(async (req, res) => {
     const respuesta = await servicio.manejar(await aRequest(req, 'http://' + (req.headers.host ?? 'localhost')));
     res.writeHead(respuesta.status, Object.fromEntries(respuesta.headers));
     res.end(Buffer.from(await respuesta.arrayBuffer()));
   });
-  await new Promise((ok) => servidor.listen(puerto, '127.0.0.1', ok));
+  await new Promise((ok) => servidor.listen(puerto, host, ok));
   const p = servidor.address().port;
-  return { url: 'http://127.0.0.1:' + p, puerto: p, servicio, cerrar: () => new Promise((ok) => servidor.close(ok)) };
+  return { url: 'http://' + (host === '0.0.0.0' ? '127.0.0.1' : host) + ':' + p, puerto: p, servicio, cerrar: () => new Promise((ok) => servidor.close(ok)) };
 }
 
 if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const arg = (n, d) => (process.argv.includes(n) ? process.argv[process.argv.indexOf(n) + 1] : d);
-  const s = await arrancar({ puerto: Number(arg('--puerto', 8788)), secreto: arg('--secreto', 'prueba') });
-  console.log('transporte simulado en ' + s.url + '/eventos · relé ' + s.servicio.rele.publica);
+  const espejos = process.argv.flatMap((a, i, l) => (a === '--espejo' ? [l[i + 1]] : []));
+  const archivo = arg('--archivo', undefined);
+  const autoridad = process.argv.includes('--autoridad') ? new (await import('./src/autoridad.js')).Autoridad() : null;
+  const secreto = arg('--secreto', process.env.AGRAM_CREAR_EJES ?? 'prueba');
+  const s = await arrancar({ puerto: Number(arg('--puerto', 8788)), secreto, host: arg('--host', '127.0.0.1'), espejos, archivo, autoridad });
+  console.log('aarpia-transporte en ' + s.url + '/eventos · relé ' + s.servicio.rele.publica + (autoridad ? ' · autoridad ' + autoridad.nucleo.slice(0, 7) : '') + (archivo ? ' · libro ' + archivo : '') + (espejos.length ? ' · espejo ' + espejos.join(', ') : ''));
 }

@@ -1,9 +1,14 @@
-// Pruebas del transporte simulado de AARPIA (servidor/sim/aarpia/), copiadas del d282161 de
-// InTheState/aarpia/transporte con las rutas adaptadas: ayuda.js, rele.test.js, servicio.test.js y archivos.test.js
-// en un solo archivo. vendor.test.js (las copias de AGRAM) ya no hace falta: la simulación importa directamente las de
-// este repo.
-import { test, describe } from 'node:test';
+// Pruebas del transporte simulado de AARPIA (servidor/sim/aarpia/), copiadas del fe7a2f9 de
+// InTheState/aarpia/transporte con las rutas adaptadas: ayuda.js, rele, servicio, archivos, autoridad, recibo, espejo,
+// revalidar y sellado en un solo archivo. vendor.test.js (las copias de AGRAM) y la comprobación de sha256 del núcleo ya
+// no hacen falta: la simulación importa directamente las de este repo. No se copian las pruebas que necesitan carpetas de
+// fuera del repo (stateark/sim: recibo de referencia y cadena de sellado, que aquí se prueba con un sellador de mentira) ni
+// vendor/revalidar.mjs (revalidar con un commit de git).
+import { test, describe, after } from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { canonico, cuerpo, hash, RAIZ } from '../servidor/supabase/funciones/eventos/verificar.js';
 import { schnorr } from '../servidor/supabase/funciones/eventos/noble-secp256k1.js';
 import { Rele, KIND_EVENTO, KIND_RECIBO, pasaFiltro, relojDeRecibo } from '../servidor/sim/aarpia/src/rele.js';
@@ -11,6 +16,13 @@ import { firmar, verificar, generarClaves, valores, serializar, aBytes, aHex } f
 import { envolver, desenvolver, destinatarios } from '../servidor/sim/aarpia/src/sobre.js';
 import { crearBlossom, autorizacion, POLITICA } from '../servidor/sim/aarpia/src/blossom.js';
 import { crearServicio } from '../servidor/sim/aarpia/src/servicio.js';
+import { Autoridad, NUCLEO, KIND_RECHAZO } from '../servidor/sim/aarpia/src/autoridad.js';
+import { verificarRecibo, leerRecibo } from '../servidor/sim/aarpia/src/recibo.js';
+import { crearEspejo } from '../servidor/sim/aarpia/src/espejo.js';
+import { revalidar } from '../servidor/sim/aarpia/src/revalidar.js';
+import { Eje } from '../src/eje.js';
+import { generarClaves as clavesAgram, firmar as firmarAgram } from '../src/autoridad.js';
+import { crearEvento } from '../src/evento.js';
 import { arrancar } from '../servidor/sim/aarpia/servidor.mjs';
 import { crearArchivos } from '../servidor/supabase/funciones/archivos/api.js';
 import { crearApi } from '../servidor/supabase/funciones/eventos/api.js';
@@ -32,6 +44,22 @@ async function ejeDePrueba() {
   const genesis = await eventoAgram({ autor: 'vg', privada: vg.privada, contexto: { genesis: true, claves: { vg: vg.publica } } });
   const alta = await eventoAgram({ autor: 'vg', privada: vg.privada, sobre: genesis.id, contexto: { claves: { huesped: huesped.publica } } });
   return { vg, huesped, genesis, alta };
+}
+
+/** Un sellador de mentira con la forma de stateark/sim (sellar(ids), prueba(id), verificar(id, prueba)); minar() cierra el lote. */
+function selladorDeMentira() {
+  const pruebas = new Map();
+  let altura = 0;
+  return {
+    async sellar(ids) { for (const id of ids) pruebas.set(id, { pendiente: true }); },
+    minar() {
+      altura++;
+      for (const [id, p] of pruebas) if (p.pendiente) pruebas.set(id, { hash: id, altura });
+      return { altura };
+    },
+    async prueba(id) { return pruebas.get(id) ?? null; },
+    async verificar(id, p) { return p.hash === id ? { ok: true, altura: p.altura } : { ok: false, motivo: 'la prueba no corresponde' }; },
+  };
 }
 
 /** Un movimiento de T de `de` a `a`. */
@@ -81,6 +109,10 @@ describe('sim aarpia: relé Nostr', () => {
     assert.equal((await rele.publicar({ ...ev, id: 'b'.repeat(64) })).ok, false);
     const nota = await firmar({ kind: 1, created_at: 1, tags: [], content: '' }, k.privada);
     assert.match((await rele.publicar(nota)).motivo, /^blocked/);
+    const recibo = await firmar({ kind: KIND_RECIBO, created_at: 1, tags: [['e', ev.id]], content: '' }, k.privada);
+    assert.match((await rele.publicar(recibo)).motivo, /solo los emite el relé/, 'nadie de fuera publica un recibo');
+    const rechazo = await firmar({ kind: 7703, created_at: 1, tags: [['g', 'a'.repeat(64)]], content: '{}' }, k.privada);
+    assert.match((await rele.publicar(rechazo)).motivo, /solo los firma la autoridad/, 'ni un rechazo');
   });
 
   test('relé: el recibo 7701 lo firma el relé, lleva e/g/h y el instante de llegada (X.6.8.1)', async () => {
@@ -226,8 +258,37 @@ describe('sim aarpia: servicio HTTP', () => {
     const sin = await s.manejar(new Request(BASE + '/recibo?eje=vg&id=' + 'e'.repeat(64), { headers: { 'X-Clave-Lectura': claveLectura } }));
     assert.equal(sin.status, 404);
     assert.deepEqual(await sin.json(), { error: 'sin recibo para ese id en ese eje', codigo: 'sin-recibo' });
+    // Eje que no existe = clave mala (#106): el mismo 401 con el mismo cuerpo, sin revelar qué ejes hay.
     const nadie = await s.manejar(new Request(BASE + '/recibo?eje=nadie&id=' + ev.pago.id, { headers: { 'X-Clave-Lectura': claveLectura } }));
-    assert.deepEqual([nadie.status, (await nadie.json()).codigo], [404, 'eje-desconocido']);
+    const mala = await s.manejar(new Request(BASE + '/recibo?eje=vg&id=' + ev.pago.id, { headers: { 'X-Clave-Lectura': 'x' } }));
+    assert.equal(nadie.status, 401);
+    assert.deepEqual(await nadie.json(), { error: 'clave de lectura ausente o incorrecta', codigo: 'clave' });
+    assert.equal(mala.status, 401);
+    assert.deepEqual(await mala.json(), { error: 'clave de lectura ausente o incorrecta', codigo: 'clave' });
+    const sinClave = await s.manejar(new Request(BASE + '/recibo?eje=nadie&id=' + ev.pago.id));
+    assert.equal(sinClave.status, 401, 'también sin clave');
+  });
+
+  test('servicio: /recibo y /sello con eje inexistente dan el mismo 401, con el mismo cuerpo, que con la clave mala', async () => {
+    const ev = await eventos();
+    const s = crearServicio({ sellador: selladorDeMentira() });
+    const { claveLectura } = await recorrido(s.manejar, ev);
+    for (const ruta of ['/recibo', '/sello']) {
+      const peticiones = [
+        ['clave mala', '?eje=vg&id=' + ev.pago.id, 'x'],
+        ['eje inexistente', '?eje=nadie&id=' + ev.pago.id, claveLectura],
+        ['eje inexistente, clave mala', '?eje=nadie&id=' + ev.pago.id, 'x'],
+        ['eje inexistente, sin clave', '?eje=nadie&id=' + ev.pago.id, null],
+      ];
+      const respuestas = [];
+      for (const [, q, clave] of peticiones) {
+        const r = await s.manejar(new Request(BASE + ruta + q, { headers: clave ? { 'X-Clave-Lectura': clave } : {} }));
+        respuestas.push([r.status, await r.text()]);
+      }
+      for (const [i, r] of respuestas.entries()) assert.deepEqual(r, respuestas[0], ruta + ': ' + peticiones[i][0] + ' = clave mala');
+      assert.equal(respuestas[0][0], 401);
+      assert.deepEqual(JSON.parse(respuestas[0][1]), { error: 'clave de lectura ausente o incorrecta', codigo: 'clave' });
+    }
   });
 
   test('paridad con el servidor de prueba de AGRAM ', async () => {
@@ -349,5 +410,376 @@ describe('sim aarpia: Blossom y archivos', () => {
     const nuestro = crearServicio();
     const claveB = await eje(nuestro);
     assert.deepEqual(await recorrido(nuestro.manejar, claveB), await recorrido(deAgram, claveA));
+  });
+});
+
+describe('sim aarpia: autoridad del libro', () => {
+  const T = '2026-11-12T12:00:00+01:00';
+  const gastaT = (de, cantidad = 1) => ({ token: 'T', escala: 'minuto', cantidad, de, a: null });
+  const BASE = 'http://p/functions/v1/eventos';
+  /** Un eje de la carta con su génesis firmado, y una forma de escribir eventos candidatos sin añadirlos. */
+  async function carta() {
+    const c = await clavesAgram();
+    const eje = await Eje.genesis({ identidad: 'vg', foco: ['mi eje'], t: T, clave: c.publica, privada: c.privada, exigirFirmas: true });
+    const candidato = async (datos) => firmarAgram(await crearEvento({ autor: 'vg', sobre: eje.genesisId, t: T, ...datos }), c.privada);
+    return { c, eje, genesis: eje.obtener(eje.genesisId), candidato };
+  }
+  
+  async function servicioConEje(genesis) {
+    const s = crearServicio({ autoridad: new Autoridad() });
+    const r = await s.manejar(new Request(BASE + '/ejes', { method: 'POST', headers: { 'X-Crear-Ejes': 'prueba' }, body: JSON.stringify({ eje: 'vg' }) }));
+    const { claveLectura } = await r.json();
+    const subir = async (evento) => {
+      const x = await s.manejar(new Request(BASE, { method: 'POST', headers: { 'X-Clave-Lectura': claveLectura, 'Content-Type': 'application/json' }, body: JSON.stringify({ eje: 'vg', evento }) }));
+      return { estado: x.status, cuerpo: await x.json() };
+    };
+    assert.equal((await subir(genesis)).estado, 201);
+    return { s, subir, claveLectura };
+  }
+  
+  test('autoridad: acepta con 7701 (nucleo, epoca) y rechaza con 422 + 7703 firmado con la causa dentro', async () => {
+    const { c, genesis, candidato } = await carta();
+    const { s, subir, claveLectura } = await servicioConEje(genesis);
+    const llegan = [];
+    s.rele.suscribir([{ kinds: [KIND_RECHAZO], '#p': [c.publica] }], (ev) => llegan.push(ev));
+  
+    const bien = await candidato({ movimientos: [gastaT('vg')], payload: ['hola'] });
+    assert.equal((await subir(bien)).estado, 201);
+    const sobre = s.rele.consultar({ kinds: [KIND_EVENTO], '#g': [bien.id] })[0];
+    const recibo = s.rele.reciboDe(sobre.id);
+    assert.equal(recibo.kind, KIND_RECIBO);
+    assert.deepEqual(valores(recibo, 'nucleo'), [NUCLEO.commit]);
+    assert.deepEqual(valores(recibo, 'epoca'), [genesis.contexto.epoca], 'la época que referencia el libro');
+  
+    const mal = await candidato({ movimientos: [gastaT('vg'), { token: 'E', emisor: 'vg', denominacion: 'EUR', cantidad: 5, de: 'vg', a: 'otro' }], payload: ['pago'] });
+    const r = await subir(mal);
+    assert.equal(r.estado, 422);
+    assert.deepEqual(r.cuerpo.reason, ['saldo insuficiente de E:vg/EUR en vg']);
+    assert.equal(r.cuerpo.id, mal.id);
+    assert.equal(r.cuerpo.nucleo, NUCLEO.commit);
+    assert.equal(r.cuerpo.epoca, genesis.contexto.epoca);
+    assert.match(r.cuerpo.error, /^evento rechazado: saldo insuficiente/);
+  
+    const [rechazo] = s.rele.consultar({ kinds: [KIND_RECHAZO], '#g': [mal.id] });
+    assert.equal(rechazo.id, r.cuerpo.rechazo);
+    assert.equal(rechazo.pubkey, s.autoridad.publica, 'lo firma la autoridad');
+    assert.equal(await verificar(rechazo), true);
+    assert.deepEqual(valores(rechazo, 'h'), ['vg']);
+    assert.deepEqual(valores(rechazo, 'p'), [c.publica], 'el autor lo recibe por su #p');
+    const dentro = JSON.parse(rechazo.content);
+    assert.equal(dentro.schema, 'stateark.recibo@1', 'el content es el recibo único');
+    assert.equal(leerRecibo(dentro).clase, 'rechazo');
+    assert.deepEqual(leerRecibo(dentro).causa, r.cuerpo.reason, 'la causa va dentro, como lista, nunca vacía');
+    assert.equal(dentro.evento.id, mal.id, 'el evento rechazado queda como contenido');
+    assert.deepEqual(llegan.map((e) => e.id), [rechazo.id]);
+  
+    // Reenviar lo rechazado: otra vez 422, el mismo 7703, sin duplicar.
+    assert.equal((await subir(mal)).cuerpo.rechazo, rechazo.id);
+    assert.equal(s.rele.consultar({ kinds: [KIND_RECHAZO] }).length, 1);
+    // Lo rechazado no entra en el libro: bajar da el génesis y el bueno.
+    const b = await s.manejar(new Request(BASE + '?eje=vg&desde=0', { headers: { 'X-Clave-Lectura': claveLectura } }));
+    assert.deepEqual((await b.json()).eventos.map((e) => e.evento.id), [genesis.id, bien.id]);
+  });
+  
+  test('autoridad: la firma tocada sigue siendo 400 sin 7703; lo que el transporte admite y el núcleo no, 422 con 7703', async () => {
+    const { c, genesis } = await carta();
+    const { s, subir } = await servicioConEje(genesis);
+    // Sin movimientos: crearEvento no lo construye, así que se firma a mano.
+    const crudo = { autor: 'vg', sobre: genesis.id, en: '0000000000', t: T, movimientos: [], payload: ['nada'], contexto: {} };
+    crudo.id = await hash(canonico(cuerpo(crudo)));
+    const sinMov = await firmarAgram(crudo, c.privada);
+    assert.equal((await subir({ ...sinMov, firma: 'f'.repeat(128) })).estado, 400, 'firma tocada');
+    const r = await subir(sinMov);
+    assert.equal(r.estado, 422, 'forma válida para el transporte, pero el núcleo la rechaza');
+    assert.ok(r.cuerpo.reason.length >= 1 && r.cuerpo.reason.every((x) => typeof x === 'string' && x));
+    assert.equal(s.rele.consultar({ kinds: [KIND_RECHAZO] }).length, 1, 'solo el juzgado por reglas tiene 7703');
+  });
+  
+  test('paridad: mismo evento, mismo veredicto en la carta y en la autoridad (las dos con el núcleo de este repo)', async () => {
+    const vivo = { Eje };
+    const c = await clavesAgram();
+    const laCarta = await vivo.Eje.genesis({ identidad: 'vg', foco: ['mi eje'], t: T, clave: c.publica, privada: c.privada, exigirFirmas: true });
+    const genesis = laCarta.obtener(laCarta.genesisId);
+    const { subir } = await servicioConEje(genesis);
+    const firmarDatos = async (datos) => firmarAgram(await crearEvento({ autor: 'vg', sobre: laCarta.genesisId, t: T, ...datos }), c.privada);
+    const casos = [
+      { movimientos: [gastaT('vg')], payload: ['uno'] },
+      { movimientos: [gastaT('vg'), { token: 'E', emisor: 'vg', denominacion: 'EUR', cantidad: 5, de: 'vg', a: 'otro' }], payload: ['pago sin saldo'] },
+      { movimientos: [gastaT('vg', 2)], payload: ['dos minutos'] },
+      { movimientos: [gastaT('vg', 100000)], payload: ['más T del que hay'] },
+      { movimientos: [gastaT('vg')], payload: [['una', 'décupla'], ['x']] },
+    ];
+    let aceptados = 0;
+    let rechazados = 0;
+    for (const datos of casos) {
+      const ev = await firmarDatos(datos);
+      const enLaCarta = await laCarta.validar(ev);
+      const enAarpia = await subir(ev);
+      const veredicto = enAarpia.estado === 201 ? [] : enAarpia.cuerpo.reason;
+      assert.deepEqual(veredicto, enLaCarta, 'mismo evento, mismo veredicto: ' + datos.payload[0]);
+      if (!enLaCarta.length) {
+        await laCarta.anadir(ev);
+        aceptados++;
+      } else rechazados++;
+    }
+    assert.ok(aceptados >= 2 && rechazados >= 2, 'la prueba ejercita las dos salidas (' + aceptados + ' / ' + rechazados + ')');
+  });
+  
+});
+
+describe('sim aarpia: recibo único (stateark.recibo@1)', () => {
+  const T = '2026-11-12T12:00:00+01:00';
+  const BASE = 'http://p/functions/v1/eventos';
+  /** Un servicio con autoridad, un génesis, uno aceptado y uno rechazado. */
+  async function aceptadoYRechazado() {
+    const s = crearServicio({ autoridad: new Autoridad() });
+    const c = await clavesAgram();
+    const carta = await Eje.genesis({ identidad: 'vg', foco: ['mi eje'], t: T, clave: c.publica, privada: c.privada, exigirFirmas: true });
+    const { claveLectura } = await (await s.manejar(new Request(BASE + '/ejes', { method: 'POST', headers: { 'X-Crear-Ejes': 'prueba' }, body: JSON.stringify({ eje: 'vg' }) }))).json();
+    const subir = (evento) => s.manejar(new Request(BASE, { method: 'POST', headers: { 'X-Clave-Lectura': claveLectura, 'Content-Type': 'application/json' }, body: JSON.stringify({ eje: 'vg', evento }) }));
+    const cand = async (datos) => firmarAgram(await crearEvento({ autor: 'vg', sobre: carta.genesisId, t: T, ...datos }), c.privada);
+    const genesis = carta.obtener(carta.genesisId);
+    const bien = await cand({ movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: 'vg', a: null }], payload: ['hola'] });
+    const mal = await cand({ movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: 'vg', a: null }, { token: 'E', emisor: 'vg', denominacion: 'EUR', cantidad: 5, de: 'vg', a: 'otro' }], payload: ['pago'] });
+    await subir(genesis);
+    await subir(bien);
+    await subir(mal);
+    const sobreBien = s.rele.consultar({ kinds: [7700], '#g': [bien.id] })[0];
+    const aceptado = JSON.parse(s.rele.reciboDe(sobreBien.id).content);
+    const rechazado = JSON.parse(s.rele.consultar({ kinds: [KIND_RECHAZO], '#g': [mal.id] })[0].content);
+    return { s, genesis, bien, mal, aceptado, rechazado };
+  }
+
+  test('recibo único: 7701 de llegada (sin autoridad), de aceptación y 7703 de rechazo (con autoridad)', async () => {
+    // Sin autoridad: «llegada», firmado por el relé.
+    const rele = new Rele();
+    const { vg, genesis } = await ejeDePrueba();
+    const { recibo } = await rele.publicar(await envolver({ evento: genesis, eje: 'prueba', privada: vg.privada }));
+    const llegada = JSON.parse(recibo.content);
+    assert.equal(await verificarRecibo(llegada), true);
+    assert.deepEqual([leerRecibo(llegada).clase, llegada.emisor, leerRecibo(llegada).sujeto[0]], ['llegada', rele.publica, genesis.id]);
+    assert.ok(leerRecibo(llegada).noAfirma.length >= 1, 'lo que NO afirma, nunca vacío');
+
+    // Con autoridad: «aceptación» y «rechazo», los dos firmados por la autoridad, con núcleo y época.
+    const { s, genesis: g2, bien, mal, aceptado, rechazado } = await aceptadoYRechazado();
+    for (const r of [aceptado, rechazado]) {
+      assert.equal(await verificarRecibo(r), true);
+      assert.equal(r.emisor, s.autoridad.publica);
+      assert.equal(leerRecibo(r).nucleo, NUCLEO.commit);
+      assert.equal(leerRecibo(r).epoca, g2.contexto.epoca);
+    }
+    assert.deepEqual([leerRecibo(aceptado).clase, leerRecibo(aceptado).sujeto[0]], ['aceptación', bien.id]);
+    assert.deepEqual([leerRecibo(rechazado).clase, leerRecibo(rechazado).sujeto[0]], ['rechazo', mal.id]);
+    assert.deepEqual(leerRecibo(rechazado).causa, ['saldo insuficiente de E:vg/EUR en vg']);
+    assert.equal(rechazado.evento.id, mal.id, 'el evento rechazado va al lado, fuera del hash');
+    // Tocar el recibo rompe su id.
+    assert.equal(await verificarRecibo({ ...aceptado, t: '2030-01-01T00:00:00.000Z' }), false);
+  });
+});
+
+describe('sim aarpia: espejo hacia relés Nostr', () => {
+  /** Un relé remoto falso: recibe EVENT, guarda y contesta OK (o se cae cuando se le pide). */
+  function releFalso() {
+    const recibidos = [];
+    const sockets = [];
+    let caido = false;
+    class WSFalso {
+      constructor(url) {
+        this.url = url;
+        sockets.push(this);
+        queueMicrotask(() => (caido ? this.onclose?.() : this.onopen?.()));
+      }
+      send(texto) {
+        const [tipo, ev] = JSON.parse(texto);
+        assert.equal(tipo, 'EVENT');
+        const ya = recibidos.some((x) => x.id === ev.id);
+        if (!ya) recibidos.push(ev);
+        queueMicrotask(() => this.onmessage?.({ data: JSON.stringify(['OK', ev.id, !ya, ya ? 'duplicate: ya estaba' : '']) }));
+      }
+      close() { this.onclose?.(); }
+    }
+    return { WSFalso, recibidos, sockets, caer: () => { caido = true; for (const s of sockets) s.close(); }, levantar: () => { caido = false; } };
+  }
+
+  const esperar = () => new Promise((ok) => setTimeout(ok, 5));
+
+  test('espejo: lo que guarda el relé (7700 y su recibo 7701) llega al relé remoto, en orden y una vez', async () => {
+    const remoto = releFalso();
+    const espejo = crearEspejo({ urls: ['ws://strfry.casa:7777'], WS: remoto.WSFalso });
+    const rele = new Rele({ alGuardar: espejo.enviar });
+    const { vg, genesis, alta } = await ejeDePrueba();
+    for (const ev of [genesis, alta]) await rele.publicar(await envolver({ evento: ev, eje: 'prueba', privada: vg.privada }));
+    await esperar();
+    assert.deepEqual(remoto.recibidos.map((e) => e.kind), [7700, 7701, 7700, 7701], 'cada evento y su recibo, en orden de llegada');
+    assert.deepEqual(remoto.recibidos.map((e) => e.id), rele.enOrden().map((e) => e.id));
+    assert.deepEqual(espejo.estado(), [{ url: 'ws://strfry.casa:7777', pendientes: 0, confirmados: 4, conectado: true }]);
+    assert.equal(remoto.sockets.length, 1, 'una sola conexión');
+  });
+
+  test('espejo: si el remoto se cae, la cola espera y reintenta; al volver, llega todo sin duplicar', async () => {
+    const remoto = releFalso();
+    const temporizados = [];
+    const avisos = [];
+    const espejo = crearEspejo({ urls: ['ws://strfry.casa:7777'], WS: remoto.WSFalso, temporizador: (ms, f) => temporizados.push({ ms, f }), aviso: (m) => avisos.push(m) });
+    const rele = new Rele({ alGuardar: espejo.enviar });
+    const { vg, genesis, alta } = await ejeDePrueba();
+    await rele.publicar(await envolver({ evento: genesis, eje: 'prueba', privada: vg.privada }));
+    await esperar();
+    assert.equal(remoto.recibidos.length, 2);
+    remoto.caer();
+    await rele.publicar(await envolver({ evento: alta, eje: 'prueba', privada: vg.privada }));
+    await esperar();
+    assert.equal(espejo.estado()[0].pendientes, 2, 'el 7700 y su 7701 esperan');
+    assert.ok(temporizados.length >= 1 && temporizados[0].ms === 1000, 'reintento con espera');
+    assert.ok(avisos.some((m) => /sin conexión/.test(m)), 'la caída se dice');
+    remoto.levantar();
+    temporizados.shift().f();
+    await esperar();
+    assert.equal(remoto.recibidos.length, 4, 'llega lo pendiente');
+    assert.equal(new Set(remoto.recibidos.map((e) => e.id)).size, 4, 'sin duplicados');
+    assert.equal(espejo.estado()[0].pendientes, 0);
+  });
+});
+
+describe('sim aarpia: libro persistente y revalidar', () => {
+  const T = '2026-11-12T12:00:00+01:00';
+  const BASE = 'http://p/functions/v1/eventos';
+  const gastaT = (de, cantidad = 1) => ({ token: 'T', escala: 'minuto', cantidad, de, a: null });
+  const dir = mkdtempSync(join(tmpdir(), 'aarpia-libro-'));
+  after(() => rmSync(dir, { recursive: true, force: true }));
+
+  /** Un libro guardado en disco: génesis, uno aceptado y uno rechazado. */
+  async function libroGuardado(nombre) {
+    const archivo = join(dir, nombre + '.jsonl');
+    const c = await clavesAgram();
+    const carta = await Eje.genesis({ identidad: 'vg', foco: ['mi eje'], t: T, clave: c.publica, privada: c.privada, exigirFirmas: true });
+    const candidato = async (datos) => firmarAgram(await crearEvento({ autor: 'vg', sobre: carta.genesisId, t: T, ...datos }), c.privada);
+    const s = crearServicio({ autoridad: new Autoridad(), archivo });
+    await s.abrir();
+    const { claveLectura } = await (await s.manejar(new Request(BASE + '/ejes', { method: 'POST', headers: { 'X-Crear-Ejes': 'prueba' }, body: JSON.stringify({ eje: 'vg' }) }))).json();
+    const subirA = (serv) => async (evento) => {
+      const r = await serv.manejar(new Request(BASE, { method: 'POST', headers: { 'X-Clave-Lectura': claveLectura, 'Content-Type': 'application/json' }, body: JSON.stringify({ eje: 'vg', evento }) }));
+      return { estado: r.status, cuerpo: await r.json() };
+    };
+    const genesis = carta.obtener(carta.genesisId);
+    const bien = await candidato({ movimientos: [gastaT('vg')], payload: ['hola'] });
+    const mal = await candidato({ movimientos: [gastaT('vg'), { token: 'E', emisor: 'vg', denominacion: 'EUR', cantidad: 5, de: 'vg', a: 'otro' }], payload: ['pago'] });
+    assert.equal((await subirA(s)(genesis)).estado, 201);
+    assert.equal((await subirA(s)(bien)).estado, 201);
+    const rechazo = (await subirA(s)(mal)).cuerpo.rechazo;
+    return { archivo, claveLectura, subirA, genesis, bien, mal, rechazo, candidato };
+  }
+
+  test('persistencia: tras reiniciar, el libro, los recibos, los rechazos y el juicio siguen igual', async () => {
+    const l = await libroGuardado('reinicio');
+    assert.ok(existsSync(l.archivo) && existsSync(l.archivo + '.ejes.json'));
+    const s2 = crearServicio({ autoridad: new Autoridad(), archivo: l.archivo });
+    assert.ok((await s2.abrir()) >= 5, 'génesis, bien, sus dos recibos y el rechazo');
+    const bajar = await (await s2.manejar(new Request(BASE + '?eje=vg&desde=0', { headers: { 'X-Clave-Lectura': l.claveLectura } }))).json();
+    assert.deepEqual(bajar.eventos.map((e) => [e.orden, e.evento.id]), [[1, l.genesis.id], [2, l.bien.id]]);
+    assert.equal((await s2.manejar(new Request(BASE + '/recibo?eje=vg&id=' + l.bien.id, { headers: { 'X-Clave-Lectura': l.claveLectura } }))).status, 200);
+    const otraVez = await l.subirA(s2)(l.mal);
+    assert.deepEqual([otraVez.estado, otraVez.cuerpo.rechazo], [422, l.rechazo], 'el mismo rechazo, sin otro 7703');
+    // La autoridad restaurada juzga sobre el estado de antes: lo siguiente entra en su orden.
+    const siguiente = await l.candidato({ movimientos: [gastaT('vg')], payload: ['después de reiniciar'] });
+    const r = await l.subirA(s2)(siguiente);
+    assert.equal(r.estado, 201);
+    assert.equal(r.cuerpo.orden, 3);
+  });
+
+  test('revalidar: con el mismo núcleo ningún veredicto cambia; con uno que cambia una regla, se dice cuál', async () => {
+    const l = await libroGuardado('revalidar');
+    const rele = new Rele({ archivo: l.archivo });
+    await rele.abrir();
+    const igual = await revalidar({ eventos: rele.enOrden(), Eje });
+    assert.deepEqual({ ejes: igual.ejes, juzgados: igual.juzgados, diferencias: igual.diferencias, avisos: igual.avisos }, { ejes: 1, juzgados: 3, diferencias: [], avisos: [] });
+
+    // Un núcleo «nuevo» cuya regla rechaza todo lo que no es el génesis.
+    const Estricto = { desde: async (evs, o) => Object.assign(await Eje.desde(evs, o), { validar: async () => ['regla nueva: no'] }) };
+    const r = await revalidar({ eventos: rele.enOrden(), Eje: Estricto });
+    assert.equal(r.diferencias.length, 1);
+    assert.deepEqual(r.diferencias[0], { eje: 'vg', id: l.bien.id, antes: 'aceptado', ahora: ['regla nueva: no'] });
+
+    // Uno que solo cambia el texto del rechazo: aviso, no bloqueo.
+    const OtroTexto = { desde: async (evs, o) => { const e = await Eje.desde(evs, o); const v = e.validar.bind(e); return Object.assign(e, { validar: async (x) => (await v(x)).map((t) => t.toUpperCase()) }); } };
+    const t = await revalidar({ eventos: rele.enOrden(), Eje: OtroTexto });
+    assert.deepEqual([t.diferencias.length, t.avisos.length], [0, 1]);
+  });
+
+  test('seguridad: un 7700 que no pasó por la autoridad ni entra ni cuenta como aceptado al restaurar o revalidar', async () => {
+    const l = await libroGuardado('intruso');
+    const intruso = generarClaves();
+    const evIntruso = await l.candidato({ movimientos: [gastaT('vg')], payload: ['colado'] });
+    const sobre = await firmar({ kind: 7700, created_at: 1, tags: [['g', evIntruso.id], ['h', 'vg']], content: JSON.stringify(evIntruso) }, intruso.privada);
+
+    // 1. Con autoridad, el relé no admite un 7700 de fuera.
+    const s = crearServicio({ autoridad: new Autoridad(), archivo: l.archivo });
+    await s.abrir();
+    assert.match((await s.rele.publicar(sobre)).motivo, /solo entra por el servicio/);
+
+    // 2. Si alguien lo coló en el archivo por un relé sin autoridad (recibo sin `nucleo`), no cuenta.
+    const sinAutoridad = new Rele({ archivo: l.archivo });
+    await sinAutoridad.abrir();
+    assert.equal((await sinAutoridad.publicar(sobre)).ok, true);
+    const s2 = crearServicio({ autoridad: new Autoridad(), archivo: l.archivo });
+    await s2.abrir();
+    const bajar = await (await s2.manejar(new Request(BASE + '?eje=vg&desde=0', { headers: { 'X-Clave-Lectura': l.claveLectura } }))).json();
+    assert.deepEqual(bajar.eventos.map((e) => e.evento.id), [l.genesis.id, l.bien.id], 'el colado no aparece en el libro');
+    assert.equal(s2.autoridad.ejes.get('vg').eventos.has(evIntruso.id), false, 'ni en el libro de la autoridad');
+    const r = new Rele({ archivo: l.archivo });
+    await r.abrir();
+    assert.equal((await revalidar({ eventos: r.enOrden(), Eje })).juzgados, 3, 'ni como decisión al revalidar');
+  });
+});
+
+describe('sim aarpia: sellado de recibos', () => {
+  test('sellado: cada 7701 entra en un lote; /sello da la prueba (sellador de mentira, con la forma de stateark/sim)', async () => {
+    const BASE = 'http://p/functions/v1/eventos';
+    const sellador = selladorDeMentira();
+    const s = crearServicio({ autoridad: new Autoridad(), sellador, lote: 2 });
+    const T = '2026-11-12T12:00:00+01:00';
+    const c = await clavesAgram();
+    const carta = await Eje.genesis({ identidad: 'vg', foco: ['mi eje'], t: T, clave: c.publica, privada: c.privada, exigirFirmas: true });
+    const { claveLectura } = await (await s.manejar(new Request(BASE + '/ejes', { method: 'POST', headers: { 'X-Crear-Ejes': 'prueba' }, body: JSON.stringify({ eje: 'vg' }) }))).json();
+    const h = { 'X-Clave-Lectura': claveLectura, 'Content-Type': 'application/json' };
+    const subir = (evento) => s.manejar(new Request(BASE, { method: 'POST', headers: h, body: JSON.stringify({ eje: 'vg', evento }) }));
+    const sello = async (id) => {
+      const r = await s.manejar(new Request(BASE + '/sello?eje=vg&id=' + id, { headers: h }));
+      return { estado: r.status, cuerpo: await r.json() };
+    };
+    const nuevo = async (p) => firmarAgram(await crearEvento({ autor: 'vg', sobre: carta.genesisId, t: T, movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: 'vg', a: null }], payload: [p] }), c.privada);
+    const genesis = carta.obtener(carta.genesisId);
+    const uno = await nuevo('uno');
+    const dos = await nuevo('dos');
+    assert.equal((await subir(genesis)).status, 201);
+    assert.equal((await subir(uno)).status, 201); // segundo recibo: se cierra el lote de 2
+    assert.equal((await subir(dos)).status, 201); // tercero: queda por sellar
+
+    const antes = await sello(uno.id);
+    assert.equal(antes.estado, 200);
+    assert.equal(antes.cuerpo.prueba.pendiente, true);
+    assert.equal(antes.cuerpo.verificacion.ok, false);
+    assert.deepEqual([(await sello(dos.id)).estado, (await sello(dos.id)).cuerpo.codigo], [404, 'sin-sellar']);
+
+    await s.sellarPendientes();
+    const bloque = sellador.minar();
+    for (const ev of [genesis, uno, dos]) {
+      const r = await sello(ev.id);
+      assert.equal(r.estado, 200);
+      assert.equal(r.cuerpo.verificacion.ok, true, 'sellado y comprobado: ' + ev.id.slice(0, 8));
+      assert.equal(r.cuerpo.verificacion.altura, bloque.altura);
+      // Lo sellado es el 7701, que lleva con qué núcleo y qué época se aceptó.
+      const recibo = s.rele.consultar({ ids: [r.cuerpo.recibo] })[0];
+      assert.deepEqual(valores(recibo, 'nucleo'), [NUCLEO.commit]);
+      assert.deepEqual(valores(recibo, 'epoca'), [genesis.contexto.epoca]);
+    }
+    const r = await sello(uno.id);
+    assert.equal((await sellador.verificar(r.cuerpo.recibo, { ...r.cuerpo.prueba, hash: 'f'.repeat(64) })).ok, false, 'una prueba tocada no pasa');
+    // Sin sellador, /sello lo dice.
+    const sin = crearServicio();
+    const { claveLectura: k2 } = await (await sin.manejar(new Request(BASE + '/ejes', { method: 'POST', headers: { 'X-Crear-Ejes': 'prueba' }, body: JSON.stringify({ eje: 'vg' }) }))).json();
+    await sin.manejar(new Request(BASE, { method: 'POST', headers: { 'X-Clave-Lectura': k2, 'Content-Type': 'application/json' }, body: JSON.stringify({ eje: 'vg', evento: genesis }) }));
+    const nada = await sin.manejar(new Request(BASE + '/sello?eje=vg&id=' + genesis.id, { headers: { 'X-Clave-Lectura': k2 } }));
+    assert.deepEqual([nada.status, (await nada.json()).codigo], [404, 'sin-sellador']);
   });
 });
