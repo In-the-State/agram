@@ -29,7 +29,7 @@ import { RAIZ, validarForma, verificarId, esPresente } from './evento.js';
 import { verificar, verificarPosesion, clavePublicaValida } from './autoridad.js';
 import { claveToken, validarMovimiento, asignacionT, AMBITO_GENESIS, raizDeAmbito } from './tokens.js';
 import { EMITEN_V2, motivoTipo, motivoAjenos, gastaAsignacion, esInformativoT, repartirGastoT, T_NO_SE_EMITE, SIN_TIPO } from './ciclo.js';
-import { EPOCA_0, EPOCA_0_BTML, leerDireccion } from './epocas.js';
+import { EPOCA_0, EPOCAS_POR_ID, epocaDelEje, leerDireccion } from './epocas.js';
 import { evaluar, consultar, esFormula } from './bql.js';
 import { seguir } from './encaje.js';
 import { cerrado } from './motor.js';
@@ -146,7 +146,7 @@ function condicionesDe(libro, ev) {
     // restaurar; solo por el suelo.
     const genesis = ev.contexto?.genesis === true && libro.reglas !== 2;
     libro.motivos = [
-      ...(genesis ? [] : motivosDeReglas(ctx)),
+      ...(genesis ? [] : motivosDeReglas(ctx, ctx.epoca)),
       ...motivosDe(CONDICIONES_DEL_CICLO, libro.eje.transaccion(ev), libro.eje.libro, ctx),
     ];
   }
@@ -175,7 +175,7 @@ function planP(eje, ver, identidad, m) {
 function vistaCon(eje, ev, id) {
   if (eje.obtener(id) === ev) return eje;
   const orden = eje.orden.includes(id) ? eje.orden : [...eje.orden, id];
-  return { obtener: (x) => (x === id ? ev : eje.obtener(x)), orden, sobre: (x, en) => eje.sobre(x, en) };
+  return { obtener: (x) => (x === id ? ev : eje.obtener(x)), orden, sobre: (x, en) => eje.sobre(x, en), epoca: () => epocaDelEje(eje) };
 }
 
 // ---------- 1 · forma y época ----------
@@ -215,9 +215,10 @@ function capaForma(ev, epoca, { tLaxo = false } = {}) {
  * PENDIENTE»). Cadena sin fin → falla.
  */
 function leerReferencia(vista, nodo) {
-  // La época 0 y los registros de sus reglas se resuelven siempre (encargo 3b: una invitación referencia la época en
-  // su 2), como en el eje (src/condiciones/evento.js, referenciasAusentes).
-  if (nodo.ref === EPOCA_0_BTML.id || EPOCA_0_BTML.registros.has(nodo.ref)) return { s: { evento: nodo.ref, procedencia: 'época 0' }, estado: 'ok', texto: null };
+  // La época del eje y los registros de sus reglas se resuelven siempre (encargo 3b: una invitación referencia la época
+  // en su 2), como en el eje (src/condiciones/evento.js, referenciasAusentes; #107: la escrita en su libro, o la 0).
+  const e = epocaDelEje(vista);
+  if (nodo.ref === e.id || e.ids?.includes(nodo.ref) || EPOCAS_POR_ID.get(nodo.ref) === e || e.registros.has(nodo.ref)) return { s: { evento: nodo.ref, procedencia: e.nombre }, estado: 'ok', texto: null };
   const s = seguir(vista, nodo);
   if (s.rota && !vista.obtener(s.evento)) return { s, estado: 'pendiente', texto: 'referencia a un evento ausente del eje: ' + corto(s.evento) };
   if (s.rota) return { s, estado: 'falla', texto: 'cadena de referencias sin fin desde ' + corto(nodo.ref) };

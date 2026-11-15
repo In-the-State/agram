@@ -10,13 +10,14 @@
 // movimiento concreto: el libro no lo simula y su motivo va en su sitio
 // entre los fallos de la aritmética (src/libro.js, probar).
 
-import { FORMA, ID, NUEVO, UN_GENESIS, REFERENCIAS, AUTOR_CON_ALTA } from './evento.js';
+import { FORMA, ID, NUEVO, UN_GENESIS, EPOCA, REFERENCIAS, AUTOR_CON_ALTA } from './evento.js';
 import { FIRMA, CLAVES, TIPOS, GENESIS, FIRMA_GENESIS } from './identidad.js';
 import { CONDICIONES_DEL_CICLO } from './ciclo.js';
-import { CONDICIONES_DE_LA_EPOCA } from './reglas.js';
+import { CONDICIONES_DE_LA_EPOCA, condicionDeRegla } from './reglas.js';
+import { EPOCA_0_BTML } from '../epocas.js';
 import { CONDICIONES_DEL_TOPE } from './tope.js';
 
-export { FORMA, ID, NUEVO, UN_GENESIS, REFERENCIAS, AUTOR_CON_ALTA } from './evento.js';
+export { FORMA, ID, NUEVO, UN_GENESIS, EPOCA, REFERENCIAS, AUTOR_CON_ALTA } from './evento.js';
 export { FIRMA, CLAVES, TIPOS, GENESIS, FIRMA_GENESIS, erroresGenesis, erroresFirmaGenesis } from './identidad.js';
 export { CONDICIONES_DEL_CICLO } from './ciclo.js';
 export { CONDICIONES_DE_LA_EPOCA, veredictosDe, motivoDeRegla, condicionDeRegla, filasDeRegla } from './reglas.js';
@@ -32,12 +33,33 @@ export const CONDICIONES_DE_R = Object.freeze([]);
  * escalonado, R, la atención y la invitación son reglas de la época.
  */
 export const CONDICIONES = Object.freeze([
-  FORMA, ID, NUEVO, UN_GENESIS, REFERENCIAS, AUTOR_CON_ALTA,
+  FORMA, ID, NUEVO, UN_GENESIS, EPOCA, REFERENCIAS, AUTOR_CON_ALTA,
   FIRMA, CLAVES, TIPOS,
   ...CONDICIONES_DE_LA_EPOCA,
   ...CONDICIONES_DEL_CICLO,
   ...CONDICIONES_DEL_TOPE,
 ]);
+
+const POR_EPOCA = new WeakMap();
+
+/**
+ * Las condiciones de un evento en un eje cuya época es `epoca` (VG, 14-11, #107: la época vive en el eje): las mismas que
+ * CONDICIONES, con las reglas del 2 de ESA época (resuelta: con las que hereda) en el sitio de las de la época 0. Con la
+ * época 0, CONDICIONES mismas.
+ */
+export function condicionesDe(epoca = EPOCA_0_BTML) {
+  if (!epoca || epoca === EPOCA_0_BTML) return CONDICIONES;
+  if (!POR_EPOCA.has(epoca)) {
+    POR_EPOCA.set(epoca, Object.freeze([
+      FORMA, ID, NUEVO, UN_GENESIS, EPOCA, REFERENCIAS, AUTOR_CON_ALTA,
+      FIRMA, CLAVES, TIPOS,
+      ...epoca.condiciones.map((r) => condicionDeRegla(r, epoca)),
+      ...CONDICIONES_DEL_CICLO,
+      ...CONDICIONES_DEL_TOPE,
+    ]));
+  }
+  return POR_EPOCA.get(epoca);
+}
 
 /**
  * Al crear un eje (Eje.genesis): el génesis es la época 0 en este eje (VG, 10-11, A2; encargo 3b), fuera del

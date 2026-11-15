@@ -24,7 +24,7 @@ import { ocupantesElegibles } from './elegibles.js';
 import { escribirDesde } from './escritura.js';
 import { partirClave, raizDeAmbito, esAnunciado, claveToken, movimientosReales } from './tokens.js';
 import { ContextoEje } from './contexto-eje.js';
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje } from './epocas.js';
 
 /**
  * La fábrica de un registro sin camino: la celda 4.0.0 (docs/MOTOR.md §4). Ahí se proponen registros
@@ -218,11 +218,11 @@ export async function registrar(eje, datos, privada) {
 }
 
 /** El contexto del BQL mínimo para leer el eje de ahora (sin candidata). */
-const contexto = (eje) => new ContextoEje(eje, { epoch: EPOCA_0_BTML });
+const contexto = (eje) => new ContextoEje(eje, { epoch: epocaDelEje(eje) });
 
 /** Lo que dice la época en epoch.9.0.k (las plantillas): { nombre → fórmula } y el nombre por defecto. */
-function plantillas(k) {
-  const decupla = EPOCA_0_BTML.registro[9][0][k];
+function plantillas(k, eje) {
+  const decupla = epocaDelEje(eje).registro[9][0][k];
   const lista = Array.isArray(decupla?.[1]) ? decupla[1] : [];
   const porNombre = new Map(lista.map((p) => [p[0][0], p[1][p[1].length - 1]]));
   const defecto = Array.isArray(decupla?.[2]) && typeof decupla[2][0] === 'string' ? decupla[2][0] : lista[0]?.[0]?.[0];
@@ -278,7 +278,7 @@ export function cierre(eje, X) {
 export function cerrado(eje, X) {
   const id = typeof X === 'string' ? X : X?.id;
   if (!eje.obtener(id)) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
-  const { porNombre, defecto } = plantillas(1);
+  const { porNombre, defecto } = plantillas(1, eje);
   // Los otros dos finales (VG 12-11, #71.2): cerrado con error y caducado, antes que la plantilla del dueño.
   const otro = finDe(eje, id, porNombre, FINES_ANTES);
   if (otro) return { cerrado: true, plantilla: otro.plantilla, estado: 'RESUELTO', motivo: null, fin: otro.fin, causa: otro.causa, plazo: otro.plazo, registro: otro.registro };
@@ -389,7 +389,7 @@ export function siguiente(eje, X, yo) {
   // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) deja de pedir pasos: no falta nada de nadie.
   const cierre = cerrado(eje, id);
   if (FINES.some((f) => f.fin === cierre.fin)) return { cerrado: true, fin: cierre.fin, ...(cierre.fin === 'caducado' ? { plazo: cierre.plazo } : { causa: cierre.causa }), faltaDeMi: [], espera: [] };
-  const { porNombre } = plantillas(3);
+  const { porNombre } = plantillas(3, eje);
   const faltaDeMi = [];
   const espera = [];
   const r = leer(eje, porNombre.get('what is missing'), id);
@@ -409,7 +409,7 @@ export function siguiente(eje, X, yo) {
     for (const m of falta.filter((x) => x.de !== yo)) espera.push({ que: texto(m), anuncio: anuncio.id, de: m.de });
   }
   // El recuento del dueño, si lo declara en su criterio.
-  if (delCriterio(eje, id, 2).some((x) => plantillas(0).porNombre.has(x))) {
+  if (delCriterio(eje, id, 2).some((x) => plantillas(0, eje).porNombre.has(x))) {
     const c = recuento(eje, id);
     if (c.pasa === false) {
       const que = 'el recuento de ' + reg.autor + ' (' + c.plantilla + ') da ' + c.valor + ' y pide ' + c.umbral;
@@ -440,8 +440,8 @@ export function siguiente(eje, X, yo) {
     const deLaInvitacion = siguiente(eje, inv.id, yo);
     fuera.faltaDeMi.push(...deLaInvitacion.faltaDeMi);
     fuera.espera.push(...deLaInvitacion.espera);
-    const plantilla = EPOCA_0_BTML.registro[3][0];
-    fuera.tutorial = EPOCA_0_BTML.registro[9][1].map((p) => (typeof p === 'number' ? { posicion: p, que: [plantilla[p]].flat()[0] } : { posicion: null, que: p }));
+    const plantilla = epocaDelEje(eje).registro[3][0];
+    fuera.tutorial = epocaDelEje(eje).registro[9][1].map((p) => (typeof p === 'number' ? { posicion: p, que: [plantilla[p]].flat()[0] } : { posicion: null, que: p }));
   }
   return fuera;
 }
@@ -473,7 +473,7 @@ function presionDe(eje, X, quien) {
 export function recuento(eje, X) {
   const id = typeof X === 'string' ? X : X?.id;
   if (!eje.obtener(id)) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
-  const { porNombre, decupla } = plantillas(0);
+  const { porNombre, decupla } = plantillas(0, eje);
   const dice = delCriterio(eje, id, 2);
   // Lo que no es una plantilla de la época y lo dice (su 5, encargo 3b-bis): «one per person» exige identidad de fuera.
   const noEncaja = new Map((Array.isArray(decupla?.[5]) ? decupla[5] : []).map((x) => [x[0][0], x[1][x[1].length - 1]]));

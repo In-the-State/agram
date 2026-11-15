@@ -191,7 +191,7 @@ test('capa cero: cada condición cita filas que están en el inventario, y van e
   assert.ok(filas.size >= 130);
   for (const c of catalogo()) for (const f of c.filas) assert.ok(filas.has(f), c.nombre + ' cita ' + f);
   assert.deepEqual(CONDICIONES.map((c) => c.nombre), [
-    'EV-1', 'suelo:id', 'suelo:nuevo', 'suelo:un-genesis', 'suelo:referencias', 'ID-1', 'suelo:firma', 'suelo:claves', 'ID-3',
+    'EV-1', 'suelo:id', 'suelo:nuevo', 'suelo:un-genesis', 'suelo:epoca', 'suelo:referencias', 'ID-1', 'suelo:firma', 'suelo:claves', 'ID-3',
     // Encargo 3a, paso 9: las reglas de la época, conectadas, en el orden de su 8.
     ...EPOCA_0_BTML.condiciones.map((r) => r[0][0]),
     // Encargo 3b: el P acuñado (PP-2), el estrechamiento (PP-5), el escalonado (ES-1) y el colateral de R (RR-3, RR-4,

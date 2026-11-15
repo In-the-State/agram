@@ -57,7 +57,7 @@
 
 import { ARIDAD, esDireccion, esReferencia, esTerminal, esLista, direccion, validarPayload } from './btml.js';
 import { contarPosiciones, nombreModo, tope, proporcionDe, alcanceDe } from './modos.js';
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { leerRegla, nombreDeRegla } from './bqlm.js';
 import { SEGUNDOS, ESCALAS_REALES } from './tokens.js';
@@ -437,7 +437,7 @@ export const REGLA_DEL_COSTE = 'the cost of writing';
  * posición, epoch.7.0.1). Una época sin esa regla cobra lo de A3 tal cual. Con `eje`, las referencias del payload se
  * siguen en él (la medida del 8 las alcanza).
  */
-export function exigido(payload, { epoca = EPOCA_0_BTML, eje = null } = {}) {
+export function exigido(payload, { eje = null, epoca = epocaDelEje(eje) } = {}) {
   const regla = (epoca?.lecturas ?? []).find((r) => nombreDeRegla(r) === REGLA_DEL_COSTE);
   if (!regla) return contarPosiciones(payload) * SEGUNDOS.minuto;
   const ctx = new ContextoEje(eje, { ev: { autor: null, payload, movimientos: [] }, epoch: epoca });

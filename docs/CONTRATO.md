@@ -405,6 +405,50 @@ niveles()         // → los quince genéricos
 
 La compra del ejemplo (con la cuenta colgando) es `list` (11 de 15: 15 posiciones, 1 de profundidad, 16 unidades); la cuenta sola, `stem` (4); un registro de una posición recién escrito, `seed`.
 
+## 5 bis. La época vive en el eje: `eje.epoca()` (VG, 14-11, #107)
+
+Las épocas son datos y **cada eje referencia la suya por id**; lo decidido con AARPIA (#63): «cada evento se juzga con la época que referencia, resuelta en el libro». Hay tres casas y cada una tiene su interfaz: la misma carta sobre el eje de cada una, con su época.
+
+**Dónde vive.** La época de un eje está **escrita en su libro**: al nacer (`Eje.genesis({ …, epoca })`), la identidad del génesis escribe, como parte de la misma apertura, la raíz de la época y los registros que referencia (reglas del 2, plantillas del 9.6.1, modelos y piezas del 9.7, la guía del 9.9), un registro por cada uno, **anclados en el génesis**, de su autor, firmados con su clave, en su mismo instante y **sin mover nada** (la misma exención de coste que el génesis). El génesis lleva `contexto.epoca` (el id de la raíz: el hash de su cuerpo canónico) y `contexto.epocaEscrita` (cuántos registros siguen); cada registro de la época, `contexto: { epoca: <id>, registroDeEpoca: true }`. Van justo detrás del génesis y antes que nada: mientras la época no está entera en el libro, ningún otro registro entra. Están en el libro (se guardan, se sincronizan y el servidor los guarda como cualquier evento firmado: la API de `eventos` no cambia) pero **no cuelgan del génesis como hijos** (`eje.hijos` no los lleva) ni mueven tokens. `eje.registrosDeLaEpoca` da sus ids y `eje.esDeLaEpoca(id)` dice si un id lo es.
+
+**La forma escrita** es `{ raiz, registros }` (`src/epocas.js`, `cargarEpocaEscrita`): `raiz` la décupla de la época, con el sentido de cada fila de `docs/BTML.md` §12, y `registros` las décuplas que referencia, cada una con el id de su cuerpo canónico. El id que nombran el génesis y los eventos es **el de la raíz tal como se escribió**.
+
+**Herencia** (Core con Core StateArk, 14-11). Una época declara su base en su **6**, que es `[[notas de procedencia…], [claves…], [valores…]]` (#77): la clave `hereda` en el 6.1 con el id de la época base en el 6.2. Sin `hereda`, la época es completa por sí misma (las diez filas; la 0 no hereda: su 6 es `[[las notas]]`). La resolución es una **lectura** (no cambia el id): una **fusión por direcciones** de la hija sobre la base:
+
+- donde la hija tiene contenido, gana el suyo; donde no lo tiene (una décupla que acaba antes), hereda el de la base;
+- como una décupla no tiene huecos (#77), la hija **marca cada posición que hereda** con `{ ref: <id de la base> }` en esa dirección («lo de la base aquí»); la resolución la sustituye por lo que la base tiene en la misma dirección, y si la base tampoco lo tiene, la carga falla diciendo qué posición;
+- las **colecciones se combinan**: el 2 (reglas), el 9.6.1 (plantillas de transacción), el 4.3 (estaciones del anuncio), el 1.2.1 (grupos de atención) y el 8.7.1 (las formas de cada mundo): las entradas de la hija se añaden a las de la base, y una entrada con el mismo 0 que una (o varias) de la base la sustituye en su sitio. Una regla nueva que dice «after <nombre>» en su 8 va detrás de esa; el 9.6.1 queda en el orden del 8 de cada plantilla. La cabecera de una colección (lo que no es entrada: hojas o listas de hojas) es la de la base seguida de la de la hija.
+
+La época resuelta tiene la forma de `cargarEpocaBtml` (§12 de `docs/BTML.md`) y además `escrita` (la raíz y los registros tal como se escribieron), `hereda` (el id de la base, o null), `base` e `ids` (el suyo y los de su cadena). Las bases que el código conoce están en `EPOCAS_POR_ID`: la 0 (con su id anterior de beta 16f30d2, `IDS_ANTERIORES_DE_LA_0`, del que hereda hoy la SIP 0) y las que se registren (`registrarEpoca`).
+
+**La fuente de verdad: `eje.epoca()`.** Devuelve la época del eje, cargada y resuelta: la escrita en su libro o, si el génesis no la escribe, la que referencia si el código la conoce, y si no **la 0 que trae el código** (`datos/epocas/epocas.js`, «la época 0 que trae el código», no la época de todo). Así los ejes de hoy, cuyo génesis nombra un id de la época 0 sin escribirla, siguen igual. Lanza si el génesis escribe su época y aún no está entera. Todo lo que leía la época del módulo la lee ahora de ahí:
+
+- el eje (`src/eje.js`): las condiciones de cada transacción son las de su época (`condicionesDe(eje.epoca())`: el suelo, las reglas del 2 de esa época y lo de JS), la obtención de P (las reglas que escriben, y su «diez por unidad»), la referencia de una invitación (su 2);
+- el contrato, las acciones, los modelos y los pasos (`src/contrato.js`, `src/acciones.js`, `src/modelos.js`, `src/pasos.js`): `opciones.epoca` si se pasa, si no la del eje (cada entrada que recibe el eje la pasa a las que no lo reciben); el motor (`src/motor.js`: el recuento, cerrado, siguiente y el tutorial del alta), la lente, el libro local, el coste exigido (`src/escritura.js`), la validez (`src/validez.js`) y el suelo de referencias (`src/condiciones/evento.js`);
+- la carta (`carta/carta.js`, `arbol`): pinta con `eje.epoca()` del eje que abre (el configurado en `sitio.json` o en las preferencias, que llega del servidor con su época escrita): nombres, formas del 8.7, plantillas del aro y del 4, estaciones, grupos del 3.
+
+Dos ejes en el mismo proceso con épocas distintas no se mezclan (`test/epoca-en-el-eje.test.js`).
+
+**Seguridad.** Una época escrita es un dato: nada de ella se ejecuta salvo BQL por el evaluador; el invariante del núcleo se mantiene (las reglas solo leen: una regla con un verbo no se carga), los estilos pasan por `cssSeguro` y no hay URLs externas. Una época mal formada **se rechaza al escribirla**, antes de abrir el eje (`erroresDeEpocaEscrita`): BTML válido, sin huecos ni `-` (#77), claves y valores del 6 en paralelo, `hereda` con un id de 64 hexadecimales de una época conocida, marcas solo en una época que hereda, completa si no hereda, y que cargue (sus referencias resuelven). Un registro de época que no casa (otra raíz que la que nombra el génesis, otro autor, sin la firma, fuera de la apertura, de un eje que no escribe su época) se rechaza con la causa; un evento que nombra por id otra época (`contexto.epoca`) también (`suelo:epoca`), y una referencia a una época conocida que no es la del eje lo dice.
+
+**Publicar una época.** `node be.mjs epoca --publicar <época.json>` crea un eje nuevo con esa época escrita y lo sube al eje configurado (vacío en el servidor), o lo guarda con `--salida`; `node be.mjs epoca --ver [--archivo <época.json>]` da su id y su resumen (§17). En el nodo, igual: un eje nace con su época con `Eje.genesis({ epoca })` y sus eventos se suben como siempre (`servidor/LEEME.md`).
+
+```js
+eje.epoca()                          // → la época del eje, resuelta (la escrita en su libro, la que referencia si se conoce, o la 0)
+eje.registrosDeLaEpoca               // → ids de sus registros de época, la raíz primero ([] si no la escribe)
+eje.esDeLaEpoca(id)                  // → ¿es un registro de la época?
+Eje.genesis({ …, epoca })            // `epoca`: { raiz, registros } (o la raíz sola); se valida antes de nada
+cargarEpocaEscrita({ raiz, registros }, { conocidas })  // → la época resuelta; lanza con la causa
+erroresDeEpocaEscrita(escrita)       // → [] o los errores de forma
+epocaEscritaDe(epoca = EPOCA_0_BTML) // → { raiz, registros }: la 0 entera, para escribirla en un libro (757 registros)
+heredaDe(raiz), procedenciaDe(raiz)  // → el id de la base (o null); { notas, claves }
+fusionarRaices(base, hija, { registroDe, ids })  // → la raíz resuelta
+idDeRegistro(registro)               // → el hash de su cuerpo canónico
+condicionesDe(epoca)                 // → las condiciones de un eje con esa época (src/condiciones/index.js)
+```
+
+**Lo que no cambia de fuente.** Las escalas de T y el calendario de `src/tokens.js` (`SEGUNDOS`, la asignación diaria) siguen saliendo de la época 0 (son del suelo, al cargar el módulo); las lecturas por profundidad del formato de siempre (`EPOCA_0`, `datos/epocas/epoca-0.json`: `pointed`, `sequenced`, `mapped`, `scened`, `bases`, `lectura`) siguen con la 0 si no se les pasa otra. Una época hija que cambie el calendario o las escalas de T no lo cambia ahí.
+
 ## 6. El diario: `diario(eje, X, desde, cuantos)`
 
 Las transacciones del subárbol de X (X y lo anclado bajo él, a cualquier profundidad) **por llegada**, cada una con sus **asientos del libro** (lo que de verdad se movió: los movimientos, la asignación del día y la obtención de P, con su primitiva, serie, de, a, cantidad y, si los tiene, salida, clase y etiqueta) y su ancla. Paginado desde un índice o desde un id; `cuantos` por defecto, el paso. Con `opciones.orden` (un orden de `epoch.8.5`; la lista vertical del 6 pide el suyo, `latest`), en ese orden: `instante` por el t de cada transacción, `reverse` al revés; el encaje no ordena transacciones. Sobrio y animado leen las mismas vistas; el animado además este diario, listo para reproducirlo en orden. Cada entrada trae además el PV de X del que cuelga (`pv`, `pvDeEntrada`) y el estado de su futuro (`estado`, `estadoDeEntrada`, o null) (encargo «datos3», §4.2). **En BQL desde el 12-11** (VG, estudio BQL-transacciones): el subárbol es `under it` (por llegada) o `under it by (first it2.6.0).0` (por instante), y los asientos de cada transacción, `moves it`; es una lectura del núcleo, sin el presupuesto de una fórmula (lo pagina quien la pinta). `test/lecturas.test.js` comprueba que da lo mismo que el JavaScript de antes en todos los registros de los ejemplos.
@@ -1080,6 +1124,8 @@ La primera llamada baja el eje entero con `sincronizar(null)` (el eje nace del g
 | `opiniones [proyecto] [--nuevas]` | `acciones.opiniones(eje, proyecto)` (por defecto el registro cuyo 0 es «AGRAM»): fecha, autor, clasificación, el registro opinado (id corto y 0), la ruta, el texto y las respuestas en hilo. Cada listado marca en la caché lo que ha enseñado; `--nuevas` enseña solo lo que no estaba (una opinión con una respuesta nueva sale, con la respuesta marcada `NUEVA`) |
 | `contexto <X> [--tope n]` | el mismo contexto que la guía manda a la IA (`guia.contexto`), para que Core vea lo que ve la guía |
 | `buscar <texto>` | los registros cuyo 0 o cuya lectura contienen el texto (hasta 50) |
+| `epoca --ver [--archivo <época.json>]` | la época del eje (`eje.epoca()`, §5 bis): id, nombre, de cuál hereda, si está escrita en su libro o la trae el código, y lo que trae (reglas, plantillas del 9.6, estaciones del 4.3, formas del 8.7); con `--archivo`, la de un archivo, sin configuración |
+| `epoca --publicar <época.json> [--salida <ruta>]` | crea un eje **nuevo** con esa época escrita en su libro (§5 bis): el génesis lo escribe la identidad de la configuración, firmado, y se sube al eje configurado, que ha de estar vacío en el servidor (créalo antes con `POST /ejes`); con `--salida`, se guarda en un archivo (`persistencia.serializar`) sin subirlo (sin configuración, un eje de demostración de `--como`, o «core»). El archivo es `{ "raiz": [...], "registros": [[...], ...] }` o la raíz sola; una época mal formada no se publica |
 
 ### 17.4 Escribir: la identidad de Core y sus órdenes (encargo core-escribe, VG 11-11)
 

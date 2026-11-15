@@ -1,4 +1,4 @@
-# Lo decidido con VG el 11, el 12 y el 13 de noviembre de 2026
+# Lo decidido con VG el 11, el 12, el 13 y el 14 de noviembre de 2026
 
 **Estado:** nota de registro, escrita el 12-11 sobre `beta` (`3cfe6ef`). Lleva al repositorio lo que hasta ahora vivía en el catálogo de issues de Core (filas 29 a 50, más los flecos de la 12 y la 23), en el diseño `DISENO_8-7_POR_MODO` (tercera versión, §7 incluido) y en el estudio `ESTUDIO_BQL_TRANSACCIONES` (§6), para que los agentes lean del repositorio y no del chat. No añade nada a lo que dicen esas fuentes. **Solo documentación:** ningún dato de la época ni ningún código cambia con esta nota; cada «qué cambia» es el encargo que sigue, y puede estar ya en una rama de la beta o no.
 
@@ -22,6 +22,7 @@ Cada nota tiene cuatro líneas: *Qué se decidió*, *Por qué* (lo que dice la f
 | 6. Pantalla | #23 |
 | 7. Lo del 13-11 | #75, #76, #77, #78, #70 (segundo factor) |
 | 8. Lo del 14-11 | #70 (3) (autorizar quema T), #80 (cerrado por decisión), #81 (BQL puro) |
+| 9. La época en el eje | #107 bis |
 
 Al final: «Lo que queda abierto» y «Lo que las fuentes no dicen o dicen distinto».
 
@@ -415,6 +416,18 @@ Cuatro decisiones de VG del 13-11, construidas en la rama `beta-flecos`. Cada un
 - **Por qué.** AARPIA la usa en su caja Wasm (rama `andamio/costura-bql`) y necesita saber qué no va a cambiar sin avisar: lo puro se resuelve, lo del libro da `PENDIENTE` y nada se inventa.
 - **Qué cambia.** Solo `docs/BQLM.md` (la sección y un ejemplo que `docs/comprobar.mjs` ejecuta). El código ya era así. Matiz comprobado: sin eje `before` no existe, así que `ahora` (el reloj del libro) no se lee.
 - **Pruebas.** El ejemplo de la sección (`node docs/comprobar.mjs BQLM`) y `test/bqlm.test.js`.
+
+## 9. La época en el eje (14-11, #107 bis)
+
+### #107 bis — La época vive en el eje (DECIDIDO VG 14-11, #107; herencia, Core con Core StateArk 14-11; encargo «época en el eje»)
+
+- **Qué se decidió.** Las épocas son datos y **cada eje referencia la suya por id**, resuelta en su libro (#63 con AARPIA: «cada evento se juzga con la época que referencia, resuelta en el libro»). Al nacer un eje, la época se escribe en el libro como parte de la apertura del génesis; `eje.epoca()` es la fuente de verdad de núcleo y carta. **Las épocas heredan** (Core con Core StateArk): una época declara en su 6, como claves y valores (#77), la clave `hereda` con el id de su base (`epoch.6` = `[[notas], [claves], [valores]]`; la 0 pasa a `[[sus notas]]`, sin 6.1 ni 6.2); sin `hereda` es completa. Se resuelve fusionando por direcciones: gana lo de la hija; lo que marca con `{ ref: <id de la base> }` («lo de la base aquí», sin huecos) o no trae, es de la base; las colecciones (2, 9.6.1, 4.3, 1.2.1, 8.7.1) se combinan, y una entrada con el mismo 0 sustituye a la de la base. El id que referencian los eventos es el de la hija tal como se escribió.
+- **Por qué.** Hay tres casas (AARPIA, StateArk, Be) y cada una tiene su interfaz: la misma carta de AGRAM sobre el eje de cada una. Hasta ahora AGRAM solo sabía de la época 0, que viajaba con el código, y todo la importaba directamente: un eje de StateArk (con su SIP escrita como época en BTML) no podía juzgarse ni pintarse con la suya. Heredar evita copiar la 0 entera en cada época (la SIP solo trae sus reglas, plantillas, estaciones y filas propias).
+- **Qué decidió Core AGRAM (no VG).** (1) La **forma**: un registro por cada pieza de la época (la raíz y cada registro que referencia), no la época entera en un payload (BTML no deja más de diez décuplas en una posición, y la 0 escrita son 758 registros: no cabría en el tope de 256 KB del servidor); anclados en el génesis, de su autor, en su instante, sin movimientos, marcados `contexto.registroDeEpoca`; el génesis dice cuántos (`contexto.epocaEscrita`). Están en el libro (se guardan y se sincronizan) pero no cuelgan del génesis como hijos. (2) Un eje **sin `epoca`** referencia la 0 y **no la escribe** (la trae el código): escribirla entera en cada eje costaría unos dos segundos y 758 eventos; se puede escribir (`epocaEscritaDe()`), y así se prueba. (3) Un génesis que nombra un id que el código no conoce y no escribe su época usa la 0 (los ejes de antes nombran ids viejos de la 0); el id de beta 16f30d2 de la 0 (del que hereda la SIP 0) sigue reconocido como la 0 (`IDS_ANTERIORES_DE_LA_0`). (4) La cabecera de una colección combinada es la de la base seguida de la de la hija. (5) Un evento que nombra su época por id (`contexto.epoca`) ha de nombrar la del eje (`suelo:epoca`); por nombre (las bases del 8) no se comprueba.
+- **Qué cambia.** Núcleo: `src/epocas.js` (`cargarEpocaEscrita`, `fusionarRaices`, `heredaDe`, `erroresDeEpocaEscrita`, `epocaEscritaDe`, `EPOCAS_POR_ID`, `idDeRegistro`, `epocaDelEje`), `src/eje.js` (`Eje.genesis({ epoca })`, `eje.epoca()`, `registrosDeLaEpoca`, `esDeLaEpoca`, las condiciones de su época, la obtención y la invitación con su época), `src/condiciones/` (`condicionesDe(epoca)`, `suelo:epoca`, las referencias a la época del eje), `src/evento.js` (la forma admite el registro de época sin movimientos), y leen la época del eje `src/contrato.js`, `src/acciones.js`, `src/modelos.js`, `src/pasos.js`, `src/motor.js`, `src/lente.js`, `src/local.js`, `src/escritura.js`, `src/validez.js`. Carta: `arbol` pinta con `eje.epoca()`. Datos: el 6 de la 0 (su id cambia). `be.mjs epoca --ver | --publicar`. Docs: `docs/CONTRATO.md` §5 bis y §17.3, `docs/BTML.md` §1.4, §8 y §12, `docs/MOTOR.md` §9, `servidor/LEEME.md`, `README.md`, `docs/notas/CAPA_CERO.md`.
+- **Pruebas.** `test/epoca-en-el-eje.test.js` (nace con época; dos ejes, dos épocas; un eje sin época escrita usa la 0, también el eje de ejemplo de StateArk; la SIP 0 de StateArk se resuelve sobre la 0 y suma sus 7 plantillas y 4 estaciones; época mal formada; id que no casa; la carta con la segunda época; `be.mjs epoca`), `test/capa-cero.test.js`, `test/epoca-btml.test.js`.
+- **Queda abierto.** El calendario y las escalas de T de `src/tokens.js` y las lecturas por profundidad del formato de siempre (`EPOCA_0`) siguen con la 0 aunque el eje tenga otra; la SIP 0 ha de rehacer su `hereda` con el id nuevo de la 0 (hoy se reconoce el de 16f30d2).
+
 
 ---
 

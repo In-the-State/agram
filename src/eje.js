@@ -46,13 +46,13 @@
 import { claveToken, origenDe, cantidadBase, partirClave, validarMovimiento, capacidadDe, franjaDe, familiaDe, TODAS_LAS_FRANJAS, ESCALAS_T, ESCALAS_REALES, ESCALAS_INFORMATIVAS, asignacionT, AMBITO_GENESIS, ambitoDe, esAnunciado } from './tokens.js';
 import { acotarAltaV2, gastaAsignacion, esInformativoT, validosDe } from './ciclo.js';
 import { evaluarEscritura, nombreDeRegla } from './bqlm.js';
-import { EPOCA_0_BTML } from './epocas.js';
+import { EPOCA_0_BTML, EPOCAS_POR_ID, cargarEpocaEscrita, idDeRegistro } from './epocas.js';
 import { msUTC, msDeGuardado, segundosUTC, esInstante } from './instante.js';
-import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico } from './evento.js';
+import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ } from './evento.js';
 import { sha256, aHex } from './cripto.js';
-import { firmar, firmarPosesion } from './autoridad.js';
+import { firmar, firmarPosesion, verificar } from './autoridad.js';
 import { Libro, EMISION, acunar, transferir, bloquear, liberar, quemar, transaccion } from './libro.js';
-import { CONDICIONES, CONDICIONES_GENESIS, CONDICIONES_GENESIS_GUARDADO, SIN_CAPACIDAD, contratoE } from './condiciones/index.js';
+import { condicionesDe, CONDICIONES_GENESIS, CONDICIONES_GENESIS_GUARDADO, SIN_CAPACIDAD, contratoE } from './condiciones/index.js';
 import { ContextoEje } from './contexto-eje.js';
 import { quemaDelCoste } from './escritura.js';
 import { validarPayload } from './btml.js';
@@ -121,7 +121,21 @@ export const OBTENCION = 'obtencion';
 export const REPOSICION_P = 'reposicion';
 
 /** Diez por unidad: la constante de la obtención de la época (`epoch.1.1.4.1`), para el tope por serie. */
-const DIEZ_POR_UNIDAD = Number((EPOCA_0_BTML.registro ?? EPOCA_0_BTML.payload)?.[1]?.[1]?.[4]?.[1]?.[0]) || 10;
+const diezPorUnidad = (epoca) => Number((epoca.registro ?? epoca.payload)?.[1]?.[1]?.[4]?.[1]?.[0]) || 10;
+
+/**
+ * Las épocas escritas ya resueltas, por el id de su raíz y los de sus registros: cargar y fusionar una época es una
+ * lectura pura de lo escrito, y el eje de antes (eje.antes) la vuelve a pedir. Una entrada por época distinta.
+ */
+const RESUELTAS = new Map();
+function resolverEscrita(raiz, registros) {
+  const llave = idDeRegistro(raiz) + ':' + registros.map(idDeRegistro).join(',');
+  if (!RESUELTAS.has(llave)) RESUELTAS.set(llave, cargarEpocaEscrita({ raiz, registros }));
+  return RESUELTAS.get(llave);
+}
+
+/** ¿Es `ev` un registro de la época (la apertura del génesis que la escribe, #107)? */
+const esRegistroDeEpoca = (ev) => ev?.contexto?.registroDeEpoca === true;
 
 /** Una llave de dos partes, sin JSON (como las del libro). */
 const L2 = (a, b) => String(a) + '\u0000' + String(b);
@@ -143,6 +157,9 @@ export class Eje {
   #cota = { altura: null }; // la mayor altura de bloque de los sellos anotados (compartida con las copias, como #sellos): el «último sello conocido» con el que se cuenta la profundidad (contrato.verificado)
   #sellos = new Map(); // id → el sello de tiempo que lo ancla (src/sello.js): { altura, hash, instante, verificado }; vista del libro, fuera del cuerpo y del id (X.6.8.2)
   #pagos = new Map(); // id → el recibo de pago de StateArk copiado (marcarPago): { t, decupla }; vista del libro, fuera del cuerpo y del id (X.6.8.3)
+  #epoca = null; // la época del eje, cargada y resuelta (#107): la escrita en su libro, o la que el génesis referencia y el código conoce (la 0)
+  #escritura = null; // si el génesis escribe su época: { id, esperados, eventos, contenidos } (los registros de la época que han entrado, en orden, y los ids de sus payloads)
+  #deLaEpoca = new Set(); // ids de los registros de la época: están en el libro (eventos, orden) pero no cuelgan del génesis como hijos
 
   /**
    * exigirFirmas: todo autor debe tener clave registrada y firmar. Si no, solo firman quienes tienen clave.
@@ -204,7 +221,19 @@ export class Eje {
    * Sin clave no se actúa (R9): el génesis lleva `clave` y `privada` de su autor, salvo que se cree como
    * `demostracion: true` (queda en su contexto y se ve en la interfaz).
    */
-  static async genesis({ identidad, emision = [], foco, t = new Date().toISOString(), contexto = {}, clave, privada, exigirFirmas = false, demostracion = false, ...resto }) {
+  static async genesis({ identidad, emision = [], foco, t = new Date().toISOString(), contexto = {}, clave, privada, exigirFirmas = false, demostracion = false, epoca, ...resto }) {
+    // La época vive en el eje (VG, 14-11, #107): `epoca` (opcional) es una época escrita { raiz, registros } (o su raíz
+    // sola, si todo lo que referencia lo hereda): se valida y se resuelve ANTES de nada (una mal formada no abre el
+    // eje) y se escribe en el libro como parte de la apertura del génesis. Sin ella, el génesis referencia la época 0,
+    // que trae el código, y no la escribe (los ejes de siempre).
+    let escrita = null;
+    let cargada = null;
+    if (epoca !== undefined && epoca !== null) {
+      escrita = Array.isArray(epoca) ? { raiz: epoca, registros: [] } : epoca.escrita ?? epoca;
+      cargada = cargarEpocaEscrita(escrita);
+      const vistos = new Set();
+      escrita = { raiz: escrita.raiz, registros: (escrita.registros ?? []).filter((r) => !vistos.has(idDeRegistro(r)) && vistos.add(idDeRegistro(r))) };
+    }
     if (Object.hasOwn(resto, 'tipo')) throw new Error('génesis: no hay tipo (VG, 10-11, B1): persona o cosa se lee de quién escribe el alta; el autor del génesis escribe la suya, es una persona');
     if (emision.some((m) => m?.token === 'P')) throw new Error('génesis: nadie acuña P a mano (mapa §15, «P como peso de criterio»: se retira «P del génesis sobre todo el eje»); el P se obtiene al escribir, al conseguir E y al recibir R');
     const eje = new Eje({ exigirFirmas });
@@ -214,7 +243,7 @@ export class Eje {
       t,
       movimientos: [],
       payload: foco,
-      contexto: { ...contexto, genesis: true, epoca: EPOCA_0_BTML.id, ...(demostracion ? { demostracion: true } : {}), ...(clave ? { claves: { [identidad]: clave } } : {}) },
+      contexto: { ...contexto, genesis: true, epoca: cargada ? cargada.id : EPOCA_0_BTML.id, ...(cargada ? { epocaEscrita: 1 + escrita.registros.length } : {}), ...(demostracion ? { demostracion: true } : {}), ...(clave ? { claves: { [identidad]: clave } } : {}) },
     });
     if (privada) ev = await firmar(ev, privada);
     // La misma regla que al restaurar: si el génesis declara clave, va firmado con ella (GN-1, GN-2).
@@ -222,6 +251,14 @@ export class Eje {
     if (motivos.length) throw new Error('génesis rechazado: ' + motivos.map((m) => m.texto).join('; '));
     if (exigirFirmas && !clave) throw new Error('el génesis debe ir firmado');
     eje.#aplicar(ev);
+    if (cargada) {
+      // La apertura: la raíz de la época y, detrás, sus registros, anclados en el génesis por su autor, sin mover nada.
+      for (const payload of [escrita.raiz, ...escrita.registros]) {
+        let r = await crearEvento({ autor: identidad, sobre: ev.id, t, movimientos: [], payload, contexto: { epoca: cargada.id, registroDeEpoca: true } });
+        if (privada) r = await firmar(r, privada);
+        await eje.anadir(r);
+      }
+    }
     if (emision.length) {
       // Sus series de E y de R quedan a su nombre. R primero: emitir E exige R propia emitida (VG, 9-11, D2).
       const deEmisor = (m) => m.token === 'E' || m.token === 'R';
@@ -236,6 +273,33 @@ export class Eje {
       }, privada);
     }
     return eje;
+  }
+
+  /**
+   * La época del eje (VG, 14-11, #107: «la época vive en el eje»), cargada y resuelta (con lo que hereda): la escrita
+   * en su libro tras el génesis o, si el génesis no la escribe, la que referencia (contexto.epoca) si el código la
+   * conoce, y si no la 0 que trae el código (los ejes de antes, cuyo génesis nombra un id de la época 0 de entonces).
+   * Lanza si el génesis escribe su época y aún no está entera en el libro.
+   */
+  epoca() {
+    if (this.#epoca) return this.#epoca;
+    if (this.#escritura) throw new Error(this.#faltaEpoca());
+    return EPOCA_0_BTML;
+  }
+
+  /** ¿Es `id` un registro de la época escrita en el libro (parte de la apertura del génesis, no un hijo suyo)? */
+  esDeLaEpoca(id) {
+    return this.#deLaEpoca.has(typeof id === 'string' ? id : id?.id);
+  }
+
+  /** Los ids de los registros de la época escrita en el libro, en orden (la raíz primero); [] si la época no se escribió. */
+  get registrosDeLaEpoca() {
+    return this.#escritura ? this.#escritura.eventos.map((e) => e.id) : [];
+  }
+
+  /** La época del eje si ya se puede leer (la de las condiciones); la 0 mientras su época escrita no está entera. */
+  #epocaVigente() {
+    return this.#epoca ?? EPOCA_0_BTML;
   }
 
   /** Clave pública registrada de una identidad, si la tiene. */
@@ -597,6 +661,9 @@ export class Eje {
     this.#sellos = otro.#sellos;
     this.#pagos = otro.#pagos;
     this.#cota = otro.#cota;
+    this.#epoca = otro.#epoca;
+    this.#escritura = otro.#escritura;
+    this.#deLaEpoca = otro.#deLaEpoca;
   }
 
   get genesisId() {
@@ -1013,11 +1080,15 @@ export class Eje {
    * (`series`), que el eje suma al asentar (obtenidoDeSerie).
    */
   #obtencion(ev) {
-    const reglas = EPOCA_0_BTML.escrituras;
+    // Un registro de la época no obtiene nada (la exención del génesis); mientras la época no está entera, nada se lee.
+    if (esRegistroDeEpoca(ev) || (this.#escritura && !this.#epoca)) return [];
+    const epoca = this.#epocaVigente();
+    const reglas = epoca.escrituras;
     if (!reglas.length || !ev || typeof ev !== 'object' || typeof ev.id !== 'string') return [];
+    const DIEZ_POR_UNIDAD = diezPorUnidad(epoca);
     let ctx;
     try {
-      ctx = new ContextoEje(this, { ev, epoch: EPOCA_0_BTML });
+      ctx = new ContextoEje(this, { ev, epoch: epoca });
     } catch {
       return [];
     }
@@ -1113,6 +1184,8 @@ export class Eje {
       get validos() { return (validos ??= validosDe(ev)); },
       // Las reglas de la época (src/condiciones/reglas.js) leen el eje de antes con el BQL mínimo.
       contextoBqlm: (epoch) => new ContextoEje(eje, { ev, epoch }),
+      // La época con que se juzga (#107): la del eje.
+      epoca: eje.#epocaVigente(),
       get ciclo() { return (ciclo ??= eje.#contextoCiclo(ev)); },
       get tope() { return (tope ??= eje.#contextoTope()); },
     };
@@ -1132,7 +1205,9 @@ export class Eje {
       return ['no cabe en JSON: ' + e.message];
     }
     if (!ev || typeof ev !== 'object') return validarForma(ev, { tLaxo: this.orden.length < this.eventosV2 });
-    const { motivos } = await this.#libro.probar(this.transaccion(ev), CONDICIONES, this.contexto(ev));
+    if (esRegistroDeEpoca(ev)) return this.#erroresDeEpoca(ev);
+    if (this.#escritura && !this.#epoca) return [this.#faltaEpoca()];
+    const { motivos } = await this.#libro.probar(this.transaccion(ev), condicionesDe(this.#epocaVigente()), this.contexto(ev));
     return textos(ev, motivos);
   }
 
@@ -1191,14 +1266,67 @@ export class Eje {
    */
   async anadir(crudo) {
     const ev = copiaGuardable(crudo);
+    if (esRegistroDeEpoca(ev)) {
+      const errores = await this.#erroresDeEpoca(ev);
+      if (errores.length) throw new Error('registro de la época rechazado: ' + errores.join('; '));
+      this.#aplicar(ev);
+      return ev;
+    }
+    if (this.#escritura && !this.#epoca) throw new Error('evento rechazado: ' + this.#faltaEpoca());
     const tx = this.transaccion(ev);
-    const { motivos, simulacion } = await this.#libro.probar(tx, CONDICIONES, this.contexto(ev));
+    const { motivos, simulacion } = await this.#libro.probar(tx, condicionesDe(this.#epocaVigente()), this.contexto(ev));
     if (motivos.length) {
       const errores = textos(ev, motivos);
       throw new Error('evento rechazado: ' + (errores.length ? errores : motivos.map((m) => m.texto)).join('; '));
     }
     this.#aplicar(ev, tx, simulacion); // la copia de copiaGuardable ya está congelada entera: lo guardado no se modifica en sitio
     return ev;
+  }
+
+  /** El motivo con que se rechaza un registro mientras la época escrita no está entera en el libro. */
+  #faltaEpoca() {
+    const x = this.#escritura;
+    return 'la época del eje (' + x.id.slice(0, 8) + ') no está entera en el libro (' + x.eventos.length + ' de ' + x.esperados + ' registros): sus registros van justo detrás del génesis, antes que nada (#107)';
+  }
+
+  /**
+   * Por qué no entra un registro de la época (VG, 14-11, #107), o [] si entra: es parte de la apertura del génesis que
+   * escribe su época (contexto.epocaEscrita: cuántos), justo detrás de él y en orden, de su autor (firmado con su clave
+   * si la declaró), anclado en él, en su mismo instante, sin mover nada; el primero es la raíz, cuyo id es el que el
+   * génesis referencia; el último completa la época, que ha de cargarse y resolverse (si no, se dice por qué).
+   */
+  async #erroresDeEpoca(ev) {
+    const errores = validarForma(ev);
+    const g = this.eventos.get(this.genesisId);
+    if (!g) return [...errores, 'un registro de la época va detrás de su génesis'];
+    const x = this.#escritura;
+    if (!x) return [...errores, 'el génesis de este eje no escribe su época (la referencia: ' + String(g.contexto?.epoca).slice(0, 8) + '): no se le añaden registros de época'];
+    if (x.eventos.length >= x.esperados) errores.push('la época del eje ya está entera: no se le añaden registros');
+    if (this.orden.length !== 1 + x.eventos.length) errores.push('los registros de la época van justo detrás del génesis, antes que nada (una sola apertura)');
+    if (ev.contexto?.epoca !== x.id) errores.push('el registro es de la época ' + String(ev.contexto?.epoca).slice(0, 8) + ' y el génesis referencia la ' + x.id.slice(0, 8));
+    if (ev.autor !== g.autor) errores.push('la época la escribe el autor del génesis');
+    if (ev.sobre !== g.id || (ev.en ?? RAIZ) !== RAIZ) errores.push('un registro de la época se ancla en el génesis, en su raíz');
+    if (ev.t !== g.t) errores.push('un registro de la época lleva el instante del génesis (una sola apertura)');
+    if (this.eventos.has(ev.id)) errores.push('evento ya registrado');
+    if (typeof ev.id !== 'string' || !(await verificarId(ev))) errores.push('id no corresponde al cuerpo');
+    const clave = this.claves.get(g.autor);
+    if (clave) {
+      if (!ev.firma || ev.firmante !== g.autor) errores.push('un registro de la época va firmado por el autor del génesis, con su clave');
+      else if (!(await verificar(ev, clave))) errores.push('firma inválida de ' + g.autor);
+    } else if (this.exigirFirmas) errores.push('autor sin clave: ' + g.autor);
+    if (errores.length) return errores;
+    const idPayload = idDeRegistro(ev.payload);
+    if (x.eventos.length === 0 && idPayload !== x.id) return ['la raíz de la época (' + idPayload.slice(0, 8) + ') no casa con el id que referencia el génesis (' + x.id.slice(0, 8) + ')'];
+    if (x.contenidos.has(idPayload)) return ['registro de la época repetido: ' + idPayload.slice(0, 8)];
+    if (x.eventos.length + 1 === x.esperados) {
+      const todos = [...x.eventos, ev].map((r) => r.payload);
+      try {
+        resolverEscrita(todos[0], todos.slice(1));
+      } catch (err) {
+        return ['la época escrita no se carga: ' + err.message];
+      }
+    }
+    return [];
   }
 
   /**
@@ -1225,7 +1353,7 @@ export class Eje {
   /**
    * Invitar (VG, 9-11, mapa §16 [D] «El árbol mínimo es la invitación»; encargo 3b): `autor` escribe la invitación
    * de `invitado`, una transacción suya anclada en el 3 de su alta, cuyo payload es la décupla de la invitación:
-   *   0 «invitation»; 1 lo que te doy (mínimo mi R: te permite escribirme); 2 las reglas, la referencia a la época 0;
+   *   0 «invitation»; 1 lo que te doy (mínimo mi R: te permite escribirme); 2 las reglas, la referencia a la época del eje (eje.epoca());
    *   3 yo (3.0), tú (3.1), el grupo común si lo hay (3.2) y tu clave (3.5); 4 aceptar: tu primera transacción
    *   firmada, tu alta; 5 el dominio al que te invito; 6 mi hilo (mi alta); 7 hasta cuándo vale; 8 el grupo de mi
    *   atención que te asigno (su zona); 9 el tema y el tutorial.
@@ -1254,7 +1382,7 @@ export class Eje {
     const payload = [
       ['invitation'],
       da.length ? da.map((d) => d.cantidad + ' ' + (d.token === 'R' || d.token === 'E' ? d.token + ':' + (d.emisor ?? autor) + (d.denominacion ? '/' + d.denominacion : '') : d.token === 'P' ? claveToken({ ...d, de: autor }) : d.token + ':' + d.ambito)) : ['nada'],
-      [{ ref: EPOCA_0_BTML.id }],
+      [{ ref: this.epoca().id }],
       tres,
       ['tu primera transacción firmada, anclada sobre esta invitación: tu alta'],
       [{ ref: dominio ?? alta.id }],
@@ -1345,7 +1473,28 @@ export class Eje {
     // Demostración: solo la bandera firmada del génesis (SEG-02, revisión de main 7-11 noche). Un eje que viene
     // de la versión 2 no es de demostración por serlo: la exención de clave vale solo dentro de su prefijo
     // (#exigeClave), no para lo que se le añade después.
-    if (ev.contexto?.genesis === true) this.demostracion = ev.contexto.demostracion === true;
+    if (ev.contexto?.genesis === true) {
+      this.demostracion = ev.contexto.demostracion === true;
+      // La época del eje (#107): si el génesis la escribe, se espera tras él; si no, la que referencia si el código la conoce, o la 0.
+      const n = ev.contexto.epocaEscrita;
+      if (Number.isSafeInteger(n) && n > 0 && typeof ev.contexto.epoca === 'string') this.#escritura = { id: ev.contexto.epoca, esperados: n, eventos: [], contenidos: new Set() };
+      else this.#epoca = EPOCAS_POR_ID.get(ev.contexto.epoca) ?? EPOCA_0_BTML;
+    }
+    if (esRegistroDeEpoca(ev)) {
+      // Un registro de la época está en el libro (se guarda, se sincroniza) pero no es un hijo del génesis ni mueve nada.
+      this.#llegada.set(ev.id, this.orden.length);
+      this.eventos.set(ev.id, ev);
+      this.orden.push(ev.id);
+      if (this.orden.length <= this.eventosV2) this.#prefijoV2.add(ev.id);
+      this.#deLaEpoca.add(ev.id);
+      const x = this.#escritura;
+      if (x) {
+        x.eventos.push(ev);
+        x.contenidos.add(idDeRegistro(ev.payload));
+        if (x.eventos.length === x.esperados) this.#epoca = resolverEscrita(x.eventos[0].payload, x.eventos.slice(1).map((r) => r.payload));
+      }
+      return;
+    }
     // La asignación diaria de T (VG, 8-11) rige fuera del prefijo de la versión 2, para una persona (B1): quien
     // escribió su alta, o quien la escribe ahora. Se mira antes de asentar: después ya tiene cuenta.
     const reglas3 = this.orden.length >= this.eventosV2;

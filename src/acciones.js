@@ -40,7 +40,7 @@
 // solo sabe leer el molde y construir el evento. No asienta nada: la carta firma y asienta con lo que ya existe
 // (eje.anadir); autoejecutar lo hace con la firma que le pasa la carta. Documentación: docs/CONTRATO.md, «Acciones».
 
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla } from './bqlm.js';
 import { crearEvento } from './evento.js';
@@ -58,7 +58,13 @@ const RE_ID = /^[0-9a-f]{64}$/;
 
 // ---------- la época y sus sitios ----------
 
-const epocaDe = (opciones) => opciones?.epoca ?? EPOCA_0_BTML;
+/**
+ * La época que se lee (VG, 14-11, #107: la época vive en el eje): la que se pasa en las opciones (un objeto de
+ * cargarEpocaBtml), si no la del eje (eje.epoca(): la escrita en su libro o la 0 que trae el código), si no la 0.
+ */
+const epocaDe = (opciones, eje) => opciones?.epoca ?? (eje ? epocaDelEje(eje) : EPOCA_0_BTML);
+/** Las opciones con la época del eje, si no traen una (lo que pasa una entrada con eje a las que no lo tienen). */
+const conEpoca = (eje, opciones) => (opciones?.epoca || typeof eje?.epoca !== 'function' || eje.epoca() === EPOCA_0_BTML ? opciones : { ...opciones, epoca: eje.epoca() });
 const raizDe = (epoca) => (Array.isArray(epoca) ? epoca : epoca.registro ?? epoca.payload);
 /** Dónde pone la época lo que este módulo lee. */
 const SITIO = Object.freeze({
@@ -161,10 +167,11 @@ export function modoDeclarado(plantilla) {
  * con «review execution mode» en su 4, escritos por el autor del génesis, y el id de la plantilla en su 2). Solo lee.
  */
 export function plantillasRevisadas(eje, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const g = eje?.genesisId;
   const formula = g ? formulaDeEjecucion('reviewed to run by the system', opciones) : null;
   if (!formula) return new Set();
-  return new Set((valores(formula, contextoDe(eje, epocaDe(opciones), {}), g).valores ?? []).filter((x) => typeof x === 'string'));
+  return new Set((valores(formula, contextoDe(eje, epocaDe(opciones, eje), {}), g).valores ?? []).filter((x) => typeof x === 'string'));
 }
 
 /** La fórmula de epoch.9.0.4 que se llama así (null si la época no la trae). */
@@ -180,9 +187,10 @@ function formulaDeEjecucion(nombre, opciones) {
  * plantillas de modo `person`; una cosa sin declarar (Core, la cocina de los ejemplos) y una persona, sí.
  */
 export function esAgente(eje, identidad, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   if (typeof identidad !== 'string' || !identidad || eje?.esPersona?.(identidad) !== false) return false;
   const formula = formulaDeEjecucion('declared as an agent', opciones);
-  return Boolean(formula) && valores(formula, contextoDe(eje, epocaDe(opciones), {}), identidad).valores?.[0] === true;
+  return Boolean(formula) && valores(formula, contextoDe(eje, epocaDe(opciones, eje), {}), identidad).valores?.[0] === true;
 }
 
 /**
@@ -192,6 +200,7 @@ export function esAgente(eje, identidad, opciones = {}) {
  * «system» se lee «agent». Cambiar la plantilla le cambia el id y anula su revisión. null si no hay tal plantilla.
  */
 export function modoDeEjecucion(eje, cual, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const plantilla = plantillaDeTransaccion(cual, opciones);
   if (!plantilla) return null;
   const id = plantillasDeTransaccion(opciones).find((p) => p.plantilla === plantilla)?.id ?? null;
@@ -377,9 +386,10 @@ const valores0 = (...args) => valoresDe(...args)[0];
  * aparecer, lo dice su 2.
  */
 export function acciones(eje, X, k, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || typeof ev.id !== 'string' || !eje?.obtener(ev.id)) return [];
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const idioma = idiomaDe(eje, yo, opciones);
   const ctx = contextoDe(eje, epoca, { me: yo });
   const fuera = [];
@@ -587,7 +597,8 @@ function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, p
  * exigido es el de lo que ya hay. Ejecutar es transaccion con la misma `denominacion`.
  */
 export function ejecucion(eje, cual, params = {}, yo, opciones = {}) {
-  const epoca = epocaDe(opciones);
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
   const plantilla = plantillaDeTransaccion(cual, opciones);
   if (!plantilla || esLectura(plantilla) || esCamino(plantilla)) return { ok: false, motivos: [] };
   const idioma = idiomaDe(eje, yo, opciones);
@@ -636,7 +647,7 @@ function mensajeDe(eje, epoca, plantilla, candidata, yo, X, idioma) {
 
 /** Los motivos con que el eje rechaza, como { regla, mensaje } en el idioma: una regla de la época, por su nombre y su 9; lo demás, su texto. */
 function motivosDelEje(eje, textos, ev, idioma, opciones) {
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const reglas = (epoca.reglasConId ?? []).map((x) => x.regla);
   return textos.map((t) => {
     const regla = reglas.find((r) => t.startsWith(nombreDeRegla(r) + ': '));
@@ -656,11 +667,12 @@ function motivosDelEje(eje, textos, ev, idioma, opciones) {
  * (read) devuelve ok con `lectura`; una que lanza el camino (path), el paso que lanzaría (o todos, con path all).
  */
 export async function transaccion(eje, cual, params = {}, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const plantilla = plantillaDeTransaccion(cual, opciones);
   const modo = plantilla ? modoDeEjecucion(eje, plantilla, opciones) : null;
   // El modo de ejecución (VG 12-11, #71.1): una plantilla «person» no la lanza un agente (una cosa que su dueño declaró agente); lo demás, como antes.
   if (modo && modo.modo === 'person' && esAgente(eje, yo, opciones)) {
-    const epoca = epocaDe(opciones);
+    const epoca = epocaDe(opciones, eje);
     const idioma = idiomaDe(eje, yo, opciones);
     const nombre = nombreDeAccion(plantilla);
     return { ok: false, evento: null, modo: modo.modo, motivos: [{ regla: nombre, mensaje: motivoDe('only a person launches', { name: nombre, who: yo, mode: textoDe(eje, claves.modo(modo.modo), idioma, { original: modo.modo, epoca }) }, { idioma, epoca }) }] };
@@ -670,7 +682,7 @@ export async function transaccion(eje, cual, params = {}, yo, opciones = {}) {
 }
 
 async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) {
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const idioma = idiomaDe(eje, yo, opciones);
   if (!plantilla) return { ok: false, evento: null, motivos: [{ regla: null, mensaje: motivoDe('unknown template', { template: String(Array.isArray(cual) ? cual[0] : cual?.ref ?? cual) }, { idioma, epoca }) }] };
   const nombre = nombreDeAccion(plantilla);
@@ -766,6 +778,7 @@ async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) 
  * o su 0 (lo que dice contrato.desdeLegible para una referencia). null si no es ninguno.
  */
 export function registroDe(eje, cual, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const s = String(cual ?? '').trim();
   if (!s || !eje) return null;
   if (RE_ID.test(s) && eje.obtener(s)) return s;
@@ -779,6 +792,7 @@ export function registroDe(eje, cual, opciones = {}) {
 
 /** El registro del proyecto donde `yo` ancla sus opiniones (su ajuste «opinions anchor», resuelto con registroDe), o null. */
 export function proyectoDeOpiniones(eje, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const v = yo ? anclaDeLasOpiniones(eje, yo, opciones) : null;
   return v ? registroDe(eje, v, opciones) : null;
 }
@@ -791,6 +805,7 @@ export function proyectoDeOpiniones(eje, yo, opciones = {}) {
  * lo lee quien lea el eje desde fuera: sin código especial.
  */
 export function opiniones(eje, proyecto, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const P = eventoDe(eje, proyecto);
   const tipo = guiaDeLaEpoca(null, 'en', opciones)?.opinion;
   if (!P || !eje?.obtener(P.id) || !tipo) return [];
@@ -854,8 +869,9 @@ export function estacionesDelAnuncio(opciones = {}) {
  * (el motor solo comprueba: los nombres y las condiciones son de la época). null si no es un registro del eje.
  */
 export function estacionDeAnuncio(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   if (!eje?.obtener(id)) return null;
-  const ctx = contextoDe(eje, epocaDe(opciones), {});
+  const ctx = contextoDe(eje, epocaDe(opciones, eje), {});
   let fuera = null;
   for (const { nombre, comprueba } of estacionesDelAnuncio(opciones)) {
     const cumple_ = comprueba === AUTORIZA.recuento ? recuentoPasa(eje, id) : esFormula(comprueba) && cumple(comprueba, ctx, id);
@@ -877,9 +893,10 @@ export function estacionDeAnuncio(eje, id, opciones = {}) {
  * tiene sello configurado).
  */
 export function estaciones(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener(ev.id)) return [];
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const ctx = contextoDe(eje, epoca, {});
   const s = '("' + ev.id + '")';
   // Los anuncios de X: los registros que su dueño ancla en su 4.1 (como los lee la plantilla de cerrado, por `down`:
@@ -934,6 +951,7 @@ function sinSellar(eje, id, ctx) {
  * la autorización del titular, «ejecutada» cuando la tiene (sin criterio alcanzado, nada cambia: sin estación).
  */
 export function ejecuciones(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener(ev.id)) return [];
   const plantillas = plantillasDeTransaccion(opciones);
@@ -1022,9 +1040,10 @@ function autorizacionesSobre(eje, id) {
  * cambia (`exige: false`). Una lectura que no se resuelve (PENDIENTE: un límite) deja `estado` y no exige nada.
  */
 export function segundoFactor(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener(ev.id)) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   // Atajo: sin criterios «second factor» de su autor (el 2.4 de su alta, lo que lee la regla) no hay nada que leer.
   if (!criteriosDeSegundoFactor(eje, ev.autor).length) return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: 'RESUELTO' };
   const ctx = contextoDe(eje, epoca, {});
@@ -1103,7 +1122,8 @@ function autorizacionDe(eje, epoca, candidata, base, quemaDe) {
  * defecto, el reloj del libro).
  */
 export async function autorizar(eje, idPropuesta, cosa, privadaDeLaCosa, opciones = {}) {
-  const epoca = epocaDe(opciones);
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
   const idioma = opciones.idioma ?? 'es';
   if (!eje?.obtener(idPropuesta)) return { ok: false, evento: null, motivos: [{ regla: SEGUNDO_FACTOR.criterio, mensaje: motivoDe('anchor not in ledger', { name: 'autorizar', formula: String(idPropuesta) }, { idioma, epoca }) }] };
   const payload = [[...SEGUNDO_FACTOR.objeto], [{ ref: idPropuesta }], [SEGUNDO_FACTOR.uso], [cosa]];
@@ -1129,6 +1149,7 @@ export async function autorizar(eje, idPropuesta, cosa, privadaDeLaCosa, opcione
  * limita la lista (por defecto, 50).
  */
 export function porAutorizar(eje, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   if (typeof yo !== 'string' || !yo || !eje) return [];
   // Yo y mis cosas (las que su alta escribí yo): a quien se le pide firmar es a una de ellas.
   const mios = new Set([yo, ...(eje.identidades?.() ?? []).filter((i) => i !== yo && eje.esPersona(i) === false && eje.obtener(eje.alta(i)?.id)?.autor === yo)]);
@@ -1141,7 +1162,7 @@ export function porAutorizar(eje, yo, opciones = {}) {
   const lista = [];
   for (let i = (eje.orden?.length ?? 0) - 1; i >= 0 && lista.length < cuantos; i--) {
     const ev = eje.obtener(eje.orden[i]);
-    if (!ev || !autores.has(ev.autor)) continue;
+    if (!ev || !autores.has(ev.autor) || eje.esDeLaEpoca?.(ev.id)) continue;
     const sf = segundoFactor(eje, ev.id, opciones);
     if (!sf?.pendiente) continue;
     const faltan = sf.criterios.filter((c) => !c.autorizado);
@@ -1195,9 +1216,10 @@ const nombresDel9 = (decupla) => hojas(Array.isArray(decupla) ? decupla[9] : und
  * se ubique. Orden: primero lo que nombra el criterio del dueño (X.2.3), luego lo que nombra el mío (el 2.3 de mi alta).
  */
 export async function camino(eje, X, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener(ev.id)) return { pasos: [] };
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const idioma = idiomaDe(eje, yo, opciones);
   const ctx = contextoDe(eje, epoca, { me: yo });
@@ -1333,6 +1355,7 @@ export async function camino(eje, X, yo, opciones = {}) {
  * Se detiene en el primero que no pasa. Devuelve { hechos: [{ paso, evento }], parado: { paso, motivos } | null }.
  */
 export async function autoejecutar(eje, X, yo, firmar, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const { pasos } = await camino(eje, X, yo, opciones);
   const hechos = [];
   for (const paso of pasos) {
@@ -1379,10 +1402,11 @@ function encajarRuta(ruta, digitos) {
  * cuya condición pasa para quien mira, con los parámetros que el sitio ya da (la caja, el lugar, la posición).
  */
 export function sitio(eje, X, lugar, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   const digitos = (Array.isArray(lugar) ? lugar : String(lugar ?? '').split('.')).map(Number).filter((d) => Number.isInteger(d) && d >= 0 && d <= 9);
   if (!ev || typeof ev.id !== 'string' || !eje?.obtener(ev.id) || !digitos.length || digitos.length >= 9) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const idioma = idiomaDe(eje, yo, opciones);
   const ctx = contextoDe(eje, epoca, { me: yo });
   const configurar = plantillasDeTransaccion(opciones).filter((p) => p.pv === 0).filter((p) => {

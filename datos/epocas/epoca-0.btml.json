@@ -780,24 +780,26 @@
     ]
   ],
   [
-    "VG, 6-11: E, P, R y T son tokens de base de datos (mapa §2.6 [D])",
-    "VG, 6-11 noche: cada dígito es un punto de vista en toda profundidad (mapa §10.4 [D])",
-    "VG, 7-11 noche: la época 0 son las cien reglas cortas; la profundidad 0 es la cruceta (mapa §14.1 [D])",
-    "VG, 7-11 noche: escribir consume T del autor y se anota en el registro que soporta (mapa §12 [D])",
-    "VG, 7-11 noche: los cortes de las diez cajas del 8 son regla de la época (mapa §14.1 [D])",
-    "VG, 7-11 noche: mínimo y máximo de cada modo; órdenes de magnitud (mapa §12 [D])",
-    "VG, 8-11: T como asignación diaria; tres escalas más: pasado, futuro, inventado (mapa §12 [D])",
-    "VG, 8-11: forma canónica: en una décupla de hojas, cada posición entre corchetes (mapa §12 [D])",
-    "VG, 8-11 tarde: plantillas de recuento (suma ponderada, media ponderada, umbral); «cerrado» por proceso (mapa §15 [D], N4 y N5)",
-    "VG, 8-11 y 9-11: todo son reglas, BQL mínimo y el árbol de registro mínimo (mapa §15 [D])",
-    "VG, 9-11: PV3 es la regla de atención; grupo por defecto «desconocidos», con precio «mi propia R» (mapa §16 [D])",
-    "VG, 9-11: la capa de transacciones: cinco primitivas, anclaje y memo (mapa §16 [D])",
-    "VG, 9-11: molde de regla y léxico mínimo de BQL, palabras cortas en inglés (mapa §16 [D])",
-    "VG, 9-11: la época es un registro leído con la cruceta; no hay posiciones vacías, nunca se escribe [] (mapa §16 [D])",
-    "VG, 10-11: cada regla es su propio registro y el 2 de la época es la lista de sus referencias (mapa §16 [D], A1)",
-    "VG, 10-11: los datos del mundo viven en la época y ninguna regla lleva una constante que la época tenga (mapa §16 [D], A3)",
-    "VG, 9-11 (encargo 3c-1, la carta): la pantalla pinta un registro con un tamaño y en un punto de vista sin lógica propia; todo lo que decide algo viene del núcleo como posición, vista o regla (mapa §16 [D])",
-    "VG, tras 3b-bis (encargo 3c-2a, las acciones del aro): los seis grupos de R son seis precios; P por mirada (P:<r>.<d>/<origen>); la orientación de una E es el token que la paga; los pasos de un proceso se tipan por token; cada acción del aro es una plantilla de transacción de la época (9.6) y la pantalla solo lista y lanza lo que el núcleo le da"
+    [
+      "VG, 6-11: E, P, R y T son tokens de base de datos (mapa §2.6 [D])",
+      "VG, 6-11 noche: cada dígito es un punto de vista en toda profundidad (mapa §10.4 [D])",
+      "VG, 7-11 noche: la época 0 son las cien reglas cortas; la profundidad 0 es la cruceta (mapa §14.1 [D])",
+      "VG, 7-11 noche: escribir consume T del autor y se anota en el registro que soporta (mapa §12 [D])",
+      "VG, 7-11 noche: los cortes de las diez cajas del 8 son regla de la época (mapa §14.1 [D])",
+      "VG, 7-11 noche: mínimo y máximo de cada modo; órdenes de magnitud (mapa §12 [D])",
+      "VG, 8-11: T como asignación diaria; tres escalas más: pasado, futuro, inventado (mapa §12 [D])",
+      "VG, 8-11: forma canónica: en una décupla de hojas, cada posición entre corchetes (mapa §12 [D])",
+      "VG, 8-11 tarde: plantillas de recuento (suma ponderada, media ponderada, umbral); «cerrado» por proceso (mapa §15 [D], N4 y N5)",
+      "VG, 8-11 y 9-11: todo son reglas, BQL mínimo y el árbol de registro mínimo (mapa §15 [D])",
+      "VG, 9-11: PV3 es la regla de atención; grupo por defecto «desconocidos», con precio «mi propia R» (mapa §16 [D])",
+      "VG, 9-11: la capa de transacciones: cinco primitivas, anclaje y memo (mapa §16 [D])",
+      "VG, 9-11: molde de regla y léxico mínimo de BQL, palabras cortas en inglés (mapa §16 [D])",
+      "VG, 9-11: la época es un registro leído con la cruceta; no hay posiciones vacías, nunca se escribe [] (mapa §16 [D])",
+      "VG, 10-11: cada regla es su propio registro y el 2 de la época es la lista de sus referencias (mapa §16 [D], A1)",
+      "VG, 10-11: los datos del mundo viven en la época y ninguna regla lleva una constante que la época tenga (mapa §16 [D], A3)",
+      "VG, 9-11 (encargo 3c-1, la carta): la pantalla pinta un registro con un tamaño y en un punto de vista sin lógica propia; todo lo que decide algo viene del núcleo como posición, vista o regla (mapa §16 [D])",
+      "VG, tras 3b-bis (encargo 3c-2a, las acciones del aro): los seis grupos de R son seis precios; P por mirada (P:<r>.<d>/<origen>); la orientación de una E es el token que la paga; los pasos de un proceso se tipan por token; cada acción del aro es una plantilla de transacción de la época (9.6) y la pantalla solo lista y lanza lo que el núcleo le da"
+    ]
   ],
   [
     [

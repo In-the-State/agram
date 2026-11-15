@@ -11,7 +11,7 @@
 
 import { validarForma, verificarId } from '../evento.js';
 import { esReferencia } from '../btml.js';
-import { EPOCA_0_BTML } from '../epocas.js';
+import { EPOCA_0_BTML, EPOCAS_POR_ID } from '../epocas.js';
 
 /** EV-1, EV-2, EV-3, TT-5, TT-7, PP-1, BL-1, RR-1 y la forma BTML (suelo): validarForma, sin mirar el eje. */
 export const FORMA = Object.freeze({
@@ -58,6 +58,25 @@ export const UN_GENESIS = Object.freeze({
   },
 });
 
+/**
+ * Suelo (VG, 14-11, #107; #63 con AARPIA: «cada evento se juzga con la época que referencia, resuelta en el libro»):
+ * un evento que nombra su época por id (contexto.epoca) la nombra por el id de la del eje, la escrita en su libro (o la 0 que
+ * trae el código); si no casa, se rechaza con la causa. Lo que no la nombra se juzga con la del eje.
+ */
+export const EPOCA = Object.freeze({
+  nombre: 'suelo:epoca',
+  filas: Object.freeze([]),
+  familia: 'evento',
+  evaluar: (tx, libro, ctx) => {
+    const nombrada = ctx.evento?.contexto?.epoca;
+    // Solo un id (64 hexadecimales): las bases del 8 nombran por su nombre la época de las reglas cortas con que se calcularon (src/bases.js).
+    if (typeof nombrada !== 'string' || !/^[0-9a-f]{64}$/.test(nombrada) || ctx.evento?.contexto?.genesis === true || ctx.reglas === 2) return null;
+    const delEje = ctx.epoca ?? EPOCA_0_BTML;
+    if (nombrada === delEje.id || (delEje === EPOCA_0_BTML && EPOCAS_POR_ID.get(nombrada) === EPOCA_0_BTML)) return null;
+    return 'la época del evento (' + String(nombrada).slice(0, 8) + ') no es la del eje (' + String(delEje.id).slice(0, 8) + ', ' + delEje.nombre + '): cada evento se juzga con la época que referencia, resuelta en el libro (#63)';
+  },
+});
+
 /** Las referencias de un payload ({ ref } o { ref, dir }), en orden. */
 export function referenciasDe(nodo, fuera = []) {
   if (esReferencia(nodo)) fuera.push(nodo.ref);
@@ -74,14 +93,18 @@ export const REFERENCIAS = Object.freeze({
   nombre: 'suelo:referencias',
   filas: Object.freeze([]),
   familia: 'evento',
-  evaluar: (tx, libro, ctx) => referenciasAusentes(ctx).map((id) => 'referencia a un evento que no está en el eje: ' + id.slice(0, 8) + ' (mientras el eje es local; con red, se resuelve antes de aceptar)'),
+  evaluar: (tx, libro, ctx) => referenciasAusentes(ctx).map((id) => (EPOCAS_POR_ID.has(id)
+    ? 'referencia a la época ' + id.slice(0, 8) + ', que no es la del eje (' + String((ctx.epoca ?? EPOCA_0_BTML).id).slice(0, 8) + '): cada eje se juzga con la suya (#63)'
+    : 'referencia a un evento que no está en el eje: ' + id.slice(0, 8) + ' (mientras el eje es local; con red, se resuelve antes de aceptar)')),
 });
 
 /** Las referencias del payload de la candidata de `ctx` a eventos que el eje no tiene (en el génesis, todas). */
 export function referenciasAusentes(ctx) {
   if (ctx.reglas === 2 || !ctx.evento || typeof ctx.evento !== 'object') return [];
-  // La época y los registros de sus reglas se resuelven siempre (encargo 3b: una invitación referencia la época 0).
-  const deLaEpoca = (id) => id === EPOCA_0_BTML.id || EPOCA_0_BTML.registros.has(id);
+  // La época y los registros de sus reglas se resuelven siempre (encargo 3b: una invitación referencia la época). La del
+  // eje (#107): la escrita en su libro, con las de su cadena de herencia, o la 0 que trae el código.
+  const e = ctx.epoca ?? EPOCA_0_BTML;
+  const deLaEpoca = (id) => id === e.id || (Array.isArray(e.ids) && e.ids.includes(id)) || EPOCAS_POR_ID.get(id) === e || e.registros.has(id);
   const tiene = typeof ctx.registro === 'function' ? (id) => deLaEpoca(id) || Boolean(ctx.registro(id)) : deLaEpoca;
   return [...new Set(referenciasDe(ctx.evento.payload))].filter((id) => !tiene(id));
 }

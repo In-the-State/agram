@@ -191,7 +191,7 @@ test('3 a 9: plantilla de identidad, primitivas y despliegues, procedencia, cale
   assert.deepEqual(val('epoch.3.0.9').slice(1), ['a key is declared at its alta', 'set a group price', 'anchor here']);
   assert.deepEqual([0, 1, 2, 3, 4].map((k) => uno('epoch.4.0.' + k + '.0')), [...PRIMITIVAS]);
   assert.deepEqual([0, 1, 2, 3, 4].map((k) => uno('epoch.4.1.' + k + '.0')), ['D-META', 'D-MOV', 'D-SERIE', 'D-FECHA', 'D-VALOR']);
-  assert.ok(val('epoch.6').length >= 10 && val('epoch.6').every((l) => /^VG, (\d+-11|tras 3b-bis)/.test(l)), 'una línea por decisión de VG, con fecha (o «tras» el encargo que la precede, sin inventarla)');
+  assert.ok(val('epoch.6.0').length >= 10 && val('epoch.6.0').every((l) => /^VG, (\d+-11|tras 3b-bis)/.test(l)), 'una línea por decisión de VG, con fecha (o «tras» el encargo que la precede, sin inventarla)');
   // 7: el calendario (VG, 10-11, A3): los segundos de cada escala real, por su dígito (el de D-SERIE); las
   // informativas no se miden. Semana de 7 días, ciclo de 28, año de 364 + 1. Y las escalas que se refieren a otra fecha.
   assert.deepEqual(ESCALAS_REALES.map((e, k) => uno('epoch.7.0.' + k + '.1')), ESCALAS_REALES.map((e) => SEGUNDOS[e]));

@@ -19,7 +19,7 @@
 import { evaluar, leerRegla } from './bqlm.js';
 import { esPresente } from './evento.js';
 import { ContextoEje } from './contexto-eje.js';
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje } from './epocas.js';
 
 /** Clave de la serie R de un emisor. */
 export function claveR(emisor) {
@@ -29,7 +29,7 @@ export function claveR(emisor) {
 /** El precio de un grupo que hace de lente: aceptar como pago la R de quien escribe (mapa §16 [D]). */
 export const PRECIO_LENTE = 'their R';
 
-const contexto = (eje) => new ContextoEje(eje, { epoch: EPOCA_0_BTML });
+const contexto = (eje) => new ContextoEje(eje, { epoch: epocaDelEje(eje) });
 const comillas = (x) => JSON.stringify(String(x));
 
 /**
@@ -87,7 +87,7 @@ export function valor(eje, lector, titular) {
  */
 export function devoluciones(eje, emisor) {
   const k = claveR(emisor);
-  const lectura = EPOCA_0_BTML.lecturas.find((r) => r[0][0] === 'attended');
+  const lectura = epocaDelEje(eje).lecturas.find((r) => r[0][0] === 'attended');
   const ctx = contexto(eje);
   const fuera = [];
   for (const id of eje.orden) {
@@ -120,7 +120,7 @@ export function estadoDePaquete(eje, id) {
   if (!ev) return null;
   const deR = (ev.movimientos ?? []).filter((m) => m && m.token === 'R' && typeof m.emisor === 'string' && m.de !== null && m.de !== m.emisor && m.estado === undefined);
   if (deR.some((m) => m.a === m.emisor)) {
-    const lectura = EPOCA_0_BTML.lecturas.find((r) => r[0][0] === 'attended');
+    const lectura = epocaDelEje(eje).lecturas.find((r) => r[0][0] === 'attended');
     const r = lectura ? leerRegla(lectura, { k: 'reg', id: ev.id }, contexto(eje)) : null;
     return r?.estado === 'RESUELTO' && r.valor[0] === true ? 'atendido' : 'pendiente';
   }

@@ -41,4 +41,6 @@ Render animado de la web antigua (`antigua/mundos/`): la cruz entera sobre el mi
 
 **La guía del PV9** (`docs/CONTRATO.md` §16): debajo de los pasos del camino, un panel de solo lectura para preguntar a Claude sobre lo que ves, con el contexto exacto de la pantalla (y lo que cada tipo y cada registro escriban en su 9). Vía servidor (la clave de Anthropic vive en el servidor) o directa (la clave solo en este navegador, en «configuración»). No cambia nada.
 
+**La época vive en el eje** (VG, 14-11, #107): cada eje referencia la suya por id y la puede escribir en su libro al nacer (`Eje.genesis({ epoca })`, con herencia de la 0 por su 6); núcleo y carta la leen de `eje.epoca()` (`docs/CONTRATO.md` §5 bis; `node be.mjs epoca --ver | --publicar`).
+
 Prueba del reproductor de piezas: [pruebas/carta/](pruebas/carta/). Los modelos de visualización que la carta consulta son registros de la época (`datos/epocas/modelos/`, `docs/CONTRATO.md` §11); un paquete de arte se convierte en modelo con `node arte/importar.mjs <carpeta>` (`arte/MANIFIESTO.md`).

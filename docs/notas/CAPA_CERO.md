@@ -81,6 +81,7 @@ En el orden en que se evalúan (`CONDICIONES` en `src/condiciones/index.js`):
 | `suelo:id` | `evento.js` | el id es el hash del cuerpo | suelo |
 | `suelo:nuevo` | `evento.js` | el evento no está ya | suelo |
 | `suelo:un-genesis` | `evento.js` | solo hay un génesis, y es el único sin foco | suelo (absorbe «solo el génesis carece de foco», del antiguo `ancla`) |
+| `suelo:epoca` | `evento.js` | un evento que nombra su época por id (`contexto.epoca`) nombra la del eje, la escrita en su libro o la 0 que trae el código (#107) | suelo |
 | `suelo:referencias` | `evento.js` | una referencia del payload a un evento que el eje no tiene se rechaza al entrar | suelo (VG, 10-11, C1: «mientras el eje es local; con red, se resuelve antes de aceptar») |
 | `ID-1` | `evento.js` | en el prefijo de la versión 2, el autor tiene cuenta | suelo de persistencia (B1: fuera de él, quien escribe sin cuenta escribe su propia alta) |
 | `suelo:firma` | `identidad.js` | la firma verifica; la bandera `exigirFirmas` | suelo: criptografía (`src/autoridad.js`). En el prefijo de la versión 2, las reglas de entonces |

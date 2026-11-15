@@ -939,7 +939,8 @@ export class ContextoEje {
     switch (nodo.k) {
       case 'before':
         // 1, lo que hay: los registros del libro, por llegada (B5: «atendido» busca ahí quién cita una devolución).
-        if (d === 1) return this.#eje.orden.map((id) => ({ k: 'reg', id }));
+        // Sin los registros de la época escrita en el libro (#107): la época se lee como `epoch`, no como registros.
+        if (d === 1) return this.#eje.orden.filter((id) => !this.#eje.esDeLaEpoca?.(id)).map((id) => ({ k: 'reg', id }));
         // 2, con qué condición: lo bloqueado por salida y serie, sumado sobre todos los titulares (B6); vale su salida.
         if (d === 2) return this.#bloqueadosPorSalida();
         if (d === 3) return this.#eje.identidades();

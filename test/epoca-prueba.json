@@ -1,0 +1,463 @@
+{
+  "raiz": [
+    [
+      "época de prueba",
+      "test epoch"
+    ],
+    {
+      "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+    },
+    [
+      {
+        "ref": "411ffb198ee7c1fd4f8b0c66dccee14c56e33d0940a568e444b6fd8ee3dc39fd"
+      }
+    ],
+    {
+      "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+    },
+    [
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      [
+        [
+          "stations of the test epoch",
+          "una estación más que la 0: revisada, si el anuncio tiene más de un registro anclado"
+        ],
+        [
+          [
+            "revisada"
+          ],
+          [
+            "=count (down it) > 1"
+          ]
+        ]
+      ]
+    ],
+    {
+      "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+    },
+    [
+      [
+        "época de prueba (encargo «época en el eje», 14-11): hereda de la 0; dos plantillas, una regla, una estación y la forma del mundo 2"
+      ],
+      [
+        "hereda"
+      ],
+      [
+        "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      ]
+    ],
+    {
+      "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+    },
+    [
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      [
+        {
+          "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+        },
+        [
+          [
+            [
+              2
+            ],
+            [
+              5
+            ],
+            [
+              "la época de prueba cambia la forma del mundo 2 a la cruceta (la de la 0 es la escalera)"
+            ],
+            [
+              "sequenced form",
+              "mapped form",
+              "child",
+              "child",
+              "child",
+              "child",
+              "measures",
+              "measures"
+            ],
+            [
+              "cruceta",
+              "cruceta",
+              1,
+              2,
+              3,
+              4,
+              "epoch.1.1",
+              "epoch.9.0.0"
+            ]
+          ]
+        ]
+      ]
+    ],
+    [
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      {
+        "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+      },
+      [
+        {
+          "ref": "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858"
+        },
+        [
+          {
+            "ref": "6f019a8cac7c3beb1e21d369d1a360a8417d7174240ba7acabd971dc319807af"
+          },
+          {
+            "ref": "c5d41899a8e8d1f7aa19868ec825b17546841d3306482034ab461425ea1dcdd3"
+          }
+        ]
+      ]
+    ]
+  ],
+  "registros": [
+    [
+      [
+        "a test record names itself"
+      ],
+      [
+        0
+      ],
+      [
+        "=count ev.5 >= 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "época de prueba (encargo «época en el eje», 14-11): una condición que siempre se cumple, para ver que la regla de la hija se suma a las de la 0"
+      ],
+      [
+        "test epoch"
+      ],
+      [
+        "after at most a year ahead"
+      ],
+      [
+        "a test record names itself: never fails"
+      ]
+    ],
+    [
+      [
+        "leave a test note"
+      ],
+      [
+        [
+          [
+            "title"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "época de prueba (encargo «época en el eje», 14-11): parámetro de prueba"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the title of the note"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "época de prueba (encargo «época en el eje», 14-11): parámetro de prueba"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=me",
+            "who writes"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "época de prueba (encargo «época en el eje», 14-11): parámetro de prueba"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "leave a test note",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=count it.5 > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "0"
+      ],
+      [
+        "época de prueba (encargo «época en el eje», 14-11): una plantilla que solo existe en la época de prueba, para ver que la carta la ofrece junto a las de la 0"
+      ],
+      [
+        "test epoch"
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        "leave a test note: {me} leaves a test note on {first it.0}"
+      ]
+    ],
+    [
+      [
+        "plan a test review"
+      ],
+      [
+        [
+          [
+            "title"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "época de prueba (encargo «época en el eje», 14-11): parámetro de prueba"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "what will be reviewed"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "época de prueba (encargo «época en el eje», 14-11): parámetro de prueba"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=me",
+            "who plans it"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "época de prueba (encargo «época en el eje», 14-11): parámetro de prueba"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "plan a test review",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=count it.5 > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "0"
+      ],
+      [
+        "época de prueba (encargo «época en el eje», 14-11): una plantilla que solo existe en la época de prueba, para ver que la carta la ofrece junto a las de la 0"
+      ],
+      [
+        "test epoch"
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        "plan a test review: {me} plans a test review of {first it.0}"
+      ]
+    ]
+  ]
+}

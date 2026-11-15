@@ -22,7 +22,9 @@
 // que carga cargarEpocaBtml y lee el BQL mínimo como `epoch` (docs/BQLM.md,
 // docs/BTML.md §12). Convive con el formato de siempre, que no cambia.
 
-import { ARIDAD, indicesDe, esLista, esReferencia, esTerminal, validarPayload } from './btml.js';
+import { ARIDAD, indicesDe, esLista, esReferencia, esTerminal, esDecupla, validarPayload } from './btml.js';
+import { canonico } from './evento.js';
+import { sha256, aHex } from './cripto.js';
 import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve } from './bqlm.js';
 import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 
@@ -244,7 +246,7 @@ const textoNoVacio = (x) => typeof x === 'string' && x.length > 0;
  * último); cada regla, una décupla del molde con las diez posiciones llenas;
  * 3 la plantilla de identidad y el autor del primer registro; 4 primitivas y
  * despliegues; 5 las cien reglas cortas (5.p.d = [[nombre], [significado],
- * [ejemplo]]); 6 procedencia; 7 calendario y reloj; 8 cortes de las cajas,
+ * [ejemplo]]); 6 procedencia ([[notas], [claves], [valores]], #77: la clave «hereda»); 7 calendario y reloj; 8 cortes de las cajas,
  * órdenes de magnitud y modos; 9 plantillas y el orden del tutorial.
  * Sin posiciones vacías (VG: nunca se escribe []): la raíz y cada regla llevan
  * las diez; ningún array va vacío ni con huecos (validarPayload).
@@ -257,8 +259,10 @@ const textoNoVacio = (x) => typeof x === 'string' && x.length > 0;
  * referencia del 2). Las reglas largas por ruta de cargarEpoca no existen
  * aquí: las del 2 son condiciones, no nombres de rutas.
  */
-export function cargarEpocaBtml(payload, { registros = [], plantillas = [], correcciones = [], id = null } = {}) {
-  const v = validarPayload(payload);
+export function cargarEpocaBtml(payload, { registros = [], plantillas = [], correcciones = [], id = null, validar = true } = {}) {
+  // `validar: false` solo para una época RESUELTA por herencia (cargarEpocaEscrita): sus dos partes ya se validaron, y
+  // una colección combinada (el 4.3, el 1.2.1) puede pasar de diez entradas.
+  const v = validar ? validarPayload(payload) : { ok: true };
   if (!v.ok) throw new TypeError('época BTML: ' + v.errores.join('; '));
   if (!Array.isArray(payload) || payload.length !== ARIDAD) throw new TypeError('época BTML: la raíz lleva las diez posiciones llenas');
   const registro = congelarCopia(payload);
@@ -491,4 +495,284 @@ export function leerCamino(indices, epoca = EPOCA_0, { payload } = {}) {
 export function nombreEnNodo(nodo, profundidad, digito, epoca = EPOCA_0) {
   if (profundidad > 0 && esLista(nodo) && digito < nodo.length) return { ocupante: digito, significado: 'ocupante ' + (digito + 1) };
   return { significado: epocaDe(epoca).reglaCorta(profundidad, digito) };
+}
+
+// ---------- la época vive en el eje (VG, 14-11, #107; decisión #63 con AARPIA) ----------
+//
+// Las épocas son datos y cada eje referencia la suya por id: «cada evento se juzga con la época que referencia,
+// resuelta en el libro». Una época ESCRITA es { raiz, registros }: `raiz` su décupla BTML (su id, el hash de su cuerpo
+// canónico, es lo que nombran el génesis y los eventos) y `registros` las décuplas de los registros que referencia
+// (reglas del 2, plantillas del 9.6.1, modelos y piezas del 9.7, la guía del 9.9), cada uno con el id de su cuerpo
+// canónico. El génesis la escribe en el libro (src/eje.js, Eje.genesis); eje.epoca() la devuelve cargada y resuelta.
+//
+// HERENCIA (Core con Core StateArk, 14-11): una época declara en su 6, como claves y valores (#77), la clave «hereda»
+// con el id de la época base: 6 = [[notas de procedencia…], [claves…], [valores…]]. Sin «hereda» es completa por sí
+// misma. Al cargar se FUSIONA por direcciones: donde la hija tiene contenido gana el suyo; donde no (una décupla que
+// acaba antes) hereda el de la base. Como una décupla no tiene huecos (#77), la hija marca cada posición que hereda
+// con la referencia { ref: <id de la base> } en esa dirección, «lo de la base aquí»: la resolución la sustituye por lo
+// que la base tiene en la misma dirección (si la base tampoco lo tiene, la carga falla y dice dónde).
+// Las COLECCIONES se combinan: el 2 (reglas), el 9.6.1 (plantillas), el 4.3 (estaciones), el 1.2.1 (grupos) y el 8.7.1
+// (las formas por PV): las entradas de la hija se añaden a las de la base, y una con el mismo 0 que una de la base la
+// sustituye. El id que referencian los eventos es el de la hija tal como se escribió; la resolución es una lectura.
+
+/** La clave del 6.1 con que una época nombra su base (su valor, en el 6.2, es el id de la base). */
+export const HEREDA = 'hereda';
+
+/** Las colecciones que se combinan al heredar (caminos en la raíz), en vez de sustituirse. */
+export const COLECCIONES = Object.freeze(['2', '9.6.1', '4.3', '1.2.1', '8.7.1']);
+
+/** El id de un registro de la época (y el de su raíz): el hash SHA-256 de su cuerpo canónico, en hexadecimal. */
+export function idDeRegistro(registro) {
+  return aHex(sha256(new TextEncoder().encode(canonico(registro))));
+}
+
+const RE_ID_EPOCA = /^[0-9a-f]{64}$/;
+const hojasDe = (x) => (x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]);
+/** La primera hoja de un nodo, bajando por los primeros elementos. */
+const primeraHoja = (x) => {
+  let n = x;
+  while (Array.isArray(n)) n = n[0];
+  return n;
+};
+const ultimaHoja = (x) => (Array.isArray(x) ? x[x.length - 1] : x);
+/** ¿Es `x` la marca «lo de la base aquí»: una referencia { ref } (sin dir) a la base o a una de su cadena (o la lista de una sola)? */
+const esMarca = (x, ids) => {
+  const r = Array.isArray(x) && x.length === 1 ? x[0] : x;
+  return esReferencia(r) && r.dir === undefined && ids.has(r.ref);
+};
+
+/**
+ * La procedencia de una raíz de época (su 6, #77): { notas, claves: Map clave → valores }. Acepta también el 6 de antes
+ * (una lista de notas sin claves).
+ */
+export function procedenciaDe(raiz) {
+  const seis = Array.isArray(raiz) ? raiz[6] : undefined;
+  if (!Array.isArray(seis) || !esDecupla(seis)) return { notas: hojasDe(seis), claves: new Map() };
+  const claves = hojasDe(seis[1]);
+  const valores = hojasDe(seis[2]);
+  const mapa = new Map();
+  claves.forEach((k, i) => {
+    if (!mapa.has(k)) mapa.set(k, []);
+    if (i < valores.length) mapa.get(k).push(valores[i]);
+  });
+  return { notas: hojasDe(seis[0]), claves: mapa };
+}
+
+/** El id de la época de la que hereda una raíz (la clave «hereda» de su 6.1, con su valor en el 6.2), o null. */
+export function heredaDe(raiz) {
+  return procedenciaDe(raiz).claves.get(HEREDA)?.[0] ?? null;
+}
+
+/** Los errores de forma de una época escrita ({ raiz, registros }), sin resolverla: [] si vale. */
+export function erroresDeEpocaEscrita(escrita) {
+  const errores = [];
+  if (!escrita || typeof escrita !== 'object' || Array.isArray(escrita)) return ['una época escrita es { raiz, registros }'];
+  const { raiz, registros = [] } = escrita;
+  if (!Array.isArray(raiz) || raiz.length < 1 || raiz.length > ARIDAD) return ['la raíz de la época es una décupla de una a diez posiciones'];
+  const v = validarPayload(raiz);
+  if (!v.ok) errores.push(...v.errores.map((e) => 'raíz ' + e));
+  const nombre = primeraHoja(raiz[0]);
+  if (typeof nombre !== 'string' || !nombre) errores.push('falta el nombre en el 0');
+  if (!Array.isArray(registros)) return [...errores, 'los registros de la época son una lista de décuplas'];
+  registros.forEach((r, k) => {
+    if (!Array.isArray(r) || !r.length) {
+      errores.push('el registro ' + (k + 1) + ' de la época no es una décupla');
+      return;
+    }
+    const w = validarPayload(r);
+    if (!w.ok) errores.push(...w.errores.map((e) => 'registro ' + (k + 1) + ' ' + e));
+  });
+  // Sin huecos ni rellenos (#77): ningún «-» en ningún nivel.
+  const guiones = (x, ruta) => {
+    if (x === '-') errores.push('un «-» en ' + (ruta || 'la raíz') + ': sin huecos ni rellenos (#77)');
+    else if (Array.isArray(x)) x.forEach((h, i) => guiones(h, ruta ? ruta + '.' + i : String(i)));
+  };
+  guiones(raiz, '');
+  registros.forEach((r, k) => guiones(r, 'registro ' + (k + 1)));
+  // El 6: notas, claves y valores en paralelo (#77), con «hereda» = un id de época.
+  const seis = raiz[6];
+  if (Array.isArray(seis) && esDecupla(seis)) {
+    const claves = hojasDe(seis[1]);
+    const valores = hojasDe(seis[2]);
+    if (seis.length > 3) errores.push('el 6 es [[notas], [claves], [valores]] (#77)');
+    if (claves.length !== valores.length) errores.push('el 6: las claves (6.1) y los valores (6.2) van en paralelo (#77)');
+    if (!claves.every((c) => typeof c === 'string' && c)) errores.push('el 6.1: las claves son textos');
+    const h = heredaDe(raiz);
+    if (claves.includes(HEREDA) && (typeof h !== 'string' || !RE_ID_EPOCA.test(h))) errores.push('el 6: «hereda» va con el id de la época base (64 hexadecimales)');
+  }
+  // La marca «lo de la base aquí» solo tiene sentido en una época que hereda.
+  if (!heredaDe(raiz)) {
+    const ids = new Set(EPOCAS_POR_ID.keys());
+    const tiene = (x) => esMarca(x, ids) || (Array.isArray(x) && x.some(tiene));
+    if (raiz.some((x, i) => i !== 6 && tiene(x))) errores.push('una posición marcada con la referencia a una época ({ ref }) en una época que no hereda de ninguna (su 6.1 no lleva «hereda»)');
+  }
+  return errores;
+}
+
+/** El nombre de una entrada de colección: el 0 del registro que referencia, o la primera hoja de su 0. */
+function nombreDeEntrada(x, registroDe) {
+  if (esReferencia(x)) return primeraHoja(registroDe(x.ref)?.[0]);
+  return primeraHoja(x);
+}
+
+/** ¿Es una entrada de colección (una referencia o una décupla) y no la cabecera (una hoja o una lista de hojas)? */
+const esEntrada = (x) => esReferencia(x) || esDecupla(x);
+
+/**
+ * Combina una colección de la base con la de la hija: la cabecera (lo que no es entrada) es la de la base seguida de la
+ * de la hija; las entradas de la base, con las de la hija detrás y, si una se llama como (mismo 0) una o varias de
+ * la base, en el sitio de la primera de ellas (las demás de ese nombre salen). Una regla del 2 que dice «after
+ * <nombre>» en su 8 va detrás de esa. El 9.6.1 queda en el orden del 8 de cada plantilla ([punto de vista, orden]).
+ */
+function combinar(base, hija, camino, registroDe, ids) {
+  // Una colección de referencias puede venir como una sola hoja; una de décuplas, como una sola entrada.
+  const comoLista = (x) => (!Array.isArray(x) || !x.some(esEntrada) ? [x] : x);
+  const b = comoLista(base);
+  // Dentro de una colección la marca no hace falta (las entradas de la base siempre quedan): se quita.
+  const h = comoLista(hija).filter((x) => !esMarca(x, ids));
+  // La cabecera (lo que no es entrada: hojas o listas de hojas) es la de la base seguida de la de la hija, sin repetir.
+  const hojasDeCabecera = (lista) => lista.filter((x) => !esEntrada(x)).flatMap((x) => (Array.isArray(x) ? x : [x]));
+  const juntas = [...new Set([...hojasDeCabecera(b), ...hojasDeCabecera(h)].map((x) => JSON.stringify(x)))].map((x) => JSON.parse(x));
+  const cabecera = juntas.length ? [juntas] : [];
+  let entradas = b.filter(esEntrada).map((x) => ({ x, n: nombreDeEntrada(x, registroDe), hija: false }));
+  for (const x of h.filter(esEntrada)) {
+    const n = nombreDeEntrada(x, registroDe);
+    const propias = entradas.filter((e) => e.hija && e.n === n);
+    if (propias.length) {
+      entradas.splice(entradas.indexOf(propias[propias.length - 1]) + 1, 0, { x, n, hija: true });
+      continue;
+    }
+    const k = entradas.findIndex((e) => e.n === n);
+    if (k >= 0) {
+      entradas = entradas.flatMap((e, i) => (i === k ? [{ x, n, hija: true }] : e.n === n ? [] : [e]));
+      continue;
+    }
+    const despues = camino === '2' && esReferencia(x) ? String(ultimaHoja(registroDe(x.ref)?.[8]) ?? '') : '';
+    const tras = despues.startsWith('after ') ? entradas.findIndex((e) => e.n === despues.slice(6)) : -1;
+    if (tras >= 0) entradas.splice(tras + 1, 0, { x, n, hija: true });
+    else entradas.push({ x, n, hija: true });
+  }
+  let lista = entradas.map((e) => e.x);
+  if (camino === '9.6.1') {
+    const llave = (x) => {
+      const ocho = hojasDe(registroDe(x.ref)?.[8]).map(Number);
+      return Number.isFinite(ocho[0]) && Number.isFinite(ocho[1]) ? ocho[0] * 1000 + ocho[1] : Infinity;
+    };
+    lista = lista.map((x, k) => ({ x, k })).sort((p, q) => llave(p.x) - llave(q.x) || p.k - q.k).map((p) => p.x);
+  }
+  return [...cabecera, ...lista];
+}
+
+/**
+ * Fusiona la raíz de una época hija sobre la de su base, por direcciones (lo de arriba): devuelve la raíz resuelta.
+ * `registroDe(id)` alcanza los registros de las dos (para el nombre de las entradas que son referencias); `ids`, los de
+ * la base y su cadena (los que valen como marca «lo de la base aquí»). Lanza si una marca cae donde la base no tiene nada.
+ */
+export function fusionarRaices(base, hija, { registroDe = () => undefined, ids = new Set() } = {}, camino = []) {
+  const aqui = camino.join('.');
+  if (hija === undefined) return base;
+  if (esMarca(hija, ids)) {
+    if (base === undefined) throw new TypeError('la posición ' + (aqui || 'raíz') + ' se hereda ({ ref } a la base) y la base no la tiene');
+    return base;
+  }
+  if (base === undefined) return hija;
+  if (COLECCIONES.includes(aqui)) return combinar(base, hija, aqui, registroDe, ids);
+  // Una décupla de la hija se fusiona posición a posición; también una que solo lleva marcas (sería una lista de hojas):
+  // la marca es por dirección.
+  const esNodo = (x) => Array.isArray(x) && (camino.length === 0 || esDecupla(x));
+  if (esNodo(base) && (esNodo(hija) || (Array.isArray(hija) && hija.some((x) => esMarca(x, ids))))) {
+    return Array.from({ length: Math.max(base.length, hija.length) }, (_, i) => fusionarRaices(base[i], hija[i], { registroDe, ids }, [...camino, i]));
+  }
+  return hija;
+}
+
+/**
+ * Ids anteriores de la época 0 que el código sigue reconociendo como ella: el de beta 16f30d2 (antes de normalizar su 6
+ * a [[notas], [claves], [valores]], #107), del que hereda la SIP 0 de StateArk y que nombra el génesis de los ejes de
+ * entonces. La época 0 que se carga con ellos es la de hoy.
+ */
+export const IDS_ANTERIORES_DE_LA_0 = Object.freeze(['8346d2f80a855093dc7818b7d8fa811b38f309f48e70b2f2c067359ea5e5d6e8']);
+
+/** Las épocas que este código conoce, por id: la 0 (la que trae el código, con sus ids anteriores) y las que se registren (registrarEpoca). */
+export const EPOCAS_POR_ID = new Map([[EPOCA_0_BTML.id, EPOCA_0_BTML], ...IDS_ANTERIORES_DE_LA_0.map((id) => [id, EPOCA_0_BTML])]);
+
+/** Registra una época cargada por su id (para que otra pueda heredar de ella). Devuelve la época. */
+export function registrarEpoca(epoca) {
+  if (!epoca || typeof epoca.id !== 'string') throw new TypeError('registrarEpoca: una época cargada, con su id');
+  EPOCAS_POR_ID.set(epoca.id, epoca);
+  return epoca;
+}
+
+/**
+ * Carga una época escrita ({ raiz, registros }) y la resuelve: sin «hereda», con cargarEpocaBtml tal cual (ha de ser
+ * completa); con «hereda», fusionada sobre su base, que ha de estar en `conocidas` (por defecto EPOCAS_POR_ID). Lanza con
+ * la causa si está mal formada. Devuelve lo que cargarEpocaBtml, con `id` el de la raíz ESCRITA, y además `escrita` (la
+ * raíz y los registros tal como se escribieron), `hereda` (el id de la base, o null), `base` (la época base cargada) e
+ * `ids` (los de la cadena: el suyo y los de sus bases).
+ */
+export function cargarEpocaEscrita(escrita, { conocidas = EPOCAS_POR_ID } = {}) {
+  const errores = erroresDeEpocaEscrita(escrita);
+  const nombre = String(primeraHoja(escrita?.raiz?.[0]) ?? 'época');
+  if (errores.length) throw new TypeError(nombre + ': época mal formada: ' + errores.join('; '));
+  const raiz = congelarCopia(escrita.raiz);
+  const id = idDeRegistro(raiz);
+  const propios = (escrita.registros ?? []).map((r) => ({ id: idDeRegistro(r), registro: r }));
+  const baseId = heredaDe(raiz);
+  let e;
+  let base = null;
+  if (!baseId) {
+    if (raiz.length !== ARIDAD) throw new TypeError(nombre + ': una época que no hereda es completa: la raíz lleva las diez posiciones (o declara «hereda» en su 6)');
+    e = cargarEpocaBtml(raiz, { registros: propios, plantillas: propios, id });
+  } else {
+    base = conocidas.get(baseId) ?? null;
+    if (!base) throw new TypeError(nombre + ': hereda de una época que no se conoce: ' + baseId.slice(0, 8));
+    const todos = new Map(base.registros);
+    for (const p of propios) todos.set(p.id, p.registro);
+    // Valen como marca el id con que la hija nombra su base y los de la cadena de la base.
+    const ids = new Set([baseId, base.id, ...(base.ids ?? [])]);
+    let fusion;
+    try {
+      fusion = fusionarRaices(base.registro, raiz, { registroDe: (ref) => todos.get(ref), ids });
+    } catch (err) {
+      throw new TypeError(nombre + ': ' + err.message);
+    }
+    const lista = [...todos].map(([k, r]) => ({ id: k, registro: r }));
+    e = cargarEpocaBtml(fusion, { registros: lista, plantillas: lista, id, validar: false });
+  }
+  return Object.freeze({
+    ...e,
+    escrita: Object.freeze({ raiz, registros: Object.freeze(propios.map((p) => congelarCopia(p.registro))) }),
+    hereda: baseId,
+    base,
+    ids: Object.freeze([...new Set([id, ...(base ? [baseId, ...(base.ids ?? [base.id])] : [])])]),
+  });
+}
+
+/**
+ * La época escrita ({ raiz, registros }) de una época cargada: la que se escribió si la trae (`escrita`), o, para la
+ * época 0 que trae el código, su raíz y los registros que alcanza por referencias (reglas, plantillas, modelos y sus
+ * piezas, la guía), tal como están en datos/epocas/.
+ */
+export function epocaEscritaDe(epoca = EPOCA_0_BTML) {
+  if (epoca?.escrita) return { raiz: epoca.escrita.raiz, registros: [...epoca.escrita.registros] };
+  if (epoca !== EPOCA_0_BTML) throw new TypeError('epocaEscritaDe: solo la época 0 o una época cargada de su forma escrita');
+  const crudos = new Map([...REGLAS_DE_EPOCA_DATOS, ...PLANTILLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS, ...GUIA_DE_EPOCA_DATOS].map((r) => [r.id, r.registro]));
+  const vistos = new Set();
+  const registros = [];
+  const recorrer = (x) => {
+    if (esReferencia(x)) {
+      if (crudos.has(x.ref) && !vistos.has(x.ref)) {
+        vistos.add(x.ref);
+        registros.push(crudos.get(x.ref));
+        recorrer(crudos.get(x.ref));
+      }
+    } else if (Array.isArray(x)) x.forEach(recorrer);
+  };
+  recorrer(EPOCA_0_BTML_DATOS);
+  return { raiz: EPOCA_0_BTML_DATOS, registros };
+}
+
+/** La época de un eje (eje.epoca(): la escrita en su libro, o la 0 que trae el código), o la 0 sin eje. */
+export function epocaDelEje(eje) {
+  return typeof eje?.epoca === 'function' ? eje.epoca() : EPOCA_0_BTML;
 }

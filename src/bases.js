@@ -233,7 +233,7 @@ export function comparables(eje, foco, alcance = 'hermanos') {
   if (!ALCANCES.includes(alcance)) throw new Error('alcance desconocido: ' + alcance);
   if (esBase(eje, ev)) return [ev]; // una base del 8 solo se compara consigo misma
   if (alcance === 'hermanos') return ev.sobre === null ? [ev] : hijos(eje, ev.sobre);
-  if (alcance === 'general') return eje.orden.map((id) => eje.obtener(id)).filter((e) => !esBase(eje, e));
+  if (alcance === 'general') return eje.orden.filter((id) => !eje.esDeLaEpoca?.(id)).map((id) => eje.obtener(id)).filter((e) => !esBase(eje, e));
   const ids = new Set();
   const pendientes = [proyectoDe(eje, foco).id];
   while (pendientes.length) {

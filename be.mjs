@@ -19,13 +19,13 @@ import { readFileSync, writeFileSync, mkdirSync, renameSync, existsSync } from '
 import { homedir } from 'node:os';
 import { join, dirname, resolve } from 'node:path';
 import { pathToFileURL } from 'node:url';
-import { sincronia, persistencia, contrato, acciones, autoridad, salida, elegibles, leer, leerEvento, direccion } from './src/index.js';
+import { sincronia, persistencia, contrato, acciones, autoridad, salida, elegibles, leer, leerEvento, direccion, Eje, cargarEpocaEscrita, heredaDe, EPOCAS_POR_ID } from './src/index.js';
 import { pintarPara } from './carta/texto.js';
 import * as guia from './carta/guia.js';
 
-const ORDENES = ['estado', 'ver', 'camino', 'aro', 'diario', 'opiniones', 'contexto', 'buscar', 'identidad', 'pendientes', 'escribir', 'proponer'];
+const ORDENES = ['estado', 'ver', 'camino', 'aro', 'diario', 'opiniones', 'contexto', 'buscar', 'identidad', 'pendientes', 'escribir', 'proponer', 'epoca'];
 /** Las banderas sin valor. */
-const BANDERAS = ['nuevas', 'crear', 'pedir', 'ayuda'];
+const BANDERAS = ['nuevas', 'crear', 'pedir', 'ayuda', 'ver'];
 /** El nombre de la identidad de Core si la configuración no dice otro. */
 const NOMBRE_CORE = 'core';
 const AYUDA = `uso: node be.mjs <orden> [argumentos] [--config <ruta>] [--como <identidad>]
@@ -50,6 +50,16 @@ const AYUDA = `uso: node be.mjs <orden> [argumentos] [--config <ruta>] [--como <
                                     lanza una acción del aro como Core (acciones.transaccion), firmada, y la sube
   escribir --archivo <payload.json> --sobre <X> [--en <posición>] [--modo sequenced]
                                     escribe un payload BTML como lo escribe un formulario de la carta (salida.escribirDesde)
+  epoca --ver [--archivo <época.json>]
+                                    la época del eje (eje.epoca(): la escrita en su libro o la 0 que trae el código), o la
+                                    de un archivo sin eje: id, nombre, de cuál hereda y lo que trae (reglas, plantillas,
+                                    estaciones, formas del 8.7)
+  epoca --publicar <época.json> [--salida <ruta>] [--como <identidad>]
+                                    crea un eje NUEVO con esa época escrita en su libro (docs/CONTRATO.md §5 bis): su
+                                    génesis lo escribe la identidad de la configuración, firmado, y lo sube al eje
+                                    configurado, que ha de estar vacío en el servidor; con --salida lo guarda en un
+                                    archivo sin subirlo (sin configuración, un eje de demostración de --como, o «core»).
+                                    El archivo es { "raiz": [...], "registros": [[...], ...] } o la raíz sola
   proponer <título> [--sobre <registro>] [--valores <json>]
                                     atajo de «escribir propose»: una propuesta en la fábrica (el 4) del registro; por defecto
                                     el proyecto de VG (su ancla de opiniones, o el registro AGRAM)
@@ -571,11 +581,93 @@ const ordenesDe = {
   },
 };
 
+// ---------- la época (VG, 14-11, #107: la época vive en el eje) ----------
+
+/** Una época escrita desde un archivo JSON: { raiz, registros } o la raíz sola. Lanza ErrorBe si no se lee. */
+function leerEpoca(ruta) {
+  let j;
+  try {
+    j = JSON.parse(readFileSync(ruta, 'utf8'));
+  } catch (e) {
+    throw new ErrorBe('no se puede leer la época ' + ruta + ': ' + e.message);
+  }
+  return Array.isArray(j) ? { raiz: j, registros: [] } : j;
+}
+
+/** La época escrita cargada y resuelta, o ErrorBe con la causa (una mal formada no se publica). */
+function cargarEpoca(escrita) {
+  try {
+    return cargarEpocaEscrita(escrita);
+  } catch (e) {
+    throw new ErrorBe('época mal formada: ' + e.message);
+  }
+}
+
+/** El resumen de una época cargada: id, nombre, herencia y lo que trae. Con `eje`, si está escrita en su libro. */
+function resumenDeEpoca(e, eje = null) {
+  const r = e.registro;
+  const filas = (x) => (Array.isArray(x) ? x.filter((f) => Array.isArray(f) && Array.isArray(f[0])) : []);
+  const base = e.hereda ? EPOCAS_POR_ID.get(e.hereda) : null;
+  const propias = e.escrita ? e.escrita.registros.length : null;
+  return [
+    'época: ' + e.nombre + ' · id ' + e.id,
+    e.hereda ? 'hereda de: ' + corto(e.hereda) + (base ? ' (' + base.nombre + ')' : '') : 'completa: no hereda de ninguna',
+    eje ? (eje.registrosDeLaEpoca.length ? 'escrita en el libro del eje: ' + eje.registrosDeLaEpoca.length + ' registros tras el génesis' : 'no está escrita en el libro: el génesis la referencia (' + corto(eje.obtener(eje.genesisId).contexto?.epoca) + ') y la trae el código') : null,
+    propias !== null ? 'registros propios: ' + propias : null,
+    'reglas (condiciones): ' + e.condiciones.length + ' · lecturas: ' + e.lecturas.length + ' · escrituras: ' + e.escrituras.length,
+    'plantillas de transacción (9.6): ' + e.transacciones.length,
+    'estaciones del anuncio (4.3): ' + filas(r?.[4]?.[3]).map((f) => f[0][0]).join(', '),
+    'formas por mundo (8.7): ' + filas(r?.[8]?.[7]?.[1]).map((f) => f[0][0] + ' ' + (Array.isArray(f[4]) ? f[4][Array.isArray(f[3]) ? f[3].indexOf('mapped form') : 1] : '?')).join(' · '),
+  ].filter((x) => x !== null);
+}
+
+/** `epoca --ver` y `epoca --publicar`: no siempre necesitan configuración (un archivo, un eje guardado aparte). */
+async function ordenEpoca(f, entorno) {
+  if (f.ver && f.archivo) return resumenDeEpoca(cargarEpoca(leerEpoca(f.archivo)));
+  if (f.ver) {
+    const cfg = configuracion(f, entorno);
+    const { eje, avisos } = await abrir(cfg, entorno);
+    return [...avisos.map((a) => '(' + a + ')'), ...resumenDeEpoca(eje.epoca(), eje)];
+  }
+  if (typeof f.publicar !== 'string') throw new ErrorBe('epoca: --ver [--archivo <época.json>] o --publicar <época.json>');
+  const escrita = leerEpoca(f.publicar);
+  const e = cargarEpoca(escrita);
+  const hayConfig = Boolean(f.config ?? entorno.AGRAM_BE_CONFIG);
+  const cfg = hayConfig ? configuracion(f, entorno) : null;
+  const yo = cfg?.identidad ?? null;
+  if (!f.salida && !cfg) throw new ErrorBe('epoca --publicar: sin --salida hace falta la configuración (el servidor y el eje vacío donde subirlo)');
+  if (cfg && !yo?.privada) throw new ErrorBe('epoca --publicar: la configuración no tiene identidad con clave (node be.mjs identidad --crear)');
+  const identidad = yo?.nombre ?? f.como ?? NOMBRE_CORE;
+  const eje = await Eje.genesis({
+    identidad,
+    foco: [e.nombre],
+    t: ahora(),
+    epoca: escrita,
+    ...(yo ? { clave: yo.publica, privada: yo.privada } : { demostracion: true }),
+  });
+  const fuera = ['eje nuevo con la época ' + e.nombre + ' (' + corto(e.id) + (heredaDe(escrita.raiz) ? ', hereda de ' + corto(heredaDe(escrita.raiz)) : '') + ') escrita en su libro: génesis ' + corto(eje.genesisId) + ' de ' + identidad + ' y ' + eje.registrosDeLaEpoca.length + ' registros de época'];
+  if (f.salida) {
+    writeFileSync(f.salida, JSON.stringify(persistencia.serializar(eje)) + '\n');
+    fuera.push('guardado en ' + f.salida + ' (sin subir)');
+    return fuera;
+  }
+  const S = new sincronia.Sincronia({ url: cfg.url, eje: cfg.eje, claveLectura: cfg.claveLectura });
+  const pagina = await S.bajar(0, 1).catch((err) => {
+    throw new ErrorBe('no se puede leer el eje «' + cfg.eje + '» del servidor: ' + err.message);
+  });
+  if (pagina?.eventos?.length) throw new ErrorBe('el eje «' + cfg.eje + '» del servidor ya tiene génesis: una época se escribe al crear el eje (crea uno nuevo con POST /ejes)');
+  const informe = await S.sincronizar(eje, { bajar: false });
+  if (informe.errores.length || informe.pendientes.length) throw new ErrorBe('no se subió entero: ' + [...informe.errores, informe.pendientes.length + ' pendientes'].join('; '));
+  fuera.push('subido al eje «' + cfg.eje + '»: ' + informe.subidos.length + ' registros');
+  return fuera;
+}
+
 /** Ejecuta una orden y devuelve el texto (lanza ErrorBe con el motivo). Exportada para usarla sin proceso hijo. */
 export async function ejecutar(argv, entorno = process.env) {
   const { orden, pos, f } = argumentos(argv);
   if (!orden || orden === 'ayuda' || f.ayuda) return AYUDA;
   if (!ORDENES.includes(orden)) throw new ErrorBe('orden desconocida: «' + orden + '»\n' + AYUDA);
+  if (orden === 'epoca') return (await ordenEpoca(f, entorno)).join('\n');
   const cfg = configuracion(f, entorno);
   // Las claves de Core se crean antes de abrir el eje: sin red también se crean, y la petición se hace después.
   const previas = orden === 'identidad' && f.crear ? await crearIdentidad(cfg, f) : [];

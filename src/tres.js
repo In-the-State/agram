@@ -207,7 +207,7 @@ export function conversaciones(eje, X) {
   const quitados = [];
   for (const id of eje.orden ?? []) {
     const W = eje.obtener(id);
-    if (!W || id === d.alta) continue;
+    if (!W || id === d.alta || eje.esDeLaEpoca?.(id)) continue;
     // Arrastrar y vetar: lo que el dueño ancla en el 3.k.3 de su alta (los quiénes del grupo k), con la identidad en su 0.
     if (W.autor === O && d.alta && W.sobre === d.alta) {
       const [a, k, b] = indicesDe(W.en);
@@ -324,7 +324,7 @@ export function conversacionDelTres(eje, X, persona, { caja } = {}) {
     return { ref: id, autor: r.autor, t: r.t };
   };
   const tomar = (ids) => ids.filter((id) => !vistos.has(id) && enFoco(id) && vistos.add(id)).map(item);
-  const todos = (eje.orden ?? []).map((id) => eje.obtener(id)).filter(Boolean);
+  const todos = (eje.orden ?? []).filter((id) => !eje.esDeLaEpoca?.(id)).map((id) => eje.obtener(id)).filter(Boolean);
   const capas = capasDe(enCaja).map((capa) => {
     let ids = [];
     if (capa === BANDEJA) {

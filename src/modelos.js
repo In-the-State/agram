@@ -29,7 +29,7 @@
 // respaldo detrás de una nueva). Los nombres de los tipos, de las claves, de las orientaciones, de los niveles y de
 // las palabras de repetición son datos de la cabecera: aquí no hay ninguno.
 
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { esReferencia, esLista, esTerminal, direccion, resolver } from './btml.js';
 import { configuracion } from './contrato.js';
 
@@ -78,7 +78,13 @@ const PIEZA = Object.freeze({ tipo: 0, medida: 1, clave: 2, variante: 3, tiempo:
 /** Las posiciones de un tipo de pieza en la cabecera (epoch.9.7.0.4.n): el tipo, los nombres de su clave, la correspondencia. */
 const TIPO = Object.freeze({ tipo: 0, claves: 1, correspondencia: 2 });
 
-const epocaDe = (opciones) => opciones?.epoca ?? EPOCA_0_BTML;
+/**
+ * La época que se lee (VG, 14-11, #107: la época vive en el eje): la que se pasa en las opciones (un objeto de
+ * cargarEpocaBtml), si no la del eje (eje.epoca(): la escrita en su libro o la 0 que trae el código), si no la 0.
+ */
+const epocaDe = (opciones, eje) => opciones?.epoca ?? (eje ? epocaDelEje(eje) : EPOCA_0_BTML);
+/** Las opciones con la época del eje, si no traen una (lo que pasa una entrada con eje a las que no lo tienen). */
+const conEpoca = (eje, opciones) => (opciones?.epoca || typeof eje?.epoca !== 'function' || eje.epoca() === EPOCA_0_BTML ? opciones : { ...opciones, epoca: eje.epoca() });
 const raizDe = (epoca) => (Array.isArray(epoca) ? epoca : epoca.registro ?? epoca.payload);
 const en = (raiz, camino) => camino.reduce((n, d) => (Array.isArray(n) ? n[d] : undefined), raiz);
 const hoja = (x) => (Array.isArray(x) ? x[0] : x);
@@ -240,7 +246,7 @@ function autoresDelModelo(_eje, autor) {
  * Una posición que no es una lista de referencias (una hoja: «sin piezas») no tiene piezas.
  */
 export function piezasDeModelo(registro, { eje = null, id = null, autor, cabecera: cab, ...opciones } = {}) {
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const c = cab ?? cabecera(opciones);
   const fuera = [];
   const deLaEpoca = (ref) => epoca.registros?.has(ref);
@@ -306,7 +312,8 @@ function esModelo(payload, c) {
  * piezas, cabecera }.
  */
 export function modelo(eje, yo, { elemento, ...opciones } = {}) {
-  const epoca = epocaDe(opciones);
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const c = cabecera(opciones);
   const deLaEpoca = modelosDeLaEpoca(opciones);
@@ -353,6 +360,7 @@ const MUNDOS = Object.freeze([1, 2, 3, 4, 6, 7, 8, 9]);
  * piezas, cabecera, propio: true } o null si X no está en el eje o no lleva ninguna pieza propia.
  */
 export function propio(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const id = esReferencia(X) ? X.ref : X;
   const ev = typeof id === 'string' ? eje?.obtener?.(id) : null;
   if (!ev || !Array.isArray(ev.payload)) return null;

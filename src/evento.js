@@ -155,7 +155,14 @@ export function validarForma(ev, { tLaxo = false, v2 = tLaxo } = {}) {
   if (tLaxo ? typeof ev.t !== 'string' || Number.isNaN(Date.parse(ev.t)) : !esInstante(ev.t)) {
     errores.push('t debe ser instante ISO-8601 con zona explícita (AAAA-MM-DDThh:mm[:ss[.fff]] y Z o ±hh:mm)');
   }
-  if (!Array.isArray(ev.movimientos) || (ev.movimientos.length === 0 && !(ev.contexto?.genesis === true && !v2))) {
+  // Un registro de la época (VG, 14-11, #107: la época vive en el eje) es parte de la apertura del génesis: no mueve
+  // nada, con la misma exención de coste (src/eje.js, Eje.genesis). Solo un génesis que escribe su época los admite.
+  const deLaEpoca = ev.contexto?.registroDeEpoca === true && !v2;
+  if (deLaEpoca && Array.isArray(ev.movimientos) && ev.movimientos.length) errores.push('un registro de la época no mueve tokens: es parte de la apertura del génesis');
+  if (deLaEpoca && ev.sobre === null) errores.push('un registro de la época se ancla en el génesis');
+  if (deLaEpoca && Array.isArray(ev.movimientos)) {
+    // nada más que pedir a sus movimientos: no lleva
+  } else if (!Array.isArray(ev.movimientos) || (ev.movimientos.length === 0 && !(ev.contexto?.genesis === true && !v2))) {
     // El génesis puede no emitir nada (VG, 8-11: no emite T; E, P y R, si quiere).
     errores.push('todo evento mueve tokens');
   } else {

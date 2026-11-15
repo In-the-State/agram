@@ -46,7 +46,7 @@
 // transacción, transaccion() y el camino (3c-2a); el libro local (src/local.js), los pasos (src/pasos.js) y los
 // modelos de visualización (src/modelos.js) (3c-2b).
 
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla } from './bqlm.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
@@ -87,8 +87,13 @@ export const MOTIVOS = Object.freeze(['anchor not in ledger', 'anchor not a posi
 
 // ---------- la época y sus sitios ----------
 
-/** La época que se lee: la que se pasa en las opciones (un objeto de cargarEpocaBtml) o la 0. */
-const epocaDe = (opciones) => opciones?.epoca ?? EPOCA_0_BTML;
+/**
+ * La época que se lee (VG, 14-11, #107: la época vive en el eje): la que se pasa en las opciones (un objeto de
+ * cargarEpocaBtml), si no la del eje (eje.epoca(): la escrita en su libro o la 0 que trae el código), si no la 0.
+ */
+const epocaDe = (opciones, eje) => opciones?.epoca ?? (eje ? epocaDelEje(eje) : EPOCA_0_BTML);
+/** Las opciones con la época del eje, si no traen una (lo que pasa una entrada con eje a las que no lo tienen). */
+const conEpoca = (eje, opciones) => (opciones?.epoca || typeof eje?.epoca !== 'function' || eje.epoca() === EPOCA_0_BTML ? opciones : { ...opciones, epoca: eje.epoca() });
 /** La décupla de la época. */
 const raizDe = (epoca) => (Array.isArray(epoca) ? epoca : epoca.registro ?? epoca.payload);
 
@@ -196,7 +201,8 @@ export const nombreDePlantilla = (p) => texto(hoja(hoja(p?.[0])));
  * donde }: `donde` es su dirección en la época o el id del registro del eje.
  */
 export function plantillas(eje, opciones = {}) {
-  const raiz = raizDe(epocaDe(opciones));
+  opciones = conEpoca(eje, opciones);
+  const raiz = raizDe(epocaDe(opciones, eje));
   const fuera = [];
   const dominio = en(raiz, SITIO.plantillas);
   (Array.isArray(dominio) ? dominio : []).forEach((p, k) => {
@@ -206,7 +212,7 @@ export function plantillas(eje, opciones = {}) {
   if (esPlantilla(preferencias)) fuera.push({ nombre: nombreDePlantilla(preferencias), registro: preferencias, donde: direccion(SITIO.preferencias) });
   for (const id of eje?.orden ?? []) {
     const e = eje.obtener(id);
-    if (e && esPlantilla(e.payload)) fuera.push({ nombre: nombreDePlantilla(e.payload), registro: e.payload, donde: id });
+    if (e && !eje.esDeLaEpoca?.(id) && esPlantilla(e.payload)) fuera.push({ nombre: nombreDePlantilla(e.payload), registro: e.payload, donde: id });
   }
   return fuera;
 }
@@ -218,9 +224,10 @@ export function plantillas(eje, opciones = {}) {
  * son una plantilla. Devuelve la décupla de la plantilla, o null.
  */
 export function plantilla(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !Array.isArray(ev.payload)) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const todas = () => plantillas(eje, opciones);
   for (const h of hojas(ev.payload[5])) {
@@ -267,8 +274,9 @@ function corta(raiz, camino) {
  * `idioma`, la de la plantilla se traduce por su clave («template <nombre> param <etiqueta> label», epoch.9.4).
  */
 export function etiqueta(eje, X, d, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const camino = caminoDe(d);
-  const raiz = raizDe(epocaDe(opciones));
+  const raiz = raizDe(epocaDe(opciones, eje));
   const p = plantilla(eje, X, opciones);
   const desc = descripcion(p, camino);
   const propia = texto(hoja(desc?.[0]));
@@ -278,8 +286,9 @@ export function etiqueta(eje, X, d, opciones = {}) {
 
 /** La ayuda de la posición d de X: la última hoja del d.9 de su plantilla (traducida, con `idioma`), o el significado de la regla corta. */
 export function ayuda(eje, X, d, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const camino = caminoDe(d);
-  const raiz = raizDe(epocaDe(opciones));
+  const raiz = raizDe(epocaDe(opciones, eje));
   const p = plantilla(eje, X, opciones);
   const desc = descripcion(p, camino);
   const propia = texto(ultima(desc?.[9]));
@@ -292,8 +301,9 @@ export function ayuda(eje, X, d, opciones = {}) {
  * (con `idioma`, la traducción «… placeholder» si la hay, como una sola hoja); si calla, el ejemplo de la regla corta.
  */
 export function marcador(eje, X, d, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const camino = caminoDe(d);
-  const raiz = raizDe(epocaDe(opciones));
+  const raiz = raizDe(epocaDe(opciones, eje));
   const p = plantilla(eje, X, opciones);
   const desc = descripcion(p, camino);
   const nueve = hojas(desc?.[9]);
@@ -307,8 +317,9 @@ export function marcador(eje, X, d, opciones = {}) {
 
 /** El tipo de dato (y unidad o formatos) de la posición d de X: las hojas del d.1 de su plantilla, o el tipo genérico del dígito (epoch.9.2.0.1). */
 export function tipo(eje, X, d, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const camino = caminoDe(d);
-  const raiz = raizDe(epocaDe(opciones));
+  const raiz = raizDe(epocaDe(opciones, eje));
   const desc = descripcion(plantilla(eje, X, opciones), camino);
   if (desc && hojas(desc[1]).length) return hojas(desc[1]).slice();
   const generico = hojas(en(raiz, [...SITIO.plantillas, 0, 1]))[camino[camino.length - 1]];
@@ -322,10 +333,11 @@ export function tipo(eje, X, d, opciones = {}) {
  * X no tiene plantilla.
  */
 export function validar(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   const p = ev ? plantilla(eje, ev, opciones) : null;
   if (!p) return [];
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const ctx = contextoDe(eje, epoca, ev);
   const sujeto = sujetoDe(ctx, eje, ev);
   const nombrePlantilla = nombreDePlantilla(p);
@@ -397,9 +409,10 @@ export function colores(opciones = {}) {
  * formato que la plantilla admite en su 0.1 (o la época en 9.5.1), o no tiene un tamaño de la época, se omite.
  */
 export function representaciones(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev) return [];
-  const raiz = raizDe(epocaDe(opciones));
+  const raiz = raizDe(epocaDe(opciones, eje));
   const formatos = hojas(en(raiz, [...SITIO.representacion, 1]));
   const deHoja = formatos[0];
   const p = plantilla(eje, ev, opciones);
@@ -487,6 +500,7 @@ function porInstante(lista, tDe, tPorDefecto) {
  * propio, el de X). `cuantos` por defecto es el paso de la época.
  */
 export function ocupantes(eje, X, d, desde = 0, cuantos, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev) return { total: 0, desde: 0, cuantos: 0, orden: null, ocupantes: [] };
   const camino = caminoDe(d);
@@ -525,7 +539,8 @@ export function modos(opciones = {}) {
  * → { pvs, disposicion, paso, datos, maximo, cargarMas }.
  */
 export function division(eje, ruta, { datos = 1, forma, modo, ...opciones } = {}) {
-  const raiz = raizDe(epocaDe(opciones));
+  opciones = conEpoca(eje, opciones);
+  const raiz = raizDe(epocaDe(opciones, eje));
   const ev = eventoDe(eje, typeof ruta === 'object' && ruta && 'id' in ruta && !('payload' in ruta) ? ruta.id : ruta);
   const p = ev ? plantilla(eje, ev, opciones) : null;
   const propia = p?.[9]?.[9];
@@ -541,7 +556,7 @@ export function division(eje, ruta, { datos = 1, forma, modo, ...opciones } = {}
   let pvs = [];
   for (const f of candidatas) {
     if (f.condicion && f.condicion.startsWith('=') && !f.condicion.startsWith('==')) {
-      const ctx = ev ? contextoDe(eje, epocaDe(opciones), ev) : null;
+      const ctx = ev ? contextoDe(eje, epocaDe(opciones, eje), ev) : null;
       const r = ev ? evaluar(f.condicion, ctx, { sujeto: sujetoDe(ctx, eje, ev) }) : { estado: 'PENDIENTE' };
       const cumple = r.estado === 'RESUELTO' && r.valor.length === 1 && r.valor[0] === true;
       pvs = cumple || !f.alternativa.length ? f.pvs : f.alternativa;
@@ -716,10 +731,11 @@ const familiaDeSerie = (serie) => (typeof serie === 'string' && /^[EPRT]:/.test(
  *   escribir (el coste de escribir, no un intercambio). En cada paso gana la primera columna que lo nombra.
  */
 export function celdaDeEjecucion(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const h = eje?.obtener?.(esReferencia(id) ? id.ref : id);
   const ejes = h ? ejesDeLaMatriz(opciones) : null;
   if (!ejes) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const anclaje = String(h.en ?? RAIZ);
   const posicion = Number(anclaje[0]);
   const plantillas = (Array.isArray(epoca.transacciones) ? epoca.transacciones : []).map((x) => x.plantilla);
@@ -796,6 +812,7 @@ export function celdaDeEjecucion(eje, id, opciones = {}) {
  *     exacto, celdas: [{ peldano, fila, columna, profundidad, direccion, cadena, alcanza }], disponibles } o null.
  */
 export function rango(eje, X, { tope = Infinity, celdas: memoDado, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || typeof ev.id !== 'string' || !eje?.obtener?.(ev.id)) return null;
   const pasos = escalera(opciones);
@@ -882,6 +899,7 @@ export function valorDeRegistro(eje, id, { tope = 10000 } = {}) {
  * cada registro; lo que no es un registro no suma). → { segundos, transacciones, registros }.
  */
 export function valorDeCelda(eje, ids, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   let segundos = 0;
   let transacciones = 0;
   let registros = 0;
@@ -910,6 +928,7 @@ export const BOTON_DE_EJECUTAR = Object.freeze({ marca: 3, estados: Object.freez
  * (X fuera del eje o sin escalera en la época), apagado con peldaño null.
  */
 export function botonDeEjecutar(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const pasos = escalera(opciones);
   const marcado = pasos.find((p) => p.nivel === BOTON_DE_EJECUTAR.marca) ?? null;
   const r = rango(eje, X, opciones);
@@ -935,7 +954,8 @@ const ENTRE_NIVELES = '>';
  * null si la época no dice nada de ese PV. Un modo que la época no tiene lanza.
  */
 export function formaDe(_eje, pv, modo = MODO_DE_LA_DIVISION, { nivel = 1, ...opciones } = {}) {
-  const raiz = raizDe(epocaDe(opciones));
+  opciones = conEpoca(_eje, opciones);
+  const raiz = raizDe(epocaDe(opciones, _eje));
   const fila = hojas(en(raiz, [...SITIO.divisionDelMundo, 1])).filter(Array.isArray).find((r) => hoja(r[0]) === pv);
   if (!fila) return null;
   const orden = modos(opciones).map((m) => String(m.nombre).toLowerCase());
@@ -976,7 +996,8 @@ export function formaDe(_eje, pv, modo = MODO_DE_LA_DIVISION, { nivel = 1, ...op
  * mide «cohort» (el 8), `cohortes`, las cohortes que la época admite ([{ valor, alcance, texto }], cohortes()).
  */
 export function divisionDelMundo(eje, pv, { nivel = 1, modo = MODO_DE_LA_DIVISION, ...opciones } = {}) {
-  const raiz = raizDe(epocaDe(opciones));
+  opciones = conEpoca(eje, opciones);
+  const raiz = raizDe(epocaDe(opciones, eje));
   const fila = hojas(en(raiz, [...SITIO.divisionDelMundo, 1])).filter(Array.isArray).find((r) => hoja(r[0]) === pv);
   if (!fila) return null;
   const numeros = (x) => hojas(x).filter((n) => typeof n === 'number');
@@ -1058,13 +1079,14 @@ export function divisionDelMundo(eje, pv, { nivel = 1, modo = MODO_DE_LA_DIVISIO
  * { escrita: false }).
  */
 export function hijosDe(eje, X, pv, { nivel = 1, cuantos, base = [], direccion, raiz: nodoRaiz, cohorte, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const d = divisionDelMundo(eje, pv, { nivel, ...opciones });
   if (!d) return [];
   if (!d.hijos.length && d.bandas && d.cohortes) return cajasDelCielo(eje, X, d, { cohorte, cuantos, ...opciones });
   // El 3 por tema (encargo pv3): cada hijo es una caja de personas, no lo anclado en X.d.
   if (d.mide.includes(MIDE.grupos) && !caminoDe(base).length) return cajasComoHijos(eje, X, d, { cuantos, ...opciones });
   if (!d.hijos.length && d.bandas && d.escalera?.length) return posicionesParaSituarse(eje, X, d, opciones);
-  const raiz = raizDe(epocaDe(opciones));
+  const raiz = raizDe(epocaDe(opciones, eje));
   const profundidad = Math.min(Math.max(1, d.nivel), ARIDAD - 1);
   // Bajado dentro de X por dígitos (encargo «lecturas»): los hijos son X.<base>.<dígito>; lo que mide la fila es de X.<dígito>.
   const sub = caminoDe(base);
@@ -1200,7 +1222,7 @@ function aplicarLectura(eje, lectura, nodo, ctx, me, opciones) {
   });
   for (const nombre of lectura.js) {
     const leerJs = LECTURAS_JS[nombre];
-    if (leerJs) fuera.push(...leerJs(eje, nodo, { me, epoca: epocaDe(opciones), opciones }).map(({ valor, ...extra }) => ({ valor: ocupanteDe(eje, valor), extra })));
+    if (leerJs) fuera.push(...leerJs(eje, nodo, { me, epoca: epocaDe(opciones, eje), opciones }).map(({ valor, ...extra }) => ({ valor: ocupanteDe(eje, valor), extra })));
   }
   const vistos = new Set();
   return fuera.filter((x) => { const k = claveDeValor(x.valor); if (vistos.has(k)) return false; vistos.add(k); return true; });
@@ -1214,6 +1236,7 @@ function aplicarLectura(eje, lectura, nodo, ctx, me, opciones) {
  * repite lo anclado y `por` es la cadena de lecturas que lo justifica: [{ pv, regla, nombre, desde, …movimientos o fecha }].
  */
 export function leer(eje, N, d, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const r = leerRuta(eje, N, [Number(d)], opciones);
   return { pv: Number(d), anclado: r.anclado, derivado: r.derivado, lista: r.lista, ...(r.verificado ? { verificado: r.verificado } : {}) };
 }
@@ -1226,12 +1249,13 @@ export function leer(eje, N, d, opciones = {}) {
  * hacia arriba (donde ya se está). → { ruta, anclado, derivado, lista } (como `leer`).
  */
 export function leerRuta(eje, N, ruta, { yo, t: _t, tope = SIN_TOPE, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const digitos = caminoDe(ruta);
   const raizNodo = nodoDe(eje, N);
   const anclado = raizNodo && eje.obtener(raizNodo) && digitos.length ? ocupantes(eje, raizNodo, digitos, 0, Infinity, opciones).ocupantes : [];
   const fuera = (derivado) => ({ ruta: digitos, anclado, derivado, lista: [...anclado.map((valor) => ({ valor, origen: 'anclado' })), ...derivado.map(({ valor, por }) => ({ valor, origen: 'derivado', por }))] });
   if (!raizNodo || !digitos.length || digitos.length > ARIDAD) return fuera([]);
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const me = yo ?? duenoDe(eje, raizNodo);
   const ctx = new ContextoEje(eje, { epoch: epoca, me, ahora: _t });
   const porPv = new Map(lecturasDePv(opciones).map((l) => [l.pv, l]));
@@ -1303,10 +1327,11 @@ function nombresDeLasCajas(opciones) {
  * (persona → «n.g» o null) lo cambia (el rango «sobre el foco» pide aún leer lo que la persona ejecutó en X).
  */
 export function gruposDelTres(eje, X, { filtros, rangoDe, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener?.(ev.id)) return [];
   const idioma = opciones.idioma ?? 'en';
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const delAlta = (persona) => {
     const alta = eje.alta?.(persona)?.id;
     const r = alta ? rango(eje, alta, opciones) : null;
@@ -1324,11 +1349,12 @@ export function gruposDelTres(eje, X, { filtros, rangoDe, ...opciones } = {}) {
  * los recursos compartidos; filtrado por el elemento en foco si X no es el alta del dueño. Sin `caja`, la de la persona.
  */
 export function conversacionDelTres(eje, X, persona, { caja, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener?.(ev.id)) return null;
   const c = conversacionTres(eje, ev.id, persona, { caja });
   if (!c) return null;
-  return { ...c, texto: legible(eje, c.persona, TIPO.identidad, { idioma: opciones.idioma ?? 'en', epoca: epocaDe(opciones) }).texto, nombre: nombresDeLasCajas(opciones)[c.caja] ?? null };
+  return { ...c, texto: legible(eje, c.persona, TIPO.identidad, { idioma: opciones.idioma ?? 'en', epoca: epocaDe(opciones, eje) }).texto, nombre: nombresDeLasCajas(opciones)[c.caja] ?? null };
 }
 
 /** Las cajas del 3 como hijos de la división (hijosDe): cada una con sus personas (y, como ocupantes, sus identidades). */
@@ -1358,7 +1384,7 @@ const SIN_FLUJO = new Set(['asignacion', 'informativo']);
  */
 function costeDeRegistro(eje, ev, digito, opciones) {
   if (typeof digito !== 'number' || !plantilla(eje, ev, opciones)) return null;
-  const ctx = contextoDe(eje, epocaDe(opciones));
+  const ctx = contextoDe(eje, epocaDe(opciones, eje));
   const sitio = '(first ("' + ev.id + '").' + digito + '.2)';
   const cuanto = uno(sitio + '.1', ctx);
   if (typeof cuanto !== 'number') return null;
@@ -1394,7 +1420,7 @@ function flujoDeRegistro(eje, ev, opciones) {
 
 /** El registro que declara la capacidad de X: el último «declare capacity or threshold» de su dueño anclado en X, o el más cercano de su hilo que la declara en su 2. */
 function declaraCapacidad(eje, ev, opciones) {
-  const p = (Array.isArray(epocaDe(opciones).transacciones) ? epocaDe(opciones).transacciones : []).map((x) => x.plantilla).find((x) => texto(hoja(x?.[0])) === DECLARAR_CAPACIDAD.plantilla);
+  const p = (Array.isArray(epocaDe(opciones, eje).transacciones) ? epocaDe(opciones, eje).transacciones : []).map((x) => x.plantilla).find((x) => texto(hoja(x?.[0])) === DECLARAR_CAPACIDAD.plantilla);
   const param = p ? hojas(p[1]).filter(Array.isArray).find((x) => texto(hoja(x[0])) === DECLARAR_CAPACIDAD.parametro) : null;
   const ancla = p ? texto(hoja(p[5])) : undefined;
   const donde = param ? texto(hoja(param[5])) : undefined;
@@ -1459,7 +1485,7 @@ function poderPorMirada(eje, id) {
 
 /** El precio de un grupo de atención de quien es dueño (lo que da yo().atencion), legible en el idioma de las opciones. */
 function precioDeGrupo(eje, g, dueno, opciones) {
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const idioma = opciones.idioma ?? 'en';
   const { enQue, cuanto } = g.precio;
   const formato = typeof enQue === 'string' ? texto_(eje, CLAVE.legible(PRECIO_DE_ATENCION + enQue), idioma, { epoca }) : null;
@@ -1479,7 +1505,7 @@ function medidasDeHijos(eje, X, d, opciones) {
   const conEnlace = Array.isArray(d.enlace);
   const poder = conEnlace && mide.has(MIDE.poder) ? poderPorMirada(eje, ev.id) : null;
   const miradas = conEnlace && mide.has(MIDE.recuento) ? miradasDe(eje, ev.id) : [];
-  const grupos = conEnlace && mide.has(MIDE.atencion) ? atencionDe(ev.autor, contextoDe(eje, epocaDe(opciones))) : null;
+  const grupos = conEnlace && mide.has(MIDE.atencion) ? atencionDe(ev.autor, contextoDe(eje, epocaDe(opciones, eje))) : null;
   const paquetes = mide.has(MIDE.atendido);
   // El 1 (encargo «datos2», issue #11): coste, capacidad y lo que entra y sale, en el hijo que dice el enlace.
   const delUno = (ref) => conEnlace && mide.has(ref) && d.enlace.includes(ref);
@@ -1618,6 +1644,7 @@ function estiloEscrito(eje, X, camino, opciones) {
  * Todo texto pasa por cssSeguro. → { css, origen } con origen 'registro' | 'padre' | 'plantilla' | 'epoca' | null.
  */
 export function estilo(eje, X, { de = 'propio', pv, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const ninguno = { css: '', origen: null };
   if (de !== 'propio' && de !== 'hijos') throw new TypeError("el estilo es 'propio' o 'hijos'");
   const ev = eventoDe(eje, X);
@@ -1656,9 +1683,10 @@ export function niveles(opciones = {}) {
  * con `idioma`, `nombre` es la traducción («level <nombre>») y `clave` el nombre canónico.
  */
 export function madurez(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const ctx = contextoDe(eje, epoca, ev);
   const s = expresion(sujetoDe(ctx, eje, ev));
   const nivelGenerico = uno('first ' + s + '.8.1', ctx);
@@ -1686,12 +1714,13 @@ export function madurez(eje, X, opciones = {}) {
  * (pvDeEntrada: el hilo de las franjas del 6 y el 7) y `estado`, el de su futuro (estadoDeEntrada) o null.
  */
 export function diario(eje, X, desde = 0, cuantos, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || typeof ev.id !== 'string' || !eje?.obtener(ev.id)) return { total: 0, desde: 0, entradas: [] };
   // En BQL (VG 12-11, estudio BQL-transacciones): el subárbol es `under it` (por llegada) u ordenado por su instante
   // (`by`), y los asientos de cada transacción, `moves`. Es una lectura del núcleo, no de quien mira: sin el presupuesto
   // de una fórmula (lo pagina quien la pinta).
-  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones), ahora: opciones.t });
+  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones, eje), ahora: opciones.t });
   const [mecanismo, ...marcas] = ordenPorNombre(opciones.orden, opciones)?.mecanismo ?? [];
   const r = evaluar(mecanismo === 'instante' ? DIARIO.porInstante : DIARIO.porLlegada, ctx, { sujeto: ev.id, limites: SIN_LIMITES });
   const ids = r.estado === 'RESUELTO' ? r.valor.map((o) => ctx.valor(o)) : [];
@@ -1779,8 +1808,9 @@ function estadosDelFuturo(opciones) {
  * → { tipo, fecha, serie, cantidad } (fecha ISO).
  */
 export function estadoDeEntrada(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   if (typeof id !== 'string' || !eje?.obtener?.(id)) return null;
-  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones), ahora: opciones.t ?? relojDe(eje, opciones) });
+  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones, eje), ahora: opciones.t ?? relojDe(eje, opciones) });
   const m = vale('=first (first it.7).9', ctx, { sujeto: id })?.[0];
   if (!m) return null;
   for (const e of estadosDelFuturo(opciones)) {
@@ -1800,6 +1830,7 @@ export function estadoDeEntrada(eje, id, opciones = {}) {
  * → { k, paso, rara } o null si la fila no tiene pasos.
  */
 export function franjaDeEntrada(eje, id, pv, { division: dada, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const d = dada ?? divisionDelMundo(eje, pv, opciones);
   const nombres = d?.pasos ?? [];
   if (!nombres.length) return null;
@@ -1814,8 +1845,9 @@ export function franjaDeEntrada(eje, id, pv, { division: dada, ...opciones } = {
 
 /** ¿Van fuera de orden los tres relojes de un registro (X.6.9, «clocks out of order»; VG 12-11, #42)? */
 export function relojesFueraDeOrden(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   if (typeof id !== 'string' || !eje?.obtener?.(id)) return false;
-  const v = vale('=first (first it.6).9', new ContextoEje(eje, { epoch: epocaDe(opciones) }), { sujeto: id });
+  const v = vale('=first (first it.6).9', new ContextoEje(eje, { epoch: epocaDe(opciones, eje) }), { sujeto: id });
   return v?.length === 1 && v[0] === true;
 }
 
@@ -1862,8 +1894,9 @@ function comprobar(expr, ctx, id) {
  * Sin sello verificado nunca es ok: sin Bitcoin no hay «verificado».
  */
 export function verificado(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   if (typeof id !== 'string' || !eje?.obtener?.(id)) return null;
-  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones) });
+  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones, eje) });
   const pendiente = [];
   const s = comprobar(COMPRUEBA.sello, ctx, id);
   if (s.pendiente) pendiente.push({ lectura: 'sello', motivo: s.pendiente });
@@ -1917,7 +1950,7 @@ export function cohortes(opciones = {}) {
 
 /** La cohorte que el dueño de X eligió: el último «change cohort» suyo anclado donde ancla la plantilla (el 8 de X): { valor, de } o null. */
 function cohorteEscrita(eje, ev, opciones) {
-  const p = transaccionPorNombre(epocaDe(opciones), CAMBIAR_COHORTE.plantilla);
+  const p = transaccionPorNombre(epocaDe(opciones, eje), CAMBIAR_COHORTE.plantilla);
   const param = parametroPorEtiqueta(p, CAMBIAR_COHORTE.parametro);
   const ancla = p ? texto(hoja(p[5])) : undefined;
   const donde = param ? texto(hoja(param[5])) : undefined;
@@ -1941,6 +1974,7 @@ function cohorteEscrita(eje, ev, opciones) {
  * → { cohorte, alcance, texto, elegida, cohortes, registro, base, comparables: [{ ref, caja, cuota, serie, foco, rango }], caja, rango } o null.
  */
 export function cohorteDe(eje, X, { cohorte, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const ev = eventoDe(eje, X);
   if (!ev || typeof ev.id !== 'string' || !eje?.obtener?.(ev.id)) return null;
   const lista = cohortes(opciones);
@@ -1997,9 +2031,10 @@ function cajasDelCielo(eje, X, d, { cohorte, cuantos, ...opciones }) {
  * o null si la identidad no tiene alta.
  */
 export function yo(eje, identidad, { t, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
   const alta = eje?.alta(identidad);
   if (!alta) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const reloj = t ?? (Number.isFinite(eje.tMaximo()) ? new Date(eje.tMaximo()).toISOString() : undefined);
   const ctx = contextoDe(eje, epoca, { autor: identidad, t: reloj, movimientos: [], payload: [identidad] });
@@ -2048,7 +2083,8 @@ function atencionDe(identidad, ctx) {
  * hojas de cada d.9 menos la ayuda). `yo` es la identidad o lo que devuelve yo(). → { <etiqueta>: valor, …, de: id | null }.
  */
 export function configuracion(eje, quien, opciones = {}) {
-  return leerConfiguracion(eje, quien, en(raizDe(epocaDe(opciones)), SITIO.preferencias), opciones);
+  opciones = conEpoca(eje, opciones);
+  return leerConfiguracion(eje, quien, en(raizDe(epocaDe(opciones, eje)), SITIO.preferencias), opciones);
 }
 
 /**
@@ -2057,6 +2093,7 @@ export function configuracion(eje, quien, opciones = {}) {
  * plantilla (el último), leído con sus etiquetas como claves; sin registro, sus defectos. → { <etiqueta>: valor, …, de }.
  */
 export function configuracionDe(eje, quien, nombre, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const p = plantillas(null, opciones).find((x) => x.nombre === nombre)?.registro;
   return leerConfiguracion(eje, quien, p, opciones);
 }
@@ -2079,6 +2116,7 @@ export const POSICION_ANCLA_DE_OPINIONES = 6;
  * quitarla es no escribirlo: #77). La resolución a un registro es de acciones.registroDe.
  */
 export function anclaDeLasOpiniones(eje, quien, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const nombre = ajustesDeLaGuia(opciones);
   const clave = clavesDeConfiguracionDe(nombre, opciones).find((c) => c.pv === POSICION_ANCLA_DE_OPINIONES)?.clave;
   const v = clave ? configuracionDe(eje, quien, nombre, opciones)[clave] : undefined;
@@ -2087,12 +2125,13 @@ export function anclaDeLasOpiniones(eje, quien, opciones = {}) {
 
 /** ¿Es X un registro de configuración (de las preferencias o de los ajustes de la guía o del exterior)? Lo que no se manda a ninguna IA: puede llevar dónde se comparte el eje. */
 export function esDeConfiguracion(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const p = plantilla(eje, X, opciones);
   if (!p) return false;
   const propias = plantillas(null, opciones);
   // `ajustes`: los nombres de otras plantillas de configuración que la pantalla conoce (los ajustes del exterior, src/exterior.js).
   const otras = (Array.isArray(opciones.ajustes) ? opciones.ajustes : []).map((n) => propias.find((x) => x.nombre === n)?.registro);
-  return p === en(raizDe(epocaDe(opciones)), SITIO.preferencias) || p === propias.find((x) => x.nombre === ajustesDeLaGuia(opciones))?.registro || otras.includes(p);
+  return p === en(raizDe(epocaDe(opciones, eje)), SITIO.preferencias) || p === propias.find((x) => x.nombre === ajustesDeLaGuia(opciones))?.registro || otras.includes(p);
 }
 
 /**
@@ -2219,7 +2258,8 @@ function clavesDe(p) {
  * transacción que la ancla } o null si la época no trae guía.
  */
 export function guia(eje, idioma = 'en', opciones = {}) {
-  const epoca = epocaDe(opciones);
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const ref = hojas(en(raiz, SITIO.guia)).find((h) => esReferencia(h));
   const registro = ref ? epoca.registros?.get(ref.ref) : null;
@@ -2256,7 +2296,8 @@ export function idiomas(opciones = {}) {
  * regla (bqlm.rellenar). `regla` es la décupla o su nombre.
  */
 export function mensaje(eje, regla, idioma = 'en', { ev, ...opciones } = {}) {
-  const epoca = epocaDe(opciones);
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const r = Array.isArray(regla) ? regla : (epoca.reglasConId ?? []).map((x) => x.regla).find((x) => nombreDeRegla(x) === regla);
   if (!r) return null;
@@ -2304,7 +2345,7 @@ function textosDe(raiz) {
  * huecos), «level <nombre>», «order <nombre>», «size <nombre>» y «legible <qué>» (los formatos de legible()).
  */
 function texto_(eje, clave, idioma = 'en', { original, ...opciones } = {}) {
-  const porIdioma = textosDe(raizDe(epocaDe(opciones)));
+  const porIdioma = textosDe(raizDe(epocaDe(opciones, eje)));
   const propio = idioma ? porIdioma.get(idioma)?.get(clave) : undefined;
   if (propio !== undefined) return propio;
   const canonico = porIdioma.get('en')?.get(clave);
@@ -2370,7 +2411,8 @@ export function pluralDeEscala(nombre) {
  * sin él, «registro de N posiciones»; un precio [[en qué], [cuánto]], «cuánto en qué por unidad».
  */
 export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
-  const epoca = epocaDe(opciones);
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const t = hojas(tipo).find((x) => typeof x === 'string');
   const o = { epoca, idioma };
@@ -2476,7 +2518,7 @@ export function esTipoSimple(tipo, opciones = {}) {
  * cual. Vacío, { valor: undefined }. → { valor } o { motivo } (en el idioma: los formatos «legible …» de epoch.9.4).
  */
 export function desdeLegible(textoDado, tipo, { eje, idioma = 'en', ...opciones } = {}) {
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   const t = hojas(tipo).find((x) => typeof x === 'string');
   const s = String(textoDado ?? '').trim();
   const motivo = (que) => ({ motivo: plano_(texto_(eje, CLAVE.legible(que), idioma, { epoca }), { text: s }) });
@@ -2500,7 +2542,7 @@ export function desdeLegible(textoDado, tipo, { eje, idioma = 'en', ...opciones 
   }
   if (t === TIPO.referencia) {
     if (RE_ID.test(s) && eje?.obtener?.(s)) return { valor: s };
-    const porNombre = (eje?.orden ?? []).find((id) => ceroDe(eje, id, { epoca }) === s);
+    const porNombre = (eje?.orden ?? []).find((id) => !eje.esDeLaEpoca?.(id) && ceroDe(eje, id, { epoca }) === s);
     return porNombre ? { valor: porNombre } : motivo('unknown record');
   }
   if (t === TIPO.nivel) {
@@ -2556,9 +2598,10 @@ function hermanosDe(eje, ev, opciones) {
  * → [{ valor, texto }]
  */
 export function opciones(eje, X, pv, { yo, idioma, parametro, ...resto } = {}) {
+  resto = conEpoca(eje, resto);
   const ev = eventoDe(eje, X);
   if (!ev) return [];
-  const epoca = epocaDe(resto);
+  const epoca = epocaDe(resto, eje);
   const o = { ...resto, epoca };
   const leer = (v, tipoDe) => legible(eje, v, tipoDe, { ...o, idioma }).texto;
   const raiz = raizDe(epoca);

@@ -10,7 +10,7 @@
 //   pasoDe(eje, X, nombre) → { pv, k, de } de una sola fila (sin leer las demás), o null si la tabla no la tiene
 //   tabla()                → las filas de la tabla, leídas
 
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar } from './bqlm.js';
 import { madurez } from './contrato.js';
@@ -20,7 +20,13 @@ import { cajaDeCuota } from './bases.js';
 /** Dónde pone la época la tabla de pasos: 0 la cabecera, 1… las filas. */
 const SITIO = Object.freeze({ pasos: [9, 8] });
 
-const epocaDe = (opciones) => opciones?.epoca ?? EPOCA_0_BTML;
+/**
+ * La época que se lee (VG, 14-11, #107: la época vive en el eje): la que se pasa en las opciones (un objeto de
+ * cargarEpocaBtml), si no la del eje (eje.epoca(): la escrita en su libro o la 0 que trae el código), si no la 0.
+ */
+const epocaDe = (opciones, eje) => opciones?.epoca ?? (eje ? epocaDelEje(eje) : EPOCA_0_BTML);
+/** Las opciones con la época del eje, si no traen una (lo que pasa una entrada con eje a las que no lo tienen). */
+const conEpoca = (eje, opciones) => (opciones?.epoca || typeof eje?.epoca !== 'function' || eje.epoca() === EPOCA_0_BTML ? opciones : { ...opciones, epoca: eje.epoca() });
 const raizDe = (epoca) => (Array.isArray(epoca) ? epoca : epoca.registro ?? epoca.payload);
 const en = (raiz, camino) => camino.reduce((n, d) => (Array.isArray(n) ? n[d] : undefined), raiz);
 const hoja = (x) => (Array.isArray(x) ? x[0] : x);
@@ -79,6 +85,7 @@ export function tabla(opciones = {}) {
  * que no quema T no tiene escala; la raíz no tiene cuota). X es un id del eje, un evento o una candidata.
  */
 export function pasos(eje, X, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   return lector(eje, X, opciones)?.(tabla(opciones)) ?? {};
 }
 
@@ -87,6 +94,7 @@ export function pasos(eje, X, opciones = {}) {
  * falta para saber su escala): { pv, k, de }, o null si la tabla no tiene esa fila o X no es nada.
  */
 export function pasoDe(eje, X, nombre, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
   const fila = tabla(opciones).find((f) => f.nombre === nombre);
   if (!fila) return null;
   return lector(eje, X, opciones)?.([fila])?.[nombre] ?? null;
@@ -96,7 +104,7 @@ export function pasoDe(eje, X, nombre, opciones = {}) {
 function lector(eje, X, opciones) {
   const ev = eventoDe(eje, X);
   if (!ev) return null;
-  const epoca = epocaDe(opciones);
+  const epoca = epocaDe(opciones, eje);
   let ctx = null;
   const contexto = () => (ctx ??= new ContextoEje(eje, { ev, epoch: epoca, ahora: opciones.t }));
   const sujeto = () => (typeof ev.id === 'string' && eje?.obtener(ev.id) ? ev.id : contexto().nombre('ev'));

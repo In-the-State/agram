@@ -46,6 +46,18 @@ La clave de lectura se devuelve **una sola vez**: el servidor guarda solo su has
 
 La URL que va en la configuración de la carta (`sync url`) es la base de la función: `https://<ref>.supabase.co/functions/v1`; el nombre del eje (`sync ledger`), `vg`. Las rutas cuelgan de ahí: `POST …/functions/v1/eventos`, `GET …/functions/v1/eventos?eje=vg&desde=0`, `POST …/functions/v1/eventos/ejes`.
 
+## Un eje con su época (VG, 14-11, #107)
+
+La época vive en el eje: cada eje nace con la suya escrita en su libro (`docs/CONTRATO.md` §5 bis). El servidor no cambia: guarda los eventos firmados como siempre, y **los registros de la época son eventos**: el génesis (con `contexto.epoca`, el id de la época, y `contexto.epocaEscrita`, cuántos registros siguen) y, detrás, la raíz de la época y cada registro que referencia, anclados en el génesis, firmados por su autor y sin movimientos. Quien los baja (la carta, `be.mjs`, el nodo de AARPIA, que copia el núcleo) los valida y resuelve la época del libro con `Eje.desde`/`eje.anadir`, sin cambios suyos.
+
+Para que un eje nuevo nazca con una época que no es la 0 (por ejemplo la SIP 0 de StateArk, que hereda de la 0):
+
+1. Crear el eje vacío en el servidor (`POST …/eventos/ejes`, como arriba) y poner su nombre y clave de lectura en la configuración de `be.mjs`, con la identidad que será la del génesis (`node be.mjs identidad --crear`).
+2. `node be.mjs epoca --publicar <época.json>`: valida la época (una mal formada no se publica), escribe el génesis y los registros de la época con esa identidad, firmados, y los sube; si el eje del servidor ya tiene génesis, no hace nada. El archivo es `{ "raiz": [...], "registros": [[...], ...] }`.
+3. `node be.mjs epoca --ver` lo comprueba: «escrita en el libro del eje: n registros tras el génesis».
+
+Un eje sin época escrita (todos los de hoy) sigue con la 0 que trae el código. Cada evento cabe en el tope del cuerpo (256 KB): la época se escribe un registro por evento.
+
 ## Configurar la carta tras desplegar
 
 En el primer dispositivo, con la cuenta de VG abierta en la carta (`https://agram.ikisai.com`):

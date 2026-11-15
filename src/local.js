@@ -22,7 +22,7 @@
 
 import { Libro, acunar, quemar, transaccion } from './libro.js';
 import { ESCALAS_T, diaCivil } from './tokens.js';
-import { EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje } from './epocas.js';
 import { crearEvento, canonico, hash, RAIZ } from './evento.js';
 import { mensaje, configuracion } from './contrato.js';
 import { quemaDelCoste } from './escritura.js';
@@ -59,8 +59,8 @@ export class LibroLocal {
   #anotaciones = []; // { t, X, accion, en: null | id del registro que lo englobó }, por llegada
   #anterior = null; // el último registro englobado en el eje (lo anterior a lo que se ancla el siguiente)
 
-  /** `eje` es el eje compartido (se lee: el alta de `yo`, la época, los registros); `yo`, la identidad; `epoca`, la que se lee (por defecto la 0). */
-  constructor(eje, yo, { epoca = EPOCA_0_BTML } = {}) {
+  /** `eje` es el eje compartido (se lee: el alta de `yo`, la época, los registros); `yo`, la identidad; `epoca`, la que se lee (por defecto la del eje, eje.epoca(): #107). */
+  constructor(eje, yo, { epoca = epocaDelEje(eje) } = {}) {
     if (typeof yo !== 'string' || !yo) throw new TypeError('el libro local es de una identidad');
     this.#eje = eje ?? null;
     this.#yo = yo;

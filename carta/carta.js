@@ -1963,9 +1963,12 @@ const pasoDelArbol = (pv, k, escala) => {
  *   nuevos: Set<id>          las transacciones del diario llegadas desde la última vez (lo que el animado anima: efectos y actuar)
  * En Mapped, el foco en un PV lateral es ese PV a pantalla completa (el paso que sigue al tope). En Sequenced, el árbol
  * lleva además `secuencia` ({ filas, pasado, futuro, digitos }: secuenciaDe) y no lleva rosetones.
- * `medidas`: { ancho, alto, hueco, tarjeta, linea } en píxeles. `opciones.epoca`, la época que se lee; `opciones.t`, el reloj.
+ * `medidas`: { ancho, alto, hueco, tarjeta, linea } en píxeles. `opciones.epoca`, la época que se lee (por defecto la del eje,
+ * eje.epoca()); `opciones.t`, el reloj.
  */
 export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
+  // La época que se pinta es la del eje (VG, 14-11, #107: la época vive en el eje): la escrita en su libro, o la 0.
+  if (!opciones.epoca && typeof eje?.epoca === 'function') opciones = { ...opciones, epoca: eje.epoca() };
   const m = { ...MEDIDAS, ...medidas };
   const X = typeof estado.foco === 'string' ? estado.foco : estado.foco?.X;
   const ev = eventoDe(eje, X);
