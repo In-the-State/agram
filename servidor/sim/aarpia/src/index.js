@@ -5,3 +5,6 @@ export { firmar, verificar, generarClaves, publicaDe, valores, idDe } from './no
 export { crearBlossom, autorizacion, KIND_AUTORIZACION, POLITICA } from './blossom.js';
 export { almacenArchivos } from './archivos.js';
 export { crearServicio, almacenRele } from './servicio.js';
+export { Autoridad, NUCLEO, KIND_RECHAZO } from './autoridad.js';
+export { revalidar, decisiones } from './revalidar.js';
+export { firmarRecibo, verificarRecibo, leerRecibo, llegada, aceptacion, rechazo, ESQUEMA as ESQUEMA_RECIBO } from './recibo.js';
