@@ -1,6 +1,0 @@
-{
-  "sobre": "d0bba9017ab3a926d1f4281b04a8fb7dda8fcead234544c61b9ce6d20536547e",
-  "en": "2",
-  "ocupante": "=count (ev.5 where it != first ev.5 and ((first it.3 in before.3 and count (first it.3).6.5 > 1 and not first it.2 in ((first it.3).6.5 each 2)) or (not first it.3 in before.3 and first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1)))) = 0",
-  "de": "H13 y defecto de la invitación, 15-11: una clave declarada ASOCIA, no da alta. Vale (a) la de quien escribe su propia alta, (b) la de quien recibe tokens en el registro (una cosa), (c) la del invitado que la invitación nombra (su 3.1 y su 3.5), y (d) la de una identidad que ya tiene cuenta si aún no tiene clave o si es la misma (el vínculo de StateArk): nunca cambia la de quien ya la tiene, y no crea identidad (no hay alta sin movimientos ni invitación)"
-}

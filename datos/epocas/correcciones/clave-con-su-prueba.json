@@ -1,6 +1,0 @@
-{
-  "sobre": "f773dd6c5ce49da448821019cba9aa125a90116cd0c63ae787014fd7dc4cc45c",
-  "en": "2",
-  "ocupante": "=count before.9 > 0 or count (ev.5 where it != first ev.5 and count it.4 = 0 and not (first it.3 = first ev.3 and not first it.3 in before.3) and not (first it.2 in ((first it.3).6.5 each 2)) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1 and not first it.3 in before.3)) = 0",
-  "de": "H13 y defecto de la invitación, 15-11: toda clave declarada en cualquier registro llega con su prueba de posesión (la clave firma el id del registro), salvo la de quien escribe su propia alta (su firma es la prueba), la que ya es la de esa identidad (nada nuevo que probar) y la del invitado, que el invitador declara y responde por ella: aún no puede firmar, y su alta la declarará con su firma"
-}

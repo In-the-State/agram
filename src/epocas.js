@@ -689,9 +689,14 @@ export function fusionarRaices(base, hija, { registroDe = () => undefined, ids =
 /**
  * Ids anteriores de la época 0 que el código sigue reconociendo como ella: el de beta 16f30d2 (antes de normalizar su 6
  * a [[notas], [claves], [valores]], #107), del que hereda la SIP 0 de StateArk y que nombra el génesis de los ejes de
- * entonces. La época 0 que se carga con ellos es la de hoy.
+ * entonces; y el de 0d95471b, antes de H13 (15-11: las dos reglas de las claves declaradas admiten claves en cualquier
+ * registro y en la invitación), del que hereda la SIP 0 viva y que nombran los génesis de los ejes de ayer. La época 0
+ * que se carga con ellos es la de hoy.
  */
-export const IDS_ANTERIORES_DE_LA_0 = Object.freeze(['8346d2f80a855093dc7818b7d8fa811b38f309f48e70b2f2c067359ea5e5d6e8']);
+export const IDS_ANTERIORES_DE_LA_0 = Object.freeze([
+  '8346d2f80a855093dc7818b7d8fa811b38f309f48e70b2f2c067359ea5e5d6e8',
+  '0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858', // antes de H13: las reglas de las claves declaradas (15-11)
+]);
 
 /** Las épocas que este código conoce, por id: la 0 (la que trae el código, con sus ids anteriores) y las que se registren (registrarEpoca). */
 export const EPOCAS_POR_ID = new Map([[EPOCA_0_BTML.id, EPOCA_0_BTML], ...IDS_ANTERIORES_DE_LA_0.map((id) => [id, EPOCA_0_BTML])]);

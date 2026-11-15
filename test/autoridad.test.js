@@ -213,7 +213,7 @@ test('un eje real: génesis con clave, alta por invitación que nombra la clave 
 // prueba de posesión (la clave firma el id del registro), como en las altas. El vínculo de StateArk declara la clave de la
 // cartera. Una clave declarada asocia: no da alta (no crea identidad), no cambia la de quien ya la tiene y la de una
 // identidad sin alta no vale. Las reglas de la época que lo dicen: «a key is declared at its alta» y «a declared key comes
-// with its proof» (datos/epocas/correcciones/).
+// with its proof» (datos/epocas/reglas/).
 test('H13: un registro de vínculo declara la clave de la cartera con su posesión; sin ella se rechaza; no crea identidades ni cambia claves', async () => {
   const vg = await generarClaves();
   const cartera = await generarClaves();

@@ -37,12 +37,15 @@ async function ejeCon(epoca, { claves } = {}) {
 
 test('la época de prueba: hereda de la 0 por su 6 (claves y valores) y se resuelve sumando sus colecciones', () => {
   assert.deepEqual(erroresDeEpocaEscrita(PRUEBA), []);
-  assert.equal(heredaDe(PRUEBA.raiz), EPOCA_0_BTML.id);
+  // La de prueba hereda del id de la 0 de ANTES de H13 (0d95471b…): un id anterior reconocido resuelve con la 0 de hoy.
+  assert.equal(heredaDe(PRUEBA.raiz), IDS_ANTERIORES_DE_LA_0[1]);
+  assert.notEqual(heredaDe(PRUEBA.raiz), EPOCA_0_BTML.id);
+  assert.equal(EPOCAS_POR_ID.get(heredaDe(PRUEBA.raiz)), EPOCA_0_BTML);
   const e = cargarEpocaEscrita(PRUEBA);
   assert.equal(e.id, idDeRegistro(PRUEBA.raiz), 'el id es el de la hija tal como se escribió');
   assert.equal(e.nombre, 'época de prueba');
-  assert.equal(e.hereda, EPOCA_0_BTML.id);
-  assert.deepEqual(e.ids, [e.id, EPOCA_0_BTML.id]);
+  assert.equal(e.hereda, IDS_ANTERIORES_DE_LA_0[1]);
+  assert.deepEqual(e.ids, [e.id, IDS_ANTERIORES_DE_LA_0[1], EPOCA_0_BTML.id], 'los ids que la nombran: el suyo, el que dice heredar y el de la 0 de hoy');
   // 9.6.1: las 46 de la 0 y las dos suyas, en el orden del 8 de cada una ([punto de vista, orden]).
   assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 2);
   assert.ok(nombres(e).includes('leave a test note') && nombres(e).includes('plan a test review') && nombres(e).includes('anchor here'));

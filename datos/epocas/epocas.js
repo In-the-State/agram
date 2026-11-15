@@ -440,10 +440,10 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "7d522ab9cffcb214fc95866396009b2d057c6a2aca95bef1fe4ac897e6e422f9"
     },
     {
-      "ref": "d0bba9017ab3a926d1f4281b04a8fb7dda8fcead234544c61b9ce6d20536547e"
+      "ref": "553817e14bb40050be1894cb9fbeb99984890d2bfd4482a061d91565cfcd761d"
     },
     {
-      "ref": "f773dd6c5ce49da448821019cba9aa125a90116cd0c63ae787014fd7dc4cc45c"
+      "ref": "e85e54370d14e87b80c8ede4d62fdf09ffe7d9a2f2558ad5ccb5ff3ec9cfcac0"
     },
     {
       "ref": "bbeb475a8d7cabdef089352e3f346e5f20f006497047ac4897fa2b889b961c92"
@@ -7297,7 +7297,7 @@ export const EPOCA_0_DATOS = {
 export const REGLAS_DE_EPOCA_DATOS = [
   {
     "archivo": "a-declared-key-comes-with-its-proof.json",
-    "id": "f773dd6c5ce49da448821019cba9aa125a90116cd0c63ae787014fd7dc4cc45c",
+    "id": "e85e54370d14e87b80c8ede4d62fdf09ffe7d9a2f2558ad5ccb5ff3ec9cfcac0",
     "registro": [
       [
         "a declared key comes with its proof"
@@ -7306,7 +7306,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         0
       ],
       [
-        "=count before.9 > 0 or count (ev.5 where it != first ev.5 and first it.3 != first ev.3 and count it.4 = 0) = 0"
+        "=count before.9 > 0 or count (ev.5 where it != first ev.5 and count it.4 = 0 and not (first it.3 = first ev.3 and not first it.3 in before.3) and not (first it.2 in ((first it.3).6.5 each 2)) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1 and not first it.3 in before.3)) = 0"
       ],
       [
         "ev.5 each 3"
@@ -7324,7 +7324,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "R9, VG 7-11 noche: la clave nueva llega con su prueba de posesión, su firma sobre el id del alta (inventario ID-6)",
         "VG, 10-11, B4: la clave pública va en el 5 del alta y el firmante es el segundo ocupante del 3 del evento; verificar la firma es suelo (src/autoridad.js) (mapa §16 [D])",
-        "VG, 10-11, B1: la clave de quien escribe su propia alta se prueba con su firma (who has a key signs)"
+        "VG, 10-11, B1: la clave de quien escribe su propia alta se prueba con su firma (who has a key signs)",
+        "H13 y defecto de la invitación, 15-11: toda clave declarada en cualquier registro llega con su prueba de posesión (la clave firma el id del registro), salvo la de quien escribe su propia alta (su firma es la prueba), la que ya es la de esa identidad (nada nuevo que probar) y la del invitado, que el invitador declara y responde por ella: aún no puede firmar, y su alta la declarará con su firma"
       ],
       [
         "epoch 0"
@@ -7339,7 +7340,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-key-is-declared-at-its-alta.json",
-    "id": "d0bba9017ab3a926d1f4281b04a8fb7dda8fcead234544c61b9ce6d20536547e",
+    "id": "553817e14bb40050be1894cb9fbeb99984890d2bfd4482a061d91565cfcd761d",
     "registro": [
       [
         "a key is declared at its alta"
@@ -7348,7 +7349,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         0
       ],
       [
-        "=count (ev.5 where it != first ev.5 and (first it.3 in before.3 or first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1))) = 0"
+        "=count (ev.5 where it != first ev.5 and ((first it.3 in before.3 and count (first it.3).6.5 > 1 and not first it.2 in ((first it.3).6.5 each 2)) or (not first it.3 in before.3 and first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1)))) = 0"
       ],
       [
         "ev.5 each 3"
@@ -7366,7 +7367,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "VG, 7-11 noche: las claves se declaran en el alta y no cambian (inventario ID-2, ID-6)",
         "VG, 10-11, B4: la clave pública va en el 5 del alta y el firmante es el segundo ocupante del 3 del evento; verificar la firma es suelo (src/autoridad.js) (mapa §16 [D])",
-        "VG, 10-11, B1: una persona declara la suya en su propia alta; la de una cosa la declara quien la da de alta, al darle tokens"
+        "VG, 10-11, B1: una persona declara la suya en su propia alta; la de una cosa la declara quien la da de alta, al darle tokens",
+        "H13 y defecto de la invitación, 15-11: una clave declarada ASOCIA, no da alta. Vale (a) la de quien escribe su propia alta, (b) la de quien recibe tokens en el registro (una cosa), (c) la del invitado que la invitación de este registro nombra (su 3.1 y su 3.5), y (d) la de una identidad que ya tiene cuenta si aún no tiene clave o es la misma (el vínculo de StateArk, en cualquier registro): nunca cambia la de quien ya la tiene, y no crea identidad (no hay alta sin movimientos ni invitación)"
       ],
       [
         "epoch 0"
@@ -18393,25 +18395,10 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858";
+export const EPOCA_0_BTML_ID = "9cd5a949ae30d3ef3dff698eec90f600d62a229d77aa17c1bf6b702fff6415f0";
 
 // correcciones/*.json: ocupantes añadidos a un registro de la época, { archivo, sobre, en, ocupante, de }
-export const CORRECCIONES_DE_EPOCA_DATOS = [
-  {
-    "archivo": "clave-asocia-sin-alta.json",
-    "sobre": "d0bba9017ab3a926d1f4281b04a8fb7dda8fcead234544c61b9ce6d20536547e",
-    "en": "2",
-    "ocupante": "=count (ev.5 where it != first ev.5 and ((first it.3 in before.3 and count (first it.3).6.5 > 1 and not first it.2 in ((first it.3).6.5 each 2)) or (not first it.3 in before.3 and first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1)))) = 0",
-    "de": "H13 y defecto de la invitación, 15-11: una clave declarada ASOCIA, no da alta. Vale (a) la de quien escribe su propia alta, (b) la de quien recibe tokens en el registro (una cosa), (c) la del invitado que la invitación nombra (su 3.1 y su 3.5), y (d) la de una identidad que ya tiene cuenta si aún no tiene clave o si es la misma (el vínculo de StateArk): nunca cambia la de quien ya la tiene, y no crea identidad (no hay alta sin movimientos ni invitación)"
-  },
-  {
-    "archivo": "clave-con-su-prueba.json",
-    "sobre": "f773dd6c5ce49da448821019cba9aa125a90116cd0c63ae787014fd7dc4cc45c",
-    "en": "2",
-    "ocupante": "=count before.9 > 0 or count (ev.5 where it != first ev.5 and count it.4 = 0 and not (first it.3 = first ev.3 and not first it.3 in before.3) and not (first it.2 in ((first it.3).6.5 each 2)) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1 and not first it.3 in before.3)) = 0",
-    "de": "H13 y defecto de la invitación, 15-11: toda clave declarada en cualquier registro llega con su prueba de posesión (la clave firma el id del registro), salvo la de quien escribe su propia alta (su firma es la prueba), la que ya es la de esa identidad (nada nuevo que probar) y la del invitado, que el invitador declara y responde por ella: aún no puede firmar, y su alta la declarará con su firma"
-  }
-];
+export const CORRECCIONES_DE_EPOCA_DATOS = [];
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

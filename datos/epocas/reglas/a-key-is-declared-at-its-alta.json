@@ -1,14 +1,15 @@
 [
   ["a key is declared at its alta"],
   [0],
-  ["=count (ev.5 where it != first ev.5 and (first it.3 in before.3 or first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1))) = 0"],
+  ["=count (ev.5 where it != first ev.5 and ((first it.3 in before.3 and count (first it.3).6.5 > 1 and not first it.2 in ((first it.3).6.5 each 2)) or (not first it.3 in before.3 and first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1)))) = 0"],
   ["ev.5 each 3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],
   [
     "VG, 7-11 noche: las claves se declaran en el alta y no cambian (inventario ID-2, ID-6)",
     "VG, 10-11, B4: la clave pública va en el 5 del alta y el firmante es el segundo ocupante del 3 del evento; verificar la firma es suelo (src/autoridad.js) (mapa §16 [D])",
-    "VG, 10-11, B1: una persona declara la suya en su propia alta; la de una cosa la declara quien la da de alta, al darle tokens"
+    "VG, 10-11, B1: una persona declara la suya en su propia alta; la de una cosa la declara quien la da de alta, al darle tokens",
+    "H13 y defecto de la invitación, 15-11: una clave declarada ASOCIA, no da alta. Vale (a) la de quien escribe su propia alta, (b) la de quien recibe tokens en el registro (una cosa), (c) la del invitado que la invitación de este registro nombra (su 3.1 y su 3.5), y (d) la de una identidad que ya tiene cuenta si aún no tiene clave o es la misma (el vínculo de StateArk, en cualquier registro): nunca cambia la de quien ya la tiene, y no crea identidad (no hay alta sin movimientos ni invitación)"
   ],
   ["epoch 0"],
   ["after without a key nobody acts"],
