@@ -1179,7 +1179,7 @@ evento rechazado: who has a key signs: casa has a key and this transaction is no
 casa true
 evento rechazado: firma inválida de bea
 bea true
-evento rechazado: a key is declared at its alta: bea already has an account, or is neither the author nor receives anything here
+evento rechazado: no se puede cambiar la clave de bea; a key is declared at its alta: bea already has an account, or is neither the author nor receives anything here
 ```
 
 Un génesis firmado del eje de ejemplo tiene esta forma (la clave y la firma varían en cada ejecución; el id cambia respecto al génesis sin clave porque `contexto.claves` está en el cuerpo). La emisión inicial de la casa, sus euros y su R, va después, en una transacción suya (§8):

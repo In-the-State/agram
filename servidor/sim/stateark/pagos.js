@@ -26,7 +26,13 @@ import { madurez } from './madurez.js';
 import { serializar } from './tx.js';
 import { caminoDePasos } from './sello.js';
 
-export const ESQUEMA_INSTRUCCION = 'stateark.payment-instruction@1';
+// La orden de pago @2 (VG, 13-11): sin campo de «qué se paga»; lo dicen el carril y la unidad del importe
+// ('sat' en cadena; 'msat' en Lightning, F5). La palabra «asset» es de AARPIA y StateArk no la usa en ningún
+// formato (en RGB: «contrato RGB», con su unidad). La @1 (con asset: 'BTC') queda HISTÓRICA: se acepta igual.
+export const ESQUEMA_INSTRUCCION = 'stateark.payment-instruction@2';
+export const ESQUEMA_INSTRUCCION_HISTORICA = 'stateark.payment-instruction@1';
+/** La unidad del importe en cada carril. Solo el carril en cadena está simulado. */
+export const UNIDAD_DEL_CARRIL = Object.freeze({ 'bitcoin.onchain': 'sat', 'bitcoin.lightning': 'msat' });
 export const ESQUEMA_PLAN = 'stateark.payment-plan@1';
 export const ESQUEMA_AUTORIZACION = 'stateark.payment-authorization@1';
 export const ESQUEMA_RECIBO = 'stateark/onchain-payment-receipt/v0-draft';
@@ -162,10 +168,11 @@ export class Carril {
 
   #comprobarInstruccion(ins) {
     if (!ins || typeof ins !== 'object') throw rechazo('schema_unknown', 'no es una orden de pago');
-    if (ins.schema !== ESQUEMA_INSTRUCCION) throw rechazo('schema_unknown', `esta orden dice ser «${ins.schema}»`);
+    if (ins.schema !== ESQUEMA_INSTRUCCION && ins.schema !== ESQUEMA_INSTRUCCION_HISTORICA) throw rechazo('schema_unknown', `esta orden dice ser «${ins.schema}»`);
     if (ins.rail !== RAIL) throw rechazo('rail_unknown', `no sé ejecutar en «${ins.rail}»`);
-    if (ins.asset !== 'BTC') throw rechazo('asset_unknown', `no sé mover «${ins.asset}»`);
-    if (ins.amount?.unidad !== 'sat') throw rechazo('amount_unit_invalid', `el importe ha de venir en «sat»`);
+    if (ins.schema === ESQUEMA_INSTRUCCION && Object.hasOwn(ins, 'asset')) throw rechazo('schema_invalid', 'la orden @2 no dice qué se paga: lo dicen el carril y la unidad');
+    if (ins.schema === ESQUEMA_INSTRUCCION_HISTORICA && ins.asset !== 'BTC') throw rechazo('unit_unknown', `no sé mover «${ins.asset}»`);
+    if (ins.amount?.unidad !== UNIDAD_DEL_CARRIL[ins.rail]) throw rechazo('amount_unit_invalid', `en «${ins.rail}» el importe va en «${UNIDAD_DEL_CARRIL[ins.rail]}»`);
     const v = ins.amount?.valor;
     if (!Number.isSafeInteger(v) || v <= 0) throw rechazo('amount_invalid', 'el importe es un entero positivo de sat');
     if (v < POLVO) throw rechazo('amount_invalid', `por debajo de ${POLVO} sat no se paga en cadena`);

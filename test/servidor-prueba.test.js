@@ -189,6 +189,13 @@ test('CORS: la carta publicada y localhost; otro origen no recibe la cabecera', 
   // Las respuestas normales también la llevan.
   r = await fetch(servidor.url + '/eventos?eje=nadie', { headers: { Origin: 'http://localhost:8080' } });
   assert.equal(r.headers.get('access-control-allow-origin'), 'http://localhost:8080');
+  // Las casas y la beta: la carta, AARPIA, StateArk, la beta y su vista previa; otro origen, no.
+  for (const origen of ['https://agram.ikisai.com', 'https://aarpia.ikisai.com', 'https://stateark.ikisai.com', 'https://beta.agram.ikisai.com', 'https://agram-beta.pages.dev']) {
+    r = await fetch(servidor.url + '/eventos?eje=nadie', { headers: { Origin: origen } });
+    assert.equal(r.headers.get('access-control-allow-origin'), origen, origen);
+  }
+  r = await fetch(servidor.url + '/eventos?eje=nadie', { headers: { Origin: 'https://otra.ikisai.com' } });
+  assert.equal(r.headers.get('access-control-allow-origin'), null);
 });
 
 test('con --archivo, lo guardado sobrevive a reiniciar el servidor', async () => {
@@ -209,3 +216,39 @@ test('con --archivo, lo guardado sobrevive a reiniciar el servidor', async () =>
   await s2.cerrar();
   rmSync(carpeta, { recursive: true, force: true });
 });
+
+test('una segunda identidad entra por invitación: la invitación declara la clave del invitado (contexto.claves), y su alta y sus eventos valen (201, 201, 201); sin clave, la invitación no habilita nada', async () => {
+  const { claveLectura } = await crear('invitados');
+  const cab = { 'X-Clave-Lectura': claveLectura };
+  const subir = async (evento) => (await post('/eventos', { eje: 'invitados', evento }, cab)).status;
+  const { eje, claves } = await ejeFirmado();
+  assert.equal(await subir(eje.obtener(eje.genesisId)), 201);
+  // vg invita a ana con su clave: la invitación declara esa clave (el invitador responde por ella) y el alta la declara con su firma.
+  const ana = await generarClaves();
+  const invitacion = await eje.invitar({ autor: 'vg', invitado: 'ana', clave: ana.publica, t: T(1), privada: claves.privada });
+  assert.deepEqual(invitacion.contexto.claves, { ana: ana.publica });
+  assert.equal(eje.alta('ana'), null, 'declarar la clave no da alta: ana aún no es nadie en el libro');
+  assert.equal(await subir(invitacion), 201);
+  const alta = await eje.aceptar(invitacion, ana, { t: T(2) });
+  assert.deepEqual(alta.contexto.claves, { ana: ana.publica }, 'el alta sigue declarándola, con su firma');
+  assert.equal(await subir(alta), 201);
+  const propio = await eje.escribir({ autor: 'ana', sobre: alta.id, t: T(3), movimientos: [minuto('ana')], payload: ['hola'] }, ana.privada);
+  assert.equal(await subir(propio), 201);
+  // Con una clave ajena, el servidor lo rechaza como siempre (firma inválida).
+  const falsa = await generarClaves();
+  const mal = await crearEventoAjeno(eje, 'ana', alta.id, falsa.privada);
+  assert.equal(await subir(mal), 400);
+  // Una invitación SIN clave no habilita nada: el servidor no conoce a bea, así que su alta es un 403.
+  const bea = await generarClaves();
+  const sinClave = await eje.invitar({ autor: 'vg', invitado: 'bea', t: T(4), privada: claves.privada });
+  assert.equal(sinClave.contexto.claves, undefined);
+  assert.equal(await subir(sinClave), 201);
+  const altaBea = await eje.aceptar(sinClave, bea, { t: T(5) });
+  assert.equal(await subir(altaBea), 403);
+});
+
+async function crearEventoAjeno(eje, autor, sobre, privada) {
+  const { crearEvento } = await import('../src/evento.js');
+  const { firmar } = await import('../src/autoridad.js');
+  return firmar(await crearEvento({ autor, sobre, t: T(9), movimientos: [minuto(autor)], payload: ['ajeno'] }), privada);
+}

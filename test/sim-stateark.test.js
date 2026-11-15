@@ -294,7 +294,7 @@ describe("sim stateark: servidor", () => {
     await ok(await post('/pagos/acunar', { direccion, sat: 500_000 }));
     await ok(await post('/minar'));
     const instruccion = {
-      schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC',
+      schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
       amount: { valor: 200_000, unidad: 'sat' }, destino: { clase: 'agram/serie', valor: 'E:casa/cama-1@*' },
       correlation_id: 'HTTP-1',
     };
@@ -332,7 +332,7 @@ describe("sim stateark: servidor", () => {
     const { preimagen, hash } = await ok(await post('/pagos/secreto'));
     const cobra = (await ok(await post('/pagos/direccion', { nombre: 'casa8' }))).direccion;
     const instruccion = {
-      schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC', amount: { valor: 100_000, unidad: 'sat' },
+      schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain', amount: { valor: 100_000, unidad: 'sat' },
       destino: { clase: 'htlc/sha256', valor: hash, cobra, vence: altura + 10 }, correlation_id: 'HTTP-8',
     };
     const plan = await ok(await post('/pagos/preparar', { nombre: 'huesped8', instruccion }));

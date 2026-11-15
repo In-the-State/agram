@@ -490,3 +490,44 @@ test('sin red: lee la caché y lo dice; sin caché, lo dice y falla', async () =
   assert.match(r2.error, /sin red y sin caché/);
   servidor = await arrancar({ puerto: 0, secreto: 'prueba' }); // para que after() cierre algo
 });
+
+test('epoca --publicar sube a ≤ 55 registros por minuto y reintenta el 429 esperando 65 s (subirAlRitmo, con reloj y espera falsos)', async () => {
+  const { subirAlRitmo, ESCRITURAS_POR_MINUTO, ESPERA_TRAS_429_MS } = await import('../be.mjs');
+  const { ErrorDelServidor } = sincronia;
+  assert.equal(ESCRITURAS_POR_MINUTO, 55);
+  assert.equal(ESPERA_TRAS_429_MS, 65_000);
+  // Un eje falso: 130 ids; un servidor falso que cuenta lo que recibe por ventana de 60 s y responde 429 pasadas 55... y una vez de más.
+  const ids = Array.from({ length: 130 }, (_, k) => 'id' + k);
+  const eje = { obtener: (id) => ({ id }), marcarReloj() {} };
+  let reloj = 1_000_000;
+  const dormidos = [];
+  const dormir = async (ms) => { dormidos.push(ms); reloj += ms; };
+  const subidasPorVentana = new Map(); // ventana de 60 s → cuántas
+  let hechas = [];
+  let fallaUna = true;
+  const S = {
+    pendientes: () => ids.filter((id) => !hechas.includes(id)),
+    async subir(ev) {
+      if (ev.id === 'id100' && fallaUna) { fallaUna = false; throw new ErrorDelServidor(429, 'demasiadas escrituras'); }
+      const v = Math.floor(reloj / 60_000);
+      subidasPorVentana.set(v, (subidasPorVentana.get(v) ?? 0) + 1);
+      hechas.push(ev.id);
+      reloj += 100; // cada subida tarda 100 ms
+      return { orden: hechas.length, recibido: new Date(reloj).toISOString(), duplicado: false };
+    },
+  };
+  const avisos = [];
+  const subidos = await subirAlRitmo(S, eje, { dormir, ahora: () => reloj, avisar: (m) => avisos.push(m) });
+  assert.equal(subidos.length, 130);
+  assert.deepEqual(subidos, ids, 'en orden, todos');
+  // Nunca más de 55 subidas en cualquier ventana de 60 s (aquí, por minuto de reloj).
+  assert.ok([...subidasPorVentana.values()].every((n) => n <= 55), JSON.stringify([...subidasPorVentana]));
+  // Esperó para respetar el ritmo (menos de un minuto cada vez) y, una vez, los 65 s del 429.
+  assert.equal(dormidos.filter((ms) => ms === 65_000).length, 1);
+  assert.ok(dormidos.filter((ms) => ms !== 65_000).every((ms) => ms > 0 && ms <= 60_000));
+  assert.ok(avisos.some((m) => /429/.test(m)));
+  // Otro error corta y se lanza.
+  hechas = [];
+  const rota = { pendientes: S.pendientes, subir: async () => { throw new ErrorDelServidor(400, 'firma inválida'); } };
+  await assert.rejects(subirAlRitmo(rota, eje, { dormir, ahora: () => reloj }), /firma inválida/);
+});

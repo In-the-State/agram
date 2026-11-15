@@ -151,11 +151,14 @@ test('un eje sin época escrita usa la que referencia si el código la conoce, y
   assert.equal(eje.epoca().transacciones.length, EPOCA_0_BTML.transacciones.length);
 });
 
-test('el eje de ejemplo de StateArk (génesis con la época 0 de beta 16f30d2) se carga entero con la 0', { skip: !existsSync('C:/Users/acer/Documents/InTheState/stateark/sip/ejemplo/eje-stateark.json') && 'sin el repositorio de StateArk' }, async () => {
+test('el eje de ejemplo de StateArk (génesis con la SIP 0 viva, que hereda de la 0) se carga entero con la época que su génesis referencia', { skip: !existsSync('C:/Users/acer/Documents/InTheState/stateark/sip/ejemplo/eje-stateark.json') && 'sin el repositorio de StateArk' }, async () => {
   const j = JSON.parse(readFileSync('C:/Users/acer/Documents/InTheState/stateark/sip/ejemplo/eje-stateark.json', 'utf8'));
   const eje = await Eje.desde(j.eventos, { exigirFirmas: true });
   assert.equal(eje.orden.length, j.eventos.length);
-  assert.equal(eje.epoca(), EPOCA_0_BTML);
+  // El génesis del ejemplo referencia la SIP 0 viva (hereda de la 0); antes referenciaba la 0 misma.
+  const referida = eje.obtener(eje.genesisId).contexto.epoca;
+  assert.equal(eje.epoca().id, referida);
+  assert.ok(eje.epoca() === EPOCA_0_BTML || EPOCAS_POR_ID.get(eje.epoca().hereda) === EPOCA_0_BTML, 'es la 0 o una que hereda de ella');
 });
 
 test('la SIP 0 de StateArk (solo lectura): hereda de la 0, se resuelve, y sus 7 plantillas del 9.6 y sus 4 estaciones del 4.3 se suman a las de la 0', { skip: !existsSync('C:/Users/acer/Documents/InTheState/stateark/sip/sip-0.btml.json') && 'sin el repositorio de StateArk' }, () => {

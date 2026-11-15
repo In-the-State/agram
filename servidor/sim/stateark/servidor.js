@@ -27,11 +27,15 @@
 //   GET  /                                       → 200 { servicio, simulado: true, altura }
 //
 // Opción `minarCada` (ms): mina solo cada tanto, como haría la red.
+// Opción `custodia` (F1 paso 5): una `Custodia` o la `CustodiaRemota` del guardián real; el observador del sello
+// y el verificador de firmas del carril la usan. Al arrancar directo, con STATEARK_GUARDIAN_URL y
+// STATEARK_GUARDIAN_COOKIE (o STATEARK_GUARDIAN_DIR) firma con el guardián; sin ellas, todo como siempre.
 
 import { createServer } from 'node:http';
 import { pathToFileURL } from 'node:url';
 import { Simulacion } from './index.js';
 import { RechazoPago, nuevoSecreto } from './pagos.js';
+import { RechazoCustodia } from './custodia.js';
 
 const TOPE = 1 << 20; // 1 MB por petición
 
@@ -66,9 +70,10 @@ function leerJSON(req) {
  * @param {object} [opciones]
  * @param {Simulacion} [opciones.simulacion]
  * @param {number} [opciones.minarCada] ms entre bloques automáticos (sin ella, solo POST /minar)
+ * @param {object} [opciones.custodia] quién firma (sin `simulacion`): `Custodia` o `CustodiaRemota` (el guardián)
  */
 export async function crearServidor(opciones = {}) {
-  const simulacion = opciones.simulacion ?? (await Simulacion.crear());
+  const simulacion = opciones.simulacion ?? (await Simulacion.crear(opciones.custodia ? { custodia: opciones.custodia } : {}));
   const { sellador, carril } = simulacion;
 
   const post = {
@@ -94,7 +99,8 @@ export async function crearServidor(opciones = {}) {
       const url = new URL(req.url, 'http://local');
       if (req.method === 'OPTIONS') return responder(res, 204, {});
       if (req.method === 'GET' && url.pathname === '/') {
-        return responder(res, 200, { servicio: 'stateark-sim §3 §5 §8', simulado: true, altura: simulacion.cadena.altura });
+        const guardian = simulacion.custodia?.url ? { guardian: simulacion.custodia.url } : {};
+        return responder(res, 200, { servicio: 'stateark-sim §3 §5 §8', simulado: true, altura: simulacion.cadena.altura, ...guardian });
       }
       if (req.method === 'POST' && post[url.pathname]) {
         return responder(res, 200, await post[url.pathname](await leerJSON(req)));
@@ -122,7 +128,7 @@ export async function crearServidor(opciones = {}) {
       }
       return responder(res, 404, { error: 'no existe esa llamada' });
     } catch (e) {
-      if (e instanceof RechazoPago) return responder(res, 422, { error: e.message, codigo: e.codigo });
+      if (e instanceof RechazoPago || e instanceof RechazoCustodia) return responder(res, 422, { error: e.message, codigo: e.codigo });
       const estado = e.estado ?? (e instanceof TypeError || e instanceof RangeError ? 400 : 500);
       return responder(res, estado, { error: e.message });
     }
@@ -142,8 +148,10 @@ export async function crearServidor(opciones = {}) {
 if (process.argv[1] && import.meta.url === pathToFileURL(process.argv[1]).href) {
   const puerto = Number(process.argv[2] ?? 8787);
   const minarCada = process.argv[3] ? Number(process.argv[3]) : undefined;
-  const { servidor } = await crearServidor({ minarCada });
+  const { custodiaDesdeEntorno } = await import('./custodia-remota.js');
+  const custodia = await custodiaDesdeEntorno(process.env);
+  const { servidor } = await crearServidor({ minarCada, custodia });
   servidor.listen(puerto, '127.0.0.1', () => {
-    console.log(`stateark-sim (SIMULADO, §3 §5 §8) en http://127.0.0.1:${puerto}${minarCada ? `, un bloque cada ${minarCada} ms` : ''}`);
+    console.log(`stateark-sim (SIMULADO, §3 §5 §8) en http://127.0.0.1:${puerto}${minarCada ? `, un bloque cada ${minarCada} ms` : ''}${custodia ? `; firma con el guardián en ${custodia.url}` : ''}`);
   });
 }

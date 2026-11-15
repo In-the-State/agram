@@ -30,6 +30,7 @@ export const USO_RECIBO_CANAL = 'StateArk/Canal/Recibo/v1';
 export const USO_OBSERVADOR = 'StateArk/Observador/Cabecera/v1';
 export const TIPOS_DE_CANAL = Object.freeze(['whatsapp', 'telegram', 'correo']);
 export const USO_VINCULO = 'StateArk/Vinculo/AgramCartera/v1';
+export const USO_SEGUNDO_FACTOR = 'StateArk/SecondFactor/v1';
 export const ESQUEMA_VINCULO = 'stateark-sim/vinculo@1';
 
 const HEX = /^[0-9a-f]*$/;
@@ -158,6 +159,19 @@ export class Custodia {
     if (plan?.schema !== 'stateark.payment-plan@1') throw rechazo('not_a_plan', 'solo se autorizan planes de pago');
     const mensaje = await mensajeAutorizacion(await huella(plan));
     return { titular: k.publica, firma: await this.esquema.firmar(mensaje, k.privada) };
+  }
+
+  /**
+   * Segundo factor (SIP 0, VG 12-11): la cosa titular firma, con su clave de 'cartera', el registro de
+   * autorización que AGRAM ancla SOBRE la propuesta. Como `segundo_factor` del guardián: `titular` es la
+   * IDENTIDAD de la cosa (su alta en el libro), no su clave. Solo firma si el cuerpo canónico es eso: autor =
+   * la cosa, «sobre» un id, 0 «autorización», 2 la etiqueta del segundo factor y 3 la cosa; y recalcula el id.
+   * Devuelve { id, firmante, firma }, como `firmarAgram`.
+   */
+  async segundoFactor(nombre, titular, { canonico: texto, id } = {}) {
+    const k = this.#clave('cartera', nombre);
+    await comprobarSegundoFactor(titular, texto, id);
+    return { id, firmante: k.publica, firma: await this.esquema.firmar(id, k.privada) };
   }
 
   /** El verificador que necesita el carril del §5 (`new Carril(sellador, { verificarFirma })`). */
@@ -325,6 +339,30 @@ export class Custodia {
   revocaciones() {
     return [...this.#revocadas.values()];
   }
+}
+
+/**
+ * Lo que comprueba el segundo factor antes de firmar (el mismo orden y los mismos códigos que el guardián).
+ * Lanza `RechazoCustodia`; si todo cuadra, no devuelve nada.
+ */
+export async function comprobarSegundoFactor(titular, texto, id) {
+  const no = (m) => rechazo('not_a_second_factor', m);
+  if (typeof titular !== 'string' || !titular) throw no('falta la identidad de la cosa titular');
+  let cuerpo;
+  try { cuerpo = JSON.parse(texto); } catch { throw rechazo('canonical_invalid', 'el cuerpo no es JSON'); }
+  let forma;
+  try { forma = canonico(cuerpo); } catch { forma = undefined; }
+  if (forma !== texto) throw rechazo('canonical_invalid', 'el cuerpo no está en forma canónica');
+  // Una posición del payload: una hoja suelta o la lista de un ocupante (la forma canónica de BTML).
+  const hoja = (v) => (typeof v === 'string' ? v : Array.isArray(v) && v.length === 1 && typeof v[0] === 'string' ? v[0] : undefined);
+  const p = Array.isArray(cuerpo?.payload) ? cuerpo.payload : null;
+  const esAutorizacion = Array.isArray(p?.[0]) && p[0][0] === 'autorización';
+  if (cuerpo?.autor !== titular) throw no('el autor del registro ha de ser la cosa titular');
+  if (!esId(cuerpo?.sobre)) throw no('se ancla sobre la propuesta: «sobre» es su id');
+  if (!esAutorizacion || hoja(p?.[2]) !== USO_SEGUNDO_FACTOR) throw no('el payload es una autorización en modo segundo factor');
+  if (hoja(p?.[3]) !== titular) throw no('el 3 nombra a la cosa titular');
+  const calculado = await sha256Texto(texto);
+  if (!esId(id) || calculado !== id) throw rechazo('id_mismatch', `el id no es el SHA-256 de su cuerpo: esperaba ${calculado}`);
 }
 
 /** HMAC-SHA256 en hex (Web Crypto: Node, navegador y Deno). */

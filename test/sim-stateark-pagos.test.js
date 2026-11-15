@@ -23,9 +23,8 @@ async function escenario() {
 }
 
 const orden = (destino, extra = {}) => ({
-  schema: 'stateark.payment-instruction@1',
+  schema: 'stateark.payment-instruction@2',
   rail: 'bitcoin.onchain',
-  asset: 'BTC',
   amount: { valor: 61_000, unidad: 'sat' },
   destino,
   vencimiento: { marca: 'valido_hasta', valor: 50, fuente: 'consenso', unidad: 'bitcoin_block_height' },
@@ -120,7 +119,9 @@ test('cada orden mal formada se rechaza con su código fijo', async () => {
   const casos = [
     [{ ...base, schema: 'otra@1' }, 'schema_unknown'],
     [{ ...base, rail: 'lightning' }, 'rail_unknown'],
-    [{ ...base, asset: 'EUR' }, 'asset_unknown'],
+    [{ ...base, asset: 'BTC' }, 'schema_invalid'], // la @2 no lleva «asset» (VG, 13-11)
+    [{ ...base, schema: 'stateark.payment-instruction@1', asset: 'EUR' }, 'unit_unknown'],
+    [{ ...base, amount: { valor: 61_000_000, unidad: 'msat' } }, 'amount_unit_invalid'], // msat es de Lightning
     [{ ...base, amount: { valor: 1, unidad: 'btc' } }, 'amount_unit_invalid'],
     [{ ...base, amount: { valor: 1.5, unidad: 'sat' } }, 'amount_invalid'],
     [{ ...base, amount: { valor: 100, unidad: 'sat' } }, 'amount_invalid'],
@@ -244,4 +245,14 @@ test('el verificador de firma se puede inyectar (AGRAM puede pasar BIP-340 real)
   const aut = await c.autorizar(plan, { titular: t, firma: 'firma-buena' });
   assert.equal(llamadas.at(-1)[1], await mensajeAutorizacion(await huella(plan)));
   assert.equal(aut.firma, 'firma-buena');
+});
+
+test('la orden @1 (con asset: «BTC») queda histórica: se sigue aceptando y paga igual', async () => {
+  const ctx = await escenario();
+  const destino = await ctx.c.direccion('aina');
+  const { schema, ...resto } = orden({ clase: 'bitcoin/address', valor: destino });
+  const ins = { ...resto, schema: 'stateark.payment-instruction@1', asset: 'BTC' };
+  const { recibo } = await pagar(ctx, ins);
+  await ctx.sim.minar();
+  assert.equal((await ctx.c.verificarRecibo(ctx.c.recibo(recibo.posicion.txid))).ok, true);
 });

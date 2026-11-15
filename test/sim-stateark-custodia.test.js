@@ -54,7 +54,7 @@ test('firmarAutorizacion sirve al §5: la cartera de la custodia es el titular q
   await c.crearCartera('casa', { titular });
   await c.acunar(await c.direccion('casa'), 100_000);
   await sim.minar();
-  const ins = { schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC', amount: { valor: 10_000, unidad: 'sat' }, destino: { clase: 'bitcoin/address', valor: await c.direccion('casa') }, correlation_id: 'C6' };
+  const ins = { schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain', amount: { valor: 10_000, unidad: 'sat' }, destino: { clase: 'bitcoin/address', valor: await c.direccion('casa') }, correlation_id: 'C6' };
   const plan = await c.preparar('casa', ins);
   const aut = await c.autorizar(plan, await k.firmarAutorizacion('casa', plan));
   await c.ejecutar('casa', ins, plan, aut);

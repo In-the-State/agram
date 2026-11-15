@@ -27,7 +27,7 @@ async function escenario() {
 async function pagarConCandado(ctx, { vence = 10, importe = 120_000 } = {}) {
   const cobra = await ctx.c.direccion('casa');
   const ins = {
-    schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC',
+    schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
     amount: { valor: importe, unidad: 'sat' },
     destino: { clase: 'htlc/sha256', valor: ctx.secreto.hash, cobra, vence },
     correlation_id: 'PLAZA-1',
@@ -109,7 +109,7 @@ test('la orden con candado se valida: hash, cobrador y vencimiento futuro', asyn
   const ctx = await escenario();
   const cobra = await ctx.c.direccion('casa');
   const base = {
-    schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC',
+    schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
     amount: { valor: 50_000, unidad: 'sat' }, correlation_id: 'X',
   };
   const malos = [
@@ -138,7 +138,7 @@ test('con las claves, el candado lleva su política de Miniscript, sus hojas y s
   const ctx = await escenario();
   const cobra = await ctx.c.direccion('casa');
   const ins = {
-    schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC',
+    schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
     amount: { valor: 50_000, unidad: 'sat' },
     destino: { clase: 'htlc/sha256', valor: VEC.hash, cobra, vence: VEC.vence, claves: VEC.claves },
     correlation_id: 'MS-1',

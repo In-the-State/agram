@@ -1360,7 +1360,9 @@ export class Eje {
    * Lo que da (`da`: movimientos sin de ni a, por omisión una unidad de su R) lo bloquea con la salida = `invitado`:
    * quien acepta lo recoge en su alta (la salida nombra a quien lo recibe). Su R, si no la tiene, la acuña antes en la
    * misma transacción (emitir R exige T real: quema un minuto). `clave` es la clave pública del invitado (hex): si
-   * va, solo vale una aceptación declarada y firmada con ella. Devuelve la invitación.
+   * va, solo vale una aceptación declarada y firmada con ella, y la invitación la declara también en `contexto.claves` (el
+   * invitador responde por ella, sin prueba de posesión: el invitado aún no puede firmar; no da alta, H13: docs/CONTRATO.md
+   * §15.2 bis) para que el servidor, que resuelve la clave de un autor por un evento anterior que la declare, acepte su alta. Devuelve la invitación.
    */
   async invitar({ autor, invitado, clave, da = [{ token: 'R', cantidad: 1 }], grupo = 0, dominio, comun, hasta, tema, t, privada } = {}) {
     const alta = this.alta(autor);
@@ -1392,7 +1394,7 @@ export class Eje {
       [tema ?? 'invitación de ' + autor],
     ];
     movimientos[0] = quemaDelCoste(autor, payload, 'minuto', { eje: this });
-    return this.escribir({ autor, sobre: alta.id, en: '3000000000', t, movimientos, payload }, privada);
+    return this.escribir({ autor, sobre: alta.id, en: '3000000000', t, movimientos, payload, ...(x ? { contexto: { claves: { [invitado]: x } } } : {}) }, privada);
   }
 
   /**

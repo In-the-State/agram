@@ -68,6 +68,9 @@ export const CLAVES = Object.freeze({
       if (v2 && (ctx.tieneClave(id) || libro.tiene(id))) errores.push('no se puede cambiar la clave de ' + id);
       else if (v2 && !propia && !movimientos.some((m) => m.a === id)) errores.push('clave declarada para ' + id + ' sin darle tokens');
       else if (!clavePublicaValida(clave)) errores.push('clave inválida para ' + id);
+      // H13: una clave declarada asocia, no cambia: quien ya tiene una (la del alta, la del invitado o la que se le asoció en
+      // otro registro, que la regla de la época no ve en su alta) no puede recibir otra distinta.
+      else if (ctx.clave(id) !== undefined && ctx.clave(id) !== clave) errores.push('no se puede cambiar la clave de ' + id);
       else if (!Object.hasOwn(ev.posesion ?? {}, id)) continue;
       else if (!(await verificarPosesion(ev, id, clave))) errores.push('prueba de posesión inválida para ' + id + ': no la firma la clave que se declara');
     }

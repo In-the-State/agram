@@ -352,6 +352,7 @@ async function capaCriptografia(eje, ev, id, libro, enEje, idCorrecto) {
       if (v2 && (libro.eje.claves.has(nueva) || conCuenta(libro, nueva))) r.falla('no se puede cambiar la clave de ' + nueva);
       else if (v2 && !suya && !lista(ev.movimientos).some((m) => m?.a === nueva)) r.falla('clave declarada para ' + nueva + ' sin darle tokens');
       else if (!clavePublicaValida(clave)) r.falla('clave inválida para ' + nueva);
+      else if (libro.eje.clave(nueva) !== undefined && libro.eje.clave(nueva) !== clave) r.falla('no se puede cambiar la clave de ' + nueva);
       else if (posesion === 'falla') r.falla('prueba de posesión inválida para ' + nueva + ': no la firma la clave que se declara');
     }
     for (const otra of Object.keys(ev.posesion && typeof ev.posesion === 'object' ? ev.posesion : {})) {

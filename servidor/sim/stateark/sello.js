@@ -43,7 +43,8 @@ export class Sellador {
    * @param {Cadena} cadena una cadena ya iniciada
    * @param {object} [opciones]
    * @param {{ custodia: Custodia, nombre: string }} [opciones.observador] quién firma las cabeceras (por defecto,
-   *        una custodia propia con el esquema simulado; con la noble de AGRAM, `new Custodia({ esquema })`)
+   *        una custodia propia con el esquema simulado; con la noble de AGRAM, `new Custodia({ esquema })`; con
+   *        el guardián real, una `CustodiaRemota`)
    * @param {string[]} [opciones.observadores] claves aceptadas al verificar (por defecto, la del observador)
    */
   constructor(cadena, opciones = {}) {
@@ -64,16 +65,21 @@ export class Sellador {
     return s;
   }
 
+  #claveObservador = null;
+
   async #asegurarObservador() {
-    if (this.observador) return;
-    const custodia = new Custodia();
-    await custodia.crearClave('nostr', 'observador');
-    this.observador = { custodia, nombre: 'observador' };
+    if (!this.observador) {
+      const custodia = new Custodia();
+      await custodia.crearClave('nostr', 'observador');
+      this.observador = { custodia, nombre: 'observador' };
+    }
+    // Se guarda la pública: con la custodia del guardián (`CustodiaRemota`), pedirla es una llamada asíncrona.
+    this.#claveObservador = await this.observador.custodia.publica('nostr', this.observador.nombre);
   }
 
   /** La clave del observador (la que la cuenta raíz declara en «exterior settings», posición 6). */
   get claveObservador() {
-    return this.observador.custodia.publica('nostr', this.observador.nombre);
+    return this.#claveObservador ?? this.observador.custodia.publica('nostr', this.observador.nombre);
   }
 
   async #observar(altura) {

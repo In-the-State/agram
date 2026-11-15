@@ -12,6 +12,9 @@ import * as contrato from '../src/contrato.js';
 import { EPOCA_0_BTML } from '../src/epocas.js';
 import { ANUNCIO } from '../src/motor.js';
 import { generarClaves, firmarPosesion } from '../src/autoridad.js';
+import { schnorr } from '../src/vendor/noble-secp256k1.js';
+import { Custodia, esquemaNoble } from '../servidor/sim/stateark/index.js';
+import { createHash } from 'node:crypto';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
 import { arbol as arbolEnIdioma, formulario, preferencias, segundoFactorDeConfiguracion } from '../carta/carta.js';
@@ -25,17 +28,17 @@ const regla = (nombre) => EPOCA_0_BTML.lecturas.find((r) => r[0][0] === nombre);
  * La compra de ejemplo: la cocina abre un encargo y anuncia que la huésped le pagará 7 EUR; la huésped da de alta una
  * cosa con clave («cartera», su segundo factor: la custodia StateArk) y le da 60 minutos de T.
  */
-async function mundo() {
+async function mundo(claveDeLaCosa) {
   const c = await ejemploCompra();
   const { eje, menu } = c;
   const encargo = await eje.escribir({ autor: 'cocina', sobre: menu.id, t: T1, payload: ['Encargo', ['x'], ['all announced movements happened'], ['cocina', 'huesped']], movimientos: [pagaElCoste('cocina')] });
   const anunciado = { token: 'E', emisor: 'casa', denominacion: 'EUR', cantidad: 7, de: 'huesped', a: 'cocina', estado: 'anunciado', refiere: '2026-11-20T10:00:00Z' };
   const anuncio = await eje.escribir({ autor: 'cocina', sobre: encargo.id, en: ANUNCIO, t: T1, payload: 'pagar la cena', movimientos: [pagaElCoste('cocina'), anunciado] });
-  const cosa = await generarClaves();
+  const cosa = claveDeLaCosa ?? await generarClaves();
   const altaH = eje.alta('huesped').id;
   const r = await A.transaccion(eje, 'register a thing', { X: altaH, thing: 'cartera', minutes: 60, key: cosa.publica }, 'huesped', { t: T1 });
   assert.ok(r.ok, JSON.stringify(r.motivos));
-  await eje.anadir(await firmarPosesion(r.evento, 'cartera', cosa.privada));
+  await eje.anadir(cosa.privada ? await firmarPosesion(r.evento, 'cartera', cosa.privada) : r.evento);
   return { ...c, eje, encargo, anuncio, cosa, altaH };
 }
 
@@ -171,6 +174,75 @@ test('un registro del 4 que no es un anuncio también espera: estación propia �
   assert.deepEqual([de().estacion, de().pendienteDeSegundoFactor], ['ejecutada', undefined]);
   // Lo de quien no tiene criterio no cambia: sin estación ni marca.
   assert.ok(A.ejecuciones(m.eje, m.menu.id).filter((x) => x.ocupante?.ref && m.eje.obtener(x.ocupante.ref)?.autor === 'cocina').every((x) => x.pendienteDeSegundoFactor === undefined));
+});
+
+// ---------- el firmante inyectable (#112): el guardián de StateArk es el que firma ----------
+
+const aBytes = (hex) => Uint8Array.from(hex.match(/.{2}/g), (h) => parseInt(h, 16));
+
+test('firmante inyectable: un firmante que imita al guardián (recibe el canónico y el id, firma fuera de autorizar con la privada de la cosa) autoriza igual que la privada en local', async () => {
+  const m = await mundo();
+  await criterio(m, 'E', 5);
+  const { evento: pago } = await pagar(m);
+  const llamadas = [];
+  // Lo que hace el guardián real: comprueba que el id es el SHA-256 del canónico y que es una autorización de la cosa, y solo entonces firma el id con la clave que custodia (aquí, la privada de la cosa, fuera de `autorizar`).
+  const guardian = async ({ canonico, id }) => {
+    llamadas.push({ canonico, id });
+    assert.equal(createHash('sha256').update(canonico).digest('hex'), id, 'el id es el hash del cuerpo canónico');
+    const cuerpo = JSON.parse(canonico);
+    assert.deepEqual([cuerpo.autor, cuerpo.sobre, cuerpo.en], ['cartera', pago.id, '4000000000']);
+    assert.equal(cuerpo.payload[0][0], 'autorización');
+    return Array.from(schnorr.sign(aBytes(id), aBytes(m.cosa.privada), globalThis.crypto.getRandomValues(new Uint8Array(32))), (b) => b.toString(16).padStart(2, '0')).join('');
+  };
+  const buena = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: guardian, t: T1 });
+  assert.ok(buena.ok, JSON.stringify(buena.motivos));
+  assert.equal(llamadas.length, 1);
+  assert.deepEqual([buena.evento.id, buena.evento.firmante, buena.evento.sobre, buena.evento.en], [llamadas[0].id, 'cartera', pago.id, '4000000000']);
+  await m.eje.anadir(buena.evento);
+  const sf = A.segundoFactor(m.eje, pago.id);
+  assert.deepEqual([sf.exige, sf.pendiente, sf.motivo, sf.criterios[0].autorizado], [true, false, null, true]);
+  assert.equal(A.estacionDeAnuncio(m.eje, m.anuncio.id), 'ejecutada');
+  // La forma antigua sigue valiendo y da el mismo registro (misma t, mismo cuerpo, mismo id).
+  const local = await A.autorizar(m.eje, pago.id, 'cartera', m.cosa.privada, { t: T1 });
+  assert.equal(local.evento.id, buena.evento.id);
+});
+
+test('firmante inyectable: un firmante que firma con otra clave, que devuelve algo que no es una firma o que firma otro registro no autoriza; sin firma ni privada, el registro va sin firmar y el suelo lo rechaza', async () => {
+  const m = await mundo();
+  await criterio(m, 'E', 5);
+  const { evento: pago } = await pagar(m);
+  const ajena = await generarClaves();
+  const firmaCon = (privada) => async ({ id }) => Array.from(schnorr.sign(aBytes(id), aBytes(privada), globalThis.crypto.getRandomValues(new Uint8Array(32))), (b) => b.toString(16).padStart(2, '0')).join('');
+  const conOtraClave = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: firmaCon(ajena.privada), t: T1 });
+  assert.equal(conOtraClave.ok, false);
+  assert.match(conOtraClave.motivos.map((x) => x.mensaje).join(' '), /firma inválida de cartera/);
+  const basura = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: async () => 'no es una firma', t: T1 });
+  assert.equal(basura.ok, false);
+  assert.match(basura.motivos[0].mensaje, /no devolvió una firma/);
+  const otroRegistro = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: async ({ id }) => ({ id: '0'.repeat(64), firma: await firmaCon(m.cosa.privada)({ id }) }), t: T1 });
+  assert.equal(otroRegistro.ok, false);
+  assert.match(otroRegistro.motivos[0].mensaje, /firmó otro registro/);
+  const rechaza = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: async () => { throw new Error('not_a_second_factor'); }, t: T1 });
+  assert.deepEqual([rechaza.ok, rechaza.motivos[0].mensaje], [false, 'not_a_second_factor']);
+  const sinNada = await A.autorizar(m.eje, pago.id, 'cartera', { t: T1 });
+  assert.equal(sinNada.ok, false, 'la cosa tiene clave: sin firma no pasa');
+});
+
+test('firmante inyectable: la custodia de la sim de StateArk (su segundoFactor, como el guardián real) es el firmante', async () => {
+  const custodia = new Custodia({ esquema: esquemaNoble(schnorr) });
+  const { publica } = await custodia.crearClave('cartera', 'huesped');
+  // Un eje de demostración: la cosa se da de alta con la clave que custodia StateArk, y su prueba de posesión la daría la propia custodia (la sim no firma altas).
+  const m = await mundo({ publica });
+  await criterio(m, 'E', 5);
+  const { evento: pago } = await pagar(m);
+  const r = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: ({ canonico, id }) => custodia.segundoFactor('huesped', 'cartera', { canonico, id }), t: T1 });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  await m.eje.anadir(r.evento);
+  assert.equal(A.estacionDeAnuncio(m.eje, m.anuncio.id), 'ejecutada');
+  // La custodia solo firma autorizaciones del titular que dice: pedirle la firma de otra cosa la rechaza.
+  const mal = await A.autorizar(m.eje, pago.id, 'cartera', { firmar: ({ canonico, id }) => custodia.segundoFactor('huesped', 'otra-cosa', { canonico, id }), t: T1 });
+  assert.equal(mal.ok, false);
+  assert.match(mal.motivos[0].mensaje, /cosa titular/);
 });
 
 // ---------- la carta ----------

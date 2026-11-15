@@ -17,7 +17,7 @@ const INICIO = '2026-11-12T00:00:00.000Z';
 const reloj = () => Date.parse(INICIO);
 
 const orden = (destino, extra = {}) => ({
-  schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC',
+  schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
   amount: { valor: 61_000, unidad: 'sat' }, destino,
   vencimiento: { marca: 'valido_hasta', valor: 50, fuente: 'consenso', unidad: 'bitcoin_block_height' },
   on_timeout: 'caducado', correlation_id: 'AGRAM-R3', ...extra,

@@ -319,7 +319,7 @@ test('el reverso de un registro con sello configurado y sin sello comprobado dic
 
 const INICIO_PAGO = '2026-11-12T00:00:00.000Z';
 const ordenDePago = (destino, extra = {}) => ({
-  schema: 'stateark.payment-instruction@1', rail: 'bitcoin.onchain', asset: 'BTC',
+  schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
   amount: { valor: 61_000, unidad: 'sat' }, destino,
   vencimiento: { marca: 'valido_hasta', valor: 50, fuente: 'consenso', unidad: 'bitcoin_block_height' },
   on_timeout: 'caducado', correlation_id: 'AGRAM-PAID', ...extra,

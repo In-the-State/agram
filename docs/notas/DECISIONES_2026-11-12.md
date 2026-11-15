@@ -23,6 +23,7 @@ Cada nota tiene cuatro líneas: *Qué se decidió*, *Por qué* (lo que dice la f
 | 7. Lo del 13-11 | #75, #76, #77, #78, #70 (segundo factor) |
 | 8. Lo del 14-11 | #70 (3) (autorizar quema T), #80 (cerrado por decisión), #81 (BQL puro) |
 | 9. La época en el eje | #107 bis |
+| 10. Lo del 15-11 | #112 (firmante inyectable), H13 de #67 (claves en cualquier registro), la invitación declara la clave del invitado, orígenes y ritmo de `be.mjs epoca --publicar` |
 
 Al final: «Lo que queda abierto» y «Lo que las fuentes no dicen o dicen distinto».
 
@@ -428,6 +429,40 @@ Cuatro decisiones de VG del 13-11, construidas en la rama `beta-flecos`. Cada un
 - **Pruebas.** `test/epoca-en-el-eje.test.js` (nace con época; dos ejes, dos épocas; un eje sin época escrita usa la 0, también el eje de ejemplo de StateArk; la SIP 0 de StateArk se resuelve sobre la 0 y suma sus 7 plantillas y 4 estaciones; época mal formada; id que no casa; la carta con la segunda época; `be.mjs epoca`), `test/capa-cero.test.js`, `test/epoca-btml.test.js`.
 - **Queda abierto.** El calendario y las escalas de T de `src/tokens.js` y las lecturas por profundidad del formato de siempre (`EPOCA_0`) siguen con la 0 aunque el eje tenga otra; la SIP 0 ha de rehacer su `hereda` con el id nuevo de la 0 (hoy se reconoce el de 16f30d2).
 
+
+## 10. Lo del 15-11
+
+### #112 — El firmante de la autorización de segundo factor es inyectable: el guardián de StateArk (DECIDIDO por Core State y Core AGRAM; hecho)
+
+Fuente: catálogo #112 (Core StateArk 15-11, sim cb83eda, F1 paso 5).
+
+- **Qué se decidió.** `acciones.autorizar(eje, idPropuesta, cosa, opciones)` admite `opciones.firmar({ canonico, id }) → firma` (64 bytes en hex): recibe el cuerpo canónico del registro y su id, y firma fuera. El **guardián de StateArk es ese firmante** (su `segundoFactor(nombre, titular, { canonico, id })`). Sin `firmar`, firma en local con `opciones.privada`, como hasta ahora; la forma antigua `autorizar(eje, id, cosa, privada, { t })` sigue valiendo.
+- **Por qué.** La clave de la cosa titular la custodia StateArk y no sale de su custodia: AGRAM no puede firmar con ella, solo pedir la firma.
+- **Qué cambia.** `src/acciones.js` (`autorizar`: el firmante se acepta como función o como objeto `{ firma, id }` —lo que devuelve la custodia— y se rechaza si firma otro id o no devuelve una firma); `docs/CONTRATO.md` §12.4 bis.
+- **Pruebas.** `test/segundo-factor.test.js`: un firmante falso que imita al guardián (comprueba que el id es el SHA-256 del canónico y firma con la privada de la cosa fuera de `autorizar`) autoriza igual que la privada en local, con el mismo id; la `Custodia` de la sim de StateArk como firmante; firma con otra clave, firma que no lo es y firma de otro registro, rechazadas.
+- **Queda abierto.** Abrir la carta contra la sim con el guardián real (`seal url`) y firmar una autorización con él: hace falta el exe de StateArk (`servidor/LEEME.md`, «La sim de StateArk con el guardián real»).
+
+### H13 de #67 — Claves con prueba de posesión en cualquier registro (hecho)
+
+Fuente: `stateark/sip/HUECOS_BQL.md` H13; #67 («pendiente capa 3»).
+
+- **Qué se decidió.** Cualquier registro puede declarar claves en `contexto.claves` con su prueba de posesión (la clave firma el id del registro, como en las altas): para el vínculo de StateArk (su 2.0 pasa a ser la identidad, como el titular). Una clave declarada **asocia**, no da alta: no crea identidad; se asocia a quien la declara (el autor) o a la cosa nombrada **si ya tiene alta**; sin posesión se rechaza; nunca cambia la clave de quien ya la tiene.
+- **Qué cambia.** Las reglas de la época `a key is declared at its alta` y `a declared key comes with its proof` se **corrigen** con dos archivos de `datos/epocas/correcciones/` (un ocupante nuevo en el 2 de cada una, que manda el último): el registro de la regla y su id no cambian, así que **el id de la época 0 no cambia** (`0d95471b…`) y las épocas que heredan de ella (la SIP) reciben la corrección sin tocar nada. Suelo: `src/condiciones/identidad.js` (`suelo:claves`) y `src/validez.js` (capa 3) rechazan cambiar la clave de quien ya tiene una. La condición JS retirada de la red de equivalencia (`test/condiciones-retiradas.mjs`) se actualiza a las reglas de ahora. Contrato: `docs/CONTRATO.md` §15.2 bis, `docs/VALIDEZ.md` (capa 3), `docs/BQLM.md` (las dos reglas).
+- **Pruebas.** `test/autoridad.test.js`: un registro de vínculo que declara la clave de la cartera (cosa con alta, sin clave) con su posesión pasa; sin posesión, o con la de otra clave, se rechaza; una clave para quien no tiene alta se rechaza; no se crean identidades; no se cambia la clave de la cartera ni la de vg; declarar de nuevo la misma clave pasa. `test/reglas-bqlm.test.js` (equivalencia regla / condición).
+- **Queda abierto.** La regla `linked` del SIP («solo forma hasta H13») puede ya pedir la prueba de la clave de la cartera: la lee del 4 de la clave declarada. Una época que **escribe** la 0 pieza a pieza en el eje (no por referencia) lleva las reglas sin la corrección: las épocas hijas sí la heredan.
+
+### La invitación declara la clave del invitado (defecto descubierto 15-11; hecho)
+
+- **Qué se decidió.** `eje.invitar({ clave })` declara además la clave del invitado en `contexto.claves: { [invitado]: clave }` (el invitador responde por ella: ya la nombra en el 3.5 del payload); el alta sigue declarándola con posesión.
+- **Por qué.** El servidor (`verificar.js`, `comprobar`) resuelve la clave del autor de un evento no génesis de un evento anterior que la declare en `contexto.claves`; el alta de una segunda identidad declaraba la suya solo en el propio alta, y el servidor respondía 403 «el autor no tiene alta con clave en este eje».
+- **Qué cambia.** `src/eje.js` (`invitar`); las dos reglas de arriba admiten la clave del invitado sin su prueba (aún no puede firmar) cuando la invitación de este mismo registro lo nombra. `ejemplos/ikisai/altas.mjs` y `be.mjs identidad` no cambian. Contrato: `docs/CONTRATO.md` §15.2 bis.
+- **Pruebas.** `test/servidor-prueba.test.js`: génesis → invitación con clave → alta → evento de la segunda identidad, 201 los tres; la invitación sin clave no habilita nada (el alta, 403) y una clave ajena, 400. `test/autoridad.test.js`: la clave queda asociada sin dar alta y otro registro no puede declarársela distinta.
+
+### Pequeños (hechos)
+
+- **`be.mjs epoca --publicar`** sube a ≤ 55 registros por minuto y reintenta el 429 esperando 65 s (`subirAlRitmo`; acordado con Core AARPIA, el servidor no se toca). `test/be.test.js`.
+- **`ORIGENES`** de la función de eventos suma `https://aarpia.ikisai.com` y `https://stateark.ikisai.com` (ya estaban agram.ikisai.com, beta.agram.ikisai.com y agram-beta.pages.dev). `test/servidor-prueba.test.js`.
+- **La sim de StateArk** recopiada al commit cb83eda (`servidor/sim/stateark/LEEME.md`): no cambia la forma de ningún sello ni recibo.
 
 ---
 

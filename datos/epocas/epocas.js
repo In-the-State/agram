@@ -18396,7 +18396,22 @@ export const GUIA_DE_EPOCA_DATOS = [
 export const EPOCA_0_BTML_ID = "0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858";
 
 // correcciones/*.json: ocupantes añadidos a un registro de la época, { archivo, sobre, en, ocupante, de }
-export const CORRECCIONES_DE_EPOCA_DATOS = [];
+export const CORRECCIONES_DE_EPOCA_DATOS = [
+  {
+    "archivo": "clave-asocia-sin-alta.json",
+    "sobre": "d0bba9017ab3a926d1f4281b04a8fb7dda8fcead234544c61b9ce6d20536547e",
+    "en": "2",
+    "ocupante": "=count (ev.5 where it != first ev.5 and ((first it.3 in before.3 and count (first it.3).6.5 > 1 and not first it.2 in ((first it.3).6.5 each 2)) or (not first it.3 in before.3 and first it.3 != first ev.3 and not first it.3 in (ev.1 each 3.1) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1)))) = 0",
+    "de": "H13 y defecto de la invitación, 15-11: una clave declarada ASOCIA, no da alta. Vale (a) la de quien escribe su propia alta, (b) la de quien recibe tokens en el registro (una cosa), (c) la del invitado que la invitación nombra (su 3.1 y su 3.5), y (d) la de una identidad que ya tiene cuenta si aún no tiene clave o si es la misma (el vínculo de StateArk): nunca cambia la de quien ya la tiene, y no crea identidad (no hay alta sin movimientos ni invitación)"
+  },
+  {
+    "archivo": "clave-con-su-prueba.json",
+    "sobre": "f773dd6c5ce49da448821019cba9aa125a90116cd0c63ae787014fd7dc4cc45c",
+    "en": "2",
+    "ocupante": "=count before.9 > 0 or count (ev.5 where it != first ev.5 and count it.4 = 0 and not (first it.3 = first ev.3 and not first it.3 in before.3) and not (first it.2 in ((first it.3).6.5 each 2)) and not (\"invitation\" in (payload(ev)).0 and first it.3 in (payload(ev)).3.1 and not first it.3 in before.3)) = 0",
+    "de": "H13 y defecto de la invitación, 15-11: toda clave declarada en cualquier registro llega con su prueba de posesión (la clave firma el id del registro), salvo la de quien escribe su propia alta (su firma es la prueba), la que ya es la de esa identidad (nada nuevo que probar) y la del invitado, que el invitador declara y responde por ella: aún no puede firmar, y su alta la declarará con su firma"
+  }
+];
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

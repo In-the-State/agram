@@ -414,8 +414,8 @@ En el orden del 8 (el de `EPOCA_0_BTML.condiciones`).
 | R is minted to its issuer | Toda R que se acuña nace en la cartera de su emisor; de ahí sale a los tenedores con una transferencia, y entonces hay doble entrada (el crédito del tenedor, la obligación del emisor) |
 | who has a key signs | Si quien escribe tiene clave (en su alta, `A.6.5`, o la que declara ahora para sí en su propia alta, `ev.5`), firma: el segundo ocupante de `ev.3` es él (B4). Verificar la firma es suelo |
 | without a key nobody acts | Quien escribe tiene clave, o el libro es de demostración (`before.9`) |
-| a key is declared at its alta | Una clave declarada (en `ev.5`, detrás del id) es de quien aún no tiene cuenta y, o es quien escribe (su propia alta), o recibe algo en esta transacción (una cosa) |
-| a declared key comes with its proof | La clave que se declara para otro (una cosa) lleva su prueba de posesión, en su 4; fuera de un libro de demostración. Verificar la prueba es suelo |
+| a key is declared at its alta | Una clave declarada (en `ev.5`, detrás del id) es de quien aún no tiene cuenta y, o es quien escribe (su propia alta), o recibe algo en esta transacción (una cosa), o es el invitado que esta invitación nombra (`payload(ev)`, 3.1); o es de quien ya tiene cuenta si aún no tiene clave o es la misma (H13, corrección en `datos/epocas/correcciones/`); nunca cambia la de quien ya la tiene |
+| a declared key comes with its proof | Toda clave que se declara lleva su prueba de posesión, en su 4, fuera de un libro de demostración, salvo la de quien escribe su propia alta, la que ya es la de esa identidad y la del invitado (H13, corrección en `datos/epocas/correcciones/`). Verificar la prueba es suelo |
 | not before its focus | La fecha de la transacción no es anterior a la de su foco (D-FECHA, en segundos) |
 | not before the writer joined | Ni anterior al alta de quien escribe (`A.6`; su t es `A.6.6.0`) |
 | at most a year ahead | Ni más de un año por delante del mayor t del libro (`before.6.0`). El año lo lee del calendario de la época, `epoch.7.0.6.1` (sus segundos: 364 + 1 días; VG, 10-11, A3). Con el libro vacío no hay tope |

@@ -34,7 +34,8 @@
 //   ejecuciones(eje, X)                     la fábrica de X para la matriz del 4: cada ejecución con su PV, su posición y su estación
 //   segundoFactor(eje, X)                   ¿espera X su segundo factor? (VG 12/13-11, #66, #70: las lecturas X.6.8.7 y X.6.8.8)
 //   criteriosDeSegundoFactor(eje, yo)       los criterios «second factor» de yo (el 2.4 de su alta)
-//   autorizar(eje, idPropuesta, cosa, priv) construye y firma la autorización de la cosa titular (lo que hará la app de StateArk)
+//   autorizar(eje, idPropuesta, cosa, { firmar, privada, t }) construye y firma la autorización de la cosa titular: la firma el firmante
+//                                           inyectado (el guardián de StateArk) o, por defecto, la clave privada en local (también autorizar(eje, id, cosa, priv, { t }))
 //
 // Aquí no se decide nada: si una acción no se ofrece, lo dice su 2; qué mueve, su 4; dónde ancla, su 5. Este módulo
 // solo sabe leer el molde y construir el evento. No asienta nada: la carta firma y asienta con lo que ya existe
@@ -43,7 +44,7 @@
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla } from './bqlm.js';
-import { crearEvento } from './evento.js';
+import { crearEvento, canonico as canonicoDe, cuerpo as cuerpoDe } from './evento.js';
 import { partirClave, validarMovimiento, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, esAnunciado, claveToken } from './tokens.js';
 import { exigido as exigidoDe, tDelCoste, escalaQueAlcanza, REGLA_DEL_COSTE, quemaDelCoste } from './escritura.js';
 import { firmar as firmarEvento } from './autoridad.js';
@@ -1112,16 +1113,27 @@ function autorizacionDe(eje, epoca, candidata, base, quemaDe) {
 /**
  * La autorización de segundo factor (VG 12/13-11, #70; el objeto «autorización» del SIP 0 en modo segundo factor): un
  * registro anclado en el 4 de la propuesta (lo ejecutado que espera), escrito por la cosa titular y firmado con su clave;
- * esa firma de registro es el segundo factor. Es lo que hará la app de StateArk; aquí sirve a las pruebas y a la consola
- * de Core. Llega pagada en lo que es suyo (VG 14-11, #70 (3)): la tarifa de autorizar (un segundo por elemento, mínimo un
- * minuto) la quemó de antemano la propuesta (ejecucion, transaccion), así que el titular solo firma; pero la regla de la
- * época «writing burns today's T» no tiene excepciones: el registro de autorización, como todo registro, quema lo que exige
- * escribirlo («the cost of writing», por posición) y lo quema su autor, la cosa, de la T que le dio su dueño. No se cobra
- * dos veces la tarifa: lo prepagado y lo que la cosa gasta al escribir son cosas distintas (la tarifa de autorizar, y el
- * escribir). Construye, firma y valida en seco (no asienta): → { ok, evento, motivos }. `opciones.t`, el instante (por
- * defecto, el reloj del libro).
+ * esa firma de registro es el segundo factor. Es lo que hace la app de StateArk, cuyo GUARDIÁN es el firmante (#112, F1
+ * paso 5): la clave de la cosa no sale de su custodia, así que la firma se pide fuera. Llega pagada en lo que es suyo (VG
+ * 14-11, #70 (3)): la tarifa de autorizar (un segundo por elemento, mínimo un minuto) la quemó de antemano la propuesta
+ * (ejecucion, transaccion), así que el titular solo firma; pero la regla de la época «writing burns today's T» no tiene
+ * excepciones: el registro de autorización, como todo registro, quema lo que exige escribirlo («the cost of writing», por
+ * posición) y lo quema su autor, la cosa, de la T que le dio su dueño. No se cobra dos veces la tarifa: lo prepagado y lo
+ * que la cosa gasta al escribir son cosas distintas (la tarifa de autorizar, y el escribir). Construye, firma y valida en
+ * seco (no asienta): → { ok, evento, motivos }.
+ *
+ * Opciones (cuarto argumento): `t`, el instante (por defecto, el reloj del libro); `idioma`;
+ * `firmar({ canonico, id }) → firma`, el FIRMANTE INYECTABLE: recibe el cuerpo canónico del registro (el texto que se hashea)
+ * y su id, y devuelve la firma BIP-340 del id (64 bytes en hex, o un objeto { firma } como el `segundoFactor(nombre,
+ * titular, { canonico, id })` de la custodia de StateArk, que además comprueba que el id sea el hash del cuerpo). Si no
+ * hay `firmar`, firma en local con `privada` (la clave privada de la cosa; sin ella, el registro va sin firmar, para
+ * mostrar que no vale). La forma antigua `autorizar(eje, id, cosa, privada, { t })` sigue valiendo.
  */
-export async function autorizar(eje, idPropuesta, cosa, privadaDeLaCosa, opciones = {}) {
+export async function autorizar(eje, idPropuesta, cosa, privadaOOpciones, opcionesDeAntes) {
+  const nueva = privadaOOpciones !== null && typeof privadaOOpciones === 'object';
+  let opciones = nueva ? { ...privadaOOpciones, ...(opcionesDeAntes ?? {}) } : { ...(opcionesDeAntes ?? {}), ...(privadaOOpciones === undefined ? {} : { privada: privadaOOpciones }) };
+  const firmante = typeof opciones.firmar === 'function' ? opciones.firmar : null;
+  const privadaDeLaCosa = opciones.privada;
   opciones = conEpoca(eje, opciones);
   const epoca = epocaDe(opciones, eje);
   const idioma = opciones.idioma ?? 'es';
@@ -1130,7 +1142,14 @@ export async function autorizar(eje, idPropuesta, cosa, privadaDeLaCosa, opcione
   let evento;
   try {
     evento = await crearEvento({ autor: cosa, sobre: idPropuesta, en: SEGUNDO_FACTOR.ancla, t: relojDe(eje, opciones), movimientos: [quemaDelCoste(cosa, payload, undefined, { eje, epoca })], payload });
-    if (privadaDeLaCosa) evento = await firmarEvento(evento, privadaDeLaCosa);
+    if (firmante) {
+      // El firmante de fuera (el guardián): recibe el cuerpo canónico y el id, y devuelve la firma del id. Aquí no hay privada.
+      const dada = await firmante({ canonico: canonicoDe(cuerpoDe(evento)), id: evento.id });
+      const firma = typeof dada === 'string' ? dada : dada?.firma;
+      if (dada !== null && typeof dada === 'object' && dada.id !== undefined && dada.id !== evento.id) throw new Error('el firmante firmó otro registro: ' + String(dada.id).slice(0, 8) + ', no ' + evento.id.slice(0, 8));
+      if (typeof firma !== 'string' || !/^[0-9a-f]{128}$/.test(firma)) throw new Error('el firmante no devolvió una firma (64 bytes en hexadecimal)');
+      evento = Object.freeze({ ...evento, firmante: cosa, firma });
+    } else if (privadaDeLaCosa) evento = await firmarEvento(evento, privadaDeLaCosa);
   } catch (e) {
     return { ok: false, evento: null, motivos: [{ regla: SEGUNDO_FACTOR.criterio, mensaje: String(e.message ?? e) }] };
   }

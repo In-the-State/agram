@@ -23,7 +23,8 @@ export { politicaCandado, salidaTaproot, NUMS, numero, pk, vpk, sha256Frag, hash
 export { ESQUEMA_RECIBO_COMUN, CLASES_DE_RECIBO, ErrorRecibo, decuplaDeRecibo, camposDeRecibo, idDeRecibo, sobreDeRecibo, verificarReciboComun } from './recibo.js';
 export { ESQUEMA_EQUIVOCACION, CLASES_DE_EQUIVOCACION, ErrorEquivocacion, claseDe, construirEquivocacion, verificarEquivocacion } from './equivocacion.js';
 export { verificarObservacion, USO_OBSERVADOR } from './custodia.js';
-export { Custodia, RechazoCustodia, esquemaSimulado, esquemaNoble, verificarVinculo, mensajeVinculo, verificarSesion, firmaDeWebhook, DOMINIOS, USO_VINCULO, USO_SESION, TIPOS_DE_CANAL } from './custodia.js';
+export { Custodia, RechazoCustodia, esquemaSimulado, esquemaNoble, verificarVinculo, mensajeVinculo, verificarSesion, firmaDeWebhook, comprobarSegundoFactor, DOMINIOS, USO_VINCULO, USO_SESION, USO_SEGUNDO_FACTOR, TIPOS_DE_CANAL } from './custodia.js';
+// La custodia del guardián real (solo Node): `import { CustodiaRemota } from './src/custodia-remota.js'`.
 
 export const SIMULADO = true;
 
@@ -31,14 +32,34 @@ export class Simulacion {
   constructor(sellador, opciones = {}) {
     this.sellador = sellador;
     this.carril = new Carril(sellador, opciones);
+    this.custodia = opciones.custodia ?? null;
   }
 
   /**
    * @param {object} [opciones] { inicio, intervalo, reloj } de la cadena (cadena.js) y
    *        { verificarFirma } del carril (pagos.js)
+   * @param {object} [opciones.custodia] una `Custodia` o una `CustodiaRemota` (el guardián real): si se pasa, el
+   *        observador del sello firma con ella (su clave 'nostr' `nombreObservador`, por defecto «observador»; se
+   *        crea si no existe) y el carril verifica las autorizaciones con su esquema. `observador` y
+   *        `verificarFirma`, si se pasan, mandan.
    */
   static async crear(opciones = {}) {
-    return new Simulacion(await Sellador.crear(opciones), opciones);
+    let o = opciones;
+    if (opciones.custodia) {
+      const { custodia } = opciones;
+      let observador = opciones.observador;
+      if (!observador) {
+        const nombre = opciones.nombreObservador ?? 'observador';
+        try {
+          await custodia.crearClave('nostr', nombre);
+        } catch (e) {
+          if (e?.codigo !== 'key_exists') throw e; // un guardián con almacén ya la tiene
+        }
+        observador = { custodia, nombre };
+      }
+      o = { ...opciones, observador, verificarFirma: opciones.verificarFirma ?? custodia.verificadorDeFirma() };
+    }
+    return new Simulacion(await Sellador.crear(o), o);
   }
 
   get cadena() {

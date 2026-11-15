@@ -252,7 +252,12 @@ export const FIRMA = Object.freeze({
   },
 });
 
-/** ID-2, ID-6 como estaban: las claves se declaran en el alta, de identidades nuevas, con su prueba de posesión. */
+/**
+ * ID-2, ID-6 como están (H13, 15-11): una clave declarada ASOCIA, no da alta. Vale la de quien escribe su propia alta, la de
+ * quien recibe tokens aquí (una cosa), la del invitado que la invitación de este registro nombra, y la de una identidad
+ * con cuenta si aún no tiene clave o es la misma; nunca cambia la de quien ya la tiene. Llega con su prueba de posesión
+ * salvo la de quien escribe su propia alta (su firma), la que ya es la de esa identidad y la del invitado.
+ */
 export const CLAVES = Object.freeze({
   nombre: 'ID-6',
   evaluar: async (tx, libro, ctx) => {
@@ -260,15 +265,20 @@ export const CLAVES = Object.freeze({
     const movimientos = objetos(ev);
     const errores = [];
     const declaradas = ev.contexto?.claves ?? {};
+    const p = ev.payload;
+    const invitacion = Array.isArray(p) && [p[0]].flat().includes('invitation');
     for (const [id, jwk] of Object.entries(declaradas)) {
       const propia = id === ev.autor;
-      if (ctx.tieneClave(id) || libro.tiene(id)) errores.push('no se puede cambiar la clave de ' + id);
-      else if (!propia && !movimientos.some((m) => m.a === id)) errores.push('clave declarada para ' + id + ' sin darle tokens');
-      else if (!(await clavePublicaValida(jwk))) errores.push('clave inválida para ' + id);
-      else if (propia && !Object.hasOwn(ev.posesion ?? {}, id)) continue;
-      else if (!Object.hasOwn(ev.posesion ?? {}, id)) {
-        if (ctx.exigeClave) errores.push('la clave de ' + id + ' llega sin prueba de posesión: el alta lleva la firma de esa clave sobre su id (posesion)');
-      } else if (!(await verificarPosesion(ev, id, jwk))) errores.push('prueba de posesión inválida para ' + id + ': no la firma la clave que se declara');
+      const cuenta = libro.tiene(id);
+      const actual = ctx.clave(id);
+      const invitada = invitacion && [p[3]?.[1]].flat().includes(id);
+      const conPrueba = Object.hasOwn(ev.posesion ?? {}, id);
+      // a key is declared at its alta
+      if (cuenta ? actual !== undefined && actual !== jwk : !propia && !movimientos.some((m) => m.a === id) && !invitada) errores.push(cuenta ? 'no se puede cambiar la clave de ' + id : 'clave declarada para ' + id + ' sin darle tokens');
+      // a declared key comes with its proof
+      if (!conPrueba && !(propia && !cuenta) && !(cuenta && actual === jwk) && !(invitada && !cuenta) && ctx.exigeClave) errores.push('la clave de ' + id + ' llega sin prueba de posesión: el alta lleva la firma de esa clave sobre su id (posesion)');
+      if (!(await clavePublicaValida(jwk))) errores.push('clave inválida para ' + id);
+      else if (conPrueba && !(await verificarPosesion(ev, id, jwk))) errores.push('prueba de posesión inválida para ' + id + ': no la firma la clave que se declara');
     }
     for (const id of Object.keys(ev.posesion ?? {})) {
       if (!Object.hasOwn(declaradas, id)) errores.push('prueba de posesión de ' + id + ' sin clave declarada para él en este evento');

@@ -57,7 +57,8 @@ const AYUDA = `uso: node be.mjs <orden> [argumentos] [--config <ruta>] [--como <
   epoca --publicar <época.json> [--salida <ruta>] [--como <identidad>]
                                     crea un eje NUEVO con esa época escrita en su libro (docs/CONTRATO.md §5 bis): su
                                     génesis lo escribe la identidad de la configuración, firmado, y lo sube al eje
-                                    configurado, que ha de estar vacío en el servidor; con --salida lo guarda en un
+                                    configurado, que ha de estar vacío en el servidor, a 55 registros por minuto como mucho (con el
+                                    límite del nodo) y esperando 65 s si responde 429; con --salida lo guarda en un
                                     archivo sin subirlo (sin configuración, un eje de demostración de --como, o «core»).
                                     El archivo es { "raiz": [...], "registros": [[...], ...] } o la raíz sola
   proponer <título> [--sobre <registro>] [--valores <json>]
@@ -621,8 +622,53 @@ function resumenDeEpoca(e, eje = null) {
   ].filter((x) => x !== null);
 }
 
+/** Escrituras por minuto con que `epoca --publicar` sube (el nodo admite 60 por eje: se queda por debajo). */
+export const ESCRITURAS_POR_MINUTO = 55;
+/** Lo que espera `epoca --publicar` tras un 429 (la ventana del servidor es de un minuto: se pasa de ella). */
+export const ESPERA_TRAS_429_MS = 65_000;
+
+/**
+ * Sube lo que el servidor aún no tiene a un ritmo que el límite de escrituras por eje aguante (acordado con Core AARPIA,
+ * 15-11: a ≤ 55 por minuto, con reintento del 429; el servidor no se toca): nunca más de `porMinuto` subidas en una
+ * ventana de 60 s, y ante un 429 espera `espera429` ms y reintenta el mismo registro. Cualquier otro error corta y se
+ * lanza (lo subido queda anotado en la sincronía). `dormir` y `ahora` se inyectan para probarlo. → los ids subidos.
+ */
+export async function subirAlRitmo(S, eje, { porMinuto = ESCRITURAS_POR_MINUTO, espera429 = ESPERA_TRAS_429_MS, dormir = (ms) => new Promise((r) => setTimeout(r, ms)), ahora = Date.now, avisar = () => {} } = {}) {
+  const subidos = [];
+  const marcas = []; // cuándo se hizo cada subida de la ventana
+  const total = S.pendientes(eje).length;
+  for (const id of S.pendientes(eje)) {
+    for (;;) {
+      const t = ahora();
+      while (marcas.length && t - marcas[0] >= 60_000) marcas.shift();
+      if (marcas.length >= porMinuto) {
+        const falta = marcas[0] + 60_000 - t;
+        avisar('ritmo: ' + subidos.length + ' de ' + total + ', espero ' + Math.ceil(falta / 1000) + ' s');
+        await dormir(falta);
+        continue;
+      }
+      try {
+        const r = await S.subir(eje.obtener(id));
+        eje.marcarReloj(r.recibido);
+        marcas.push(ahora());
+        subidos.push(id);
+        break;
+      } catch (e) {
+        if (e instanceof sincronia.ErrorDelServidor && e.estado === 429) {
+          avisar('el servidor dice 429 tras ' + subidos.length + ' de ' + total + ': espero ' + Math.round(espera429 / 1000) + ' s y reintento');
+          await dormir(espera429);
+          marcas.length = 0; // pasó más que la ventana
+          continue;
+        }
+        throw e;
+      }
+    }
+  }
+  return subidos;
+}
+
 /** `epoca --ver` y `epoca --publicar`: no siempre necesitan configuración (un archivo, un eje guardado aparte). */
-async function ordenEpoca(f, entorno) {
+async function ordenEpoca(f, entorno, ritmo = {}) {
   if (f.ver && f.archivo) return resumenDeEpoca(cargarEpoca(leerEpoca(f.archivo)));
   if (f.ver) {
     const cfg = configuracion(f, entorno);
@@ -656,14 +702,18 @@ async function ordenEpoca(f, entorno) {
     throw new ErrorBe('no se puede leer el eje «' + cfg.eje + '» del servidor: ' + err.message);
   });
   if (pagina?.eventos?.length) throw new ErrorBe('el eje «' + cfg.eje + '» del servidor ya tiene génesis: una época se escribe al crear el eje (crea uno nuevo con POST /ejes)');
-  const informe = await S.sincronizar(eje, { bajar: false });
-  if (informe.errores.length || informe.pendientes.length) throw new ErrorBe('no se subió entero: ' + [...informe.errores, informe.pendientes.length + ' pendientes'].join('; '));
-  fuera.push('subido al eje «' + cfg.eje + '»: ' + informe.subidos.length + ' registros');
+  let subidos;
+  try {
+    subidos = await subirAlRitmo(S, eje, { avisar: (m) => process.stderr.write(m + '\n'), ...ritmo });
+  } catch (err) {
+    throw new ErrorBe('no se subió entero: ' + err.message + ' (' + S.pendientes(eje).length + ' pendientes)');
+  }
+  fuera.push('subido al eje «' + cfg.eje + '»: ' + subidos.length + ' registros');
   return fuera;
 }
 
 /** Ejecuta una orden y devuelve el texto (lanza ErrorBe con el motivo). Exportada para usarla sin proceso hijo. */
-export async function ejecutar(argv, entorno = process.env) {
+export async function ejecutar(argv, entorno = process.env, ritmo = {}) {
   const { orden, pos, f } = argumentos(argv);
   if (!orden || orden === 'ayuda' || f.ayuda) return AYUDA;
   if (!ORDENES.includes(orden)) throw new ErrorBe('orden desconocida: «' + orden + '»\n' + AYUDA);

@@ -7,7 +7,7 @@ import { crearEvento } from '../src/evento.js';
 import { generarClaves, firmar, verificar, exportarPrivada, importarPrivada, publicaDe, clavePublicaValida, firmarPosesion, verificarPosesion, huella } from '../src/autoridad.js';
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
-import { pagaElCoste } from './ayudas-coste.js';
+import { pagaElCoste, conCoste } from './ayudas-coste.js';
 
 const T0 = '2026-11-06T20:00:00Z';
 const gastaT = (de) => pagaElCoste(de);
@@ -207,4 +207,77 @@ test('un eje real: génesis con clave, alta por invitación que nombra la clave 
   assert.equal(await verificar(ev, bea.publica), true);
   const ajeno = await firmar(await crearEvento({ autor: 'bea', sobre: eje.alta('bea').id, t: T0, movimientos: [gastaT('bea')], payload: 'ajeno' }), raiz.privada);
   assert.deepEqual(await eje.validar(ajeno), ['firma inválida de bea']);
+});
+
+// H13 (Core StateArk, 12-11; Core AGRAM, 15-11): una clave declarada en CUALQUIER registro (no solo en un alta) llega con su
+// prueba de posesión (la clave firma el id del registro), como en las altas. El vínculo de StateArk declara la clave de la
+// cartera. Una clave declarada asocia: no da alta (no crea identidad), no cambia la de quien ya la tiene y la de una
+// identidad sin alta no vale. Las reglas de la época que lo dicen: «a key is declared at its alta» y «a declared key comes
+// with its proof» (datos/epocas/correcciones/).
+test('H13: un registro de vínculo declara la clave de la cartera con su posesión; sin ella se rechaza; no crea identidades ni cambia claves', async () => {
+  const vg = await generarClaves();
+  const cartera = await generarClaves();
+  const otra = await generarClaves();
+  const eje = await Eje.genesis({ identidad: 'vg', foco: ['p'], t: T0, clave: vg.publica, privada: vg.privada });
+    // La cartera es una cosa de vg, dada de alta SIN clave (la clave es obligatoria solo si el eje exige firmas).
+  await eje.escribir({ autor: 'vg', sobre: eje.genesisId, t: T0, movimientos: [gastaT('vg'), { token: 'T', escala: 'minuto', cantidad: 5, de: 'vg', a: 'cartera' }], payload: ['cartera'] }, vg.privada);
+  assert.ok(eje.alta('cartera'));
+  assert.equal(eje.clave('cartera'), undefined);
+  const identidades = () => eje.identidades().sort();
+  const antes = identidades();
+  const vinculo = (contexto, sobre = eje.genesisId) => crearEvento(conCoste(eje, { autor: 'vg', sobre, t: T0, movimientos: [gastaT('vg')], payload: [['vínculo', 'SIP 0'], ['StateArk/Vinculo/AgramCartera/v1'], [['vg'], ['cartera']]], contexto }));
+
+  // Sin posesión: se rechaza (regla «a declared key comes with its proof»).
+  const sinPosesion = await firmar(await vinculo({ claves: { cartera: cartera.publica } }), vg.privada);
+  assert.match((await eje.validar(sinPosesion)).join(' '), /a declared key comes with its proof: the key of cartera/);
+  // Con la posesión de otra clave: se rechaza, y la suelo lo dice.
+  const falsa = await firmarPosesion(sinPosesion, 'cartera', otra.privada);
+  assert.match((await eje.validar(falsa)).join(' '), /prueba de posesión inválida para cartera/);
+  // Con su posesión: pasa, y asocia la clave a la cosa que ya tiene alta.
+  const bueno = await firmarPosesion(sinPosesion, 'cartera', cartera.privada);
+  assert.deepEqual(await eje.validar(bueno), []);
+  await eje.anadir(bueno);
+  assert.equal(eje.clave('cartera'), cartera.publica);
+  assert.deepEqual(identidades(), antes, 'no crea identidades');
+  // Una clave para quien no tiene alta no vale (no da alta), ni siquiera con posesión.
+  const fantasma = await firmarPosesion(await firmar(await vinculo({ claves: { fantasma: otra.publica } }), vg.privada), 'fantasma', otra.privada);
+  assert.match((await eje.validar(fantasma)).join(' '), /a key is declared at its alta: fantasma/);
+  assert.equal(eje.alta('fantasma'), null);
+  // Ni se cambia la clave de quien ya la tiene (la cartera, ni vg).
+  const cambio = await firmarPosesion(await firmar(await vinculo({ claves: { cartera: otra.publica } }), vg.privada), 'cartera', otra.privada);
+  assert.ok((await eje.validar(cambio)).length > 0);
+  const cambioVg = await firmarPosesion(await firmar(await vinculo({ claves: { vg: otra.publica } }), vg.privada), 'vg', otra.privada);
+  assert.ok((await eje.validar(cambioVg)).length > 0);
+  // Declarar de nuevo la misma clave (con su prueba) es lo que ya hay: pasa y no cambia nada.
+  const igual = await firmarPosesion(await firmar(await vinculo({ claves: { cartera: cartera.publica } }, eje.alta('cartera').id), vg.privada), 'cartera', cartera.privada);
+  assert.deepEqual(await eje.validar(igual), []);
+  // Y el eje real queda como estaba: cartera con su clave, las mismas identidades.
+  assert.equal(eje.clave('cartera'), cartera.publica);
+  assert.deepEqual(identidades(), antes);
+});
+
+test('H13: la invitación declara la clave del invitado sin su prueba (aún no puede firmar), sin dar alta; otro no puede declarársela distinta ni después ni en otro registro', async () => {
+  const vg = await generarClaves();
+  const ana = await generarClaves();
+  const otra = await generarClaves();
+  const eje = await Eje.genesis({ identidad: 'vg', foco: ['p'], t: T0, clave: vg.publica, privada: vg.privada, exigirFirmas: true });
+  const invitacion = await eje.invitar({ autor: 'vg', invitado: 'ana', clave: ana.publica, t: T0, privada: vg.privada });
+  assert.deepEqual(invitacion.contexto.claves, { ana: ana.publica });
+  assert.equal(eje.clave('ana'), ana.publica, 'la clave queda asociada');
+  assert.equal(eje.alta('ana'), null, 'pero no hay alta: no es una identidad del libro todavía');
+  assert.ok(!eje.identidades().includes('ana'));
+  // Otra clave para ana en otro registro (sin ser su invitación, o con una segunda invitación): no se cambia.
+  const pisa = await firmarPosesion(await firmar(await crearEvento(conCoste(eje, { autor: 'vg', sobre: eje.genesisId, t: T0, movimientos: [gastaT('vg')], payload: 'pisa', contexto: { claves: { ana: otra.publica } } })), vg.privada), 'ana', otra.privada);
+  assert.ok((await eje.validar(pisa)).length > 0);
+  // Una segunda invitación que nombre a ana con otra clave tampoco la cambia (el suelo).
+  await assert.rejects(eje.invitar({ autor: 'vg', invitado: 'ana', clave: otra.publica, t: T0, privada: vg.privada }), /no se puede cambiar la clave de ana/);
+  assert.equal(eje.clave('ana'), ana.publica);
+  // Su alta, firmada con la clave invitada, vale; con otra, no.
+  const alta = await eje.aceptar(invitacion, ana, { t: T0 });
+  assert.equal(await verificar(alta, ana.publica), true);
+  assert.deepEqual(eje.clave('ana'), ana.publica);
+  assert.ok(eje.alta('ana'));
+  // Una invitación SIN clave no declara nada.
+  const sin = await eje.invitar({ autor: 'vg', invitado: 'bea', t: T0, privada: vg.privada });
+  assert.equal(sin.contexto.claves, undefined);
 });

@@ -31,7 +31,7 @@ Lo hace VG, o Core con VG delante. Ningún valor de credenciales entra en este r
 2. **Las tablas.** O bien con la CLI (`supabase link --project-ref <ref>` desde una carpeta con `supabase/migrations/` que contenga `0001_eventos.sql`, y `supabase db push`), o bien pegando `migraciones/0001_eventos.sql` tal cual en el editor SQL del panel. Es idempotente (`if not exists`, `drop trigger if exists`).
 3. **La función.** `supabase functions deploy eventos --no-verify-jwt` desde una carpeta con `supabase/functions/eventos/` que contenga `index.ts`, `api.js`, `verificar.js` y `noble-secp256k1.js` (copiar los cuatro archivos de `servidor/supabase/funciones/eventos/`; el último es la librería de las firmas Schnorr BIP-340, `docs/notas/FIRMAS_BIP340.md`, y `verificar.js` la importa con una ruta relativa). `--no-verify-jwt` porque la función lleva su propia autorización (la clave de lectura del eje y las firmas de los eventos): así la carta no necesita la clave anónima. `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase en toda función.
 4. **Variables de entorno.** Opcional: `supabase secrets set AGRAM_CREAR_EJES=<un secreto largo al azar>` para crear ejes con la cabecera `X-Crear-Ejes` sin manejar la clave de servicio desde fuera. Sin ella, crear ejes solo vale con `Authorization: Bearer <clave de servicio>`. Guardar el secreto en la misma carpeta privada.
-5. **CORS.** La función admite `https://agram.ikisai.com`, la beta (`https://beta.agram.ikisai.com`, `https://agram-beta.pages.dev`) y `http://localhost:*` (`ORIGENES` en `api.js`). Otro origen (una vista previa) se añade ahí y se vuelve a desplegar.
+5. **CORS.** La función de eventos admite `https://agram.ikisai.com`, las otras dos casas (`https://aarpia.ikisai.com`, `https://stateark.ikisai.com`), la beta (`https://beta.agram.ikisai.com`, `https://agram-beta.pages.dev`) y `http://localhost:*` (`ORIGENES` en `api.js`). Otro origen (una vista previa) se añade ahí y se vuelve a desplegar.
 
 ## Crear el primer eje y obtener su clave de lectura
 
@@ -90,13 +90,34 @@ El sobre 7700 lo firma una clave de transporte del servicio, no el autor (la car
 
 ## El sello de tiempo (simulación de StateArk)
 
-El tercer reloj de cada registro (`X.6.8.2`, el bloque de Bitcoin que lo sella; `docs/CONTRATO.md` §4.4) lo pone `src/sello.js`, que no importa ninguna simulación (TOK-74): la recibe inyectada (`selloCon`), y `servidor/sim/sello-agram.js` (`selloSimulado`) se la da. Hoy **no hay Bitcoin ni StateArk**: `servidor/sim/stateark/` es una **simulación** (copia del commit ddcc475 de `InTheState/stateark/sim`, ver su `LEEME.md`: el sello **ancla por Taproot** (VG 13-11): una transacción de anclaje con forma de Bitcoin cuya salida P2TR compromete los lotes como hojas `OP_RETURN <raíz>` de su árbol Taproot, con la cabecera de su bloque firmada por el observador; además del §3 trae §5 pagos, con transacciones serializadas como Bitcoin y el recibo único «pago» (`reciboPago`), §6 custodia y §8 candado, que solo están copiados y probados, la carta no los usa), JavaScript puro, sin dependencias, con las pruebas en `test/sim-stateark*.test.js`. Lo que la simulación da lo comprueban las reglas de la época «sealed» (el sello copiado en `X.6.8.2`) y «paid» (el recibo de pago copiado en `X.6.8.3` con `eje.marcarPago`), `docs/CONTRATO.md` §4.4. Cuando exista StateArk real se sustituye con la misma forma (`sellar`, `prueba`, `verificar`).
+El tercer reloj de cada registro (`X.6.8.2`, el bloque de Bitcoin que lo sella; `docs/CONTRATO.md` §4.4) lo pone `src/sello.js`, que no importa ninguna simulación (TOK-74): la recibe inyectada (`selloCon`), y `servidor/sim/sello-agram.js` (`selloSimulado`) se la da. Hoy **no hay Bitcoin ni StateArk**: `servidor/sim/stateark/` es una **simulación** (copia del commit cb83eda de `InTheState/stateark/sim`, ver su `LEEME.md`: el sello **ancla por Taproot** (VG 13-11): una transacción de anclaje con forma de Bitcoin cuya salida P2TR compromete los lotes como hojas `OP_RETURN <raíz>` de su árbol Taproot, con la cabecera de su bloque firmada por el observador; además del §3 trae §5 pagos, con transacciones serializadas como Bitcoin y el recibo único «pago» (`reciboPago`), §6 custodia y §8 candado, que solo están copiados y probados, la carta no los usa), JavaScript puro, sin dependencias, con las pruebas en `test/sim-stateark*.test.js`. Lo que la simulación da lo comprueban las reglas de la época «sealed» (el sello copiado en `X.6.8.2`) y «paid» (el recibo de pago copiado en `X.6.8.3` con `eje.marcarPago`), `docs/CONTRATO.md` §4.4. Cuando exista StateArk real se sustituye con la misma forma (`sellar`, `prueba`, `verificar`).
 
 ```sh
 node servidor/sim/stateark/servidor.js 8787 600000      # un servicio de sello local; un bloque cada 10 min (sin el segundo número, solo POST /minar)
 ```
 
 `POST /sellar` `{ ids }`, `GET /prueba/:id` (202 si pendiente, 404 si nunca se selló), `POST /verificar` `{ id, prueba }` y `POST /minar` (solo en la simulación). Escucha solo en 127.0.0.1, con CORS abierto. Por el servicio **solo pasan ids** (SHA-256 del cuerpo), nunca eventos. La carta lo usa si la configuración trae «seal url» (ajustes del exterior, ver abajo y el §16.2 bis del contrato); en Node, `sello.crearSello()` sin url usa la simulación en memoria.
+
+## La sim de StateArk con el guardián real
+
+Con el commit cb83eda de la sim (F1 paso 5), la sim de StateArk puede firmar con el **guardián real** (la app `stateark-guardian`, de Core StateArk) en vez de con sus claves simuladas: firma la cabecera del observador, las autorizaciones de pago, los recibos, el vínculo, las sesiones y el segundo factor. **Sin las variables, la sim arranca como siempre** (claves simuladas); lo de abajo es opcional y no se ha hecho aquí (no hay exe en esta máquina).
+
+1. **Arrancar el guardián** (el exe de StateArk, compilado en `InTheState/stateark/app`: `stateark-guardian.exe`, en `app/target/debug` o `release`):
+
+   ```sh
+   stateark-guardian.exe --dir <carpeta del guardián> --puerto 8350
+   ```
+
+   Escucha solo en **127.0.0.1** (no en `localhost`: la sim y la carta usan la dirección literal) y rechaza a los navegadores (toda petición con `Origin`). Deja en `--dir` su cookie de servicio.
+2. **Arrancar la sim contra él**, con las variables (la sim es de Node y habla con el guardián por HTTP):
+
+   ```sh
+   STATEARK_GUARDIAN_URL=http://127.0.0.1:8350 STATEARK_GUARDIAN_DIR=<la misma carpeta> AGRAM_SRC=<este repo>/src node servidor/sim/stateark/servidor.js 8787 600000
+   ```
+
+   (en PowerShell: `$env:STATEARK_GUARDIAN_URL='http://127.0.0.1:8350'; $env:STATEARK_GUARDIAN_DIR='<carpeta>'; $env:AGRAM_SRC='<este repo>/src'; node servidor/sim/stateark/servidor.js 8787 600000`). `STATEARK_GUARDIAN_DIR` basta para encontrar la cookie; si no, `STATEARK_GUARDIAN_COOKIE` la lleva directamente. Al arrancar dice «firma con el guardián en http://127.0.0.1:8350» y `GET /` devuelve `guardian`. Bitcoin sigue simulado hasta la fase 2.
+3. **Probarlo**: `STATEARK_PARIDAD=obligatoria STATEARK_GUARDIAN_BIN=<el exe> node --test test/sim-stateark-custodia-remota.test.js` lanza el guardián en una carpeta temporal y un puerto libre y comprueba la paridad (sin el exe, la prueba se salta diciéndolo).
+4. **La carta** usa la sim igual que antes (`seal url` en los ajustes del exterior). La autorización de segundo factor se firma pidiendo la firma al guardián: `acciones.autorizar(eje, id, cosa, { firmar: ({ canonico, id }) => custodia.segundoFactor(nombre, cosa, { canonico, id }) })` con una `CustodiaRemota` (`servidor/sim/stateark/custodia-remota.js`; `docs/CONTRATO.md` §12.4 bis).
 
 ## Elegir Supabase o la simulación
 
