@@ -1128,19 +1128,22 @@ export function criteriosDeSegundoFactor(eje, yo) {
  * redefinir la lectura «second factor» para que alcancen registros de otros autores (docs/CONTRATO.md §12.4 bis; la época
  * de la clase state, el criterio de un nodo por plantilla). Mientras el eje no tiene ninguno, todo sigue como en la 0 (el
  * atajo «sin criterios propios del autor no hay nada que leer»); con alguno, se lee siempre. Cada uno, como criterioDe;
- * se recuerda por eje mientras el libro no crece.
+ * se recuerda por eje y, cuando el libro crece, solo se mira lo nuevo.
  */
 const CRITERIOS_DE_OTRA_PLANTILLA = new WeakMap();
 export function criteriosDeOtraPlantilla(eje) {
   if (!Array.isArray(eje?.orden)) return [];
   const visto = CRITERIOS_DE_OTRA_PLANTILLA.get(eje);
   if (visto && visto.n === eje.orden.length) return visto.criterios;
-  const criterios = [];
-  for (const id of eje.orden) {
+  // El orden del libro solo crece por detrás: se mira lo llegado desde la última vez, no el libro entero cada vez.
+  const sigue = visto && visto.n < eje.orden.length && eje.orden[visto.n - 1] === visto.ultimo;
+  const criterios = sigue ? [...visto.criterios] : [];
+  for (let k = sigue ? visto.n : 0; k < eje.orden.length; k++) {
+    const id = eje.orden[k];
     const ev = eje.obtener(id);
     if (ev?.en === SEGUNDO_FACTOR.en && !eje.esDeLaEpoca?.(id) && !hojas(ev.payload?.[4]).includes(SEGUNDO_FACTOR.criterio)) criterios.push(criterioDe(eje, id));
   }
-  CRITERIOS_DE_OTRA_PLANTILLA.set(eje, { n: eje.orden.length, criterios });
+  CRITERIOS_DE_OTRA_PLANTILLA.set(eje, { n: eje.orden.length, ultimo: eje.orden.at(-1), criterios });
   return criterios;
 }
 
