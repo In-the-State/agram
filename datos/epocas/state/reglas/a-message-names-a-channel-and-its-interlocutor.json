@@ -1,0 +1,23 @@
+[
+  ["a message names a channel and its interlocutor"],
+  [
+    "message in",
+    "message out",
+    "conversation with an agent",
+    "epoch.9.0.5.1"
+  ],
+  ["=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).1.0 in epoch.9.0.5.1 and first (payload(ev)).1.1 = first (payload((first ev.6.5))).3.1"],
+  ["ev.3"],
+  [
+    "mint",
+    "transfer",
+    "lock",
+    "release",
+    "burn"
+  ],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un «message in» o un «message out» (su 0, anclado en el 3 de una conversación con un agente) lleva un canal de la lista cerrada de la época (epoch.9.0.5.1) en su 1.0 y en su 1.1 el interlocutor de esa conversación (su 3.1): nadie mete en una conversación lo que dice o lo que se le dice a otro. Solo se mira cuando la candidata es un mensaje (el or es perezoso)"],
+  ["state 0"],
+  ["after attention has a price"],
+  ["a message names a channel and its interlocutor: {first ev.3} writes a message on a channel that is not in the list of the epoch, or with an interlocutor that is not the one of its conversation"]
+]

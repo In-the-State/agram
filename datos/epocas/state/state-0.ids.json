@@ -1,17 +1,62 @@
 {
-  "epoca": "7fd0a4162f8c733b5d8b61d6dbaa858f7567466e96e4ba174d77e71d49cec2c9",
+  "epoca": "006d84987e7606aee305a9fea618a61ffe2bc7b8b134e6f18881f72d9f9dc3aa",
   "hereda": "5260d0df3907fbdd110ce6b412c6cf382bca16a1fc870665d4ec4335a52d0baa",
-  "registrosAlPublicar": 38,
+  "registrosAlPublicar": 60,
   "reglas": [
+    {
+      "nombre": "a delivery result comes from whoever delivers",
+      "archivo": "a-delivery-result-comes-from-whoever-delivers.json",
+      "id": "c2e1ba5bc6801c97d73e72ad062daded240378069d9c6af92e8547fb646b067f"
+    },
+    {
+      "nombre": "a message carries a text or a file",
+      "archivo": "a-message-carries-a-text-or-a-file.json",
+      "id": "a86a0e008b60cae44e5018418e27f3adc6f74de40c1a9cad88ebe3fa12a997ac"
+    },
+    {
+      "nombre": "a message names a channel and its interlocutor",
+      "archivo": "a-message-names-a-channel-and-its-interlocutor.json",
+      "id": "38716c46da0331602eb80761fce1a4919e16c1d7be0f7f4e128987fbfd8663f4"
+    },
+    {
+      "nombre": "an archived conversation takes no messages",
+      "archivo": "an-archived-conversation-takes-no-messages.json",
+      "id": "a004dbdf59c8e3b4afae62e2b9552b67960279a74e4a0cb1fb86d0bde5df4588"
+    },
     {
       "nombre": "anchors asked",
       "archivo": "anchors-asked.json",
-      "id": "aa21962adfcf1a9112ad248932896089b0c8e4d3b4ccd7128acdb8ef7897f255"
+      "id": "f2d2a07e502ffb783248b0162f322df179c4894538587a96955053b4db71402e"
+    },
+    {
+      "nombre": "attention group",
+      "archivo": "attention-group.json",
+      "id": "a74b2d0b91f22b62960cb7f104d04870ba6e2e9fcc27279b8e69b225ea7b7a83"
     },
     {
       "nombre": "attention has a price",
       "archivo": "attention-has-a-price.json",
-      "id": "1212087c43e35da7016105afc409338d1d6107f10c38e1a6ba0956458389326a"
+      "id": "9ed8491e4e3f4399bee4521cf886bbdef52355897c6474090141fa969813f713"
+    },
+    {
+      "nombre": "attention price",
+      "archivo": "attention-price.json",
+      "id": "e2ddc254144f553a71441191e13c6182db69d5861719998af1398fd872e46a73"
+    },
+    {
+      "nombre": "conversation archived",
+      "archivo": "conversation-archived.json",
+      "id": "a64c0cddc2c7b1db6d147942caf009eb31f7460cf8767f2770c66acddd59bce6"
+    },
+    {
+      "nombre": "conversation title",
+      "archivo": "conversation-title.json",
+      "id": "3c7fcd26f70fe9e68c3959fcbb8cd5bf6fb936064e6d138c918a041e02540043"
+    },
+    {
+      "nombre": "conversations",
+      "archivo": "conversations.json",
+      "id": "eafee87cf7420f334a32f45e29c961f9ef80c33b5b2ba1f2b40b8ae0d5bd7f5b"
     },
     {
       "nombre": "current connections",
@@ -19,12 +64,56 @@
       "id": "ed7d8649de8cbb2a3ec7ca708239a08aaba03054f7c4cd09d1fb4d9b3401b61f"
     },
     {
+      "nombre": "delivery",
+      "archivo": "delivery.json",
+      "id": "4ff7ebb39a80ff19d6d286ec933f6a8a8ad65a719181886027a0c8b8ead8a8f5"
+    },
+    {
+      "nombre": "last message",
+      "archivo": "last-message.json",
+      "id": "294bc53cc324f210852f03a3f2aa733eb11fdcda393a32683354ac0520140ea3"
+    },
+    {
+      "nombre": "message count",
+      "archivo": "message-count.json",
+      "id": "d9b1109dce2da28bc29eec2d54d3adb3127ab28b9426c1d64dd8ba3dfb6e78c1"
+    },
+    {
+      "nombre": "messages of",
+      "archivo": "messages-of.json",
+      "id": "593d7b1eb5f3a18766c43bd418a3a90840ae6154080e05f35feae11ee511e387"
+    },
+    {
+      "nombre": "messages to deliver",
+      "archivo": "messages-to-deliver.json",
+      "id": "f98fe3a7220fabaf472116d379a367fa6f08ab69765d2c768b660cb06624fb85"
+    },
+    {
       "nombre": "second factor",
       "archivo": "second-factor.json",
       "id": "323c60eb15ec9ef25e8948e28feb3f274ed5272a8899a4ba5cee86422006cf63"
+    },
+    {
+      "nombre": "who opens, renames and archives a conversation",
+      "archivo": "who-opens-renames-and-archives-a-conversation.json",
+      "id": "c9fc418e18db66dd6fa53ad4e3790f3c0911f917098834fae381df60d8056f07"
+    },
+    {
+      "nombre": "who writes a message",
+      "archivo": "who-writes-a-message.json",
+      "id": "d0c06b770d93f42e2dc511be317da3386cd81fa796f2bb4f54f58c5ee1b9c048"
     }
   ],
   "plantillas": [
+    {
+      "nombre": "rename a conversation",
+      "archivo": "rename-a-conversation.json",
+      "id": "519d76fa9bfeb072bbc0f76629e55bd63966294fc996eedc2ede790176ae2efa",
+      "ocho": [
+        0,
+        6
+      ]
+    },
     {
       "nombre": "register the node",
       "archivo": "register-the-node.json",
@@ -134,6 +223,15 @@
       ]
     },
     {
+      "nombre": "open a conversation",
+      "archivo": "open-a-conversation.json",
+      "id": "644b8aaabffaa07052a17a3d12d21148236ca832fde97b6660fab2b679980498",
+      "ocho": [
+        1,
+        24
+      ]
+    },
+    {
       "nombre": "require authorization",
       "archivo": "require-authorization.json",
       "id": "187b2f23913af2ecf13ace76a6a98711b5c51ae6f09bfedb52966a81d6676fd3",
@@ -163,10 +261,28 @@
     {
       "nombre": "anchor served",
       "archivo": "anchor-served.json",
-      "id": "37454f31bc37e05ab420e3b659fa311e6806eb51b7517bf252a0ed2aa8342c87",
+      "id": "fc50e891c14e2e7b007544336c00b393692c0850fad56057d9f9ef2209abdcfe",
       "ocho": [
         3,
         12
+      ]
+    },
+    {
+      "nombre": "message in",
+      "archivo": "message-in.json",
+      "id": "571122e36ba5fefb77d63511e0158cada0b75163cc1caed6b0838b8f8782eb55",
+      "ocho": [
+        3,
+        13
+      ]
+    },
+    {
+      "nombre": "message out",
+      "archivo": "message-out.json",
+      "id": "9df12fad21b3fec49a5af4e7e1a48a715c75f33c41e3a2677e8de017d6356702",
+      "ocho": [
+        3,
+        14
       ]
     },
     {
@@ -266,6 +382,24 @@
       "ocho": [
         4,
         23
+      ]
+    },
+    {
+      "nombre": "archive a conversation",
+      "archivo": "archive-a-conversation.json",
+      "id": "7512797985a3b6df17ff7591bdeb0612b73ac67560bc797b8474be8b7bf768d7",
+      "ocho": [
+        4,
+        24
+      ]
+    },
+    {
+      "nombre": "delivery result",
+      "archivo": "delivery-result.json",
+      "id": "277e064cb1a4a67656f9beae93c8f13f161b710a0a122abefa325efd5693799f",
+      "ocho": [
+        4,
+        25
       ]
     },
     {

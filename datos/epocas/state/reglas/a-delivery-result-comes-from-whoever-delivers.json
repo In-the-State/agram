@@ -1,0 +1,24 @@
+[
+  ["a delivery result comes from whoever delivers"],
+  [
+    "delivery result",
+    "message out",
+    "sent",
+    "failed",
+    "epoch.9.0.5.2"
+  ],
+  ["=not (\"delivery result\" in (payload(ev)).4) or last (first ev.6).5 = \"4000000000\" and first (payload((first ev.6.5))).0 = \"message out\" and not (first (payload((first ev.6.5))).1.0 in epoch.9.0.5.2) and first ev.3 = first (first (first (payload((first ev.6.5))).1.1).6).3 and (first (payload(ev)).6.0 = \"sent\" or first (payload(ev)).6.0 = \"failed\" and count ((payload(ev)).6.1 where it != \"-\") > 0)"],
+  ["ev.3"],
+  [
+    "mint",
+    "transfer",
+    "lock",
+    "release",
+    "burn"
+  ],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), D: un «delivery result» va anclado en el 4 de un «message out» de un canal de fuera, lo escribe quien entrega (el autor del alta del interlocutor del mensaje, que es el de su conversación) y dice «sent» o «failed» en su 6.0; «failed» lleva su causa en el 6.1"],
+  ["state 0"],
+  ["after an archived conversation takes no messages"],
+  ["a delivery result comes from whoever delivers: {first ev.3} writes a delivery result that is not on an outside message out whose interlocutor it registered, or that says neither sent nor failed with its cause"]
+]

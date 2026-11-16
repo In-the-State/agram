@@ -1,0 +1,12 @@
+[
+  ["conversation archived"],
+  ["archive a conversation"],
+  ["=count ((down it) where last (first it2.6).5 = \"4000000000\" and \"archive a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3)) > 0"],
+  ["X"],
+  ["read"],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), E: con it = una conversación, su estado: verdadero si está archivada (un «archive a conversation» en su 4 de quien la abrió o del dueño del agente), falso si está activa"],
+  ["state 0"],
+  ["after conversation title"],
+  ["conversation archived: whether the conversation is archived (true) or active (false)"]
+]

@@ -19,7 +19,13 @@
 //      el precio, cada invitación y el veto esperan la firma del llavero del titular, que firma; el vecino declara sus
 //      relés en su alta y pide dos anclas devolviendo una unidad de R cada vez: el dueño sirve la primera («anchor
 //      served») y la segunda queda pendiente; el otro queda fuera con el veto;
-//   9. una visita de fuera que intenta medir una pieza y no puede.
+//   9. una visita de fuera que intenta medir una pieza y no puede;
+//  10. los dos canales (encargo «los dos canales», VG 17-11 por Core State): el agente de la casa (con un modelo
+//      simulado) y sus conversaciones: una por la casa (una persona pregunta, el agente responde), una por Telegram (el
+//      servicio da de alta al interlocutor, abre la conversación, entra un mensaje, el agente responde, una entrega
+//      fallida y su reintento enviado) y una renombrada y archivada, que ya no admite mensajes. El interlocutor de fuera
+//      entra con lo que la época 0 admite hoy, un alta con un minuto de T (sin clave): la 0 no abre una cuenta sin
+//      movimientos, así que «register an interlocutor» (sin T ni tokens) queda parado (docs/EPOCA_STATE.md).
 //
 // Uso: node ejemplos/state/nodo.mjs   (imprime el resumen; `ejemploNodo()` da el eje a las pruebas y a la carta).
 
@@ -29,6 +35,7 @@ import { Eje } from '../../src/eje.js';
 import { publicaDe, firmar, firmarPosesion } from '../../src/autoridad.js';
 import * as A from '../../src/acciones.js';
 import { epocaState } from '../../datos/epocas/state/generar.mjs';
+import { escribirPagando, pagaElCoste } from '../ikisai/coste.mjs';
 
 /** Una clave de prueba derivada de una semilla fija (nada real): { publica, privada } x-only en hexadecimal. */
 export const claveDePrueba = (semilla) => {
@@ -42,8 +49,11 @@ export const N = Object.freeze({
   vecino: 'nodo-vecino', dePaso: 'nodo-de-paso',
   nodo: 'nodo-ejemplo', autoridad: 'autoridad', rele: 'rele', archivo: 'archivo', contexto: 'contexto-tienda',
   contenedor: 'contenedor-web', puerta: 'puerta-a', despliegue: 'despliegue-carta', worker: 'worker', vigia: 'vigia', ejecutor: 'ejecutor', ejeServido: 'eje-servido-a',
+  agenteCasa: 'agente-casa', personaCasa: 'persona-casa', servicio: 'servicio-telegram', interlocutor: 'interlocutor-1',
 });
-const CON_CLAVE = [N.operador, N.titular, N.llavero, N.visita, N.vigia, N.ejecutor, N.vecino, N.dePaso];
+const CON_CLAVE = [N.operador, N.titular, N.llavero, N.visita, N.vigia, N.ejecutor, N.vecino, N.dePaso, N.agenteCasa, N.personaCasa, N.servicio];
+/** La huella del interlocutor de ejemplo (inventada: el sha256 de un texto fijo, no el HMAC de ningún identificador real). */
+export const HUELLA = createHash('sha256').update('agram/ejemplo-state/interlocutor-1').digest('hex');
 export const CLAVES = Object.freeze(Object.fromEntries(CON_CLAVE.map((n) => [n, claveDePrueba(n)])));
 
 const DIA = '2026-11-16';
@@ -178,8 +188,41 @@ export async function ejemploNodo({ hasta = null } = {}) {
   ids.altaVisita = (await eje.aceptar(invV, K.visita, { t: t() })).id;
   await noPasa('una visita mide una pieza', 'measure a piece', ids.contenedor, { what: 'disco', value: 1, unit: '%' }, N.visita);
 
-  // Por último, una operación que queda por autorizar: así la carta la enseña en «por autorizar».
-  await hacer('restart a piece', ids.contenedor, {}, N.operador, { guarda: 'reinicioPendiente' });
+  // 10. Los dos canales (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA). El agente de la
+  // casa es una pieza «agent» declarada, con un modelo simulado; sus conversaciones cuelgan del 1.5 de su alta. La persona
+  // de la casa y el servicio de Telegram entran por invitación del operador con R suya: abrir una conversación sobre el
+  // alta del agente (una pieza) les cuesta el precio de su grupo, una unidad de esa R devuelta.
+  await hacer('register an agent', nodo.id, { thing: N.agenteCasa, minutes: 600, key: K[N.agenteCasa].publica, model: 'modelo simulado (no llama a nada de fuera)', limits: ['una respuesta por mensaje'] }, N.operador, { cosa: N.agenteCasa, guarda: 'agenteCasa' });
+  await hacer('declare agent', ids.agenteCasa, {}, N.operador);
+  const entra = async (quien, cuanta, guarda) => {
+    const i = await eje.invitar({ autor: N.operador, invitado: quien, clave: K[quien].publica, da: [{ token: 'R', cantidad: cuanta }], t: t(), privada: K.operador.privada });
+    ids[guarda] = (await eje.aceptar(i, K[quien], { t: t() })).id;
+  };
+  await entra(N.personaCasa, 3, 'altaPersonaCasa');
+  // Por la casa: la persona abre, pregunta (ella es su interlocutor) y el agente responde.
+  const casa = await hacer('open a conversation', ids.agenteCasa, { title: 'Horario de la tienda' }, N.personaCasa, { guarda: 'conversacionCasa' });
+  await hacer('message in', casa.id, { channel: 'house', text: '¿A qué hora abre la tienda de ejemplo?' }, N.personaCasa, { guarda: 'preguntaCasa' });
+  await hacer('message out', casa.id, { text: 'Abre a las nueve (respuesta del modelo simulado).', 'reply to': ids.preguntaCasa }, N.agenteCasa, { guarda: 'respuestaCasa' });
+  // Por Telegram: el servicio da de alta al interlocutor (la huella de su identificador de fuera, nunca el identificador),
+  // abre la conversación y escribe lo que entra en su nombre; el agente responde; la primera entrega falla y el reintento
+  // sale. El alta del interlocutor se escribe a mano con lo que la 0 admite hoy (un minuto de T, sin clave), en la forma
+  // que tendría «register an interlocutor» (su canal y su huella en el 6), que queda parado: la 0 no da de alta sin dotación.
+  await entra(N.servicio, 5, 'altaServicio');
+  ids.interlocutor = (await escribirPagando(eje, { autor: N.servicio, sobre: ids.altaServicio, en: '1400000000', t: t(), movimientos: [pagaElCoste(N.servicio), { token: 'T', escala: 'minuto', cantidad: 1, de: N.servicio, a: N.interlocutor }], payload: [N.interlocutor, 1, 'all announced movements happened', [N.servicio, N.interlocutor], 'register a thing', 'interlocutor', ['telegram', HUELLA]] }, K[N.servicio].privada)).id;
+  const tg = await hacer('open a conversation', ids.agenteCasa, { interlocutor: N.interlocutor }, N.servicio, { guarda: 'conversacionTelegram' });
+  await hacer('message in', tg.id, { channel: 'telegram', text: 'Hola, ¿queda pan?', file: 'telegram:AgAD-ejemplo_0001' }, N.servicio, { guarda: 'entraTelegram' });
+  await hacer('message out', tg.id, { text: 'Sí, hasta las dos.', 'reply to': ids.entraTelegram }, N.agenteCasa, { guarda: 'saleTelegram' });
+  await hacer('delivery result', ids.saleTelegram, { result: 'failed', cause: 'el canal no respondió a tiempo' }, N.servicio, { guarda: 'entregaFallida' });
+  await hacer('delivery result', ids.saleTelegram, { result: 'sent', reference: 'ref-ejemplo-42' }, N.servicio, { guarda: 'entregaEnviada' });
+  // Una conversación renombrada y archivada: ya no admite mensajes.
+  const vieja = await hacer('open a conversation', ids.agenteCasa, { title: 'Una prueba' }, N.personaCasa, { guarda: 'conversacionArchivada' });
+  await hacer('rename a conversation', vieja.id, { title: 'Una prueba ya resuelta' }, N.personaCasa, { guarda: 'renombre' });
+  await hacer('archive a conversation', vieja.id, {}, N.personaCasa, { guarda: 'archivada' });
+  await noPasa('un mensaje en una conversación archivada', 'message in', vieja.id, { channel: 'house', text: '¿Sigue abierta?' }, N.personaCasa);
+
+  // Por último, una operación que queda por autorizar: así la carta la enseña en «por autorizar». La hace el ejecutor (el
+  // defecto es el último agente dado de alta, que desde el paso 10 es el de la casa).
+  await hacer('restart a piece', ids.contenedor, { executor: N.ejecutor }, N.operador, { guarda: 'reinicioPendiente' });
 
   return { eje, ids, claves: K, epoca, rechazos };
 
@@ -202,4 +245,8 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   console.log(`reinicio del vigía: ${est(ids.reinicio)} · cambio de núcleo: ${est(ids.cambioNucleo)} (fin: ${(await import('../../src/motor.js')).cerrado(eje, ids.cambioNucleo).fin}) · reinicio del contenedor: ${est(ids.reinicioPendiente)}`);
   console.log('por autorizar (titular): ' + A.porAutorizar(eje, N.titular).map((x) => x.que).join(' | '));
   for (const r of rechazos) console.log(`rechazado como debía: ${r.caso}: ${r.motivos.join('; ').slice(0, 160)}`);
+  const { leerRegla } = await import('../../src/bqlm.js');
+  const { ContextoEje } = await import('../../src/contexto-eje.js');
+  const lee = (n, id) => leerRegla(e.lecturas.find((r) => r[0][0] === n), id, new ContextoEje(eje, { epoch: e })).valor.map((x) => x?.id ?? x);
+  for (const x of lee('conversations', ids.agenteCasa)) console.log(`conversación «${lee('conversation title', x)}»: ${lee('conversation archived', x)[0] ? 'archivada' : 'activa'}, ${lee('message count', x)} mensajes, ${lee('messages to deliver', x).length} por entregar`);
 }

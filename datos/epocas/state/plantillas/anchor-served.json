@@ -88,14 +88,14 @@
     [
       ["level"],
       ["number"],
-      ["=it in epoch.7.6.1"],
+      ["=it in epoch.7.6.1 and it >= first (payload(first ev.6.5)).6.2"],
       ["me"],
       ["payload"],
       ["6.2"],
       ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
       ["required"],
       [8],
-      ["the level of the mother header: a level of the cascade (epoch.7.6.1)"]
+      ["the level of the mother header: a level of the cascade (epoch.7.6.1), the one asked or one above"]
     ],
     [
       ["path"],
@@ -116,7 +116,7 @@
   ["4"],
   [
     "VG 17-11 (por Core State; encargo «ancla servida»): un pedido de ancla («ask for an anchor») tiene que poder leerse como servido. Lo escribe quien sirve, la identidad de servicio del nodo: el dueño del nodo (quien escribió su alta, el operador; su R es la llave del servicio y su clave es la del nodo). Hoy la época no tiene otra identidad que sirva: el nodo es una cosa sin clave y el sellador no tiene identidad en este libro. Se lanza sobre el pedido y ancla en su 4 (lo que se hace con él); escrito por otro no cuenta para la lectura «anchors asked»",
-    "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). No mueve tokens más allá del T de escribir",
+    "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1; el pedido o uno de encima, que lo cubre: la validación lo exige y la lectura no da por servido uno menor) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). No mueve tokens más allá del T de escribir",
     "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
   ],
   ["state 0"],

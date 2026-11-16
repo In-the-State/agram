@@ -4,9 +4,9 @@ La época de los nodos de la clase `state`: un nodo leído como un eje (VG 16-11
 
 | Archivo | Qué es |
 |---|---|
-| `state-0.raiz.json` | la raíz: lo propio y, donde hereda, `"<hereda>"` (la marca `{ ref: <id de la 0> }`) |
-| `reglas/*.json` | dos reglas que sustituyen a las de la 0 con el mismo nombre, «second factor» y «attention has a price», y dos lecturas con nombre, «anchors asked» y «current connections» (VG 17-11) |
-| `plantillas/*.json` | las 32 plantillas de transacción (las altas, el camino, el criterio, las operaciones, el recibo, pedir un ancla y servirla, y los relés de una conexión) |
+| `state-0.raiz.json` | la raíz: lo propio y, donde hereda, `"<hereda>"` (la marca `{ ref: <id de la 0> }`); entre lo propio, los canales de las conversaciones en `epoch.9.0.5` |
+| `reglas/*.json` | 20: cuatro que sustituyen a las de la 0 con el mismo nombre («second factor», «attention has a price», «attention group» y «attention price»), seis reglas de validez de las conversaciones y diez lecturas con nombre («anchors asked», «current connections» y las ocho de las conversaciones) (VG 17-11) |
+| `plantillas/*.json` | las 38 plantillas de transacción (las altas, el camino, el criterio, las operaciones, el recibo, pedir un ancla y servirla, los relés de una conexión, y las conversaciones: abrir, renombrar, archivar, los mensajes y el resultado de la entrega) |
 | `textos/es.json`, `textos/en.json` | los textos de la época por clave (van en el 9.4, detrás de los de la 0; mandan sobre los de la 0) |
 | `generar.mjs` | el generador: `npm run epoca:state` |
 | `state-0.btml.json` | el resultado: `{ id, hereda, raiz, registros }`, la forma de `node be.mjs epoca --publicar` |

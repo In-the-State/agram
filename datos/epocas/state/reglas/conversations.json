@@ -1,0 +1,12 @@
+[
+  ["conversations"],
+  ["open a conversation"],
+  ["=(down it) where last (first it2.6).5 = \"1500000000\" and \"open a conversation\" in (payload(it2)).4"],
+  ["X"],
+  ["read"],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), E: con it = el alta de un agente, sus conversaciones (lo anclado en su 1.5 con «open a conversation»), por llegada, activas o archivadas. De cada una: «conversation title», «conversation archived», «last message» y «message count»; su interlocutor, first (payload(it)).3.1"],
+  ["state 0"],
+  ["after current connections"],
+  ["conversations: the conversations of the agent, by arrival"]
+]

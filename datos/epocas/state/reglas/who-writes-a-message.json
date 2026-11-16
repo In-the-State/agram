@@ -1,0 +1,22 @@
+[
+  ["who writes a message"],
+  [
+    "message in",
+    "message out",
+    "epoch.9.0.5.2"
+  ],
+  ["=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3)"],
+  ["ev.3"],
+  [
+    "mint",
+    "transfer",
+    "lock",
+    "release",
+    "burn"
+  ],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B, quién escribe: «message in» de un canal de fuera, solo quien dio de alta al interlocutor (el autor de su alta, y no él mismo), así que nadie más habla en su nombre; «message in» del canal de la casa (epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe); «message out», el agente de la conversación (su 1) o el dueño del agente (quien escribió su alta). Con «a message names a channel and its interlocutor», el interlocutor es además el de la conversación"],
+  ["state 0"],
+  ["after a message carries a text or a file"],
+  ["who writes a message: {first ev.3} writes a message it may not write: in the name of an interlocutor whose alta it did not write, as another person on the house channel, or out without being the agent of the conversation or its owner"]
+]

@@ -1,0 +1,12 @@
+[
+  ["messages of"],
+  ["message in", "message out"],
+  ["=(down it) where last (first it2.6).5 = \"3000000000\" and (first (payload(it2)).0 = \"message in\" or first (payload(it2)).0 = \"message out\")"],
+  ["X"],
+  ["read"],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), E: con it = una conversación, sus mensajes por llegada. De cada uno (it = el mensaje): el sentido, first (payload(it)).0 («message in» o «message out»); el canal, el interlocutor, el texto, el adjunto y en respuesta a, (payload(it)).1.0 a 1.4; y en un «message out» de fuera, el resultado vigente de la entrega, la lectura «delivery»"],
+  ["state 0"],
+  ["after conversation archived"],
+  ["messages of: the messages of the conversation, by arrival"]
+]
