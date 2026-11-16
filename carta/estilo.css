@@ -220,6 +220,27 @@ small{color:var(--muted)}
 .reverso .tipo,.reverso .ancla,.abierto .ayuda{margin:0;font-size:13px;color:var(--muted)}
 .pasos{list-style:none;margin:0;padding:0;display:flex;flex-wrap:wrap;gap:4px 12px;font-size:12px;color:var(--muted)}
 .pasos b{color:var(--fg);font-weight:500}
+/* el reverso (la cara 5) como editor de BTML (VG, 14-11, #93): monoespaciada, líneas numeradas, sangrado por nivel y un color por
+   tipo de valor, con las variables de la carta; es texto de solo lectura */
+.btml-editor{display:flex;flex-direction:column;gap:6px;min-width:0;min-height:0}
+.btml-barra{display:flex;align-items:center;justify-content:space-between;gap:8px;font-size:12px;color:var(--muted)}
+.btml-formatear{font:inherit;font-size:13px;min-height:32px;padding:4px 12px;border:1px solid var(--rule);border-radius:var(--radio);background:var(--panel2);color:var(--fg);cursor:pointer}
+.btml-formatear[aria-pressed="true"]{background:var(--accent);border-color:var(--accent);color:var(--accent-fg)}
+.btml-criterios{display:flex;flex-wrap:wrap;gap:6px 14px;margin:0;padding:6px 10px;border:1px solid var(--rule);border-radius:var(--radio);font-size:12px;color:var(--muted)}
+.btml-criterios legend{padding:0 4px}
+.btml-criterio{display:inline-flex;align-items:center;gap:6px}
+.btml-criterio select{font:inherit;font-size:12px;min-height:28px;padding:2px 6px;border:1px solid var(--rule);border-radius:6px;background:var(--bg);color:var(--fg)}
+.btml-criterios .ayuda{flex-basis:100%;margin:0;font-size:11px}
+.btml-codigo{margin:0;padding:6px 10px 6px 0;background:var(--bg);color:var(--fg);border:1px solid var(--rule);border-radius:var(--radio);font:12.5px/1.55 var(--mono);white-space:pre;tab-size:2;overflow:auto;max-height:min(60vh,520px)}
+.btml-codigo code{font:inherit}
+.btml-n{display:inline-block;min-width:4ch;margin-right:1.2ch;padding-right:1ch;text-align:right;color:var(--muted);border-right:1px solid var(--rule);user-select:none;-webkit-user-select:none}
+.t-llave{color:var(--muted)}
+.t-clave{color:var(--muted);font-style:italic}
+.t-texto{color:var(--ok)}
+.t-numero{color:var(--warn)}
+.t-ref{color:var(--accent)}
+.t-fecha{color:color-mix(in oklab,var(--ok) 45%,var(--accent))}
+.t-nombre{color:var(--accent);font-weight:600}
 
 /* los rosetones: diez (uno por PV, el 0 y el 5 en el centro de cada grupo). Apilado, dos tiras pegadas arriba y abajo
    de la pantalla (arriba el tetraedro de la X: 1 2 0 3 4; abajo la cruz: 6 7 5 8 9); en la matriz, una barra fija */
@@ -439,7 +460,25 @@ html.mapped body{padding:0}
 .rosetones-mapa .sitio-f0{top:0} .rosetones-mapa .sitio-f2{bottom:0} .rosetones-mapa .sitio-f1{top:50%;transform:translateY(-50%)}
 .rosetones-mapa .sitio-c0{left:0} .rosetones-mapa .sitio-c2{right:0} .rosetones-mapa .sitio-c1{left:50%;transform:translateX(-50%)}
 .rosetones-mapa .sitio-f0.sitio-centro{top:3px;margin-left:34px} .rosetones-mapa .sitio-f2.sitio-centro{bottom:3px;margin-left:34px}
-.rosetones-mapa .roseton.nivel-2{width:var(--tarjeta);height:auto;z-index:7}
+.rosetones-mapa .roseton.nivel-2{width:var(--tarjeta);height:auto;z-index:7;box-shadow:0 6px 18px rgba(0,0,0,.28)}
+/* los rosetones son lo MÍO (VG, 14-11, #91): se distinguen a la vista de lo que miro (los PV del foco, de borde y fondo suaves) por un borde grueso
+   del color de su PV y un fondo más teñido, en claro y en oscuro; solo mezclas de las variables de siempre */
+:root{--tinte-borde-roseton:92%; --tinte-fondo-roseton:32%}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--tinte-fondo-roseton:30%}}
+:root[data-theme="dark"]{--tinte-fondo-roseton:30%}
+.roseton[data-roseton]{--borde:color-mix(in oklab,var(--c,var(--rule)) var(--tinte-borde-roseton),var(--fg));--fondo:color-mix(in oklab,var(--c,var(--rule)) var(--tinte-fondo-roseton),var(--panel));border-width:2px;border-style:solid;color:var(--fg)}
+@supports not (color:color-mix(in oklab,red,blue)){
+  .roseton[data-roseton]{border-color:rgb(var(--rgb) / .95);background:linear-gradient(rgb(var(--rgb) / .32),rgb(var(--rgb) / .32)),var(--panel)}
+}
+/* el doble toque: la misma vista del rosetón ampliada a pantalla completa */
+.roseton-pantalla{position:fixed;inset:0;z-index:60;display:flex;flex-direction:column;gap:10px;padding:max(14px,env(safe-area-inset-top,0px)) max(16px,env(safe-area-inset-right,0px)) max(14px,env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-left,0px));overflow:auto;
+  background:color-mix(in oklab,var(--c,var(--rule)) 18%,var(--bg));border:4px solid color-mix(in oklab,var(--c,var(--rule)) 92%,var(--fg))}
+.roseton-pantalla header{display:flex;align-items:center;gap:10px;font-size:18px;font-weight:600}
+.roseton-pantalla header .numero{font-size:12px;color:var(--muted)}
+.roseton-pantalla header small{color:var(--muted);font-weight:400}
+.roseton-pantalla header .cerrar{margin-left:auto;min-height:36px;padding:4px 14px;font:inherit;font-size:14px}
+.roseton-pantalla ul{margin:0;padding-left:20px;display:grid;gap:6px;font-size:15px}
+.roseton-pantalla .nada{color:var(--muted);list-style:none;margin-left:-20px}
 /* un PV a pantalla completa: flechas a los vecinos en su sitio de la geometría, el 0 y el 5 en el centro, «volver» */
 .vecinos{position:absolute;inset:0;pointer-events:none;z-index:5}
 .vecino{position:absolute;pointer-events:auto;min-height:0;height:28px;min-width:28px;padding:0 8px;border-radius:999px;font-weight:600;font-size:13px;
