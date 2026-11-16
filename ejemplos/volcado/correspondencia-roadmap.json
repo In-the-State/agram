@@ -1,0 +1,17 @@
+{
+  "columnas": {
+    "id": "id",
+    "cosa": "casa",
+    "proyecto": "linea",
+    "texto": "tarea",
+    "fase": "fase",
+    "datos": ["sprint", "estado"]
+  },
+  "fases": {
+    "falta": "propuesta",
+    "en curso": "autorizada",
+    "hecho": "ejecutada",
+    "comprobado": "cerrada"
+  },
+  "minutosAnunciados": 10
+}
