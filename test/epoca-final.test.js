@@ -116,8 +116,7 @@ test('el paso del camino (lo anunciado y pendiente) dice cuánto, de quién y a 
   const encargo = await eje.escribir({ autor: 'cocina', sobre: menu.id, t: T1, payload: ['Encargo', ['x'], ['all announced movements happened'], ['cocina', 'huesped']], movimientos: [pagaElCoste('cocina')] });
   await eje.escribir({ autor: 'cocina', sobre: encargo.id, en: '4100000000', t: T1, payload: 'servir', movimientos: [pagaElCoste('cocina'), { token: 'T', escala: 'hora', cantidad: 1, de: 'huesped', a: 'cocina', estado: 'anunciado', refiere: '2026-11-20T10:00:00Z' }] });
   const [paso] = (await A.camino(eje, encargo.id, 'huesped', { t: T1 })).pasos.filter((p) => p.regla === 'stage');
-  const huesped = C.legible(eje, 'huesped', 'identity').texto;
-  const cocina = C.legible(eje, 'cocina', 'identity').texto;
+  const [huesped, cocina] = ['huesped', 'cocina']; // por su identidad, como la frase de previsualizar de la carta
   assert.equal(paso.falta, C.mensaje(eje, 'stage', 'es') + ' · servir: ' + huesped + ' da 1 hora a ' + cocina);
   assert.doesNotMatch(paso.falta, /T:hora|→/);
   const [en] = (await A.camino(eje, encargo.id, 'huesped', { t: T1, idioma: 'en' })).pasos.filter((p) => p.regla === 'stage');

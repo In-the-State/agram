@@ -986,7 +986,8 @@ export function estaciones(eje, X, opciones = {}) {
 /** Un movimiento anunciado en llano: «huesped da 1 hora a cocina» (los formatos «legible announced movement» de epoch.9.4). */
 function movimientoLegible(eje, m, idioma, opciones) {
   const o = { idioma, epoca: epocaDe(opciones, eje) };
-  const partes = { amount: legible(eje, { serie: m.serie, cantidad: m.cantidad }, undefined, o).texto, from: legible(eje, m.de, 'identity', o).texto, to: m.a ? legible(eje, m.a, 'identity', o).texto : '' };
+  // Quién, por su identidad (como la frase de previsualizar de la carta); cuánto, por su serie legible.
+  const partes = { amount: legible(eje, { serie: m.serie, cantidad: m.cantidad }, undefined, o).texto, from: m.de ?? '', to: m.a ?? '' };
   const formato = textoDe(eje, claves.legible(m.a ? 'announced movement' : 'announced movement from'), idioma, { original: m.a ? '{from} gives {amount} to {to}' : '{from} gives {amount}', epoca: o.epoca });
   return String(formato).replace(/\{([^{}]+)\}/g, (_, k) => String(partes[k] ?? ''));
 }

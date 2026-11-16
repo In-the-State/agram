@@ -378,8 +378,8 @@ test('camino: la reserva dice a la huésped lo que le falta (pagar) y lo que esp
   const esperas = h.pasos.filter((p) => p.espera);
   // VG 12-11 (decisión 8): las tres noches van en un anuncio de la casa: una espera, con las tres.
   assert.deepEqual([mios.length, mios[0].hacer.plantilla, esperas.length, [...new Set(esperas.map((p) => p.espera))]], [1, 'pay', 1, ['casa']]);
-  assert.match(mios[0].falta, /^lo que el registro anunció .* · pagar: Alta de huesped da 165 euros de Casa rural de ejemplo a Casa rural de ejemplo$/);
-  assert.equal(esperas[0].falta.match(/Casa rural de ejemplo da 1 1100000000@2026-11-2\d de Casa rural de ejemplo a Alta de huesped/g).length, 3, 'cada plaza por su código de denominación y su emisor, de la casa a la huésped');
+  assert.match(mios[0].falta, /^lo que el registro anunció .* · pagar: huesped da 165 euros de Casa rural de ejemplo a casa$/);
+  assert.equal(esperas[0].falta.match(/casa da 1 1100000000@2026-11-2\d de Casa rural de ejemplo a huesped/g).length, 3, 'cada plaza por su código de denominación y su emisor, de la casa a la huésped');
   assert.equal(h.niveles, undefined, 'la reserva ya tiene madurez: no hace falta ubicarse');
   // La casa ve lo contrario: un paso suyo (las tres plazas, en una transacción sobre su anuncio) y la espera del pago.
   const c = await A.camino(eje, reserva.id, 'casa', { t });
@@ -674,7 +674,7 @@ test('el anuncio es un movimiento anunciado del libro: no toca saldos, lo lee mo
   assert.equal(A.estacionDeAnuncio(eje, a.id), 'propuesta');
   const [paso] = (await A.camino(eje, encargo.id, 'huesped', { t: T1 })).pasos.filter((p) => p.regla === 'stage');
   assert.deepEqual([paso.hacer.plantilla, paso.anuncio], ['pay', a.id]);
-  assert.match(paso.falta, /pagar la cena: Alta de huesped da 7 euros de Casa de ejemplo a cocina$/);
+  assert.match(paso.falta, /pagar la cena: huesped da 7 euros de Casa de ejemplo a cocina$/);
   const pago = await A.transaccion(eje, 'pay', { X: encargo.id }, 'huesped', { t: T1 });
   assert.deepEqual([pago.ok, pago.evento.sobre, movs(pago.evento)[1]], [true, a.id, ['E', 7, 'huesped', 'cocina']], JSON.stringify(pago.motivos));
   await eje.anadir(pago.evento);

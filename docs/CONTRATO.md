@@ -831,7 +831,7 @@ Si la madurez de X es 0 o desconocida, devuelve además `niveles` (los de su pla
 
 `autoejecutar` construye y lanza los pasos míos en orden mientras pasen: cada uno con `transaccion` (firmado con `firmar(evento)`, lo que la carta sepa firmar, antes de validarse) y asentado con `eje.anadir`; se detiene en el primero que no pasa: `{ hechos: [{ paso, evento }], parado: { paso, motivos } | null }`. En la reserva abierta de Booking, la huésped paga y la casa entrega las tres plazas por el aro, y la reserva queda cerrada (`test/acciones.test.js`).
 
-**El paso de lo anunciado, en llano** (época 0 final): su `falta` es «<el 9 de «stage» en el idioma> · <lo anunciado>: <quién> da <cuánto> a <quién>» («… · servir: huesped da 1 hora a cocina»), con los formatos «legible announced movement» y «legible announced movement from» (sin destino) de `epoch.9.4`, la cantidad por su serie legible (§8.2) y cada identidad por el 0 de su alta; ya no «servir 1 T:hora huesped → cocina».
+**El paso de lo anunciado, en llano** (época 0 final): su `falta` es «<el 9 de «stage» en el idioma> · <lo anunciado>: <quién> da <cuánto> a <quién>» («… · servir: huesped da 1 hora a cocina»), con los formatos «legible announced movement» y «legible announced movement from» (sin destino) de `epoch.9.4`, la cantidad por su serie legible (§8.2) y cada parte por su identidad (como la frase de previsualizar de la carta); ya no «servir 1 T:hora huesped → cocina».
 
 ### 12.6 El tutorial del alta
 
