@@ -1,0 +1,62 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512" stroke-linejoin="round" stroke-linecap="round">
+  <defs>
+    <clipPath id="limite-del-agua">
+      <path d="M121 395 170 193Q174 178 191 177L374 176Q389 176 393 193L435 389Q437 408 417 411L137 414Q118 413 121 395Z"/>
+    </clipPath>
+  </defs>
+  <g id="plataforma">
+    <path d="M54 429Q84 455 167 454L435 451Q473 451 483 437Q475 458 440 460L149 463Q66 464 54 441Z" fill="#304858" opacity=".18"/>
+    <path d="M47 408 145 197 421 161 477 386Q489 450 441 451L92 455Q42 455 47 408Z" fill="#627F8A" stroke="#172333" stroke-width="7"/>
+    <path d="M52 393 136 185Q143 161 168 160L399 156Q423 157 431 179L479 390Q488 430 447 435L91 440Q39 441 52 393Z" fill="#E7DBB8" stroke="#172333" stroke-width="8"/>
+    <path d="M60 398 145 188Q151 169 173 170L400 167Q419 167 424 187L469 391Q478 421 447 426L94 431Q61 431 59 416" fill="none" stroke="#FFF5D7" stroke-width="6"/>
+    <path d="M78 343 121 346M94 305 132 307M109 266 144 269M67 380 112 384M439 324 455 324M458 380 468 379M93 420 106 419" fill="none" stroke="#AD997E" stroke-width="4"/>
+    <path d="M64 429Q73 439 93 439L444 434" fill="none" stroke="#172333" stroke-width="6"/>
+  </g>
+  <g id="vaso-y-borde">
+    <path d="M111 391 157 189Q160 164 185 164L377 163Q400 164 405 188L448 389Q454 418 424 423L129 426Q101 426 111 391Z" fill="#F3F7EA" stroke="#172333" stroke-width="7"/>
+    <path d="M121 395 170 193Q174 178 191 177L374 176Q389 176 393 193L435 389Q437 408 417 411L137 414Q118 413 121 395Z" fill="#40CCD9" stroke="#1A5269" stroke-width="6"/>
+  </g>
+  <g id="agua-y-oleaje" clip-path="url(#limite-del-agua)">
+    <!-- Color en franjas: agua profunda al fondo, clara junto a la playa. -->
+    <path d="M148 171H417L427 300Q369 315 310 300T203 301Q164 316 131 307Z" fill="#147F9D"/>
+    <path d="M153 218Q185 201 212 212T267 211T324 208T405 212L421 237Q389 228 353 239T280 240T212 241T148 249Z" fill="#269FB2"/>
+    <path d="M148 237Q177 225 202 235T257 234T318 232T407 230M185 204Q208 198 224 202M340 199Q365 193 385 199" fill="none" stroke="#8ADCE6" stroke-width="4"/>
+    <path d="M111 357Q160 369 204 356T296 357T396 356Q420 360 439 354L446 421H112Z" fill="#87E5E0"/>
+    <path d="M114 389Q164 400 210 386T300 387T411 383Q429 383 445 375L449 427H111Z" fill="#B9EBDC"/>
+    <!-- La rompiente cruza el vaso: varias crestas enlazadas, no una ola aislada. -->
+    <path d="M137 321Q166 325 192 293C215 264 238 250 265 250C288 250 301 260 311 275C317 287 330 291 342 282Q370 257 395 267Q413 272 421 291L428 317Q410 304 391 307T347 324Q330 336 301 332T246 335T193 346Q162 356 132 347Z" fill="#157D9D" stroke="#1A5871" stroke-width="6"/>
+    <path d="M137 321Q166 325 192 293C215 264 238 250 265 250C288 250 301 260 311 275C317 287 330 291 342 282Q370 257 395 267Q413 272 421 291Q410 284 396 284C379 284 371 299 355 302C330 308 316 295 300 294C279 291 268 304 247 306Q218 307 203 321Q171 350 133 341Z" fill="#E9FFFF"/>
+    <path d="M144 323Q167 330 192 305C211 286 226 270 245 266Q265 259 281 267Q265 264 257 275Q251 285 228 292Q206 300 192 318Q170 339 143 332ZM362 291Q375 274 393 276Q402 277 409 281Q389 277 378 290Z" fill="#B0EEEC"/>
+    <path d="M144 363Q164 371 191 362T242 359M263 363Q290 353 323 361T383 361Q405 354 424 361M137 396Q161 404 183 398M291 394Q324 401 349 391T408 390" fill="none" stroke="#F5FFFA" stroke-width="5.5"/>
+    <path d="M188 277l7-5m103-20 7 3m59 2 9-4m20 79 7-2" fill="none" stroke="#EAFFFF" stroke-width="5"/>
+  </g>
+  <g id="generador-de-olas">
+    <path d="M159 172 164 131Q167 112 185 110L367 108Q389 108 395 125L407 173 382 192 174 193Z" fill="#8DAEB6" stroke="#172333" stroke-width="7"/>
+    <path d="M168 130 188 116 366 114 390 129 376 141 170 144Z" fill="#DCECEA" stroke="#172333" stroke-width="5"/>
+    <path d="M173 145 378 142 383 177 176 179Z" fill="#45788B" stroke="#172333" stroke-width="5"/>
+    <path d="M188 153 221 152 222 173 189 173ZM235 152 268 152 269 172 237 173ZM282 151 314 151 316 172 283 172ZM328 151 362 150 366 171 331 172Z" fill="#153C53"/>
+    <path d="M192 168 217 168M241 167 264 167M287 167 311 167M336 166 360 166" fill="none" stroke="#60CFD9" stroke-width="4"/>
+    <path d="M176 189 382 188" fill="none" stroke="#7AE3E8" stroke-width="5"/>
+    <path d="M328 112 326 87Q326 81 332 81L364 81Q371 81 372 89L374 110Z" fill="#657F8A" stroke="#172333" stroke-width="5"/>
+    <path d="M335 89H363" fill="none" stroke="#CCDAD7" stroke-width="4"/>
+  </g>
+  <g id="barandilla-y-accesos">
+    <path d="M95 360 129 257M101 344v-12m12-22v-15m11-17v-13M95 344 127 248" fill="none" stroke="#244553" stroke-width="6"/>
+    <path d="M96 342 127 249" fill="none" stroke="#EDF7E7" stroke-width="2.5"/>
+    <path d="M135 407Q181 411 210 406M141 396Q178 399 197 395" fill="none" stroke="#4B9EAA" stroke-width="4"/>
+    <path d="M424 346 420 326Q419 318 424 317Q430 316 432 327L436 346M435 343 432 324Q431 316 436 315Q442 314 444 325L448 343M425 339 436 337" fill="none" stroke="#1D4161" stroke-width="4.5"/>
+    <path d="M425 328 424 323m13 6-1-7" fill="none" stroke="#EFFAF1" stroke-width="2"/>
+  </g>
+  <g id="socorrista-y-banistas">
+    <!-- El puesto y las figuras son referencias de escala. -->
+    <path d="M425 279 422 220M444 276 443 219M423 255 444 233M443 257 424 235M442 236 451 272" fill="none" stroke="#243B4A" stroke-width="4.5"/>
+    <path d="M419 217Q430 210 446 216L446 224H420Z" fill="#F0AE4E" stroke="#172333" stroke-width="4.5"/>
+    <path d="M416 210V194Q428 187 439 200V212" fill="#9EDBE0" stroke="#172333" stroke-width="4"/>
+    <circle cx="428" cy="186" r="6" fill="#E8A573" stroke="#172333" stroke-width="3.5"/>
+    <path d="M409 246a8 8 0 1 0 1 0z" fill="none" stroke="#C37043" stroke-width="4"/>
+    <path d="M237 382Q239 371 249 370Q256 370 261 377L266 383Q250 389 237 382Z" fill="#F4AF5F" stroke="#1A5269" stroke-width="3.5"/>
+    <circle cx="251" cy="368" r="6.6" fill="#EFB07C" stroke="#1A5269" stroke-width="3.5"/>
+    <path d="M302 373Q310 363 319 370L325 376Q313 382 302 373Z" fill="#F5ECE0" stroke="#1A5269" stroke-width="3.5"/>
+    <circle cx="314" cy="365" r="6" fill="#AB6A4C" stroke="#1A5269" stroke-width="3.5"/>
+  </g>
+</svg>
