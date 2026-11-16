@@ -183,7 +183,8 @@
     {"ref":"0a3849a23ef16fe7ab69a00a1cbff6fdf58a4b17d0bd5ce8e8c166a71ccbc20c"},
     {"ref":"265af8a7522a8cd77fee78f248923962c3890ef47a61bd5cb25ce3533748c704"},
     {"ref":"6601886a586defcf3f1042ca9bdcaa3de87d54d6d89bcccee4122f1783cb7be7"},
-    {"ref":"bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c"}
+    {"ref":"bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c"},
+    {"ref":"2405b528757fe55175569925d64bf89f8d3152a5330af5189f72ef5c0c244bcd"}
   ],
   [
     [
@@ -868,6 +869,19 @@
       ["parent reads", "linked operation"],
       ["yes", "both"],
       [["yes", "no"], ["both", "own"]]
+    ],
+    [
+      [
+        "reserved",
+        "a reserved position (Core AGRAM 17-11, A20 step 1): it is here only because a tenfold has no gaps and the 7.9 needs it; nothing reads it, and what goes here is decided elsewhere"
+      ]
+    ],
+    [
+      [
+        "retouch",
+        "reserved, with no effect (VG 17-11 through Core State, A20 step 1, and the adjustment that followed: the pieces of the epoch are never decided by an open count nor by a raw amount of P; they are born with the owner and are widened by name): it would say who else retouches a text of this book besides its owner; today only the owner of the book (the author of its genesis) retouches («only the owner of the book retouches a text») and nothing reads this row. Only texts: rules and parameters are not retouched"
+      ],
+      [0]
     ]
   ],
   [
@@ -3227,7 +3241,22 @@
           "template set a custody default param who help: quién lo decide: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
           "template set a custody default param actions label: acción",
           "template set a custody default param actions help: la acción",
-          "template set a custody default message: {me} pone {first ev.0} a {first ev.1} en {first it.0}"
+          "template set a custody default message: {me} pone {first ev.0} a {first ev.1} en {first it.0}",
+          "template retouch a text: retocar un texto",
+          "template retouch a text param language label: idioma",
+          "template retouch a text param language help: el código del idioma del texto (en, es…): un idioma que la época aún no tiene lo abren sus retoques",
+          "template retouch a text param key label: clave",
+          "template retouch a text param key help: la clave del texto en la época (epoch.9.4: «template <nombre>», «level <nombre>», el nombre de una regla para su mensaje…) o «carta <clave>» para un texto de la carta; el nombre de una plantilla, de una regla o de una lectura es una clave y no se retoca: se retoca su traducción",
+          "template retouch a text param text label: texto",
+          "template retouch a text param text help: el texto nuevo, como dato (nunca HTML ni estilo), sin ningún hueco {…} que no tenga el texto al que sustituye; sin texto (vacío, sin dar el parámetro) retira los retoques de esa clave en ese idioma y vuelve el texto de nacimiento",
+          "template retouch a text param criteria label: criterio",
+          "template retouch a text param criteria help: la plantilla de cerrado del registro",
+          "template retouch a text param who label: quién",
+          "template retouch a text param who help: quién retoca: el dueño del libro (el autor de su génesis)",
+          "template retouch a text param actions label: acción",
+          "template retouch a text param actions help: la acción",
+          "template retouch a text message: {me} retoca el texto {first ev.1.1} en {first ev.1.0}",
+          "only the owner of the book retouches a text: {first ev.3} retoca un texto de un libro cuyo génesis no escribió"
         ]
       ],
       [
@@ -3325,6 +3354,7 @@
         {"ref":"82b4b6edc77a406ac790cb6e429d86d0b391225e354151e0f9c523312c828e8d"},
         {"ref":"84f1f9b863594a14c76351c0d5f99dd66e8c6cd36ba4ba59bc663d225b9fdc37"},
         {"ref":"08ba521d0c536a96a00dae825466932de924149736babd157b3aeded5ccc9f02"},
+        {"ref":"ee204bf4b067cf7ad058c00a13465ed2586c4a5804ae88c6f9c8a823bccbff5f"},
         {"ref":"d48977fddf2db7440fc12be34b410704cbffc34b58aa49e0a9b8c0dbd359d571"},
         {"ref":"e8e7317d0b882db3401500489c0cea62b41ac308cc974dd12df05b1bec57a62c"},
         {"ref":"44167713f4d236dd74d597de2b2fcb582ce824e1e146f3c1a2696ea60aa332d3"},

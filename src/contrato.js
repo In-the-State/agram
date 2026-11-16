@@ -53,6 +53,12 @@
 //   mensaje(eje, regla, idioma, { ev })    el 9 de una regla en un idioma (epoch.9.4), con los huecos resueltos
 //   texto(eje, clave, idioma, { original }) un texto de la época por su clave («template <nombre>», «level <nombre>»…)
 //                                          en un idioma (epoch.9.4), o el canónico (en) o el original si falta
+//                                          (con eje, el retoque vigente de su libro encima: A20 escalón 1)
+//   idiomas(eje?, opciones)                los idiomas de la época, de la hoja de la 0 y de los retoques del libro
+//   retoque(eje, clave, idioma)            el retoque vigente del libro para una clave en un idioma, o null
+//   retoques(eje)                          los retoques vigentes del libro: idioma, clave, texto, quién, cuándo, id
+//   puedeRetocar(eje, identidad)           si una identidad puede retocar un texto en este libro
+//   conClaves(leer)                        lo que devuelve leer() y las claves con que se leyó cada texto
 //   legible(eje, valor, tipo, { idioma })  un valor de una posición o un parámetro en texto legible, con sus partes
 //   ceroLegible(eje, X, { idioma })        el 0 de un registro escrito por plantilla, vuelto a componer en el idioma de quien lee
 //   configuracionDeFormato(eje, yo)        mis preferencias de formato (fecha, números, editor de BTML): «format settings»
@@ -63,7 +69,7 @@
 // transacción, transaccion() y el camino (3c-2a); el libro local (src/local.js), los pasos (src/pasos.js) y los
 // modelos de visualización (src/modelos.js) (3c-2b).
 
-import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
+import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0 } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla } from './bqlm.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
@@ -2970,39 +2976,56 @@ export function guia(eje, idioma = 'en', opciones = {}) {
 
 // ---------- 8. mensajes y traducción ----------
 
-/** Los idiomas con mensajes en la época (epoch.9.4): sus códigos, con el canónico (en) delante y sin repetir. */
-export function idiomas(opciones = {}) {
-  const raiz = raizDe(epocaDe(opciones));
-  const registros = hojas(en(raiz, SITIO.mensajes)).slice(1).filter(Array.isArray);
-  return [...new Set(['en', ...registros.map((r) => texto(hoja(r[0]))).filter(Boolean)])];
+/**
+ * Los idiomas con mensajes en la época (epoch.9.4): sus códigos, con el canónico (en) delante y sin repetir; detrás, los
+ * que solo trae la hoja de retoques de la 0 (retoques-0.json) y, con un eje delante, los que solo existen por los
+ * retoques de su libro (A20 escalón 1). Se llama `idiomas(opciones)`, como siempre, o `idiomas(eje, opciones)`.
+ */
+export function idiomas(a = {}, b) {
+  const conEje = typeof a?.obtener === 'function';
+  const eje = conEje ? a : null;
+  const opciones = conEpoca(eje, (conEje ? b : a) ?? {});
+  const epoca = epocaDe(opciones, eje);
+  const registros = hojas(en(raizDe(epoca), SITIO.mensajes)).slice(1).filter(Array.isArray);
+  const porIdioma = textosDe(epoca, opciones);
+  const deLaHoja = capasDeTextos(epoca, opciones).filter((c) => c.hoja).flatMap((c) => c.entradas.map((e) => e[0])).filter((c) => porIdioma.has(c));
+  const delLibro = eje ? retoquesDelLibro(eje, epoca, opciones).vigentes.map((r) => r.idioma) : [];
+  return [...new Set(['en', ...registros.map((r) => texto(hoja(r[0]))).filter(Boolean), ...deLaHoja, ...delLibro])];
 }
 
 /**
  * El mensaje de una regla (su 9, canónico en inglés) en un idioma: el registro «messages» de ese idioma en la época
  * tiene un ocupante por regla, «<nombre de la regla>: <texto>», con los mismos huecos {…}; si falta el idioma o la
  * regla, el inglés. Los huecos se resuelven con el contexto del eje (y la candidata `ev`, si se da) como el 9 de toda
- * regla (bqlm.rellenar). `regla` es la décupla o su nombre.
+ * regla (bqlm.rellenar). `regla` es la décupla o su nombre. Encima, en este orden (A20 escalón 1), la hoja de retoques de
+ * la 0 (sobre los registros de la 0, bajo los de una hija) y, con un eje delante, el retoque vigente de su libro con el
+ * nombre de la regla por clave.
  */
 export function mensaje(eje, regla, idioma = 'en', { ev, ...opciones } = {}) {
   opciones = conEpoca(eje, opciones);
   const epoca = epocaDe(opciones, eje);
-  const raiz = raizDe(epoca);
   const r = Array.isArray(regla) ? regla : (epoca.reglasConId ?? []).map((x) => x.regla).find((x) => nombreDeRegla(x) === regla);
   if (!r) return null;
   const nombre = nombreDeRegla(r);
   let plantillaTexto = texto(ultima(r[9])) ?? nombre;
-  if (idioma && idioma !== 'en') {
-    // Los registros de ese idioma, en su orden: una época que hereda añade el suyo detrás de los de su base (docs/CONTRATO.md
-    // §5 bis), y con la misma clave manda el último (la hija sobre la base).
-    const registros = hojas(en(raiz, SITIO.mensajes)).slice(1).filter(Array.isArray).filter((x) => hojas(x[0]).includes(idioma));
-    const prefijo = nombre + ': ';
-    // La entrada es «<regla>: <texto>»: el nombre es la clave, no parte del mensaje (#83, época 0 final): la traducción
-    // va sin el nombre canónico delante; el canónico (en, el 9 de la regla) lo sigue llevando.
-    const delRegistro = (del) => hojas(del?.[1]).find((x) => typeof x === 'string' && x.startsWith(prefijo))?.slice(prefijo.length)
-      ?? (Array.isArray(del?.[1]) && esDecupla(del[1]) ? del[1].filter(Array.isArray).map((par) => (hoja(hoja(par[0])) === nombre ? hoja(par[1]) : undefined)).find(Boolean) : undefined);
-    const propio = registros.map(delRegistro).filter(Boolean).at(-1);
+  const prefijo = nombre + ': ';
+  // La entrada es «<regla>: <texto>»: el nombre es la clave, no parte del mensaje (#83, época 0 final): la traducción
+  // va sin el nombre canónico delante; el canónico (en, el 9 de la regla) lo sigue llevando.
+  const delRegistro = (del) => hojas(del?.[1]).find((x) => typeof x === 'string' && x.startsWith(prefijo))?.slice(prefijo.length)
+    ?? (Array.isArray(del?.[1]) && esDecupla(del[1]) ? del[1].filter(Array.isArray).map((par) => (hoja(hoja(par[0])) === nombre ? hoja(par[1]) : undefined)).find(Boolean) : undefined);
+  // Las capas, en su orden: los registros de ese idioma (una época que hereda añade el suyo detrás de los de su base,
+  // docs/CONTRATO.md §5 bis) con la hoja de la 0 entre los de la 0 y los de la hija; con la misma clave manda la última.
+  // El canónico (en) no se lee de los registros, como siempre: solo lo retocan la hoja y el libro.
+  const porIdioma = textosDe(epoca, opciones);
+  for (const capa of capasDeTextos(epoca, opciones)) {
+    let propio;
+    if (capa.hoja) propio = capa.entradas.filter((e) => e[0] === idioma && e[1] === nombre && e[2] !== '' && retoqueCabe(epoca, porIdioma, e[0], e[1], e[2])).map((e) => e[2]).at(-1);
+    else if (idioma && idioma !== 'en' && hojas(capa.registro[0]).includes(idioma)) propio = delRegistro(capa.registro);
     if (propio) plantillaTexto = propio;
   }
+  const retoque = eje && idioma ? retoqueVigente(eje, epoca, idioma, nombre, opciones) : null;
+  if (retoque) plantillaTexto = retoque.texto;
+  anotarLectura({ clave: nombre, idioma, texto: plantillaTexto, retoque: retoque?.id ?? null });
   if (!eje && !ev) return plantillaTexto;
   return rellenar(plantillaTexto, contextoDe(eje, epoca, ev));
 }
@@ -3010,15 +3033,49 @@ export function mensaje(eje, regla, idioma = 'en', { ev, ...opciones } = {}) {
 // ---------- 9. textos de la época por clave, y valores legibles ----------
 
 /**
+ * Las capas de textos de una época, en el orden en que se leen (A20 escalón 1): los registros del 9.4 de la 0 que trae
+ * el código (`{ registro }`), la hoja de retoques de la 0 (`{ hoja: true, entradas }`, retoques-0.json, fuera del id) y
+ * los registros de una época hija. La hoja solo va si la cadena de la época acaba en la 0 del código (la 0 misma o una
+ * hija suya); `opciones.hojaDeRetoques` la sustituye (las pruebas: una entrada nueva cambia el texto y no el id).
+ */
+function capasDeTextos(epoca, opciones = {}) {
+  const registros = hojas(en(raizDe(epoca), SITIO.mensajes)).slice(1).filter(Array.isArray).map((registro) => ({ registro }));
+  let raizDeCadena = epoca;
+  while (raizDeCadena?.base) raizDeCadena = raizDeCadena.base;
+  if (raizDeCadena !== EPOCA_0_BTML && raizDeCadena?.id !== EPOCA_0_BTML.id) return registros;
+  const n0 = hojas(en(raizDe(EPOCA_0_BTML), SITIO.mensajes)).slice(1).filter(Array.isArray).length;
+  return [...registros.slice(0, n0), { hoja: true, entradas: hojaDeRetoquesDe(opciones) }, ...registros.slice(n0)];
+}
+
+/** La hoja de retoques de la 0 que se lee: la del código (retoques-0.json) o la que pasan las opciones. */
+const hojaDeRetoquesDe = (opciones = {}) => (Array.isArray(opciones?.hojaDeRetoques) ? opciones.hojaDeRetoques : RETOQUES_DE_LA_0);
+
+/**
  * Los textos de cada idioma de la época por clave: idioma → Map(clave → texto); se lee una vez por época (la raíz está
- * congelada). Dentro de un registro manda la primera entrada de cada clave; si hay varios registros del mismo idioma (una
- * época que hereda añade el suyo detrás de los de su base, docs/CONTRATO.md §5 bis), se juntan y manda el último.
+ * congelada) y hoja de retoques de la 0. Dentro de un registro manda la primera entrada de cada clave; si hay varios
+ * registros del mismo idioma (una época que hereda añade el suyo detrás de los de su base, docs/CONTRATO.md §5 bis), se
+ * juntan y manda el último. La hoja de la 0 va entre los registros de la 0 y los de una hija (capasDeTextos); de ella
+ * vale una entrada cuya clave existe en la época y cuyos huecos están en el texto al que sustituye (como un retoque).
+ * Los retoques de un libro NO están aquí: van encima, en la lectura con eje (retoquesDelLibro), porque cambian con él.
  */
 const TEXTOS = new WeakMap();
-function textosDe(raiz) {
-  if (!TEXTOS.has(raiz)) {
+function textosDe(epoca, opciones = {}) {
+  const raiz = raizDe(epoca);
+  const hojaDeRetoques = hojaDeRetoquesDe(opciones);
+  if (!TEXTOS.has(hojaDeRetoques)) TEXTOS.set(hojaDeRetoques, new WeakMap());
+  const cache = TEXTOS.get(hojaDeRetoques);
+  if (!cache.has(raiz)) {
     const porIdioma = new Map();
-    for (const r of hojas(en(raiz, SITIO.mensajes)).slice(1).filter(Array.isArray)) {
+    for (const capa of capasDeTextos(epoca, opciones)) {
+      if (capa.hoja) {
+        for (const [codigo, clave, nuevo] of capa.entradas) {
+          if (nuevo === '' || !retoqueCabe(epoca, porIdioma, codigo, clave, nuevo)) continue;
+          if (!porIdioma.has(codigo)) porIdioma.set(codigo, new Map());
+          porIdioma.get(codigo).set(clave, nuevo);
+        }
+        continue;
+      }
+      const r = capa.registro;
       const mapa = new Map();
       for (const h of hojas(r[1])) {
         const i = typeof h === 'string' ? h.indexOf(': ') : -1;
@@ -3030,9 +3087,9 @@ function textosDe(raiz) {
         else for (const [k, v] of mapa) porIdioma.get(codigo).set(k, v);
       }
     }
-    TEXTOS.set(raiz, porIdioma);
+    cache.set(raiz, porIdioma);
   }
-  return TEXTOS.get(raiz);
+  return cache.get(raiz);
 }
 
 /**
@@ -3041,17 +3098,184 @@ function textosDe(raiz) {
  * pregunta: el nombre de la plantilla, la etiqueta, la ayuda); si no hay nada, null. Las claves: «template <nombre>»
  * (el nombre de una plantilla de transacción o de datos), «template <nombre> param <etiqueta> label | help |
  * placeholder» (lo que dice de un parámetro o de una posición), «template <nombre> message» (su 9, con los mismos
- * huecos), «level <nombre>», «order <nombre>», «size <nombre>» y «legible <qué>» (los formatos de legible()).
+ * huecos), «level <nombre>», «order <nombre>», «size <nombre>» y «legible <qué>» (los formatos de legible()). Con un
+ * eje delante (A20 escalón 1), el retoque vigente de su libro para esa clave en ese idioma va encima de todo.
  */
 function texto_(eje, clave, idioma = 'en', { original, ...opciones } = {}) {
-  const porIdioma = textosDe(raizDe(epocaDe(opciones, eje)));
-  const propio = idioma ? porIdioma.get(idioma)?.get(clave) : undefined;
-  if (propio !== undefined) return propio;
-  const canonico = porIdioma.get('en')?.get(clave);
-  if (canonico !== undefined) return canonico;
-  return original === undefined || original === null ? null : String(original);
+  const epoca = epocaDe(opciones, eje);
+  const retoque = eje && idioma ? retoqueVigente(eje, epoca, idioma, clave, opciones) : null;
+  let fuera;
+  if (retoque) fuera = retoque.texto;
+  else {
+    const porIdioma = textosDe(epoca, opciones);
+    fuera = (idioma ? porIdioma.get(idioma)?.get(clave) : undefined) ?? porIdioma.get('en')?.get(clave) ?? (original === undefined || original === null ? null : String(original));
+  }
+  anotarLectura({ clave, idioma, texto: fuera, retoque: retoque?.id ?? null });
+  return fuera;
 }
 export { texto_ as texto };
+
+// ---------- 9 bis. los retoques de un libro (A20 escalón 1, VG 17-11 por Core State; docs/notas/RETOQUES.md) ----------
+
+/** La plantilla que retoca un texto y dónde anclan sus registros (el 9.4 del génesis). */
+const RETOCAR = 'retouch a text';
+const ANCLA_DE_RETOQUE = direccion([9, 4]);
+/** Las claves de la carta (sus textos propios, carta/textos.js): el núcleo no los conoce; guarda y devuelve sus retoques tal cual. */
+export const PREFIJO_DE_LA_CARTA = 'carta ';
+
+/** Los huecos {…} de un texto, tal cual (carácter a carácter), como en bqlm.rellenar. */
+const huecosDe = (s) => new Set(String(s).match(/\{[^{}]+\}/g) ?? []);
+
+/**
+ * El texto original de una clave de la época, el que vale para un idioma que no la tiene: el del registro canónico
+ * (en); si no, el 9 de la regla (o lectura) con ese nombre; si no, el 9 de la plantilla de transacción de «template
+ * <nombre> message»; si no, el de cualquier idioma que la tenga (las traducciones conservan los huecos del original,
+ * test/traducciones.test.js). undefined si la clave no existe en la época.
+ */
+function originalDe(epoca, porIdioma, clave) {
+  const en_ = porIdioma.get('en')?.get(clave);
+  if (en_ !== undefined) return en_;
+  const regla = (epoca.reglasConId ?? []).map((x) => x.regla).find((x) => nombreDeRegla(x) === clave);
+  if (regla) return texto(ultima(regla[9])) ?? clave;
+  const m = /^template (.+) message$/.exec(clave);
+  const plantilla = m ? (Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).find((x) => texto(hoja(x.plantilla?.[0])) === m[1]) : null;
+  if (plantilla) return texto(ultima(plantilla.plantilla[9])) ?? m[1];
+  for (const mapa of porIdioma.values()) if (mapa.has(clave)) return mapa.get(clave);
+  return undefined;
+}
+
+/**
+ * ¿Cabe este retoque? Su clave existe en la época (o es de la carta: «carta …», que comprueba la carta), su texto es un
+ * texto y sus huecos son un subconjunto exacto de los del texto de nacimiento de esa clave en ese idioma (para un idioma
+ * nuevo, el original). Un texto vacío (retirar) siempre cabe si la clave existe. Lo que no cabe se ignora en la lectura,
+ * como si no existiera: los huecos se evalúan (rellenar), y un retoque no mete una expresión nueva.
+ */
+function retoqueCabe(epoca, porIdioma, idioma, clave, nuevo) {
+  if (typeof idioma !== 'string' || !idioma || typeof clave !== 'string' || !clave || typeof nuevo !== 'string') return false;
+  if (clave.startsWith(PREFIJO_DE_LA_CARTA)) return true;
+  const original = originalDe(epoca, porIdioma, clave);
+  if (original === undefined) return false;
+  if (nuevo === '') return true;
+  const nacimiento = porIdioma.get(idioma)?.get(clave) ?? original;
+  const permitidos = huecosDe(nacimiento);
+  return [...huecosDe(nuevo)].every((h) => permitidos.has(h));
+}
+
+/** Un instante para ordenar: sus milisegundos, o NaN. */
+const msDe = (t) => (typeof t === 'string' ? msUTC(t) : NaN);
+/** ¿Va `a` después de `b`? Por el instante del registro y, a igualdad, por id (lo mismo en todas las réplicas; nunca por el orden de entrada). */
+function despues(a, b) {
+  const ta = msDe(a.cuando);
+  const tb = msDe(b.cuando);
+  if (Number.isFinite(ta) && Number.isFinite(tb) && ta !== tb) return ta > tb;
+  if (!(Number.isFinite(ta) && Number.isFinite(tb)) && a.cuando !== b.cuando) return String(a.cuando) > String(b.cuando);
+  return a.id > b.id;
+}
+
+/** El texto de un retoque tal como se escribió: «==…» escapa un texto que empieza por «=» (bqlm.esFormula); una fórmula no es un texto. */
+function textoDeRetoque(x) {
+  if (typeof x !== 'string') return undefined;
+  if (esFormula(x)) return undefined;
+  return x.startsWith('==') ? x.slice(1) : x;
+}
+
+/**
+ * Los retoques de un libro (A20 escalón 1): los registros anclados en el 9.4 de su génesis que dicen «retouch a text» en
+ * su 4, con el idioma, la clave y el texto en su 1.0, 1.1 y 1.2 (sin 1.2, un texto vacío: retirar). Solo vale el que
+ * escribe el dueño del libro, el autor del génesis (la regla «only the owner of the book retouches a text»; se vuelve a
+ * mirar aquí por un libro de otra época que no la traiga). Se ignora el que no cabe (retoqueCabe). Por
+ * idioma y clave gana el último por instante y, a igualdad, por id; si el último es un texto vacío, se retiran (vuelve
+ * el de nacimiento). → { vigentes: [{ idioma, clave, texto, quien, cuando, id }] por idioma y clave, porClave: Map }.
+ * Se guarda por eje y época mientras no cambien los registros anclados ahí (el libro solo crece; el orden no importa).
+ */
+const RETOQUES = new WeakMap();
+function retoquesDelLibro(eje, epoca, opciones = {}) {
+  const vacio = { vigentes: [], porClave: new Map() };
+  const g = eje?.genesisId;
+  if (typeof g !== 'string' || typeof eje.sobre !== 'function') return vacio;
+  const lista = eje.sobre(g, ANCLA_DE_RETOQUE);
+  if (!lista.length) return vacio;
+  const hojaDeRetoques = hojaDeRetoquesDe(opciones);
+  const firma = lista.length + ':' + lista[lista.length - 1].id;
+  if (!RETOQUES.has(eje)) RETOQUES.set(eje, new Map());
+  const porEpoca = RETOQUES.get(eje);
+  const guardado = porEpoca.get(epoca);
+  if (guardado && guardado.firma === firma && guardado.hoja === hojaDeRetoques) return guardado.valor;
+  const porIdioma = textosDe(epoca, opciones);
+  const dueno = eje.obtener(g)?.autor;
+  const ultimo = new Map();
+  for (const ev of lista) {
+    const p = ev?.payload;
+    if (!Array.isArray(p) || !hojas(p[4]).includes(RETOCAR) || !Array.isArray(p[1])) continue;
+    if (ev.autor !== dueno) continue;
+    const idioma = hoja(p[1][0]);
+    const clave = hoja(p[1][1]);
+    // Sin texto (el 1.2 no está: un texto vacío no es un terminal BTML), retira.
+    const nuevo = p[1][2] === undefined ? '' : textoDeRetoque(hoja(p[1][2]));
+    if (!retoqueCabe(epoca, porIdioma, idioma, clave, nuevo)) continue;
+    const r = Object.freeze({ idioma, clave, texto: nuevo, quien: ev.autor, cuando: ev.t, id: ev.id });
+    const k = JSON.stringify([idioma, clave]);
+    if (!ultimo.has(k) || despues(r, ultimo.get(k))) ultimo.set(k, r);
+  }
+  const vigentes = [...ultimo.values()].filter((r) => r.texto !== '').sort((a, b) => (a.idioma === b.idioma ? (a.clave < b.clave ? -1 : a.clave > b.clave ? 1 : 0) : a.idioma < b.idioma ? -1 : 1));
+  const valor = { vigentes, porClave: new Map(vigentes.map((r) => [JSON.stringify([r.idioma, r.clave]), r])) };
+  porEpoca.set(epoca, { firma, hoja: hojaDeRetoques, valor });
+  return valor;
+}
+
+/** El retoque vigente de un libro para una clave en un idioma, o null. */
+function retoqueVigente(eje, epoca, idioma, clave, opciones) {
+  if (typeof eje?.sobre !== 'function') return null;
+  return retoquesDelLibro(eje, epoca, opciones).porClave.get(JSON.stringify([idioma, clave])) ?? null;
+}
+
+/**
+ * El retoque vigente del libro de `eje` para una clave en un idioma (A20 escalón 1): { idioma, clave, texto, quien,
+ * cuando, id } (id: el del registro que lo escribe) o null. Vale para las claves de la época y las de la carta («carta
+ * <clave>», que se guardan y se devuelven tal cual: sus huecos los comprueba la carta).
+ */
+export function retoque(eje, clave, idioma = 'en', opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  return retoqueVigente(eje, epocaDe(opciones, eje), idioma, clave, opciones);
+}
+
+/** La lista de los retoques vigentes del libro de `eje` (A20 escalón 1), por idioma y clave: [{ idioma, clave, texto, quien, cuando, id }]. */
+export function retoques(eje, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  if (typeof eje?.sobre !== 'function') return [];
+  return [...retoquesDelLibro(eje, epocaDe(opciones, eje), opciones).vigentes];
+}
+
+/**
+ * ¿Puede `identidad` retocar un texto en el libro de `eje` (A20 escalón 1)? Solo el dueño del libro, el autor de su
+ * génesis (la regla «only the owner of the book retouches a text»). La fila epoch.7.9 está reservada y no tiene efecto:
+ * las piezas de la época «nacen con el dueño y se amplían por nombre» (VG 17-11), y eso aún no se lee.
+ */
+export function puedeRetocar(eje, identidad) {
+  const g = eje?.genesisId;
+  if (typeof g !== 'string' || typeof identidad !== 'string' || !identidad) return false;
+  return eje.obtener(g)?.autor === identidad;
+}
+
+/**
+ * Las claves con que se leyeron los textos (A20 escalón 1, para la carta: hoy solo recibe el texto): corre `leer` (una
+ * función síncrona que llama a las entradas del contrato que dan texto: texto, mensaje, etiqueta, ayuda, legible,
+ * acciones…) y devuelve { valor: lo que devuelve, lecturas: [{ clave, idioma, texto, retoque }] }, una por texto leído,
+ * en su orden (retoque: el id del registro del retoque del libro que lo dio, o null). No cambia lo que devuelve nadie.
+ */
+const LECTORES = [];
+function anotarLectura(l) {
+  for (const lista of LECTORES) lista.push(l);
+}
+export function conClaves(leer) {
+  const lecturas = [];
+  LECTORES.push(lecturas);
+  try {
+    return { valor: leer(), lecturas };
+  } finally {
+    LECTORES.splice(LECTORES.lastIndexOf(lecturas), 1);
+  }
+}
 /** Las claves de traducción que usa este módulo (epoch.9.4), para quien compone una clave fuera: plantilla(nombre), parametro(nombre, etiqueta, que), mensaje(nombre), nivel, orden, tamano, legible. */
 export const claves = CLAVE;
 

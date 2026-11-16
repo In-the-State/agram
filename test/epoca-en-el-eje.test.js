@@ -207,10 +207,12 @@ test('una época mal formada se rechaza al escribirla, con la causa', async () =
     [mal((e) => { e.raiz[6] = [['sin hereda']]; }), /en una época que no hereda de ninguna/],
   ];
   for (const [epoca, causa] of casos) await assert.rejects(ejeCon(epoca), causa);
-  // Una marca donde la base no tiene nada.
+  // Una marca donde la base no tiene nada. Desde A20 escalón 1 la 0 llena el 7 hasta el 7.9, así que la marca de más va
+  // dentro del 7.9 (tiene dos posiciones: la tercera no la tiene la base).
   const hueca = copia(PRUEBA);
-  hueca.raiz[7] = [{ ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }, { ref: EPOCA_0_BTML.id }];
-  await assert.rejects(ejeCon(hueca), /la posición 7\.\d se hereda \(\{ ref \} a la base\) y la base no la tiene/);
+  const marca = { ref: EPOCA_0_BTML.id };
+  hueca.raiz[7] = [marca, marca, marca, marca, marca, marca, marca, marca, marca, [marca, marca, marca]];
+  await assert.rejects(ejeCon(hueca), /la posición 7(\.\d)+ se hereda \(\{ ref \} a la base\) y la base no la tiene/);
   assert.throws(() => fusionarRaices([['a'], ['b']], [['c'], { ref: 'x' }, { ref: 'x' }], { ids: new Set(['x']) }), /la posición 2 se hereda/);
   // Una regla que mueve no se carga (invariante del núcleo: las reglas solo leen).
   const mueve = copia(PRUEBA);
@@ -266,7 +268,7 @@ test('be.mjs epoca: --ver de un archivo, --publicar en un eje nuevo del servidor
     const ver = await ejecutar(['epoca', '--ver', '--archivo', archivo], {});
     assert.match(ver, /^época: época de prueba · id [0-9a-f]{64}$/m);
     assert.match(ver, /hereda de: [0-9a-f]{8} \(época 0\)/);
-    assert.match(ver, /plantillas de transacción \(9\.6\): 58/);
+    assert.match(ver, /plantillas de transacción \(9\.6\): 59/); // + «retouch a text» en la 0 (A20 escalón 1)
     assert.match(ver, /2 cruceta/);
     const mal = join(dir, 'mal.json');
     writeFileSync(mal, JSON.stringify({ ...PRUEBA, raiz: [['-'], ...PRUEBA.raiz.slice(1)] }));

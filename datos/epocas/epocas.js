@@ -624,6 +624,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c"
+    },
+    {
+      "ref": "2405b528757fe55175569925d64bf89f8d3152a5330af5189f72ef5c0c244bcd"
     }
   ],
   [
@@ -2240,6 +2243,21 @@ export const EPOCA_0_BTML_DATOS = [
           "both",
           "own"
         ]
+      ]
+    ],
+    [
+      [
+        "reserved",
+        "a reserved position (Core AGRAM 17-11, A20 step 1): it is here only because a tenfold has no gaps and the 7.9 needs it; nothing reads it, and what goes here is decided elsewhere"
+      ]
+    ],
+    [
+      [
+        "retouch",
+        "reserved, with no effect (VG 17-11 through Core State, A20 step 1, and the adjustment that followed: the pieces of the epoch are never decided by an open count nor by a raw amount of P; they are born with the owner and are widened by name): it would say who else retouches a text of this book besides its owner; today only the owner of the book (the author of its genesis) retouches («only the owner of the book retouches a text») and nothing reads this row. Only texts: rules and parameters are not retouched"
+      ],
+      [
+        0
       ]
     ]
   ],
@@ -6586,7 +6604,22 @@ export const EPOCA_0_BTML_DATOS = [
           "template set a custody default param who help: quién lo decide: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
           "template set a custody default param actions label: acción",
           "template set a custody default param actions help: la acción",
-          "template set a custody default message: {me} pone {first ev.0} a {first ev.1} en {first it.0}"
+          "template set a custody default message: {me} pone {first ev.0} a {first ev.1} en {first it.0}",
+          "template retouch a text: retocar un texto",
+          "template retouch a text param language label: idioma",
+          "template retouch a text param language help: el código del idioma del texto (en, es…): un idioma que la época aún no tiene lo abren sus retoques",
+          "template retouch a text param key label: clave",
+          "template retouch a text param key help: la clave del texto en la época (epoch.9.4: «template <nombre>», «level <nombre>», el nombre de una regla para su mensaje…) o «carta <clave>» para un texto de la carta; el nombre de una plantilla, de una regla o de una lectura es una clave y no se retoca: se retoca su traducción",
+          "template retouch a text param text label: texto",
+          "template retouch a text param text help: el texto nuevo, como dato (nunca HTML ni estilo), sin ningún hueco {…} que no tenga el texto al que sustituye; sin texto (vacío, sin dar el parámetro) retira los retoques de esa clave en ese idioma y vuelve el texto de nacimiento",
+          "template retouch a text param criteria label: criterio",
+          "template retouch a text param criteria help: la plantilla de cerrado del registro",
+          "template retouch a text param who label: quién",
+          "template retouch a text param who help: quién retoca: el dueño del libro (el autor de su génesis)",
+          "template retouch a text param actions label: acción",
+          "template retouch a text param actions help: la acción",
+          "template retouch a text message: {me} retoca el texto {first ev.1.1} en {first ev.1.0}",
+          "only the owner of the book retouches a text: {first ev.3} retoca un texto de un libro cuyo génesis no escribió"
         ]
       ],
       [
@@ -6807,6 +6840,9 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "08ba521d0c536a96a00dae825466932de924149736babd157b3aeded5ccc9f02"
+        },
+        {
+          "ref": "ee204bf4b067cf7ad058c00a13465ed2586c4a5804ae88c6f9c8a823bccbff5f"
         },
         {
           "ref": "d48977fddf2db7440fc12be34b410704cbffc34b58aa49e0a9b8c0dbd359d571"
@@ -9915,6 +9951,48 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "only-the-owner-of-the-book-retouches-a-text.json",
+    "id": "2405b528757fe55175569925d64bf89f8d3152a5330af5189f72ef5c0c244bcd",
+    "registro": [
+      [
+        "only the owner of the book retouches a text"
+      ],
+      [
+        0
+      ],
+      [
+        "=not (\"retouch a text\" in ev.4) or first ev.3 = first (first before.5).3"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 por Core State (A20, escalón 1; agram-equipo/COSTE_A20_RETOQUES.md): «por defecto retoca el dueño del libro». Un registro que dice «retouch a text» en su 4 (un retoque de un texto, anclado en el 9.4 del génesis) solo vale si lo escribe el autor del génesis del libro (before.5 es el génesis; su 3, su autor). Solo se mira cuando la candidata dice la acción (el or es perezoso)",
+        "VG 17-11 (por el coordinador, durante el encargo): las piezas de la época nunca se deciden por recuento abierto ni por cantidad bruta de P; «nacen con el dueño y se amplían por nombre». Ampliar el retoque a quien el dueño nombre en el 2.3 del génesis, pesado como lo pesa «weight» (por reparto, no por cantidad; «cualquiera» no abre nada), no sale limpio y corto en BQL sin primitivas nuevas (weight da un peso por presión y reparto, no una cantidad que comparar con un umbral entero), así que esta regla queda en «solo el dueño» y la fila epoch.7.9 es un parámetro reservado sin efecto",
+        "Solo textos: el retoque no abre reglas, parámetros, estilos ni el orden de las acciones (escalón 2, otro sprint)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after on time"
+      ],
+      [
+        "only the owner of the book retouches a text: {first ev.3} retouches a text of a book whose genesis it did not write"
+      ]
+    ]
+  },
+  {
     "archivo": "only-the-owner-sets-who-keeps-it.json",
     "id": "0a3849a23ef16fe7ab69a00a1cbff6fdf58a4b17d0bd5ce8e8c166a71ccbc20c",
     "registro": [
@@ -11521,6 +11599,246 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "configure a place: {me} sets a position of a place of {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "retouch-a-text.json",
+    "id": "ee204bf4b067cf7ad058c00a13465ed2586c4a5804ae88c6f9c8a823bccbff5f",
+    "registro": [
+      [
+        "retouch a text"
+      ],
+      [
+        [
+          [
+            "language"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it != \"\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "encargo «retocar un texto en su sitio», núcleo (A20 escalón 1; VG 17-11 por Core State): parámetro de «retouch a text»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the code of the language of the text (en, es…): a language the epoch does not have yet is opened by its retouches"
+          ]
+        ],
+        [
+          [
+            "key"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it != \"\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "encargo «retocar un texto en su sitio», núcleo (A20 escalón 1; VG 17-11 por Core State): parámetro de «retouch a text»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "the key of the text in the epoch (epoch.9.4: «template <name>», «level <name>», the name of a rule for its message…) or «carta <key>» for a text of the card; the name of a template, a rule or a reading is a key and is not retouched: its translation is"
+          ]
+        ],
+        [
+          [
+            "text"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.2"
+          ],
+          [
+            "encargo «retocar un texto en su sitio», núcleo (A20 escalón 1; VG 17-11 por Core State): parámetro de «retouch a text»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            3
+          ],
+          [
+            "the new text, as plain data (never HTML nor style), with no hole {…} that the text it replaces does not have; with no text (empty, the parameter not given) it withdraws the retouches of that key in that language and the text of its birth comes back"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo «retocar un texto en su sitio», núcleo (A20 escalón 1; VG 17-11 por Core State): parámetro de «retouch a text»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo «retocar un texto en su sitio», núcleo (A20 escalón 1; VG 17-11 por Core State): parámetro de «retouch a text»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=me",
+            "who retouches: the owner of the book (the author of its genesis)"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo «retocar un texto en su sitio», núcleo (A20 escalón 1; VG 17-11 por Core State): parámetro de «retouch a text»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "retouch a text",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.5 = first before.5 and first it.3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9.4"
+      ],
+      [
+        "VG 17-11 por Core State (A20, escalón 1; agram-equipo/COSTE_A20_RETOQUES.md): «el id nombra la época tal como nació. Un retoque es un registro sobre la pieza en ese libro y gana lo último. El retoque vale para ese libro, no para otros que usen la misma época». Retoca el dueño del libro (VG 17-11, por el coordinador: las piezas de la época «nacen con el dueño y se amplían por nombre», nunca por cantidad de P; ampliarlo por nombre no sale corto en BQL y queda en solo el dueño, con epoch.7.9 reservado sin efecto). Solo textos: reglas y parámetros van en otro sprint",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Core AGRAM 17-11 (encargo «retocar un texto en su sitio», núcleo): se lanza sobre el génesis del libro (first it.5 = first before.5), que es el registro de la época en ese eje, la haya escrito o no. Ancla en su 9.4, el mismo sitio que los textos en la época (epoch.9.4): en el génesis no ancla nada más ahí (la época escrita va en su raíz, la emisión inicial y las altas también; «add a parent», «remove a parent», «set the kind of owner» y «set a custody default» anclan en su 9, no en el 9.4). Lleva el idioma, la clave y el texto en el 1.0, el 1.1 y el 1.2, como datos; no mueve nada más que el coste de escribir («write»). Se ofrece al dueño del libro (first it.3 = me sobre el génesis), la misma condición que la regla «only the owner of the book retouches a text», que es la que decide",
+        "Los demás parámetros (criteria, who, actions) son los de siempre, con su defecto, para que el payload no tenga huecos; «actions» dice la acción en el 4, que es lo que mira la regla. Texto vacío = retirar los retoques de esa clave en ese idioma (vuelve el texto de nacimiento): como un texto vacío no es un terminal BTML, el parámetro «text» es opcional y retirar es escribir el retoque sin él (la carta no manda un campo vacío). La lectura (contrato.texto, contrato.mensaje, contrato.idiomas con eje) pone los retoques del libro encima de todo y descarta el que trae un hueco {…} que el texto de nacimiento no tiene (docs/notas/RETOQUES.md)",
+        "[0, 4]: el PV 0 es el de la configuración (no está en el aro; la abre el interrogante, en la cruceta del nodo), como «configure a place» [0, 3]; el siguiente libre es el [0, 5]"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        0,
+        4
+      ],
+      [
+        "retouch a text: {me} retouches the text {first ev.1.1} in {first ev.1.0}"
       ]
     ]
   },
@@ -22019,7 +22337,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "d66885077283b2a921d64b95fad85643ac71e2f0b2a102047e79d78e82f21a0d";
+export const EPOCA_0_BTML_ID = "4e3d3e6f393d65a4ae0e3058b509cd9aa6ff4fa9907a875c4a454176fd480d94";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
@@ -44904,3 +45222,6 @@ export const MODELOS_DE_EPOCA_DATOS = [
     ]
   }
 ];
+
+// retoques-0.json: la hoja de retoques de la 0 del código (A20 escalón 1), [idioma, clave, texto]; fuera del id de la época: la lectura la pone encima de los textos de nacimiento de la 0 y debajo de los de una hija
+export const RETOQUES_0_DATOS = [];

@@ -1,0 +1,16 @@
+[
+  ["only the owner of the book retouches a text"],
+  [0],
+  ["=not (\"retouch a text\" in ev.4) or first ev.3 = first (first before.5).3"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 por Core State (A20, escalón 1; agram-equipo/COSTE_A20_RETOQUES.md): «por defecto retoca el dueño del libro». Un registro que dice «retouch a text» en su 4 (un retoque de un texto, anclado en el 9.4 del génesis) solo vale si lo escribe el autor del génesis del libro (before.5 es el génesis; su 3, su autor). Solo se mira cuando la candidata dice la acción (el or es perezoso)",
+    "VG 17-11 (por el coordinador, durante el encargo): las piezas de la época nunca se deciden por recuento abierto ni por cantidad bruta de P; «nacen con el dueño y se amplían por nombre». Ampliar el retoque a quien el dueño nombre en el 2.3 del génesis, pesado como lo pesa «weight» (por reparto, no por cantidad; «cualquiera» no abre nada), no sale limpio y corto en BQL sin primitivas nuevas (weight da un peso por presión y reparto, no una cantidad que comparar con un umbral entero), así que esta regla queda en «solo el dueño» y la fila epoch.7.9 es un parámetro reservado sin efecto",
+    "Solo textos: el retoque no abre reglas, parámetros, estilos ni el orden de las acciones (escalón 2, otro sprint)"
+  ],
+  ["epoch 0"],
+  ["after on time"],
+  ["only the owner of the book retouches a text: {first ev.3} retouches a text of a book whose genesis it did not write"]
+]
