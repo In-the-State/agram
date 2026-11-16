@@ -91,11 +91,12 @@ export async function selloCompleto(id, { altura = 1, instante = '2026-11-10T11:
 }
 
 /**
- * Una cabecera de lote del SIP 0 («El sello en cascada» §1) firmada con `claves` (de prueba): { cabecera (la forma JSON,
- * con su firma), decupla, hash }. `anterior`, 32 bytes a cero si no se da.
+ * Una cabecera de lote v2 del SIP 0 («El sello en cascada» §1) firmada con `claves` (de prueba): { cabecera (la forma JSON,
+ * con su firma), decupla, hash }. `anterior` y `referencias`, 32 bytes a cero si no se dan; `libro`, uno de prueba.
  */
-export function cabeceraDeLoteFirmada({ numero = 0, anterior = '00'.repeat(32), raiz, hora = 1794830400 }, claves) {
-  const sinFirma = { numero, anterior, raiz, hora, clave: claves.publica, firma: '00'.repeat(64) };
+export const LIBRO_DE_PRUEBA = '1b'.repeat(32);
+export function cabeceraDeLoteFirmada({ numero = 0, anterior = '00'.repeat(32), raiz, hora = 1794830400, libro = LIBRO_DE_PRUEBA, referencias = '00'.repeat(32) }, claves) {
+  const sinFirma = { numero, anterior, raiz, hora, clave: claves.publica, libro, referencias, firma: '00'.repeat(64) };
   const { hash } = leerCabeceraDeLote(decuplaDeCabecera(sinFirma));
   const cabecera = { ...sinFirma, firma: aHex(schnorr.sign(deHex(hash), deHex(claves.privada), new Uint8Array(32))) };
   return { cabecera, decupla: decuplaDeCabecera(cabecera), hash };
@@ -103,8 +104,8 @@ export function cabeceraDeLoteFirmada({ numero = 0, anterior = '00'.repeat(32), 
 
 /**
  * El sello EN CASCADA completo de `id` (SIP 0, «El sello en cascada» §2; encargo «firmeza») para eje.marcarSello: { altura,
- * hash, instante, verificado: true, decupla, prueba, cabeceras }. `capas` son los eslabones de abajo arriba ([{ nivel, grado?, claves?,
- * numero?, otros?, ids? }]: `claves` las del emisor de ese nivel (un número de epoch.7.6.1), generadas si no se dan; `grado`, opaco; `otros`, cuántos ids más van en su lote; `ids`, cuáles);
+ * hash, instante, verificado: true, decupla, prueba, cabeceras }. `capas` son los eslabones de abajo arriba ([{ nivel, grado?, red?, claves?,
+ * numero?, libro?, otros?, ids? }]: `claves` las del emisor de ese nivel (un número de epoch.7.6.1), generadas si no se dan; `grado` y `red`, opacos; `libro`, el de su cabecera; `otros`, cuántos ids más van en su lote; `ids`, cuáles);
  * la de arriba la firma el observador (la clave declarada). El hash de cada cabecera es hoja del lote de la de arriba; el de
  * la de arriba es el compromiso de la hoja OP_RETURN del árbol Taproot de la salida 0 de una transacción de anclaje, de
  * interna `interna` (una clave de prueba: ya no NUMS), y lo demás como selloCompleto. `cambiar(prueba)` deja tocar la
@@ -120,8 +121,8 @@ export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11
     const ids = [...new Set([x, ...(c.ids ?? []), ...Array.from({ length: c.otros ?? 0 }, (_, i) => de('otro id ' + k + ' ' + i + ' ' + x))])].sort();
     const { raiz, caminos } = await arbol(ids);
     if (k === 0) lote = raiz;
-    const h = cabeceraDeLoteFirmada({ numero: c.numero ?? 0, anterior: c.anterior, raiz, hora: 1794830400 + 60 * k }, claves);
-    cadena.push({ cabecera: h.cabecera, nivel: c.nivel, camino: caminos.get(x), ...(c.grado !== undefined ? { grado: c.grado } : {}) });
+    const h = cabeceraDeLoteFirmada({ numero: c.numero ?? 0, anterior: c.anterior, raiz, hora: 1794830400 + 60 * k, libro: c.libro }, claves);
+    cadena.push({ cabecera: h.cabecera, nivel: c.nivel, camino: caminos.get(x), ...(c.grado !== undefined ? { grado: c.grado } : {}), ...(c.red !== undefined ? { red: c.red } : {}) });
     cabeceras.push(h);
     x = h.hash;
   }

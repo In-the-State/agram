@@ -32,7 +32,7 @@
 //   relojesFueraDeOrden(eje, id)           si los tres relojes de un registro (X.6.8) van fuera de orden: la lectura «clocks out of order»
 //   verificado(eje, id)                    { ok, sello, recibo, relojes, altura, profundidad, enFirme, pendiente, pendienteDeSello }: lo que dicen las reglas «sealed» y «received»
 //                                          de la época, relojes en orden, cuántas confirmaciones tiene y lo que falta para comprobarlo (§4.4)
-//   firmeza(eje, id)                       { capas: [{ nivel, estado, grado? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme }: hasta qué
+//   firmeza(eje, id)                       { capas: [{ nivel, estado, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme }: hasta qué
 //                                          nivel del sello en cascada ha llegado (la regla «firm», X.6.8.9) y si está en duda por una bifurcación
 //   cascadaDe(epoca)                       { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] }: el 7.5 y el 7.6
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
@@ -1916,17 +1916,18 @@ function familiasSentenciadas(ev) {
 /**
  * La firmeza de un registro (VG 16-11: «la carta enseña, en el 5, hasta qué capa ha llegado»; encargo «firmeza»; la
  * fachada de la regla «firm», X.6.8.9, como verificado() lo es de «sealed»). Los niveles son los de la época (cascadaDe, 7.6).
- * → { capas: [{ nivel, estado, grado? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme } o null si el registro no está:
+ * → { capas: [{ nivel, estado, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme } o null si el registro no está:
  *   capas      uno por nivel de 7.6, en su orden, con su estado: «alcanzada» (la prueba pasa por él; el primero, también
  *              con su recibo de llegada; el último, Bitcoin, con «sealed»), «saltada» (por debajo del más alto alcanzado,
  *              y la prueba no pasa por él) o «pendiente» (por encima); en cada nivel alcanzado por un eslabón de la cadena,
- *              `grado`: el que dice ese eslabón (9.k.4, opaco: nada lo compara) o null;
+ *              `grado` y `red`: los que dice ese eslabón detrás de su nivel (9.k.1 = [nivel, grado, red]; opacos: nada
+ *              los compara) o null; sin grado no hay red;
  *   alcanzada  el número del nivel más alto alcanzado, o null;
  *   exigida    el del nivel de la familia más alta que el registro mueve con sus propias sentencias (sin el coste de
  *              escribir ni el P que da el libro); el primero si no mueve nada;
  *   firme      lo que da la regla «firm» (falso si queda PENDIENTE): la época decide, no esta función;
- *   enDuda     true si su sello en cascada pasa por una cabecera de una clave acusada de bifurcación (eje.bifurcaciones)
- *              con número igual o mayor que el de la bifurcación (SIP 0 §3: nada castiga solo; «sealed» y «firm» no cambian);
+ *   enDuda     true si su sello en cascada pasa por una cabecera del libro y la clave acusados de bifurcación
+ *              (eje.bifurcaciones; una línea es libro y clave) con número igual o mayor que el de la bifurcación (SIP 0 §3: nada castiga solo; «sealed» y «firm» no cambian);
  *   confirmaciones, enFirme  los de verificado(): la profundidad de su bloque y si ya tiene las de los ajustes del exterior.
  */
 export function firmeza(eje, id, opciones = {}) {
@@ -1940,21 +1941,21 @@ export function firmeza(eje, id, opciones = {}) {
   const recibido = eje.recibo?.(id) ? comprobar(COMPRUEBA.recibo, ctx, id).valor === true : false;
   const sello = eje.sello?.(id)?.decupla;
   const cadena = Array.isArray(sello) && sello[6] === 'cascada' && Array.isArray(sello[9]) ? sello[9].filter(Array.isArray) : [];
-  // El nivel de cada eslabón (9.k.1) y su grado (9.k.4), el del primer eslabón de ese nivel.
+  // El nivel de cada eslabón y, detrás, su grado y su red (9.k.1 = [nivel, grado, red]), los del primer eslabón de ese nivel.
   const gradoDeNivel = new Map();
   for (const e of cadena) {
     const nivel = hoja(e[1]);
-    if (Number.isSafeInteger(nivel) && !gradoDeNivel.has(nivel)) gradoDeNivel.set(nivel, e[4] === undefined ? null : hoja(e[4]) ?? null);
+    if (Number.isSafeInteger(nivel) && !gradoDeNivel.has(nivel)) gradoDeNivel.set(nivel, { grado: hojas(e[1])[1] ?? null, red: hojas(e[1])[1] === undefined ? null : hojas(e[1])[2] ?? null });
   }
   const ultima = tabla.length - 1;
   const alcanza = tabla.map((c, k) => (k === ultima ? v.sello : k === 0 ? gradoDeNivel.has(c.nivel) || recibido : v.sello && gradoDeNivel.has(c.nivel)));
   const alto = alcanza.lastIndexOf(true);
   const familias = familiasSentenciadas(ev);
   const exigida = Math.max(0, ...tabla.map((c, k) => (familias.includes(c.familia) ? k : -1)));
-  const cabeceras = cadena.map((e) => e[0]).filter(Array.isArray).map((c) => ({ numero: c[1], clave: c[5] }));
-  const enDuda = (typeof eje.bifurcaciones === 'function' ? eje.bifurcaciones() : []).some((b) => cabeceras.some((c) => c.clave === b.acusado && Number.isSafeInteger(c.numero) && c.numero >= b.numero));
+  const cabeceras = cadena.map((e) => e[0]).filter(Array.isArray).map((c) => ({ numero: c[1], clave: c[5], libro: c[8] }));
+  const enDuda = (typeof eje.bifurcaciones === 'function' ? eje.bifurcaciones() : []).some((b) => cabeceras.some((c) => c.clave === b.acusado && c.libro === b.libro && Number.isSafeInteger(c.numero) && c.numero >= b.numero));
   return {
-    capas: tabla.map((c, k) => ({ nivel: c.nivel, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente', ...(alcanza[k] && gradoDeNivel.has(c.nivel) ? { grado: gradoDeNivel.get(c.nivel) } : {}) })),
+    capas: tabla.map((c, k) => ({ nivel: c.nivel, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente', ...(alcanza[k] && gradoDeNivel.has(c.nivel) ? gradoDeNivel.get(c.nivel) : {}) })),
     alcanzada: alto < 0 ? null : tabla[alto].nivel,
     exigida: tabla[exigida]?.nivel ?? null,
     firme: comprobar(COMPRUEBA.firmeza, ctx, id).valor === true,

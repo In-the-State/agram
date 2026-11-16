@@ -471,10 +471,10 @@ export class Eje {
   /**
    * Una bifurcación de una línea de cabeceras de lote (SIP 0, «El sello en cascada» §3; encargo «firmeza», VG 16-11): la
    * equivocación portable «dos cabeceras con el mismo número» (`stateark.equivocacion@1` con `a` y `b` dos décuplas de
-   * cabecera), que se comprueba sin libro (src/sello.js bifurcacion: las dos firmas, la misma clave, el mismo número y
-   * distinto hash). Como el sello, es una vista del libro que llega de fuera: no es parte de ningún cuerpo firmado ni de
+   * cabecera), que se comprueba sin libro (src/sello.js bifurcacion: las dos firmas, el mismo libro, la misma clave, el
+   * mismo número y distinto hash). Como el sello, es una vista del libro que llega de fuera: no es parte de ningún cuerpo firmado ni de
    * ningún id y no entra en ninguna regla de escritura. Nada castiga solo: «sealed» y «firm» no cambian; contrato.firmeza
-   * dice «en duda» de un sello cuya cadena pasa por una cabecera de la clave acusada con número igual o mayor. Devuelve si
+   * dice «en duda» de un sello cuya cadena pasa por una cabecera de ese libro y esa clave con número igual o mayor. Devuelve si
    * la anotó; una que no lo es, o ya anotada, se ignora.
    */
   marcarBifurcacion(prueba) {
@@ -484,7 +484,7 @@ export class Eje {
     return true;
   }
 
-  /** Las bifurcaciones anotadas: [{ clase, acusado, numero, hashes, id }], por llegada. */
+  /** Las bifurcaciones anotadas: [{ clase, acusado, libro, numero, hashes, id }], por llegada. */
   bifurcaciones() {
     return [...this.#bifurcaciones.values()];
   }

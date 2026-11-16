@@ -494,15 +494,16 @@ const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : '') + (o?.pe
 
 /** El nombre de un nivel del sello en cascada (un número de la época, VG 16-11) en el idioma de la interfaz: nivel_<n>; si no lo hay, «nivel n». */
 const textoCapa = (nivel) => (t('nivel_' + nivel) === 'nivel_' + nivel ? t('nivelSinTexto', { n: nivel }) : t('nivel_' + nivel));
-/** El grado de un eslabón (opaco, VG 16-11): grado_<valor> si la carta lo tiene; si no, «grado <valor>». Nada lo compara. */
+/** El grado de un eslabón (opaco, VG 16-11): grado_<valor> si la carta lo tiene; si no, «grado <valor>». Nada lo compara. Su red, igual: red_<valor> o «red <valor>». */
 const textoGrado = (g) => (t('grado_' + g) === 'grado_' + g ? t('gradoSinTexto', { g }) : t('grado_' + g));
+const textoRed = (r) => (t('red_' + r) === 'red_' + r ? t('redSinTexto', { r }) : t('red_' + r));
 /** La palabra de resumen de la firmeza: en duda, en firme, o se puede usar sin estar aún en firme. */
 const resumenFirmeza = (f) => (f.enDuda ? 'enDuda' : f.firme ? 'firme' : 'usable');
 const TEXTO_RESUMEN = Object.freeze({ enDuda: 'firmezaEnDuda', firme: 'firmezaFirme', usable: 'firmezaUsable' });
 const TEXTO_ESTADO_CAPA = Object.freeze({ alcanzada: 'capaAlcanzada', pendiente: 'capaPendiente', saltada: 'capaSaltada' });
 /**
  * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (data-nivel), en su orden,
- * con su estado (data-estado: alcanzada, pendiente, saltada), su grado cuando el eslabón lo dice («grado X», sin comparar),
+ * con su estado (data-estado: alcanzada, pendiente, saltada), su grado y su red cuando el eslabón los dice («grado X · red Y», sin comparar),
  * la que exige el registro señalada (data-exigida) y, en la última (Bitcoin), lo de hoy (las confirmaciones y «en firme» con
  * las del ajuste: htmlVerificado); detrás, la palabra de resumen. Todo sale de contrato.firmeza; aquí no se decide nada.
  * '' sin firmeza.
@@ -512,7 +513,7 @@ function htmlFirmeza(f) {
   const ultima = f.capas.length - 1;
   const estaciones = f.capas.map((c, k) => {
     const exigida = c.nivel === f.exigida;
-    const grado = c.grado !== undefined && c.grado !== null ? textoGrado(c.grado) : '';
+    const grado = c.grado !== undefined && c.grado !== null ? textoGrado(c.grado) + (c.red !== undefined && c.red !== null ? ' · ' + textoRed(c.red) : '') : '';
     const titulo = textoCapa(c.nivel) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (grado ? ' · ' + grado : '') + (exigida ? ' · ' + t('capaExigida') : '');
     const bitcoin = k === ultima && c.estado === 'alcanzada' && f.confirmaciones ? ' ' + htmlVerificado({ confirmaciones: f.confirmaciones, enFirme: f.enFirme, minimas: f.minimas }) : '';
     return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.nivel))}</span>${grado ? ` <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}</li>`;

@@ -470,7 +470,7 @@ export const TEXTOS = Object.freeze({
     enFirme: 'en firme',
     enFirmeTitulo: 'en firme: está verificado y su bloque ya tiene las confirmaciones que pide el eje ({n} de {minimas}; los ajustes del exterior de la cuenta raíz)',
     verificadoTitulo: 'verificado: su sello de tiempo está en un bloque comprobado, el transporte dio su recibo de llegada y los tres relojes van en orden',
-    // las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (epoch.7.6); el grado, dato de cada eslabón, sin textos de grados concretos
+    // las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (epoch.7.6); el grado y la red, datos de cada eslabón, sin textos de grados ni de redes concretos
     firmezaTitulo: 'hasta qué capa ha llegado su sello',
     nivel_1: 'casa',
     nivel_2: 'nivel 2',
@@ -478,6 +478,7 @@ export const TEXTOS = Object.freeze({
     nivel_4: 'Bitcoin',
     nivelSinTexto: 'nivel {n}',
     gradoSinTexto: 'grado {g}',
+    redSinTexto: 'red {r}',
     capaAlcanzada: 'alcanzada',
     capaPendiente: 'pendiente',
     capaSaltada: 'saltada: su sello no pasa por esta capa, pero llega a una de más arriba, que la cubre',

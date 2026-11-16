@@ -188,34 +188,38 @@ export function decuplaDeSello(prueba, id) {
 /** Un entero ≥ 0 en `n` bytes little-endian, en hex (lo que BQL no puede pasar de número a bytes). */
 const leHex = (x, n) => Array.from({ length: n }, (_, k) => Number((BigInt(x) >> BigInt(8 * k)) & 0xffn).toString(16).padStart(2, '0')).join('');
 
-/** La cabecera de lote de la forma JSON (`{ numero, anterior, raiz, hora, clave, firma }`) si está bien formada, o null. */
+/** La cabecera de lote v2 de la forma JSON (`{ numero, anterior, raiz, hora, clave, libro, referencias, firma }`) si está bien formada, o null. */
 function cabeceraValida(c) {
   if (!c || typeof c !== 'object') return null;
-  const { numero, anterior, raiz, hora, clave, firma } = c;
+  const { numero, anterior, raiz, hora, clave, libro, referencias, firma } = c;
   if (!Number.isSafeInteger(numero) || numero < 0 || !Number.isSafeInteger(hora) || hora < 0) return null;
-  if (!hexO(anterior, 64) || !hexO(raiz, 64) || !hexO(clave, 64) || !hexO(firma, 128)) return null;
-  return { numero, anterior, raiz, hora, clave, firma };
+  if (!hexO(anterior, 64) || !hexO(raiz, 64) || !hexO(clave, 64) || !hexO(libro, 64) || !hexO(referencias, 64) || !hexO(firma, 128)) return null;
+  return { numero, anterior, raiz, hora, clave, libro, referencias, firma };
 }
 
 /**
- * Una cabecera de lote del SIP 0 («El sello en cascada» §1, `cabeceraComoDecupla` de los vectores) como décupla BTML:
- * 0 ["cabecera de lote", "SIP 0"], 1 número, 2 anterior, 3 raíz del lote, 4 hora (segundos Unix), 5 la clave x-only del
- * emisor, 6 su firma, 7 lo que BQL no pasa de número a bytes, siempre una décupla: 7.0 [número en 8 bytes LE], 7.1 [hora en
- * 8 bytes LE]. null si la cabecera no está bien formada.
+ * Una cabecera de lote v2 del SIP 0 («El sello en cascada» §1, `cabeceraComoDecupla` de los vectores; la ficha de Core
+ * StateArk del 16-11) como décupla BTML: 0 ["cabecera de lote", "SIP 0", "v2"], 1 número, 2 anterior, 3 raíz del lote,
+ * 4 hora (segundos Unix), 5 la clave x-only del emisor, 6 su firma, 7 lo que BQL no pasa de número a bytes, siempre una
+ * décupla: 7.0 [número en 8 bytes LE], 7.1 [hora en 8 bytes LE]; 8 el libro (el id del génesis del eje: un mismo nodo
+ * firma varios libros) y 9 las referencias (la raíz de los últimos recibos de cada padre y del último sello propio; 32
+ * bytes a cero si no hay). null si la cabecera no está bien formada. La v1 (sin 8 ni 9) ya no vale en la vía «cascada».
  */
 export function decuplaDeCabecera(c) {
   const v = cabeceraValida(c);
   if (!v) return null;
-  return [[POSICIONES_DEL_SELLO.cabeceraDeLote.marca, 'SIP 0'], v.numero, v.anterior, v.raiz, v.hora, v.clave, v.firma, [[leHex(v.numero, 8)], [leHex(v.hora, 8)]]];
+  const q = POSICIONES_DEL_SELLO.cabeceraDeLote;
+  return [[q.marca, 'SIP 0', q.version], v.numero, v.anterior, v.raiz, v.hora, v.clave, v.firma, [[leHex(v.numero, 8)], [leHex(v.hora, 8)]], v.libro, v.referencias];
 }
 
-/** El grado de un eslabón (VG 16-11): opaco, un número o un texto corto; null si no lo trae o no lo es. Nada lo compara. */
+/** El grado o la red de un eslabón (VG 16-11): opacos, un número o un texto corto; null si no lo trae o no lo es. Nada los compara. */
 const gradoDe = (g) => ((typeof g === 'number' && Number.isFinite(g)) || (typeof g === 'string' && g.length > 0 && g.length <= 32) ? g : null);
 
 /**
- * Un eslabón de la cadena como décupla: 0 la cabecera, 1 [nivel] (un número de epoch.7.6.1, VG 16-11) y, solo si los hay,
- * 2 los lados y 3 los hermanos de su camino «sip»; 4 [grado], opcional y opaco (VG 16-11). Sin huecos ni relleno: un
- * eslabón sin camino «sip» (un lote de un solo id) no tiene 2 ni 3, así que no puede llevar su grado en el 4 (se omite).
+ * Un eslabón de la cadena como décupla: 0 la cabecera, 1 [nivel], [nivel, grado] o [nivel, grado, red] (el nivel, un
+ * número de epoch.7.6.1; el grado y la red, opcionales y opacos; sin grado no hay red; VG 16-11) y, solo si los hay, 2 los
+ * lados y 3 los hermanos de su camino «sip». El grado va junto al nivel para que quepa también en un eslabón sin camino
+ * «sip» (un lote de un solo id), que no tiene 2 ni 3.
  */
 function decuplaDeEslabon(e) {
   const cabecera = decuplaDeCabecera(e?.cabecera);
@@ -223,20 +227,23 @@ function decuplaDeEslabon(e) {
   const camino = Array.isArray(e.camino) ? e.camino : [];
   if (!camino.every((x) => Array.isArray(x) && (x[0] === 'i' || x[0] === 'd') && hexO(x[1], 64))) return null;
   const grado = gradoDe(e.grado);
-  return [cabecera, [e.nivel], ...(camino.length ? [camino.map(([l]) => l), camino.map(([, h]) => h), ...(grado !== null ? [[grado]] : [])] : [])];
+  const red = grado !== null ? gradoDe(e.red) : null;
+  return [cabecera, [e.nivel, ...(grado !== null ? [grado] : []), ...(red !== null ? [red] : [])], ...(camino.length ? [camino.map(([l]) => l), camino.map(([, h]) => h)] : [])];
 }
 
 /**
- * Una cabecera de lote (su décupla, la de decuplaDeCabecera) leída: { numero, anterior, raiz, hora, clave, firma, hash } con
- * el hash = hashEtiquetado("StateArk/Lote/Cabecera/v1", número u64 LE ‖ anterior ‖ raíz ‖ hora u64 LE ‖ clave), 112 bytes,
- * o null si no es una cabecera de lote bien formada (o su 7 no dice su número y su hora).
+ * Una cabecera de lote v2 (su décupla, la de decuplaDeCabecera) leída: { numero, anterior, raiz, hora, clave, libro,
+ * referencias, firma, hash } con el hash = hashEtiquetado("StateArk/Lote/Cabecera/v2", número u64 LE ‖ anterior ‖ raíz ‖
+ * hora u64 LE ‖ clave ‖ libro ‖ referencias), 176 bytes, o null si no es una cabecera de lote v2 bien formada (sin «v2»
+ * en su 0, sin libro o sin referencias, o su 7 no dice su número y su hora).
  */
 export function leerCabeceraDeLote(d) {
   const q = POSICIONES_DEL_SELLO.cabeceraDeLote;
-  if (!Array.isArray(d) || !(Array.isArray(d[0]) ? d[0] : [d[0]]).includes(q.marca)) return null;
-  const c = cabeceraValida({ numero: d[1], anterior: d[2], raiz: d[3], hora: d[4], clave: d[5], firma: d[6] });
+  const marcas = Array.isArray(d) ? (Array.isArray(d[0]) ? d[0] : [d[0]]) : [];
+  if (!marcas.includes(q.marca) || !marcas.includes(q.version)) return null;
+  const c = cabeceraValida({ numero: d[1], anterior: d[2], raiz: d[3], hora: d[4], clave: d[5], firma: d[6], libro: d[8], referencias: d[9] });
   if (!c || d[7]?.[0]?.[0] !== leHex(c.numero, 8) || d[7]?.[1]?.[0] !== leHex(c.hora, 8)) return null;
-  const bytes = concatenar(deHex(leHex(c.numero, 8)), deHex(c.anterior), deHex(c.raiz), deHex(leHex(c.hora, 8)), deHex(c.clave));
+  const bytes = concatenar(deHex(leHex(c.numero, 8)), deHex(c.anterior), deHex(c.raiz), deHex(leHex(c.hora, 8)), deHex(c.clave), deHex(c.libro), deHex(c.referencias));
   return { ...c, hash: aHex(hashEtiquetado(ETIQUETA_DE_CABECERA, bytes)) };
 }
 
@@ -248,14 +255,15 @@ export const ESQUEMA_DE_EQUIVOCACION = 'stateark.equivocacion@1';
 /**
  * Una bifurcación de línea, comprobada SIN LIBRO (SIP 0, «El sello en cascada» §3; petición 4 a Core AGRAM): la
  * equivocación portable `{ schema: "stateark.equivocacion@1", clase, acusado, a, b, id }` con `a` y `b` dos décuplas de
- * cabecera de lote (o solo `{ a, b }`). Lo es si las dos firmas valen, con la misma clave, el mismo número y distinto hash;
+ * cabecera de lote (o solo `{ a, b }`). Una línea es (libro, clave): lo es si las dos firmas valen, con el mismo libro, la
+ * misma clave, el mismo número y distinto hash (con otro libro no lo es: un mismo nodo firma varios libros);
  * la clase y el acusado se derivan (no se creen), y el id es SHA-256(canonico({ schema, clase, ids: [hash menor, hash mayor] })):
  * si la prueba trae otro, no vale. → { clase, acusado, numero, hashes: [menor, mayor], id } o null.
  */
 export function bifurcacion(prueba) {
   const a = leerCabeceraDeLote(prueba?.a);
   const b = leerCabeceraDeLote(prueba?.b);
-  if (!a || !b || a.clave !== b.clave || a.numero !== b.numero || a.hash === b.hash) return null;
+  if (!a || !b || a.libro !== b.libro || a.clave !== b.clave || a.numero !== b.numero || a.hash === b.hash) return null;
   for (const c of [a, b]) if (!verificarBip340(deHex(c.firma), deHex(c.hash), deHex(c.clave))) return null;
   if (prueba.schema !== undefined && prueba.schema !== ESQUEMA_DE_EQUIVOCACION) return null;
   if (prueba.clase !== undefined && prueba.clase !== CLASE_DE_BIFURCACION) return null;
@@ -263,7 +271,7 @@ export function bifurcacion(prueba) {
   const hashes = [a.hash, b.hash].sort();
   const id = aHex(sha256(new TextEncoder().encode(canonico({ schema: ESQUEMA_DE_EQUIVOCACION, clase: CLASE_DE_BIFURCACION, ids: hashes }))));
   if (prueba.id !== undefined && prueba.id !== id) return null;
-  return { clase: CLASE_DE_BIFURCACION, acusado: a.clave, numero: a.numero, hashes, id };
+  return { clase: CLASE_DE_BIFURCACION, acusado: a.clave, libro: a.libro, numero: a.numero, hashes, id };
 }
 
 /**
@@ -284,20 +292,22 @@ export const POSICIONES_DEL_SELLO = Object.freeze({
   tx: '8.0', vout: '8.1', interna: '8.2', hermanosTaproot: '8.3',
   lados: '9.0', hermanos: '9.1',
   // La vía «cascada» (SIP 0, «El sello en cascada» §2, VG 16-11): el 3 es el compromiso (el hash de la cabecera de arriba)
-  // y el 9 la cadena, de abajo arriba: 9.k el eslabón k, con 9.k.0 su cabecera de lote, 9.k.1 [nivel] (un número de
-  // epoch.7.6.1), 9.k.4 [grado] (opcional y opaco: «sealed» y «firm» no lo leen; VG 16-11) y, si los hay, 9.k.2
-  // los lados y 9.k.3 los hermanos de su camino «sip». Lo demás (1, 2, 4, 5, 7 y 8), como en la vía «taproot».
+  // y el 9 la cadena, de abajo arriba: 9.k el eslabón k, con 9.k.0 su cabecera de lote, 9.k.1 [nivel], [nivel, grado] o
+  // [nivel, grado, red] (el nivel, un número de epoch.7.6.1; grado y red, opcionales y opacos: «sealed» no lee el 9.k.1 y
+  // «firm» solo su primer ocupante; VG 16-11) y, si los hay, 9.k.2 los lados y 9.k.3 los hermanos de su camino «sip». Lo
+  // demás (1, 2, 4, 5, 7 y 8), como en la vía «taproot».
   cascada: 'cascada', compromisoCascada: '3', cadena: '9',
-  eslabon: Object.freeze({ cabecera: '0', nivel: '1', lados: '2', hermanos: '3', grado: '4' }),
-  // Las posiciones de una cabecera de lote (SIP 0, «El sello en cascada» §1), dentro de su eslabón (9.k.0).
-  cabeceraDeLote: Object.freeze({ marca: 'cabecera de lote', clase: '0', numero: '1', anterior: '2', raiz: '3', hora: '4', clave: '5', firma: '6', numeroLe: '7.0', horaLe: '7.1' }),
+  eslabon: Object.freeze({ cabecera: '0', nivel: '1', lados: '2', hermanos: '3' }),
+  // Las posiciones de una cabecera de lote v2 (SIP 0, «El sello en cascada» §1), dentro de su eslabón (9.k.0): `version`
+  // es lo que su 0 lleva además de la marca; el 8 el libro y el 9 las referencias (van dentro de lo firmado).
+  cabeceraDeLote: Object.freeze({ marca: 'cabecera de lote', version: 'v2', clase: '0', numero: '1', anterior: '2', raiz: '3', hora: '4', clave: '5', firma: '6', numeroLe: '7.0', horaLe: '7.1', libro: '8', referencias: '9' }),
 });
 
 /** La etiqueta del hash que firma el observador de cabeceras (SIP 0, H9): cabecera ‖ altura LE. */
 export const ETIQUETA_DEL_OBSERVADOR = 'StateArk/Observador/Cabecera/v1';
 
 /** La etiqueta del hash de una cabecera de lote (SIP 0, «El sello en cascada» §1): lo que se encadena, se firma y se compromete. */
-export const ETIQUETA_DE_CABECERA = 'StateArk/Lote/Cabecera/v1';
+export const ETIQUETA_DE_CABECERA = 'StateArk/Lote/Cabecera/v2';
 
 /** Hasta cuántos eslabones despliega la fórmula de la vía «cascada» (BQL no tiene bucles: las cuatro capas de hoy). */
 export const ESLABONES_DE_LA_FORMULA = 4;
@@ -333,7 +343,7 @@ export function formulaDeSellado(p = POSICIONES_DEL_SELLO) {
  * igual que en la vía «taproot» con el compromiso (3) en la hoja OP_RETURN (lo que lee la transacción, la interna y la
  * cabecera va antes: lo que falta deja PENDIENTE), y la cadena desplegada para 1 a ESLABONES_DE_LA_FORMULA eslabones,
  * unidos con «or»: cada rama ata su largo con la posición siguiente vacía (`count S.9.n = 0`), comprueba cada cabecera
- * (bien formada, su camino «sip» desde el id o desde el hash de la de abajo llega a su raíz, y su firma con su propia
+ * (bien formada y v2, su camino «sip» desde el id o desde el hash de la de abajo llega a su raíz, y su firma con su propia
  * clave) y que el hash de la de arriba es el compromiso y su clave está declarada (before.8.6, la del observador). Las
  * claves de las capas de abajo no se miran. Sin primitivas nuevas.
  */
@@ -342,8 +352,8 @@ function formulaCascada(p) {
   const en = (k) => S + '.' + p[k];
   const E = (k) => S + '.' + p.cadena + '.' + k;
   const c = (k, campo) => E(k) + '.' + p.eslabon.cabecera + '.' + p.cabeceraDeLote[campo];
-  const H = (k) => 'hash(cat(' + ['numeroLe', 'anterior', 'raiz', 'horaLe', 'clave'].map((x) => 'bytes(first ' + c(k, x) + ')').join(', ') + '), "' + ETIQUETA_DE_CABECERA + '")';
-  const eslabon = (k) => '"' + p.cabeceraDeLote.marca + '" in ' + c(k, 'clase')
+  const H = (k) => 'hash(cat(' + ['numeroLe', 'anterior', 'raiz', 'horaLe', 'clave', 'libro', 'referencias'].map((x) => 'bytes(first ' + c(k, x) + ')').join(', ') + '), "' + ETIQUETA_DE_CABECERA + '")';
+  const eslabon = (k) => '"' + p.cabeceraDeLote.marca + '" in ' + c(k, 'clase') + ' and "' + p.cabeceraDeLote.version + '" in ' + c(k, 'clase')
     + ' and le(bytes(first ' + c(k, 'numeroLe') + ')) = first ' + c(k, 'numero')
     + ' and le(bytes(first ' + c(k, 'horaLe') + ')) = first ' + c(k, 'hora')
     + ' and merkle(' + (k === 0 ? 'bytes(first ' + en('id') + ')' : H(k - 1)) + ', ' + E(k) + '.' + p.eslabon.lados + ', ' + E(k) + '.' + p.eslabon.hermanos + ', "sip") = bytes(first ' + c(k, 'raiz') + ')'
@@ -375,7 +385,7 @@ export const CAPAS_DE_LA_FORMULA = 4;
  * La fórmula del 2 de la regla «firm» (X.6.8.9, VG 16-11, encargo «firmeza»): ¿ha llegado el registro al nivel que exige?
  * Lee los niveles de la época, epoch.7.6 (1 los niveles, números de abajo arriba, 3 la familia que queda en firme en cada
  * uno), por posición (nth k), desplegada para CAPAS_DE_LA_FORMULA niveles (BQL no tiene bucles; el primero es la casa y el
- * último Bitcoin). Un nivel está alcanzado (el grado del eslabón, 9.k.4, no se lee):
+ * último Bitcoin). Un nivel está alcanzado (del 9.k.1 solo se lee el primer ocupante, el nivel; el grado y la red, no):
  *   el primero (la casa): su sello en cascada lleva un eslabón con ese nivel, o su recibo de llegada vale («received», X.6.8.4);
  *   los de en medio: su sello en cascada lleva un eslabón con ese nivel (9.k.1) y vale («sealed», X.6.8.5);
  *   la última (Bitcoin): «sealed» vale, por cualquiera de las dos vías.
@@ -391,9 +401,10 @@ export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
   const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
   const familia = (j) => '(nth ' + j + ' epoch.7.6.3)';
-  // El nivel de cada eslabón, 9.j.1, de uno en uno (j de 0 a 9: una décupla no tiene más): `S.9 each 1` no sirve, porque
-  // S.9 es un solo ocupante (la cadena) y daría su posición 1, el segundo eslabón entero.
-  const enCadena = (k) => '"' + p.cascada + '" in ' + S + '.' + p.via + ' and (' + Array.from({ length: 10 }, (_, j) => capa(k) + ' in ' + S + '.' + p.cadena + '.' + j + '.' + p.eslabon.nivel).join(' or ') + ')';
+  // El nivel de cada eslabón, el primer ocupante de 9.j.1, de uno en uno (j de 0 a 9: una décupla no tiene más): `S.9 each 1`
+  // no sirve, porque S.9 es un solo ocupante (la cadena) y daría su posición 1, el segundo eslabón entero. `first` y no el
+  // 9.j.1 entero: detrás del nivel pueden ir el grado y la red, que son opacos y podrían valer lo mismo que un nivel.
+  const enCadena = (k) => '"' + p.cascada + '" in ' + S + '.' + p.via + ' and (' + Array.from({ length: 10 }, (_, j) => capa(k) + ' in (first ' + S + '.' + p.cadena + '.' + j + '.' + p.eslabon.nivel + ')').join(' or ') + ')';
   const sellado = 'count (first it.6).8.2 > 0 and first (first it.6).8.5';
   const recibido = 'count (first it.6).8.1 > 0 and first (first it.6).8.4';
   const ultima = CAPAS_DE_LA_FORMULA - 1;
