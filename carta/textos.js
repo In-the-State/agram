@@ -488,6 +488,12 @@ export const TEXTOS = Object.freeze({
     porAutorizarTitulo: 'lo que está movido pero espera el segundo factor de su cosa titular (no se rechaza nada)',
     autorizaLinea: '{t} a {cosa}, que autoriza',
     porAutorizarDesbordado: 'no se pudo leer del todo',
+    // el anfitrión (encargo «anfitrión»): la app que lleva la carta firma el segundo factor
+    autorizar: 'autorizar',
+    autorizarTitulo: 'firma el segundo factor con la app que lleva esta carta',
+    autorizando: 'autorizando…',
+    autorizarSinClave: 'la app no tiene la clave de {cosa}',
+    autorizadoPor: 'autorizado: lo firma {cosas}',
     // el formulario de ejecutar y su reverso (VG 14-11, #89)
     ejecutarApagado: 'el botón sigue apagado: este registro está en «{nombre}» ({rango}) y se marca al llegar al {marca}',
     ejecutarApagadoSinRango: 'el botón sigue apagado: este registro aún no tiene rango y se marca al llegar al {marca}',

@@ -851,10 +851,27 @@ function htmlPropuestasFuera(p) {
   return `<div class="propuestas"${nodo('propuestas')}><h5>${t('propuestasPendientes', { cuantas: p.fuera.length + p.aqui })}</h5>${p.aqui ? `<small class="ayuda">${t('propuestaAqui', { cuantas: p.aqui })}</small>` : ''}<ul>${p.fuera.map(fila).join('')}</ul></div>`;
 }
 
-/** Lo por autorizar de mi alta (VG 14-11, #70): una línea por registro, «por autorizar: <su 0> · <qué falta>». */
+/**
+ * El anfitrión (carta/anfitrion.js; extra.anfitrion: si la carta va dentro de una app que firma) y los registros que se
+ * están autorizando ahora (extra.autorizando: un Set de ids, su botón inactivo); html() los fija en cada pintado.
+ */
+let conAnfitrion = false;
+let autorizando = new Set();
+
+/**
+ * «autorizar» al final de una línea de lo por autorizar (encargo «anfitrión»): solo con anfitrión, en las líneas que me toca
+ * autorizar (`titular`) con alguna cosa mía que falta y que no están desbordadas; mientras firma, inactivo («autorizando…»).
+ */
+function htmlAutorizar(x) {
+  if (!conAnfitrion || !x.titular || x.desbordado || !x.cosas?.length) return '';
+  const ya = autorizando.has(x.id);
+  return ` <button type="button" class="enlace autorizar" data-autorizar="${attr(x.id)}" title="${attr(t('autorizarTitulo'))}"${ya ? ' disabled aria-busy="true"' : ''}>${escapar(t(ya ? 'autorizando' : 'autorizar'))}</button>`;
+}
+
+/** Lo por autorizar de mi alta (VG 14-11, #70): una línea por registro, «por autorizar: <su 0> · <qué falta>» (y, con anfitrión, «autorizar»). */
 function htmlPorAutorizar(l) {
   if (!l?.length) return '';
-  const filas = l.map((x) => `<li class="por-autorizar-linea${x.desbordado ? ' desbordado' : ''}" data-por-autorizar="${attr(x.id)}"${x.desbordado ? ' data-desbordado' : ''}><button type="button" class="enlace" data-abrir="${attr(x.id)}">${escapar(t('porAutorizar'))}: ${escapar(x.que)}</button> · ${x.desbordado ? `<b class="marca-desbordado">${escapar(t('porAutorizarDesbordado'))}</b> · ` : ''}<small>${escapar(x.falta ?? '')}</small></li>`).join('');
+  const filas = l.map((x) => `<li class="por-autorizar-linea${x.desbordado ? ' desbordado' : ''}" data-por-autorizar="${attr(x.id)}"${x.desbordado ? ' data-desbordado' : ''}><button type="button" class="enlace" data-abrir="${attr(x.id)}">${escapar(t('porAutorizar'))}: ${escapar(x.que)}</button> · ${x.desbordado ? `<b class="marca-desbordado">${escapar(t('porAutorizarDesbordado'))}</b> · ` : ''}<small>${escapar(x.falta ?? '')}</small>${htmlAutorizar(x)}</li>`).join('');
   return `<section class="por-autorizar"${nodo('por-autorizar')} title="${attr(t('porAutorizarTitulo'))}"><ul>${filas}</ul></section>`;
 }
 
@@ -1396,10 +1413,13 @@ export function htmlCopia(c) {
  * de configuración si está abierto), `nuevos` (los ids llegados por el diario desde la última vez: los que se animan),
  * `cuentas` y `cuenta` (mis cuentas en este navegador y la abierta, o null en un ejemplo), `arranque` (la pantalla de
  * crear, restaurar o probar, sola si no hay eje y como diálogo si lo hay), `copia` (el diálogo de la copia de seguridad),
- * `sincronia` (la línea del libro compartido, o null) y `claveLectura` (en una cuenta, la de este navegador o '').
+ * `sincronia` (la línea del libro compartido, o null), `claveLectura` (en una cuenta, la de este navegador o ''),
+ * `anfitrion` (true si la carta va dentro de una app que firma: carta/anfitrion.js) y `autorizando` (los ids que firma ya).
  */
 export function html(arbol, extra = {}) {
   archivoDe = typeof extra.archivo === 'function' ? extra.archivo : () => null; // los archivos adjuntos de esta pestaña (htmlRepresentacion)
+  conAnfitrion = extra.anfitrion === true; // la app que lleva la carta firma: lo por autorizar lleva «autorizar» (htmlPorAutorizar)
+  autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
   // Sin eje (nadie ha elegido aún cuenta ni ejemplo): la pantalla de arranque entera.
   if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false })}</div>`;
   if (!arbol || arbol.vacio) return `<div class="carta vacia"><p class="aviso">${escapar(arbol?.avisos?.join(' · ') ?? t('sinRegistro'))}</p></div>`;

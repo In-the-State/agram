@@ -17,7 +17,7 @@
 // sincronizan nunca. Nada de esto bloquea: se escribe en local y la cola sube lo pendiente.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos } from './dom.js';
 import { instalar } from './gestos.js';
@@ -28,6 +28,7 @@ import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
+import { anfitrion, autorizarCon } from './anfitrion.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
@@ -59,6 +60,8 @@ const estado = {
   // ({ X, lugar }: la cruceta del propio nodo, el personaje del sitio) o null.
   filtrosDelTres: {}, sitio: null,
 };
+/** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
+const autorizando = new Set();
 let limpiarLottie = () => {};
 let gestos = null;
 let pintando = null;
@@ -235,6 +238,7 @@ const porDefectoDelSitio = () => (estado.cuenta ? ajustesDelSitio.faltantes(esta
 function extraDe() {
   return {
     ejemplos: EJEMPLOS.map((e) => ({ id: e.id, etiqueta: e.etiqueta })), ejemplo: ejemploElegido(), guardado: estado.guardado, aviso: estado.aviso, exito: estado.exito, nuevos: estado.nuevos,
+    anfitrion: Boolean(anfitrion), autorizando,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
@@ -432,15 +436,17 @@ function leerTexto(X) {
   }
 }
 
-/** lottie-web se carga solo si hace falta (render animado), desde cdnjs con su SRI (el mismo que pruebas/carta/). */
+/**
+ * lottie-web se carga solo si hace falta (render animado), del propio origen: va dentro del repositorio
+ * (carta/vendor/lottie.min.js, lottie-web 5.12.2; carta/vendor/LEEME.md), con su SRI, el mismo que tenía en cdnjs.
+ */
 let lottiePedido = false;
 function cargarLottie() {
   if (lottiePedido || globalThis.lottie) return;
   lottiePedido = true;
   const s = document.createElement('script');
-  s.src = 'https://cdnjs.cloudflare.com/ajax/libs/bodymovin/5.12.2/lottie.min.js';
+  s.src = new URL('./vendor/lottie.min.js', import.meta.url).href;
   s.integrity = 'sha512-jEnuDt6jfecCjthQAJ+ed0MTVA++5ZKmlUcmDGBv2vUI/REn6FuIdixLNnQT+vKusE2hhTk2is3cFvv5wA+Sgg==';
-  s.crossOrigin = 'anonymous';
   s.referrerPolicy = 'no-referrer';
   s.onload = () => pintar();
   s.onerror = () => { estado.aviso = t('sinLottie'); pintar(); };
@@ -1100,6 +1106,34 @@ const manejadores = {
     guardar();
     pintar();
     void sincronizar();
+  },
+  /**
+   * «autorizar» en lo por autorizar del 6 de mi alta (encargo «anfitrión», carta/anfitrion.js): por cada cosa mía que
+   * le falta, el firmante del anfitrión; lo que firma bien se asienta como cualquier registro (eje.anadir y, tras
+   * escribir, guardar y sincronizar) y se repinta; sin clave, el aviso; lo que no vale, sus motivos en el aviso.
+   */
+  async autorizar(id) {
+    if (!anfitrion || !id || autorizando.has(id) || !estado.eje?.obtener(id)) return;
+    limpiarMensajes();
+    const cosas = porFirmar(estado.eje, estado.identidad, id, { epoca: estado.eje.epoca(), idioma: idioma() });
+    if (!cosas.length) return;
+    autorizando.add(id);
+    pintar();
+    try {
+      const r = await autorizarCon(anfitrion, estado.eje, id, cosas, { idioma: idioma(), asentar: (ev) => estado.eje.anadir(ev), sinClave: (cosa) => t('autorizarSinClave', { cosa }) });
+      if (r.asentados.length) {
+        trasEscribir();
+        estado.exito = t('autorizadoPor', { cosas: cosas.filter((c) => r.asentados.some((ev) => ev.autor === c.id)).map((c) => c.texto).join(', ') });
+        marcarNuevos();
+      }
+      const avisos = [...r.avisos, ...motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje)];
+      if (avisos.length) estado.aviso = avisos.join(' · ');
+    } catch (e) {
+      estado.aviso = String(e?.message ?? e);
+    } finally {
+      autorizando.delete(id);
+    }
+    pintar();
   },
   /** El reverso como editor de BTML (#93): alternar el BTML crudo y el formateado, solo en esta sesión (no se escribe nada: cómo se abre es «al abrir»). */
   formatear() {

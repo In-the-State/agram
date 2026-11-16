@@ -56,6 +56,7 @@ const UMBRAL_ARRASTRE = 24;
  *   cerrarRoseton()          pulsar fuera del rosetón ampliado, o su «cerrar» de la pantalla completa
  *   formatear()              el reverso (la cara 5) como editor de BTML: alternar el BTML crudo y el formateado
  *   buscarPago(X)            el reverso de X: «buscar su recibo de pago» (encargo «carta: pagos»)
+ *   autorizar(id)            lo por autorizar del 6 de mi alta, con anfitrión: firmar el segundo factor de ese registro (encargo «anfitrión»)
  *   formato(clave, valor)    un criterio de formato del BTML (fecha, números, estilo o idioma)
  *   leido()                  alternar la lente «leído»
  *   englobar()               guardar este rato (englobar el libro local)
@@ -225,6 +226,7 @@ export function instalar(raiz, m) {
     if (b('[data-roseton-cerrar]')) { e.preventDefault(); m.cerrarRoseton?.(); return; }
     if (b('[data-formatear]')) { e.preventDefault(); m.formatear?.(); return; }
     if ((el = b('[data-buscar-pago]'))) { e.preventDefault(); m.buscarPago?.(el.dataset.x ?? xDe(el)); return; }
+    if ((el = b('[data-autorizar]'))) { e.preventDefault(); if (!el.disabled) m.autorizar?.(el.dataset.autorizar); return; }
     if ((el = b('[data-girar]'))) {
       // La tarjeta central flotante de la rejilla: girarla entre su cara 0 y su cara 5 es solo cosa de la pantalla (no cambia el estado).
       e.preventDefault();
