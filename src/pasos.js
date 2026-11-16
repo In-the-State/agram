@@ -12,7 +12,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar } from './bqlm.js';
+import { evaluar, esFormula } from './bqlm.js';
 import { madurez } from './contrato.js';
 import { cuota } from './mapped.js';
 import { cajaDeCuota } from './bases.js';
@@ -32,7 +32,6 @@ const en = (raiz, camino) => camino.reduce((n, d) => (Array.isArray(n) ? n[d] : 
 const hoja = (x) => (Array.isArray(x) ? x[0] : x);
 const ultima = (x) => (Array.isArray(x) ? x[x.length - 1] : x);
 const texto = (x) => (typeof x === 'string' ? x : undefined);
-const esFormula = (s) => typeof s === 'string' && s.startsWith('=') && !s.startsWith('==');
 
 /** El evento de X: su id, el evento mismo, o null. */
 function eventoDe(eje, X) {

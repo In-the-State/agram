@@ -47,9 +47,8 @@ import { EPOCA_0, epocaDe } from './epocas.js';
 import { AMBITO_GENESIS, ESCALAS_T, claveToken, cantidadBase, partirClave, movimientosReales } from './tokens.js';
 import { ocupantes } from './encaje.js';
 import { quemaDelCoste, escalaQueAlcanza } from './escritura.js';
-// bql.js importa este módulo (BASES, CAJA, FRESCURA): la importación es
-// circular, así que de bql.js solo se usa dentro de funciones, nunca al cargar.
-import { esFormula, evaluar } from './bql.js';
+import { esFormula, leerFormula, Presupuesto } from './bqlm.js';
+import { contextoDeLectura } from './contexto-eje.js';
 
 /** La posición 8 (el cielo) en la raíz del registro: ahí se anclan sus bases. */
 export const CIELO = '8000000000';
@@ -486,9 +485,14 @@ export function medir(eje, id) {
         return;
       }
       if (!esFormula(nodo)) return;
-      if (evaluar(eje, id, indices).estado === 'RESUELTO') m.formulasResueltas++;
+      // BQL mínimo (src/bqlm.js, leerFormula): it es este registro; un presupuesto para todas sus fórmulas.
+      if (leerFormula(nodo, sujeto, ctx(), { presupuesto }).estado === 'RESUELTO') m.formulasResueltas++;
       else m.formulasPendientes++;
     };
+    const sujeto = { k: 'reg', id };
+    const presupuesto = new Presupuesto();
+    let contexto;
+    const ctx = () => (contexto ??= contextoDeLectura(eje));
     recorrer(ev.payload, []);
     return m;
   } finally {

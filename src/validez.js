@@ -6,12 +6,12 @@
 // esté en ok no sube ninguna otra, y que falle no baja ninguna otra.
 //
 //   1 forma y época               validarForma, y el payload y `en` leídos bajo la época elegida
-//   2 interpretación              fórmulas (BQL), referencias (encaje) y posiciones: lo que se puede leer
+//   2 interpretación              fórmulas (BQL mínimo), referencias (encaje) y posiciones: lo que se puede leer
 //   3 criptografía y procedencia  id, firma, foco, autor y claves declaradas
 //   4 acreditación material       respaldo en el libro: series emitidas por quien las respalda, ningún saldo negativo
 //   5 permiso y ejecución         quién mueve y quién emite; y el ciclo leído: si lo que el registro anuncia ya pasó (cerrado)
 //
-// Las referencias van en la capa 2, escritas como { ref } o como =REF: el
+// Las referencias van en la capa 2, escritas como { ref } o como el id de un registro en una fórmula: el
 // corpus pone en ella «contexto, referencias y posiciones» (V4 06 l.36) y la
 // «resolución de referencias suficiente» (V2 05).
 //
@@ -30,7 +30,8 @@ import { verificar, verificarPosesion, clavePublicaValida } from './autoridad.js
 import { claveToken, validarMovimiento, asignacionT, AMBITO_GENESIS, raizDeAmbito } from './tokens.js';
 import { EMITEN_V2, motivoTipo, motivoAjenos, gastaAsignacion, esInformativoT, repartirGastoT, T_NO_SE_EMITE, SIN_TIPO } from './ciclo.js';
 import { EPOCA_0, EPOCAS_POR_ID, epocaDelEje, leerDireccion } from './epocas.js';
-import { evaluar, consultar, esFormula } from './bql.js';
+import { esFormula, leerFormula, Presupuesto } from './bqlm.js';
+import { contextoDeLectura } from './contexto-eje.js';
 import { seguir } from './encaje.js';
 import { cerrado } from './motor.js';
 import { motivosDe, CONDICIONES_DEL_CICLO } from './condiciones/index.js';
@@ -56,8 +57,8 @@ export const REGLA_DEL_CICLO = 'cada uno mueve lo suyo y nadie autoriza lo ajeno
 
 /**
  * Estado BQL → estado de la capa 2. RESUELTO es ok; todo lo que empieza por
- * PENDIENTE (también PENDIENTE POR LÍMITE o DE AUTORIZACIÓN) es pendiente:
- * «lo que falta no es falso»; INCOMPATIBLE, ERROR y cualquier otro, falla.
+ * PENDIENTE (también PENDIENTE POR LÍMITE) es pendiente: «lo que falta no es
+ * falso»; ERROR y cualquier otro, falla.
  */
 export function estadoDeBql(estado) {
   if (estado === 'RESUELTO') return 'ok';
@@ -171,11 +172,21 @@ function planP(eje, ver, identidad, m) {
   return ver(identidad, k) >= cantidad ? [[k, -cantidad]] : null;
 }
 
-/** El eje visto con este evento dentro: lo que leen BQL y el encaje. Sin tocar el eje. */
+/**
+ * El eje visto con este evento dentro: lo que leen BQL y el encaje. Sin tocar el eje. Lo que no es obtener, orden,
+ * sobre ni epoca lo responde el eje mismo (sus series, sus altas, su libro): la vista es el eje con un registro más.
+ */
 function vistaCon(eje, ev, id) {
   if (eje.obtener(id) === ev) return eje;
   const orden = eje.orden.includes(id) ? eje.orden : [...eje.orden, id];
-  return { obtener: (x) => (x === id ? ev : eje.obtener(x)), orden, sobre: (x, en) => eje.sobre(x, en), epoca: () => epocaDelEje(eje) };
+  const propio = { obtener: (x) => (x === id ? ev : eje.obtener(x)), orden, sobre: (x, en) => eje.sobre(x, en), epoca: () => epocaDelEje(eje) };
+  return new Proxy(propio, {
+    get(o, k) {
+      if (Object.hasOwn(o, k)) return o[k];
+      const v = eje[k];
+      return typeof v === 'function' ? v.bind(eje) : v;
+    },
+  });
 }
 
 // ---------- 1 · forma y época ----------
@@ -231,6 +242,11 @@ function capaInterpretacion(eje, vista, ev, id) {
   const formulas = [];
   const referencias = [];
   let hondo = null;
+  // Las fórmulas del payload son BQL mínimo (src/bqlm.js, leerFormula): it es este registro, en el contexto con que el
+  // núcleo lee un registro, sobre la vista; un presupuesto para todas las fórmulas del registro.
+  const ctx = contextoDeLectura(vista);
+  const sujeto = { k: 'reg', id };
+  const presupuesto = new Presupuesto();
   recorrer(ev.payload, (nodo, c, k) => {
     if (c.length > ARIDAD) {
       if (!hondo) hondo = c;
@@ -240,15 +256,12 @@ function capaInterpretacion(eje, vista, ev, id) {
     const donde = camino(c) + (k === undefined ? '' : '[' + k + ']');
     const enLista = k === undefined ? {} : { lista: k };
     if (esFormula(nodo)) {
-      // Una fórmula, con BQL en su celda. =REF a un evento ausente da PENDIENTE, igual que { ref }.
-      // Dentro de una lista no tiene dirección propia: se evalúa desde la posición de la lista, como la lee BQL.
-      let x;
-      try {
-        x = k === undefined ? evaluar(vista, id, c) : consultar(vista, id, c, nodo);
-      } catch (e) {
-        x = { estado: 'ERROR', texto: 'ERROR: ' + e.message };
-      }
-      const f = { camino: c, ...enLista, dir: direccion(c), formula: nodo, estado: x.estado, texto: x.texto, capa: estadoDeBql(x.estado) };
+      // Una fórmula, con BQL mínimo en su celda (it = este registro). Un id de un registro que la vista no trae da
+      // PENDIENTE, igual que { ref }. Dentro de una lista, con el camino de la posición de la lista y su índice.
+      const x = leerFormula(nodo, sujeto, ctx, { presupuesto });
+      const estado = x.subtipo ?? x.estado;
+      const texto = x.estado === 'RESUELTO' ? x.texto : estado + ': ' + x.motivo;
+      const f = { camino: c, ...enLista, dir: direccion(c), formula: nodo, estado, texto, capa: estadoDeBql(estado) };
       formulas.push(f);
       if (f.capa !== 'ok') r[f.capa](donde + ': ' + f.texto);
     } else if (esReferencia(nodo)) {

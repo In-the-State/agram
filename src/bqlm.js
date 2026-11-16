@@ -79,6 +79,7 @@
 // puras). Hay una implementación sobre el eje en src/contexto-eje.js.
 
 import { canonico } from './evento.js';
+import { direccion } from './btml.js';
 import { sha256, sha256d, hashEtiquetado, concatenar, deHex, aHex, igualesBytes, menor, enteroLe, leerCabecera, leerTx, raizMerkle, aplicarOts, verificarBip340, tapleaf, taptweak } from './cripto.js';
 
 export const ESTADOS = Object.freeze(['RESUELTO', 'PENDIENTE', 'ERROR']);
@@ -318,7 +319,7 @@ const NIVEL_IT = /^it([2-9]|[1-9]\d+)?$/;
  */
 export function analizar(src, { sujeto = false } = {}) {
   if (typeof src !== 'string') throw fallo('sintaxis: una expresión es un texto');
-  const cuerpo = src.startsWith('=') && !src.startsWith('==') ? src.slice(1) : src;
+  const cuerpo = esFormula(src) ? src.slice(1) : src;
   const tokens = tokenizar(cuerpo);
   let i = 0;
   // Con sujeto (una lectura, B5), it ya es lo que se lee: el primer where da it2.
@@ -1410,7 +1411,7 @@ export function leerRegla(regla, sujeto, contexto, opciones = {}) {
   const nombre = nombreDeRegla(regla);
   if (!esLectura(regla)) return { estado: 'ERROR', motivo: (nombre ?? 'regla') + ': no es una lectura (su 4 no dice read)' };
   const formula = ultimo(regla[2]);
-  if (typeof formula !== 'string' || !formula.startsWith('=') || formula.startsWith('==')) {
+  if (!esFormula(formula)) {
     return { estado: 'ERROR', motivo: (nombre ?? 'regla') + ': su 2 no es una fórmula «=…»' };
   }
   let arbol;
@@ -1439,7 +1440,7 @@ export function evaluarRegla(regla, contexto, opciones = {}) {
   if (esLectura(regla)) return { pasa: false, estado: 'ERROR', motivo: nombre + ': es una lectura (read en su 4), no una condición: se lee con leerRegla' };
   if (esEscritura(regla)) return { pasa: false, estado: 'ERROR', motivo: nombre + ': es una regla que escribe (put en su 4), no una condición: se evalúa con evaluarEscritura' };
   const condicion = Array.isArray(regla) ? ultimo(regla[2]) : undefined;
-  if (typeof condicion !== 'string' || !condicion.startsWith('=') || condicion.startsWith('==')) {
+  if (!esFormula(condicion)) {
     return { pasa: false, estado: 'ERROR', motivo: (nombre ?? 'regla') + ': su 2 no es una condición «=…»' };
   }
   let arbol;
@@ -1467,7 +1468,7 @@ export function evaluarEscritura(regla, contexto, opciones = {}) {
   const nombre = nombreDeRegla(regla);
   if (!esEscritura(regla)) return { estado: 'ERROR', escrituras: [], motivo: (nombre ?? 'regla') + ': no escribe (su 4 no dice put)' };
   const formula = ultimo(regla[2]);
-  if (typeof formula !== 'string' || !formula.startsWith('=') || formula.startsWith('==')) return { estado: 'ERROR', escrituras: [], motivo: nombre + ': su 2 no es una fórmula «=…»' };
+  if (!esFormula(formula)) return { estado: 'ERROR', escrituras: [], motivo: nombre + ': su 2 no es una fórmula «=…»' };
   let arbol;
   try {
     arbol = analizada(formula);
@@ -1491,7 +1492,7 @@ export function evaluarPlantilla(sentencias, contexto, opciones = {}) {
   const presupuesto = new Presupuesto(opciones.limites?.ocupantes ?? LIMITES.ocupantes, opciones.limites?.bytes ?? LIMITES.bytes);
   const movimientos = [];
   for (const src of Array.isArray(sentencias) ? sentencias : [sentencias]) {
-    if (typeof src !== 'string' || !src.startsWith('=') || src.startsWith('==')) return { estado: 'ERROR', movimientos: [], motivo: 'una sentencia de plantilla es una fórmula «=…»' };
+    if (!esFormula(src)) return { estado: 'ERROR', movimientos: [], motivo: 'una sentencia de plantilla es una fórmula «=…»' };
     let arbol;
     try {
       arbol = analizada(src, true);
@@ -1517,4 +1518,101 @@ export function rellenar(mensaje, contexto, opciones = {}) {
     }
     return r.estado === 'RESUELTO' ? r.texto : '{' + expr + ': ' + r.estado + '}';
   });
+}
+
+// ---------- fórmulas en el payload (retirada de BQL V0, #113; docs/BQLM.md §14) ----------
+
+/**
+ * ¿Es una fórmula? Un texto que empieza por «=» y no por «==» («==» escapa un texto que empieza por «=»). Es la única
+ * prueba del núcleo: la usan las reglas, las plantillas, los pasos, el motor, la época y la validez.
+ */
+export function esFormula(x) {
+  return typeof x === 'string' && x.startsWith('=') && !x.startsWith('==');
+}
+
+/** El id de un registro escrito como texto: 64 cifras hex en minúscula. */
+const RE_ID_DE_REGISTRO = /^[0-9a-f]{64}$/;
+const RAIZ = '0000000000';
+
+/**
+ * Los registros que nombra una fórmula: los textos literales de 64 hex de su árbol (analizar), en el orden en que
+ * aparecen, cada uno con la dirección que le sigue: la de los dígitos fijos que vienen detrás del literal, («id»).d.d o
+ * (payload(«id»)).d.d; si no los hay, la raíz. Sin repetir el mismo par. Una fórmula que no se analiza no nombra nada.
+ * Es lo que se mira antes de evaluar una fórmula del payload (leerFormula) y lo que Scened dibuja como arista de fórmula.
+ */
+export function registrosDeFormula(formula) {
+  let arbol;
+  try {
+    arbol = typeof formula === 'string' ? analizada(formula, true) : formula;
+  } catch {
+    return [];
+  }
+  const esId = (n) => n?.n === 'lit' && typeof n.v === 'string' && RE_ID_DE_REGISTRO.test(n.v);
+  // El literal que hay debajo de la base de una posición: entre paréntesis o como argumento de payload(…).
+  const literalDe = (n) => {
+    while (n && (n.n === 'paren' || (n.n === 'llamada' && n.f === 'payload'))) n = n.n === 'paren' ? n.e : n.args[0];
+    return esId(n) ? n : undefined;
+  };
+  const fuera = [];
+  const vistos = new Set();
+  const conDireccion = new Set();
+  const anotar = (id, dir) => {
+    if (vistos.has(id + '|' + dir)) return;
+    vistos.add(id + '|' + dir);
+    fuera.push({ id, dir });
+  };
+  const visitar = (n) => {
+    if (!n || typeof n !== 'object' || esSimbolo(n)) return;
+    if (Array.isArray(n)) {
+      n.forEach(visitar);
+      return;
+    }
+    if (n.n === 'paso' && !n.each) {
+      const lit = literalDe(n.base);
+      if (lit) {
+        anotar(lit.v, direccion(n.digitos));
+        conDireccion.add(lit);
+      }
+    }
+    if (n.n === 'lit') {
+      if (esId(n) && !conDireccion.has(n)) anotar(n.v, RAIZ);
+      return;
+    }
+    for (const x of Object.values(n)) if (x && typeof x === 'object') visitar(x);
+  };
+  visitar(arbol);
+  return fuera;
+}
+
+/**
+ * Lee una fórmula escrita en el payload de un registro (retirada de BQL V0, #113; docs/BQLM.md §14): es BQL mínimo,
+ * con `it` = el registro que la lleva (`sujeto`: su nodo en el contexto, { k: 'reg', id }), en el contexto con que el
+ * núcleo lee un registro con una lectura de la época (`new ContextoEje(vista, { epoch })`): lo que la vista no trae,
+ * falta. Lo escrito en el propio registro se lee con `payload(it)` (y `memo`, si el contexto tiene candidata).
+ *
+ * - Lo que falta no es falso: antes de evaluar, cada texto literal de 64 hex (registrosDeFormula) ha de ser un
+ *   registro del contexto (`contexto.payload`); si uno no lo es, PENDIENTE con el texto de una referencia ausente, y no
+ *   se evalúa.
+ * - Sin encadenar: la fórmula lee lo ESCRITO; si la posición que lee lleva otra fórmula, ve su texto.
+ * - Solo números: una magnitud calculada se escribe desplegada (la cantidad en su .1, la fórmula; la unidad en su .2).
+ * - Datos no fiables: un verbo o un put es ERROR (se evalúa sin mover ni escribir). `opciones.presupuesto` es el del
+ *   registro leído, compartido por todas sus fórmulas (un Presupuesto con los LIMITES); agotado, PENDIENTE POR LÍMITE.
+ *
+ * Devuelve lo que evaluar: { estado: 'RESUELTO', valor, texto } o { estado, subtipo?, motivo }. No lanza.
+ */
+export function leerFormula(formula, sujeto, contexto, opciones = {}) {
+  if (!esFormula(formula)) return { estado: 'ERROR', motivo: 'no es una fórmula «=…»' };
+  let arbol;
+  try {
+    arbol = analizada(formula, true);
+  } catch (e) {
+    return { estado: e.estado ?? 'ERROR', ...(e.subtipo ? { subtipo: e.subtipo } : {}), motivo: e.message };
+  }
+  for (const { id } of registrosDeFormula(arbol)) {
+    if (typeof contexto?.payload !== 'function' || contexto.payload(id) === undefined) {
+      return { estado: 'PENDIENTE', motivo: 'referencia a un evento ausente del eje: ' + id.slice(0, 8) };
+    }
+  }
+  const { presupuesto, limites } = opciones;
+  return evaluar(arbol, contexto, { sujeto, ...(presupuesto instanceof Presupuesto ? { presupuesto } : {}), ...(limites ? { limites } : {}) });
 }

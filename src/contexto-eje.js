@@ -49,7 +49,8 @@ import { ARIDAD, esReferencia, esLista, direccion, indicesDe, resolver } from '.
 import { ESCALAS_T, ESCALAS_REALES, SEGUNDOS, claveToken, partirClave, franjaDe, diaCivil, validarMovimiento, esAnunciado } from './tokens.js';
 import { esInstante, msUTC } from './instante.js';
 import { contenido } from './modos.js';
-import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla } from './bqlm.js';
+import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula } from './bqlm.js';
+import { epocaDelEje } from './epocas.js';
 
 /** Quien está al otro lado de una emisión o de un consumo: el símbolo de src/bqlm.js, nunca un texto (SEG-11). */
 export { NADIE };
@@ -70,7 +71,7 @@ const MAX_SALTOS = 20;
 
 const RE_ID = /^[0-9a-f]{64}$/;
 const RE_SERIE = /^([EPRT]):(.+)$/;
-// Como la magnitud de src/bql.js, pero con un espacio al menos entre la cifra y la unidad: «huesped2» no es «2 huesped».
+// Una magnitud escrita: la cifra y la unidad con un espacio al menos entre ellas («huesped2» no es «2 huesped»).
 const RE_MAGNITUD = /^(?:(-?\d+(?:\.\d+)?)\s+([\p{L}€$%][\p{L}\p{N}_€$%]*)|([\p{L}€$%][\p{L}\p{N}_€$%]*)\s+(-?\d+(?:\.\d+)?))$/u;
 
 const CANDIDATA = Object.freeze({ k: 'ev' });
@@ -1246,3 +1247,46 @@ export class ContextoEje {
     }
   }
 }
+
+// ---------- leer un registro: el contexto y las fórmulas del payload (retirada de BQL V0, #113) ----------
+
+/**
+ * El contexto con que el núcleo lee un registro de la vista: sin candidata, con la época del eje. Es el de una lectura
+ * de la época con sujeto (bqlm.leerRegla, la lente, el motor) y el de las fórmulas del payload (bqlm.leerFormula). Lo
+ * que la vista no trae, falta.
+ */
+export function contextoDeLectura(vista) {
+  return new ContextoEje(vista, { epoch: epocaDelEje(vista) });
+}
+
+/** El nodo de un payload en un camino de índices; una lista de un ocupante se lee como su ocupante (forma canónica). */
+function enCamino(payload, camino) {
+  let nodo = payload;
+  for (const i of camino) {
+    if (!Array.isArray(nodo)) return undefined;
+    nodo = nodo[i];
+  }
+  return camino.length > 0 && esLista(nodo) && nodo.length === 1 ? nodo[0] : nodo;
+}
+
+/**
+ * Lee la posición `camino` (índices) del payload del registro `id` de la vista y, con `indice`, ese elemento de la
+ * lista que hay ahí. Si es una fórmula, con bqlm.leerFormula (it = el registro); si es lo escrito, con el mismo lector:
+ * (payload(it)).camino (y su nth). Opciones: `presupuesto` (el del registro, compartido por todas sus fórmulas) y
+ * `contexto` (si ya se tiene uno de contextoDeLectura). Devuelve lo que leerFormula, más `formula` (el texto, si lo
+ * era) y `texto` siempre: lo leído o «ESTADO: motivo». Un registro que la vista no tiene da PENDIENTE.
+ */
+export function leerPosicion(vista, id, camino = [], { indice, presupuesto, contexto } = {}) {
+  const ev = vista?.obtener?.(id);
+  if (!ev) return conTexto({ estado: 'PENDIENTE', motivo: 'referencia a un evento ausente del eje: ' + String(id).slice(0, 8) });
+  const ctx = contexto ?? contextoDeLectura(vista);
+  const sujeto = { k: 'reg', id };
+  const pres = presupuesto ?? new Presupuesto();
+  const nodo = enCamino(ev.payload, camino);
+  const contenido = indice === undefined ? nodo : esLista(nodo) ? nodo[indice] : undefined;
+  if (esFormula(contenido)) return { ...conTexto(leerFormula(contenido, sujeto, ctx, { presupuesto: pres })), formula: contenido };
+  const posicion = camino.length ? '(payload(it)).' + camino.join('.') : 'payload(it)';
+  return conTexto(leerFormula('=' + (indice === undefined ? posicion : 'nth ' + indice + ' ' + posicion), sujeto, ctx, { presupuesto: pres }));
+}
+
+const conTexto = (r) => (r.estado === 'RESUELTO' ? r : { ...r, texto: (r.subtipo ?? r.estado) + ': ' + r.motivo });

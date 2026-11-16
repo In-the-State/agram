@@ -16,14 +16,13 @@
 //   propuestas     lectura: los registros de la fábrica de un foco, cerrados o no
 // Las plantillas son de la época (src/epocas.js) y se evalúan con el BQL mínimo (src/bqlm.js): aquí no hay reglas.
 
-import { direccion, esReferencia } from './btml.js';
+import { direccion, esReferencia, indicesDe } from './btml.js';
 import { ocupantes, vector, signo, caminosDe } from './encaje.js';
-import { evaluar, consultar } from './bql.js';
-import { evaluar as evaluarBqlm, leerRegla } from './bqlm.js';
+import { evaluar as evaluarBqlm, leerRegla, Presupuesto } from './bqlm.js';
 import { ocupantesElegibles } from './elegibles.js';
 import { escribirDesde } from './escritura.js';
 import { partirClave, raizDeAmbito, esAnunciado, claveToken, movimientosReales } from './tokens.js';
-import { ContextoEje } from './contexto-eje.js';
+import { contextoDeLectura, leerPosicion } from './contexto-eje.js';
 import { epocaDelEje } from './epocas.js';
 
 /**
@@ -50,11 +49,12 @@ export const OPERADORES = Object.freeze({ Q: 'descubrir', B: 'proponer', C: 'con
 /**
  * Proponer (operador B): construye las elecciones de una consolidación a
  * partir de lo que dicen las posiciones del foco. Una posición con fórmula
- * BQL propone: si resuelve a una colección, su primer candidato (el mejor
- * encaje, salvo que la fórmula ORDENE otra cosa) es la elección; si
- * resuelve a un valor, ese valor es un terminal nuevo. Una posición con
- * contenido literal propone ese contenido por referencia al foco. Las
- * posiciones sin desarrollar no proponen. No escribe nada.
+ * (BQL mínimo, bqlm.leerFormula, con it = el foco) propone: si resuelve a
+ * registros, el primero es la elección (un candidato, con su encaje calculado
+ * por src/encaje.js, candidatoDe); si resuelve a un valor, ese valor es un
+ * terminal nuevo. Una posición con contenido literal (leído con el mismo
+ * lector) propone ese contenido por referencia al foco. Las posiciones sin
+ * desarrollar no proponen. No escribe nada.
  */
 export function proponer(eje, foco, { camino = [], posiciones = [1, 2, 3, 4] } = {}) {
   const ev = eje.obtener(foco);
@@ -62,29 +62,39 @@ export function proponer(eje, foco, { camino = [], posiciones = [1, 2, 3, 4] } =
   const elecciones = {};
   const origenes = [];
   const pendientes = [];
+  const contexto = contextoDeLectura(eje);
+  const presupuesto = new Presupuesto(); // el del foco: uno para todas sus fórmulas
   for (const i of posiciones) {
     const indices = [...camino, i];
     const crudo = resolverCrudo(ev.payload, indices);
     if (crudo === undefined) continue; // sin desarrollar: no propone
-    const r = evaluar(eje, foco, indices);
+    const r = leerPosicion(eje, foco, indices, { contexto, presupuesto });
     if (r.estado !== 'RESUELTO') { pendientes.push({ posicion: i, motivo: r.texto }); continue; }
-    const v = r.valor;
-    const esFormula = typeof crudo === 'string' && crudo.startsWith('=') && !crudo.startsWith('==');
-    if (v.tipo === 'coleccion') {
-      const primero = v.items[0];
-      if (!primero) { pendientes.push({ posicion: i, motivo: 'sin candidatos' }); continue; }
-      const candidato = { evento: primero.evento, dir: direccion(primero.indices ?? []), tipo: primero.origen, origenDir: primero.origenDir, vector: primero.vector, signo: primero.signo };
-      elecciones[i] = { candidato };
-      origenes.push({ posicion: i, desde: 'formula', texto: r.texto });
-    } else if (esFormula) {
-      elecciones[i] = v.tipo === 'numero' ? v.valor : r.texto;
-      origenes.push({ posicion: i, desde: 'formula', texto: r.texto });
-    } else {
+    if (r.formula === undefined) {
       elecciones[i] = { ref: foco, dir: direccion(indices) };
       origenes.push({ posicion: i, desde: 'foco', texto: r.texto });
+      continue;
     }
+    const v = r.valor;
+    if (!v.length) { pendientes.push({ posicion: i, motivo: 'sin candidatos' }); continue; }
+    elecciones[i] = v[0]?.k === 'reg' ? { candidato: candidatoDe(eje, foco, v[0].id) } : v.length === 1 && typeof v[0] === 'number' ? v[0] : r.texto;
+    origenes.push({ posicion: i, desde: 'formula', texto: r.texto });
   }
   return { foco, elecciones, origenes, pendientes };
+}
+
+/**
+ * Un registro que propone una fórmula, como candidato de una consolidación. Lo que el BQL mínimo no da (de dónde se
+ * coloca, el vector y el signo del encaje) lo calcula src/encaje.js: si está anclado sobre el foco, es uno de los
+ * escritos de la posición donde se ancló (encaje.ocupantes, con su vector y su signo); si no, el registro entero.
+ */
+function candidatoDe(eje, foco, id) {
+  const e = eje.obtener(id);
+  if (e?.sobre === foco) {
+    const o = ocupantes(eje, foco, indicesDe(e.en ?? '0000000000')).find((x) => x.tipo === 'escrito' && x.evento === id);
+    if (o) return { evento: id, dir: o.dir, tipo: o.origen, origenDir: o.origenDir, vector: o.vector, signo: o.signo };
+  }
+  return { evento: id, dir: '0000000000', tipo: 'referencia' };
 }
 
 function resolverCrudo(payload, indices) {
@@ -111,6 +121,9 @@ function resolverCrudo(payload, indices) {
 export function descubrir(eje, foco, { camino = [], posiciones = [1, 2, 3, 4], epoca, maximo = Infinity } = {}) {
   const ev = eje.obtener(foco);
   if (!ev) throw new Error('foco desconocido: ' + foco);
+  const contexto = contextoDeLectura(eje);
+  const presupuestos = new Map(); // uno por registro leído, compartido por todas sus fórmulas
+  const presupuestoDe = (id) => (presupuestos.has(id) ? presupuestos.get(id) : presupuestos.set(id, new Presupuesto()).get(id));
   return posiciones.map((i) => {
     const indices = [...camino, i];
     const { lista: todos, noElegibles } = ocupantesElegibles(eje, foco, indices, { epoca });
@@ -120,15 +133,17 @@ export function descubrir(eje, foco, { camino = [], posiciones = [1, 2, 3, 4], e
       // «todos son ocupantes con su camino exacto»); la etiqueta de su posición
       // 0, si es un array, va aparte y no decide el estado (auditoría de ajuste 2).
       if (o.estado) return { ...o, estado: o.estado, texto: o.estado + ': ' + o.motivo };
-      // Un elemento de lista es un ocupante aparte: muestra su propio valor (LOCAL por índice entra en la lista), no el de la lista entera.
+      // Se lee con el BQL mínimo (contexto-eje.leerPosicion): una fórmula, con it = su registro; lo escrito, con el mismo
+      // lector. Un elemento de lista es un ocupante aparte: muestra su propio valor (su lugar en la lista), no el de la
+      // lista entera.
+      const opciones = { contexto, presupuesto: presupuestoDe(o.evento) };
       if (o.enLista) {
-        const camino = o.camino ?? [];
-        const e = consultar(eje, o.evento, camino, 'LOCAL(' + [camino[camino.length - 1], o.indice].join(', ') + ')');
+        const e = leerPosicion(eje, o.evento, o.camino ?? [], { ...opciones, indice: o.indice });
         return { ...o, estado: e.estado, texto: e.texto, etiqueta: e.texto };
       }
-      const r = evaluar(eje, o.evento, o.camino ?? []);
+      const r = leerPosicion(eje, o.evento, o.camino ?? [], opciones);
       const visible = caminoVisible(o);
-      const etiqueta = visible.length > (o.camino ?? []).length ? evaluar(eje, o.evento, visible).texto : r.texto;
+      const etiqueta = visible.length > (o.camino ?? []).length ? leerPosicion(eje, o.evento, visible, opciones).texto : r.texto;
       return { ...o, estado: r.estado, texto: r.texto, etiqueta };
     });
     return { posicion: i, dir: direccion(indices), candidatos, total: todos.length, limitada: candidatos.length < todos.length, noElegibles };
@@ -218,7 +233,7 @@ export async function registrar(eje, datos, privada) {
 }
 
 /** El contexto del BQL mínimo para leer el eje de ahora (sin candidata). */
-const contexto = (eje) => new ContextoEje(eje, { epoch: epocaDelEje(eje) });
+const contexto = (eje) => contextoDeLectura(eje);
 
 /** Lo que dice la época en epoch.9.0.k (las plantillas): { nombre → fórmula } y el nombre por defecto. */
 function plantillas(k, eje) {
