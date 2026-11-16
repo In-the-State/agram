@@ -1,12 +1,22 @@
 {
-  "epoca": "bf99d258d98de7e105b2b3423455bdba964acf6a297836f8453b955a27af7933",
+  "epoca": "21adeeb6bdd6b4bf2a064f5f8c705338e88b643eb77add4e6582feb0d536da32",
   "hereda": "d66885077283b2a921d64b95fad85643ac71e2f0b2a102047e79d78e82f21a0d",
-  "registrosAlPublicar": 36,
+  "registrosAlPublicar": 37,
   "reglas": [
+    {
+      "nombre": "anchors asked",
+      "archivo": "anchors-asked.json",
+      "id": "11667b21a2cafe3060345d2e7d3e93ae2fd121dffe8d37112283fe5a1bdec10a"
+    },
     {
       "nombre": "attention has a price",
       "archivo": "attention-has-a-price.json",
-      "id": "f1e0056efad42822d62f50024c8528ed2c758299d6f6ec7b93bdf5b3760c779a"
+      "id": "1212087c43e35da7016105afc409338d1d6107f10c38e1a6ba0956458389326a"
+    },
+    {
+      "nombre": "current connections",
+      "archivo": "current-connections.json",
+      "id": "2f4263da5f317ee61f603fa4370d7b550177c312b8dc95f04099c412bd213b42"
     },
     {
       "nombre": "second factor",
@@ -27,7 +37,7 @@
     {
       "nombre": "register the authority",
       "archivo": "register-the-authority.json",
-      "id": "9f05b1b57a96106afa11004b80cdaafd7d92f124ff57fad15972a21844409b32",
+      "id": "3d36c30c7922d773faffccf7c59c34fcdf97999f8cc633fb49e972de41458ca5",
       "ocho": [
         1,
         11
@@ -36,7 +46,7 @@
     {
       "nombre": "register the relay",
       "archivo": "register-the-relay.json",
-      "id": "faafd3fdaf5763e97982ed61a6255a4196ac12879eb1621c0071c6956a4c0f2f",
+      "id": "955e29e6511e833713840d44cd78f6faf52a12b1abcd1b8914fcc084f6ac429d",
       "ocho": [
         1,
         12
@@ -45,7 +55,7 @@
     {
       "nombre": "register the archive",
       "archivo": "register-the-archive.json",
-      "id": "8d2e47f05b213638dd721118e8cff9c6a9b1a824c7c9601ec837026a56868c1d",
+      "id": "ee3383dbdddc655e96aa0bca30d4433fd4cd25e280bd77d9aa54b5c069887f8a",
       "ocho": [
         1,
         13
@@ -54,7 +64,7 @@
     {
       "nombre": "declare a context",
       "archivo": "declare-a-context.json",
-      "id": "a49dfff38b622a274bdfd01b775a20cf8e992e640afc75a71452c12eee8e7c4a",
+      "id": "2cd1f83c1ba535217f3ccfa9a440d45fbfa1beab4545ac0bd67357aa37715614",
       "ocho": [
         1,
         14
@@ -63,7 +73,7 @@
     {
       "nombre": "register a container",
       "archivo": "register-a-container.json",
-      "id": "9562944e34802835fd3de6cd207559126a35ea7fd486657ee90623a4c62523ff",
+      "id": "12f0fda63063fa5f45ffec3780a4325e8c984d46fe99c66866ecea45473fedb9",
       "ocho": [
         1,
         15
@@ -72,7 +82,7 @@
     {
       "nombre": "register a gate",
       "archivo": "register-a-gate.json",
-      "id": "d5af1a261e6c4972a85f18e0d136a3b74548ca7c32cdd953390eed267adc3c85",
+      "id": "4c91d6bb242cec4dec59d533b6660a9ca7954d1ca410c3c1059e78df157197c3",
       "ocho": [
         1,
         16
@@ -81,7 +91,7 @@
     {
       "nombre": "register a deployment",
       "archivo": "register-a-deployment.json",
-      "id": "d9cbf221d18b4950d5256ffc83eed79cf916113b5f6cb558b20f78ca804e0073",
+      "id": "d684b917a84f055e90750c55ac9c7869fed37438836d541ce0aba179b9c70a35",
       "ocho": [
         1,
         17
@@ -90,7 +100,7 @@
     {
       "nombre": "register a worker",
       "archivo": "register-a-worker.json",
-      "id": "04ebbdc6414c81d91d946a4c72e284d59d16488553d1e7ad6bf3d39d040355f5",
+      "id": "6672f37fb258ee704a407595d36fbfbbbc052795b225c03b4a701d583f970096",
       "ocho": [
         1,
         18
@@ -99,7 +109,7 @@
     {
       "nombre": "register an agent",
       "archivo": "register-an-agent.json",
-      "id": "a44078dbb936693535b094d1e80a456a116ff593d96cefeceefa71967e4f8fb6",
+      "id": "3b5febfaa74496a188cb0189f3d822bf50b7e6649cb7ccbc8b110c81627ef88b",
       "ocho": [
         1,
         19
@@ -108,16 +118,25 @@
     {
       "nombre": "register a served ledger",
       "archivo": "register-a-served-ledger.json",
-      "id": "115eb139132624882a79f61b8c5b39b435fa4f24effd1a63f9398e8e4f31fb41",
+      "id": "654a8ada96b5a2f5c6bfd429d7dec2488d144f8300f6558a384cdb2c6c91dfa2",
       "ocho": [
         1,
         20
       ]
     },
     {
+      "nombre": "declare my relays",
+      "archivo": "declare-my-relays.json",
+      "id": "e0fb34805a96747e4f2034086ae8a0b502d3f4a078d5ce41ebd5458749a2f262",
+      "ocho": [
+        1,
+        23
+      ]
+    },
+    {
       "nombre": "require authorization",
       "archivo": "require-authorization.json",
-      "id": "34554b9092a2c4dbc634ca659a72c92c3ff8b4ada1c05ee96592344b9bb00a8e",
+      "id": "187b2f23913af2ecf13ace76a6a98711b5c51ae6f09bfedb52966a81d6676fd3",
       "ocho": [
         2,
         10
@@ -129,6 +148,15 @@
       "id": "ff5ccdd862e3f66fcb4bc9015190a5de56b77cb34b3f72d984b8d20057831ba5",
       "ocho": [
         2,
+        11
+      ]
+    },
+    {
+      "nombre": "ask for an anchor",
+      "archivo": "ask-for-an-anchor.json",
+      "id": "08624002dfb78be271f7ec20ce9479d90df726e8b6e1bcae6173fe269d28acf8",
+      "ocho": [
+        3,
         11
       ]
     },
@@ -211,33 +239,6 @@
       "ocho": [
         4,
         18
-      ]
-    },
-    {
-      "nombre": "add a connection",
-      "archivo": "add-a-connection.json",
-      "id": "69304345595d158c496f4c3d20334b9bb00be02802c900fbe4e463d791888c2e",
-      "ocho": [
-        4,
-        19
-      ]
-    },
-    {
-      "nombre": "change a connection's permissions",
-      "archivo": "change-a-connection-s-permissions.json",
-      "id": "fb2ab00d9315c8bc7771c509165141f21200abe8369025a78d373aad95f7aea3",
-      "ocho": [
-        4,
-        20
-      ]
-    },
-    {
-      "nombre": "remove a connection",
-      "archivo": "remove-a-connection.json",
-      "id": "630e1d450b0acc05543ea078e49968d648d19cb208fe471b02637f84fc0fa9e4",
-      "ocho": [
-        4,
-        21
       ]
     },
     {

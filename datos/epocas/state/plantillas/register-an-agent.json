@@ -122,7 +122,7 @@
       [
         "piece",
         "agent",
-        "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+        "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
       ]
     ]
   ],

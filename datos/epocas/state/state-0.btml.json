@@ -1,5 +1,5 @@
 {
-  "id": "bf99d258d98de7e105b2b3423455bdba964acf6a297836f8453b955a27af7933",
+  "id": "21adeeb6bdd6b4bf2a064f5f8c705338e88b643eb77add4e6582feb0d536da32",
   "hereda": "d66885077283b2a921d64b95fad85643ac71e2f0b2a102047e79d78e82f21a0d",
   "raiz": [
     [
@@ -11,7 +11,13 @@
     },
     [
       {
-        "ref": "f1e0056efad42822d62f50024c8528ed2c758299d6f6ec7b93bdf5b3760c779a"
+        "ref": "11667b21a2cafe3060345d2e7d3e93ae2fd121dffe8d37112283fe5a1bdec10a"
+      },
+      {
+        "ref": "1212087c43e35da7016105afc409338d1d6107f10c38e1a6ba0956458389326a"
+      },
+      {
+        "ref": "2f4263da5f317ee61f603fa4370d7b550177c312b8dc95f04099c412bd213b42"
       },
       {
         "ref": "1af6230598af77dc02ce3a2168fce1d4d8fc726dd825632d15e9fd4a70f1fe8b"
@@ -94,7 +100,8 @@
         "VG 14-11 (#108 b y d; UI_NODO §3.2 aprobada tal cual): el titular del nodo delega por plantilla; ocho acciones con autorización, dos libres, dos fuera de la UI (borrar datos; máquina, DNS y pagar: no existen en esta época)",
         "VG 16-11 (#102, CLASE_STATE §4, los cuatro puntos): la matriz de archivos de la clase son registros del eje o de su época; el sello es el 7701 de la autoridad",
         "Core AGRAM 16-11 (encargo «época del nodo»): el camino del 9 del nodo (alta del nodo, autoridad, relé, archivo, contextos, en servicio) es el 9 de la plantilla de datos «node» (epoch.9.2), con una acción por paso (#90); las piezas son cosas del operador con su papel en su 5.1, de una lista cerrada; el criterio «require authorization» y las operaciones de la tabla 3.2 como anuncios del 4.1 que el ejecutor cumple con su recibo (#71.4, con lo que el núcleo ya tiene)",
-        "Core AGRAM 16-11 (añadidos del 16-11, puntos 10 a 14): el vigía y el ejecutor son piezas «agent»; el servidor TLS es un «container» con el vencimiento de su certificado en su 7; la carta de cada puerta es un «deployment»; el vigía mide sobre cada pieza («attention has a price» de esta época); el alta de un agente lleva su dotación de T; los umbrales con claves estables; el papel «connection» con tres operaciones con autorización",
+        "Core AGRAM 16-11 (añadidos del 16-11, puntos 10 a 14): el vigía y el ejecutor son piezas «agent»; el servidor TLS es un «container» con el vencimiento de su certificado en su 7; la carta de cada puerta es un «deployment»; el vigía mide sobre cada pieza («attention has a price» de esta época); el alta de un agente lleva su dotación de T; los umbrales con claves estables; el papel «connection» con tres operaciones con autorización (rehecho el 17-11: la conexión es un invitado)",
+        "VG 17-11 (por Core State; agram-equipo/CONTRASTE_V1_V2.md, punto 1 y (b) y (c); encargo «pedir el ancla y la conexión como invitado»): «tienes custodia de quien te ha dado su R»; la R que hace de llave sigue dando P. Pedir el ancla se escribe en el libro del padre («ask for an anchor», el mismo movimiento que «return R (ask for attention)», con el lote del otro libro como datos). La conexión es un invitado con alta en el libro del nodo: la invitación de la época 0 tal cual, por nombre (no hay invitación abierta), al dominio del nodo; permisos = su grupo de atención y su precio; quitar = el veto; sus relés los declara él en su alta («declare my relays»). Lecturas con nombre: «anchors asked» y «current connections». Salen «add a connection», «change a connection's permissions» y «remove a connection»",
         "Genérica y pública: sirve para cualquier nodo de la clase state; nada real (ni dominios, ni claves, ni máquinas)"
       ],
       [
@@ -303,7 +310,7 @@
             ],
             [
               "register the node",
-              "the action that registered it; the operations on the node (its connections) hang from its 4.1"
+              "the action that registered it; the operations on the node hang from its 4.1"
             ]
           ],
           [
@@ -509,7 +516,7 @@
             ],
             [
               180,
-              "the minutes of T its operator gave it (an agent: its endowment); in a connection, the work announced: when and how many minutes"
+              "the minutes of T its operator gave it (an agent: its endowment)"
             ]
           ],
           [
@@ -575,7 +582,7 @@
             ],
             [
               "operator, piece",
-              "3.0 the operator, 3.1 the piece (in a connection, the executor)"
+              "3.0 the operator, 3.1 the piece"
             ]
           ],
           [
@@ -642,7 +649,7 @@
             ],
             [
               "piece, relay",
-              "5.0 piece and 5.1 its role: authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger or connection"
+              "5.0 piece and 5.1 its role: authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger"
             ]
           ],
           [
@@ -674,7 +681,7 @@
               "arrival"
             ],
             [
-              "the data of its role: the authority, commit and sha256; a container, digest and image; a deployment, commit, arguments and volume; a context, event and relay; a served ledger, name and genesis; a connection, key, relays and permissions"
+              "the data of its role: the authority, commit and sha256; a container, digest and image; a deployment, commit, arguments and volume; a context, event and relay; a served ledger, name and genesis"
             ]
           ],
           [
@@ -1054,7 +1061,7 @@
             "template register the authority param actions label: acción",
             "template register the authority param actions help: la acción",
             "template register the authority param type label: tipo y papel",
-            "template register the authority param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register the authority param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register the authority param commit label: commit",
             "template register the authority param commit help: el commit del núcleo que corre",
             "template register the authority param sha256 label: sha256",
@@ -1074,7 +1081,7 @@
             "template register the relay param actions label: acción",
             "template register the relay param actions help: la acción",
             "template register the relay param type label: tipo y papel",
-            "template register the relay param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register the relay param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register the relay param name label: nombre",
             "template register the relay param name help: el nombre de el relé, el 0 de su alta (por defecto, su identidad)",
             "template register the relay message: dar de alta el relé: {me} da de alta el relé de {first it.0}",
@@ -1090,7 +1097,7 @@
             "template register the archive param actions label: acción",
             "template register the archive param actions help: la acción",
             "template register the archive param type label: tipo y papel",
-            "template register the archive param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register the archive param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register the archive param name label: nombre",
             "template register the archive param name help: el nombre de el archivo, el 0 de su alta (por defecto, su identidad)",
             "template register the archive message: dar de alta el archivo: {me} da de alta el archivo de {first it.0}",
@@ -1106,7 +1113,7 @@
             "template declare a context param actions label: acción",
             "template declare a context param actions help: la acción",
             "template declare a context param type label: tipo y papel",
-            "template declare a context param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template declare a context param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template declare a context param event label: evento",
             "template declare a context param event help: el id del evento de fuera que declara el contexto (un puntero, no una copia)",
             "template declare a context param relay url label: url del relé",
@@ -1126,7 +1133,7 @@
             "template register a container param actions label: acción",
             "template register a container param actions help: la acción",
             "template register a container param type label: tipo y papel",
-            "template register a container param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register a container param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register a container param digest label: digest",
             "template register a container param digest help: el digest de su imagen (sha256:…)",
             "template register a container param image label: imagen",
@@ -1144,7 +1151,7 @@
             "template register a gate param actions label: acción",
             "template register a gate param actions help: la acción",
             "template register a gate param type label: tipo y papel",
-            "template register a gate param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register a gate param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register a gate message: {first (payload(ev)).3.1}",
             "template register a deployment: dar de alta un despliegue",
             "template register a deployment param thing label: nombre",
@@ -1158,7 +1165,7 @@
             "template register a deployment param actions label: acción",
             "template register a deployment param actions help: la acción",
             "template register a deployment param type label: tipo y papel",
-            "template register a deployment param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register a deployment param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register a deployment param commit label: commit",
             "template register a deployment param commit help: el commit que despliega",
             "template register a deployment param arguments label: argumentos",
@@ -1178,7 +1185,7 @@
             "template register a worker param actions label: acción",
             "template register a worker param actions help: la acción",
             "template register a worker param type label: tipo y papel",
-            "template register a worker param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register a worker param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register a worker message: {first (payload(ev)).3.1}",
             "template register an agent: dar de alta un agente",
             "template register an agent param thing label: nombre",
@@ -1200,7 +1207,7 @@
             "template register an agent param actions label: acción",
             "template register an agent param actions help: la acción",
             "template register an agent param type label: tipo y papel",
-            "template register an agent param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register an agent param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register an agent message: {first (payload(ev)).3.1}",
             "template register a served ledger: dar de alta un eje servido",
             "template register a served ledger param thing label: nombre",
@@ -1214,7 +1221,7 @@
             "template register a served ledger param actions label: acción",
             "template register a served ledger param actions help: la acción",
             "template register a served ledger param type label: tipo y papel",
-            "template register a served ledger param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
+            "template register a served ledger param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido)",
             "template register a served ledger param ledger label: eje",
             "template register a served ledger param ledger help: el nombre del eje servido",
             "template register a served ledger param genesis label: génesis",
@@ -1384,58 +1391,6 @@
             "template seal the pending param type label: tipo",
             "template seal the pending param type help: el tipo del registro: una operación sobre el nodo",
             "template seal the pending message: sellar los pendientes: {me} pide sellar lo pendiente de {first it.0}",
-            "template add a connection: añadir una conexión",
-            "template add a connection param name label: nombre",
-            "template add a connection param name help: el nombre del otro nodo",
-            "template add a connection param work label: trabajo",
-            "template add a connection param work help: cuándo lo hará el ejecutor (por defecto, ahora) y cuántos minutos de su T da al nodo al hacerlo: el movimiento anunciado que cumple su recibo",
-            "template add a connection param criteria label: criterio de cierre",
-            "template add a connection param criteria help: la plantilla de cerrado del registro",
-            "template add a connection param who label: quién",
-            "template add a connection param who help: quién lo pide: el operador, dueño del nodo",
-            "template add a connection param executor label: ejecutor",
-            "template add a connection param executor help: quién lo hace fuera: un agente del nodo (por defecto, el último dado de alta); comprueba las firmas, lo hace y deja su recibo",
-            "template add a connection param actions label: acción",
-            "template add a connection param actions help: la acción",
-            "template add a connection param type label: tipo y papel",
-            "template add a connection param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
-            "template add a connection param key label: clave",
-            "template add a connection param key help: la clave pública del otro nodo (x-only, 64 caracteres hexadecimales)",
-            "template add a connection param relays label: relés",
-            "template add a connection param relays help: sus relés: una url por ocupante",
-            "template add a connection param permissions label: permisos",
-            "template add a connection param permissions help: sus permisos: los nombres de las herramientas que puede llamar y de los avisos a los que puede suscribirse, uno por ocupante (texto libre: no significan nada para el núcleo)",
-            "template add a connection message: añadir una conexión: {me} pide conectar {first it.0} con otro nodo",
-            "template change a connection's permissions: cambiar los permisos de una conexión",
-            "template change a connection's permissions param work label: trabajo",
-            "template change a connection's permissions param work help: cuándo lo hará el ejecutor (por defecto, ahora) y cuántos minutos de su T da al nodo al hacerlo: el movimiento anunciado que cumple su recibo",
-            "template change a connection's permissions param criteria label: criterio de cierre",
-            "template change a connection's permissions param criteria help: la plantilla de cerrado del registro",
-            "template change a connection's permissions param who label: quién",
-            "template change a connection's permissions param who help: quién lo pide: el operador, dueño de la conexión",
-            "template change a connection's permissions param executor label: ejecutor",
-            "template change a connection's permissions param executor help: quién lo hace fuera: un agente del nodo (por defecto, el último dado de alta); comprueba las firmas, lo hace y deja su recibo",
-            "template change a connection's permissions param actions label: acción",
-            "template change a connection's permissions param actions help: la acción",
-            "template change a connection's permissions param type label: tipo",
-            "template change a connection's permissions param type help: el tipo del registro: una operación sobre el nodo",
-            "template change a connection's permissions param permissions label: permisos",
-            "template change a connection's permissions param permissions help: los permisos nuevos, uno por ocupante (sustituyen a los de antes)",
-            "template change a connection's permissions message: cambiar los permisos de una conexión: {me} pide cambiar los permisos de {first it.0}",
-            "template remove a connection: quitar una conexión",
-            "template remove a connection param work label: trabajo",
-            "template remove a connection param work help: cuándo lo hará el ejecutor (por defecto, ahora) y cuántos minutos de su T da al nodo al hacerlo: el movimiento anunciado que cumple su recibo",
-            "template remove a connection param criteria label: criterio de cierre",
-            "template remove a connection param criteria help: la plantilla de cerrado del registro",
-            "template remove a connection param who label: quién",
-            "template remove a connection param who help: quién lo pide: el operador, dueño de la conexión",
-            "template remove a connection param executor label: ejecutor",
-            "template remove a connection param executor help: quién lo hace fuera: un agente del nodo (por defecto, el último dado de alta); comprueba las firmas, lo hace y deja su recibo",
-            "template remove a connection param actions label: acción",
-            "template remove a connection param actions help: la acción",
-            "template remove a connection param type label: tipo",
-            "template remove a connection param type help: el tipo del registro: una operación sobre el nodo",
-            "template remove a connection message: quitar una conexión: {me} pide quitar {first it.0}",
             "template leave a receipt: dejar el recibo",
             "template leave a receipt param operation label: operación",
             "template leave a receipt param operation help: la operación que hice (un movimiento anunciado y pendiente mío, en el 4.1 de X)",
@@ -1526,6 +1481,38 @@
             "template declare agent param actions label: acción",
             "template declare agent param actions help: la acción",
             "template declare agent message: declararlo agente: {me} declara agente a {first it.0}",
+            "template ask for an anchor: pedir un ancla",
+            "template ask for an anchor param amount label: cantidad",
+            "template ask for an anchor param amount help: cuánta R del dueño del nodo le devuelvo: el precio del ancla (por defecto, una unidad)",
+            "template ask for an anchor param about label: sobre",
+            "template ask for an anchor param about help: el nodo al que se pide: X",
+            "template ask for an anchor param who label: quién",
+            "template ask for an anchor param who help: quién pide y a quién se pide: al dueño del nodo",
+            "template ask for an anchor param actions label: acción",
+            "template ask for an anchor param actions help: la acción",
+            "template ask for an anchor param type label: tipo",
+            "template ask for an anchor param type help: el tipo del registro: un pedido de ancla",
+            "template ask for an anchor param ledger label: libro",
+            "template ask for an anchor param ledger help: el libro que pide el ancla: el id de su génesis (64 caracteres hexadecimales en minúsculas); un dato, no una referencia: ese libro no es este",
+            "template ask for an anchor param key label: clave de la línea",
+            "template ask for an anchor param key help: la clave de la línea: la clave pública (x-only, 64 caracteres hexadecimales en minúsculas) con la que firma sus cabeceras de lote",
+            "template ask for an anchor param level label: nivel",
+            "template ask for an anchor param level help: el nivel pedido: un nivel de la cascada (epoch.7.6.1)",
+            "template ask for an anchor param header label: cabecera",
+            "template ask for an anchor param header help: la cabecera de lote que se quiere anclar: su hash (64 caracteres hexadecimales en minúsculas)",
+            "template ask for an anchor message: pedir un ancla: {me} devuelve {first ev.1} R a {first it.3} y le pide anclar una cabecera de lote",
+            "template declare my relays: declarar mis relés",
+            "template declare my relays param relays label: relés",
+            "template declare my relays param relays help: mis relés: una url por ocupante (sustituyen a los que declaré antes)",
+            "template declare my relays param criteria label: criterio de cierre",
+            "template declare my relays param criteria help: la plantilla de cerrado del registro",
+            "template declare my relays param who label: quién",
+            "template declare my relays param who help: quién los declara: el dueño del alta",
+            "template declare my relays param actions label: acción",
+            "template declare my relays param actions help: la acción",
+            "template declare my relays message: declarar mis relés: {me} declara sus relés",
+            "anchors asked: los pedidos de ancla que el nodo tiene que servir: cada uno devuelve R de su dueño y nombra un libro, la clave de una línea, un nivel y una cabecera de lote",
+            "current connections: las identidades que el dueño invitó al nodo, que aún tienen su R y no están vetadas",
             "second factor: {first ev.3} escribe lo que protege un criterio: uno suyo (un segundo factor en el 2.4 de su alta) o uno del nodo del que cuelga (una plantilla que requiere autorización)",
             "attention has a price: {first ev.3} escribe a {first (first (first ev.6).5).3} sin el precio de su grupo en la misma transacción, o está vetado; sobre una pieza de un nodo solo escriben sin pagar su dueño y los agentes del nodo (una medida en su 8)",
             "reason second factor missing: falta la autorización de {holder}: lo protege un criterio de segundo factor (uno del autor o uno del nodo); hasta que {holder} lo autorice desde StateArk, se queda en autorizado (pendiente de segundo factor)",
@@ -1543,7 +1530,7 @@
             "template node param who help: 3.0 el operador que lo dio de alta, 3.1 la identidad del nodo y 3.2 su titular",
             "template node param who placeholder: operator, node, holder",
             "template node param actions label: acción",
-            "template node param actions help: la acción que lo dio de alta; de su 4.1 cuelgan las operaciones sobre el nodo (sus conexiones)",
+            "template node param actions help: la acción que lo dio de alta; de su 4.1 cuelgan las operaciones sobre el nodo",
             "template node param actions placeholder: register the node",
             "template node param type label: tipo",
             "template node param type help: la plantilla del registro: nodo",
@@ -1559,22 +1546,22 @@
             "template piece param piece help: el nombre de la pieza: el 0 de su alta",
             "template piece param piece placeholder: relé de ejemplo",
             "template piece param minutes label: minutos",
-            "template piece param minutes help: los minutos de T que le dio su operador (un agente: su dotación); en una conexión, el trabajo anunciado: cuándo y cuántos minutos",
+            "template piece param minutes help: los minutos de T que le dio su operador (un agente: su dotación)",
             "template piece param minutes placeholder: 180",
             "template piece param criteria label: criterio de cierre",
             "template piece param criteria help: su plantilla de cerrado; un agente, su modelo en el 2.1 y sus límites en el 2.2; de su 2.8 cuelgan sus umbrales",
             "template piece param criteria placeholder: all announced movements happened",
             "template piece param who label: quién",
-            "template piece param who help: 3.0 el operador, 3.1 la pieza (en una conexión, el ejecutor)",
+            "template piece param who help: 3.0 el operador, 3.1 la pieza",
             "template piece param who placeholder: operator, piece",
             "template piece param actions label: acción",
             "template piece param actions help: la acción que la dio de alta; de su 4.1 cuelgan las operaciones sobre la pieza",
             "template piece param actions placeholder: register the relay",
             "template piece param type label: tipo",
-            "template piece param type help: 5.0 pieza y 5.1 su papel: autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido o conexión",
+            "template piece param type help: 5.0 pieza y 5.1 su papel: autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto o eje servido",
             "template piece param type placeholder: piece, relay",
             "template piece param data label: datos",
-            "template piece param data help: los datos de su papel: la autoridad, commit y sha256; un contenedor, digest e imagen; un despliegue, commit, argumentos y volumen; un contexto, evento y relé; un eje servido, nombre y génesis; una conexión, clave, relés y permisos",
+            "template piece param data help: los datos de su papel: la autoridad, commit y sha256; un contenedor, digest e imagen; un despliegue, commit, argumentos y volumen; un contexto, evento y relé; un eje servido, nombre y génesis",
             "template piece param expiries label: vencimientos",
             "template piece param expiries help: de su 7 cuelgan sus vencimientos: qué vence y cuándo",
             "template piece param measures label: medidas",
@@ -1598,7 +1585,7 @@
             "template operation param type help: la plantilla del registro: operación",
             "template operation param type placeholder: operation",
             "template operation param data label: datos",
-            "template operation param data help: sus datos: la versión nueva, el commit y el sha256 del núcleo, la clave, la url, los permisos; en un recibo, el resultado y su evidencia"
+            "template operation param data help: sus datos: la versión nueva, el commit y el sha256 del núcleo, la clave, la url; en un recibo, el resultado y su evidencia"
           ]
         ],
         [
@@ -1623,40 +1610,46 @@
             "ref": "4e8875cf5078a13cb588b04d4fe3bb0082609d7078f0c9460073b7e775e0eaab"
           },
           {
-            "ref": "9f05b1b57a96106afa11004b80cdaafd7d92f124ff57fad15972a21844409b32"
+            "ref": "3d36c30c7922d773faffccf7c59c34fcdf97999f8cc633fb49e972de41458ca5"
           },
           {
-            "ref": "faafd3fdaf5763e97982ed61a6255a4196ac12879eb1621c0071c6956a4c0f2f"
+            "ref": "955e29e6511e833713840d44cd78f6faf52a12b1abcd1b8914fcc084f6ac429d"
           },
           {
-            "ref": "8d2e47f05b213638dd721118e8cff9c6a9b1a824c7c9601ec837026a56868c1d"
+            "ref": "ee3383dbdddc655e96aa0bca30d4433fd4cd25e280bd77d9aa54b5c069887f8a"
           },
           {
-            "ref": "a49dfff38b622a274bdfd01b775a20cf8e992e640afc75a71452c12eee8e7c4a"
+            "ref": "2cd1f83c1ba535217f3ccfa9a440d45fbfa1beab4545ac0bd67357aa37715614"
           },
           {
-            "ref": "9562944e34802835fd3de6cd207559126a35ea7fd486657ee90623a4c62523ff"
+            "ref": "12f0fda63063fa5f45ffec3780a4325e8c984d46fe99c66866ecea45473fedb9"
           },
           {
-            "ref": "d5af1a261e6c4972a85f18e0d136a3b74548ca7c32cdd953390eed267adc3c85"
+            "ref": "4c91d6bb242cec4dec59d533b6660a9ca7954d1ca410c3c1059e78df157197c3"
           },
           {
-            "ref": "d9cbf221d18b4950d5256ffc83eed79cf916113b5f6cb558b20f78ca804e0073"
+            "ref": "d684b917a84f055e90750c55ac9c7869fed37438836d541ce0aba179b9c70a35"
           },
           {
-            "ref": "04ebbdc6414c81d91d946a4c72e284d59d16488553d1e7ad6bf3d39d040355f5"
+            "ref": "6672f37fb258ee704a407595d36fbfbbbc052795b225c03b4a701d583f970096"
           },
           {
-            "ref": "a44078dbb936693535b094d1e80a456a116ff593d96cefeceefa71967e4f8fb6"
+            "ref": "3b5febfaa74496a188cb0189f3d822bf50b7e6649cb7ccbc8b110c81627ef88b"
           },
           {
-            "ref": "115eb139132624882a79f61b8c5b39b435fa4f24effd1a63f9398e8e4f31fb41"
+            "ref": "654a8ada96b5a2f5c6bfd429d7dec2488d144f8300f6558a384cdb2c6c91dfa2"
           },
           {
-            "ref": "34554b9092a2c4dbc634ca659a72c92c3ff8b4ada1c05ee96592344b9bb00a8e"
+            "ref": "e0fb34805a96747e4f2034086ae8a0b502d3f4a078d5ce41ebd5458749a2f262"
+          },
+          {
+            "ref": "187b2f23913af2ecf13ace76a6a98711b5c51ae6f09bfedb52966a81d6676fd3"
           },
           {
             "ref": "ff5ccdd862e3f66fcb4bc9015190a5de56b77cb34b3f72d984b8d20057831ba5"
+          },
+          {
+            "ref": "08624002dfb78be271f7ec20ce9479d90df726e8b6e1bcae6173fe269d28acf8"
           },
           {
             "ref": "f9f14103ab8bd1d04b39bdc61b7f9db9da1cb35eed79c816b5a30f446e0efb5c"
@@ -1686,15 +1679,6 @@
             "ref": "4f075916a964d6fa05ec36b6a69df50e4ab55191538e65487f2f879a2ca65669"
           },
           {
-            "ref": "69304345595d158c496f4c3d20334b9bb00be02802c900fbe4e463d791888c2e"
-          },
-          {
-            "ref": "fb2ab00d9315c8bc7771c509165141f21200abe8369025a78d373aad95f7aea3"
-          },
-          {
-            "ref": "630e1d450b0acc05543ea078e49968d648d19cb208fe471b02637f84fc0fa9e4"
-          },
-          {
             "ref": "591436becca13b8333838b6fcd1adf95b4c138173e52bc9d084d3dc351520cfb"
           },
           {
@@ -1720,6 +1704,45 @@
     ]
   ],
   "registros": [
+    [
+      [
+        "anchors asked"
+      ],
+      [
+        "X.3",
+        "A.6",
+        "X.2",
+        "X.4",
+        "X.6"
+      ],
+      [
+        "=(down (first (first it.3).6)) where \"ask for an anchor\" in (payload(it2)).4 and first (payload(it2)).2 = it and count (it2.1 where transfer in it3.4 and R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.3.1 = first it.3) > 0"
+      ],
+      [
+        "X"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 2): lo que el nodo tiene pendiente de servir, leído de su propio libro. Con it = el alta del nodo: los registros «ask for an anchor» anclados en el 3 del alta de su dueño (quien escribió el alta del nodo) que lo nombran en su 2 y devuelven R del dueño (la llave del servicio: un registro con ese nombre que no la devuelve no cuenta, sea cual sea el precio del grupo), por llegada",
+        "De cada pedido (it = el pedido): quién lo pide, first it.3; el libro, la clave de la línea, el nivel y la cabecera, (payload(it)).6 (6.0 a 6.3, datos del otro libro, no referencias); el instante, first it.6.0; lo que devolvió, (payload(it)).1",
+        "Pendiente es todo lo pedido: hoy nada en este libro dice que un pedido está servido (ni la compensación si no se sirve a tiempo, que sería otra plantilla de esta época)",
+        "Lectura, no condición: no se materializa (su 3 es X, como «asked» y «on time» de la 0) y no rechaza nada"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        "after on time"
+      ],
+      [
+        "anchors asked: the requests for an anchor the node has to serve: each one returns R of its owner and names a ledger, the key of a line, a level and a batch header"
+      ]
+    ],
     [
       [
         "attention has a price"
@@ -1752,7 +1775,7 @@
       [
         "Core AGRAM 16-11 (#124; encargo «época del nodo», añadido del 16-11, punto 11): la regla de la época 0 con el mismo nombre, que esta sustituye, para ese caso y solo ese. El vigía mide sobre CADA pieza: un agente del nodo (una identidad cuya alta es una pieza de papel «agent» del mismo nodo) escribe una medida («measure a piece» o «measure» en su 4) en el 8 del alta de una pieza sin pagar atención, y nadie más gana ese paso",
         "Como en esta época las piezas son cosas del operador (su alta la escribe él), la 0 no les cobraría atención (solo cobra a quien escribe sobre el alta que alguien escribió de sí mismo); esta regla las cubre igual que un alta propia: quien no es su dueño paga el precio de su grupo, salvo la medida del agente del nodo. Un agente que escribe sobre una pieza cualquier otra cosa paga como cualquiera (y una cosa no tiene R que dar)",
-        "Una pieza es el alta de una cosa con «piece» en su 5 (su 3.1 es la identidad cuya alta es); una conexión no es un alta (su 3.1 es el ejecutor) y no entra",
+        "Una pieza es el alta de una cosa con «piece» en su 5 (su 3.1 es la identidad cuya alta es); una conexión (otro nodo) es, desde el 17-11, una persona invitada: su alta es suya y entra como cualquier alta propia",
         "VG, 9-11 (mapa §16 [D] «PV3 = regla de atención»): «cada persona clasifica al mundo respecto a sí misma por el precio de su atención»; los mensajes son registros anclados en mi 3 con el pago en su 1; «una regla larga del 3 del dominio receptor lo exige (si no hay pago no entra; el veto rechaza)»",
         "La lente de R y las condiciones de aceptación son la misma cosa: aceptar tu R como pago es darte peso (src/lente.js)",
         "El grupo de quien escribe: el último que lo nombra en su 3 (A.3.k.3); si no lo nombra ninguno, el que le asignó la invitación que aceptó (su 8); si no, desconocidos (zona 0, epoch.9.0.2). El precio: el último del 2 del grupo (A.3.k.2: [[en qué], [cuánto]]): «their R» su R, «my R» mi R devuelta, «E», «P», «nothing» el veto",
@@ -1768,6 +1791,46 @@
       ],
       [
         "attention has a price: {first ev.3} writes to {first (first (first ev.6).5).3} without the price of its group in the same transaction, or is vetoed; on a piece of a node, only its owner and the agents of the node (a measure in its 8) write without paying"
+      ]
+    ],
+    [
+      [
+        "current connections"
+      ],
+      [
+        "before.3",
+        "A.6",
+        "A.1",
+        "X.6.2",
+        "invitation"
+      ],
+      [
+        "=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and first (first it2.6).6.2.0 != \"nothing\""
+      ],
+      [
+        "X"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 3): la conexión es un invitado. Conectar es la invitación de la época 0 tal cual: el dueño del nodo (quien escribió su alta) invita por nombre a la identidad del otro nodo, con su clave, al dominio del nodo (el 5 de la invitación = el alta del nodo) y le da R suya; al aceptar, el otro nodo tiene alta en este libro",
+        "Con it = el alta del nodo: las identidades con alta que cuelga de una invitación del dueño al nodo, que tienen R del dueño sin gastar y no están vetadas (el precio de su grupo en la atención del dueño, X.6.2 de su alta, no es «nothing»). Por llegada al libro",
+        "De cada conexión (it = su alta): la identidad, first it.3; la clave, la que nombra la invitación, (payload(first (up it))).3.5; los relés, el 1 de su último «declare my relays», que solo escribe ella en el 1.3 de su alta; el grupo, it.6.3; el precio, it.6.2; la R que le queda, sum (((first it.3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (up it)).3) each 1)",
+        "Permisos = el grupo de atención y su precio («move to group», «set a group price»); quitar = el veto («veto someone»); quedarse sin R (devolverla toda pidiendo anclas) también la saca",
+        "Lectura, no condición: no se materializa (su 3 es X) y no rechaza nada"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        "after anchors asked"
+      ],
+      [
+        "current connections: the identities invited by the owner to the node that still hold its R and are not vetoed"
       ]
     ],
     [
@@ -2307,7 +2370,7 @@
           [
             "piece",
             "authority",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -2639,7 +2702,7 @@
           [
             "piece",
             "relay",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -2907,7 +2970,7 @@
           [
             "piece",
             "archive",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -3175,7 +3238,7 @@
           [
             "piece",
             "context",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -3507,7 +3570,7 @@
           [
             "piece",
             "container",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -3806,7 +3869,7 @@
           [
             "piece",
             "gate",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ]
       ],
@@ -4041,7 +4104,7 @@
           [
             "piece",
             "deployment",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -4372,7 +4435,7 @@
           [
             "piece",
             "worker",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ]
       ],
@@ -4737,7 +4800,7 @@
           [
             "piece",
             "agent",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ]
       ],
@@ -4972,7 +5035,7 @@
           [
             "piece",
             "served ledger",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger)"
           ]
         ],
         [
@@ -5074,6 +5137,176 @@
     ],
     [
       [
+        "declare my relays"
+      ],
+      [
+        [
+          [
+            "relays"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «declare my relays»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "my relays: one url per occupant (they replace the ones I declared before)"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «declare my relays»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «declare my relays»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who declares them: the owner of the alta"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «declare my relays»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "declare my relays",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.5 = first me.6"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "1.3",
+        "=first me.6"
+      ],
+      [
+        "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado»): una conexión es un invitado con alta en el libro del nodo; sus relés los declara él mismo en su propia alta, en el 1.3 (con quién: donde «register the relay» pone el relé del nodo), con las urls en su 1, una por ocupante (como las de «add a mirror relay»). Siempre ancla en el alta de quien la lanza (su 5: =first me.6): nadie la escribe en el alta de otro, y las lecturas solo cuentan las del dueño del alta. Vale la última",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        1,
+        23
+      ],
+      [
+        "declare my relays: {me} declares its relays"
+      ]
+    ],
+    [
+      [
         "require authorization"
       ],
       [
@@ -5117,9 +5350,6 @@
             "shut down",
             "set a threshold",
             "require authorization",
-            "add a connection",
-            "change a connection's permissions",
-            "remove a connection",
             "the templates whose records do not run without the signature: one per occupant (by default, the initial list of table 3.2, with this template in it)"
           ]
         ],
@@ -5485,6 +5715,340 @@
       ],
       [
         "set a threshold: {me} sets {last ev.1.0} of {first it.0} at {last ev.1.1} {last ev.1.2}"
+      ]
+    ],
+    [
+      [
+        "ask for an anchor"
+      ],
+      [
+        [
+          [
+            "amount"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            1,
+            "how much of the R of the owner of the node I return to it: the price of the anchor (by default, one unit)"
+          ]
+        ],
+        [
+          [
+            "about"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first it.5",
+            "the node that is asked: X"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "=first it.3",
+            "who asks and who is asked: the owner of the node"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "ask for an anchor",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "anchor request",
+            "the type of the record: a request for an anchor"
+          ]
+        ],
+        [
+          [
+            "ledger"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.0"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "the ledger that asks for the anchor: the id of its genesis (64 hexadecimal characters in lower case); a datum, not a reference: that ledger is not this one"
+          ]
+        ],
+        [
+          [
+            "key"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.1"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "the key of the line: the public key (x-only, 64 hexadecimal characters in lower case) that signs its batch headers"
+          ]
+        ],
+        [
+          [
+            "level"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it in epoch.7.6.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.2"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            8
+          ],
+          [
+            "the level asked: a level of the cascade (epoch.7.6.1)"
+          ]
+        ],
+        [
+          [
+            "header"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.3"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            9
+          ],
+          [
+            "the batch header to anchor: its hash (64 hexadecimal characters in lower case)"
+          ]
+        ]
+      ],
+      [
+        "=\"node\" in (payload(it)).5 and count (me.1 where R in it2.0.0.0 and it2.0.0.1 = first it.3 and it2.1 > 0) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=transfer first memo.1 R.(first it.3) from me to first it.3"
+      ],
+      [
+        "3",
+        "=first (first it.3).6"
+      ],
+      [
+        "VG 17-11 (por Core State; agram-equipo/CONTRASTE_V1_V2.md, punto 1 y (b)): «tienes custodia de quien te ha dado su R». Pedir el ancla se escribe en el libro del padre, donde quien pide tiene alta y tiene la R: es el mismo movimiento que «return R (ask for attention)» de la época 0 (devuelve R del dueño del nodo a su emisor y ancla en el 3 de su alta), ofrecido sobre el alta del nodo a quien tenga esa R. El dueño del nodo es quien escribió su alta (el operador). La R vuelve, no se quema: el dueño la puede volver a dar",
+        "El lote del otro libro va como DATOS, no como referencias (los ejes no se leen entre sí): 6.0 el libro (el id de su génesis), 6.1 la clave de la línea (x-only), 6.2 el nivel pedido (de epoch.7.6.1), 6.3 la cabecera (su hash). Sin regla de validez nueva: el precio lo comprueba «attention has a price» (el grupo de quien pide en la atención del dueño, con «my R», su R devuelta). El nodo lee lo que tiene pendiente de servir con la lectura «anchors asked»",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        3,
+        11
+      ],
+      [
+        "ask for an anchor: {me} returns {first ev.1} R to {first it.3} and asks it to anchor a batch header"
       ]
     ],
     [
@@ -7842,878 +8406,6 @@
       ],
       [
         "seal the pending: {me} asks to seal what is pending in {first it.0}"
-      ]
-    ],
-    [
-      [
-        "add a connection"
-      ],
-      [
-        [
-          [
-            "name"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "0"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            1
-          ],
-          [
-            "the name of the other node"
-          ]
-        ],
-        [
-          [
-            "work"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            2
-          ],
-          [
-            "=first ev.6.0",
-            1,
-            "when the executor is to do it (by default, now) and how many minutes of its T it gives the node when it does it: the announced movement that its receipt fulfils"
-          ]
-        ],
-        [
-          [
-            "criteria"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "2"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            3
-          ],
-          [
-            "=first epoch.9.0.1.2",
-            "the closing template of the record"
-          ]
-        ],
-        [
-          [
-            "who"
-          ],
-          [
-            "identity"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "3.0"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            4
-          ],
-          [
-            "=me",
-            "who asks for it: the operator, owner of the node"
-          ]
-        ],
-        [
-          [
-            "executor"
-          ],
-          [
-            "identity"
-          ],
-          [
-            "=count it.6 > 0"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "3.1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            5
-          ],
-          [
-            "=last (before.3 where \"agent\" in (payload(first it2.6)).5 and first (up (first it2.6)) = first ((path it) where \"node\" in (payload(it3)).5))",
-            "who does it outside: an agent of the node (by default, the last one registered); it checks the signatures, does it and leaves its receipt"
-          ]
-        ],
-        [
-          [
-            "actions"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "4"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            6
-          ],
-          [
-            "add a connection",
-            "the action"
-          ]
-        ],
-        [
-          [
-            "type"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "5"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            7
-          ],
-          [
-            "piece",
-            "connection",
-            "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
-          ]
-        ],
-        [
-          [
-            "key"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "6.0"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            8
-          ],
-          [
-            "the public key of the other node (x-only, 64 hexadecimal characters)"
-          ]
-        ],
-        [
-          [
-            "relays"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "6.1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            9
-          ],
-          [
-            "its relays: one url per occupant"
-          ]
-        ],
-        [
-          [
-            "permissions"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "6.2"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «add a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            10
-          ],
-          [
-            "its permissions: the names of the tools it can call and of the notices it can subscribe to, one per occupant (free text: they mean nothing to the core)"
-          ]
-        ]
-      ],
-      [
-        "=first it.3 = me and \"node\" in (payload(it)).5"
-      ],
-      [
-        [
-          "me"
-        ],
-        [
-          "person"
-        ]
-      ],
-      [
-        "=transfer last memo.1 T.1 from first memo.3.1 to first (payload(first ((path it) where \"node\" in (payload(it2)).5))).3.1 when first memo.1"
-      ],
-      [
-        "4.1"
-      ],
-      [
-        "El papel «conexión» (añadido del 16-11, punto 14): el alta de OTRO nodo con el que este habla, escrita como operación en el 4.1 del nodo: 0 su nombre, 6.0 su clave pública (x-only, hex: un dato, no una identidad de este libro), 6.1 sus relés, 6.2 sus permisos (texto libre, sin significado para el núcleo). Vale cuando llega a ejecutada (autorizada y con su recibo) y deja de valer desde que se escribe su «remove a connection». El eje es la única fuente: no hay lista aparte en la máquina. No depende del transporte",
-        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
-      ],
-      [
-        "state 0"
-      ],
-      [
-        4,
-        19
-      ],
-      [
-        "add a connection: {me} asks to connect {first it.0} with another node"
-      ]
-    ],
-    [
-      [
-        "change a connection's permissions"
-      ],
-      [
-        [
-          [
-            "work"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            1
-          ],
-          [
-            "=first ev.6.0",
-            1,
-            "when the executor is to do it (by default, now) and how many minutes of its T it gives the node when it does it: the announced movement that its receipt fulfils"
-          ]
-        ],
-        [
-          [
-            "criteria"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "2"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            2
-          ],
-          [
-            "=first epoch.9.0.1.2",
-            "the closing template of the record"
-          ]
-        ],
-        [
-          [
-            "who"
-          ],
-          [
-            "identity"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "3.0"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            3
-          ],
-          [
-            "=me",
-            "who asks for it: the operator, owner of the connection"
-          ]
-        ],
-        [
-          [
-            "executor"
-          ],
-          [
-            "identity"
-          ],
-          [
-            "=count it.6 > 0"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "3.1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            4
-          ],
-          [
-            "=last (before.3 where \"agent\" in (payload(first it2.6)).5 and first (up (first it2.6)) = first ((path it) where \"node\" in (payload(it3)).5))",
-            "who does it outside: an agent of the node (by default, the last one registered); it checks the signatures, does it and leaves its receipt"
-          ]
-        ],
-        [
-          [
-            "actions"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "4"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            5
-          ],
-          [
-            "change a connection's permissions",
-            "the action"
-          ]
-        ],
-        [
-          [
-            "type"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "5"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            6
-          ],
-          [
-            "operation",
-            "the type of the record: an operation on the node"
-          ]
-        ],
-        [
-          [
-            "permissions"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "6"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"
-          ],
-          [
-            "required"
-          ],
-          [
-            7
-          ],
-          [
-            "the new permissions, one per occupant (they replace the old ones)"
-          ]
-        ]
-      ],
-      [
-        "=first it.3 = me and \"connection\" in (payload(it)).5 and count ((down it) where \"remove a connection\" in (payload(it2)).4) = 0"
-      ],
-      [
-        [
-          "me"
-        ],
-        [
-          "person"
-        ]
-      ],
-      [
-        "=transfer last memo.1 T.1 from first memo.3.1 to first (payload(first ((path it) where \"node\" in (payload(it2)).5))).3.1 when first memo.1"
-      ],
-      [
-        "4.1"
-      ],
-      [
-        "Cambiar los permisos de una conexión: una operación en el 4.1 de la conexión; los permisos vigentes son los de la última que llegó a ejecutada (o, si no hay, los del alta)",
-        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
-      ],
-      [
-        "state 0"
-      ],
-      [
-        4,
-        20
-      ],
-      [
-        "change a connection's permissions: {me} asks to change the permissions of {first it.0}"
-      ]
-    ],
-    [
-      [
-        "remove a connection"
-      ],
-      [
-        [
-          [
-            "work"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «remove a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            1
-          ],
-          [
-            "=first ev.6.0",
-            1,
-            "when the executor is to do it (by default, now) and how many minutes of its T it gives the node when it does it: the announced movement that its receipt fulfils"
-          ]
-        ],
-        [
-          [
-            "criteria"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "2"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «remove a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            2
-          ],
-          [
-            "=first epoch.9.0.1.2",
-            "the closing template of the record"
-          ]
-        ],
-        [
-          [
-            "who"
-          ],
-          [
-            "identity"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "3.0"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «remove a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            3
-          ],
-          [
-            "=me",
-            "who asks for it: the operator, owner of the connection"
-          ]
-        ],
-        [
-          [
-            "executor"
-          ],
-          [
-            "identity"
-          ],
-          [
-            "=count it.6 > 0"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "3.1"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «remove a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            4
-          ],
-          [
-            "=last (before.3 where \"agent\" in (payload(first it2.6)).5 and first (up (first it2.6)) = first ((path it) where \"node\" in (payload(it3)).5))",
-            "who does it outside: an agent of the node (by default, the last one registered); it checks the signatures, does it and leaves its receipt"
-          ]
-        ],
-        [
-          [
-            "actions"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "4"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «remove a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            5
-          ],
-          [
-            "remove a connection",
-            "the action"
-          ]
-        ],
-        [
-          [
-            "type"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "5"
-          ],
-          [
-            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «remove a connection»"
-          ],
-          [
-            "required"
-          ],
-          [
-            6
-          ],
-          [
-            "operation",
-            "the type of the record: an operation on the node"
-          ]
-        ]
-      ],
-      [
-        "=first it.3 = me and \"connection\" in (payload(it)).5 and count ((down it) where \"remove a connection\" in (payload(it2)).4) = 0"
-      ],
-      [
-        [
-          "me"
-        ],
-        [
-          "person"
-        ]
-      ],
-      [
-        "=transfer last memo.1 T.1 from first memo.3.1 to first (payload(first ((path it) where \"node\" in (payload(it2)).5))).3.1 when first memo.1"
-      ],
-      [
-        "4.1"
-      ],
-      [
-        "Quitar una conexión cierra su alta: desde este registro la conexión no vale (aunque el ejecutor aún tenga que cerrarla fuera)",
-        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
-      ],
-      [
-        "state 0"
-      ],
-      [
-        4,
-        21
-      ],
-      [
-        "remove a connection: {me} asks to remove {first it.0}"
       ]
     ],
     [

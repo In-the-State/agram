@@ -1,0 +1,18 @@
+[
+  ["current connections"],
+  ["before.3", "A.6", "A.1", "X.6.2", "invitation"],
+  ["=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and first (first it2.6).6.2.0 != \"nothing\""],
+  ["X"],
+  ["read"],
+  ["*"],
+  [
+    "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 3): la conexión es un invitado. Conectar es la invitación de la época 0 tal cual: el dueño del nodo (quien escribió su alta) invita por nombre a la identidad del otro nodo, con su clave, al dominio del nodo (el 5 de la invitación = el alta del nodo) y le da R suya; al aceptar, el otro nodo tiene alta en este libro",
+    "Con it = el alta del nodo: las identidades con alta que cuelga de una invitación del dueño al nodo, que tienen R del dueño sin gastar y no están vetadas (el precio de su grupo en la atención del dueño, X.6.2 de su alta, no es «nothing»). Por llegada al libro",
+    "De cada conexión (it = su alta): la identidad, first it.3; la clave, la que nombra la invitación, (payload(first (up it))).3.5; los relés, el 1 de su último «declare my relays», que solo escribe ella en el 1.3 de su alta; el grupo, it.6.3; el precio, it.6.2; la R que le queda, sum (((first it.3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (up it)).3) each 1)",
+    "Permisos = el grupo de atención y su precio («move to group», «set a group price»); quitar = el veto («veto someone»); quedarse sin R (devolverla toda pidiendo anclas) también la saca",
+    "Lectura, no condición: no se materializa (su 3 es X) y no rechaza nada"
+  ],
+  ["state 0"],
+  ["after anchors asked"],
+  ["current connections: the identities invited by the owner to the node that still hold its R and are not vetoed"]
+]

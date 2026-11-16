@@ -39,7 +39,8 @@
       "VG 14-11 (#108 b y d; UI_NODO §3.2 aprobada tal cual): el titular del nodo delega por plantilla; ocho acciones con autorización, dos libres, dos fuera de la UI (borrar datos; máquina, DNS y pagar: no existen en esta época)",
       "VG 16-11 (#102, CLASE_STATE §4, los cuatro puntos): la matriz de archivos de la clase son registros del eje o de su época; el sello es el 7701 de la autoridad",
       "Core AGRAM 16-11 (encargo «época del nodo»): el camino del 9 del nodo (alta del nodo, autoridad, relé, archivo, contextos, en servicio) es el 9 de la plantilla de datos «node» (epoch.9.2), con una acción por paso (#90); las piezas son cosas del operador con su papel en su 5.1, de una lista cerrada; el criterio «require authorization» y las operaciones de la tabla 3.2 como anuncios del 4.1 que el ejecutor cumple con su recibo (#71.4, con lo que el núcleo ya tiene)",
-      "Core AGRAM 16-11 (añadidos del 16-11, puntos 10 a 14): el vigía y el ejecutor son piezas «agent»; el servidor TLS es un «container» con el vencimiento de su certificado en su 7; la carta de cada puerta es un «deployment»; el vigía mide sobre cada pieza («attention has a price» de esta época); el alta de un agente lleva su dotación de T; los umbrales con claves estables; el papel «connection» con tres operaciones con autorización",
+      "Core AGRAM 16-11 (añadidos del 16-11, puntos 10 a 14): el vigía y el ejecutor son piezas «agent»; el servidor TLS es un «container» con el vencimiento de su certificado en su 7; la carta de cada puerta es un «deployment»; el vigía mide sobre cada pieza («attention has a price» de esta época); el alta de un agente lleva su dotación de T; los umbrales con claves estables; el papel «connection» con tres operaciones con autorización (rehecho el 17-11: la conexión es un invitado)",
+      "VG 17-11 (por Core State; agram-equipo/CONTRASTE_V1_V2.md, punto 1 y (b) y (c); encargo «pedir el ancla y la conexión como invitado»): «tienes custodia de quien te ha dado su R»; la R que hace de llave sigue dando P. Pedir el ancla se escribe en el libro del padre («ask for an anchor», el mismo movimiento que «return R (ask for attention)», con el lote del otro libro como datos). La conexión es un invitado con alta en el libro del nodo: la invitación de la época 0 tal cual, por nombre (no hay invitación abierta), al dominio del nodo; permisos = su grupo de atención y su precio; quitar = el veto; sus relés los declara él en su alta («declare my relays»). Lecturas con nombre: «anchors asked» y «current connections». Salen «add a connection», «change a connection's permissions» y «remove a connection»",
       "Genérica y pública: sirve para cualquier nodo de la clase state; nada real (ni dominios, ni claves, ni máquinas)"
     ],
     ["hereda"],
@@ -128,7 +129,7 @@
           ["arrival"],
           [
             "register the node",
-            "the action that registered it; the operations on the node (its connections) hang from its 4.1"
+            "the action that registered it; the operations on the node hang from its 4.1"
           ]
         ],
         [
@@ -214,7 +215,7 @@
           ["arrival"],
           [
             180,
-            "the minutes of T its operator gave it (an agent: its endowment); in a connection, the work announced: when and how many minutes"
+            "the minutes of T its operator gave it (an agent: its endowment)"
           ]
         ],
         [
@@ -242,7 +243,7 @@
           ["Core AGRAM 16-11 (#124; encargo «época del nodo»)"],
           ["required"],
           ["arrival"],
-          ["operator, piece", "3.0 the operator, 3.1 the piece (in a connection, the executor)"]
+          ["operator, piece", "3.0 the operator, 3.1 the piece"]
         ],
         [
           ["actions"],
@@ -271,7 +272,7 @@
           ["arrival"],
           [
             "piece, relay",
-            "5.0 piece and 5.1 its role: authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger or connection"
+            "5.0 piece and 5.1 its role: authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger"
           ]
         ],
         [
@@ -284,7 +285,7 @@
           ["Core AGRAM 16-11 (#124; encargo «época del nodo»)"],
           ["optional"],
           ["arrival"],
-          ["the data of its role: the authority, commit and sha256; a container, digest and image; a deployment, commit, arguments and volume; a context, event and relay; a served ledger, name and genesis; a connection, key, relays and permissions"]
+          ["the data of its role: the authority, commit and sha256; a container, digest and image; a deployment, commit, arguments and volume; a context, event and relay; a served ledger, name and genesis"]
         ],
         [
           ["expiries"],
