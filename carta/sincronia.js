@@ -166,7 +166,9 @@ const DE = Object.freeze({ reglas: 'rechazadoReglas', reorden: 'rechazadoReorden
  * { partes: [«n por subir», «sin red: se subirá al volver», «el orden cambió al sincronizar» | «al día…»],
  *   titulo: «n registros no entraron», rechazados: [{ id (8), motivo, de, deTexto }], errores: [texto tal cual] }.
  * Los rechazados son los de la sincronía (se recuerdan entre llamadas), menos los que el servidor rechazó y luego
- * aceptó.
+ * aceptó. El orden firmado (S.orden(), src/sincronia.js; docs/notas/ORDEN_FIRMADO.md), solo si no está 'firmado':
+ * `orden` { estado: 'sin firmar', texto } o { estado: 'contradicho', texto, pruebas: los dos recibos de cada
+ * contradicción, en JSON, para copiarlos }; la contradicción sigue en la línea hasta que alguien la mire (no se va sola).
  */
 export function lineaDeEstado(S, informe) {
   const partes = [];
@@ -179,5 +181,9 @@ export function lineaDeEstado(S, informe) {
     .map((r) => ({ id: String(r.id).slice(0, 8), motivo: r.motivo, de: r.de, deTexto: DE[r.de] ? t(DE[r.de]) : String(r.de ?? '') }));
   const errores = [...informe.errores];
   if (!partes.length && !rechazados.length && !errores.length) partes.push(t('alDia'));
-  return { partes, titulo: rechazados.length ? t('noEntraron', { cuantos: rechazados.length }) : '', rechazados, errores };
+  const estado = S.orden();
+  const orden = estado === 'contradicho'
+    ? { estado, texto: t('ordenContradicho'), pruebas: JSON.stringify(S.fraudesDeOrden().map(({ clase, motivo, a, b }) => ({ clase, motivo, a, b })), null, 2) }
+    : estado === 'sin firmar' ? { estado, texto: t('ordenSinFirmar') } : null;
+  return { partes, titulo: rechazados.length ? t('noEntraron', { cuantos: rechazados.length }) : '', rechazados, errores, ...(orden ? { orden } : {}) };
 }

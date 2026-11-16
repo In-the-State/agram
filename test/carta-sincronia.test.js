@@ -109,8 +109,9 @@ test('cuenta A con servidor, eje compartido y clave de lectura: lo escrito sube 
   const otra = S.abrir({ alta, eje: cuentaA.eje, yo, fetch: fetchConRed, ahora });
   assert.deepEqual([otra.desde, otra.pendientes(cuentaA.eje)], [sinc.desde, []]);
   const linea = S.lineaDeEstado(sinc, informe);
-  assert.deepEqual(linea, { partes: [t('alDia')], titulo: '', rechazados: [], errores: [] });
-  assert.match(htmlSincronia(linea), /data-sincronia[^>]*>al día con el eje compartido</);
+  // El servidor de prueba da recibos sin el orden firmado (sin `sobre`): la línea lo dice (docs/notas/ORDEN_FIRMADO.md).
+  assert.deepEqual(linea, { partes: [t('alDia')], titulo: '', rechazados: [], errores: [], orden: { estado: 'sin firmar', texto: t('ordenSinFirmar') } });
+  assert.match(htmlSincronia(linea), /data-sincronia[^>]*>al día con el eje compartido<span class="orden-firmado"> · El servidor de este libro no firma el orden de llegada\.<\/span>/);
   assert.equal(htmlSincronia(null), '', 'sin sincronía, nada');
 });
 
@@ -218,7 +219,7 @@ test('un rechazo del servidor aparece en la línea de estado (el desplegable: id
     avanzar(60000);
     informe = await S.pasar(sinc, c.eje, alta);
     assert.deepEqual(informe.subidos, [tercero.id]);
-    assert.deepEqual(S.lineaDeEstado(sinc, informe), { partes: [t('alDia')], titulo: '', rechazados: [], errores: [] });
+    assert.deepEqual(S.lineaDeEstado(sinc, informe), { partes: [t('alDia')], titulo: '', rechazados: [], errores: [], orden: { estado: 'sin firmar', texto: t('ordenSinFirmar') } });
     // Un error (otra clave de lectura) va tal cual.
     const mala = new sincronia.Sincronia({ url: estricto.url, eje: 'tope', claveLectura: 'otra', fetch: fetchConRed, ahora });
     const conError = await mala.sincronizar(c.eje);

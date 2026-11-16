@@ -20,13 +20,17 @@ export const ESQUEMA = 'stateark.recibo@1';
  * La décupla del recibo, sin huecos, sin relleno y SIN TUPLAS (VG 12-11 y 13-11; SIP 0 b052690,
  * stateark/sim 9be12c3). La misma que decuplaDeRecibo de StateArk:
  *   0 ['recibo', clase] · 1 sujeto (ids) · 2 CLAVES · 3 VALORES (mismo orden y largo).
- * Orden de las claves: las de la clase, «universo» siempre y, si existen, «causa» (una por causa),
+ * Orden de las claves: las de la clase, «orden» y «anterior» si los hay (la llegada encadenada, SIP 0;
+ * docs/notas/ORDEN_FIRMADO.md), «universo» siempre y, si existen, «causa» (una por causa),
  * «núcleo», «época»; al final «no afirma», una por cada cosa que no afirma (nunca ninguna).
- * El orden importa: es parte del id.
+ * El orden importa: es parte del id. «orden» va en decimal y como texto ('0', '17'); «anterior»
+ * falta solo en el 0 (vector stateark/sip/vectores/recibos/llegada.json).
  */
-export function decupla({ clase, sujeto, ata, causa, universo, nucleo, epoca, noAfirma }) {
+export function decupla({ clase, sujeto, ata, orden, anterior, causa, universo, nucleo, epoca, noAfirma }) {
   const pares = [
     ...ata,
+    ...(orden !== undefined && orden !== null ? [['orden', String(orden)]] : []),
+    ...(anterior ? [['anterior', anterior]] : []),
     ['universo', universo],
     ...(causa ?? []).map((c) => ['causa', c]),
     ...(nucleo ? [['núcleo', nucleo]] : []),
@@ -56,7 +60,7 @@ export async function verificarRecibo(r) {
   }
 }
 
-const RESERVADOS = ['universo', 'cuánto', 'causa', 'núcleo', 'época', 'no afirma'];
+const RESERVADOS = ['orden', 'anterior', 'universo', 'cuánto', 'causa', 'núcleo', 'época', 'no afirma'];
 
 /** Los campos que más se leen de un recibo. `causa` es siempre una lista (vacía si no hay). */
 export function leerRecibo(r) {
@@ -68,6 +72,8 @@ export function leerRecibo(r) {
     clase: cero[1],
     sujeto,
     ata: pares.filter(([c]) => !RESERVADOS.includes(c)),
+    orden: uno('orden'),
+    anterior: uno('anterior'),
     universo: uno('universo'),
     causa: todos('causa'),
     nucleo: uno('núcleo'),
@@ -93,13 +99,22 @@ const NO_AFIRMA_RECHAZO = [
   'que un núcleo o una época posteriores lo rechacen también',
 ];
 
-/** Recibo de llegada (7701 sin autoridad): lo firma el relé. */
-export const llegada = ({ idAgram, idNostr, eje, instante, rele }, privada) =>
-  firmarRecibo({ clase: 'llegada', sujeto: [idAgram, idNostr], ata: [['eje', eje], ['llegada', instante]], universo: 'relé ' + rele, noAfirma: NO_AFIRMA_LLEGADA }, privada, instante);
+/**
+ * El universo de un recibo encadenable (llegada o aceptación): una cadena por eje y por emisor (Correcciones del 17-11,
+ * docs/notas/ORDEN_FIRMADO.md): «relé <clave> · eje <nombre>».
+ */
+export const universoDeCadena = (rele, eje) => 'relé ' + rele + ' · eje ' + eje;
 
-/** Recibo de aceptación (7701 con autoridad): lo firma la autoridad, con núcleo y época. */
-export const aceptacion = ({ idAgram, idNostr, eje, instante, rele, nucleo, epoca }, privada) =>
-  firmarRecibo({ clase: 'aceptación', sujeto: [idAgram, idNostr], ata: [['eje', eje], ['llegada', instante]], universo: 'relé ' + rele, nucleo, epoca, noAfirma: NO_AFIRMA_ACEPTACION }, privada, instante);
+/**
+ * Recibo de llegada (7701 sin autoridad): lo firma el relé. Con `orden` (entero desde 0, el número del registro en la
+ * cadena de ese eje) y `anterior` (el id del recibo de orden − 1; falta solo en el 0), la llegada encadenada.
+ */
+export const llegada = ({ idAgram, idNostr, eje, instante, rele, orden, anterior }, privada) =>
+  firmarRecibo({ clase: 'llegada', sujeto: [idAgram, idNostr], ata: [['eje', eje], ['llegada', instante]], orden, anterior, universo: universoDeCadena(rele, eje), noAfirma: NO_AFIRMA_LLEGADA }, privada, instante);
+
+/** Recibo de aceptación (7701 con autoridad): lo firma la autoridad, con núcleo y época; encadenado como la llegada. */
+export const aceptacion = ({ idAgram, idNostr, eje, instante, rele, nucleo, epoca, orden, anterior }, privada) =>
+  firmarRecibo({ clase: 'aceptación', sujeto: [idAgram, idNostr], ata: [['eje', eje], ['llegada', instante]], orden, anterior, universo: universoDeCadena(rele, eje), nucleo, epoca, noAfirma: NO_AFIRMA_ACEPTACION }, privada, instante);
 
 /** Recibo de rechazo (7703): lo firma la autoridad; un par ['causa', …] por causa. */
 export const rechazo = ({ idAgram, eje, instante, reason, nucleo, epoca, universo }, privada) =>

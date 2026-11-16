@@ -229,6 +229,19 @@ export function instalar(raiz, m) {
     if ((el = b('[data-buscar-pago]'))) { e.preventDefault(); m.buscarPago?.(el.dataset.x ?? xDe(el)); return; }
     if ((el = b('[data-autorizar]'))) { e.preventDefault(); if (!el.disabled) m.autorizar?.(el.dataset.autorizar); return; }
     if ((el = b('[data-guardian-abrir]'))) { e.preventDefault(); if (!el.disabled) m.abrirGuardian?.(); return; }
+    // El orden firmado contradicho (carta/dom.js htmlSincronia): copiar los dos recibos, que ya están en el texto de al lado.
+    if ((el = b('[data-orden-copiar]'))) {
+      e.preventDefault();
+      const ta = el.closest('[data-orden-fraude]')?.querySelector('[data-orden-pruebas]');
+      if (ta) {
+        ta.select();
+        const aMano = () => el.ownerDocument.execCommand?.('copy'); // sin permiso para el portapapeles: lo seleccionado
+        const portapapeles = el.ownerDocument.defaultView?.navigator?.clipboard;
+        if (portapapeles) portapapeles.writeText(ta.value).catch(aMano);
+        else aMano();
+      }
+      return;
+    }
     if ((el = b('[data-girar]'))) {
       // La tarjeta central flotante de la rejilla: girarla entre su cara 0 y su cara 5 es solo cosa de la pantalla (no cambia el estado).
       e.preventDefault();

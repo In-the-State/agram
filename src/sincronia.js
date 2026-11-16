@@ -47,11 +47,22 @@
 // PAGOS_POR_PASADA); el que llega entra en el eje (eje.marcarPago → X.6.8.3, lo comprueba la regla «paid») y deja de
 // esperarse; pendiente (sin bloque) o inexistente, se sigue esperando. Es una vista del libro, como el sello. Nunca
 // lanza: los fallos van a `informe.pagos.errores` y se reintenta en la siguiente.
+//
+// El orden firmado (src/orden.js; docs/notas/ORDEN_FIRMADO.md): si el recibo trae `sobre` (el recibo único entero, con
+// «orden» y «anterior»), se comprueba (id, firma, pares, sujeto) y se encadena: se guarda entero por registro, porque es lo
+// que sirve de prueba. Dos recibos válidos de la misma cadena que se contradicen (src/orden.js ordenDoble) son una
+// contradicción: va a `informe.orden.fraudes` y queda guardada (`fraudesDeOrden()`), sin romper la sincronización ni tocar
+// el libro, y no se borra sola. Que lo firmado vaya en el mismo orden relativo que lo servido (servido − firmado, fijo por
+// cadena: 1 si el eje nació con ella) se comprueba al encadenar; si no, un aviso en `informe.orden.avisos`. El estado,
+// `orden()`: 'firmado', 'sin firmar' (sin recibos, o sin los dos pares, o que no valen) o 'contradicho'. Con adaptador de
+// sello, tras cada pasada se pide la prueba del id del último recibo encadenado (un id por pasada; lo sella la puerta) y,
+// verificada, se guarda: `ordenSellado()`. Nada de esto entra en las reglas del libro ni cambia ids.
 
 import { Eje } from './eje.js';
 import { configuracion } from './contrato.js';
 import { exterior } from './exterior.js';
 import { decuplaDeSello } from './sello.js';
+import { comprobarRecibo, ordenDoble, cadenaDe } from './orden.js';
 
 export const VERSION_SINCRONIA = 1;
 
@@ -148,6 +159,12 @@ export class Sincronia {
   #esperasDePago = new Map(); // id → { txid } (txid null: se busca por el puntero): lo que espera su recibo de pago
   #pagos = new Map(); // id → el sobre del recibo de pago que ya entró en el eje (eje.marcarPago)
   #pagosPorPasada = PAGOS_POR_PASADA;
+  #cadena = new Map(); // registro → su recibo de orden (el sobre entero, comprobado y encadenado): la prueba
+  #porOrden = new Map(); // `${emisor} ${universo} ${orden}` → registro (índice de #cadena; no se guarda)
+  #desfases = new Map(); // `${emisor} ${universo}` → servido − firmado (fijo en cada cadena; no se guarda)
+  #fraudes = new Map(); // id → la prueba de contradicción (src/orden.js ordenDoble), con los dos recibos enteros
+  #sinFirmar = false; // el último recibo llegó sin `sobre`, sin los dos pares o sin valer
+  #ordenSellado = null; // { orden, recibo, prueba }: hasta dónde está el orden fijado en el tiempo
 
   /**
    * url: la base del servidor (…/functions/v1 en Supabase; http://127.0.0.1:8787 en pruebas). eje: el nombre del eje.
@@ -185,9 +202,32 @@ export class Sincronia {
     return this.#desde;
   }
 
-  /** El orden del servidor de un evento, si se conoce. */
+  /**
+   * Con `id`, el orden del servidor de ese evento, si se conoce. Sin argumentos, el estado del orden firmado: 'contradicho'
+   * si hay una contradicción guardada; 'sin firmar' si el servidor no da recibos (detectado en esta sesión), el último
+   * llegó sin los dos pares o no valía, o aún no hay ninguno encadenado; si no, 'firmado'.
+   */
   orden(id) {
-    return this.#ordenes.get(id);
+    if (arguments.length) return this.#ordenes.get(id);
+    if (this.#fraudes.size) return 'contradicho';
+    if (this.#sinRutaDeRecibo || this.#sinFirmar || !this.#cadena.size) return 'sin firmar';
+    return 'firmado';
+  }
+
+  /** Las contradicciones del orden guardadas: [{ clase, motivo, emisor, universo, ordenes, registros, a, b, id }] (copias). */
+  fraudesDeOrden() {
+    return [...this.#fraudes.values()].map((p) => JSON.parse(JSON.stringify(p)));
+  }
+
+  /** El recibo de orden encadenado de un registro (el sobre entero), o undefined. */
+  reciboDeOrden(id) {
+    const s = this.#cadena.get(id);
+    return s ? JSON.parse(JSON.stringify(s)) : undefined;
+  }
+
+  /** Hasta qué orden está fijado en el tiempo: { orden, recibo, prueba } (la prueba del sello del id de ese recibo) o null. */
+  ordenSellado() {
+    return this.#ordenSellado ? JSON.parse(JSON.stringify(this.#ordenSellado)) : null;
   }
 
   /** La hora del servidor (`recibido`) de un evento, si se conoce. */
@@ -407,6 +447,7 @@ export class Sincronia {
     informe.pendientes = this.pendientes(eje);
     await this.#recibir(eje, informe);
     await this.#sellar(eje, informe);
+    await this.#rematar(informe);
     await this.#pagar(eje, informe);
     return informe;
   }
@@ -472,6 +513,7 @@ export class Sincronia {
           break;
         }
         eje.marcarRecibo(id, datos);
+        this.#encadenar(id, datos.sobre, informe);
         this.#recibos.set(id, eje.recibo(id) ?? 'sin recibo');
         if (eje.recibo(id)) r.recibidos.push(id);
         else r.errores.push({ id, motivo: 'el recibo del servidor no tiene la forma esperada' });
@@ -493,6 +535,100 @@ export class Sincronia {
       return;
     }
     r.pendientes = [...this.#recibos].filter(([id, e]) => e === 'por pedir' && eje.eventos.has(id)).length;
+  }
+
+  /** `informe.orden` ({ encadenados, avisos, fraudes, errores }), creado la primera vez que hace falta. */
+  #informeDeOrden(informe) {
+    return (informe.orden ??= { encadenados: [], avisos: [], fraudes: [], errores: [] });
+  }
+
+  /**
+   * El recibo de orden de `id` (el `sobre` de GET /eventos/recibo): sin él, o si no vale, el orden queda 'sin firmar' (lo
+   * que no vale, con un aviso). Si vale: se busca contra lo que ya se tiene (el mismo registro, y los órdenes n − 1, n y
+   * n + 1 de su cadena) la contradicción; la que sale se guarda y el recibo no cambia nada de lo que había. Si no, se
+   * encadena y se comprueba contra el orden servido (servido − firmado, fijo en la cadena y al menos 1).
+   */
+  #encadenar(id, sobre, informe) {
+    if (sobre === undefined || sobre === null) {
+      this.#sinFirmar = true;
+      return;
+    }
+    const r = this.#informeDeOrden(informe);
+    const c = comprobarRecibo(sobre, { registro: id });
+    if (!c.ok) {
+      this.#sinFirmar = true;
+      r.avisos.push({ id, motivo: 'el recibo de orden no vale: ' + c.motivo });
+      return;
+    }
+    this.#sinFirmar = false;
+    const cadena = cadenaDe(c);
+    const n = Number(c.orden);
+    const ya = this.#cadena.get(id);
+    const contra = ya && ya.id !== sobre.id ? [ya] : [];
+    for (const k of [n - 1, n, n + 1]) {
+      const otro = this.#porOrden.get(cadena + ' ' + k);
+      if (otro !== undefined && otro !== id) contra.push(this.#cadena.get(otro));
+    }
+    let contradice = false;
+    for (const otro of contra) {
+      const p = ordenDoble(otro, sobre);
+      if (!p) continue;
+      contradice = true;
+      if (!this.#fraudes.has(p.id)) {
+        this.#fraudes.set(p.id, p);
+        r.fraudes.push(JSON.parse(JSON.stringify(p)));
+      }
+    }
+    if (contradice || ya) return; // lo que ya se tenía no cambia
+    const { schema, emisor, t, recibo, id: idRecibo, firma } = sobre;
+    this.#guardarEslabon(id, JSON.parse(JSON.stringify({ schema, emisor, t, recibo, id: idRecibo, firma })), c);
+    r.encadenados.push(id);
+    const servido = this.#ordenes.get(id);
+    if (!Number.isSafeInteger(servido)) return;
+    const desfase = servido - n;
+    const fijo = this.#desfases.get(cadena);
+    if (fijo === undefined && desfase >= 1) this.#desfases.set(cadena, desfase);
+    else if (desfase !== fijo) r.avisos.push({ id, firmado: n, servido, motivo: 'el servidor no sirve en el orden que firma' });
+  }
+
+  /** Apunta un recibo comprobado (`c`, de comprobarRecibo) en la cadena y su índice. */
+  #guardarEslabon(id, sobre, c = comprobarRecibo(sobre)) {
+    this.#cadena.set(id, sobre);
+    this.#porOrden.set(cadenaDe(c) + ' ' + Number(c.orden), id);
+  }
+
+  /** El último recibo encadenado (el de mayor «orden»): { orden, recibo } o null. */
+  #ultimoEslabon() {
+    let ultimo = null;
+    for (const [clave, id] of this.#porOrden) {
+      const n = Number(clave.slice(clave.lastIndexOf(' ') + 1));
+      if (!ultimo || n > ultimo.orden) ultimo = { orden: n, recibo: this.#cadena.get(id).id };
+    }
+    return ultimo;
+  }
+
+  /**
+   * El remate: con adaptador de sello, se pide la prueba del id del último recibo encadenado (uno por pasada; lo manda a
+   * sellar la puerta, en su lote) y, si ya está en un bloque y `verificar` la da por buena, se guarda en `ordenSellado()`.
+   * Un fallo del sello va a `informe.orden.errores` y no rompe nada.
+   */
+  async #rematar(informe) {
+    if (!this.#sello) return;
+    const ultimo = this.#ultimoEslabon();
+    if (!ultimo || (this.#ordenSellado && this.#ordenSellado.orden >= ultimo.orden)) return;
+    try {
+      const p = await this.#sello.prueba(ultimo.recibo);
+      if (!p || p.pendiente) return;
+      const v = await this.#sello.verificar(ultimo.recibo, p);
+      if (v?.ok !== true) {
+        this.#informeDeOrden(informe).errores.push({ id: ultimo.recibo, motivo: v?.motivo ?? 'la prueba no se pudo verificar' });
+        return;
+      }
+      this.#ordenSellado = { ...ultimo, prueba: JSON.parse(JSON.stringify(p)) };
+      this.#informeDeOrden(informe).sellado = { orden: ultimo.orden, recibo: ultimo.recibo };
+    } catch (e) {
+      this.#informeDeOrden(informe).errores.push({ id: ultimo.recibo, motivo: e?.message ?? String(e) });
+    }
   }
 
   /**
@@ -622,7 +758,58 @@ export class Sincronia {
       ...(this.#recibos.size ? { recibos: [...this.#recibos].map(([id, e]) => [id, typeof e === 'object' ? { ...e } : e]) } : {}),
       ...(this.#sellos.size ? { sellos: [...this.#sellos].map(([id, e]) => [id, typeof e === 'object' ? { ...e } : e]) } : {}),
       ...(this.#esperasDePago.size || this.#pagos.size ? { pagos: { esperas: [...this.#esperasDePago].map(([id, e]) => [id, { ...e }]), anotados: [...this.#pagos].map(([id, sobre]) => [id, JSON.parse(JSON.stringify(sobre))]) } } : {}),
+      ...(this.#cadena.size || this.#fraudes.size || this.#sinFirmar || this.#ordenSellado ? { orden: this.#ordenGuardable() } : {}),
     };
+  }
+
+  /**
+   * El orden firmado, guardable: la cadena compacta (el último recibo entero como `plantilla` y, de cada registro, solo lo
+   * que cambia respecto a ella: t, el resto del sujeto, los valores distintos por posición, id y firma; el que no tiene las
+   * mismas claves, entero), las contradicciones enteras, `sinFirmar` y el sello del orden. Se rehace exacto (restaurar).
+   */
+  #ordenGuardable() {
+    const recibos = [...this.#cadena];
+    const plantilla = recibos.at(-1)?.[1] ?? null; // el último: el 0 no lleva «anterior» y no serviría de plantilla
+    const mismas = (s) => plantilla && s.emisor === plantilla.emisor && s.recibo.length === 4 && plantilla.recibo.length === 4
+      && JSON.stringify([s.recibo[0], s.recibo[2]]) === JSON.stringify([plantilla.recibo[0], plantilla.recibo[2]]);
+    const compacto = ([id, s]) => {
+      if (!mismas(s) || s.recibo[1][0] !== id) return [id, { sobre: JSON.parse(JSON.stringify(s)) }];
+      const v = [];
+      s.recibo[3].forEach((x, i) => { if (x !== plantilla.recibo[3][i]) v.push([i, x]); });
+      return [id, { t: s.t, s: s.recibo[1].slice(1), v, id: s.id, f: s.firma }];
+    };
+    return {
+      ...(plantilla ? { plantilla: JSON.parse(JSON.stringify(plantilla)), cadena: recibos.map(compacto) } : {}),
+      ...(this.#fraudes.size ? { fraudes: this.fraudesDeOrden() } : {}),
+      ...(this.#sinFirmar ? { sinFirmar: true } : {}),
+      ...(this.#ordenSellado ? { sellado: this.ordenSellado() } : {}),
+    };
+  }
+
+  /** Rehace el orden firmado de lo guardado (#ordenGuardable): la cadena, su índice, los desfases y las contradicciones. */
+  #restaurarOrden(o) {
+    if (!o || typeof o !== 'object') return;
+    const p = o.plantilla;
+    for (const [id, x] of Array.isArray(o.cadena) ? o.cadena : []) {
+      let s = x?.sobre;
+      if (!s && p && x && typeof x === 'object') {
+        const valores = [...p.recibo[3]];
+        for (const [i, v] of Array.isArray(x.v) ? x.v : []) valores[i] = v;
+        s = { schema: p.schema, emisor: p.emisor, t: x.t, recibo: [p.recibo[0], [id, ...(x.s ?? [])], p.recibo[2], valores], id: x.id, firma: x.f };
+      }
+      const c = s ? comprobarRecibo(s, { registro: id, firma: false }) : null; // la firma se comprobó al llegar
+      if (!c?.ok) continue; // lo que no se rehace exacto (estropeado) no se encadena
+      this.#guardarEslabon(id, JSON.parse(JSON.stringify(s)), c);
+      const servido = this.#ordenes.get(id);
+      if (Number.isSafeInteger(servido) && !this.#desfases.has(cadenaDe(c)) && servido - Number(c.orden) >= 1) this.#desfases.set(cadenaDe(c), servido - Number(c.orden));
+    }
+    for (const f of Array.isArray(o.fraudes) ? o.fraudes : []) {
+      const prueba = ordenDoble(f);
+      if (prueba) this.#fraudes.set(prueba.id, prueba);
+    }
+    this.#sinFirmar = o.sinFirmar === true;
+    const s = o.sellado;
+    if (s && Number.isSafeInteger(s.orden) && typeof s.recibo === 'string' && s.prueba && typeof s.prueba === 'object') this.#ordenSellado = { orden: s.orden, recibo: s.recibo, prueba: s.prueba };
   }
 
   /** Reconstruye desde lo guardado; `opciones` trae la clave de lectura (y, si se quiere, otra url o eje, firmar, fetch). */
@@ -651,6 +838,8 @@ export class Sincronia {
         s.#esperasDePago.delete(id);
       }
     }
+    // Lo guardado antes del orden firmado no trae `orden`: se restaura igual, sin cadena.
+    s.#restaurarOrden(datos.orden);
     return s;
   }
 }
