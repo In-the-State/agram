@@ -569,7 +569,9 @@ function htmlCustodia(c) {
   const ramas = (c.enlazadas ?? []).map((r) => `<div class="custodia-rama"><small class="custodia-rama-por">${escapar(t('custodiaTambien', { por: r.porTexto ?? '' }))}</small>${htmlPadresDeRama(r.padres)}</div>`).join('');
   const plazo = c.plazo ? `<small class="custodia-plazo">${escapar(t('custodiaPlazo', { plazo: c.plazoEscala ? t('custodiaUna', { escala: t('escalaUna_' + c.plazoEscala) }) : t('custodiaSegundos', { n: c.plazo.segundos }), clase: textoClase(c.clase) }))}</small>` : '';
   const nodo = c.nodo ? `<small class="custodia-nodo">${escapar(t('custodiaNodo'))}</small>` : '';
-  return `<div class="custodia" data-padres="${c.padres?.length ?? 0}"${c.heredado ? ' data-heredado' : ''}><h4>${escapar(t(c.libro ? 'custodiaLibro' : 'custodiaTitulo'))}</h4>${padres}${heredado}${ramas}${plazo}${nodo}${htmlPorPadre(c.porPadre)}</div>`;
+  // Una línea por libro privado que cuelga de aquí (encargo «abrir aquí un libro privado»): que existe y quién lo abrió; el id, en corto y sin enlace.
+  const privados = (c.privados ?? []).map((l) => `<small class="custodia-privado">${escapar(t('custodiaLibroPrivado', { libro: corto(l.libro), quien: l.quien ?? '' }))}</small>`).join('');
+  return `<div class="custodia" data-padres="${c.padres?.length ?? 0}"${c.heredado ? ' data-heredado' : ''}><h4>${escapar(t(c.libro ? 'custodiaLibro' : 'custodiaTitulo'))}</h4>${padres}${heredado}${ramas}${plazo}${nodo}${privados}${htmlPorPadre(c.porPadre)}</div>`;
 }
 
 /** En «este libro», con más de una rama: cada padre con las ramas en que guarda, sella y lee (contrato.ramasDelLibro, por carta.js). */
