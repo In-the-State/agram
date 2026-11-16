@@ -691,7 +691,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
 function porAutorizarDe(eje, X, pv, ctx) {
   if (pv !== 6 || !ctx.yo || eje.alta(ctx.yo)?.id !== X) return null;
   const lista = contrato.porAutorizar(eje, ctx.yo, { epoca: ctx.opciones.epoca, idioma: ctx.opciones.idioma });
-  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio })) : null;
+  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado) })) : null;
 }
 
 /** El nombre de la plantilla de datos de X en el idioma, o null si no tiene. */
@@ -883,6 +883,12 @@ function ejecucionDe(eje, X, accion, yo, valores, o) {
     escala: escala ?? e.propuesta.desde, elegida: Boolean(escala), cubre: e.cubre, alcanza: e.alcanza, escalas: e.escalas,
     incompleto: Boolean(e.incompleto), // faltan parámetros: lo exigido es el de lo que ya hay
     boton: contrato.botonDeEjecutar(eje, X, o),
+    // Los motivos que el núcleo da sin bloquear (lo que falta al registro, la lectura de segundo factor desbordada: `estado`
+    // PENDIENTE), en llano (VG 14-11, #89 y #70): arriba del botón si está apagado, como aviso si no.
+    motivos: motivosEnLlano(e.motivos, eje, o),
+    desbordado: (e.motivos ?? []).some((m) => m.estado === 'PENDIENTE'),
+    // El desglose de la autorización (#70, partes.autorizacion.transferencias): una línea por cosa titular, con su nombre legible.
+    autorizacion: (e.partes.find((p) => p.parte === 'autorizacion')?.transferencias ?? []).map((x) => ({ ...x, cosaTexto: legibleDe(eje, x.cosa, ['identity'], o).texto })),
     // el segundo factor (VG 12/13-11, #66, #70): lo que movería alcanza un criterio de quien ejecuta; se avisa antes
     ...(e.segundoFactor?.exige ? { segundoFactor: { titulares: e.segundoFactor.titulares } } : {}),
   };
@@ -923,7 +929,14 @@ export async function previsualizar(eje, X, accion, valores, yo, firmar, opcione
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
   const quien = (x) => (x === null || x === undefined ? t('nadie') : legibleDe(eje, x, ['identity'], o).texto);
   const movimientos = (r.evento?.movimientos ?? []).map((m) => `${quien(m.de)} → ${quien(m.a)} · ${legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto}${m.estado ? ' · ' + m.estado + (m.salida ? ' ' + m.salida : '') : ''}`);
-  return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
+  // Lo que se enseña al mantener pulsado un paso del camino (VG 14-11, #90): una frase, «se movería 1 hora de ti a cocina».
+  const sujeto = (x) => (x === yo ? t('previaTu') : quien(x));
+  const cuanto = (m) => legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto;
+  const frases = (r.evento?.movimientos ?? []).map((m) => {
+    const clave = m.estado === 'anunciado' ? 'previaAnuncia' : m.de === null || m.de === undefined ? 'previaCrea' : m.a === null || m.a === undefined ? 'previaGasta' : 'previaMueve';
+    return t(clave, { cuanto: cuanto(m), de: sujeto(m.de), a: sujeto(m.a) });
+  });
+  return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, frase: frases.join('; '), ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
 }
 
 /**
@@ -1591,11 +1604,12 @@ function valorEnLlano(eje, p, ctx) {
   const partes = [cero !== undefined ? String(cero) : legibleDe(eje, { ref: p.de }, null, ctx.opciones).texto];
   const [desde, hasta] = hojas(hojas(pl[6])[2]);
   if (typeof desde === 'string' && typeof hasta === 'string' && Date.parse(desde) <= Date.parse(hasta)) {
-    partes.push(t('ratoMinutos', { n: Math.max(1, Math.round((Date.parse(hasta) - Date.parse(desde)) / 60000)) }));
+    const n = Math.max(1, Math.round((Date.parse(hasta) - Date.parse(desde)) / 60000));
+    partes.push(t(n === 1 ? 'ratoUnMinuto' : 'ratoMinutos', { n }));
     const cuando = horaLlana(hasta);
     if (cuando) partes.push(cuando);
   }
-  return partes.join(' · ');
+  return partes.join(', ');
 }
 
 /**
@@ -2203,7 +2217,7 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     ...(secuencia ? { secuencia: { filas: secuencia.filas, pasado: secuencia.pasado, futuro: secuencia.futuro, digitos: secuencia.digitos } } : {}),
     aro,
     sitio,
-    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, animado } : null,
+    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, reverso: Boolean(estado.formulario.reverso), animado } : null,
     camino,
     local: localDe(estado.local, opciones.t),
     tiempo: yoDatos?.tiempo ?? null,

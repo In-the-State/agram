@@ -272,7 +272,7 @@ function datosGuia() {
     aqui: evaluadas.filter((e) => e.sobre === estado.foco.X).length,
     fuera: evaluadas.filter((e) => e.sobre !== estado.foco.X).map((e) => (e.sobre ? { ...e, sobreTexto: contrato.legible(estado.eje, { ref: e.sobre }, null, { idioma: idioma() }).texto } : e)),
   };
-  return { historial: g.historial, pensando: g.pensando, pendiente: g.pendiente, error: g.error, borrador: g.borrador, preguntas: guia.preguntasRapidas(estado.eje, idioma()), via: aj.via, propuestas };
+  return { historial: g.historial, pensando: g.pensando, pendiente: g.pendiente, error: g.error, borrador: g.borrador, preguntas: guia.preguntasRapidas(estado.eje, idioma()), via: aj.via, ejemplo: !estado.cuenta, propuestas };
 }
 
 /** Repinta solo la sección de la guía (repintarlo todo borraría lo que se está escribiendo y el desplazamiento). */
@@ -931,6 +931,15 @@ const manejadores = {
     tocar(f.X, 'denominación ' + escala);
     pintar();
   },
+  /** El reverso del formulario (VG 14-11, #89): fórmulas, tipos y BTML en crudo; se abre a propósito y vuelve. Lo escrito se guarda antes de repintar. */
+  voltearFormulario(form) {
+    const f = estado.formulario;
+    if (!f) return;
+    if (form) f.valores = { ...f.valores, ...valoresDelFormulario(form).valores };
+    f.reverso = !f.reverso;
+    tocar(f.X, 'reverso del formulario ' + (f.reverso ? 'abierto' : 'cerrado'));
+    pintar();
+  },
   async enviar(form) {
     const f = estado.formulario;
     if (!f) return;
@@ -1166,7 +1175,7 @@ const manejadores = {
     try {
       const destino = guia.destinoDe(eje, yo);
       r = await guia.preguntar({
-        via: aj.via, url: destino?.url, ejeCompartido: destino?.eje, claveLectura: cuentas.claveLectura(alta), claveIa: guia.claveIa(almacenLocal(), alta),
+        via: aj.via, ejemplo: !estado.cuenta, url: destino?.url, ejeCompartido: destino?.eje, claveLectura: cuentas.claveLectura(alta), claveIa: guia.claveIa(almacenLocal(), alta),
         modelo: aj.modelo, instrucciones: guia.instrucciones(eje, estado.foco.X, yo), historial: g.alta === alta ? g.historial : [], pregunta: texto, maximo: aj.historial,
         contexto: await guia.contexto(estado, eje, yo, { ...medidas(), cuenta: Boolean(estado.cuenta), tope: aj.contexto }),
       });

@@ -187,7 +187,9 @@ small{color:var(--muted)}
 .camino .paso.hecho{color:var(--muted);text-decoration:line-through}
 .camino .paso.espera .marca{color:var(--warn);font-style:italic}
 /* encargo «datos3»: previsualizar un paso (no escribe) y lo que daría */
-.camino .paso .previsualizar{font-size:12px;padding:1px 8px;border:1px dashed var(--rule);border-radius:999px;background:transparent;color:var(--fg)}
+.camino .paso .voltear-paso{font-size:12px;padding:0 6px;min-height:0;border:1px dashed var(--rule);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer}
+.camino .paso .paso-reverso{flex-basis:100%;display:flex;flex-wrap:wrap;gap:2px 10px;color:var(--muted)}
+.camino .paso .paso-reverso[hidden]{display:none}
 .camino .paso .previa{flex-basis:100%;font-size:12px;color:var(--muted)}
 .camino .paso .previa.no-pasa{color:var(--warn)}
 .camino .fuente{font-family:var(--mono);color:var(--muted);font-size:11px}
@@ -310,6 +312,21 @@ small{color:var(--muted)}
 .formulario details.btml{font-size:12px;color:var(--muted,inherit)}
 .formulario details.btml summary{cursor:pointer}
 .formulario details.btml code{font-size:11px;overflow-wrap:anywhere}
+.formulario header{align-items:flex-start}
+.formulario header h2{margin-right:auto}
+.formulario .voltear-formulario{min-width:32px;min-height:32px;padding:0 8px;border:1px dashed var(--rule);border-radius:999px;background:transparent;color:var(--muted);cursor:pointer}
+.formulario .voltear-formulario[aria-pressed="true"]{color:var(--fg);border-style:solid}
+.formulario .cara{display:grid;gap:10px}
+.formulario .cara[hidden]{display:none}
+.formulario .cara-reverso h3{margin:0;font-size:13px;color:var(--muted)}
+.formulario .cara-reverso h4{margin:6px 0 2px;font-size:12px;color:var(--muted);font-weight:500}
+.formulario .campos-reverso,.formulario .cara-reverso .exigido{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:12px}
+.formulario .campos-reverso code,.formulario .cara-reverso .exigido code{font-size:11px;overflow-wrap:anywhere}
+.formulario .boton-apagado-motivo{margin:0;padding:6px 8px;border-left:3px solid var(--rule);background:var(--panel);font-size:13px;color:var(--muted)}
+.ejecucion-t .exigido-total{margin:0;font-size:14px}
+.ejecucion-t .autoriza{list-style:none;margin:0;padding:0;font-size:13px;display:flex;flex-direction:column;gap:2px}
+.ejecucion-t .aviso.desbordado,.por-autorizar .marca-desbordado{color:var(--warn)}
+.por-autorizar .desbordado{border-left:3px solid var(--warn);padding-left:6px}
 .formulario footer button{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);width:100%;min-height:44px}
 /* Ejecutar desde el 4 (VG 12-11, decisión 7 de #49): lo exigido en T, la denominación y el botón que cambia con el rango */
 .ejecucion-t{display:flex;flex-direction:column;gap:4px;margin:8px 0;padding:8px 10px;border:1px solid var(--rule);border-radius:6px;background:var(--panel)}
