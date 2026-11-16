@@ -1,7 +1,7 @@
 {
-  "epoca": "164afd644225700fc44828fb1d207056c188d1d6c73ad0369876739a3ce9663e",
+  "epoca": "67f8e735df5926ca050fe994652998803c4aa61495eb2202ece175637f61d244",
   "hereda": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a",
-  "registrosAlPublicar": 63,
+  "registrosAlPublicar": 65,
   "reglas": [
     {
       "nombre": "a delivery result comes from whoever delivers",
@@ -11,7 +11,7 @@
     {
       "nombre": "a message carries a text or a file",
       "archivo": "a-message-carries-a-text-or-a-file.json",
-      "id": "a86a0e008b60cae44e5018418e27f3adc6f74de40c1a9cad88ebe3fa12a997ac"
+      "id": "e1af37fe97741aa662390662134309deca60b4fbce1ccdb35a305dadc63f949e"
     },
     {
       "nombre": "a message names a channel and its interlocutor",
@@ -36,7 +36,7 @@
     {
       "nombre": "attention group",
       "archivo": "attention-group.json",
-      "id": "a74b2d0b91f22b62960cb7f104d04870ba6e2e9fcc27279b8e69b225ea7b7a83"
+      "id": "a354167b92b3255a435601be3563047f5e49088d193a4548adaafb1bba7f800d"
     },
     {
       "nombre": "attention has a price",
@@ -101,12 +101,12 @@
     {
       "nombre": "who opens, renames and archives a conversation",
       "archivo": "who-opens-renames-and-archives-a-conversation.json",
-      "id": "b135daef7c2e0fd7b82d2320d929c0406681333470abe554e482e11ef00a10e6"
+      "id": "fda51c4bb157e7684c434a622e6dff2cfccbfe867b562696c0d94300ae599321"
     },
     {
       "nombre": "who writes a message",
       "archivo": "who-writes-a-message.json",
-      "id": "f0cfe84bf36bee0c665fe0ac2e03aa63ff2f3d8226bffb2e5d1f406caee019d5"
+      "id": "3532737270774c95da7bb46ef28d5ae614ba4eff753d0b5ea520bc2625c85cfe"
     }
   ],
   "plantillas": [
@@ -230,7 +230,7 @@
     {
       "nombre": "open a conversation",
       "archivo": "open-a-conversation.json",
-      "id": "644b8aaabffaa07052a17a3d12d21148236ca832fde97b6660fab2b679980498",
+      "id": "55626226af8d5af2639a365ac14bb5cdd26a6ef5df898044e61cdd3513d52d33",
       "ocho": [
         1,
         24
@@ -252,6 +252,15 @@
       "ocho": [
         1,
         26
+      ]
+    },
+    {
+      "nombre": "open a conversation as an agent",
+      "archivo": "open-a-conversation-as-an-agent.json",
+      "id": "3eae5d1ff2ee85ddcc641e0c02f57178d5c4782a637375d4f3096feaceafd1e8",
+      "ocho": [
+        1,
+        27
       ]
     },
     {
@@ -284,7 +293,7 @@
     {
       "nombre": "anchor served",
       "archivo": "anchor-served.json",
-      "id": "fc50e891c14e2e7b007544336c00b393692c0850fad56057d9f9ef2209abdcfe",
+      "id": "fa42f3956372b82da8e98b5a3be37857b2c559233f728b04a43c68c269850c58",
       "ocho": [
         3,
         12
@@ -293,7 +302,7 @@
     {
       "nombre": "message in",
       "archivo": "message-in.json",
-      "id": "571122e36ba5fefb77d63511e0158cada0b75163cc1caed6b0838b8f8782eb55",
+      "id": "9003af8a6035fb1caecb0eb789da4f9336004d21e8055ad02a836e0a9552ab7b",
       "ocho": [
         3,
         13
@@ -302,10 +311,19 @@
     {
       "nombre": "message out",
       "archivo": "message-out.json",
-      "id": "9df12fad21b3fec49a5af4e7e1a48a715c75f33c41e3a2677e8de017d6356702",
+      "id": "5ef7b6363129a91c19d26011b97b700cc6c53262045b9f3884efb6d3d33b5dca",
       "ocho": [
         3,
         14
+      ]
+    },
+    {
+      "nombre": "message in from an agent",
+      "archivo": "message-in-from-an-agent.json",
+      "id": "51c58e8b205331f5f18eb742ada948c123af97531951ae7267530b71511aec48",
+      "ocho": [
+        3,
+        15
       ]
     },
     {

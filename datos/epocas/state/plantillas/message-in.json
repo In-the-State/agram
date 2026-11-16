@@ -69,21 +69,36 @@
       ["optional"],
       [5],
       [
-        "=(\"-\" where count ((payload(ev)).1.4) > 0)",
+        "=(\"-\" where (count ((payload(ev)).1.4) > 0 or count ((payload(ev)).1.5) > 0))",
         "a pointer to a file (optional if there is a text): the sha256 of a blob (64 hexadecimal characters in lower case) or «telegram:» and the identifier of the file"
       ]
     ],
     [
       ["reply to"],
       ["ref"],
-      ["=(first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"],
+      ["=it = \"-\" or (first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"],
       ["me"],
       ["payload"],
       ["1.4"],
       ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
       ["optional"],
       [6],
-      ["the message this one answers (optional): a message of the same conversation"]
+      [
+        "=(\"-\" where count ((payload(ev)).1.5) > 0)",
+        "the message this one answers (optional): a message of the same conversation; «-» if there is none and the record says how much R it gives"
+      ]
+    ],
+    [
+      ["give"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1.5"],
+      ["Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «message in»"],
+      ["optional"],
+      [7],
+      ["how much R I give to the agent of the conversation so that it answers (optional; without it, one unit): a person gives its own R (on an outside channel, the service, its own); another agent passes R of its owner"]
     ]
   ],
   ["=\"conversation with an agent\" in (payload(it)).5 and not (count ((down it) where last (first it2.6).5 = \"4000000000\" and \"archive a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3)) > 0) and (first (payload(it)).3.1 = me or first (payload(it)).3.1 != me and first (first (first (payload(it)).3.1).6).3 = me)"],
@@ -91,11 +106,16 @@
     ["me"],
     ["person"]
   ],
-  ["write"],
+  [
+    "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and transfer first memo.1.5 R.(me) from me to first (payload(it)).1)",
+    "=not (count me.6 = 0 or first (first me.6).3 = me) and transfer 1 R.(first (first (first (payload(it)).1).6).3) from me to first (first (first (payload(it)).1).6).3",
+    "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and transfer 1 R.(first (first me.6).3) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and transfer first memo.1.5 R.(first (first me.6).3) from me to first (payload(it)).1)"
+  ],
   ["3"],
   [
-    "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). No mueve más que el coste de escribir y no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
+    "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). Además del coste de escribir mueve R (la nota de «la R en los canales»); no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
     "Lo que entra, siempre del interlocutor de la conversación (su 3.1). Quién lo escribe: en un canal de fuera (no está en epoch.9.0.5.2), solo quien dio de alta al interlocutor (el autor de su alta: el servicio), así que nadie más habla en su nombre; en el canal de la casa (house, en epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe)",
+    "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): un agente solo escribe a quien le ha dado R, y cada mensaje que escribe se la gasta. Lo que entra le da R al agente de la conversación (su 1), en el mismo registro: una persona (en la casa, quien escribe; fuera, el servicio, que escribe en nombre del interlocutor) da R suya (pone en mano lo que le falte: la primera vez la acuña, y eso quema T real); otro agente (agente con agente, en la casa: lo escribe con «message in from an agent») devuelve una unidad de R del dueño de este agente a ese dueño y le pasa R de su propio dueño, de la que guarda. Cuánta da va en 1.5, opcional: sin él, una unidad, y el registro pesa lo mismo que antes; con él, el 1.3 y el 1.4 que falten van como «-» (un payload no tiene huecos). Sin esa R no entra: lo exige también a lo escrito a mano «who writes a message»",
     "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
   ],
   ["state 0"],

@@ -1,5 +1,5 @@
 {
-  "id": "164afd644225700fc44828fb1d207056c188d1d6c73ad0369876739a3ce9663e",
+  "id": "67f8e735df5926ca050fe994652998803c4aa61495eb2202ece175637f61d244",
   "hereda": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a",
   "raiz": [
     [
@@ -14,7 +14,7 @@
         "ref": "c2e1ba5bc6801c97d73e72ad062daded240378069d9c6af92e8547fb646b067f"
       },
       {
-        "ref": "a86a0e008b60cae44e5018418e27f3adc6f74de40c1a9cad88ebe3fa12a997ac"
+        "ref": "e1af37fe97741aa662390662134309deca60b4fbce1ccdb35a305dadc63f949e"
       },
       {
         "ref": "38716c46da0331602eb80761fce1a4919e16c1d7be0f7f4e128987fbfd8663f4"
@@ -29,7 +29,7 @@
         "ref": "f2d2a07e502ffb783248b0162f322df179c4894538587a96955053b4db71402e"
       },
       {
-        "ref": "a74b2d0b91f22b62960cb7f104d04870ba6e2e9fcc27279b8e69b225ea7b7a83"
+        "ref": "a354167b92b3255a435601be3563047f5e49088d193a4548adaafb1bba7f800d"
       },
       {
         "ref": "9ed8491e4e3f4399bee4521cf886bbdef52355897c6474090141fa969813f713"
@@ -68,10 +68,10 @@
         "ref": "323c60eb15ec9ef25e8948e28feb3f274ed5272a8899a4ba5cee86422006cf63"
       },
       {
-        "ref": "b135daef7c2e0fd7b82d2320d929c0406681333470abe554e482e11ef00a10e6"
+        "ref": "fda51c4bb157e7684c434a622e6dff2cfccbfe867b562696c0d94300ae599321"
       },
       {
-        "ref": "f0cfe84bf36bee0c665fe0ac2e03aa63ff2f3d8226bffb2e5d1f406caee019d5"
+        "ref": "3532737270774c95da7bb46ef28d5ae614ba4eff753d0b5ea520bc2625c85cfe"
       }
     ],
     {
@@ -1600,6 +1600,8 @@
             "template anchor served param level help: el nivel de la cabecera madre: un nivel de la cascada (epoch.7.6.1), el pedido o uno de encima",
             "template anchor served param path label: camino",
             "template anchor served param path help: el camino de la cabecera pedida a la madre: un texto corto (hoy, «sip»)",
+            "template anchor served param give label: R que doy",
+            "template anchor served param give help: cuánta R mía devuelvo a quien pidió, para que pueda volver a pedir (opcional; sin ella, una unidad; con 0, ninguna): es mi R y no la exige ninguna regla",
             "template anchor served message: ancla servida: {me} ancló la cabecera de lote que pidió {last ev.3} en una cabecera madre de nivel {last ev.6.2}",
             "template declare my relays: declarar mis relés",
             "template declare my relays param relays label: relés",
@@ -1701,7 +1703,27 @@
             "template open a conversation param interlocutor help: quién habla con el agente: la persona que la abre (por defecto, yo) o, en un canal de fuera, el interlocutor cuya alta escribí",
             "template open a conversation param type label: tipo",
             "template open a conversation param type help: el tipo del registro: una conversación con un agente, un contexto del agente",
+            "template open a conversation param give label: R que doy",
+            "template open a conversation param give help: cuánta R mía doy al agente para que pueda escribirme el primero (opcional; sin ella, una unidad); el servicio, la suya",
             "template open a conversation message: abrir una conversación: {me} abre una conversación con {first (payload(ev)).1}",
+            "template open a conversation as an agent: abrir una conversación como agente",
+            "template open a conversation as an agent param title label: título",
+            "template open a conversation as an agent param title help: el título de la conversación (opcional); sin él, el registro dice quién la abre y con qué agente",
+            "template open a conversation as an agent param agent label: agente",
+            "template open a conversation as an agent param agent help: el agente con quien es la conversación: una identidad declarada agente en este libro (por defecto, aquella cuya alta es X)",
+            "template open a conversation as an agent param criteria label: criterio de cierre",
+            "template open a conversation as an agent param criteria help: la plantilla de cerrado del registro",
+            "template open a conversation as an agent param who label: quién",
+            "template open a conversation as an agent param who help: quién la abre: el agente que habla con el otro",
+            "template open a conversation as an agent param interlocutor label: interlocutor",
+            "template open a conversation as an agent param interlocutor help: quién habla con el agente: el agente que la abre (por defecto, yo)",
+            "template open a conversation as an agent param actions label: acción",
+            "template open a conversation as an agent param actions help: la acción",
+            "template open a conversation as an agent param type label: tipo",
+            "template open a conversation as an agent param type help: el tipo del registro: una conversación con un agente, un contexto del agente",
+            "template open a conversation as an agent param give label: R que paso",
+            "template open a conversation as an agent param give help: cuánta R de mi dueño paso al agente para que pueda escribirme el primero (opcional; sin ella, una unidad; con 0, ninguna)",
+            "template open a conversation as an agent message: abrir una conversación como agente: {me} abre una conversación con {first (payload(ev)).1}",
             "template rename a conversation: renombrar una conversación",
             "template rename a conversation param title label: título",
             "template rename a conversation param title help: el título nuevo",
@@ -1738,8 +1760,26 @@
             "template message in param file label: adjunto",
             "template message in param file help: un puntero a un archivo (opcional si hay texto): el sha256 de un blob (64 caracteres hexadecimales en minúsculas) o «telegram:» y el identificador del archivo",
             "template message in param reply to label: en respuesta a",
-            "template message in param reply to help: el mensaje al que responde (opcional): un mensaje de la misma conversación",
+            "template message in param reply to help: el mensaje al que responde (opcional): un mensaje de la misma conversación; va «-» si no responde a ninguno y el mensaje dice cuánta R da",
+            "template message in param give label: R que doy",
+            "template message in param give help: cuánta R doy al agente de la conversación para que me conteste (opcional; sin ella, una unidad): una persona da R suya (en un canal de fuera, el servicio, la suya); otro agente pasa R de su dueño",
             "template message in message: mensaje que entra: {first (payload(ev)).1.2}",
+            "template message in from an agent: mensaje que entra de un agente",
+            "template message in from an agent param kind label: qué es",
+            "template message in from an agent param kind help: qué es el registro: «message in» (lo que entra; su 0: un mensaje no lleva otra acción, para pesar lo mínimo)",
+            "template message in from an agent param channel label: canal",
+            "template message in from an agent param channel help: el canal: uno de la lista cerrada de la época (epoch.9.0.5.1); agente con agente, el de la casa",
+            "template message in from an agent param interlocutor label: interlocutor",
+            "template message in from an agent param interlocutor help: el interlocutor de la conversación (su 3.1): el agente que escribe",
+            "template message in from an agent param text label: texto",
+            "template message in from an agent param text help: lo que se dice (opcional si hay adjunto; con solo un adjunto, va «-»)",
+            "template message in from an agent param file label: adjunto",
+            "template message in from an agent param file help: un puntero a un archivo (opcional si hay texto): el sha256 de un blob (64 caracteres hexadecimales en minúsculas) o «telegram:» y el identificador del archivo",
+            "template message in from an agent param reply to label: en respuesta a",
+            "template message in from an agent param reply to help: el mensaje al que responde (opcional): un mensaje de la misma conversación; va «-» si no responde a ninguno y el mensaje dice cuánta R da",
+            "template message in from an agent param give label: R que paso",
+            "template message in from an agent param give help: cuánta R de mi dueño paso al agente de la conversación para que me conteste (opcional; sin ella, una unidad; con 0, ninguna)",
+            "template message in from an agent message: mensaje que entra de un agente: {first (payload(ev)).1.2}",
             "template message out: mensaje que sale",
             "template message out param kind label: qué es",
             "template message out param kind help: qué es el registro: «message out» (lo que sale; su 0: un mensaje no lleva otra acción, para pesar lo mínimo)",
@@ -1752,7 +1792,9 @@
             "template message out param file label: adjunto",
             "template message out param file help: un puntero a un archivo (opcional si hay texto): el sha256 de un blob (64 caracteres hexadecimales en minúsculas) o «telegram:» y el identificador del archivo",
             "template message out param reply to label: en respuesta a",
-            "template message out param reply to help: el mensaje al que responde (opcional): un mensaje de la misma conversación",
+            "template message out param reply to help: el mensaje al que responde (opcional): un mensaje de la misma conversación; va «-» si no responde a ninguno y el mensaje dice cuánta R da",
+            "template message out param give label: R que paso",
+            "template message out param give help: agente con agente: cuánta R del dueño del agente paso al otro agente para que me conteste (opcional; sin ella, ninguna); solo en una conversación cuyo interlocutor es otro agente",
             "template message out message: mensaje que sale: {first (payload(ev)).1.2}",
             "template delivery result: resultado de la entrega",
             "template delivery result param message label: mensaje",
@@ -1774,10 +1816,10 @@
             "template delivery result message: resultado de la entrega: {first (payload(ev)).6.0}",
             "a message names a channel and its interlocutor: {first ev.3} escribe un mensaje en un canal que no está en la lista de la época, o con un interlocutor que no es el de su conversación",
             "a message carries a text or a file: {first ev.3} escribe un mensaje sin texto ni adjunto, con un adjunto que no es ni un sha256 ni «telegram:…», o en respuesta a un mensaje de otra conversación",
-            "who writes a message: {first ev.3} escribe un mensaje que no le toca: en nombre de un interlocutor cuya alta no escribió, como otra persona en el canal de la casa, o uno que sale sin ser el agente de la conversación ni su dueño",
+            "who writes a message: {first ev.3} escribe un mensaje que no le toca: en nombre de un interlocutor cuya alta no escribió, como otra persona en el canal de la casa, o uno que sale sin ser el agente de la conversación ni su dueño; o sin la R que lleva: uno que entra sin R de quien escribe para el agente (de otro agente, sin devolver una unidad de R del dueño del agente a ese dueño), uno que sale sin devolver una unidad de R de la persona del otro lado a esa persona, o con R de otro emisor o mandada a otro sitio",
             "an archived conversation takes no messages: {first ev.3} escribe en una conversación que está archivada: ya no admite mensajes",
             "a delivery result comes from whoever delivers: {first ev.3} escribe un resultado de entrega que no está sobre un mensaje que sale por un canal de fuera a un interlocutor que dio de alta él, o que no dice ni sent ni failed con su causa",
-            "who opens, renames and archives a conversation: {first ev.3} abre una conversación fuera del 1.5 del alta de un agente declarado, sin ser su dueño ni tener su R, o para un interlocutor que no dio de alta; o renombra o archiva una que no abrió y cuyo agente no es suyo",
+            "who opens, renames and archives a conversation: {first ev.3} abre una conversación fuera del 1.5 del alta de un agente declarado, sin ser su dueño ni tener su R, o para un interlocutor que no dio de alta, o sin dar al agente una unidad de R suya (una cosa: de su dueño), o con R de otro emisor o mandada a otro sitio; o renombra o archiva una que no abrió y cuyo agente no es suyo",
             "conversations: las conversaciones del agente, por llegada",
             "conversation title: el título vigente de la conversación",
             "conversation archived: si la conversación está archivada (verdadero) o activa (falso)",
@@ -1871,13 +1913,16 @@
             "ref": "e0fb34805a96747e4f2034086ae8a0b502d3f4a078d5ce41ebd5458749a2f262"
           },
           {
-            "ref": "644b8aaabffaa07052a17a3d12d21148236ca832fde97b6660fab2b679980498"
+            "ref": "55626226af8d5af2639a365ac14bb5cdd26a6ef5df898044e61cdd3513d52d33"
           },
           {
             "ref": "2c8fb5ef97bb9089f5260850c1dbd6b2cbad38841ef2511485f3bc3f5f5834b8"
           },
           {
             "ref": "f6ed6271527e8b2f1c3e5ce6640637a06a5af687f15b5c1d7fc17966d8e88489"
+          },
+          {
+            "ref": "3eae5d1ff2ee85ddcc641e0c02f57178d5c4782a637375d4f3096feaceafd1e8"
           },
           {
             "ref": "187b2f23913af2ecf13ace76a6a98711b5c51ae6f09bfedb52966a81d6676fd3"
@@ -1889,13 +1934,16 @@
             "ref": "08624002dfb78be271f7ec20ce9479d90df726e8b6e1bcae6173fe269d28acf8"
           },
           {
-            "ref": "fc50e891c14e2e7b007544336c00b393692c0850fad56057d9f9ef2209abdcfe"
+            "ref": "fa42f3956372b82da8e98b5a3be37857b2c559233f728b04a43c68c269850c58"
           },
           {
-            "ref": "571122e36ba5fefb77d63511e0158cada0b75163cc1caed6b0838b8f8782eb55"
+            "ref": "9003af8a6035fb1caecb0eb789da4f9336004d21e8055ad02a836e0a9552ab7b"
           },
           {
-            "ref": "9df12fad21b3fec49a5af4e7e1a48a715c75f33c41e3a2677e8de017d6356702"
+            "ref": "5ef7b6363129a91c19d26011b97b700cc6c53262045b9f3884efb6d3d33b5dca"
+          },
+          {
+            "ref": "51c58e8b205331f5f18eb742ada948c123af97531951ae7267530b71511aec48"
           },
           {
             "ref": "f9f14103ab8bd1d04b39bdc61b7f9db9da1cb35eed79c816b5a30f446e0efb5c"
@@ -2006,7 +2054,7 @@
         "telegram:"
       ],
       [
-        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or count ((payload(ev)).1.2 where it != \"-\") + count ((payload(ev)).1.3 where it != \"-\") > 0 and (count ((payload(ev)).1.3 where it != \"-\") = 0 or hex(slice(cat(utf8(first (payload(ev)).1.3), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 9)) = \"74656c656772616d3a\" and hex(slice(cat(utf8(first (payload(ev)).1.3), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 9, 10)) != \"00\" and hex(slice(cat(utf8(first (payload(ev)).1.3), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 137, 138)) = \"00\" or hex(slice(bytes(first (payload(ev)).1.3), 0, 32)) = first (payload(ev)).1.3) and (count (payload(ev)).1.4 = 0 or first (first (first (payload(ev)).1.4).6).5 = first ev.6.5 and (first (payload(first (payload(ev)).1.4)).0 = \"message in\" or first (payload(first (payload(ev)).1.4)).0 = \"message out\"))"
+        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or count ((payload(ev)).1.2 where it != \"-\") + count ((payload(ev)).1.3 where it != \"-\") > 0 and (count ((payload(ev)).1.3 where it != \"-\") = 0 or hex(slice(cat(utf8(first (payload(ev)).1.3), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 9)) = \"74656c656772616d3a\" and hex(slice(cat(utf8(first (payload(ev)).1.3), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 9, 10)) != \"00\" and hex(slice(cat(utf8(first (payload(ev)).1.3), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 137, 138)) = \"00\" or hex(slice(bytes(first (payload(ev)).1.3), 0, 32)) = first (payload(ev)).1.3) and (count ((payload(ev)).1.4 where it != \"-\") = 0 or first (first (first (payload(ev)).1.4).6).5 = first ev.6.5 and (first (payload(first (payload(ev)).1.4)).0 = \"message in\" or first (payload(first (payload(ev)).1.4)).0 = \"message out\"))"
       ],
       [
         "ev.3"
@@ -2023,7 +2071,8 @@
       ],
       [
         "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: al menos uno de 1.2 (el texto) y 1.3 (el adjunto) que no sea «-» (la marca de lo que falta delante de otro); el adjunto, un puntero: 64 hexadecimales en minúsculas (el sha256 de un blob) o «telegram:» seguido del identificador del archivo; y 1.4, si lo hay, un mensaje de la misma conversación",
-        "Lo que el BQL mínimo llega a comprobar del puntero «telegram:»: el prefijo (sus 9 bytes en utf8), que le sigue algo y que todo cabe en 137 bytes (con el texto relleno de ceros: el byte 137 es cero); no comprueba que el identificador sea solo de letras, cifras, guion y guion bajo (no hay primitiva para recorrer un texto). Un puntero que no es ni lo uno ni lo otro deja la regla en ERROR (bytes(…) de un texto que no es hexadecimal), y también se rechaza"
+        "Lo que el BQL mínimo llega a comprobar del puntero «telegram:»: el prefijo (sus 9 bytes en utf8), que le sigue algo y que todo cabe en 137 bytes (con el texto relleno de ceros: el byte 137 es cero); no comprueba que el identificador sea solo de letras, cifras, guion y guion bajo (no hay primitiva para recorrer un texto). Un puntero que no es ni lo uno ni lo otro deja la regla en ERROR (bytes(…) de un texto que no es hexadecimal), y también se rechaza",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): el 1.4 que falta delante del 1.5 (la R que da el mensaje) va como «-», como el texto y el adjunto que faltan delante de otro; «-» no es un mensaje al que responde"
       ],
       [
         "state 0"
@@ -2203,7 +2252,7 @@
         "epoch.9.0.2.1"
       ],
       [
-        "=sum ((last ((first (first it.6.5).3).3 where first it.3 in it2.3 and count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and first it.3 in (payload(it3)).0 and le(bytes(last (first it3.6).5)) = 12336 + it2.1 and count (first it3.6).8.7 = count (first it3.6).8.8) > 0)) each 1) + count (epoch where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count (first it4.6).8.7 = count (first it4.6).8.8) > 0) = 0 and count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0) * sum (last (first up first (first it.3).6).8) + count (epoch where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count (first it4.6).8.7 = count (first it4.6).8.8) > 0) = 0 and not (count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0)) * first epoch.9.0.2.1"
+        "=sum ((last ((first (first it.6.5).3).3 where first it.3 in it2.3 and count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and first it.3 in (payload(it3)).0 and le(bytes(last (first it3.6).5)) = 12336 + it2.1 and count (first it3.6).8.7 = count (first it3.6).8.8) > 0)) each 1) + sum ((last (first up first (first it.3).6).8) where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count (first it4.6).8.7 = count (first it4.6).8.8) > 0) = 0 and count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0) + count (epoch where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count (first it4.6).8.7 = count (first it4.6).8.8) > 0) = 0 and not (count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0)) * first epoch.9.0.2.1"
       ],
       [
         "X.6.3"
@@ -2218,7 +2267,8 @@
         "Core AGRAM 17-11 (encargo «los dos canales», A0; VG 17-11 por Core State): la lectura de la época 0 con el mismo nombre, que esta sustituye. Lo que espera la firma del titular (la lectura «second factor» de esta época, X.6.8.7, sin todas sus firmas en X.6.8.8) no cuenta hasta que esté firmado: un «move to group» o un «veto someone» pendiente no mueve a nadie de grupo. Se mira, de cada grupo de A.3 que nombra a quien escribe (el último, como en la 0), que haya en el 3.k.3 del alta de su dueño un registro suyo, firmado, que lo nombre en su 0 (la posición del ancla, de sus diez dígitos como cinco bytes: el 3.k.3 da 12336 + k)",
         "VG, tras 3b-bis (encargo 3c-2a): los seis grupos de R son seis precios y la regla de atención los lee de los datos (epoch.1.2.1 y lo que cada identidad ancla en el 3.k.2 de su alta), no los lleva escritos",
         "La zona en que el dueño del registro sobre el que se escribe X (su alta, cuando la regla de atención rige) pone a quien escribe X: el último de sus grupos (A.3) que lo nombra en su 3; si ninguno, el grupo que le asignó la invitación que aceptó (su 8); si no, la zona de quien no está en ningún grupo (epoch.9.0.2.1: desconocidos)",
-        "Se materializa en X.6.3: de dónde viene, con quién (el grupo que decide el precio); la regla «attention has a price» y la lectura «attention price» la leen ahí"
+        "Se materializa en X.6.3: de dónde viene, con quién (el grupo que decide el precio); la regla «attention has a price» y la lectura «attention price» la leen ahí",
+        "Core AGRAM 17-11 (encargo «la R en los canales», D): el grupo de la invitación aceptada se suma solo donde su condición se cumple (el 8 de la invitación, filtrado por ella), y no multiplicando por su recuento: así no se suma el 8 de un alta que no es una invitación (el del alta del dueño de una cosa, de la que cuelga el alta de la cosa: no es un número), que dejaba la lectura en ERROR cuando escribía una cosa de una persona (otro agente que abre una conversación). Lo que da es lo mismo"
       ],
       [
         "state 0"
@@ -2677,10 +2727,11 @@
         "rename a conversation",
         "archive a conversation",
         "agent",
-        "declare agent"
+        "declare agent",
+        "R"
       ],
       [
-        "=not (\"open a conversation\" in (payload(ev)).4 or \"rename a conversation\" in (payload(ev)).4 or \"archive a conversation\" in (payload(ev)).4) or \"open a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"1500000000\" and \"agent\" in (payload((first ev.6.5))).5 and first (payload((first ev.6.5))).3.1 = first (payload(ev)).1 and count (((first ev.6.5).9) where \"declare agent\" in it.4 and first it.3 = first (first ev.6.5).3) > 0 and (first ev.3 = first (first ev.6.5).3 or count ((first ev.3).1 where R in it.0.0.0 and it.0.0.1 = first (first ev.6.5).3 and it.1 > 0) > 0) and (first (payload(ev)).3.1 = first ev.3 or first (payload(ev)).3.1 != first ev.3 and first (first (first (payload(ev)).3.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).3.1).6)).5) or not (\"open a conversation\" in (payload(ev)).4) and \"conversation with an agent\" in (payload((first ev.6.5))).5 and (first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and (\"rename a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"0000000000\" or \"archive a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"4000000000\")"
+        "=not (\"open a conversation\" in (payload(ev)).4 or \"rename a conversation\" in (payload(ev)).4 or \"archive a conversation\" in (payload(ev)).4) or \"open a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"1500000000\" and \"agent\" in (payload((first ev.6.5))).5 and first (payload((first ev.6.5))).3.1 = first (payload(ev)).1 and count (((first ev.6.5).9) where \"declare agent\" in it.4 and first it.3 = first (first ev.6.5).3) > 0 and (first ev.3 = first (first ev.6.5).3 or count ((first ev.3).1 where R in it.0.0.0 and it.0.0.1 = first (first ev.6.5).3 and it.1 > 0) > 0) and (first (payload(ev)).3.1 = first ev.3 or first (payload(ev)).3.1 != first ev.3 and first (first (first (payload(ev)).3.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).3.1).6)).5) and ((count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and it.3.1 = first (payload(ev)).1) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and it.3.1 = first (payload(ev)).1) and not (R in it.0.0.0 and transfer in it.4 and it.3.0 = first ev.3 and it.3.1 = first (first ev.6.5).3)) = 0 or not (count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first ev.3).6).3 and it.3.0 = first ev.3 and it.3.1 = first (payload(ev)).1) and not (R in it.0.0.0 and transfer in it.4 and it.3.0 = first ev.3 and it.3.1 = first (first ev.6.5).3)) = 0) or not (\"open a conversation\" in (payload(ev)).4) and \"conversation with an agent\" in (payload((first ev.6.5))).5 and (first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and (\"rename a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"0000000000\" or \"archive a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"4000000000\")"
       ],
       [
         "ev.3"
@@ -2697,7 +2748,8 @@
       ],
       [
         "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A: una conversación se abre en el 1.5 del alta de un agente declarado (el de su 1); la abre su dueño o quien tiene R del dueño (el precio de la atención lo cobra «attention has a price»), y su interlocutor (3.1) es quien la abre o una identidad cuya alta escribió quien la abre (el servicio, para una conversación de fuera); se renombra (en su 0) y se archiva (en su 4) solo por quien la abrió o por el dueño del agente",
-        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira"
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), C y E: abrir da al agente su primera R, también escrito a mano (los movimientos del propio registro). Si la abre una persona: al menos una unidad de R suya (su emisor es quien abre), de quien abre al agente de la conversación (su 1). Si la abre una cosa (otro agente, D): puede pasar al agente R de su propio dueño (quien escribió su alta). Fuera de eso y de lo que va al dueño del agente (el precio de su grupo, que cobra «attention has a price»), ningún movimiento de R que no sea acuñar la propia: R de otro emisor al agente, o R a otro sitio, no entra"
       ],
       [
         "state 0"
@@ -2706,7 +2758,7 @@
         "after a delivery result comes from whoever delivers"
       ],
       [
-        "who opens, renames and archives a conversation: {first ev.3} opens a conversation outside the 1.5 of the alta of a declared agent, without being its owner or having its R, or for an interlocutor it did not register; or renames or archives one it did not open and whose agent it does not own"
+        "who opens, renames and archives a conversation: {first ev.3} opens a conversation outside the 1.5 of the alta of a declared agent, without being its owner or having its R, or for an interlocutor it did not register, or without giving the agent a unit of its own R (a thing: R of its owner), or with R of another issuer or sent elsewhere; or renames or archives one it did not open and whose agent it does not own"
       ]
     ],
     [
@@ -2716,10 +2768,11 @@
       [
         "message in",
         "message out",
-        "epoch.9.0.5.2"
+        "epoch.9.0.5.2",
+        "R"
       ],
       [
-        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3)"
+        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) and ((count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).1) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).1)) = 0 or not (count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).1).6).3) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).1).6).3) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first ev.3).6).3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).1)) = 0) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and ((count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).3.1) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).3.1)) = 0 or not (count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).3.1).6).3) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).3.1).6).3) and not (first (payload(ev)).1.0 in epoch.9.0.5.2 and R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).3.1)) = 0)"
       ],
       [
         "ev.3"
@@ -2736,7 +2789,8 @@
       ],
       [
         "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B, quién escribe: «message in» de un canal de fuera, solo quien dio de alta al interlocutor (el autor de su alta, y no él mismo), así que nadie más habla en su nombre; «message in» del canal de la casa (epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe); «message out», el agente de la conversación (su 1) o el dueño del agente (quien escribió su alta). Con «a message names a channel and its interlocutor», el interlocutor es además el de la conversación",
-        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira"
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), E: la R de cada mensaje, también escrito a mano (los movimientos del propio registro). «message in» escrito por una persona (en la casa, el interlocutor; fuera, el servicio): al menos una unidad de R suya (su emisor es quien escribe), de quien escribe al agente de la conversación (su 1). «message in» escrito por una cosa (otro agente, en la casa): al menos una unidad de R del dueño del agente de la conversación devuelta a ese dueño; puede pasar además al agente R de su propio dueño. «message out»: al menos una unidad de R de la persona del otro lado devuelta a ella (el interlocutor, si es una persona, que escribió su propia alta; si es una cosa, quien escribió su alta: el servicio o el dueño del otro agente), de quien firma; agente con agente (canal de la casa e interlocutor que es una cosa), puede pasar además al interlocutor R del dueño del agente. Fuera de eso, ningún movimiento de R que no sea acuñar la propia (lo que pone en mano quien da R suya): un mensaje que lleva R de otro emisor, o que la manda a otro sitio, no entra. Que nadie mueva R de otro lo dice ya la 0 («nobody moves tokens of others»)"
       ],
       [
         "state 0"
@@ -2745,7 +2799,7 @@
         "after a message carries a text or a file"
       ],
       [
-        "who writes a message: {first ev.3} writes a message it may not write: in the name of an interlocutor whose alta it did not write, as another person on the house channel, or out without being the agent of the conversation or its owner"
+        "who writes a message: {first ev.3} writes a message it may not write: in the name of an interlocutor whose alta it did not write, as another person on the house channel, or out without being the agent of the conversation or its owner; or without the R it carries: a message in without R of whom writes for the agent (from another agent, without returning a unit of R of the owner of the agent to that owner), a message out without returning a unit of R of the person on the other side to it, or R of another issuer or sent elsewhere"
       ]
     ],
     [
@@ -6618,6 +6672,38 @@
             "conversation with an agent",
             "the type of the record: a conversation with an agent, a context of the agent"
           ]
+        ],
+        [
+          [
+            "give"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «open a conversation»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            8
+          ],
+          [
+            "how much of my R I give to the agent so that it can write to me first (optional; without it, one unit); the service, its own"
+          ]
         ]
       ],
       [
@@ -6632,7 +6718,8 @@
         ]
       ],
       [
-        "=first it.3 != me and transfer first (first ev.6).2.1 R.(first it.3) from me to first it.3"
+        "=first it.3 != me and transfer first (first ev.6).2.1 R.(first it.3) from me to first it.3",
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.6 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first memo.1 or count memo.6 > 0 and first memo.6 > 0 and put first memo.6 at me.1.(R.(me)).1 and transfer first memo.6 R.(me) from me to first memo.1) or not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.6 = 0 and transfer 1 R.(first (first me.6).3) from me to first memo.1 or count memo.6 > 0 and first memo.6 > 0 and transfer first memo.6 R.(first (first me.6).3) from me to first memo.1)"
       ],
       [
         "1.5"
@@ -6640,6 +6727,7 @@
       [
         "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A.1: el tipo de contexto «conversation with an agent», en cuatro niveles como el caso 2 de AARPIA (APPS_PARA_AGRAM.md): la persona, el espacio del agente (su alta), la conversación (el activo: este registro) y su estado (activa o archivada, una lectura). Se lanza sobre el alta de un agente declarado (X: una pieza «agent» con «declare agent» en su 9) y ancla en su 1.5, donde encajan los contextos (como «declare a context» en el 1.5 del nodo). 0 el título (opcional), 1 el agente, 2 el criterio de cierre, 3.0 quien la abre, 3.1 su interlocutor (quien la abre o, si es de fuera, una identidad cuya alta escribió quien la abre: el servicio la abre en nombre del interlocutor), 4 la acción y 5 el tipo",
         "Quién la lanza, como «ask for an anchor»: el dueño del agente (quien escribió su alta) o quien tiene R suya (el servicio de Telegram, una persona de la casa). El alta del agente es una pieza, así que quien no es su dueño paga el precio de su grupo en la atención del dueño («attention has a price» de esta época): el 4 le devuelve la R que dice ese precio (first (first ev.6).2.1), como «write to X» con «my R» o «their R»; el dueño no paga. La regla «who opens, renames and archives a conversation» lo exige también a lo escrito a mano",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), C: abrir la conversación da al agente su primera R, en el mismo registro: quien la abre le da R suya (una persona: pone en mano lo que le falte; el servicio, la suya, cuando abre en nombre de un interlocutor de fuera); si la abre una cosa (otro agente, con «open a conversation as an agent»), le pasa R de su propio dueño, de la que guarda. Cuánta va en el 6, opcional: sin él, una unidad, y el registro pesa lo mismo que antes. Lo de antes sigue igual: quien no es el dueño paga al dueño el precio de su grupo (la primera sentencia del 4). Lo exige también a lo escrito a mano «who opens, renames and archives a conversation»: una persona, al menos una unidad suya al agente; nada de R a otro sitio que al agente o a su dueño",
         "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
       ],
       [
@@ -7057,6 +7145,310 @@
       ],
       [
         "{first ((payload(first (((under it) where it2 = it or first (payload(it2)).6.1 = first (payload(ev)).1 and first (payload(it2)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it2)).4 and first it2.3 = first it.3) by count (epoch where it2 = it)))).3.1 where first (((under it) where it3 = it or first (payload(it3)).6.1 = first (payload(ev)).1 and first (payload(it3)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it3)).4 and first it3.3 = first it.3) by count (epoch where it3 = it)) != it)}"
+      ]
+    ],
+    [
+      [
+        "open a conversation as an agent"
+      ],
+      [
+        [
+          [
+            "title"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            1
+          ],
+          [
+            "the title of the conversation (optional); without it, the record says who opens it and with which agent"
+          ]
+        ],
+        [
+          [
+            "agent"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "=count it.6 > 0 and \"agent\" in (payload(first it.6)).5 and count (((first it.6).9) where \"declare agent\" in it2.4 and first it2.3 = first (first it.6).3) > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first (payload(it)).3.1",
+            "the agent the conversation is with: an identity declared as an agent in this ledger (by default, the one whose alta is X)"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who opens it"
+          ]
+        ],
+        [
+          [
+            "interlocutor"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "=count it.6 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=me",
+            "who talks with the agent: the person who opens it (by default, me) or, for an outside channel, the interlocutor whose alta I wrote"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "open a conversation",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "conversation with an agent",
+            "the type of the record: a conversation with an agent, a context of the agent"
+          ]
+        ],
+        [
+          [
+            "give"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it >= 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «open a conversation as an agent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            8
+          ],
+          [
+            "how much R of my owner I pass to the agent so that it can write to me first (optional; without it, one unit; with 0, none)"
+          ]
+        ]
+      ],
+      [
+        "=\"agent\" in (payload(it)).5 and count ((it.9) where \"declare agent\" in it2.4 and first it2.3 = first it.3) > 0 and not (count me.6 = 0 or first (first me.6).3 = me) and first (payload(it)).3.1 != me and count (me.1 where R in it2.0.0.0 and it2.0.0.1 = first it.3 and it2.1 > 0) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "=first it.3 != me and transfer first (first ev.6).2.1 R.(first it.3) from me to first it.3",
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.6 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first memo.1 or count memo.6 > 0 and first memo.6 > 0 and put first memo.6 at me.1.(R.(me)).1 and transfer first memo.6 R.(me) from me to first memo.1) or not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.6 = 0 and transfer 1 R.(first (first me.6).3) from me to first memo.1 or count memo.6 > 0 and first memo.6 > 0 and transfer first memo.6 R.(first (first me.6).3) from me to first memo.1)"
+      ],
+      [
+        "1.5"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), D: agente con agente. Otro agente declarado, con clave, abre él mismo una conversación con este agente y es su interlocutor (su 3.1 = quien la abre, en el canal de la casa). «open a conversation» es de modo persona y un agente no lanza una plantilla de modo persona (src/acciones.js, transaccion), así que va por esta plantilla, en modo agente: el mismo registro (su 4 es «open a conversation») y lo mismo que mueve cuando la abre una cosa: el precio de su grupo al dueño del agente, como cualquiera, y R de su propio dueño, de la que guarda, pasada al agente (el 6; sin él, una; con 0, ninguna). Se ofrece a una cosa que tiene R del dueño del agente",
+        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A.1: el tipo de contexto «conversation with an agent», en cuatro niveles como el caso 2 de AARPIA (APPS_PARA_AGRAM.md): la persona, el espacio del agente (su alta), la conversación (el activo: este registro) y su estado (activa o archivada, una lectura). Se lanza sobre el alta de un agente declarado (X: una pieza «agent» con «declare agent» en su 9) y ancla en su 1.5, donde encajan los contextos (como «declare a context» en el 1.5 del nodo). 0 el título (opcional), 1 el agente, 2 el criterio de cierre, 3.0 quien la abre, 3.1 su interlocutor (quien la abre o, si es de fuera, una identidad cuya alta escribió quien la abre: el servicio la abre en nombre del interlocutor), 4 la acción y 5 el tipo",
+        "Quién la lanza, como «ask for an anchor»: el dueño del agente (quien escribió su alta) o quien tiene R suya (el servicio de Telegram, una persona de la casa). El alta del agente es una pieza, así que quien no es su dueño paga el precio de su grupo en la atención del dueño («attention has a price» de esta época): el 4 le devuelve la R que dice ese precio (first (first ev.6).2.1), como «write to X» con «my R» o «their R»; el dueño no paga. La regla «who opens, renames and archives a conversation» lo exige también a lo escrito a mano",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), C: abrir la conversación da al agente su primera R, en el mismo registro: quien la abre le da R suya (una persona: pone en mano lo que le falte; el servicio, la suya, cuando abre en nombre de un interlocutor de fuera); si la abre una cosa (otro agente, con «open a conversation as an agent»), le pasa R de su propio dueño, de la que guarda. Cuánta va en el 6, opcional: sin él, una unidad, y el registro pesa lo mismo que antes. Lo de antes sigue igual: quien no es el dueño paga al dueño el precio de su grupo (la primera sentencia del 4). Lo exige también a lo escrito a mano «who opens, renames and archives a conversation»: una persona, al menos una unidad suya al agente; nada de R a otro sitio que al agente o a su dueño",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        1,
+        27
+      ],
+      [
+        "open a conversation as an agent: {me} opens a conversation with {first (payload(ev)).1}"
       ]
     ],
     [
@@ -8105,6 +8497,38 @@
             "sip",
             "the path from the header asked to the mother: a short free text (today, «sip»)"
           ]
+        ],
+        [
+          [
+            "give"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it >= 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «anchor served»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            10
+          ],
+          [
+            "how much of my R I give back to who asked, so that it can ask again (optional; without it, one unit; with 0, none): it is my R and no rule demands it"
+          ]
         ]
       ],
       [
@@ -8119,14 +8543,15 @@
         ]
       ],
       [
-        "write"
+        "=first it.3 != me and (count memo.6.4 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first it.3 or count memo.6.4 > 0 and first memo.6.4 > 0 and put first memo.6.4 at me.1.(R.(me)).1 and transfer first memo.6.4 R.(me) from me to first it.3)"
       ],
       [
         "4"
       ],
       [
         "VG 17-11 (por Core State; encargo «ancla servida»): un pedido de ancla («ask for an anchor») tiene que poder leerse como servido. Lo escribe quien sirve, la identidad de servicio del nodo: el dueño del nodo (quien escribió su alta, el operador; su R es la llave del servicio y su clave es la del nodo). Hoy la época no tiene otra identidad que sirva: el nodo es una cosa sin clave y el sellador no tiene identidad en este libro. Se lanza sobre el pedido y ancla en su 4 (lo que se hace con él); escrito por otro no cuenta para la lectura «anchors asked»",
-        "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1; el pedido o uno de encima, que lo cubre: la validación lo exige y la lectura no da por servido uno menor) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). No mueve tokens más allá del T de escribir",
+        "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1; el pedido o uno de encima, que lo cubre: la validación lo exige y la lectura no da por servido uno menor) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). Mueve, además del T de escribir, la R que da (la nota de «la R en los canales»)",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), F: la vuelta del buzón entre nodos. Quien sirve (el dueño del nodo) da R suya a quien pidió (el autor del pedido, el 3 de X), en el mismo registro: pone en mano lo que le falte y la transfiere. Así quien pidió puede volver a pedir con ella. Cuánta va en el 6.4, opcional: sin él, una unidad, y el registro pesa lo mismo que antes; con 0, ninguna (es su R y no la exige ninguna regla). Escrita por quien pidió, sobre su propio pedido, no da nada",
         "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
       ],
       [
@@ -8306,7 +8731,7 @@
             5
           ],
           [
-            "=(\"-\" where count ((payload(ev)).1.4) > 0)",
+            "=(\"-\" where (count ((payload(ev)).1.4) > 0 or count ((payload(ev)).1.5) > 0))",
             "a pointer to a file (optional if there is a text): the sha256 of a blob (64 hexadecimal characters in lower case) or «telegram:» and the identifier of the file"
           ]
         ],
@@ -8318,7 +8743,7 @@
             "ref"
           ],
           [
-            "=(first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"
+            "=it = \"-\" or (first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"
           ],
           [
             "me"
@@ -8339,7 +8764,40 @@
             6
           ],
           [
-            "the message this one answers (optional): a message of the same conversation"
+            "=(\"-\" where count ((payload(ev)).1.5) > 0)",
+            "the message this one answers (optional): a message of the same conversation; «-» if there is none and the record says how much R it gives"
+          ]
+        ],
+        [
+          [
+            "give"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «message in»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "how much R I give to the agent of the conversation so that it answers (optional; without it, one unit): a person gives its own R (on an outside channel, the service, its own); another agent passes R of its owner"
           ]
         ]
       ],
@@ -8355,14 +8813,17 @@
         ]
       ],
       [
-        "write"
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and transfer first memo.1.5 R.(me) from me to first (payload(it)).1)",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and transfer 1 R.(first (first (first (payload(it)).1).6).3) from me to first (first (first (payload(it)).1).6).3",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and transfer 1 R.(first (first me.6).3) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and transfer first memo.1.5 R.(first (first me.6).3) from me to first (payload(it)).1)"
       ],
       [
         "3"
       ],
       [
-        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). No mueve más que el coste de escribir y no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
+        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). Además del coste de escribir mueve R (la nota de «la R en los canales»); no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
         "Lo que entra, siempre del interlocutor de la conversación (su 3.1). Quién lo escribe: en un canal de fuera (no está en epoch.9.0.5.2), solo quien dio de alta al interlocutor (el autor de su alta: el servicio), así que nadie más habla en su nombre; en el canal de la casa (house, en epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe)",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): un agente solo escribe a quien le ha dado R, y cada mensaje que escribe se la gasta. Lo que entra le da R al agente de la conversación (su 1), en el mismo registro: una persona (en la casa, quien escribe; fuera, el servicio, que escribe en nombre del interlocutor) da R suya (pone en mano lo que le falte: la primera vez la acuña, y eso quema T real); otro agente (agente con agente, en la casa: lo escribe con «message in from an agent») devuelve una unidad de R del dueño de este agente a ese dueño y le pasa R de su propio dueño, de la que guarda. Cuánta da va en 1.5, opcional: sin él, una unidad, y el registro pesa lo mismo que antes; con él, el 1.3 y el 1.4 que falten van como «-» (un payload no tiene huecos). Sin esa R no entra: lo exige también a lo escrito a mano «who writes a message»",
         "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
       ],
       [
@@ -8542,7 +9003,7 @@
             5
           ],
           [
-            "=(\"-\" where count ((payload(ev)).1.4) > 0)",
+            "=(\"-\" where (count ((payload(ev)).1.4) > 0 or count ((payload(ev)).1.5) > 0))",
             "a pointer to a file (optional if there is a text): the sha256 of a blob (64 hexadecimal characters in lower case) or «telegram:» and the identifier of the file"
           ]
         ],
@@ -8554,7 +9015,7 @@
             "ref"
           ],
           [
-            "=(first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"
+            "=it = \"-\" or (first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"
           ],
           [
             "me"
@@ -8575,7 +9036,40 @@
             6
           ],
           [
-            "the message this one answers (optional): a message of the same conversation"
+            "=(\"-\" where count ((payload(ev)).1.5) > 0)",
+            "the message this one answers (optional): a message of the same conversation; «-» if there is none and the record says how much R it gives"
+          ]
+        ],
+        [
+          [
+            "give"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «message out»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "agent with agent: how much R of the owner of the agent I pass to the other agent so that it answers (optional; without it, none); only in a conversation whose interlocutor is another agent"
           ]
         ]
       ],
@@ -8591,14 +9085,16 @@
         ]
       ],
       [
-        "write"
+        "=(count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and transfer 1 R.(first (payload(it)).3.1) from me to first (payload(it)).3.1 or not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and transfer 1 R.(first (first (first (payload(it)).3.1).6).3) from me to first (first (first (payload(it)).3.1).6).3",
+        "=count memo.1.5 > 0 and first memo.1.5 > 0 and (me = first (first (first (payload(it)).1).6).3 and put first memo.1.5 at me.1.(R.(me)).1 or me != first (first (first (payload(it)).1).6).3) and transfer first memo.1.5 R.(first (first (first (payload(it)).1).6).3) from me to first (payload(it)).3.1"
       ],
       [
         "3"
       ],
       [
-        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). No mueve más que el coste de escribir y no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
+        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). Además del coste de escribir mueve R (la nota de «la R en los canales»); no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
         "Lo que sale, siempre al interlocutor de la conversación (su 3.1). Lo escribe el agente de la conversación (su 1) o su dueño. En un canal de fuera lo entrega quien dio de alta al interlocutor, con «delivery result»; «messages to deliver» da lo que falta por entregar",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): lo que sale devuelve una unidad de R de la persona del otro lado a su emisor, en el mismo registro: en la casa, el interlocutor; en un canal de fuera, quien dio de alta al interlocutor (el servicio); agente con agente, el dueño del otro agente (quien escribió su alta: un agente es una cosa y no emite R). La devuelve de lo suyo quien firma: el agente, de la que guarda, o su dueño, de la que tenga él de esa persona; nadie mueve R de otro. Agente con agente, el 1.5 (opcional) pasa además al otro agente R del dueño de este, para que le conteste (si lo escribe el dueño, la suya: pone en mano lo que le falte). Sin esa R no entra: lo exige también a lo escrito a mano «who writes a message»",
         "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
       ],
       [
@@ -8610,6 +9106,279 @@
       ],
       [
         "message out: {first (payload(ev)).1.2}"
+      ]
+    ],
+    [
+      [
+        "message in from an agent"
+      ],
+      [
+        [
+          [
+            "kind"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"message in\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in from an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "message in",
+            "what the record is: «message in» (its 0; a message carries no other action, to weigh the least)"
+          ]
+        ],
+        [
+          [
+            "channel"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.0.5.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in from an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "house",
+            "the channel: one of the closed list of the epoch (epoch.9.0.5.1)"
+          ]
+        ],
+        [
+          [
+            "interlocutor"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "=count it.6 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in from an agent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first (payload(it)).3.1",
+            "the interlocutor of the conversation (its 3.1): on the house channel, the person who writes; on an outside channel, the one whose alta the service wrote"
+          ]
+        ],
+        [
+          [
+            "text"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in from an agent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            4
+          ],
+          [
+            "=(\"-\" where count ((payload(ev)).1.3) > 0)",
+            "what is said (optional if there is a file; with only a file, it is «-»)"
+          ]
+        ],
+        [
+          [
+            "file"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"-\" or hex(slice(cat(utf8(it), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 9)) = \"74656c656772616d3a\" and hex(slice(cat(utf8(it), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 9, 10)) != \"00\" and hex(slice(cat(utf8(it), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 137, 138)) = \"00\" or hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in from an agent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            5
+          ],
+          [
+            "=(\"-\" where (count ((payload(ev)).1.4) > 0 or count ((payload(ev)).1.5) > 0))",
+            "a pointer to a file (optional if there is a text): the sha256 of a blob (64 hexadecimal characters in lower case) or «telegram:» and the identifier of the file"
+          ]
+        ],
+        [
+          [
+            "reply to"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "=it = \"-\" or (first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in from an agent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            6
+          ],
+          [
+            "=(\"-\" where count ((payload(ev)).1.5) > 0)",
+            "the message this one answers (optional): a message of the same conversation; «-» if there is none and the record says how much R it gives"
+          ]
+        ],
+        [
+          [
+            "give"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it >= 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «message in from an agent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "how much R of my owner I pass to the agent of the conversation so that it answers (optional; without it, one unit; with 0, none)"
+          ]
+        ]
+      ],
+      [
+        "=\"conversation with an agent\" in (payload(it)).5 and not (count ((down it) where last (first it2.6).5 = \"4000000000\" and \"archive a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3)) > 0) and first (payload(it)).3.1 = me and not (count me.6 = 0 or first (first me.6).3 = me)"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and transfer first memo.1.5 R.(me) from me to first (payload(it)).1)",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and transfer 1 R.(first (first (first (payload(it)).1).6).3) from me to first (first (first (payload(it)).1).6).3",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and transfer 1 R.(first (first me.6).3) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and transfer first memo.1.5 R.(first (first me.6).3) from me to first (payload(it)).1)"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), D: agente con agente. La conversación de un agente con otro agente declarado, con clave, que la abre él mismo («open a conversation as an agent») y es su interlocutor (su 3.1). «message in» es de modo persona y un agente no lanza una plantilla de modo persona (src/acciones.js, transaccion), así que lo que ese otro agente escribe en la conversación va por esta plantilla, en modo agente: el mismo registro que «message in» (su 0 es «message in»; canal de la casa, su 1.1 es quien escribe), con lo mismo que mueve un «message in» escrito por una cosa: una unidad de R del dueño del agente de la conversación devuelta a ese dueño y R de su propio dueño pasada al agente (el 1.5; sin él, una; con 0, ninguna). Se ofrece a una cosa que es el interlocutor de la conversación",
+        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). Además del coste de escribir mueve R (la nota de «la R en los canales»); no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
+        "Lo que entra, siempre del interlocutor de la conversación (su 3.1). Quién lo escribe: en un canal de fuera (no está en epoch.9.0.5.2), solo quien dio de alta al interlocutor (el autor de su alta: el servicio), así que nadie más habla en su nombre; en el canal de la casa (house, en epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe)",
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): un agente solo escribe a quien le ha dado R, y cada mensaje que escribe se la gasta. Lo que entra le da R al agente de la conversación (su 1), en el mismo registro: una persona (en la casa, quien escribe; fuera, el servicio, que escribe en nombre del interlocutor) da R suya (pone en mano lo que le falte: la primera vez la acuña, y eso quema T real); otro agente (agente con agente, en la casa: lo escribe con «message in from an agent») devuelve una unidad de R del dueño de este agente a ese dueño y le pasa R de su propio dueño, de la que guarda. Cuánta da va en 1.5, opcional: sin él, una unidad, y el registro pesa lo mismo que antes; con él, el 1.3 y el 1.4 que falten van como «-» (un payload no tiene huecos). Sin esa R no entra: lo exige también a lo escrito a mano «who writes a message»",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        3,
+        15
+      ],
+      [
+        "message in from an agent: {first (payload(ev)).1.2}"
       ]
     ],
     [

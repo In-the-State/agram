@@ -25,7 +25,10 @@
 //      servicio da de alta al interlocutor, abre la conversación, entra un mensaje, el agente responde, una entrega
 //      fallida y su reintento enviado) y una renombrada y archivada, que ya no admite mensajes. El interlocutor de fuera
 //      entra con «register an interlocutor»: una cosa del servicio sin clave, con un segundo de T (la 0 no abre una
-//      cuenta sin un movimiento).
+//      cuenta sin un movimiento). La R en los canales (encargo «la R en los canales», VG 17-11): abrir y cada mensaje que
+//      entra dan R al agente (la persona de la casa, la suya; el servicio, la suya, que emite y quema T real la primera
+//      vez), el agente la guarda y cada mensaje que sale devuelve una unidad a su emisor; el dueño del nodo, al servir un
+//      ancla, da una unidad de su R a quien la pidió.
 //
 // Uso: node ejemplos/state/nodo.mjs   (imprime el resumen; `ejemploNodo()` da el eje a las pruebas y a la carta).
 
@@ -198,14 +201,19 @@ export async function ejemploNodo({ hasta = null } = {}) {
     ids[guarda] = (await eje.aceptar(i, K[quien], { t: t() })).id;
   };
   await entra(N.personaCasa, 3, 'altaPersonaCasa');
-  // Por la casa: la persona abre, pregunta (ella es su interlocutor) y el agente responde.
+  // Por la casa: la persona abre, pregunta (ella es su interlocutor) y el agente responde. Abrir y preguntar le dan al
+  // agente una unidad de R de la persona cada uno (la suya: la pone en mano y, si le falta, la emite); responder le
+  // devuelve una (encargo «la R en los canales»).
   const casa = await hacer('open a conversation', ids.agenteCasa, { title: 'Horario de la tienda' }, N.personaCasa, { guarda: 'conversacionCasa' });
   await hacer('message in', casa.id, { channel: 'house', text: '¿A qué hora abre la tienda de ejemplo?' }, N.personaCasa, { guarda: 'preguntaCasa' });
   await hacer('message out', casa.id, { text: 'Abre a las nueve (respuesta del modelo simulado).', 'reply to': ids.preguntaCasa }, N.agenteCasa, { guarda: 'respuestaCasa' });
   // Por Telegram: el servicio da de alta al interlocutor (la huella de su identificador de fuera, nunca el identificador),
   // abre la conversación y escribe lo que entra en su nombre; el agente responde; la primera entrega falla y el reintento
   // sale. El alta del interlocutor («register an interlocutor») es una cosa del servicio sin clave, con su canal y su huella
-  // en el 6 y un segundo de T, lo mínimo que la 0 pide para abrir una cuenta.
+  // en el 6 y un segundo de T, lo mínimo que la 0 pide para abrir una cuenta. La R la pone el servicio, que es una persona
+  // del libro: abrir y cada mensaje que entra dan al agente una unidad de R del servicio (la primera vez la emite, y eso
+  // quema T real del servicio en el mismo registro); el agente la guarda y su respuesta se la devuelve al servicio (el
+  // interlocutor es una cosa sin clave: no emite ni mueve R).
   await entra(N.servicio, 5, 'altaServicio');
   await hacer('register an interlocutor', ids.altaServicio, { thing: N.interlocutor, channel: 'telegram', fingerprint: HUELLA }, N.servicio, { guarda: 'interlocutor' });
   const tg = await hacer('open a conversation', ids.agenteCasa, { interlocutor: N.interlocutor }, N.servicio, { guarda: 'conversacionTelegram' });
@@ -248,4 +256,5 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const { ContextoEje } = await import('../../src/contexto-eje.js');
   const lee = (n, id) => leerRegla(e.lecturas.find((r) => r[0][0] === n), id, new ContextoEje(eje, { epoch: e })).valor.map((x) => x?.id ?? x);
   for (const x of lee('conversations', ids.agenteCasa)) console.log(`conversación «${lee('conversation title', x)}»: ${lee('conversation archived', x)[0] ? 'archivada' : 'activa'}, ${lee('message count', x)} mensajes, ${lee('messages to deliver', x).length} por entregar`);
+  console.log(`R que guarda el agente de la casa: ${[N.personaCasa, N.servicio].map((q) => `${eje.saldo(N.agenteCasa, 'R:' + q)} de ${q}`).join(', ')}`);
 }
