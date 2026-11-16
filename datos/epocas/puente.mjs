@@ -112,7 +112,7 @@ export function formulaDeEnlazado() {
 /** «bringing needs the line keys of the book»: el enlace (si lo es) anota al menos un par [nivel, clave]. */
 export function formulaDeConClaves() {
   const L = ENLACE;
-  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or count (payload(' + L + ')).2.0 = 2 or count (payload(' + L + ')).1.1.0 = 2';
+  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or count (payload(' + L + ')).2.0 > 1 or count (payload(' + L + ')).1.1.0 > 1';
 }
 
 /**

@@ -73,9 +73,8 @@ export async function ejemploPuente() {
   const { grande, pequeno, sala, abre, cuelga, claves, lanza, traer } = m;
   // 1. El menú y su E, en el grande; el menú cruza al pequeño.
   const menu = await lanza(grande, 'anchor here', { X: sala.id, title: 'menú', content: 'el menú del sábado' }, 'ana');
-  const emision = await lanza(grande, 'issue E tied to X', { X: menu.id, denomination: 'plato', quantity: 5 }, 'ana');
+  await lanza(grande, 'issue E tied to X', { X: menu.id, denomination: 'plato', quantity: 5 }, 'ana');
   const serie = 'E:ana/plato@' + menu.id;
-  void emision;
   const menuTraido = await traer(pequeno, grande, menu);
   // 2. ana envía 3 a bea; bea trae el envío y lo recibe.
   const envio = await lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 3, to: claves.bea.publica }, 'ana');

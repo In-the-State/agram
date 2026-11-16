@@ -662,7 +662,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "dcf6c4c8890f2b41e192da6279762e93937f4d8f59a5c6eb328105904265e3c7"
     },
     {
-      "ref": "f0ca02440cc90768e03def6ddc5e815a34aeec4c89e59780da8a54d181790849"
+      "ref": "2d80767a67fba9146d6e6d7a24307509e5eba60c7947a75332eb99827a4dfd28"
     },
     {
       "ref": "d6d5ac253c84e8467f0608bf99c479f7f8cdfa308fb6f82d9afda4781816a03d"
@@ -9708,7 +9708,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "bringing-needs-the-line-keys-of-the-book.json",
-    "id": "f0ca02440cc90768e03def6ddc5e815a34aeec4c89e59780da8a54d181790849",
+    "id": "2d80767a67fba9146d6e6d7a24307509e5eba60c7947a75332eb99827a4dfd28",
     "registro": [
       [
         "bringing needs the line keys of the book"
@@ -9717,7 +9717,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "epoch.7.6.1"
       ],
       [
-        "=not (\"bring a record from another book\" in ev.4) or not (count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4)) or count (payload((first (payload(ev)).1.3))).2.0 = 2 or count (payload((first (payload(ev)).1.3))).1.1.0 = 2"
+        "=not (\"bring a record from another book\" in ev.4) or not (count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4)) or count (payload((first (payload(ev)).1.3))).2.0 > 1 or count (payload((first (payload(ev)).1.3))).1.1.0 > 1"
       ],
       [
         "ev.3"
@@ -26425,7 +26425,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "1922ce415e6fc832ec9c11061434ab73fba5836f0fb105ac665b021b28c97768";
+export const EPOCA_0_BTML_ID = "eb32faa2b9cac4f17c39f2445cd50fc4b25f29c4ff1be981172ee3e7bad295bc";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

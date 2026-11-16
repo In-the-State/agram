@@ -1,7 +1,7 @@
 [
   ["bringing needs the line keys of the book"],
   ["epoch.7.6.1"],
-  ["=not (\"bring a record from another book\" in ev.4) or not (count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4)) or count (payload((first (payload(ev)).1.3))).2.0 = 2 or count (payload((first (payload(ev)).1.3))).1.1.0 = 2"],
+  ["=not (\"bring a record from another book\" in ev.4) or not (count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4)) or count (payload((first (payload(ev)).1.3))).2.0 > 1 or count (payload((first (payload(ev)).1.3))).1.1.0 > 1"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],

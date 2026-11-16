@@ -11,6 +11,7 @@ import { validarPayload, esTerminal } from '../src/btml.js';
 import { FAMILIAS, ESCALAS_T, ESCALAS_REALES, ESCALAS_INFORMATIVAS, ASIGNACION_T, PARTES_T, SEGUNDOS } from '../src/tokens.js';
 import { MODOS } from '../src/modos.js';
 import { evaluar, analizar, rellenar, PRIMITIVAS } from '../src/bqlm.js';
+import { REGLAS_DEL_PUENTE } from '../datos/epocas/puente.mjs';
 import { ContextoEje } from '../src/contexto-eje.js';
 
 const DIEZ = [...Array(10).keys()];
@@ -117,8 +118,8 @@ test('2: la lista de referencias a los registros de las reglas, en el orden de s
   // («firm», encargo «firmeza»; «asked» y «on time», A18). VG 17-11 (V6): una condición más, «the E of an account stays with
   // its owner», detrás de «an account lives in its owner's book». A20 escalón 1 (17-11): «only the owner of the book retouches a text».
   // A21 (el gobierno, 17-11): seis lecturas («support of», «support», «missing support», «approved», «change state» y «changes»)
-  // y cuatro condiciones (la forma de la propuesta, quién la retira, aprobar y poner en vigor).
-  assert.deepEqual([EPOCA_0_BTML.condiciones.length, EPOCA_0_BTML.escrituras.length, EPOCA_0_BTML.lecturas.length, EPOCA_0_BTML.lecturasDePv.length], [42, 3, 28, 10]);
+  // y cuatro condiciones (la forma de la propuesta, quién la retira, aprobar y poner en vigor). A15 (el puente, 17-11): trece condiciones.
+  assert.deepEqual([EPOCA_0_BTML.condiciones.length, EPOCA_0_BTML.escrituras.length, EPOCA_0_BTML.lecturas.length, EPOCA_0_BTML.lecturasDePv.length], [55, 3, 28, 10]);
   assert.equal(JSON_EN_DISCO[2].length, reglas.length);
   assert.ok(JSON_EN_DISCO[2].every((x) => Object.keys(x).join() === 'ref' && /^[0-9a-f]{64}$/.test(x.ref)), 'el 2 son referencias { ref }');
   assert.deepEqual(EPOCA_0_BTML.reglasConId.map((x) => x.id), JSON_EN_DISCO[2].map((x) => x.ref));
@@ -133,7 +134,7 @@ test('2: la lista de referencias a los registros de las reglas, en el orden de s
     assert.deepEqual(r[7], ['epoch 0']);
   }
   // Con el BQL mínimo, el 2 da las reglas (cada referencia lleva a su registro): first, nth k.
-  assert.equal(uno('count epoch.2'), 83); // + «only the owner of the book retouches a text» (A20 escalón 1, 17-11) + las diez del gobierno (A21, 17-11)
+  assert.equal(uno('count epoch.2'), 96); // + las trece del puente (A15, 17-11) + «only the owner of the book retouches a text» (A20 escalón 1, 17-11) + las diez del gobierno (A21, 17-11)
   assert.equal(evaluar('first epoch.2', ctx).texto, JSON_EN_DISCO[2][0].ref, 'una regla se lee por su id');
   assert.equal(uno('first epoch.2 = "' + JSON_EN_DISCO[2][0].ref + '"'), true, 'y vale su id');
   assert.equal(uno('(first epoch.2).0'), "writing burns today's T");
@@ -152,7 +153,7 @@ test('2: la lista de referencias a los registros de las reglas, en el orden de s
   assert.equal(uno('(nth 30 epoch.2).0'), 'an expiry has expired', 'y la de caducar (#71.2), la última del primer tramo de condiciones');
   assert.equal(uno('(nth 31 epoch.2).0'), 'writing a record gives ten P on it', 'y detrás, las que escriben');
   // #137 (encargo «recuentos»): lo que entró en la beta del 16-11 se encadenó en el 8 detrás de «how», en el orden en que entró.
-  assert.deepEqual(val('epoch.2.0').slice(63), ['firm', 'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book", 'the E of an account stays with its owner', 'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote', 'asked', 'on time', 'only the owner of the book retouches a text', 'support of', 'support', 'missing support', 'approved', 'change state', 'changes', 'a change names its class and brings a change', 'only who proposed withdraws a change', 'a change is enacted once it is approved', 'a change comes into force with its proof'], 'al final, lo que entró en la beta del 16-11 (y V6, A20 escalón 1 y el gobierno, A21, el 17-11)');
+  assert.deepEqual(val('epoch.2.0').slice(63), ['firm', 'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book", 'the E of an account stays with its owner', 'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote', 'asked', 'on time', 'only the owner of the book retouches a text', 'support of', 'support', 'missing support', 'approved', 'change state', 'changes', 'a change names its class and brings a change', 'only who proposed withdraws a change', 'a change is enacted once it is approved', 'a change comes into force with its proof', ...Object.values(REGLAS_DEL_PUENTE)], 'al final, lo que entró en la beta del 16-11 (y V6, A20 escalón 1, el gobierno, A21, y el puente, A15, el 17-11)');
   assert.deepEqual(val('epoch.2.0'), reglas.map((r) => r[0][0]), 'el 0 de cada una');
 });
 
@@ -161,7 +162,7 @@ test('reglas como registros: un archivo por regla (su 0 en kebab), id = hash del
   const { REGLAS_DE_EPOCA_DATOS } = await import('../datos/epocas/epocas.js');
   const { hash, canonico } = await import('../src/evento.js');
   const enDisco = reglasDe();
-  assert.equal(enDisco.length, 83, '42 condiciones, 3 que escriben, 28 lecturas (con «firm», «asked» y «on time», #137, y las seis del gobierno, A21) y las 10 de los puntos de vista');
+  assert.equal(enDisco.length, 96, '55 condiciones (con las trece del puente, A15), 3 que escriben, 28 lecturas (con «firm», «asked» y «on time», #137, y las seis del gobierno, A21) y las 10 de los puntos de vista');
   for (const { archivo, id, registro } of enDisco) {
     assert.equal(archivo, kebab(registro[0][0]) + '.json');
     assert.equal(id, await hash(canonico(registro)), archivo + ': el id es el hash de su cuerpo canónico, como el de un evento');
