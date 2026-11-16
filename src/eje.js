@@ -45,7 +45,7 @@
 
 import { claveToken, origenDe, cantidadBase, partirClave, validarMovimiento, capacidadDe, franjaDe, familiaDe, TODAS_LAS_FRANJAS, ESCALAS_T, ESCALAS_REALES, ESCALAS_INFORMATIVAS, asignacionT, AMBITO_GENESIS, ambitoDe, esAnunciado } from './tokens.js';
 import { acotarAltaV2, gastaAsignacion, esInformativoT, validosDe } from './ciclo.js';
-import { evaluarEscritura, nombreDeRegla } from './bqlm.js';
+import { evaluarEscritura, nombreDeRegla, CAUSA_LIMITE } from './bqlm.js';
 import { EPOCA_0_BTML, EPOCAS_POR_ID, cargarEpocaEscrita, idDeRegistro } from './epocas.js';
 import { msUTC, msDeGuardado, segundosUTC, esInstante } from './instante.js';
 import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ } from './evento.js';
@@ -1232,17 +1232,28 @@ export class Eje {
    * condiciones (src/condiciones/index.js, CONDICIONES) y su aritmética.
    */
   async validar(crudo) {
+    return (await this.motivos(crudo)).map((m) => m.texto);
+  }
+
+  /**
+   * Lo mismo que validar, con forma (#100): [{ texto, regla, estado, causa }], en el mismo orden y con el mismo
+   * `texto`. `regla`, el nombre de la regla de la época o de la condición que lo dice (null si es la aritmética del
+   * libro, la forma o la época escrita); `estado`, 'pendiente' si una regla de la época no se resolvió y 'falla' si
+   * no; `causa`, 'limit_exhausted' (CAUSA_LIMITE) si se paró por un límite de cálculo, null si no. Si alguna regla
+   * falla con veredicto, solo cuentan esas (src/condiciones/reglas.js): la parada por límite no sale.
+   */
+  async motivos(crudo) {
     let ev;
     try {
       ev = normalizarEvento(crudo);
     } catch (e) {
-      return ['no cabe en JSON: ' + e.message];
+      return formados(['no cabe en JSON: ' + e.message]);
     }
-    if (!ev || typeof ev !== 'object') return validarForma(ev, { tLaxo: this.orden.length < this.eventosV2 });
-    if (esRegistroDeEpoca(ev)) return this.#erroresDeEpoca(ev);
-    if (this.#escritura && !this.#epoca) return [this.#faltaEpoca()];
+    if (!ev || typeof ev !== 'object') return formados(validarForma(ev, { tLaxo: this.orden.length < this.eventosV2 }));
+    if (esRegistroDeEpoca(ev)) return formados(await this.#erroresDeEpoca(ev));
+    if (this.#escritura && !this.#epoca) return formados([this.#faltaEpoca()]);
     const { motivos } = await this.#libro.probar(this.transaccion(ev), condicionesDe(this.#epocaVigente()), this.contexto(ev));
-    return textos(ev, motivos);
+    return motivosDeTx(ev, motivos);
   }
 
   /**
@@ -1297,21 +1308,25 @@ export class Eje {
    * Añade un evento válido y aplica sus movimientos. Lanza si no es admisible.
    * Guarda y devuelve su copia normalizada y congelada, no el objeto recibido.
    * Es una transacción del libro con las condiciones de siempre: entera o nada.
+   * El error del rechazo lleva `motivos` (la lista de eje.motivos) y, si alguno se paró por un límite de cálculo,
+   * `code: 'limit_exhausted'` (#100); su mensaje, el de siempre.
    */
   async anadir(crudo) {
     const ev = copiaGuardable(crudo);
     if (esRegistroDeEpoca(ev)) {
       const errores = await this.#erroresDeEpoca(ev);
-      if (errores.length) throw new Error('registro de la época rechazado: ' + errores.join('; '));
+      if (errores.length) throw rechazo('registro de la época rechazado: ' + errores.join('; '), formados(errores));
       this.#aplicar(ev);
       return ev;
     }
-    if (this.#escritura && !this.#epoca) throw new Error('evento rechazado: ' + this.#faltaEpoca());
+    if (this.#escritura && !this.#epoca) throw rechazo('evento rechazado: ' + this.#faltaEpoca(), formados([this.#faltaEpoca()]));
     const tx = this.transaccion(ev);
     const { motivos, simulacion } = await this.#libro.probar(tx, condicionesDe(this.#epocaVigente()), this.contexto(ev));
     if (motivos.length) {
-      const errores = textos(ev, motivos);
-      throw new Error('evento rechazado: ' + (errores.length ? errores : motivos.map((m) => m.texto)).join('; '));
+      const lista = motivosDeTx(ev, motivos);
+      const errores = lista.map((m) => m.texto);
+      // Si todos los motivos callan aquí (el gasto del T del día lo dice TT-4), el texto crudo de cada uno, como siempre.
+      throw rechazo('evento rechazado: ' + (errores.length ? errores : motivos.map((m) => m.texto)).join('; '), lista.length ? lista : motivosDeTx(ev, motivos, true));
     }
     this.#aplicar(ev, tx, simulacion); // la copia de copiaGuardable ya está congelada entera: lo guardado no se modifica en sitio
     return ev;
@@ -1605,13 +1620,31 @@ export class Eje {
 }
 
 /**
- * Los textos de los motivos de una transacción del eje, en orden: los de las
- * condiciones tal cual y los fallos de la aritmética del libro con el texto
- * de siempre (el del movimiento que falla). El gasto de la asignación del día
- * que no alcanza no tiene texto aquí: lo dice TT-4 («T del día agotado»).
+ * Los motivos de una transacción del eje, en orden, con forma (#100, eje.motivos): [{ texto, regla, estado, causa }].
+ * Los textos: los de las condiciones tal cual y los fallos de la aritmética del libro con el texto de siempre (el del
+ * movimiento que falla). El gasto de la asignación del día que no alcanza no tiene texto aquí: lo dice TT-4 («T del
+ * día agotado»). `crudos`: el texto de cada motivo tal cual, sin callar ninguno (el respaldo del error de anadir).
  */
-function textos(ev, motivos) {
-  return motivos.map((motivo) => (motivo.fallo ? textoDeFallo(ev, motivo.fallo) : motivo.texto)).filter((x) => x !== null);
+function motivosDeTx(ev, motivos, crudos = false) {
+  return motivos
+    .map((m) => ({
+      texto: m.fallo && !crudos ? textoDeFallo(ev, m.fallo) : m.texto,
+      regla: typeof m.condicion === 'string' ? m.condicion : null,
+      estado: m.estado === 'pendiente' ? 'pendiente' : 'falla',
+      causa: m.causa === CAUSA_LIMITE ? CAUSA_LIMITE : null,
+    }))
+    .filter((m) => m.texto !== null);
+}
+
+/** Textos sueltos (la forma, la época escrita) como motivos de eje.motivos: fallan, sin regla ni causa. */
+const formados = (errores) => errores.map((texto) => ({ texto, regla: null, estado: 'falla', causa: null }));
+
+/** El error de un rechazo (#100): su mensaje, de siempre; `motivos`, con forma; `code`, la causa si es por límite. */
+function rechazo(mensaje, motivos) {
+  const e = new Error(mensaje);
+  e.motivos = motivos;
+  if (motivos.some((m) => m.causa === CAUSA_LIMITE)) e.code = CAUSA_LIMITE;
+  return e;
 }
 
 function textoDeFallo(ev, fallo) {

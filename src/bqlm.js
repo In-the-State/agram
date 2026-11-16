@@ -129,6 +129,8 @@ const FORMAS = Object.freeze({
  * Límites de cálculo: pasos de una evaluación, ocupantes que el contexto puede
  * expandir en una evaluación (el máximo de Scened, 10000), anidamiento de la
  * expresión y niveles de un hilo (`path`). Pasarse es PENDIENTE POR LÍMITE.
+ * Son el TECHO (#100): con una época, cada evaluación usa el menor entre su
+ * fila 8.8 «calculation limits» y esto (limitesDeEpoca).
  */
 export const LIMITES = Object.freeze({ pasos: 100000, ocupantes: 10000, anidamiento: 100, hilo: 10, bytes: 2000000 });
 
@@ -168,6 +170,46 @@ export const COSTE_TAPTWEAK = COSTE_FIRMA;
 
 /** El subtipo de PENDIENTE cuando se agota un límite de cálculo. */
 export const POR_LIMITE = 'PENDIENTE POR LÍMITE';
+/** La causa, para una máquina, de una parada por un límite de cálculo (#100; eje.motivos, el error de eje.escribir). */
+export const CAUSA_LIMITE = 'limit_exhausted';
+
+/** Los límites en el orden de la fila «calculation limits» de la época (epoch.8.8): 8.8.1 pasos … 8.8.5 bytes. */
+const ORDEN_DE_LIMITES = Object.freeze(['pasos', 'ocupantes', 'anidamiento', 'hilo', 'bytes']);
+const LIMITES_DE_EPOCA = new WeakMap();
+
+/**
+ * Los límites de cálculo de una época (#100, VG 17-11: «la regla de parada» es un dato de la época): su fila 8.8,
+ * [["calculation limits", ayuda], [pasos], [ocupantes], [anidamiento], [hilo], [bytes]], cada uno el MENOR entre el dato
+ * y su constante de LIMITES, que queda como techo (una época no lo sube; una hija que reescribe 8.8 lo baja). Un dato
+ * ausente, mal formado (no un entero, o la fila sin ese nombre), cero o negativo cuenta como la constante. `epoca` es la
+ * época cargada o su décupla; sin época, LIMITES.
+ */
+export function limitesDeEpoca(epoca) {
+  const raiz = Array.isArray(epoca) ? epoca : epoca?.registro ?? epoca?.payload;
+  if (!Array.isArray(raiz)) return LIMITES;
+  if (LIMITES_DE_EPOCA.has(raiz)) return LIMITES_DE_EPOCA.get(raiz);
+  const fila = Array.isArray(raiz[8]) ? raiz[8][8] : undefined;
+  const nombrada = Array.isArray(fila) && Array.isArray(fila[0]) && fila[0][0] === 'calculation limits';
+  const dato = (k) => {
+    const x = nombrada && Array.isArray(fila[k + 1]) && fila[k + 1].length === 1 ? fila[k + 1][0] : undefined;
+    return Number.isSafeInteger(x) && x > 0 ? x : Infinity;
+  };
+  const fuera = Object.freeze(Object.fromEntries(ORDEN_DE_LIMITES.map((n, k) => [n, Math.min(dato(k), LIMITES[n])])));
+  LIMITES_DE_EPOCA.set(raiz, fuera);
+  return fuera;
+}
+
+/**
+ * Los límites de una evaluación: los del contexto (`contexto.limitesDeCalculo`, los de su época: src/contexto-eje.js) o
+ * LIMITES, y encima lo que diga `opciones.limites` (el código que la llama, como hasta ahora).
+ */
+function limitesDe(contexto, opciones = {}) {
+  const propios = contexto && typeof contexto === 'object' ? contexto.limitesDeCalculo : undefined;
+  const base = propios && typeof propios === 'object' ? propios : LIMITES;
+  const o = opciones.limites;
+  if (!o) return base;
+  return Object.fromEntries(ORDEN_DE_LIMITES.map((n) => [n, o[n] ?? base[n] ?? LIMITES[n]]));
+}
 
 /** Una parada de la evaluación: PENDIENTE (con su subtipo, si lo hay) o ERROR, con su motivo. */
 export class Parada extends Error {
@@ -315,9 +357,9 @@ const NIVEL_IT = /^it([2-9]|[1-9]\d+)?$/;
 /**
  * Analiza una expresión de BQL mínimo (sin el «=» de fórmula, o con él) y
  * devuelve su árbol. Lanza una Parada ERROR con el motivo (sintaxis o «no es
- * BQL mínimo»).
+ * BQL mínimo»). `anidamiento` es el tope de anidamiento (por omisión, LIMITES.anidamiento).
  */
-export function analizar(src, { sujeto = false } = {}) {
+export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = LIMITES.anidamiento } = {}) {
   if (typeof src !== 'string') throw fallo('sintaxis: una expresión es un texto');
   const cuerpo = esFormula(src) ? src.slice(1) : src;
   const tokens = tokenizar(cuerpo);
@@ -329,7 +371,7 @@ export function analizar(src, { sujeto = false } = {}) {
   const es = (t, v) => tokens[i]?.t === t && (v === undefined || tokens[i].v === v);
   const donde = () => (tokens[i] ? 'en ' + tokens[i].pos + ' («' + tokens[i].v + '»)' : 'al final');
   const entrar = () => {
-    if (++anidamiento > LIMITES.anidamiento) throw porLimite('expresión anidada más de ' + LIMITES.anidamiento + ' niveles');
+    if (++anidamiento > topeAnidamiento) throw porLimite('expresión anidada más de ' + topeAnidamiento + ' niveles');
   };
   const salir = () => { anidamiento--; };
   const esperar = (t, v) => {
@@ -589,20 +631,22 @@ const esNodo = (o) => o !== null && typeof o === 'object';
  * Evalúa una expresión (texto, con o sin «=», o el árbol de analizar) en un
  * contexto. Devuelve { estado: 'RESUELTO', valor, texto } (valor: la lista de
  * ocupantes; texto: cómo se lee) o { estado: 'PENDIENTE' | 'ERROR', motivo }.
- * No lanza. opciones.limites cambia LIMITES.pasos y LIMITES.ocupantes; un
- * límite agotado da PENDIENTE con subtipo «PENDIENTE POR LÍMITE».
+ * No lanza. Los límites son los de la época del contexto (limitesDeEpoca, #100: el menor entre su 8.8 y LIMITES) o,
+ * sin época, LIMITES; opciones.limites los cambia (pasos, ocupantes, anidamiento, hilo, bytes). Un límite agotado da
+ * PENDIENTE con subtipo «PENDIENTE POR LÍMITE».
  */
 export function evaluar(src, contexto, opciones = {}) {
   try {
     const conSujeto = Object.hasOwn(opciones, 'sujeto');
-    const arbol = typeof src === 'string' ? analizar(src, { sujeto: conSujeto }) : src;
+    const lim = limitesDe(contexto, opciones);
+    const arbol = typeof src === 'string' ? analizar(src, { sujeto: conSujeto, anidamiento: lim.anidamiento }) : src;
     // Invariante del núcleo (VG 12-11, decisión 6): mover es de las plantillas; las reglas solo leen. Se mira el árbol
     // entero, no lo que se llega a evaluar: un verbo detrás de un and que da falso también es ERROR.
     const { verbo, put } = queMueve(arbol);
     if (verbo && !opciones.mover) throw fallo(verbo + ': solo una plantilla de transacción mueve (la firma quien la lanza); una regla solo lee (invariante del núcleo)');
     if (put && !opciones.mover && !opciones.escribir) throw fallo('put: solo en una regla que escribe (put en su 4) o en una plantilla de transacción');
     const st = {
-      ctx: contexto, its: conSujeto ? [opciones.sujeto] : [], pasos: 0, tope: opciones.limites?.pasos ?? LIMITES.pasos, presupuesto: opciones.presupuesto instanceof Presupuesto ? opciones.presupuesto : new Presupuesto(opciones.limites?.ocupantes ?? LIMITES.ocupantes, opciones.limites?.bytes ?? LIMITES.bytes),
+      ctx: contexto, its: conSujeto ? [opciones.sujeto] : [], pasos: 0, tope: lim.pasos, hilo: lim.hilo, presupuesto: opciones.presupuesto instanceof Presupuesto ? opciones.presupuesto : new Presupuesto(lim.ocupantes, lim.bytes),
       escrituras: opciones.escribir && !opciones.mover ? [] : null, movimientos: opciones.mover ? [] : null,
     };
     const valor = calcular(arbol, st);
@@ -946,7 +990,7 @@ function prefija(op, lista, st) {
         const hilo = [];
         let x = o;
         while (x !== null) {
-          if (hilo.length === LIMITES.hilo) throw pendiente('path: el hilo pasa de ' + LIMITES.hilo + ' niveles');
+          if (hilo.length === st.hilo) throw pendiente('path: el hilo pasa de ' + st.hilo + ' niveles');
           paso(st);
           hilo.push(x);
           x = ctx.padre(x);
@@ -1359,14 +1403,18 @@ const ultimo = (x) => (Array.isArray(x) ? x[x.length - 1] : x);
 /** El nombre de una regla: el primer ocupante de su 0. */
 export const nombreDeRegla = (regla) => (Array.isArray(regla) ? (Array.isArray(regla[0]) ? regla[0][0] : regla[0]) : undefined);
 
-// Las condiciones ya analizadas, por su texto (y si llevan sujeto): una regla se analiza una vez.
+/** El subtipo de una parada o de un resultado, si lo lleva (POR_LIMITE), para conservarlo hacia arriba (#100). */
+const conSubtipo = (x) => (x?.subtipo ? { subtipo: x.subtipo } : {});
+
+// Las condiciones ya analizadas, por su texto (y si llevan sujeto, y su tope de anidamiento si no es el de siempre): una
+// regla se analiza una vez.
 const ANALIZADAS = new Map();
-function analizada(src, sujeto = false) {
-  const clave = (sujeto ? 'L' : 'C') + src;
+function analizada(src, sujeto = false, anidamiento = LIMITES.anidamiento) {
+  const clave = (sujeto ? 'L' : 'C') + (anidamiento === LIMITES.anidamiento ? '' : anidamiento + ':') + src;
   if (!ANALIZADAS.has(clave)) {
     let arbol;
     try {
-      arbol = analizar(src, { sujeto });
+      arbol = analizar(src, { sujeto, anidamiento });
     } catch (e) {
       arbol = e;
     }
@@ -1416,9 +1464,9 @@ export function leerRegla(regla, sujeto, contexto, opciones = {}) {
   }
   let arbol;
   try {
-    arbol = analizada(formula, true);
+    arbol = analizada(formula, true, limitesDe(contexto, opciones).anidamiento);
   } catch (e) {
-    return { estado: e.estado ?? 'ERROR', motivo: nombre + ': ' + e.message };
+    return { estado: e.estado ?? 'ERROR', ...conSubtipo(e), motivo: nombre + ': ' + e.message };
   }
   const r = evaluar(arbol, contexto, { ...opciones, sujeto });
   return r.estado === 'RESUELTO' ? r : { ...r, motivo: nombre + ': ' + r.motivo };
@@ -1429,10 +1477,11 @@ export function leerRegla(regla, sujeto, contexto, opciones = {}) {
  * 1 constantes, 2 condición, 3 a quién, 4 primitiva, 5 dónde cuelga, 6 de dónde
  * viene, 7 desde qué época, 8 orden, 9 mensaje). Lee la condición del 2 (una
  * fórmula «=…», el último ocupante: una corrección se añade detrás) y la
- * evalúa en el contexto. Devuelve { pasa, estado, motivo }:
+ * evalúa en el contexto. Devuelve { pasa, estado, subtipo?, motivo }:
  * pasa solo si la condición da verdadero; si da falso, motivo es el mensaje del
  * 9 con cada {expresión} rellena con lo que vale; si queda PENDIENTE o da
- * ERROR, no pasa y motivo lo dice. No mira el 3, el 4 ni el 5: quién cuelga las
+ * ERROR, no pasa y motivo lo dice; `subtipo` es POR_LIMITE si se paró por un
+ * límite de cálculo (#100). No mira el 3, el 4 ni el 5: quién cuelga las
  * reglas de cada transacción es trabajo de después.
  */
 export function evaluarRegla(regla, contexto, opciones = {}) {
@@ -1445,12 +1494,12 @@ export function evaluarRegla(regla, contexto, opciones = {}) {
   }
   let arbol;
   try {
-    arbol = analizada(condicion);
+    arbol = analizada(condicion, false, limitesDe(contexto, opciones).anidamiento);
   } catch (e) {
-    return { pasa: false, estado: e.estado ?? 'ERROR', motivo: nombre + ': ' + (e.estado ?? 'ERROR') + ': ' + e.message };
+    return { pasa: false, estado: e.estado ?? 'ERROR', ...conSubtipo(e), motivo: nombre + ': ' + (e.estado ?? 'ERROR') + ': ' + e.message };
   }
   const r = evaluar(arbol, contexto, opciones);
-  if (r.estado !== 'RESUELTO') return { pasa: false, estado: r.estado, motivo: nombre + ': ' + r.estado + ': ' + r.motivo };
+  if (r.estado !== 'RESUELTO') return { pasa: false, estado: r.estado, ...conSubtipo(r), motivo: nombre + ': ' + r.estado + ': ' + r.motivo };
   if (r.valor.length !== 1 || typeof r.valor[0] !== 'boolean') {
     return { pasa: false, estado: 'ERROR', motivo: nombre + ': la condición no da verdadero o falso, da «' + r.texto + '»' };
   }
@@ -1471,12 +1520,12 @@ export function evaluarEscritura(regla, contexto, opciones = {}) {
   if (!esFormula(formula)) return { estado: 'ERROR', escrituras: [], motivo: nombre + ': su 2 no es una fórmula «=…»' };
   let arbol;
   try {
-    arbol = analizada(formula);
+    arbol = analizada(formula, false, limitesDe(contexto, opciones).anidamiento);
   } catch (e) {
-    return { estado: e.estado ?? 'ERROR', escrituras: [], motivo: nombre + ': ' + e.message };
+    return { estado: e.estado ?? 'ERROR', ...conSubtipo(e), escrituras: [], motivo: nombre + ': ' + e.message };
   }
   const r = evaluar(arbol, contexto, { ...opciones, escribir: true });
-  if (r.estado !== 'RESUELTO') return { estado: r.estado, escrituras: [], motivo: nombre + ': ' + r.estado + ': ' + r.motivo };
+  if (r.estado !== 'RESUELTO') return { estado: r.estado, ...conSubtipo(r), escrituras: [], motivo: nombre + ': ' + r.estado + ': ' + r.motivo };
   return { estado: 'RESUELTO', escrituras: r.escrituras, motivo: null };
 }
 
@@ -1489,15 +1538,16 @@ export function evaluarEscritura(regla, contexto, opciones = {}) {
  * evaluación que mueve: la candidata la firma quien la lanza, y después la validan las reglas, que solo leen.
  */
 export function evaluarPlantilla(sentencias, contexto, opciones = {}) {
-  const presupuesto = new Presupuesto(opciones.limites?.ocupantes ?? LIMITES.ocupantes, opciones.limites?.bytes ?? LIMITES.bytes);
+  const lim = limitesDe(contexto, opciones);
+  const presupuesto = new Presupuesto(lim.ocupantes, lim.bytes);
   const movimientos = [];
   for (const src of Array.isArray(sentencias) ? sentencias : [sentencias]) {
     if (!esFormula(src)) return { estado: 'ERROR', movimientos: [], motivo: 'una sentencia de plantilla es una fórmula «=…»' };
     let arbol;
     try {
-      arbol = analizada(src, true);
+      arbol = analizada(src, true, lim.anidamiento);
     } catch (e) {
-      return { estado: e.estado ?? 'ERROR', movimientos: [], motivo: e.message };
+      return { estado: e.estado ?? 'ERROR', ...conSubtipo(e), movimientos: [], motivo: e.message };
     }
     const r = evaluar(arbol, contexto, { ...opciones, mover: true, presupuesto });
     if (r.estado !== 'RESUELTO') return { estado: r.estado, ...(r.subtipo ? { subtipo: r.subtipo } : {}), movimientos: [], motivo: r.motivo };
@@ -1512,7 +1562,7 @@ export function rellenar(mensaje, contexto, opciones = {}) {
     let r;
     try {
       // Con sujeto (el 9 de una plantilla de transacción, con it = X), `it` vale fuera de where (encargo 3c-2a).
-      r = evaluar(analizada(expr, Object.hasOwn(opciones, 'sujeto')), contexto, opciones);
+      r = evaluar(analizada(expr, Object.hasOwn(opciones, 'sujeto'), limitesDe(contexto, opciones).anidamiento), contexto, opciones);
     } catch (e) {
       r = { estado: e.estado ?? 'ERROR' };
     }
@@ -1605,9 +1655,9 @@ export function leerFormula(formula, sujeto, contexto, opciones = {}) {
   if (!esFormula(formula)) return { estado: 'ERROR', motivo: 'no es una fórmula «=…»' };
   let arbol;
   try {
-    arbol = analizada(formula, true);
+    arbol = analizada(formula, true, limitesDe(contexto, opciones).anidamiento);
   } catch (e) {
-    return { estado: e.estado ?? 'ERROR', ...(e.subtipo ? { subtipo: e.subtipo } : {}), motivo: e.message };
+    return { estado: e.estado ?? 'ERROR', ...conSubtipo(e), motivo: e.message };
   }
   for (const { id } of registrosDeFormula(arbol)) {
     if (typeof contexto?.payload !== 'function' || contexto.payload(id) === undefined) {

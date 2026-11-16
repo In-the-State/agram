@@ -49,7 +49,7 @@ import { ARIDAD, esReferencia, esLista, direccion, indicesDe, resolver } from '.
 import { ESCALAS_T, ESCALAS_REALES, SEGUNDOS, claveToken, partirClave, franjaDe, diaCivil, validarMovimiento, esAnunciado } from './tokens.js';
 import { esInstante, msUTC } from './instante.js';
 import { contenido } from './modos.js';
-import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula } from './bqlm.js';
+import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula, limitesDeEpoca } from './bqlm.js';
 import { epocaDelEje } from './epocas.js';
 
 /** Quien está al otro lado de una emisión o de un consumo: el símbolo de src/bqlm.js, nunca un texto (SEG-11). */
@@ -186,6 +186,15 @@ export class ContextoEje {
       if (!this.#lecturas.has(donde)) this.#lecturas.set(donde, []);
       this.#lecturas.get(donde).push(regla);
     }
+  }
+
+  /**
+   * Los límites de cálculo con que el BQL mínimo evalúa en este contexto (#100): los de su época (bqlm.limitesDeEpoca,
+   * el menor entre su 8.8 y LIMITES); sin época, undefined (LIMITES, como siempre). Un objeto que hereda de un
+   * contexto (Object.create) sin serlo no la ve: LIMITES.
+   */
+  get limitesDeCalculo() {
+    return #epoch in this && this.#epoch ? limitesDeEpoca(this.#epoch) : undefined;
   }
 
   /** ¿Hay lecturas que se materializan bajo «letra.d»? */

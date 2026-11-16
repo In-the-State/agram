@@ -3221,6 +3221,27 @@ export const EPOCA_0_BTML_DATOS = [
         "VG, 12-11 (#52): las formas van POR MODO. La posición 3 de cada fila (las formas) es una LISTA (no una décupla) con una hoja por modo, en el orden de los modos de epoch.8.2: Pointed, Sequenced, Mapped, Scened, Be. Cada hoja lleva la forma de cada nivel separadas por «>» (la última se repite: «escalera > columnas»); «-» donde el modo no declara la suya y hereda la del modo anterior (Sequenced de Pointed, Mapped de Sequenced, Scened de Mapped, Be de Scened: contrato.formaDe). Hoy Pointed no tiene forma propia (la fila del elemento no es una forma de la división), Sequenced y Mapped llevan lo de siempre (en Sequenced, la misma forma apilada en una columna cuando no cabe a lo ancho) y Scened y Be heredan de Mapped. El PV de la primera profundidad sigue definiendo cómo se ve a cualquier profundidad",
         "VG, 13-11 (#77: sin huecos ni rellenos, claves y valores; regla general de BTML): la fila ya no lleva una posición por cosa con «-» donde no aplica. Es [[pv], [profundidad], [nota], [claves], [valores]]: 0 el PV, 1 la profundidad (niveles al entrar), 2 la nota, 3 las CLAVES de lo que la fila dice y 4 sus VALORES, una décupla paralela (solo las que existen, en el mismo orden; una clave repetida junta sus valores). Las claves: «child» (un hijo: el dígito que ese mundo enciende), «measures» (lo que mide: una referencia a lo que la época o las bases dan), «style» (el CSS por defecto de los de abajo), «thread» (un PV de las filas horizontales de las franjas), «link <n>» (el enlace del hijo n, o de la caja n en el cielo del 8: lo que ese hijo es de lo que la fila mide; un hijo que no mide nada no tiene la suya), «order» (el orden de epoch.8.5 de las listas verticales), «<modo> form» (la forma de ese modo, en minúsculas: «sequenced form», «mapped form»; el modo que no la dice hereda del anterior, Pointed no la tiene) y, en el 4, los ejes de la matriz: «office» (los oficios, de 0 a 9), «execution» (la ejecución, de 0 a 9) y «criterion» (lo que la elige, detrás de su «execution»). Donde las notas de arriba hablan de la posición 3, 4, 5, 7, 8 o 9 de la fila, léase la clave que dice la última"
       ]
+    ],
+    [
+      [
+        "calculation limits",
+        "the stop rule (VG 17-11, #100): how far one evaluation of BQL may go, as [steps], [occupants expanded], [nesting of an expression], [levels of a thread], [bytes processed by the verification primitives]; the core takes the lesser of each and its own constant, the ceiling an epoch cannot raise; a missing, malformed, zero or negative value counts as the constant; a child epoch that rewrites 8.8 lowers them for its context; going past one is PENDING BY LIMIT, cause limit_exhausted"
+      ],
+      [
+        100000
+      ],
+      [
+        10000
+      ],
+      [
+        100
+      ],
+      [
+        10
+      ],
+      [
+        2000000
+      ]
     ]
   ],
   [
@@ -22796,7 +22817,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "e9beede770b7a58000b409fa5b7aec69071da8c8230134076be0e2ac4cf5c572";
+export const EPOCA_0_BTML_ID = "f7031e9643dfe71443260298c61023ac605d46d9494eddf72e2f963508b03eb7";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

@@ -13,10 +13,11 @@
 //
 // PENDIENTE: una regla que no se resuelve no pasa. Si alguna regla falla con un veredicto (RESUELTO), solo cuentan
 // esas; si no, la primera que queda PENDIENTE, en el orden del 8, rechaza con su estado y su motivo (lo que no se
-// sabe no se acepta). Por eso «every record hangs on a record of the ledger» va la segunda: un foco que no está deja
-// PENDIENTE a las que suben por él, y es ella la que lo dice.
+// sabe no se acepta): así, una parada por un límite de cálculo (PENDIENTE POR LÍMITE, causa «limit_exhausted», #100)
+// solo sale si ninguna regla falla con veredicto. Por eso «every record hangs on a record of the ledger» va la
+// segunda: un foco que no está deja PENDIENTE a las que suben por él, y es ella la que lo dice.
 
-import { evaluarRegla, nombreDeRegla } from '../bqlm.js';
+import { evaluarRegla, nombreDeRegla, POR_LIMITE, CAUSA_LIMITE } from '../bqlm.js';
 import { EPOCA_0_BTML } from '../epocas.js';
 import { validarForma } from '../evento.js';
 import { referenciasAusentes } from './evento.js';
@@ -35,8 +36,8 @@ const VEREDICTOS = new WeakMap();
 
 /**
  * Los veredictos de las reglas de `epoca` sobre la candidata de `ctx` (el contexto de eje.contexto(ev), con
- * `contextoBqlm`): Map nombre → { regla, pasa, estado, motivo }, o null si no se evalúan (versión 2, mal formado,
- * sin contexto del BQL mínimo).
+ * `contextoBqlm`): Map nombre → { regla, pasa, estado, subtipo?, motivo } (subtipo: POR_LIMITE, #100), o null si no
+ * se evalúan (versión 2, mal formado, sin contexto del BQL mínimo).
  */
 export function veredictosDe(ctx, epoca = EPOCA_0_BTML) {
   if (ctx && VEREDICTOS.has(ctx)) return VEREDICTOS.get(ctx);
@@ -95,9 +96,12 @@ export const CAPA_DE_REGLA = Object.freeze({
   'R is minted to its issuer': 1,
 });
 
+/** La causa de un veredicto que no pasa (#100): CAUSA_LIMITE («limit_exhausted») si se paró por un límite de cálculo; null si no. */
+export const causaDe = (r) => (r?.subtipo === POR_LIMITE ? CAUSA_LIMITE : null);
+
 /**
- * Los motivos de las reglas de la época para la validez: [{ i: null, capa, texto, condicion, pendiente }], uno por
- * regla que rechaza la candidata de `ctx` (los mismos que da el eje). `pendiente` si no se resolvió.
+ * Los motivos de las reglas de la época para la validez: [{ i: null, capa, texto, condicion, pendiente, causa }], uno por
+ * regla que rechaza la candidata de `ctx` (los mismos que da el eje). `pendiente` si no se resolvió; `causa`, causaDe.
  */
 export function motivosDeReglas(ctx, epoca = EPOCA_0_BTML) {
   const v = veredictosDe(ctx, epoca);
@@ -105,18 +109,27 @@ export function motivosDeReglas(ctx, epoca = EPOCA_0_BTML) {
   const fuera = [];
   for (const [nombre, r] of v) {
     const texto = motivoDeRegla(nombre, ctx, epoca);
-    if (texto) fuera.push({ i: null, capa: CAPA_DE_REGLA[nombre] ?? 5, texto, condicion: nombre, pendiente: r.estado === 'PENDIENTE' });
+    if (texto) fuera.push({ i: null, capa: CAPA_DE_REGLA[nombre] ?? 5, texto, condicion: nombre, pendiente: r.estado === 'PENDIENTE', causa: causaDe(r) });
   }
   return fuera;
 }
 
-/** Una regla de la época como condición de la transacción: { nombre, filas, familia, evaluar }. */
+/**
+ * Una regla de la época como condición de la transacción: { nombre, filas, familia, evaluar }. Su motivo, para el libro,
+ * es { texto, estado, causa } (#100: estado «falla» o «pendiente», causa causaDe): eje.motivos lo lee; el texto, el de siempre.
+ */
 export const condicionDeRegla = (regla, epoca = EPOCA_0_BTML) => Object.freeze({
   nombre: nombreDeRegla(regla),
   filas: filasDeRegla(regla),
   familia: 'epoca',
   regla,
-  evaluar: (tx, libro, ctx) => motivoDeRegla(nombreDeRegla(regla), ctx, epoca),
+  evaluar: (tx, libro, ctx) => {
+    const nombre = nombreDeRegla(regla);
+    const texto = motivoDeRegla(nombre, ctx, epoca);
+    if (!texto) return texto;
+    const r = veredictosDe(ctx, epoca)?.get(nombre);
+    return { texto, estado: r?.estado === 'PENDIENTE' ? 'pendiente' : 'falla', causa: causaDe(r) };
+  },
 });
 
 /** Las reglas de la época 0 como condiciones, en el orden de su 8. */
