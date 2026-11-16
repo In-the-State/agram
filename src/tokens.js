@@ -70,6 +70,19 @@ export const SERIE = Object.freeze({
  */
 export const SEPARADOR_REGISTRO = '@';
 
+/**
+ * El emisor de una SERIE FORASTERA de E (el puente entre libros, A15; docs/notas/PUENTE.md): la misma serie de otro
+ * libro, nombrada con él: «<id del génesis del libro de origen>:<su emisor allí>» («E:<libro>:ana/EUR@<registro>»).
+ * Ninguna identidad ni ningún emisor de este libro lleva «:», así que nadie de aquí la emite como suya: la crea «receive
+ * from another book» y deciden las reglas de la época. Solo en E (las demás familias no cruzan como token todavía).
+ */
+const EMISOR_FORASTERO = /^[0-9a-f]{64}:[^|:/]+$/;
+
+/** ¿Es `x` el emisor de una serie forastera de E («<libro>:<emisor>»)? */
+export function esEmisorForastero(x) {
+  return typeof x === 'string' && EMISOR_FORASTERO.test(x);
+}
+
 /** Forma del id de un evento: el hash SHA-256 de su cuerpo, en hexadecimal (src/evento.js). */
 const ID_EVENTO = /^[0-9a-f]{64}$/;
 const COLA_REGISTRO = /@([0-9a-f]{64})$/;
@@ -424,13 +437,16 @@ export function validarMovimiento(m) {
   // corrige la #62, que solo dejaba devolverla) y el tenedor puede perdonarla quemándola («R, últimas dos»).
   if (m.token === 'R' && !texto(m.emisor)) errores.push('R exige emisor');
   // Una serie nace en la cartera de su emisor (E y R); de ahí se mueve.
-  if ((m.token === 'E' || m.token === 'R') && texto(m.emisor) && m.de === null && m.a !== m.emisor) {
+  // Salvo la de una serie forastera de E (el puente, A15): su emisor está en otro libro; a quién va lo dicen las reglas.
+  const forastera = m.token === 'E' && esEmisorForastero(m.emisor);
+  if ((m.token === 'E' || m.token === 'R') && texto(m.emisor) && m.de === null && m.a !== m.emisor && !forastera) {
     errores.push('la emisión de ' + m.token + ' va a su propio emisor');
   }
   if (m.token !== 'P' && m.ambito !== undefined) errores.push('ámbito solo en P');
   if (m.token !== 'R' && m.token !== 'E' && m.emisor !== undefined) errores.push('emisor solo en E y en R');
   // Los separadores de las claves de serie están reservados: ni identidades ni denominaciones los llevan.
   for (const campo of ['de', 'a', 'emisor', 'denominacion', 'ambito', 'origen', 'escala']) {
+    if (campo === 'emisor' && forastera) continue; // su único «:» es el de su forma, esEmisorForastero
     if (typeof m[campo] === 'string' && /[|:/]/.test(m[campo])) errores.push(campo + ' no puede llevar | : ni /');
   }
   // SEG-12: la salida y las partes de una serie son textos de fuera que indexan diccionarios; los nombres del

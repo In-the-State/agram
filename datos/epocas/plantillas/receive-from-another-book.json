@@ -1,0 +1,70 @@
+[
+  ["receive from another book"],
+  [
+    [
+      ["send"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «receive from another book»"],
+      ["required"],
+      [1],
+      [
+        "=it",
+        "the send brought from the other book (the «bring a record from another book» that brought it)"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «receive from another book»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «receive from another book»"],
+      ["required"],
+      [3],
+      ["=me", "who receives: whom the send names"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «receive from another book»"],
+      ["required"],
+      [4],
+      ["receive from another book", "the action"]
+    ]
+  ],
+  ["=\"bring a record from another book\" in (payload(it)).4 and \"send to another book\" in (payload(it)).1.1.6.4 and first (payload(it)).1.1.6.1.3 in ((first me.6).5 each 2) and count (down it where \"receive from another book\" in (payload(it2)).4) = 0"],
+  [["me"], ["person"]],
+  ["=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and release first (payload(it)).1.1.6.1.2 (first ((me.1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit first (payload(it)).1.3 or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) > 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2).(first ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3)) to me or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) = 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2) to me"],
+  ["4"],
+  [
+    "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §4.3 y §4.4: en el destino, sobre el envío ya traído. Si la serie nació en el libro de origen, crea la serie forastera: la misma serie nombrada con el libro de origen (su emisor es «<libro de origen>:<emisor>», src/tokens.js esEmisorForastero), atada al registro traído del registro al que estaba atada allí (el requisito de E, epoch.8.9.3), para quien nombra el envío; se comporta como cualquier serie de su familia. Si nació aquí (la vuelta), no crea nada: suelta lo que se bloqueó al enviarla, de quien lo bloqueó, con la salida en el enlace por el que se trajo el envío",
+    "Lo deciden «a send is received once by whom it names» (lo escribe quien declara en su alta la clave que nombra el envío, una vez), «what is received is what was sent», «only a receive mints a foreign series» y los requisitos de su familia (epoch.8.9.3). Se ancla en el 4 del registro traído",
+    "[4, 27]: lo que mueve (PV 4), detrás de «send to another book»"
+  ],
+  ["epoch 0"],
+  [4, 27],
+  ["receive from another book: {me} receives the send {first memo.1}"]
+]

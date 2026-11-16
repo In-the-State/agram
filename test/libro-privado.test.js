@@ -69,12 +69,12 @@ test('abrir aquí un libro privado: sobre un elemento propio y sobre uno ajeno; 
   // Propio: ana sobre su empresa, con dos claves y la dirección de las cabeceras.
   const propio = await lanzar(ABRIR, empresa.id, { book: LIBRO, 'line keys': [[1, K1], [3, K3]], 'headers url': 'https://cabeceras.ejemplo.org/' });
   assert.deepEqual([propio.sobre, propio.en], [empresa.id, '9100000000']);
-  assert.deepEqual(propio.payload.slice(1), [[[LIBRO], ['https://cabeceras.ejemplo.org/']], [[1, K1], [3, K3]], ['ana'], [ABRIR]]);
+  assert.deepEqual(propio.payload.slice(1), [[[[LIBRO]], ['https://cabeceras.ejemplo.org/']], [[1, K1], [3, K3]], ['ana'], [ABRIR]]);
   assert.match(String(propio.payload[0]), /ana opens the private book ab/);
   assert.ok(propio.movimientos.every((m) => m.a === null), 'solo el coste de escribir');
-  // Ajeno (no un alta): bea sobre la empresa de ana, sin dirección; la 1 queda [[libro]], sin hueco.
+  // Ajeno (no un alta): bea sobre la empresa de ana, sin dirección; la 1 queda [[[libro]]] (desde el puente, A15, el libro va en 1.0.0), sin hueco.
   const ajeno = await lanzar(ABRIR, empresa.id, { book: 'cd'.repeat(32), 'line keys': [[2, K2]] }, 'bea');
-  assert.deepEqual(ajeno.payload.slice(1), [[['cd'.repeat(32)]], [[2, K2]], ['bea'], [ABRIR]]);
+  assert.deepEqual(ajeno.payload.slice(1), [[[['cd'.repeat(32)]]], [[2, K2]], ['bea'], [ABRIR]]);
   // Y ana sobre la tarea de bea.
   await lanzar(ABRIR, tarea.id, { book: LIBRO, 'line keys': [[4, K4]] });
 });
@@ -100,7 +100,7 @@ test('abrir sobre el alta de otro: no se ofrece; sin pagar la atención lo recha
 
 // ---------- 2. lo mal formado ----------
 
-test('un id, una clave o un nivel mal formados no valen; más de cuatro claves, ninguna o un nivel repetido, tampoco', async () => {
+test('un id, una clave o un nivel mal formados no valen; más de cuatro claves (cinco) o un nivel repetido, tampoco; ninguna (0) sí', async () => {
   const { eje, empresa } = await mundo();
   const prueba = (params) => A.transaccion(eje, ABRIR, { X: empresa.id, book: LIBRO, 'line keys': [[1, K1]], ...params }, 'ana', { t: T(1) });
   for (const [book, que] of [['AB'.repeat(32), 'en mayúsculas'], ['abcd', 'corto'], ['ab'.repeat(33), 'largo'], ['zz'.repeat(32), 'no hex']]) {
@@ -119,8 +119,12 @@ test('un id, una clave o un nivel mal formados no valen; más de cuatro claves, 
     [[[1, K1, 'de más']], 'un par de tres'],
   ];
   for (const [k, que] of claves) assert.deepEqual(reglas(await prueba({ 'line keys': k })), ['line keys'], que);
+  // Cero claves (Core AGRAM 17-11 con Core StateArk: un libro pequeño sin sellador se anuncia sin claves): se escribe 0.
   const sin = await A.transaccion(eje, ABRIR, { X: empresa.id, book: LIBRO }, 'ana', { t: T(1) });
-  assert.ok(reglas(sin).includes('line keys'), 'sin claves');
+  assert.equal(sin.ok, true, 'sin claves: ' + JSON.stringify(sin.motivos));
+  assert.deepEqual(sin.evento.payload[2], [0]);
+  assert.equal((await prueba({ 'line keys': 0 })).ok, true, 'el 0 dicho');
+  assert.deepEqual(reglas(await prueba({ 'line keys': [[1, K1], [2, K2], [3, K3], [4, K4], [4, K1]] })), ['line keys'], 'cinco');
   assert.equal((await prueba({ 'line keys': [[4, K4], [1, K1], [3, K3], [2, K2]] })).ok, true, 'las cuatro, en cualquier orden: el nivel va dicho');
   // Escrito a mano con una clave mala (la época no tiene regla para esto): la lectura no lo cuenta.
   assert.deepEqual(await aMano(eje, { autor: 'ana', sobre: empresa.id, en: '9100000000', t: T(2), payload: ['a mano', [[LIBRO]], [[1, 'abcd']], ['ana'], [ABRIR]] }), []);
@@ -172,7 +176,7 @@ test('«this book hangs from»: sobre el génesis, solo al dueño; gana la últi
   const G = 'ef'.repeat(32);
   const primero = await lanzar(CUELGA, raiz, { book: G, element: K1 }, 'ana', T(1));
   assert.deepEqual([primero.sobre, primero.en], [raiz, '9500000000']);
-  assert.deepEqual(primero.payload.slice(1), [[G], [K1], ['ana'], [CUELGA]]);
+  assert.deepEqual(primero.payload.slice(1), [[[G], [0]], [K1], ['ana'], [CUELGA]], 'desde el puente (A15): el libro en 1.0 y sus claves de línea en 1.1, 0 por defecto');
   assert.deepEqual(C.cuelgaDe(eje), { libro: G, elemento: K1, id: primero.id, t: T(1) });
   const segundo = await lanzar(CUELGA, raiz, { book: G, element: K2 }, 'ana', T(2));
   assert.deepEqual(C.cuelgaDe(eje), { libro: G, elemento: K2, id: segundo.id, t: T(2) });
@@ -219,6 +223,22 @@ test('recíproco: sí cuando los dos lados se dicen; no si falta uno, si apuntan
   assert.equal(C.enlaceReciproco(grande, pequeno), false);
   assert.equal(C.enlaceReciproco(null, pequeno), false);
   assert.equal(C.enlaceReciproco(grande, null), false);
+});
+
+test('cero claves (Core AGRAM 17-11 con Core StateArk): un libro pequeño sin sellador se anuncia sin claves; la lectura lo da con claves vacías y el enlace sigue siendo recíproco', async () => {
+  const { grande, sala, lanzar, pequeno, enPequeno } = await dosLibros();
+  await enPequeno(CUELGA, { book: grande.genesisId, element: sala.id }, T(101));
+  const sin = await lanzar(ABRIR, sala.id, { book: pequeno.genesisId }, 'ana', T(102));
+  assert.deepEqual(sin.payload[2], [0], 'sin claves: 0');
+  const [l] = C.librosPrivados(grande, sala.id);
+  assert.deepEqual([l.id, l.libro, l.claves], [sin.id, pequeno.genesisId, []]);
+  assert.equal(C.enlaceReciproco(grande, pequeno), true);
+  // Vale el último anuncio: el que declara las claves después.
+  const con = await lanzar(ABRIR, sala.id, { book: pequeno.genesisId, 'line keys': [[1, K1]] }, 'ana', T(103));
+  assert.deepEqual(C.librosPrivados(grande, sala.id).map((x) => [x.id, x.claves]), [[con.id, [{ nivel: 1, clave: K1 }]]]);
+  // Cinco claves no, como siempre.
+  const cinco = await A.transaccion(grande, ABRIR, { X: sala.id, book: pequeno.genesisId, 'line keys': [[1, K1], [2, K2], [3, K3], [4, K4], [4, K1]] }, 'ana', { t: T(104) });
+  assert.deepEqual(reglas(cinco), ['line keys']);
 });
 
 // ---------- 6. lo que ve un tercero ----------

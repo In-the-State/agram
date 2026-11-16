@@ -44,6 +44,7 @@ import { ejemploLente } from '../ejemplos/ikisai/lente-booking.mjs';
 import { ejemploReserva } from '../ejemplos/ikisai/reserva-booking.mjs';
 import { ejemploTarea } from '../ejemplos/ikisai/tarea-tasks.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
+import { REGLAS_DEL_PUENTE } from '../datos/epocas/puente.mjs';
 
 /** Las reglas que el encargo 3b cambia o añade: sin condición JS que traducir (test/reglas-3b.test.js). */
 export const DEL_3B = Object.freeze([
@@ -59,15 +60,18 @@ export const DE_71 = Object.freeze(['an expiry has expired']);
  * solo leen el libro y no traducen ninguna condición JS. Cada una se comprueba en positivo y en negativo en su archivo:
  * la cuenta del banco, las tres primeras y «the E of an account stays with its owner» (VG 17-11, V6)
  * (test/cuenta-banco.test.js); padres y copias, A19 (test/padres.test.js); dar T a una cosa mía, V10 (test/dar-t.test.js);
- * retocar un texto, A20 escalón 1 (test/retoques.test.js); y las cuatro del gobierno, A21 (test/gobierno.test.js).
+ * retocar un texto, A20 escalón 1 (test/retoques.test.js); y las seis del gobierno, A21 y sus arreglos (test/gobierno.test.js, test/revision-gobierno.test.js).
  */
 export const DE_LA_BETA = Object.freeze([
   'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book",
   'the E of an account stays with its owner', 'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote',
   'only the owner of the book retouches a text',
   'a change names its class and brings a change', 'only who proposed withdraws a change', 'a change is enacted once it is approved', 'a change comes into force with its proof',
+  'a support is true at its point', 'support is released by withdrawing it',
 ]);
-const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]) && !DE_LA_BETA.includes(r[0][0]));
+/** Las trece del puente entre libros (A15, 17-11): nacen en BQL y no traducen ninguna condición JS (test/puente.test.js). */
+export const DEL_PUENTE = Object.freeze(Object.values(REGLAS_DEL_PUENTE));
+const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]) && !DE_LA_BETA.includes(r[0][0]) && !DEL_PUENTE.includes(r[0][0]));
 const nombreDe = (r) => r[0][0];
 const DIVERGENCIAS = process.env.AGRAM_DIVERGENCIAS === '1';
 /** Las reglas de la clave y la firma (B4): se ejercitan en un eje con claves, no en el fuzz de demostración. */
@@ -197,10 +201,11 @@ async function repasar(eje, cuenta) {
 
 // ---------- la época ----------
 
-test('las reglas de economía: 42 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
+test('las reglas de economía: 57 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
   // #137 (encargo «recuentos»): 31 + las siete de la beta (DE_LA_BETA: el banco, A19, V10, VG 17-11, V6, y A20 escalón 1), sin condición JS;
-  // y las cuatro del gobierno (A21, 17-11).
-  assert.equal(EPOCA_0_BTML.condiciones.length, 42);
+  // las cuatro del gobierno (A21, 17-11) y las dos de sus arreglos (el apoyo fijado en su punto); y las trece del puente (A15, 17-11).
+  assert.equal(EPOCA_0_BTML.condiciones.length, 57);
+  assert.deepEqual(DEL_PUENTE.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_PUENTE], 'las del puente están en la época, sin condición JS');
   assert.deepEqual(DE_71.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_71], 'la de #71.2 está en la época, sin condición JS');
   assert.deepEqual(DE_LA_BETA.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_LA_BETA], 'las de la beta del 16-11 están en la época, sin condición JS');
   assert.deepEqual(DEL_3B.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_3B], 'las del 3b están todas en la época');

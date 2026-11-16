@@ -161,6 +161,10 @@ export const VERIFICACION = Object.freeze({
   // Core AGRAM 13-11 (H20 del SIP 0; VG: el sello ancla por Taproot, no por OpenTimestamps): BIP-341.
   tapleaf: Object.freeze({ forma: 'tapleaf(script)', aridad: [1, 1] }),
   taptweak: Object.freeze({ forma: 'taptweak(interna, hoja, hermanos)', aridad: [3, 3] }),
+  // Core AGRAM 17-11 (el puente entre libros, A15; docs/notas/PUENTE.md): el registro de otro libro traído como dato se
+  // comprueba rehaciendo su cuerpo canónico (json) y la serie forastera se nombra juntando textos (text de cat de utf8).
+  json: Object.freeze({ forma: 'json(x)', aridad: [1, 1] }),
+  text: Object.freeze({ forma: 'text(b)', aridad: [1, 1] }),
 });
 
 /** Lo que cuesta verificar una firma BIP-340, en bytes del presupuesto (una verificación cuesta como hashear ~64 KB). */
@@ -1231,6 +1235,32 @@ function calcularPrimitiva(nodo, st) {
       if (claves.length !== valores.length) throw fallo('lookup: las claves y los valores van en paralelo, y aquí hay ' + claves.length + ' claves y ' + valores.length + ' valores');
       const clave = argumento(nodo, 2, st);
       return claves.flatMap((k, i) => (mismo(k, clave) ? valores[i] : []));
+    }
+    case 'json': {
+      // Core AGRAM 17-11 (el puente, A15): la serialización canónica (canonico, la del id de un evento) de un texto, un
+      // número o una décupla del payload tal como se escribió, en bytes. Con ella, un registro de otro libro traído como
+      // dato se comprueba entero: sha256 de su cuerpo rehecho con cat = su id.
+      const o = uno(calcular(nodo.args[0], st), 'json: el primero', ctx);
+      const v = valorDe(o, ctx);
+      const crudo = typeof v === 'string' || typeof v === 'number' ? v : o?.k === 'dec' && Array.isArray(o.v) ? o.v : undefined;
+      if (crudo === undefined) throw fallo('json: serializa un texto, un número o una décupla del payload, no «' + leer(o, ctx) + '»');
+      const t = canonico(crudo);
+      pagar(st, t.length * 3);
+      return [aBytesBql(new TextEncoder().encode(t))];
+    }
+    case 'text': {
+      // Core AGRAM 17-11 (el puente, A15): el texto UTF-8 de unos bytes, la vuelta de utf8. Junta textos sin palabras nuevas
+      // (text(cat(utf8(a), utf8(b)))): el nombre de una serie forastera, «<libro>:<emisor>».
+      const b = argBytes(nodo, 0, st);
+      pagar(st, b.length);
+      let t;
+      try {
+        t = new TextDecoder('utf-8', { fatal: true }).decode(b);
+      } catch {
+        throw fallo('text: los bytes no son UTF-8 válido');
+      }
+      if (!t) throw fallo('text: unos bytes vacíos no dan un texto (un texto no es vacío)');
+      return [t];
     }
     case 'payload': {
       // Core AGRAM 13-11 (H19): la décupla de un registro tal como se escribió, sin lo implícito (D-META, vistas, lecturas,
