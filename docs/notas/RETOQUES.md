@@ -12,7 +12,7 @@ El retoque es **de ese libro**: otro libro con la misma época no lo ve. Restaur
 
 La regla de la época «only the owner of the book retouches a text» (en BQL, con mensaje en «en» y «es»): solo vale el retoque del autor del génesis, el dueño del libro. En un eje de nodo, el operador. La lectura lo vuelve a mirar, por un libro de otra época que no traiga la regla.
 
-La fila `epoch.7.9` («retouch», `[0]`) está **reservada y sin efecto**. VG 17-11: las piezas de la época nunca se deciden por recuento abierto ni por cantidad bruta de P; «nacen con el dueño y se amplían por nombre». Ampliar el retoque a quien el dueño nombre en el 2.3 del génesis, pesado como lo pesa «weight» (por reparto; «cualquiera» no abre nada), no sale limpio y corto en BQL sin primitivas nuevas: «weight» da un peso por presión y reparto, no una cantidad que comparar con un umbral. Queda para después.
+VG 17-11: las piezas de la época nunca se deciden por recuento abierto ni por cantidad bruta de P; «nacen con el dueño y se amplían por nombre». Ampliar el retoque a quien el dueño nombre en el 2.3 del génesis, pesado como lo pesa «weight» (por reparto; «cualquiera» no abre nada), no salía limpio y corto en BQL sin primitivas nuevas, y la fila `epoch.7.9` quedó reservada. Desde el encargo A21 (17-11) esa fila es **«governance»**, el gobierno del cambio de reglas (`docs/notas/GOBIERNO.md`): no abre el retoque, que sigue siendo solo del dueño.
 
 `7.8` no tiene nada propio: guarda el sitio para que exista la 7.9 (una décupla no tiene huecos).
 

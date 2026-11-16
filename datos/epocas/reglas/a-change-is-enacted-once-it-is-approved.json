@@ -1,0 +1,15 @@
+[
+  ["a change is enacted once it is approved"],
+  ["X.2.8", "X.4"],
+  ["=not (\"enact a change\" in ev.4) or \"propose a change\" in (payload(first ev.6.5)).4 and count (down (first ev.6.5) where \"enact a change\" in (payload(it)).4 or \"withdraw a change\" in (payload(it)).4) = 0 and first (first (first ev.6.5).2).8"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Diseño §3.3: «enact a change» se ancla en la propuesta, lo escribe cualquiera y solo vale si la lectura «approved» de la propuesta (X.2.8) pasa en ese punto (sobre el libro de antes), la propuesta no está retirada y no se aprobó ya. Fija el momento de la decisión: lo que pase después con los apoyos no lo cambia"
+  ],
+  ["epoch 0"],
+  ["after only who proposed withdraws a change"],
+  ["a change is enacted once it is approved: {first ev.3} enacts {first ev.6.5}, which is not an open proposed change with the support its class asks"]
+]

@@ -1,0 +1,15 @@
+[
+  ["missing support"],
+  ["X.2.6", "epoch.7.9.1", "epoch.7.9.2"],
+  ["=count (epoch where (count (epoch where first (payload(it)).2 = \"governance\") * first epoch.7.9.2 + count (epoch where first (payload(it)).2 = \"ordinary\") * first epoch.7.9.1) > first (first it.2).6) * (count (epoch where first (payload(it)).2 = \"governance\") * first epoch.7.9.2 + count (epoch where first (payload(it)).2 = \"ordinary\") * first epoch.7.9.1) - count (epoch where (count (epoch where first (payload(it)).2 = \"governance\") * first epoch.7.9.2 + count (epoch where first (payload(it)).2 = \"ordinary\") * first epoch.7.9.1) > first (first it.2).6) * first (first it.2).6"],
+  ["X.2.7"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Lo que le falta a una propuesta X para llegar al umbral de su clase (su 2: «ordinary», epoch.7.9.1; «governance», epoch.7.9.2), en la misma unidad que su apoyo (X.2.6); 0 si ya llega. Pasa si lo supera («approved»), así que con lo que falta en 0 y el apoyo justo en el umbral aún no pasa"
+  ],
+  ["epoch 0"],
+  ["after support"],
+  ["missing support: how much support a proposed change still lacks to reach the threshold of its class"]
+]

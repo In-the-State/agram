@@ -208,10 +208,10 @@ test('una época mal formada se rechaza al escribirla, con la causa', async () =
   ];
   for (const [epoca, causa] of casos) await assert.rejects(ejeCon(epoca), causa);
   // Una marca donde la base no tiene nada. Desde A20 escalón 1 la 0 llena el 7 hasta el 7.9, así que la marca de más va
-  // dentro del 7.9 (tiene dos posiciones: la tercera no la tiene la base).
+  // dentro del 7.9 (desde A21, «governance», tiene ocho posiciones, del 0 al 7: la novena no la tiene la base).
   const hueca = copia(PRUEBA);
   const marca = { ref: EPOCA_0_BTML.id };
-  hueca.raiz[7] = [marca, marca, marca, marca, marca, marca, marca, marca, marca, [marca, marca, marca]];
+  hueca.raiz[7] = [marca, marca, marca, marca, marca, marca, marca, marca, marca, Array.from({ length: 9 }, () => marca)];
   await assert.rejects(ejeCon(hueca), /la posición 7(\.\d)+ se hereda \(\{ ref \} a la base\) y la base no la tiene/);
   assert.throws(() => fusionarRaices([['a'], ['b']], [['c'], { ref: 'x' }, { ref: 'x' }], { ids: new Set(['x']) }), /la posición 2 se hereda/);
   // Una regla que mueve no se carga (invariante del núcleo: las reglas solo leen).
@@ -268,7 +268,7 @@ test('be.mjs epoca: --ver de un archivo, --publicar en un eje nuevo del servidor
     const ver = await ejecutar(['epoca', '--ver', '--archivo', archivo], {});
     assert.match(ver, /^época: época de prueba · id [0-9a-f]{64}$/m);
     assert.match(ver, /hereda de: [0-9a-f]{8} \(época 0\)/);
-    assert.match(ver, /plantillas de transacción \(9\.6\): 61/); // + las dos del libro privado y «retouch a text» en la 0 (A20 escalón 1)
+    assert.match(ver, /plantillas de transacción \(9\.6\): 67/); // + las dos del libro privado y «retouch a text» en la 0 (A20 escalón 1) + las seis del gobierno (A21)
     assert.match(ver, /2 cruceta/);
     const mal = join(dir, 'mal.json');
     writeFileSync(mal, JSON.stringify({ ...PRUEBA, raiz: [['-'], ...PRUEBA.raiz.slice(1)] }));

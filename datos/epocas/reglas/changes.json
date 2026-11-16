@@ -1,0 +1,15 @@
+[
+  ["changes"],
+  ["before.5", "9.7"],
+  ["=down (first before.5) where \"propose a change\" in (payload(it2)).4"],
+  ["X"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Las propuestas del libro, por llegada: los registros que dicen «propose a change» en su 4, colgados del génesis (en su 9.7, «changes»; la regla «a change names its class and brings a change» no deja otros). No se materializa (su 3 es X, como «asked»): la lee quien la pide. De cada una: su clase (su 2), quién la propuso (su 3), su apoyo (X.2.6), lo que le falta (X.2.7), si está aprobada (X.2.8), su estado (X.2.9) y quién la apoya (X.2.4, con «support of» en X.2.4.7)"
+  ],
+  ["epoch 0"],
+  ["after change state"],
+  ["changes: the proposed changes of the book, hanging from its genesis"]
+]

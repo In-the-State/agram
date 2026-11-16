@@ -1,0 +1,15 @@
+[
+  ["change state"],
+  ["X"],
+  ["=last (under it where \"propose a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4 or \"enact a change\" in (payload(it2)).4 or \"put a change in force\" in (payload(it2)).4)"],
+  ["X.2.9"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "El estado de una propuesta X: el último registro que lo decidió, entre ella y lo que cuelga de ella: la propia propuesta (propuesta), su «enact a change» (aprobada, esperando su firmeza), su «put a change in force» (en vigor) o su «withdraw a change» (retirada). Se lee su 4, la acción. Una retirada solo cabe antes de aprobarse y la entrada en vigor solo después, así que el último por llegada es el estado. Es un registro, no un texto: da también quién y cuándo"
+  ],
+  ["epoch 0"],
+  ["after approved"],
+  ["change state: the last record that decided a proposed change: the proposal itself, its approval, its coming into force or its withdrawal"]
+]

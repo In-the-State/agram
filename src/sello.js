@@ -350,15 +350,15 @@ export function formulaDeSellado(p = POSICIONES_DEL_SELLO) {
  * clave) y que el hash de la de arriba es el compromiso y su clave está declarada (before.8.6, la del observador). Las
  * claves de las capas de abajo no se miran. Sin primitivas nuevas.
  */
-function formulaCascada(p) {
-  const { S, en, E, c, H, eslabon } = piezasDeCascada(p);
+function formulaCascada(p, d = delRegistro(p)) {
+  const { S, en, E, c, H, eslabon } = piezasDeCascada(p, d);
   const con = (n) => '(count ' + E(n - 1) + ' > 0' + (n < 10 ? ' and count ' + E(n) + ' = 0' : '')
     + Array.from({ length: n }, (_, k) => ' and ' + eslabon(k)).join('')
     + ' and ' + H(n - 1) + ' = bytes(first ' + en('compromisoCascada') + ') and first ' + c(n - 1, 'clave') + ' in before.8.6)';
   const T = '(first tx(bytes(first ' + en('tx') + ')))';
   const C = '(first cabecera(bytes(first ' + en('cabecera') + ')))';
   return '("' + p.cascada + '" in ' + en('via')
-    + ' and bytes(first ' + en('id') + ') = bytes(first it.5)'
+    + ' and bytes(first ' + en('id') + ') = bytes(first ' + d.hoja + ')'
     + ' and cat(bytes("' + p.p2tr + '"), taptweak(bytes(first ' + en('interna') + '), tapleaf(cat(bytes("' + p.compromiso + '"), bytes(first ' + en('compromisoCascada') + '))), ' + en('hermanosTaproot') + ')) = first (nth (first ' + en('vout') + ') ' + T + '.2).1'
     + ' and merkle(first ' + T + '.5, ' + en('ladosBitcoin') + ', ' + en('hermanosBitcoin') + ', "bitcoin") = first ' + C + '.3'
     + ' and hex(first ' + C + '.7) = first ' + en('hash')
@@ -374,10 +374,11 @@ function formulaCascada(p) {
  * S el sello copiado en el 6.8.2 del registro, en(k) una posición suya, E(k) el eslabón k de su cadena, c(k, campo) un campo
  * de la cabecera de ese eslabón, H(k) el hash de esa cabecera (los 176 bytes firmados) y eslabon(k), que esa cabecera está
  * bien formada y es la v2, que su camino «sip» desde el id (k = 0) o desde el hash de la de abajo llega a su raíz y que su
- * firma vale con su propia clave. Sin el «=».
+ * firma vale con su propia clave. Sin el «=». `d` dice de dónde sale el sello y cuál es su hoja (delRegistro: el 6.8.2 del
+ * registro e it.5; el gobierno, encargo A21, lo aplica a un sello que trae un registro en su payload: datos/epocas/gobierno.mjs).
  */
-function piezasDeCascada(p) {
-  const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
+function piezasDeCascada(p, d = delRegistro(p)) {
+  const S = d.S;
   const en = (k) => S + '.' + p[k];
   const E = (k) => S + '.' + p.cadena + '.' + k;
   const c = (k, campo) => E(k) + '.' + p.eslabon.cabecera + '.' + p.cabeceraDeLote[campo];
@@ -452,9 +453,8 @@ export const GRADOS_DE_LA_FORMULA = 3;
  */
 export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   const { en, E, c, eslabon } = piezasDeCascada(p);
-  const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
+  const { capa, exigido, nivelDe, llega, declarada } = piezasDeNivel(p, E, c);
   const familia = (j) => '(nth ' + j + ' epoch.7.6.3)';
-  const exigido = (k) => '(nth ' + k + ' epoch.7.6.5)';
   const sellado = 'count (first it.6).8.2 > 0 and first (first it.6).8.5';
   const recibido = 'count (first it.6).8.1 > 0 and first (first it.6).8.4';
   const ultima = CAPAS_DE_LA_FORMULA - 1;
@@ -462,13 +462,6 @@ export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   const mueve = (j) => 'count (it.1 where not (' + coste + ') and (' + FAMILIAS.map((f) => familia(j) + ' = "' + f + '" and ' + f + ' in it2.0.0.0').join(' or ') + ')) > 0';
   // Ningún nivel de encima de k hace falta: el exigido es k o uno de debajo.
   const encima = (k) => Array.from({ length: ultima - k }, (_, i) => ' and not (' + mueve(k + 1 + i) + ')').join('');
-  // El 9.j.1 del eslabón j: [nivel], [nivel, grado] o [nivel, grado, red].
-  const nivelDe = (j) => '(first ' + E(j) + '.' + p.eslabon.nivel + ')';
-  const gradoDe = (j) => '(nth ' + p.enElNivel.grado + ' ' + E(j) + '.' + p.eslabon.nivel + ')';
-  // El grado llega al exigido: lo exigido es 0, o el grado es el exigido o uno de los de encima (exigido + 1…), y es una
-  // posición de 7.6.4. Con «in»: un grado que falta o que es un texto no es ninguno de esos números (falso, no ERROR).
-  const llega = (k, j) => '(' + exigido(k) + ' = 0 or (' + Array.from({ length: GRADOS_DE_LA_FORMULA - 1 }, (_, d) => gradoDe(j) + ' in ' + (d === 0 ? exigido(k) : '(' + exigido(k) + ' + 1'.repeat(d) + ')')).join(' or ') + ') and ' + gradoDe(j) + ' < count epoch.7.6.4)';
-  const declarada = (j) => '(first ' + c(j, 'clave') + ' in before.8.9 or first ' + c(j, 'clave') + ' in before.8.6)';
   // vale(j): su clave está declarada y el nivel que dice, con su grado, está a la altura del exigido o por encima. Los niveles,
   // de arriba abajo: `A(último) or not (mueve último) and (A(penúltimo) or not (mueve penúltimo) and (…))`, así cada «mueve»
   // sale una vez por eslabón.
@@ -488,13 +481,61 @@ export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   return '=(' + sellado + ') or ' + porLaCadena + ' or ' + porElRecibo;
 }
 
+/**
+ * Las piezas de los niveles que comparten «firm» (formulaDeFirmeza) y la prueba que trae un registro en su payload
+ * (formulaDeSelloDelDato): capa(k) el nivel k de epoch.7.6.1, exigido(k) el grado exigido en él (7.6.5), nivelDe(j) y
+ * gradoDe(j) lo que dice el 9.j.1 del eslabón j, llega(k, j) que su grado llega al exigido en k y declarada(j) que la clave
+ * de su cabecera está en before.8.9 o en before.8.6. Sin el «=».
+ */
+function piezasDeNivel(p, E, c) {
+  const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
+  const exigido = (k) => '(nth ' + k + ' epoch.7.6.5)';
+  // El 9.j.1 del eslabón j: [nivel], [nivel, grado] o [nivel, grado, red].
+  const nivelDe = (j) => '(first ' + E(j) + '.' + p.eslabon.nivel + ')';
+  const gradoDe = (j) => '(nth ' + p.enElNivel.grado + ' ' + E(j) + '.' + p.eslabon.nivel + ')';
+  // El grado llega al exigido: lo exigido es 0, o el grado es el exigido o uno de los de encima (exigido + 1…), y es una
+  // posición de 7.6.4. Con «in»: un grado que falta o que es un texto no es ninguno de esos números (falso, no ERROR).
+  const llega = (k, j) => '(' + exigido(k) + ' = 0 or (' + Array.from({ length: GRADOS_DE_LA_FORMULA - 1 }, (_, d) => gradoDe(j) + ' in ' + (d === 0 ? exigido(k) : '(' + exigido(k) + ' + 1'.repeat(d) + ')')).join(' or ') + ') and ' + gradoDe(j) + ' < count epoch.7.6.4)';
+  const declarada = (j) => '(first ' + c(j, 'clave') + ' in before.8.9 or first ' + c(j, 'clave') + ' in before.8.6)';
+  return { capa, exigido, nivelDe, gradoDe, llega, declarada };
+}
+
+/** De dónde leen «sealed» y «firm» el sello de un registro: S, lo que el núcleo lee en su 6.8.2, y su hoja, su 5 (su id). */
+function delRegistro(p) {
+  return { S: '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))', hoja: 'it.5' };
+}
+
+/**
+ * La firmeza de un sello que un registro TRAE COMO DATO (encargo A21, el gobierno: «put a change in force» lleva en su
+ * payload la décupla de sello del «enact a change», la misma forma que guarda eje.marcarSello) frente a un nivel pedido:
+ * las mismas piezas que «sealed» y «firm», aplicadas a `sello` (una expresión BQL que da la décupla) con la hoja `hoja` (una
+ * expresión que da el id que ha de cubrir) en vez de al 6.8.2 de un registro y su 5. Vale si:
+ *   la prueba entera vale («sealed» por cualquiera de sus dos vías, con el observador en before.8.6: llega a Bitcoin, el
+ *   último nivel, que cubre todos los de abajo); o
+ *   por la cadena, como en «firm»: la vía es «cascada», su hoja es `hoja` y hay un eslabón j con los de 0 a j válidos, la
+ *   clave de su cabecera en before.8.9 o before.8.6, y un nivel k que el j dice, a la altura de `nivel` o por encima, con su
+ *   grado a la altura del exigido en k (epoch.7.6.5).
+ * `nivel` es una expresión BQL que da un número de epoch.7.6.1. Sin recibo de llegada (el registro no lo trae). Sin el «=».
+ */
+export function formulaDeSelloDelDato({ sello, hoja, nivel }, p = POSICIONES_DEL_SELLO) {
+  const d = { S: sello, hoja };
+  const { en, E, c, eslabon } = piezasDeCascada(p, d);
+  const { capa, nivelDe, llega, declarada } = piezasDeNivel(p, E, c);
+  const sellado = '(' + formulaCascada(p, d) + ' or not ("' + p.cascada + '" in ' + en('via') + ') and ' + formulaTaproot(p, d) + ')';
+  const niveles = (j) => Array.from({ length: CAPAS_DE_LA_FORMULA }, (_, k) => '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + capa(k) + ' >= ' + nivel + ' and ' + llega(k, j) + ')').join(' or ');
+  let cadena = '';
+  for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + ' and (' + declarada(j) + ' and (' + niveles(j) + ')' + (cadena ? ' or ' + cadena : '') + ')';
+  const porLaCadena = '("' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first ' + hoja + ') and ' + cadena + ')';
+  return '(' + sellado + ' or ' + porLaCadena + ')';
+}
+
 /** La vía «taproot», la de antes del 16-11, intacta (sin el «=»): ver formulaDeSellado. */
-function formulaTaproot(p) {
-  const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
+function formulaTaproot(p, d = delRegistro(p)) {
+  const S = d.S;
   const en = (k) => S + '.' + p[k];
   const T = '(first tx(bytes(first ' + en('tx') + ')))';
   const C = '(first cabecera(bytes(first ' + en('cabecera') + ')))';
-  return 'bytes(first ' + en('id') + ') = bytes(first it.5)'
+  return 'bytes(first ' + en('id') + ') = bytes(first ' + d.hoja + ')'
     + ' and cat(bytes("' + p.p2tr + '"), taptweak(bytes(first ' + en('interna') + '), tapleaf(cat(bytes("' + p.compromiso + '"), bytes(first ' + en('lote') + '))), ' + en('hermanosTaproot') + ')) = first (nth (first ' + en('vout') + ') ' + T + '.2).1'
     + ' and merkle(first ' + T + '.5, ' + en('ladosBitcoin') + ', ' + en('hermanosBitcoin') + ', "bitcoin") = first ' + C + '.3'
     + ' and hex(first ' + C + '.7) = first ' + en('hash')
@@ -502,7 +543,7 @@ function formulaTaproot(p) {
     + ' and le(bytes(first ' + en('alturaLe') + ')) = first ' + en('altura')
     + ' and signed(bytes(first ' + en('firma') + '), hash(cat(bytes(first ' + en('cabecera') + '), bytes(first ' + en('alturaLe') + ')), "' + ETIQUETA_DEL_OBSERVADOR + '"), bytes(first ' + en('clave') + '))'
     + ' and first ' + en('clave') + ' in before.8.6'
-    + ' and hex(merkle(bytes(first it.5), ' + en('lados') + ', ' + en('hermanos') + ', "sip")) = first ' + en('lote')
+    + ' and hex(merkle(bytes(first ' + d.hoja + '), ' + en('lados') + ', ' + en('hermanos') + ', "sip")) = first ' + en('lote')
     + ' and "' + p.taproot + '" in ' + en('via');
 }
 

@@ -1,6 +1,6 @@
 // «retouch a text» (retocar un texto en su sitio; A20 escalón 1, VG 17-11 por Core State): la plantilla de la época 0
-// que retoca un texto de la época en un libro, la regla de quién («only the owner of the book retouches a text»; la
-// fila epoch.7.9, reservada sin efecto), la lectura con los retoques del libro encima y la hoja de retoques de la 0
+// que retoca un texto de la época en un libro, la regla de quién («only the owner of the book retouches a text»; desde
+// A21 la fila epoch.7.9 es «governance», el gobierno del cambio de reglas, y no abre el retoque), la lectura con los retoques del libro encima y la hoja de retoques de la 0
 // (datos/epocas/retoques-0.json). Ejes locales en memoria, identidades inventadas, sin claves de verdad ni nodos.
 
 import { test } from 'node:test';
@@ -39,18 +39,18 @@ async function mundo({ epoca } = {}) {
   return eje;
 }
 
-/** La época 0 escrita en el libro con otro valor en su 7.9 (cambia su id: es otra época, solo para la prueba). */
-function epocaConUmbral(n) {
+/** La época 0 escrita en el libro con otros nombres en su 7.9.5 (quién cuenta en el gobierno; cambia su id: es otra época, solo para la prueba). */
+function epocaConNombres(nombres) {
   const { raiz, registros } = epocaEscritaDe(EPOCA_0_BTML);
   const otra = JSON.parse(JSON.stringify(raiz));
-  otra[7][9][1] = [n];
+  otra[7][9][5] = nombres;
   return { raiz: otra, registros };
 }
 
-test('retoques: la época trae la plantilla, la fila 7.9 (reservada) y la regla; la 7.8 solo guarda el sitio', () => {
+test('retoques: la época trae la plantilla y la regla; la 7.9 es el gobierno (A21) y la 7.8 solo guarda el sitio', () => {
   const raiz = EPOCA_0_BTML.registro;
-  assert.deepEqual(raiz[7][9][1], [0], 'reservada, sin efecto');
-  assert.equal(raiz[7][9][0][0], 'retouch');
+  assert.equal(raiz[7][9][0][0], 'governance');
+  assert.match(raiz[7][9][0][1], /only the owner of the book retouches a text/, 'su nota dice que el retoque no pasa por el gobierno');
   assert.equal(raiz[7][8][0][0], 'reserved');
   const p = A.plantillasDeTransaccion().find((x) => x.nombre === RETOCAR);
   assert.deepEqual([p.pv, p.plantilla[5][0], p.plantilla[8]], [0, '9.4', [0, 4]]);
@@ -104,7 +104,7 @@ test('retoques: el dueño retoca y se lee con el eje delante; sin eje, como siem
   assert.equal(eje.epoca(), EPOCA_0_BTML);
 });
 
-test('retoques: otro no puede retocar (la regla), ni con P sobre el génesis ni con la fila 7.9 a más de 0 (reservada, sin efecto)', async () => {
+test('retoques: otro no puede retocar (la regla), ni con P sobre el génesis ni nombrado en el gobierno (7.9.5)', async () => {
   const eje = await mundo();
   const r = await A.transaccion(eje, RETOCAR, { X: eje.genesisId, language: 'es', key: 'template pay', text: 'x' }, 'bea', { t: T(10) });
   assert.equal(r.ok, false);
@@ -115,8 +115,9 @@ test('retoques: otro no puede retocar (la regla), ni con P sobre el génesis ni 
   assert.equal(C.texto(eje, 'template pay', 'es'), 'pagar');
   assert.equal(C.mensaje(eje, REGLA, 'es', { ev: { autor: 'bea', payload, movimientos: [], t: T(11) } }), 'bea retoca un texto de un libro cuyo génesis no escribió');
 
-  // Una época con 5 en su 7.9: bea tiene 10 P sobre el génesis (en su mirada 3: la R de ana que recibió), y no cambia nada.
-  const conValor = await mundo({ epoca: epocaConUmbral(5) });
+  // Una época que nombra a bea en su 7.9.5 (cuenta en el gobierno): bea tiene 10 P sobre el génesis (en su mirada 3: la R de
+  // ana que recibió), y no cambia nada: los textos los retoca solo el dueño.
+  const conValor = await mundo({ epoca: epocaConNombres(['ana', 'bea']) });
   assert.notEqual(conValor.epoca().id, EPOCA_0_BTML.id);
   assert.deepEqual([C.puedeRetocar(conValor, 'ana'), C.puedeRetocar(conValor, 'bea')], [true, false]);
   assert.equal(A.acciones(conValor, conValor.genesisId, 0, 'bea').some((a) => a.nombre === RETOCAR), false, 'no se le ofrece');

@@ -1,0 +1,16 @@
+[
+  ["approved"],
+  ["X.2.6", "epoch.7.9.1", "epoch.7.9.2"],
+  ["=first (payload(it)).2 = \"ordinary\" and first (first it.2).6 > first epoch.7.9.1 or first (payload(it)).2 = \"governance\" and first (first it.2).6 > first epoch.7.9.2"],
+  ["X.2.8"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Diseño §4.2: una propuesta X pasa si su apoyo (X.2.6) supera el umbral de la clase que declara en su 2: «ordinary», epoch.7.9.1 (más de la mitad: 0.5); «governance», epoch.7.9.2 (dos tercios: 0.6666666666, así dos tercios exactos pasan). Supera, como el umbral de epoch.9.0.0.2. Los nombres y sus presiones son los de epoch.7.9.5 de la época con que se lee (en vigor en ese punto cuando exista el motor). Otra clase: falso",
+    "La lee la regla «a change is enacted once it is approved» en el momento de aprobar: la aprobación queda fija en ese registro y lo que pase después con los apoyos ya no cambia nada"
+  ],
+  ["epoch 0"],
+  ["after missing support"],
+  ["approved: a proposed change has more support than the threshold of its class (epoch.7.9.1 or epoch.7.9.2)"]
+]

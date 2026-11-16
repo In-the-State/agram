@@ -1,0 +1,15 @@
+[
+  ["only who proposed withdraws a change"],
+  ["X.3", "X.4"],
+  ["=not (\"withdraw a change\" in ev.4) or \"propose a change\" in (payload(first ev.6.5)).4 and first ev.3 = first (first ev.6.5).3 and count (down (first ev.6.5) where \"enact a change\" in (payload(it)).4 or \"withdraw a change\" in (payload(it)).4) = 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Diseño §3.5: «withdraw a change» se ancla en la propuesta, lo escribe quien la propuso (su 3) y solo antes de aprobarse (sin «enact a change» colgado de ella) y una vez. Devuelve los apoyos: deja de contar y cada titular recupera lo suyo con «withdraw support» (nadie mueve el P de otro: «nobody moves tokens of others»); el de quien la retira, la propia retirada"
+  ],
+  ["epoch 0"],
+  ["after a change names its class and brings a change"],
+  ["only who proposed withdraws a change: {first ev.3} withdraws {first ev.6.5}, which is not an open proposed change of its own"]
+]
