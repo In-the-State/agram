@@ -1,0 +1,37 @@
+[
+  [
+    "asked"
+  ],
+  [
+    "X.1",
+    "X.3",
+    "epoch.7.6",
+    "epoch.7.0"
+  ],
+  [
+    "=last (epoch.7.6.1 where it2 = nth 0 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 0) > 0 or it2 = nth 1 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 1) > 0 or it2 = nth 2 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 2) > 0 or it2 = nth 3 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 3) > 0)"
+  ],
+  [
+    "X"
+  ],
+  [
+    "read"
+  ],
+  [
+    "*"
+  ],
+  [
+    "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7.8; agram-equipo/T_Y_CASCADA_2026-11-16.md, «Propuesta de regla» 2; encargo A18 «T, el sistema de las anclas»): T es el sistema de las anclas. Las siete escalas reales de T son las cadencias de la cascada: elegir la escala con que se paga es elegir la cadencia, y la misma quema hace las dos cosas. El tipo de token dice lo exigido para estar en firme («firm»); la escala del T, lo pedido y su plazo",
+    "Lo pedido por la quema propia: segundo, minuto, hora y día piden los niveles 1 a 4 de epoch.7.6 (por posición: la escala k de epoch.7.0 pide el nivel k); semana, ciclo y año piden el último. Si quema de varias escalas, el nivel más alto. La quema es la del coste de escribir (T real de su autor, el criterio de «firm» y de «writing burns today's T»). La fórmula lee los niveles por posición (nth k epoch.7.6.1), desplegada para cuatro niveles como «firm» (BQL no tiene bucles); la escribe formulaDelPedido() de src/anclas.js (una prueba comprueba que es esta). Sin quema de T real, nada",
+    "Core AGRAM 16-11: una lectura que no se materializa en ninguna posición (su 3 es X, el registro, como el ev de «the cost of writing»): el 6.8 de un registro ya está lleno (0 a 9). La lee contrato.firmeza por su nombre (pedidos, origen «propio»). Lo colgado (los registros de «ask for more firmness»), el suelo (epoch.7.5) y el plazo no caben aquí: el plazo y el estado los da «on time» y el contrato"
+  ],
+  [
+    "epoch 0"
+  ],
+  [
+    "after an account lives in its owner's book"
+  ],
+  [
+    "asked: the level of epoch.7.6 that the record asks by the scale of the real T its author burns to write it: the scale k asks the level k, and the week, the cycle and the year ask the last one"
+  ]
+]

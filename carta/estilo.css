@@ -656,6 +656,12 @@ html.mapped body{padding:0}
 .estacion-firmeza[data-exigida]{font-weight:600;box-shadow:inset 0 -2px 0 currentColor}
 .estacion-firmeza .verificado{font-size:inherit}
 .estacion-firmeza-grado{font-size:inherit;color:inherit;opacity:.8}
+/* lo pedido en cada estación (encargo A18): una fila sobria debajo del nombre del nivel */
+.estacion-firmeza:has(.estacion-firmeza-pedido){flex-wrap:wrap;white-space:normal}
+.estacion-firmeza-pedido{flex-basis:100%;font-size:.85em;font-weight:400;color:var(--falta);opacity:.9}
+.estacion-firmeza-pedido[data-plazo="a-tiempo"]{color:var(--firme)}
+.estacion-firmeza-pedido[data-plazo="fuera-de-plazo"]{text-decoration:underline dotted}
+.pide-la-escala{margin:2px 0;opacity:.85}
 .firmeza-resumen{color:var(--falta);white-space:nowrap}
 .firmeza[data-resumen="firme"] .firmeza-resumen{color:var(--firme)}
 .firmeza[data-resumen="enDuda"] .firmeza-resumen{color:var(--duda);font-weight:600}

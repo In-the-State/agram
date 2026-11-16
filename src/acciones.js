@@ -218,8 +218,21 @@ export function modoDeEjecucion(eje, cual, opciones = {}) {
 function destinoDe(cuatro) {
   const [que, para] = hojas(cuatro).map(texto);
   if (que === 'key' || que === 'proof') return { que, para: para ?? '' };
+  // «cost» (encargo A18, «ask for more firmness»): el valor es la escala de T real (su índice en epoch.7.0) en que se paga el
+  // coste de escribir el registro; no va en el payload (su 5 es un hueco con nombre). Esa quema es la petición.
+  if (que === 'cost') return { que, para: null };
   if (que === 'file') return { que, para: para === 'format' ? para : 'ref' };
   return { que: 'payload', para: null };
+}
+
+/**
+ * La escala del coste que pide un parámetro «cost» de la plantilla (encargo A18): el nombre de la escala real cuyo índice en
+ * epoch.7.0 es su valor, o null si la plantilla no lo tiene o el valor no es el de una escala real.
+ */
+function escalaDelParametro(prep) {
+  const p = prep.parametros.find((x) => x.destino.que === 'cost');
+  const v = p ? Number(prep.valores[p.nombre]) : NaN;
+  return Number.isSafeInteger(v) && v >= 0 && v < ESCALAS_REALES.length ? ESCALAS_REALES[v] : null;
 }
 
 /** Qué del archivo adjunto pide un parámetro (su 4 «file»): 'ref' (su referencia) o 'format' (su formato); null si no pide un archivo. */
@@ -627,7 +640,11 @@ export function ejecucion(eje, cual, params = {}, yo, opciones = {}) {
     if (!prep.parametros.some((p) => p.posicion === '0' && prep.valores[p.nombre] !== undefined)) payload[0] = mensajeDe(eje, epoca, plantilla, prep.candidata, yo, X);
     const movimientos = hecha.motivos.length || incompleto ? [] : hecha.movimientos;
     const coste = exigidoDe(payload, { epoca, eje });
-    const resumenCon = (aut) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida: opciones.denominacion, coste, aut });
+    // Un parámetro «cost» (encargo A18) dice la escala del coste: la denominación es una sola pieza de esa escala (de más vale).
+    const delParametro = escalaDelParametro(prep);
+    const pieza = delParametro ? tDelCoste(coste, delParametro) : null;
+    const pedida = delParametro ? (pieza ? [pieza] : null) : opciones.denominacion;
+    const resumenCon = (aut) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida, coste, aut });
     const quema = resumenCon(null).denominacion.map((p) => ({ token: 'T', escala: p.escala, cantidad: p.cantidad, de: yo, a: null }));
     // La autorización (VG 14-11, #70 (3) bis): lo que se transferirá a cada cosa titular, precalculado desde el 4 y sumado a lo exigido.
     const aut = autorizacionDe(eje, epoca, { ...prep.candidata, payload }, [...quema, ...movimientos], { yo, t, idioma });
@@ -741,9 +758,13 @@ async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) 
   let aut;
   let quema;
   try {
-    coste = costeDe(payload, yo, { epoca, escala: opciones.escala, eje });
-    const conDenominacion = opciones.denominacion !== undefined && opciones.denominacion !== null;
-    const resumenCon = (a) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida: opciones.denominacion, coste: coste.exigido, aut: a });
+    // Un parámetro «cost» de la plantilla (encargo A18, «ask for more firmness») manda sobre la escala y la denominación pedidas:
+    // el coste se paga en esa escala, de más vale, y esa quema es la petición.
+    const delParametro = escalaDelParametro(prep);
+    coste = costeDe(payload, yo, { epoca, escala: delParametro ?? opciones.escala, eje });
+    const conDenominacion = !delParametro && opciones.denominacion !== undefined && opciones.denominacion !== null;
+    const pedida = delParametro ? (coste.movimiento ? [{ escala: coste.movimiento.escala, cantidad: coste.movimiento.cantidad }] : null) : opciones.denominacion;
+    const resumenCon = (a) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida, coste: coste.exigido, aut: a });
     const comoQuema = (piezas) => piezas.filter(Boolean).map((p) => ({ token: 'T', escala: p.escala, cantidad: p.cantidad, de: yo, a: null }));
     const delCoste = conDenominacion ? comoQuema(resumenCon(null).denominacion) : coste.movimiento ? [coste.movimiento] : [];
     aut = autorizacionDe(eje, epoca, { autor: yo, sobre: prep.sobre, en: prep.en, t, payload }, [...delCoste, ...movimientos], { yo, t, idioma });

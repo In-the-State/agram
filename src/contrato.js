@@ -32,8 +32,11 @@
 //   relojesFueraDeOrden(eje, id)           si los tres relojes de un registro (X.6.8) van fuera de orden: la lectura «clocks out of order»
 //   verificado(eje, id)                    { ok, sello, recibo, relojes, altura, profundidad, enFirme, pendiente, pendienteDeSello }: lo que dicen las reglas «sealed» y «received»
 //                                          de la época, relojes en orden, cuántas confirmaciones tiene y lo que falta para comprobarlo (§4.4)
-//   firmeza(eje, id)                       { capas: [{ nivel, estado, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme }: hasta qué
-//                                          nivel del sello en cascada ha llegado (la regla «firm», X.6.8.9) y si está en duda por una bifurcación
+//   firmeza(eje, id, { ahora })            { capas: [{ nivel, estado, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme, pedidos, plazo }: hasta qué
+//                                          nivel del sello en cascada ha llegado (la regla «firm», X.6.8.9), si está en duda por una bifurcación y
+//                                          lo pedido por la escala del T que se quema (propio, colgado y suelo), con su plazo y su estado (encargo A18)
+//   pedidoDeLote(eje, ids)                 { nivel, plazo }: el nivel más alto que pide alguno de esos registros y el plazo más corto de los que lo piden
+//   pedidoDeEscala(escalas), plazoDeSuelo(eje, id)   lo que pide pagar con unas escalas; el plazo por defecto (el más largo de 7.5)
 //   cascadaDe(epoca)                       { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] }: el 7.5 y el 7.6
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
 //   yo(eje, identidad)                     mi alta y sus posiciones: cartera, criterio, atención, tiempo
@@ -55,7 +58,8 @@
 
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, esFormula } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla } from './bqlm.js';
+import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
 import { ocupantes as ocupantesDe } from './encaje.js';
 import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken, movimientosReales } from './tokens.js';
@@ -1928,7 +1932,16 @@ function familiasSentenciadas(ev) {
  *   firme      lo que da la regla «firm» (falso si queda PENDIENTE): la época decide, no esta función;
  *   enDuda     true si su sello en cascada pasa por una cabecera del libro y la clave acusados de bifurcación
  *              (eje.bifurcaciones; una línea es libro y clave) con número igual o mayor que el de la bifurcación (SIP 0 §3: nada castiga solo; «sealed» y «firm» no cambian);
- *   confirmaciones, enFirme  los de verificado(): la profundidad de su bloque y si ya tiene las de los ajustes del exterior.
+ *   confirmaciones, enFirme  los de verificado(): la profundidad de su bloque y si ya tiene las de los ajustes del exterior;
+ *   pedidos    (encargo A18, T el sistema de las anclas; VG 16-11) lo pedido, del más exigente al menos: [{ nivel, escala,
+ *              desde, plazo, origen: 'propio' | 'colgado' | 'suelo', por, estado, llegada }]: «propio», por la escala del T real
+ *              que quema su autor (las lecturas «asked» y «on time» de la época); «colgado», por cada registro escrito sobre él
+ *              con «ask for more firmness» (su quema, desde su instante; `por`, su autor); «suelo», el último nivel en el plazo
+ *              por defecto (plazoDeSuelo; `por`, la clase). `estado`: «a tiempo» (alcanzado no más tarde que el plazo),
+ *              «pendiente» (sin alcanzar y el plazo no ha pasado: `opciones.ahora`, el reloj `t` o el mayor t del libro) o
+ *              «fuera de plazo»; `llegada`, el instante en que quedó cubierto (el más temprano de los niveles de esa altura o de
+ *              encima) o null. Es una lectura: nada se rechaza por esto, y «firm», «sealed» y la capa exigida no cambian;
+ *   plazo      «fuera de plazo» si alguno lo está; si no, «pendiente» si alguno lo está; si no, «a tiempo» (null sin pedidos).
  */
 export function firmeza(eje, id, opciones = {}) {
   opciones = conEpoca(eje, opciones);
@@ -1954,6 +1967,8 @@ export function firmeza(eje, id, opciones = {}) {
   const exigida = Math.max(0, ...tabla.map((c, k) => (familias.includes(c.familia) ? k : -1)));
   const cabeceras = cadena.map((e) => e[0]).filter(Array.isArray).map((c) => ({ numero: c[1], clave: c[5], libro: c[8] }));
   const enDuda = (typeof eje.bifurcaciones === 'function' ? eje.bifurcaciones() : []).some((b) => cabeceras.some((c) => c.clave === b.acusado && c.libro === b.libro && Number.isSafeInteger(c.numero) && c.numero >= b.numero));
+  // T, el sistema de las anclas (encargo A18): lo pedido (propio, colgado y suelo), con su plazo y su estado.
+  const { pedidos, plazo } = pedidosDe(eje, ev, { epoca, tabla, alcanza, cadena, recibido, sellado: v.sello, sello: eje.sello?.(id), ctx, ahora: ahoraDe(eje, opciones) });
   return {
     capas: tabla.map((c, k) => ({ nivel: c.nivel, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente', ...(alcanza[k] && gradoDeNivel.has(c.nivel) ? gradoDeNivel.get(c.nivel) : {}) })),
     alcanzada: alto < 0 ? null : tabla[alto].nivel,
@@ -1962,7 +1977,143 @@ export function firmeza(eje, id, opciones = {}) {
     enDuda,
     confirmaciones: v.profundidad,
     enFirme: v.enFirme,
+    pedidos,
+    plazo,
   };
+}
+
+// ---------- T, el sistema de las anclas (VG 16-11, ANCLAJE_EN_CASCADA.md §7.8; encargo A18) ----------
+
+/** El ahora con que se dice si un pedido sin alcanzar está pendiente o fuera de plazo: `opciones.ahora`, el reloj `t` o el mayor t del libro. */
+const ahoraDe = (eje, opciones) => opciones?.ahora ?? relojDe(eje, opciones);
+
+/** Segundos desde 1970 de un instante ISO, o null. */
+const segundosDeInstante = (x) => (esInstante(x) ? Math.floor(msUTC(x) / 1000) : null);
+/** Un instante ISO (sin milisegundos) de unos segundos desde 1970. */
+const instanteDeSegundos = (s) => new Date(s * 1000).toISOString().replace('.000Z', 'Z');
+
+/** Los segundos de la escala k de epoch.7.0 de la época (null si no tiene esa fila). */
+function segundosDeEscala(epoca, k) {
+  const fila = hojas(en(raizDe(epoca ?? EPOCA_0_BTML), CASCADA.calendario))[k];
+  const s = Array.isArray(fila) ? Number(hoja(fila[1])) : NaN;
+  return Number.isFinite(s) ? s : null;
+}
+
+/**
+ * El suelo de lo pedido (encargo A18): el plazo por defecto de la clase del dueño (epoch.7.5) para llegar al último nivel.
+ * Hoy nada dice la clase de un libro (lo trae otro encargo): se toma el plazo MÁS LARGO de 7.5 (el de una persona, el año).
+ * → { clase, escala (el nombre de la escala real), segundos } o null si la época no tiene plazos.
+ */
+export function plazoDeSuelo(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const plazos = Object.entries(cascadaDe(epocaDe(opciones, eje)).plazos).filter(([, p]) => p.segundos !== null);
+  if (!plazos.length) return null;
+  const [clase, p] = plazos.reduce((a, b) => (b[1].segundos > a[1].segundos ? b : a));
+  return { clase, escala: ESCALAS_REALES[p.escala] ?? null, segundos: p.segundos };
+}
+
+/**
+ * Lo pedido por un registro (encargo A18; se llama desde firmeza): de su quema propia (las lecturas «asked» y «on time» de la
+ * época, si están), de lo colgado de él con «ask for more firmness» (su quema, con el plazo desde su propio instante) y del
+ * suelo (plazoDeSuelo: el último nivel). Un nivel está alcanzado como en «firm»; su instante es el más temprano de los suyos
+ * y de los de encima (el del recibo de llegada o la hora de la cabecera de un eslabón de nivel 1 para el primero; la hora de
+ * la cabecera de un eslabón de ese nivel para los de en medio; la hora del bloque para el último).
+ */
+function pedidosDe(eje, ev, { epoca, tabla, alcanza, cadena, recibido, sellado, sello, ctx, ahora }) {
+  const ultima = tabla.length - 1;
+  if (ultima < 0) return { pedidos: [], plazo: null };
+  // El instante (segundos) de cada nivel alcanzado.
+  const horas = (nivel) => cadena.filter((e) => hoja(e[1]) === nivel).map((e) => (Array.isArray(e[0]) ? e[0][4] : null)).filter(Number.isSafeInteger);
+  const bloque = () => {
+    const d = sello?.decupla;
+    const h = Array.isArray(d) && Array.isArray(d[7]) ? horaDeCabecera(hoja(d[7][0])) : null;
+    if (h !== null) return h;
+    const arriba = cadena.length ? cadena[cadena.length - 1]?.[0]?.[4] : null;
+    return Number.isSafeInteger(arriba) ? arriba : segundosDeInstante(sello?.instante);
+  };
+  const instantes = tabla.map((c, k) => {
+    if (!alcanza[k]) return null;
+    if (k === ultima) return bloque();
+    const xs = k === 0 ? [...horas(c.nivel), ...(recibido ? [segundosDeInstante(eje.recibo(ev.id)?.instante)] : [])] : (sellado ? horas(c.nivel) : []);
+    const v = xs.filter((x) => x !== null);
+    return v.length ? Math.min(...v) : null;
+  });
+  const llegada = (k) => { const v = instantes.slice(k).filter((x) => x !== null); return v.length ? Math.min(...v) : null; };
+  const ahoraS = segundosDeInstante(ahora);
+  const pedido = (origen, por, posicion, escala, desde, plazoS, aTiempo) => {
+    const l = llegada(posicion);
+    const estado = aTiempo === true ? 'a tiempo' : aTiempo === false && l !== null ? 'fuera de plazo'
+      : l !== null ? (l <= plazoS ? 'a tiempo' : 'fuera de plazo') : ahoraS !== null && ahoraS > plazoS ? 'fuera de plazo' : 'pendiente';
+    return { nivel: tabla[posicion].nivel, escala, desde: instanteDeSegundos(desde), plazo: instanteDeSegundos(plazoS), origen, por, estado, llegada: l === null ? null : instanteDeSegundos(l) };
+  };
+  const deQuema = (r) => {
+    const s = escalaElegida(escalasQuemadas(r), tabla.length);
+    const desde = segundosDeInstante(r.t);
+    const segundos = s === null ? null : segundosDeEscala(epoca, s);
+    return s === null || desde === null || segundos === null ? null : { s, posicion: Math.min(s, ultima), escala: ESCALAS_REALES[s], desde, plazo: desde + segundos };
+  };
+  const pedidos = [];
+  // Propio: la quema de su autor. Lo deciden las lecturas de la época («asked», el nivel; «on time», si llegó a tiempo); sin
+  // ellas (una época que no las tiene) o si quedan PENDIENTE, la misma cuenta aquí.
+  const propio = deQuema(ev);
+  if (propio) {
+    const leer = (nombre) => {
+      const regla = (epoca?.lecturas ?? []).find((r) => nombreDeRegla(r) === nombre);
+      const r = regla ? leerRegla(regla, ev.id, ctx) : null;
+      return r?.estado === 'RESUELTO' ? r.valor : undefined;
+    };
+    const nivel = leer(LECTURA_PEDIDO)?.[0];
+    const aTiempo = leer(LECTURA_A_TIEMPO);
+    const posicion = Number.isSafeInteger(nivel) && tabla.some((c) => c.nivel === nivel) ? tabla.findIndex((c) => c.nivel === nivel) : propio.posicion;
+    pedidos.push(pedido('propio', ev.autor, posicion, propio.escala, propio.desde, propio.plazo, aTiempo?.length === 1 ? aTiempo[0] === true : undefined));
+  }
+  // Colgado: lo escrito sobre él con «ask for more firmness»; el plazo cuenta desde su propio instante.
+  for (const c of typeof eje.sobre === 'function' ? eje.sobre(ev.id) : []) {
+    if (!esPeticionDeFirmeza(c)) continue;
+    const q = deQuema(c);
+    if (q) pedidos.push(pedido('colgado', c.autor, q.posicion, q.escala, q.desde, q.plazo));
+  }
+  // Suelo: el último nivel dentro del plazo por defecto de la clase del dueño (epoch.7.5).
+  const suelo = plazoDeSuelo(eje, ev.id, { epoca });
+  const desde = segundosDeInstante(ev.t);
+  if (suelo && desde !== null) pedidos.push(pedido('suelo', suelo.clase, ultima, suelo.escala, desde, desde + suelo.segundos));
+  // Del más exigente al menos: el nivel más alto y, a igual nivel, el plazo más corto.
+  const rango = (n) => tabla.findIndex((c) => c.nivel === n);
+  const ORIGEN = ['propio', 'colgado', 'suelo'];
+  pedidos.sort((a, b) => rango(b.nivel) - rango(a.nivel) || msUTC(a.plazo) - msUTC(b.plazo) || ORIGEN.indexOf(a.origen) - ORIGEN.indexOf(b.origen));
+  const plazo = pedidos.some((x) => x.estado === 'fuera de plazo') ? 'fuera de plazo' : pedidos.some((x) => x.estado === 'pendiente') ? 'pendiente' : pedidos.length ? 'a tiempo' : null;
+  return { pedidos, plazo };
+}
+
+/**
+ * Lo que pide pagar con unas escalas de T (encargo A18; la línea del formulario que propone el coste): la escala elegida (la del
+ * nivel más alto y, a igual nivel, la del plazo más corto), el nivel que pide y su plazo en segundos. `escalas`, un nombre de
+ * escala real o una lista (las de las piezas de una denominación). → { nivel, escala, segundos } o null si ninguna es real.
+ */
+export function pedidoDeEscala(escalas, opciones = {}) {
+  const epoca = epocaDe(opciones);
+  const tabla = cascadaDe(epoca).capas;
+  const s = escalaElegida((Array.isArray(escalas) ? escalas : [escalas]).map((e) => ESCALAS_REALES.indexOf(e)), tabla.length);
+  if (s === null || !tabla.length) return null;
+  return { nivel: tabla[Math.min(s, tabla.length - 1)].nivel, escala: ESCALAS_REALES[s], segundos: segundosDeEscala(epoca, s) };
+}
+
+/**
+ * Lo que pide un lote (encargo A18; lo leerá StateArk para decidir hasta dónde sube un lote y cuándo): el nivel más alto que
+ * pide alguno de esos registros (por su quema propia o por lo colgado de ellos) y el plazo más corto de los que piden ese
+ * nivel. Si ninguno pide nada (no queman T real ni tienen nada colgado), el suelo: el último nivel en el plazo por defecto
+ * (plazoDeSuelo) más corto de los suyos. → { nivel, plazo } (plazo, un instante ISO) o null si ninguno está en el eje.
+ */
+export function pedidoDeLote(eje, ids, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const tabla = cascadaDe(epocaDe(opciones, eje)).capas;
+  const todos = (Array.isArray(ids) ? ids : [ids]).map((id) => firmeza(eje, id, opciones)?.pedidos).filter(Boolean).flat();
+  if (!todos.length || !tabla.length) return null;
+  const pedidos = todos.some((p) => p.origen !== 'suelo') ? todos.filter((p) => p.origen !== 'suelo') : todos;
+  const rango = (n) => tabla.findIndex((c) => c.nivel === n);
+  const alto = Math.max(...pedidos.map((p) => rango(p.nivel)));
+  const plazo = pedidos.filter((p) => rango(p.nivel) === alto).reduce((a, b) => (msUTC(b.plazo) < msUTC(a.plazo) ? b : a)).plazo;
+  return { nivel: tabla[alto].nivel, plazo };
 }
 
 /** Lo que da una lectura de verdadero o falso sobre un registro: { valor: true | false } o { pendiente: motivo } si falta el dato. */

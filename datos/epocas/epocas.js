@@ -609,6 +609,12 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"
+    },
+    {
+      "ref": "866a0163c4780a1a5eb7b1cc1f5db33176eb49e5a4afd375cfbdbf88909aaf6f"
+    },
+    {
+      "ref": "bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c"
     }
   ],
   [
@@ -5612,6 +5618,8 @@ export const EPOCA_0_BTML_DATOS = [
           "against others: sus hermanos, lo anclado sobre el mismo registro",
           "how: las acciones que su plantilla nombra como camino",
           "firm: el registro no ha llegado a la capa de la familia más alta que mueve (epoch.7.6): no está sellado hasta esa capa y ninguna de más arriba lo cubre",
+          "asked: el nivel de epoch.7.6 que pide el registro por la escala del T real que quema su autor al escribirlo: la escala k pide el nivel k, y la semana, el ciclo y el año piden el último",
+          "on time: el registro no ha llegado al nivel que pide (asked) dentro de su plazo: su instante más un periodo de la escala del T que quema",
           "T is not locked: {first ev.3} bloquea o libera T; bloquear es de E, P y R",
           "T is whole: {first ev.3} mueve {first ((ev.1 where T in it.0.0.0 and it.1 != floor it.1) each 1)} de una escala de T; cada escala es un token",
           "T only goes to things: {first ev.3} da T a {(ev.1 where T in it.0.0.0 and transfer in it.4 and it.3.1 != first ev.3) each 3.1}: T no cruza a una persona, y una cosa solo lo da a una cosa del mismo dueño; dar tiempo a otro es acuñar E del tiempo propio",
@@ -5734,6 +5742,18 @@ export const EPOCA_0_BTML_DATOS = [
           "template apply a resource message: {me} da {first ev.1.1 * first (first ev.1.2).1} {first (first ev.1.2).0} a {first it.3} por {first it.0}",
           "template ask for a recommendation: pedir una recomendación",
           "template ask for a recommendation message: las sugerencias del camino de {first it.0}",
+          "template ask for more firmness: pedir más firmeza",
+          "template ask for more firmness param scale label: escala",
+          "template ask for more firmness param scale help: la escala de T real (su número en el calendario de la época: 0 segundo, 1 minuto, 2 hora, 3 día, 4 semana, 5 ciclo, 6 año) con la que se paga escribir este registro: esa quema es la petición (segundo, minuto, hora y día piden los niveles 1 a 4 en un periodo de su escala; semana, ciclo y año, el último en 7 días, 28 días o un año)",
+          "template ask for more firmness param about label: sobre qué",
+          "template ask for more firmness param about help: el registro que pide más firmeza: X",
+          "template ask for more firmness param criteria label: criterio",
+          "template ask for more firmness param criteria help: la plantilla de cerrado del registro",
+          "template ask for more firmness param who label: quién",
+          "template ask for more firmness param who help: quién pide",
+          "template ask for more firmness param actions label: acción",
+          "template ask for more firmness param actions help: la acción",
+          "template ask for more firmness message: {me} pide más firmeza para {first it.0}",
           "template attach a file: adjuntar un archivo",
           "template attach a file param file label: archivo",
           "template attach a file param file help: el archivo, subido a los archivos del eje: archivo:<su sha256> (la carta abre el selector de archivos y lo sube)",
@@ -6706,6 +6726,9 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "9e0b82e0b2aa0466e27698672ea196ec67b3654e7638f89f6dbd9485901c7e56"
+        },
+        {
+          "ref": "f2a4884da732c3f554ca8ee520ea4d8b2ec3245949dc0f7e9c5983ad647d18d6"
         },
         {
           "ref": "0736c1247ac3661b7fad721b9fe2f31df987fc5e815116f2cb3be7268fa63c49"
@@ -8310,6 +8333,47 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "asked.json",
+    "id": "866a0163c4780a1a5eb7b1cc1f5db33176eb49e5a4afd375cfbdbf88909aaf6f",
+    "registro": [
+      [
+        "asked"
+      ],
+      [
+        "X.1",
+        "X.3",
+        "epoch.7.6",
+        "epoch.7.0"
+      ],
+      [
+        "=last (epoch.7.6.1 where it2 = nth 0 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 0) > 0 or it2 = nth 1 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 1) > 0 or it2 = nth 2 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 2) > 0 or it2 = nth 3 epoch.7.6.1 and count (it.1 where T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it.3 and it3.0.0.1 >= 3) > 0)"
+      ],
+      [
+        "X"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7.8; agram-equipo/T_Y_CASCADA_2026-11-16.md, «Propuesta de regla» 2; encargo A18 «T, el sistema de las anclas»): T es el sistema de las anclas. Las siete escalas reales de T son las cadencias de la cascada: elegir la escala con que se paga es elegir la cadencia, y la misma quema hace las dos cosas. El tipo de token dice lo exigido para estar en firme («firm»); la escala del T, lo pedido y su plazo",
+        "Lo pedido por la quema propia: segundo, minuto, hora y día piden los niveles 1 a 4 de epoch.7.6 (por posición: la escala k de epoch.7.0 pide el nivel k); semana, ciclo y año piden el último. Si quema de varias escalas, el nivel más alto. La quema es la del coste de escribir (T real de su autor, el criterio de «firm» y de «writing burns today's T»). La fórmula lee los niveles por posición (nth k epoch.7.6.1), desplegada para cuatro niveles como «firm» (BQL no tiene bucles); la escribe formulaDelPedido() de src/anclas.js (una prueba comprueba que es esta). Sin quema de T real, nada",
+        "Core AGRAM 16-11: una lectura que no se materializa en ninguna posición (su 3 es X, el registro, como el ev de «the cost of writing»): el 6.8 de un registro ya está lleno (0 a 9). La lee contrato.firmeza por su nombre (pedidos, origen «propio»). Lo colgado (los registros de «ask for more firmness»), el suelo (epoch.7.5) y el plazo no caben aquí: el plazo y el estado los da «on time» y el contrato"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after an account lives in its owner's book"
+      ],
+      [
+        "asked: the level of epoch.7.6 that the record asks by the scale of the real T its author burns to write it: the scale k asks the level k, and the week, the cycle and the year ask the last one"
+      ]
+    ]
+  },
+  {
     "archivo": "at-most-a-year-ahead.json",
     "id": "0cc86f944652a65b87a8f8b86376217d4e717b0bcadc7de0c8dc81ba88767163",
     "registro": [
@@ -9570,6 +9634,53 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "obligation: how much R of this identity others hold, available or locked"
+      ]
+    ]
+  },
+  {
+    "archivo": "on-time.json",
+    "id": "bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c",
+    "registro": [
+      [
+        "on time"
+      ],
+      [
+        "X.1",
+        "X.3",
+        "X.6.0",
+        "X.6.8.1",
+        "X.6.8.2",
+        "X.6.8.4",
+        "X.6.8.5",
+        "epoch.7.6",
+        "epoch.7.0"
+      ],
+      [
+        "=(count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 0) > 0 and not (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 > 0) > 0) and (((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 0 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1))) or count (first it.6).8.1 > 0 and first (first it.6).8.4 and first (first (first it.6).8.1).0 <= (first (first it.6).0.0 + first epoch.7.0.0.1)) or (count (first it.6).8.2 > 0 and first (first it.6).8.5 and \"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1))) or (count (first it.6).8.2 > 0 and first (first it.6).8.5 and \"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.0.4 <= (first (first it.6).0.0 + first epoch.7.0.0.1))) or (count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.0.1)))) or (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 1) > 0 and not (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 > 1) > 0) and ((count (first it.6).8.2 > 0 and first (first it.6).8.5 and \"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 1 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1))) or (count (first it.6).8.2 > 0 and first (first it.6).8.5 and \"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.0.4 <= (first (first it.6).0.0 + first epoch.7.0.1.1))) or (count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.1.1)))) or (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 2) > 0 and not (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 > 2) > 0) and ((count (first it.6).8.2 > 0 and first (first it.6).8.5 and \"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1) or (nth 2 epoch.7.6.1) in (first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.0.4 <= (first (first it.6).0.0 + first epoch.7.0.2.1))) or (count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.2.1)))) or (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 3) > 0 and ((count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.3.1)))) or (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 4) > 0 and not (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 >= 3 and it2.0.0.1 < 4) > 0) and ((count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.4.1)))) or (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 5) > 0 and not (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 >= 3 and it2.0.0.1 < 5) > 0) and ((count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.5.1)))) or (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 = 6) > 0 and not (count (it.1 where T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3 and it2.0.0.1 >= 3 and it2.0.0.1 < 6) > 0) and ((count (first it.6).8.2 > 0 and first (first it.6).8.5 and first (cabecera(bytes(first (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).7.0))).4 <= (first (first it.6).0.0 + first epoch.7.0.6.1))))"
+      ],
+      [
+        "X"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7.8; T_Y_CASCADA, «Propuesta de regla» 5): se añade una lectura, «a tiempo»: el registro alcanzó el nivel pedido antes de su plazo; si no, la carta dice «fuera de plazo». Es una lectura y no una regla que rechace: nada se rechaza por esto, y «firm», «sealed» y la capa exigida no cambian",
+        "El plazo: el instante del registro (X.6.0, en segundos por D-FECHA) más los segundos de la escala elegida (epoch.7.0.k.1): un periodo de esa escala; semana, ciclo y año, siete días, 28 días y un año. La escala elegida: la del nivel más alto y, a igual nivel, la del plazo más corto. Alcanzado como en «firm»: el primero con su recibo de llegada (X.6.8.4) o un eslabón de nivel 1; los de en medio con un eslabón de ese nivel y «sealed»; el último con «sealed». Uno de arriba cubre los de abajo",
+        "El instante de cada nivel: el del recibo de llegada (X.6.8.1) o la hora de la cabecera de lote de un eslabón de nivel 1 para el primero; la hora de la cabecera de un eslabón de ese nivel (9.j.0.4) para los de en medio; la hora del bloque (la de la cabecera de Bitcoin copiada en el 7.0 del sello) para el último. Verdadera si algún nivel a la altura del pedido o por encima está alcanzado con un instante no posterior al plazo (en una cadena normal las horas suben, y el primero por encima es el más temprano). Desplegada para las siete escalas reales y cuatro niveles; la escribe formulaATiempo() de src/anclas.js (una prueba comprueba que es esta)",
+        "Core AGRAM 16-11: no se materializa (su 3 es X, como «asked»). Sin alcanzar, o alcanzado tarde, falsa: «pendiente» (el plazo no ha pasado) o «fuera de plazo» (ya pasó) los distingue el contrato, porque el ahora no es del BQL mínimo (before.6.0 es el mayor t del libro, no el reloj de quien mira). Lo colgado («ask for more firmness», un plazo desde su propio instante) y el suelo (epoch.7.5) también los cuenta el contrato: contrato.firmeza, pedidos"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after asked"
+      ],
+      [
+        "on time: the record has not reached the level it asks (asked) before its deadline: its instant plus one period of the scale of the T it burns"
       ]
     ]
   },
@@ -12995,6 +13106,214 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "update the balance: the bank says {first it.0} has {first ev.1.1} {first ev.1.2} at {first ev.1.3}"
+      ]
+    ]
+  },
+  {
+    "archivo": "ask-for-more-firmness.json",
+    "id": "f2a4884da732c3f554ca8ee520ea4d8b2ec3245949dc0f7e9c5983ad647d18d6",
+    "registro": [
+      [
+        "ask for more firmness"
+      ],
+      [
+        [
+          [
+            "scale"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=count epoch.7.0.(it) = 1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "cost"
+          ],
+          [
+            "{scale}"
+          ],
+          [
+            "encargo A18 «T, el sistema de las anclas»: parámetro de «ask for more firmness»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            3,
+            "the scale of real T (its index in epoch.7.0) in which the cost of writing this record is paid: that burn is the request (the second, the minute, the hour and the day ask the levels 1 to 4 within one period of their scale; the week, the cycle and the year ask the last one within 7 days, 28 days or a year)"
+          ]
+        ],
+        [
+          [
+            "about"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "encargo A18 «T, el sistema de las anclas»: parámetro de «ask for more firmness»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first it.5",
+            "the record that asks for more firmness: X"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A18 «T, el sistema de las anclas»: parámetro de «ask for more firmness»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A18 «T, el sistema de las anclas»: parámetro de «ask for more firmness»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who asks"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A18 «T, el sistema de las anclas»: parámetro de «ask for more firmness»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "ask for more firmness",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=count it.3 > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "6"
+      ],
+      [
+        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7.8; agram-equipo/T_Y_CASCADA_2026-11-16.md, «Propuesta de regla» 4): pedir más firmeza para algo ya escrito es colgar de él un registro que quema T de la escala que se quiere; no hace falta primitiva nueva. Los plazos por nivel son el suelo, y pedir más firmeza se hace gastando T de esa escala",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve («write»: nada más que el coste de escribir); 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Core AGRAM 16-11 (encargo A18): un solo parámetro que se elige, la escala (un índice de epoch.7.0 que tenga fila: una escala real), y su 4 es «cost»; los demás (about, criteria, who, actions) son los de siempre, con su defecto, para que el payload no tenga huecos: el coste de escribir este registro (la regla «the cost of writing») se paga en esa escala, de más vale (src/acciones.js, transaccion y ejecucion). Esa quema es la petición: la lee contrato.firmeza en el registro del que cuelga (pedidos, origen «colgado»), con el plazo desde el instante de este registro. «actions» es la marca de todas las plantillas (la acción en el 4 del registro), por la que se reconoce lo colgado. Cuelga del 6 de X (de dónde viene: los relojes y la firmeza, X.6.8). [1, 21]: el primer orden libre del PV 1 que no pisa la época hija de StateArk (7, 8 y 10) ni la época state (10 a 20)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        1,
+        21
+      ],
+      [
+        "ask for more firmness: {me} asks more firmness for {first it.0}"
       ]
     ]
   },
@@ -20319,7 +20638,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "7280e1a693845008d4f9c99823eab038dc13685ca2d630fc177eb8500fd8bce0";
+export const EPOCA_0_BTML_ID = "1a13d3a6e25dd60a86ea64fda75706d06f909fd9ab5dfd230ea46411477003f9";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

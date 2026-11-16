@@ -266,7 +266,7 @@ test('be.mjs epoca: --ver de un archivo, --publicar en un eje nuevo del servidor
     const ver = await ejecutar(['epoca', '--ver', '--archivo', archivo], {});
     assert.match(ver, /^época: época de prueba · id [0-9a-f]{64}$/m);
     assert.match(ver, /hereda de: [0-9a-f]{8} \(época 0\)/);
-    assert.match(ver, /plantillas de transacción \(9\.6\): 52/);
+    assert.match(ver, /plantillas de transacción \(9\.6\): 53/);
     assert.match(ver, /2 cruceta/);
     const mal = join(dir, 'mal.json');
     writeFileSync(mal, JSON.stringify({ ...PRUEBA, raiz: [['-'], ...PRUEBA.raiz.slice(1)] }));
