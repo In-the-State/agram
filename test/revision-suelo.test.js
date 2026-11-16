@@ -134,7 +134,7 @@ test('S5: un cambio de gobierno que iguala los dos umbrales (0.6 y 0.6) entra: l
 // ---------- S6 (pregunta, no necesariamente fallo): una condición de gobierno que nombra a alguien ----------
 
 test('S6: un cambio de gobierno añade «=first ev.3 != "bea"» y bea ya no escribe nada (ni retira su P): ninguna regla del suelo lo impide', {
-  todo: 'PREGUNTA S6, sin arreglar (anexo de los arreglos, K): un cambio de gobierno puede añadir una condición que nombre a una persona; no hay comprobación general; la protección es el aviso antes de regir y la salida a un libro hijo',
+  todo: 'PREGUNTA S6, decidida por VG (17-11) y sin construir: los dos tercios pueden añadir una condición que nombre a una persona; el aviso antes de regir es un nivel de firmeza, puede ser 0 y no da plazo; la protección es la salida con la clave, la copia y la prueba de saldo, que pasa a ser suelo (ISSUES 159)',
 }, async () => {
   const m = await mundo();
   const nota = () => m.aMano({ autor: 'bea', sobre: m.eje.alta('bea').id, movimientos: [pagaElCoste('bea')], payload: [['nota de bea']] });
