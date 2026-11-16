@@ -221,7 +221,9 @@ export class Eje {
    * una transacción suya sobre el génesis, la segunda del eje, que pasa por las reglas como cualquiera (quema un
    * minuto de su T; emitir E exige P sobre su registro, que es el génesis, y R propia emitida).
    * Sin clave no se actúa (R9): el génesis lleva `clave` y `privada` de su autor, salvo que se cree como
-   * `demostracion: true` (queda en su contexto y se ve en la interfaz).
+   * `demostracion: true` (queda en su contexto y se ve en la interfaz). `privada` puede ser un firmante
+   * ({ canonico, id }) → firma | { id, firma } (src/autoridad.js; camino B del alta, docs/ANFITRION.md): cada firma se
+   * comprueba con `clave`, y si una falla (o el firmante rechaza) el génesis lanza y no queda eje a medio abrir.
    */
   static async genesis({ identidad, emision = [], foco, t = new Date().toISOString(), contexto = {}, clave, privada, exigirFirmas = false, demostracion = false, epoca, ...resto }) {
     // La época vive en el eje (VG, 14-11, #107): `epoca` (opcional) es una época escrita { raiz, registros } (o su raíz
@@ -257,7 +259,7 @@ export class Eje {
       // La apertura: la raíz de la época y, detrás, sus registros, anclados en el génesis por su autor, sin mover nada.
       for (const payload of [escrita.raiz, ...escrita.registros]) {
         let r = await crearEvento({ autor: identidad, sobre: ev.id, t, movimientos: [], payload, contexto: { epoca: cargada.id, registroDeEpoca: true } });
-        if (privada) r = await firmar(r, privada);
+        if (privada) r = await firmar(r, privada, undefined, { publica: clave });
         await eje.anadir(r);
       }
     }
@@ -1374,11 +1376,14 @@ export class Eje {
    * Crea, valida y añade en un paso. Con `privada`, firma antes de añadir.
    * `posesion` ({ identidad: privada }) añade la prueba de posesión de cada
    * clave que el evento declara en su contexto (R9): la clave nueva firma el id.
+   * Cada privada puede ser un firmante ({ canonico, id }) → firma | { id, firma } (src/autoridad.js): su firma se
+   * comprueba (la del autor, con su clave en el eje o la que declara su alta; la de posesión, con la declarada) y, si
+   * no vale o el firmante rechaza, lanza antes de añadir: nada entra en el libro.
    */
   async escribir(datos, privada, posesion = {}) {
     let ev = await crearEvento(datos);
     for (const [id, priv] of Object.entries(posesion)) ev = await firmarPosesion(ev, id, priv);
-    if (privada) ev = await firmar(ev, privada);
+    if (privada) ev = await firmar(ev, privada, undefined, { publica: this.clave(ev.autor) });
     return this.anadir(ev);
   }
 
@@ -1432,7 +1437,7 @@ export class Eje {
   /**
    * Aceptar una invitación (mapa §16 [D]: «4 aceptar = tu primera transacción firmada = tu alta»; encargo 3b): la
    * primera transacción de la persona nueva, anclada sobre la invitación y firmada con su clave (`clave`: { publica,
-   * privada }, o nada en un eje de demostración). Recoge lo que la invitación le guarda (lo que quien invita bloqueó
+   * privada }, o nada en un eje de demostración; `privada` puede ser un firmante, cuya firma se comprueba con `publica`). Recoge lo que la invitación le guarda (lo que quien invita bloqueó
    * con la salida = ella) y quema un minuto de su día. Es su alta: la escribe ella, así que es una persona (B1).
    * Sustituye a `entrar` (el alta propia abierta): sin invitación solo entra la primera identidad, la del génesis.
    */

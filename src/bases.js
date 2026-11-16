@@ -830,7 +830,7 @@ function leerSiEsBase(eje, ev, previos) {
 /**
  * Escribe la base de un registro en su 8 (sobre: registro, en: CIELO). La
  * escribe `autor`: por defecto la propia cosa (identidadDe); si se da otro,
- * ha de tener P sobre el registro. Firma con su clave privada y gasta su T
+ * ha de tener P sobre el registro. Firma con su clave privada (o un firmante, src/autoridad.js) y gasta su T
  * (lo que la regla del coste exige por las posiciones de la base, un minuto cada una: quemaDelCoste, en la `escala` de T
  * que se pida o, si no, en la primera, empezando por el minuto, que le alcanza: VG 12-11, #64 b). Contexto { bases: true, n, nSubarbol, hasta, epoca, sinBase };
  * el payload lleva las dos estadísticas y las referencias a lo medido.
@@ -844,7 +844,7 @@ export async function escribirBase(eje, { registro, privada, autor, t = new Date
   }
   const permiso = puedeEscribirBase(eje, quien, registro);
   if (!permiso.puede) throw new Error(permiso.motivo);
-  if (!privada) throw new Error('una base va firmada: falta la clave privada de ' + quien);
+  if (!privada) throw new Error('una base va firmada: falta la clave privada (o el firmante) de ' + quien);
   const calculada = calcularBase(eje, registro, { epoca });
   if (calculada.hijos.n === 0) throw new Error('nada que medir: ' + registro.slice(0, 8) + ' no tiene hijos');
   const payload = payloadDeBase(calculada);

@@ -26,7 +26,7 @@ import { sha256, hashEtiquetado, concatenar, deHex, aHex, verificarBip340, raizM
 import { canonico } from './evento.js';
 
 /** La clave de la configuración («exterior settings», docs/CONTRATO.md §16.2 bis) que dice dónde está el servicio de sello. */
-export const CONFIGURACION = Object.freeze({ url: AJUSTES.sello });
+export const CONFIGURACION = Object.freeze({ get url() { return AJUSTES.sello; } }); // perezosa: sello y exterior se importan en círculo
 
 /** La dirección del servicio de sello de `yo` («seal url» de «exterior settings»; http o https, sin la barra final), o null si no la ha dicho o no es una url. */
 export function destino(eje, yo, opciones = {}) {

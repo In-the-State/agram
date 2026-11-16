@@ -10,8 +10,18 @@
 //   clave pública  32 bytes, x-only (64 caracteres)
 //   clave privada  32 bytes, 0 < d < n (64 caracteres)
 //   firma          64 bytes (128 caracteres), del id del evento (los 32 bytes del SHA-256 del cuerpo canónico)
+//
+// UN FIRMANTE EN VEZ DE LA CLAVE (camino B del alta, VG 17-11; docs/ANFITRION.md): donde se firma con una clave
+// privada (firmar, firmarPosesion, y todo lo que se la pasa: Eje.genesis, eje.escribir, invitar, aceptar,
+// escribirDesde, escribirSalida, escribirBase, consolidar, registrar) puede ir una FUNCIÓN firmante, la misma forma
+// que el firmante inyectable de acciones.autorizar:
+//   firmar({ canonico, id }) → firma en hex | { id, firma }      (puede devolver una promesa)
+// `canonico` es el cuerpo canónico del registro (su SHA-256 es `id`). El núcleo no se fía de lo que devuelve: una
+// firma de 64 bytes en hex, el mismo id si lo trae y, si se conoce la clave pública que debe firmar, que verifica con
+// ella; si no, o si el firmante lanza o rechaza, lanza (conservando el `code` del rechazo) y no se escribe nada.
 
 import { schnorr } from './vendor/noble-secp256k1.js';
+import { canonico, cuerpo } from './evento.js';
 
 const HEX32 = /^[0-9a-f]{64}$/;
 const HEX64 = /^[0-9a-f]{128}$/;
@@ -53,10 +63,62 @@ function firmarId(id, privada) {
   return aHex(schnorr.sign(aBytes(id), aBytes(privada), aleatorio(32)));
 }
 
-/** Firma el id de un evento (el hash de su cuerpo). Devuelve el evento con firmante y firma. */
-export async function firmar(ev, privada, firmante = ev.autor) {
+/** ¿Es un firmante (una función) y no una clave privada? */
+export function esFirmante(x) {
+  return typeof x === 'function';
+}
+
+/**
+ * La firma del id de `ev` que da un firmante ({ canonico, id }) → firma | { id, firma }, comprobada: firma de 64 bytes
+ * en hex, el mismo id si lo trae y, con `publica`, que verifica con ella. Si el firmante lanza o rechaza, un Error que
+ * conserva su `code` (y lo de fuera en `cause`). `que`: lo que se firma, para el mensaje.
+ */
+async function firmaDelFirmante(ev, firmante, publica, que) {
+  if (typeof ev.id !== 'string' || !HEX32.test(ev.id)) throw new Error('el evento no tiene id');
+  let dada;
+  try {
+    dada = await firmante({ canonico: canonico(cuerpo(ev)), id: ev.id });
+  } catch (e) {
+    const code = e !== null && typeof e === 'object' && typeof e.code === 'string' ? e.code : undefined;
+    const error = new Error('el firmante no firmó ' + que + ' ' + ev.id.slice(0, 8) + ': ' + String(e?.message ?? e), { cause: e });
+    if (code !== undefined) error.code = code;
+    throw error;
+  }
+  const objeto = dada !== null && typeof dada === 'object';
+  if (objeto && dada.id !== undefined && dada.id !== ev.id) throw new Error('el firmante firmó otro registro: ' + String(dada.id).slice(0, 8) + ', no ' + ev.id.slice(0, 8));
+  const firma = typeof dada === 'string' ? dada : objeto ? dada.firma : undefined;
+  if (typeof firma !== 'string' || !HEX64.test(firma)) throw new Error('el firmante no devolvió una firma de ' + que + ' ' + ev.id.slice(0, 8) + ' (64 bytes en hexadecimal)');
+  if (publica !== undefined && publica !== null && !verificarFirma(firma, ev.id, publica)) {
+    throw new Error('la firma del firmante no verifica con la clave ' + huella(publica) + ' (' + que + ' ' + ev.id.slice(0, 8) + ')');
+  }
+  return firma;
+}
+
+/** La clave pública que `ev` declara para `identidad` en su contexto (su alta, el génesis), si es una válida. */
+function declarada(ev, identidad) {
+  const c = ev?.contexto?.claves;
+  const x = c && typeof c === 'object' && Object.hasOwn(c, identidad) ? c[identidad] : undefined;
+  return clavePublicaValida(x) ? x : undefined;
+}
+
+/**
+ * Firma el id de un evento (el hash de su cuerpo). Devuelve el evento con firmante y firma. `privada` es la clave
+ * privada (hex) o un firmante ({ canonico, id }) → firma | { id, firma }; con un firmante, su firma se comprueba con
+ * `opciones.publica` o, si no se da, con la clave que el propio evento declara para `firmante` (el génesis, un alta).
+ */
+export async function firmar(ev, privada, firmante = ev.autor, { publica } = {}) {
   if (!ev.id) throw new Error('el evento no tiene id');
-  return Object.freeze({ ...ev, firmante, firma: firmarId(ev.id, privada) });
+  const firma = esFirmante(privada) ? await firmaDelFirmante(ev, privada, publica ?? declarada(ev, firmante), 'el registro') : firmarId(ev.id, privada);
+  return Object.freeze({ ...ev, firmante, firma });
+}
+
+/**
+ * El firmante de eventos que piden acciones.transaccion (`opciones.firmar`), autoejecutar, local.englobar y Sincronia
+ * (`firmar`): (evento) → evento firmado, hecho de un firmante ({ canonico, id }) → firma | { id, firma } (o de una clave
+ * privada). Firma con `firmar` de aquí, así que comprueba lo mismo; `publica`, la clave con que debe verificar.
+ */
+export function firmanteDeEventos(firmante, { publica } = {}) {
+  return (ev) => firmar(ev, firmante, ev.autor, { publica });
 }
 
 /**
@@ -83,10 +145,12 @@ function verificarFirma(firma, id, publica) {
  * que un alta declara para `identidad` firma el id del propio evento del
  * alta. Va en `posesion` ({ identidad: firma }), fuera del cuerpo como la
  * firma del autor, así que no cambia el id. Devuelve el evento con la prueba.
+ * `privada`: la clave privada o un firmante, como en `firmar`.
  */
-export async function firmarPosesion(ev, identidad, privada) {
+export async function firmarPosesion(ev, identidad, privada, { publica } = {}) {
   if (!ev.id) throw new Error('el evento no tiene id');
-  const firma = firmarId(ev.id, privada);
+  // Con un firmante, la firma ha de verificar con la clave que el alta declara para `identidad` (o la que se dé).
+  const firma = esFirmante(privada) ? await firmaDelFirmante(ev, privada, publica ?? declarada(ev, identidad), 'la prueba de posesión del registro') : firmarId(ev.id, privada);
   return Object.freeze({ ...ev, posesion: { ...(ev.posesion ?? {}), [identidad]: firma } });
 }
 

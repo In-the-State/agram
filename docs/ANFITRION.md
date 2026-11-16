@@ -31,3 +31,37 @@ globalThis.__AGRAM_ANFITRION__ = Object.freeze({
 - Nada que venga del anfitrión se pinta como HTML (solo texto escapado), y un error suyo es un aviso: no rompe la carta.
 
 Pruebas: `test/carta-anfitrion.test.js`.
+
+## La cuenta en el guardián (camino B)
+
+Dos caminos de alta (VG 17-11). **A**, el de siempre: la cuenta nace en la carta y su clave privada vive en el navegador. **B**: la cuenta nace en el guardián de StateArk y la carta firma TODO con él; la carta nunca ve la clave privada. La carta propone sin firmar y el guardián firma con la clave de la propia cuenta. La época no cambia, ni cómo se firma: el mismo BIP-340 sobre el mismo id.
+
+### Lo que ofrece el núcleo
+
+- **Un firmante donde iba la clave privada.** En todo lo que firma un registro o una prueba de posesión con una clave privada, ese mismo argumento puede ser una función con la forma del firmante de `acciones.autorizar`:
+
+  ```
+  firmar({ canonico, id }) → firma en hex | { id, firma }      (puede devolver una promesa)
+  ```
+
+  `canonico` es el cuerpo canónico del registro (su SHA-256 es `id`). Vale en `autoridad.firmar(ev, firmante, autor, { publica })`, `autoridad.firmarPosesion(ev, identidad, firmante, { publica })`, `Eje.genesis({ …, clave, privada: firmante })`, `eje.escribir(datos, firmante, { identidad: firmante })`, `eje.invitar({ …, privada: firmante })`, `eje.aceptar(inv, { publica, privada: firmante })`, `escritura.escribirDesde` y `escribirSalida`, `bases.escribirBase({ …, privada: firmante })`, `motor.consolidar` y `motor.registrar`. Con una clave privada, todo sigue igual, byte a byte.
+- **El núcleo no se fía del firmante.** Antes de aceptar lo que devuelve comprueba que es una firma de 64 bytes en hexadecimal, que el `id`, si lo trae, es el del registro, y que la firma verifica con la clave pública que debe firmar cuando el núcleo la conoce: en el génesis, la `clave` que declara; en `eje.escribir`, la del autor en el eje o, en su propia alta, la que el alta declara; en la prueba de posesión, la clave declarada para esa identidad. Si no, o si el firmante lanza o rechaza, lanza un error claro (que conserva el `code` del rechazo: `session_closed`, `cancelled_by_holder`, `id_mismatch`, `unknown_account`…) y **nada entra en el libro**.
+- **El génesis, entero o nada.** Con la época 0 del código, `Eje.genesis` firma el génesis y, si hay `emision`, la transacción de emisión (con una época escrita, además la raíz de la época y sus registros). Si una firma falla a mitad, el génesis lanza y no devuelve ningún eje.
+- **Un solo firmante para todo.** `acciones.autorizar` (`opciones.firmar`) ya recibe `({ canonico, id, propuesta })`: el mismo firmante le vale (ignora o lee `propuesta`). `acciones.transaccion` (`opciones.firmar`), `acciones.autoejecutar`, `local.englobar` y `Sincronia` (`firmar`) piden en cambio `(evento) → evento firmado`: `autoridad.firmanteDeEventos(firmante, { publica })` la hace del firmante, con las mismas comprobaciones.
+- **La firma del servicio.** `pago.pagoHttp` (y `pago.deConfiguracion`) llama a `firmar(idHex, evento)`: además del id, el evento NIP-98 entero sin firmar, para que el guardián no firme un id suelto y recalcule su id. Fuera de los registros y de esto, el núcleo no firma nada con la clave de la cuenta (`Sincronia` solo firma registros con su `firmar`, y el sello solo verifica).
+
+### El contrato del anfitrión (acordado entre Core AGRAM y Core StateArk, 17-11)
+
+El anfitrión añadirá al objeto `__AGRAM_ANFITRION__` (la carta aún no lo usa: es otro encargo):
+
+```
+crearCuenta({ nombre }) → { publica }                       abre la sesión en el mismo diálogo
+cuentas() → [{ nombre, publica }]
+firmar({ publica, canonico, id, segundoFactor }) → { id, firma }   la prueba de posesión de un alta es esa misma firma
+firmarServicio({ publica, evento }) → firma                 evento NIP-98 sin firmar; el guardián recalcula su id
+sesion(publica) → { abierta, caduca }
+```
+
+Los errores, como rechazo con `code`: `session_closed`, `cancelled_by_holder`, `id_mismatch`, `unknown_account`. La carta hará de ellos el firmante del núcleo: `({ canonico, id }) => anfitrion.firmar({ publica, canonico, id })` para los registros y `(idHex, evento) => anfitrion.firmarServicio({ publica, evento })` para el servicio de pagos.
+
+Pruebas: `test/firmante.test.js`.

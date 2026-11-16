@@ -19,9 +19,12 @@
 // contador), para que dos iguales en el mismo segundo no den `replay`. El servicio la exige en cartera, dirección,
 // preparar y saldos; aquí se firman también autorizar y ejecutar (allí, si llega, se verifica). Los GET, sin firma.
 //
-// EL FIRMANTE ES INYECTABLE: el adaptador recibe `firmar(idHex) → firmaHex` (BIP-340 sobre los 32 bytes del id) y la
-// clave pública x-only `pubkey`; la carta le da el de la cuenta (el mismo material con el que firma sus registros) y
-// mañana se lo dará el guardián. La clave privada no entra aquí. Este módulo no conoce ninguna simulación (TOK-74).
+// EL FIRMANTE ES INYECTABLE: el adaptador recibe `firmar(idHex, evento) → firmaHex` (BIP-340 sobre los 32 bytes del id) y
+// la clave pública x-only `pubkey`; la carta le da el de la cuenta (el mismo material con el que firma sus registros) o
+// el del guardián. `evento` es el evento NIP-98 entero SIN firmar ({ id, pubkey, created_at, kind, tags, content },
+// congelado): el guardián no firma un id suelto, recalcula el id de ese evento y enseña qué firma (camino B del alta,
+// docs/ANFITRION.md). Quien solo lea el id sigue igual. La clave privada no entra aquí. Este módulo no conoce ninguna
+// simulación (TOK-74).
 //
 // Lo que compromete (autorizar un pago) lo firma el guardián (VG 12-11): en la web la carta solo pide recibos; la
 // pantalla de pagar no está decidida. El recibo de pago entra en el eje por src/sincronia.js (`esperarPago`,
@@ -31,7 +34,7 @@ import { AJUSTES, exterior } from './exterior.js';
 import { sha256, aHex } from './cripto.js';
 
 /** La clave de la configuración («exterior settings», docs/CONTRATO.md §16.2 bis) que dice dónde está el servicio de pagos. */
-export const CONFIGURACION = Object.freeze({ url: AJUSTES.pago });
+export const CONFIGURACION = Object.freeze({ get url() { return AJUSTES.pago; } }); // perezosa: pago y exterior se importan en círculo
 
 /** El kind de un evento NIP-98 (HTTP Auth). */
 export const KIND_NIP98 = 27235;
@@ -90,9 +93,9 @@ export class ErrorDePago extends Error {
 let serie = 0;
 
 /**
- * El adaptador por el servicio HTTP en `url` (la «pay url»: …/pagos/* y / cuelgan de ella). `firmar(idHex) → firmaHex`
- * (puede ser asíncrona) y `pubkey` firman como el titular; sin ellos, solo los GET (los recibos). `ahora()`: ms Unix
- * (el `created_at`). Lanza ErrorDePago si no hay red o el servicio rechaza (salvo los recibos: ver arriba).
+ * El adaptador por el servicio HTTP en `url` (la «pay url»: …/pagos/* y / cuelgan de ella). `firmar(idHex, evento) →
+ * firmaHex` (puede ser asíncrona; `evento`, el NIP-98 sin firmar con ese id) y `pubkey` firman como el titular; sin
+ * ellos, solo los GET (los recibos). `ahora()`: ms Unix (el `created_at`). Lanza ErrorDePago si no hay red o el servicio rechaza (salvo los recibos: ver arriba).
  */
 export function pagoHttp({ url, fetch = globalThis.fetch?.bind(globalThis), firmar, pubkey, ahora = () => Date.now() } = {}) {
   if (typeof url !== 'string' || !url) throw new TypeError('pago: hace falta la url del servicio');
@@ -105,7 +108,7 @@ export function pagoHttp({ url, fetch = globalThis.fetch?.bind(globalThis), firm
       if (typeof firmar !== 'function' || typeof pubkey !== 'string' || !HEX64.test(pubkey)) throw new TypeError('pago: ' + ruta + ' se firma como el titular: hacen falta firmar y pubkey');
       serie += 1;
       const evento = eventoNip98({ pubkey, url: base + ruta, metodo, cuerpo, content: String(serie), creado: Math.floor(ahora() / 1000) });
-      const sig = await firmar(evento.id);
+      const sig = await firmar(evento.id, Object.freeze({ ...evento, tags: Object.freeze(evento.tags.map((t) => Object.freeze([...t]))) }));
       headers.Authorization = cabeceraNip98({ ...evento, sig });
     }
     let r;
