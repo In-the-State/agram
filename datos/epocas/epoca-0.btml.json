@@ -160,7 +160,7 @@
     {"ref":"6ca50905d9242646b8c92ebf365d470b079504a010a36f7e17ac349425e59d75"},
     {"ref":"bfa0bd7f5cc4455648e32c3eef1993b2a4c88817a8c09d7c109145e4619cfcf8"},
     {"ref":"b40be0667c53f6d16a0e70ccefe4f9f6cd23ffa805a039e85c6a71f388bbec45"},
-    {"ref":"b4224ebed0d079b96f577025452cde2614ccf52d0b42cb19fe464ed35308accc"},
+    {"ref":"dd0303014f44aab6ca413a988c8be70bd14939494d5335775993cfc312bd00d1"},
     {"ref":"c2929237612e7b1144e7c449d45b09bc9ece5137e7139523ecc5b60f8f10ffb1"},
     {"ref":"03ccc721272e9d7b44c684b44edb1edd66b6ed7a3d9127c87418aa84aa47d072"},
     {"ref":"4b3900df598d65e0917b8d817b819b0f924dbdc7bfcd81bfbcbe109e796a01a8"},
@@ -175,7 +175,7 @@
     {"ref":"cd8c375175c656c4c902ebc420b043e942d15779825914a349b7103af3dd35cb"},
     {"ref":"a787f172195bcdb8aab325702d7068aa596df552b5ffec8753e0816b002abd0b"},
     {"ref":"c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"},
-    {"ref":"de6a9e30c0a70c6ab21b35bc93c0f73a52f9eddfc5fef47f39d8f1599e347574"}
+    {"ref":"4ee829b97a63f527786faff2c3c696f3d908a33b0515510ba950e703db88b72b"}
   ],
   [
     [
@@ -838,18 +838,18 @@
     [
       [
         "anchoring cadence",
-        "the anchoring cadence (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; SIP 0, «El sello en cascada» §5): for each level of whoever keeps a line (person, group, company, provider), the longest wait, in seconds, since the last header of that line anchored in Bitcoin; the seconds of 7.0 (year, cycle, week, day). Data for the sealer: AGRAM does not demand it"
+        "the anchoring cadence (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 and §7; SIP 0, «El sello en cascada» §5): for each level of whoever keeps a line (person, group, company, provider), the longest wait since the last header of that line anchored in Bitcoin, as a scale of T of 7.0 (its index: 6 the year, 5 the cycle, 4 the week, 3 the day), not seconds copied: the seven real scales of T are the cadences of the cascade (VG 16-11). Data for the sealer: AGRAM does not demand it"
       ],
       ["person", "group", "company", "provider"],
-      [31536000, 2419200, 604800, 86400]
+      [6, 5, 4, 3]
     ],
     [
       [
         "layers",
-        "the layers (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; SIP 0, «El sello en cascada»), from the bottom up: the order is the rank, and a layer above covers the ones below; 2 the fastest rhythm of the seals of each layer, in seconds: at most one seal (one batch header) every so many seconds; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm in that layer (a token can be used before: it needs the seal of its layer to be firm). The names are the «capa» of each link of the seal (X.6.8.2, 9.k.1); the reading «firm» (X.6.8.9) reads this row"
+        "the levels of the cascade (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 and §7; SIP 0, «El sello en cascada»), from the bottom up: 1 the levels, numbers (the order is the rank, and a level above covers the ones below); which technology fulfils each level, and with which grade, is data of each link of the seal (X.6.8.2: 9.k.1 its level, 9.k.4 its grade), not of the epoch; 2 the fastest rhythm of the seals of each level, as a scale of T of 7.0 (its index: 0 the second, 1 the minute, 2 the hour, 3 the day), not seconds copied: at most one seal (one batch header) per unit of that scale; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm at that level (a token can be used before: it needs the seal of its level to be firm). The reading «firm» (X.6.8.9) reads this row"
       ],
-      ["casa", "sidechain", "liquid", "bitcoin"],
-      [1, 60, 3600, 86400],
+      [1, 2, 3, 4],
+      [0, 1, 2, 3],
       ["T", "R", "P", "E"]
     ]
   ],

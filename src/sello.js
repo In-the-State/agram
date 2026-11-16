@@ -209,13 +209,21 @@ export function decuplaDeCabecera(c) {
   return [[POSICIONES_DEL_SELLO.cabeceraDeLote.marca, 'SIP 0'], v.numero, v.anterior, v.raiz, v.hora, v.clave, v.firma, [[leHex(v.numero, 8)], [leHex(v.hora, 8)]]];
 }
 
-/** Un eslabón de la cadena como décupla: 0 la cabecera, 1 [capa] y, solo si los hay, 2 los lados y 3 los hermanos de su camino «sip». */
+/** El grado de un eslabón (VG 16-11): opaco, un número o un texto corto; null si no lo trae o no lo es. Nada lo compara. */
+const gradoDe = (g) => ((typeof g === 'number' && Number.isFinite(g)) || (typeof g === 'string' && g.length > 0 && g.length <= 32) ? g : null);
+
+/**
+ * Un eslabón de la cadena como décupla: 0 la cabecera, 1 [nivel] (un número de epoch.7.6.1, VG 16-11) y, solo si los hay,
+ * 2 los lados y 3 los hermanos de su camino «sip»; 4 [grado], opcional y opaco (VG 16-11). Sin huecos ni relleno: un
+ * eslabón sin camino «sip» (un lote de un solo id) no tiene 2 ni 3, así que no puede llevar su grado en el 4 (se omite).
+ */
 function decuplaDeEslabon(e) {
   const cabecera = decuplaDeCabecera(e?.cabecera);
-  if (!cabecera || typeof e.capa !== 'string' || !e.capa) return null;
+  if (!cabecera || !Number.isSafeInteger(e.nivel) || e.nivel < 1) return null;
   const camino = Array.isArray(e.camino) ? e.camino : [];
   if (!camino.every((x) => Array.isArray(x) && (x[0] === 'i' || x[0] === 'd') && hexO(x[1], 64))) return null;
-  return [cabecera, [e.capa], ...(camino.length ? [camino.map(([l]) => l), camino.map(([, h]) => h)] : [])];
+  const grado = gradoDe(e.grado);
+  return [cabecera, [e.nivel], ...(camino.length ? [camino.map(([l]) => l), camino.map(([, h]) => h), ...(grado !== null ? [[grado]] : [])] : [])];
 }
 
 /**
@@ -276,10 +284,11 @@ export const POSICIONES_DEL_SELLO = Object.freeze({
   tx: '8.0', vout: '8.1', interna: '8.2', hermanosTaproot: '8.3',
   lados: '9.0', hermanos: '9.1',
   // La vía «cascada» (SIP 0, «El sello en cascada» §2, VG 16-11): el 3 es el compromiso (el hash de la cabecera de arriba)
-  // y el 9 la cadena, de abajo arriba: 9.k el eslabón k, con 9.k.0 su cabecera de lote, 9.k.1 [capa] y, si los hay, 9.k.2
+  // y el 9 la cadena, de abajo arriba: 9.k el eslabón k, con 9.k.0 su cabecera de lote, 9.k.1 [nivel] (un número de
+  // epoch.7.6.1), 9.k.4 [grado] (opcional y opaco: «sealed» y «firm» no lo leen; VG 16-11) y, si los hay, 9.k.2
   // los lados y 9.k.3 los hermanos de su camino «sip». Lo demás (1, 2, 4, 5, 7 y 8), como en la vía «taproot».
   cascada: 'cascada', compromisoCascada: '3', cadena: '9',
-  eslabon: Object.freeze({ cabecera: '0', capa: '1', lados: '2', hermanos: '3' }),
+  eslabon: Object.freeze({ cabecera: '0', nivel: '1', lados: '2', hermanos: '3', grado: '4' }),
   // Las posiciones de una cabecera de lote (SIP 0, «El sello en cascada» §1), dentro de su eslabón (9.k.0).
   cabeceraDeLote: Object.freeze({ marca: 'cabecera de lote', clase: '0', numero: '1', anterior: '2', raiz: '3', hora: '4', clave: '5', firma: '6', numeroLe: '7.0', horaLe: '7.1' }),
 });
@@ -363,12 +372,12 @@ const FAMILIAS = Object.freeze(['T', 'R', 'P', 'E']);
 export const CAPAS_DE_LA_FORMULA = 4;
 
 /**
- * La fórmula del 2 de la regla «firm» (X.6.8.9, VG 16-11, encargo «firmeza»): ¿ha llegado el registro a la capa que exige?
- * Lee las capas de la época, epoch.7.6 (1 los nombres de abajo arriba, 3 la familia que queda en firme en cada una), por
- * posición (nth k), desplegada para CAPAS_DE_LA_FORMULA capas (BQL no tiene bucles; la primera es la casa y la última
- * Bitcoin). Una capa está alcanzada:
- *   la primera (la casa): su sello en cascada lleva un eslabón con esa capa, o su recibo de llegada vale («received», X.6.8.4);
- *   las de en medio: su sello en cascada lleva un eslabón con esa capa (9.k.1) y vale («sealed», X.6.8.5);
+ * La fórmula del 2 de la regla «firm» (X.6.8.9, VG 16-11, encargo «firmeza»): ¿ha llegado el registro al nivel que exige?
+ * Lee los niveles de la época, epoch.7.6 (1 los niveles, números de abajo arriba, 3 la familia que queda en firme en cada
+ * uno), por posición (nth k), desplegada para CAPAS_DE_LA_FORMULA niveles (BQL no tiene bucles; el primero es la casa y el
+ * último Bitcoin). Un nivel está alcanzado (el grado del eslabón, 9.k.4, no se lee):
+ *   el primero (la casa): su sello en cascada lleva un eslabón con ese nivel, o su recibo de llegada vale («received», X.6.8.4);
+ *   los de en medio: su sello en cascada lleva un eslabón con ese nivel (9.k.1) y vale («sealed», X.6.8.5);
  *   la última (Bitcoin): «sealed» vale, por cualquiera de las dos vías.
  * Exige la capa de la familia más alta que mueve con sus propias sentencias (it.1, lo declarado y no anunciado): lo que
  * cambia de manos, se acuña, se quema por decisión o se bloquea. NO cuenta lo automático de escribir: la quema de T real
@@ -382,7 +391,9 @@ export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
   const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
   const familia = (j) => '(nth ' + j + ' epoch.7.6.3)';
-  const enCadena = (k) => '"' + p.cascada + '" in ' + S + '.' + p.via + ' and ' + capa(k) + ' in (' + S + '.' + p.cadena + ' each ' + p.eslabon.capa + ')';
+  // El nivel de cada eslabón, 9.j.1, de uno en uno (j de 0 a 9: una décupla no tiene más): `S.9 each 1` no sirve, porque
+  // S.9 es un solo ocupante (la cadena) y daría su posición 1, el segundo eslabón entero.
+  const enCadena = (k) => '"' + p.cascada + '" in ' + S + '.' + p.via + ' and (' + Array.from({ length: 10 }, (_, j) => capa(k) + ' in ' + S + '.' + p.cadena + '.' + j + '.' + p.eslabon.nivel).join(' or ') + ')';
   const sellado = 'count (first it.6).8.2 > 0 and first (first it.6).8.5';
   const recibido = 'count (first it.6).8.1 > 0 and first (first it.6).8.4';
   const ultima = CAPAS_DE_LA_FORMULA - 1;

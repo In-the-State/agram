@@ -492,29 +492,33 @@ function htmlPago(p, X) {
 const htmlPendienteDeSegundoFactor = (o) => `<small class="pendiente-segundo-factor" title="${attr(o?.motivoSegundoFactor || t('pendienteDeSegundoFactorTitulo'))}">${escapar(t('pendienteDeSegundoFactor'))}</small>`;
 const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : '') + (o?.pendienteDeSegundoFactor ? htmlPendienteDeSegundoFactor(o) : '');
 
-/** El nombre de una capa del sello en cascada en el idioma de la interfaz (capa_<nombre>); si no lo hay, el de la época. */
-const textoCapa = (capa) => (t('capa_' + capa) === 'capa_' + capa ? capa : t('capa_' + capa));
+/** El nombre de un nivel del sello en cascada (un número de la época, VG 16-11) en el idioma de la interfaz: nivel_<n>; si no lo hay, «nivel n». */
+const textoCapa = (nivel) => (t('nivel_' + nivel) === 'nivel_' + nivel ? t('nivelSinTexto', { n: nivel }) : t('nivel_' + nivel));
+/** El grado de un eslabón (opaco, VG 16-11): grado_<valor> si la carta lo tiene; si no, «grado <valor>». Nada lo compara. */
+const textoGrado = (g) => (t('grado_' + g) === 'grado_' + g ? t('gradoSinTexto', { g }) : t('grado_' + g));
 /** La palabra de resumen de la firmeza: en duda, en firme, o se puede usar sin estar aún en firme. */
 const resumenFirmeza = (f) => (f.enDuda ? 'enDuda' : f.firme ? 'firme' : 'usable');
 const TEXTO_RESUMEN = Object.freeze({ enDuda: 'firmezaEnDuda', firme: 'firmezaFirme', usable: 'firmezaUsable' });
 const TEXTO_ESTADO_CAPA = Object.freeze({ alcanzada: 'capaAlcanzada', pendiente: 'capaPendiente', saltada: 'capaSaltada' });
 /**
- * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por capa de la época, en su orden, con su
- * estado (data-estado: alcanzada, pendiente, saltada), la que exige el registro señalada (data-exigida) y, en la de
- * Bitcoin, lo de hoy (las confirmaciones y «en firme» con las del ajuste: htmlVerificado); detrás, la palabra de resumen.
- * Todo sale de contrato.firmeza; aquí no se decide nada. '' sin firmeza.
+ * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (data-nivel), en su orden,
+ * con su estado (data-estado: alcanzada, pendiente, saltada), su grado cuando el eslabón lo dice («grado X», sin comparar),
+ * la que exige el registro señalada (data-exigida) y, en la última (Bitcoin), lo de hoy (las confirmaciones y «en firme» con
+ * las del ajuste: htmlVerificado); detrás, la palabra de resumen. Todo sale de contrato.firmeza; aquí no se decide nada.
+ * '' sin firmeza.
  */
 function htmlFirmeza(f) {
   if (!f?.capas?.length) return '';
   const ultima = f.capas.length - 1;
   const estaciones = f.capas.map((c, k) => {
-    const exigida = c.capa === f.exigida;
-    const titulo = textoCapa(c.capa) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (exigida ? ' · ' + t('capaExigida') : '');
+    const exigida = c.nivel === f.exigida;
+    const grado = c.grado !== undefined && c.grado !== null ? textoGrado(c.grado) : '';
+    const titulo = textoCapa(c.nivel) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (grado ? ' · ' + grado : '') + (exigida ? ' · ' + t('capaExigida') : '');
     const bitcoin = k === ultima && c.estado === 'alcanzada' && f.confirmaciones ? ' ' + htmlVerificado({ confirmaciones: f.confirmaciones, enFirme: f.enFirme, minimas: f.minimas }) : '';
-    return `<li class="estacion-firmeza" data-capa="${attr(c.capa)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.capa))}</span>${bitcoin}</li>`;
+    return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.nivel))}</span>${grado ? ` <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}</li>`;
   }).join('');
   const r = resumenFirmeza(f);
-  return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;
+  return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida !== null && f.exigida !== undefined ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;
 }
 
 /**

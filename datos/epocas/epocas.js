@@ -554,7 +554,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "b40be0667c53f6d16a0e70ccefe4f9f6cd23ffa805a039e85c6a71f388bbec45"
     },
     {
-      "ref": "b4224ebed0d079b96f577025452cde2614ccf52d0b42cb19fe464ed35308accc"
+      "ref": "dd0303014f44aab6ca413a988c8be70bd14939494d5335775993cfc312bd00d1"
     },
     {
       "ref": "c2929237612e7b1144e7c449d45b09bc9ece5137e7139523ecc5b60f8f10ffb1"
@@ -599,7 +599,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"
     },
     {
-      "ref": "de6a9e30c0a70c6ab21b35bc93c0f73a52f9eddfc5fef47f39d8f1599e347574"
+      "ref": "4ee829b97a63f527786faff2c3c696f3d908a33b0515510ba950e703db88b72b"
     }
   ],
   [
@@ -2155,7 +2155,7 @@ export const EPOCA_0_BTML_DATOS = [
     [
       [
         "anchoring cadence",
-        "the anchoring cadence (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; SIP 0, «El sello en cascada» §5): for each level of whoever keeps a line (person, group, company, provider), the longest wait, in seconds, since the last header of that line anchored in Bitcoin; the seconds of 7.0 (year, cycle, week, day). Data for the sealer: AGRAM does not demand it"
+        "the anchoring cadence (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 and §7; SIP 0, «El sello en cascada» §5): for each level of whoever keeps a line (person, group, company, provider), the longest wait since the last header of that line anchored in Bitcoin, as a scale of T of 7.0 (its index: 6 the year, 5 the cycle, 4 the week, 3 the day), not seconds copied: the seven real scales of T are the cadences of the cascade (VG 16-11). Data for the sealer: AGRAM does not demand it"
       ],
       [
         "person",
@@ -2164,28 +2164,28 @@ export const EPOCA_0_BTML_DATOS = [
         "provider"
       ],
       [
-        31536000,
-        2419200,
-        604800,
-        86400
+        6,
+        5,
+        4,
+        3
       ]
     ],
     [
       [
         "layers",
-        "the layers (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; SIP 0, «El sello en cascada»), from the bottom up: the order is the rank, and a layer above covers the ones below; 2 the fastest rhythm of the seals of each layer, in seconds: at most one seal (one batch header) every so many seconds; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm in that layer (a token can be used before: it needs the seal of its layer to be firm). The names are the «capa» of each link of the seal (X.6.8.2, 9.k.1); the reading «firm» (X.6.8.9) reads this row"
-      ],
-      [
-        "casa",
-        "sidechain",
-        "liquid",
-        "bitcoin"
+        "the levels of the cascade (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 and §7; SIP 0, «El sello en cascada»), from the bottom up: 1 the levels, numbers (the order is the rank, and a level above covers the ones below); which technology fulfils each level, and with which grade, is data of each link of the seal (X.6.8.2: 9.k.1 its level, 9.k.4 its grade), not of the epoch; 2 the fastest rhythm of the seals of each level, as a scale of T of 7.0 (its index: 0 the second, 1 the minute, 2 the hour, 3 the day), not seconds copied: at most one seal (one batch header) per unit of that scale; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm at that level (a token can be used before: it needs the seal of its level to be firm). The reading «firm» (X.6.8.9) reads this row"
       ],
       [
         1,
-        60,
-        3600,
-        86400
+        2,
+        3,
+        4
+      ],
+      [
+        0,
+        1,
+        2,
+        3
       ],
       [
         "T",
@@ -8346,7 +8346,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "firm.json",
-    "id": "de6a9e30c0a70c6ab21b35bc93c0f73a52f9eddfc5fef47f39d8f1599e347574",
+    "id": "4ee829b97a63f527786faff2c3c696f3d908a33b0515510ba950e703db88b72b",
     "registro": [
       [
         "firm"
@@ -8360,7 +8360,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "moves"
       ],
       [
-        "=(count (first it.6).8.2 > 0 and first (first it.6).8.5) or ((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and (nth 2 epoch.7.6.1) in ((first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9 each 1) and count (first it.6).8.2 > 0 and first (first it.6).8.5) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 3 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0)) or ((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and (nth 1 epoch.7.6.1) in ((first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9 each 1) and count (first it.6).8.2 > 0 and first (first it.6).8.5) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 2 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 3 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0)) or ((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and (nth 0 epoch.7.6.1) in ((first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9 each 1) or count (first it.6).8.1 > 0 and first (first it.6).8.4) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 1 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 1 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 1 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 1 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 2 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 3 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0))"
+        "=(count (first it.6).8.2 > 0 and first (first it.6).8.5) or ((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1 or (nth 2 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and count (first it.6).8.2 > 0 and first (first it.6).8.5) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 3 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0)) or ((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1 or (nth 1 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) and count (first it.6).8.2 > 0 and first (first it.6).8.5) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 2 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 3 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0)) or ((\"cascada\" in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).6 and ((nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.0.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.1.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.2.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.3.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.4.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.5.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.6.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.7.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.8.1 or (nth 0 epoch.7.6.1) in (first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)).9.9.1) or count (first it.6).8.1 > 0 and first (first it.6).8.4) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 1 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 1 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 1 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 1 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 2 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 2 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0) and not (count (it.1 where not (T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3) and ((nth 3 epoch.7.6.3) = \"T\" and T in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"R\" and R in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"P\" and P in it2.0.0.0 or (nth 3 epoch.7.6.3) = \"E\" and E in it2.0.0.0)) > 0))"
       ],
       [
         "X.6.8.9"
@@ -8373,7 +8373,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 16-11 (vía Core State; state/ANCLAJE_EN_CASCADA.md §3 y §4; encargo «firmeza» de Core AGRAM): cada token necesita como mínimo el sello de su capa para estar en firme, pero se puede usar antes con la firmeza de las capas bajas; la carta enseña, en el 5, hasta qué capa ha llegado. «firm» es la lectura de esa firmeza, hermana de «sealed», materializada en X.6.8.9",
-        "Las capas son las de epoch.7.6, de abajo arriba (el orden es el rango): la fórmula las lee por posición (nth k epoch.7.6.1 y nth k epoch.7.6.3), desplegada para cuatro capas (BQL no tiene bucles; una prueba falla si 7.6 deja de tener cuatro); la primera es la casa y la última Bitcoin. Alcanzada: la primera si su sello en cascada (X.6.8.2) lleva un eslabón con esa capa (9.k.1) o su recibo de llegada vale («received», X.6.8.4); las de en medio si su sello en cascada lleva un eslabón con esa capa y vale («sealed», X.6.8.5); la última si «sealed» vale, por cualquiera de las dos vías",
+        "Los niveles son los de epoch.7.6, números de abajo arriba (VG 16-11: el orden es el rango; con qué tecnología y con qué grado se cumple cada nivel es dato de cada eslabón): la fórmula los lee por posición (nth k epoch.7.6.1 y nth k epoch.7.6.3), desplegada para cuatro niveles (BQL no tiene bucles; una prueba falla si 7.6 deja de tener cuatro); el primero es la casa y el último Bitcoin. Alcanzado: el primero si su sello en cascada (X.6.8.2) lleva un eslabón con ese nivel (9.k.1) o su recibo de llegada vale («received», X.6.8.4); los de en medio si su sello en cascada lleva un eslabón con ese nivel y vale («sealed», X.6.8.5); el último si «sealed» vale, por cualquiera de las dos vías. El grado del eslabón (9.k.4) no se lee: nada lo compara",
         "Core AGRAM 16-11: la capa exigida es la de la familia más alta que el registro mueve con SUS PROPIAS SENTENCIAS (su 1: lo declarado y no anunciado; lo que cambia de manos, se acuña, se quema por decisión o se bloquea). No cuentan los efectos automáticos de escribir: la quema de T real de su autor (el coste de escribir, con el criterio de «writing burns today's T») ni el P que da el libro (los diez P por escribir un registro o por recibir E o R, que no están en su 1). Un registro que solo paga su coste, o que no mueve nada, exige la primera",
         "«firm» es verdadera si alguna capa alcanzada está a la altura de la exigida o por encima: una de arriba cubre las de abajo y se pueden saltar. Se mira de arriba abajo. Sin sello ni recibo es falsa; si los hay y «sealed» o «received» queda PENDIENTE (les falta un dato), queda PENDIENTE. La fórmula la escribe formulaDeFirmeza() de src/sello.js (una prueba comprueba que es esta). El sello de una capa antes de llegar a Bitcoin (la cadena sin la parte de Bitcoin) no existe todavía: hasta entonces, las capas de en medio solo cuentan con «sealed»"
       ],
@@ -9482,7 +9482,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "sealed.json",
-    "id": "b4224ebed0d079b96f577025452cde2614ccf52d0b42cb19fe464ed35308accc",
+    "id": "dd0303014f44aab6ca413a988c8be70bd14939494d5335775993cfc312bd00d1",
     "registro": [
       [
         "sealed"
@@ -9516,7 +9516,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "Core AGRAM 12-11: la fórmula sigue la de la regla «sealed» del borrador del SIP 0 con dos cambios: la lista de claves se lee ya normalizada en before.8.6 (en «exterior settings».6 puede ir como un texto con espacios, que el BQL mínimo no parte) y se comprueba también la prueba de trabajo de la cabecera",
         "Core AGRAM 12-11 (aviso de Core StateArk: VG prohibió el relleno «-» y el SIP 0 rehace sus décuplas): las posiciones del sello que lee esta fórmula salen de un solo mapa, POSICIONES_DEL_SELLO de src/sello.js, y la fórmula se escribe con formulaDeSellado() de ese mismo módulo (una prueba comprueba que es esta); cuando cambie la forma del sello se cambia el mapa, decuplaDeSello y se reescribe este 2",
         "VG 13-11 (vía Core StateArk; encargo «taproot», #67, H20): el sello ancla por Taproot, no por OpenTimestamps («un poco ñapa»; «en Taproot podemos meter de todo»): id → árbol «sip» → raíz del lote → hoja de compromiso OP_RETURN <raíz> (la plantilla de Script «compromiso» del SIP 0, 6a20 + 32 bytes, versión de hoja 0xc0) → árbol Taproot (TapBranch ordena sus hijos: el camino son solo hermanos) → TapTweak(interna, raíz) → salida P2TR de una transacción de anclaje → camino Bitcoin de esa transacción → cabecera firmada por el observador. Las primitivas tapleaf y taptweak (BIP-341, docs/BQLM.md §12) son H20; ots queda como primitiva probada sin uso. Core AGRAM 13-11: la fórmula sigue la «sealed» del SIP 0 (0a445b2) con las diferencias de la de antes (before.8.6 y la prueba de trabajo) y el orden que deja PENDIENTE lo que falta",
-        "VG 16-11 (vía Core State; SIP 0 de Core StateArk, «El sello en cascada», peticiones 1 y 2 a Core AGRAM; encargo «firmeza»): «sealed» acepta dos vías por el 6 del sello. «taproot», la de antes, intacta. «cascada»: el 3 es el compromiso (el hash de la cabecera de lote de arriba, el que va en la hoja OP_RETURN) y el 9 la cadena de eslabones de abajo arriba (9.k.0 la cabecera de lote —0 «cabecera de lote», 1 número, 2 anterior, 3 raíz del lote, 4 hora, 5 clave, 6 firma, 7.0 y 7.1 el número y la hora en 8 bytes LE—, 9.k.1 [capa] y, si los hay, 9.k.2 los lados y 9.k.3 los hermanos de su camino «sip»). Se comprueba la vía primero (así una vía «taproot» no lee la cadena), que la hoja es el propio X, lo de Bitcoin como en «taproot» con el compromiso en la hoja OP_RETURN, y la cadena, desplegada para 1 a 4 eslabones unidos con «or» (BQL no tiene bucles; cada rama ata su largo con la posición siguiente vacía): cada cabecera bien formada, su camino «sip» desde el id (o desde el hash de la de abajo) llega a su raíz y su firma vale con su propia clave (hash etiquetado «StateArk/Lote/Cabecera/v1»); el hash de la de arriba es el compromiso y su clave es la del observador declarado (before.8.6). Las claves de las capas de abajo no se miran. Las ramas de la cadena y lo de Bitcoin son, letra por letra, las de formula_sealed de vectores/cascada/prueba-de-un-registro.json; Core AGRAM añade la hoja (el paso 1 del SIP) y pone la vía delante. Sin primitivas nuevas"
+        "VG 16-11 (vía Core State; SIP 0 de Core StateArk, «El sello en cascada», peticiones 1 y 2 a Core AGRAM; encargo «firmeza»): «sealed» acepta dos vías por el 6 del sello. «taproot», la de antes, intacta. «cascada»: el 3 es el compromiso (el hash de la cabecera de lote de arriba, el que va en la hoja OP_RETURN) y el 9 la cadena de eslabones de abajo arriba (9.k.0 la cabecera de lote —0 «cabecera de lote», 1 número, 2 anterior, 3 raíz del lote, 4 hora, 5 clave, 6 firma, 7.0 y 7.1 el número y la hora en 8 bytes LE—, 9.k.1 [nivel], un número de epoch.7.6.1, y, si los hay, 9.k.2 los lados y 9.k.3 los hermanos de su camino «sip» y 9.k.4 [grado], opaco, que esta regla no lee). Se comprueba la vía primero (así una vía «taproot» no lee la cadena), que la hoja es el propio X, lo de Bitcoin como en «taproot» con el compromiso en la hoja OP_RETURN, y la cadena, desplegada para 1 a 4 eslabones unidos con «or» (BQL no tiene bucles; cada rama ata su largo con la posición siguiente vacía): cada cabecera bien formada, su camino «sip» desde el id (o desde el hash de la de abajo) llega a su raíz y su firma vale con su propia clave (hash etiquetado «StateArk/Lote/Cabecera/v1»); el hash de la de arriba es el compromiso y su clave es la del observador declarado (before.8.6). Las claves de las capas de abajo no se miran. Las ramas de la cadena y lo de Bitcoin son, letra por letra, las de formula_sealed de vectores/cascada/prueba-de-un-registro.json; Core AGRAM añade la hoja (el paso 1 del SIP) y pone la vía delante. Sin primitivas nuevas"
       ],
       [
         "epoch 0"
@@ -18745,7 +18745,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "fb69cd01327bb1a0e8872a4d17cff98b442df6f382549b322f2891365066efdb";
+export const EPOCA_0_BTML_ID = "8ef77ce4c2b5df5a26a4bd121d55acc056c6a21bb1b6c23a48cf03eaaa6e6e0a";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

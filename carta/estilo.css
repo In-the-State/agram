@@ -655,6 +655,7 @@ html.mapped body{padding:0}
 .estacion-firmeza[data-estado="saltada"]{border-style:dotted;opacity:.6}
 .estacion-firmeza[data-exigida]{font-weight:600;box-shadow:inset 0 -2px 0 currentColor}
 .estacion-firmeza .verificado{font-size:inherit}
+.estacion-firmeza-grado{font-size:inherit;color:inherit;opacity:.8}
 .firmeza-resumen{color:var(--falta);white-space:nowrap}
 .firmeza[data-resumen="firme"] .firmeza-resumen{color:var(--firme)}
 .firmeza[data-resumen="enDuda"] .firmeza-resumen{color:var(--duda);font-weight:600}

@@ -103,14 +103,14 @@ export function cabeceraDeLoteFirmada({ numero = 0, anterior = '00'.repeat(32), 
 
 /**
  * El sello EN CASCADA completo de `id` (SIP 0, «El sello en cascada» §2; encargo «firmeza») para eje.marcarSello: { altura,
- * hash, instante, verificado: true, decupla, prueba, cabeceras }. `capas` son los eslabones de abajo arriba ([{ capa, claves?,
- * numero?, otros?, ids? }]: `claves` las del emisor de esa capa, generadas si no se dan; `otros`, cuántos ids más van en su lote; `ids`, cuáles);
+ * hash, instante, verificado: true, decupla, prueba, cabeceras }. `capas` son los eslabones de abajo arriba ([{ nivel, grado?, claves?,
+ * numero?, otros?, ids? }]: `claves` las del emisor de ese nivel (un número de epoch.7.6.1), generadas si no se dan; `grado`, opaco; `otros`, cuántos ids más van en su lote; `ids`, cuáles);
  * la de arriba la firma el observador (la clave declarada). El hash de cada cabecera es hoja del lote de la de arriba; el de
  * la de arriba es el compromiso de la hoja OP_RETURN del árbol Taproot de la salida 0 de una transacción de anclaje, de
  * interna `interna` (una clave de prueba: ya no NUMS), y lo demás como selloCompleto. `cambiar(prueba)` deja tocar la
  * prueba antes de hacer la décupla (para las pruebas en negativo).
  */
-export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11:00:00.000Z', observador, capas = [{ capa: 'bitcoin' }], interna, otrasTx = 0, cambiar } = {}) {
+export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11:00:00.000Z', observador, capas = [{ nivel: 4 }], interna, otrasTx = 0, cambiar } = {}) {
   let x = id;
   let lote = null;
   const cadena = [];
@@ -121,7 +121,7 @@ export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11
     const { raiz, caminos } = await arbol(ids);
     if (k === 0) lote = raiz;
     const h = cabeceraDeLoteFirmada({ numero: c.numero ?? 0, anterior: c.anterior, raiz, hora: 1794830400 + 60 * k }, claves);
-    cadena.push({ cabecera: h.cabecera, capa: c.capa, camino: caminos.get(x) });
+    cadena.push({ cabecera: h.cabecera, nivel: c.nivel, camino: caminos.get(x), ...(c.grado !== undefined ? { grado: c.grado } : {}) });
     cabeceras.push(h);
     x = h.hash;
   }

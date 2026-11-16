@@ -316,7 +316,7 @@ test('el reverso de un registro con sello configurado y sin sello comprobado: la
   assert.equal(r.centro.pendienteDeSello, undefined, 'desde el 16-11 la carta ya no pinta «pendiente de sello»');
   // Encargo «firmeza» (VG 16-11): en el reverso, la fila de estaciones sustituye a la marca de hoy: nada sellado, «se puede usar, aún no en firme».
   assert.doesNotMatch(html(r), /pendiente-sello/);
-  assert.match(html(r), /<div class="firmeza" data-resumen="usable"[^>]*><ol class="estaciones-firmeza">(?:<li class="estacion-firmeza" data-capa="[a-z]+" data-estado="pendiente"[^>]*>(?:(?!<\/li>).)*<\/li>){4}<\/ol><small class="firmeza-resumen" title="[^"]+">se puede usar, aún no en firme<\/small><\/div>/s);
+  assert.match(html(r), /<div class="firmeza" data-resumen="usable"[^>]*><ol class="estaciones-firmeza">(?:<li class="estacion-firmeza" data-nivel="[0-9]+" data-estado="pendiente"[^>]*>(?:(?!<\/li>).)*<\/li>){4}<\/ol><small class="firmeza-resumen" title="[^"]+">se puede usar, aún no en firme<\/small><\/div>/s);
 });
 
 // ---------- «paid» (X.6.8.6): el recibo de pago de StateArk copiado en X.6.8.3 (encargos «taproot» y «pago2», Core AGRAM 13-11) ----------
