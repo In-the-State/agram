@@ -5,8 +5,8 @@ La época de los nodos de la clase `state`: un nodo leído como un eje (VG 16-11
 | Archivo | Qué es |
 |---|---|
 | `state-0.raiz.json` | la raíz: lo propio y, donde hereda, `"<hereda>"` (la marca `{ ref: <id de la 0> }`) |
-| `reglas/*.json` | dos reglas que sustituyen a las de la 0 con el mismo nombre: «second factor» y «attention has a price» |
-| `plantillas/*.json` | las 32 plantillas de transacción (las altas, el camino, el criterio, las operaciones, el recibo) |
+| `reglas/*.json` | dos reglas que sustituyen a las de la 0 con el mismo nombre, «second factor» y «attention has a price», y dos lecturas con nombre, «anchors asked» y «current connections» (VG 17-11) |
+| `plantillas/*.json` | las 31 plantillas de transacción (las altas, el camino, el criterio, las operaciones, el recibo, pedir un ancla y los relés de una conexión) |
 | `textos/es.json`, `textos/en.json` | los textos de la época por clave (van en el 9.4, detrás de los de la 0; mandan sobre los de la 0) |
 | `generar.mjs` | el generador: `npm run epoca:state` |
 | `state-0.btml.json` | el resultado: `{ id, hereda, raiz, registros }`, la forma de `node be.mjs epoca --publicar` |

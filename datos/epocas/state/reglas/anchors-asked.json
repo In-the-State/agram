@@ -1,0 +1,17 @@
+[
+  ["anchors asked"],
+  ["X.3", "A.6", "X.2", "X.4", "X.6"],
+  ["=(down (first (first it.3).6)) where \"ask for an anchor\" in (payload(it2)).4 and first (payload(it2)).2 = it and count (it2.1 where transfer in it3.4 and R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.3.1 = first it.3) > 0"],
+  ["X"],
+  ["read"],
+  ["*"],
+  [
+    "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 2): lo que el nodo tiene pendiente de servir, leído de su propio libro. Con it = el alta del nodo: los registros «ask for an anchor» anclados en el 3 del alta de su dueño (quien escribió el alta del nodo) que lo nombran en su 2 y devuelven R del dueño (la llave del servicio: un registro con ese nombre que no la devuelve no cuenta, sea cual sea el precio del grupo), por llegada",
+    "De cada pedido (it = el pedido): quién lo pide, first it.3; el libro, la clave de la línea, el nivel y la cabecera, (payload(it)).6 (6.0 a 6.3, datos del otro libro, no referencias); el instante, first it.6.0; lo que devolvió, (payload(it)).1",
+    "Pendiente es todo lo pedido: hoy nada en este libro dice que un pedido está servido (ni la compensación si no se sirve a tiempo, que sería otra plantilla de esta época)",
+    "Lectura, no condición: no se materializa (su 3 es X, como «asked» y «on time» de la 0) y no rechaza nada"
+  ],
+  ["state 0"],
+  ["after on time"],
+  ["anchors asked: the requests for an anchor the node has to serve: each one returns R of its owner and names a ledger, the key of a line, a level and a batch header"]
+]

@@ -14,7 +14,9 @@
 //      ejecutor lo hace y deja su recibo, que la da por ejecutada;
 //   6. un cambio de núcleo autorizado cuya revalidación falla: el ejecutor lo cierra con error y el núcleo no cambia;
 //   7. un umbral (autorizado), una fecha de vencimiento con su renovación y medidas del vigía sobre las piezas;
-//   8. conexiones: una añadida y autorizada, un cambio de permisos, y otra quitada;
+//   8. conexiones (VG 17-11: la conexión es un invitado): el operador, dueño del nodo, fija el precio del grupo de las
+//      conexiones («my R»: su R devuelta) e invita por nombre al nodo, con su R, a dos nodos; cada uno acepta (su alta),
+//      el vecino declara sus relés en su alta y pide un ancla devolviendo una unidad de R; el otro queda fuera con el veto;
 //   9. una visita de fuera que intenta medir una pieza y no puede.
 //
 // Uso: node ejemplos/state/nodo.mjs   (imprime el resumen; `ejemploNodo()` da el eje a las pruebas y a la carta).
@@ -35,10 +37,11 @@ export const claveDePrueba = (semilla) => {
 /** Los nombres del ejemplo (inventados). */
 export const N = Object.freeze({
   operador: 'operador', titular: 'titular', llavero: 'llavero', visita: 'visita',
+  vecino: 'nodo-vecino', dePaso: 'nodo-de-paso',
   nodo: 'nodo-ejemplo', autoridad: 'autoridad', rele: 'rele', archivo: 'archivo', contexto: 'contexto-tienda',
   contenedor: 'contenedor-web', puerta: 'puerta-a', despliegue: 'despliegue-carta', worker: 'worker', vigia: 'vigia', ejecutor: 'ejecutor', ejeServido: 'eje-servido-a',
 });
-const CON_CLAVE = [N.operador, N.titular, N.llavero, N.visita, N.vigia, N.ejecutor];
+const CON_CLAVE = [N.operador, N.titular, N.llavero, N.visita, N.vigia, N.ejecutor, N.vecino, N.dePaso];
 export const CLAVES = Object.freeze(Object.fromEntries(CON_CLAVE.map((n) => [n, claveDePrueba(n)])));
 
 const DIA = '2026-11-16';
@@ -137,18 +140,26 @@ export async function ejemploNodo({ hasta = null } = {}) {
   const reenvio = await hacer('resend the mirror queue', ids.rele, {}, N.operador, { guarda: 'reenvio' });
   await hacer('leave a receipt', ids.rele, { operation: reenvio.id, result: 'cola reenviada' }, N.ejecutor, { guarda: 'reciboReenvio' });
 
-  // 8. Conexiones: una añadida (autorizada y hecha) con un cambio de permisos; otra añadida y quitada.
-  const conexion = await hacer('add a connection', nodo.id, { name: 'nodo-vecino', key: claveDePrueba('nodo-vecino').publica, relays: ['wss://vecino.ejemplo.invalid'], permissions: ['leer-salud', 'aviso-caida'] }, N.operador, { guarda: 'conexion' });
-  await autorizarCon(N.llavero, conexion.id);
-  await hacer('leave a receipt', nodo.id, { operation: conexion.id, result: 'conexión abierta' }, N.ejecutor, { guarda: 'reciboConexion' });
-  const permisos = await hacer('change a connection\'s permissions', conexion.id, { permissions: ['leer-salud'] }, N.operador, { guarda: 'permisos' });
-  await autorizarCon(N.llavero, permisos.id);
-  await hacer('leave a receipt', conexion.id, { operation: permisos.id, result: 'permisos cambiados' }, N.ejecutor, { guarda: 'reciboPermisos' });
-  const otra = await hacer('add a connection', nodo.id, { name: 'nodo-de-paso', key: claveDePrueba('nodo-de-paso').publica, relays: ['wss://paso.ejemplo.invalid'], permissions: ['leer-salud'] }, N.operador, { guarda: 'otraConexion' });
-  await autorizarCon(N.llavero, otra.id);
-  await hacer('leave a receipt', nodo.id, { operation: otra.id, result: 'conexión abierta' }, N.ejecutor, { guarda: 'reciboOtra' });
-  const quitar = await hacer('remove a connection', otra.id, {}, N.operador, { guarda: 'quitarConexion' });
-  await autorizarCon(N.llavero, quitar.id);
+  // 8. Conexiones (VG 17-11, encargo «pedir el ancla y la conexión como invitado»): una conexión es un invitado con alta en
+  // el libro del nodo. El dueño del nodo (el operador, que escribió su alta) pone el precio de su grupo «cercanos» (3) en
+  // «my R» (su R devuelta: la R que da es la llave del servicio) e invita por nombre, al dominio del nodo (el 5 de la
+  // invitación) y a ese grupo, a la identidad de cada otro nodo, con su clave y R suya; cada uno acepta (su alta). El
+  // vecino declara sus relés en su alta y pide un ancla (devuelve una unidad de R y nombra el lote de su libro como
+  // datos); el otro nodo queda fuera con el veto. Conexiones vigentes y pedidos: las lecturas «current connections» y
+  // «anchors asked» de la época.
+  const altaOperador = eje.alta(N.operador).id;
+  await hacer('set a group price', altaOperador, { token: 'my R', amount: 1, zone: 3 }, N.operador, { guarda: 'precioConexiones' });
+  const conectar = async (otro, cuanta, guarda) => {
+    const inv = await eje.invitar({ autor: N.operador, invitado: otro, clave: K[otro].publica, da: [{ token: 'R', cantidad: cuanta }], grupo: 3, dominio: nodo.id, tema: 'conexión con el nodo ' + N.nodo, t: t(), privada: K.operador.privada });
+    ids['invitacion' + guarda[0].toUpperCase() + guarda.slice(1)] = inv.id;
+    ids[guarda] = (await eje.aceptar(inv, K[otro], { t: t() })).id;
+  };
+  await conectar(N.vecino, 2, 'conexion');
+  await hacer('declare my relays', ids.conexion, { relays: ['wss://vecino.ejemplo.invalid', 'wss://vecino-2.ejemplo.invalid'] }, N.vecino, { guarda: 'relesVecino' });
+  await hacer('ask for an anchor', nodo.id, { ledger: 'ab'.repeat(32), key: K[N.vecino].publica, level: 2, header: 'cd'.repeat(32) }, N.vecino, { guarda: 'pedidoAncla' });
+  await conectar(N.dePaso, 1, 'otraConexion');
+  await hacer('declare my relays', ids.otraConexion, { relays: ['wss://paso.ejemplo.invalid'] }, N.dePaso);
+  await hacer('veto someone', altaOperador, { whom: N.dePaso }, N.operador, { guarda: 'quitarConexion' });
 
   // 9. Una visita de fuera (invitada por el operador) intenta medir una pieza: no puede (no es agente del nodo).
   const invV = await eje.invitar({ autor: N.operador, invitado: N.visita, clave: K.visita.publica, t: t(), privada: K.operador.privada });

@@ -23,9 +23,6 @@
         "shut down",
         "set a threshold",
         "require authorization",
-        "add a connection",
-        "change a connection's permissions",
-        "remove a connection",
         "the templates whose records do not run without the signature: one per occupant (by default, the initial list of table 3.2, with this template in it)"
       ]
     ],

@@ -12,7 +12,7 @@ import * as A from '../src/acciones.js';
 import * as contrato from '../src/contrato.js';
 import { cerrado } from '../src/motor.js';
 import { ContextoEje } from '../src/contexto-eje.js';
-import { evaluar } from '../src/bqlm.js';
+import { evaluar, leerRegla } from '../src/bqlm.js';
 import { firmar } from '../src/autoridad.js';
 import { sinTraducir } from '../docs/sin-traducir.mjs';
 import { ejemploNodo, N, CLAVES, hora } from '../ejemplos/state/nodo.mjs';
@@ -22,7 +22,7 @@ import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 /** El id de la época 0 definitiva (no cambia con esta época). */
 const ID_DE_LA_0 = 'd66885077283b2a921d64b95fad85643ac71e2f0b2a102047e79d78e82f21a0d';
 const CAMINO = ['register the node', 'register the authority', 'register the relay', 'register the archive', 'declare a context', 'put in service'];
-const PAPELES = ['authority', 'container', 'relay', 'gate', 'archive', 'deployment', 'worker', 'agent', 'context', 'served ledger', 'connection'];
+const PAPELES = ['authority', 'container', 'relay', 'gate', 'archive', 'deployment', 'worker', 'agent', 'context', 'served ledger'];
 
 let completo = null;
 /** El eje de ejemplo entero (se construye una vez; las pruebas que escriben construyen el suyo). */
@@ -30,14 +30,31 @@ const ejemplo = () => (completo ??= ejemploNodo());
 const leer = (eje, formula, sujeto) => evaluar(formula, new ContextoEje(eje, { epoch: eje.epoca() }), { sujeto });
 const estacion = (eje, id) => A.ejecuciones(eje, eje.obtener(id).sobre).find((x) => x.ocupante.ref === id)?.estacion ?? null;
 const HECHA = 'count (first it2.6).8.7 = count (first it2.6).8.8 and not (it2 in (first it.4).8)';
+/** Una lectura con nombre de la época (una regla con «read» en su 4 y su 3 en X), sobre un registro: sus valores. */
+const lectura = (eje, nombre, id) => {
+  const regla = eje.epoca().lecturas.find((r) => r[0][0] === nombre);
+  assert.ok(regla, 'la época tiene la lectura «' + nombre + '»');
+  const r = leerRegla(regla, id, new ContextoEje(eje, { epoch: eje.epoca() }));
+  assert.equal(r.estado, 'RESUELTO', r.motivo);
+  return r.valor;
+};
+const idDe = (x) => x?.id ?? x;
+// Lo de cada conexión, con it = su alta (docs/EPOCA_STATE.md §6).
+const DE_LA_CONEXION = {
+  clave: '(payload(first (up it))).3.5',
+  reles: '(payload(last ((down it) where last (first it2.6).5 = "1300000000" and first it2.3 = first it.3 and "declare my relays" in (payload(it2)).4))).1',
+  grupo: 'it.6.3',
+  precio: 'it.6.2',
+  r: 'sum (((first it.3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (up it)).3) each 1)',
+};
 
 test('la época se genera desde su fuente, sin fallos, y los archivos están al día', () => {
   const g = generar();
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: npm run epoca:state`);
-  assert.equal(g.registros.length, 34, '2 reglas y 32 plantillas de transacción');
+  assert.equal(g.registros.length, 35, '4 reglas (2 de ellas lecturas con nombre) y 31 plantillas de transacción');
   const ids = JSON.parse(readFileSync('datos/epocas/state/state-0.ids.json', 'utf8'));
-  assert.equal(ids.registrosAlPublicar, 36, 'el génesis, la raíz y sus 34 registros');
+  assert.equal(ids.registrosAlPublicar, 37, 'el génesis, la raíz y sus 35 registros');
 });
 
 test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; src/ no la importa', () => {
@@ -49,8 +66,10 @@ test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; sr
   const e = cargarEpocaEscrita(epocaState());
   assert.equal(e.id, g.id);
   assert.equal(e.hereda, ID_DE_LA_0);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 32);
-  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length, 'sus dos reglas sustituyen a las de la 0 con el mismo nombre');
+  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 31);
+  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 2, 'dos reglas sustituyen a las de la 0 con el mismo nombre y se añaden dos lecturas con nombre');
+  for (const n of ['anchors asked', 'current connections']) assert.ok(e.lecturas.some((r) => r[0][0] === n), n);
+  for (const n of ['add a connection', "change a connection's permissions", 'remove a connection']) assert.ok(!e.transacciones.some((x) => x.plantilla[0][0] === n), 'fuera: ' + n);
   for (const n of ['second factor', 'attention has a price']) assert.notEqual(e.reglasConId.find((x) => x.regla[0][0] === n).id, EPOCA_0_BTML.reglasConId.find((x) => x.regla[0][0] === n).id);
   const fuentes = readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => readFileSync(join('src', f), 'utf8'));
   assert.ok(!fuentes.some((s) => /state-0|epocas\/state/.test(s)), 'la época no viaja con el núcleo (#115)');
@@ -87,7 +106,7 @@ test('las piezas dicen su papel, de una lista cerrada; el agente lleva su modelo
   const { eje, ids } = await ejemplo();
   const papel = (id) => eje.obtener(id).payload[5];
   const vistos = new Set();
-  for (const k of ['autoridad', 'rele', 'archivo', 'contexto', 'contenedor', 'puerta', 'despliegue', 'worker', 'vigia', 'ejecutor', 'ejeServido', 'conexion']) {
+  for (const k of ['autoridad', 'rele', 'archivo', 'contexto', 'contenedor', 'puerta', 'despliegue', 'worker', 'vigia', 'ejecutor', 'ejeServido']) {
     const [tipo, rol] = papel(ids[k]);
     assert.equal(tipo, 'piece', k);
     assert.ok(PAPELES.includes(rol), k + ': ' + rol);
@@ -195,14 +214,115 @@ test('el vigía mide sobre una pieza sin pagar atención; uno de fuera no; y el 
   assert.match(await intento(N.vigia, '2000000000', ['disco', 1, '%', N.vigia, 'measure a piece']), /attention has a price/);
 });
 
-test('conexiones: una añadida y autorizada, con sus permisos cambiados; otra quitada; el eje es la única fuente', async () => {
+test('pedir un ancla: con R del dueño del nodo pasa, la devuelve y la cobra «attention has a price» con «my R»; sin R no', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const firmaDe = (q) => ({ firmar: (ev) => firmar(ev, CLAVES[q].privada) });
+  let minuto = 1000;
+  const t = () => hora(minuto++);
+  const altaOperador = eje.alta(N.operador).id;
+  // El pedido del ejemplo: anclado en el 3 del alta del dueño del nodo, devuelve una unidad de su R.
+  const pedido = eje.obtener(ids.pedidoAncla);
+  assert.equal(pedido.autor, N.vecino);
+  assert.equal([pedido.sobre, pedido.en].join(' '), altaOperador + ' 3000000000');
+  assert.ok(pedido.movimientos.some((m) => m.token === 'R' && m.emisor === N.operador && m.de === N.vecino && m.a === N.operador && m.cantidad === 1));
+  assert.deepEqual(pedido.payload[6], [['ab'.repeat(32)], [CLAVES[N.vecino].publica], [2], ['cd'.repeat(32)]], 'el lote del otro libro, como datos');
+  assert.ok(A.acciones(eje, ids.nodo, 3, N.vecino).some((a) => a.nombre === 'ask for an anchor'), 'se ofrece sobre el nodo a quien tiene R de su dueño');
+  assert.ok(!A.acciones(eje, ids.autoridad, 3, N.vecino).some((a) => a.nombre === 'ask for an anchor'), 'y solo sobre el alta del nodo');
+  // El precio de su grupo es «my R» y lo comprueba la regla: un pedido escrito a mano sin devolver R no entra, ni pagado con su propia R.
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.precio, ids.conexion).valor.map((x) => x?.v ?? x), [[['my R'], [1]]]);
+  const aMano = (movimientos) => escribirPagando(eje, { autor: N.vecino, sobre: altaOperador, en: '3000000000', t: t(), movimientos: [pagaElCoste(N.vecino), ...movimientos], payload: ['pedido a mano', 1, { ref: ids.nodo }, [N.vecino, N.operador], 'ask for an anchor', 'anchor request', [['ab'.repeat(32)], [CLAVES[N.vecino].publica], [2], ['ef'.repeat(32)]]] }, CLAVES[N.vecino].privada).then(() => null, (e) => e.message);
+  assert.match(await aMano([]), /attention has a price/, 'sin pagar, no');
+  assert.match(await aMano([{ token: 'R', emisor: N.vecino, cantidad: 1, de: null, a: N.vecino }, { token: 'R', emisor: N.vecino, cantidad: 1, de: N.vecino, a: N.operador }]), /attention has a price/, 'con su propia R, no: el precio es «my R»');
+  // Con la R que le queda, otro pedido pasa; después ya no tiene R del dueño y no puede pedir.
+  const otro = await A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, ledger: 'ab'.repeat(32), key: CLAVES[N.vecino].publica, level: 1, header: 'ef'.repeat(32) }, N.vecino, { t: t(), ...firmaDe(N.vecino) });
+  assert.ok(otro.ok, JSON.stringify(otro.motivos));
+  await eje.anadir(otro.evento);
+  assert.equal(eje.saldo(N.vecino, 'R:' + N.operador), 0);
+  assert.ok(!A.acciones(eje, ids.nodo, 3, N.vecino).some((a) => a.nombre === 'ask for an anchor'), 'sin R ya no se ofrece');
+  const sinR = await A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, ledger: 'ab'.repeat(32), key: CLAVES[N.vecino].publica, level: 1, header: '12'.repeat(32) }, N.vecino, { t: t(), ...firmaDe(N.vecino) });
+  assert.equal(sinR.ok, false, 'sin R no pasa');
+  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 2, 'el que no pasó no está');
+});
+
+test('un pedido de ancla con un hueco mal formado no vale: libro, clave y cabecera de 64 hexadecimales en minúsculas, nivel de epoch.7.6.1', async () => {
   const { eje, ids } = await ejemplo();
-  for (const k of ['conexion', 'permisos', 'otraConexion', 'quitarConexion']) assert.ok(A.segundoFactor(eje, ids[k]).exige, k + ' requiere autorización');
-  const vigentes = leer(eje, `((down it) where last (first it2.6).5 = "4100000000" and "connection" in (payload(it2)).5 and ${HECHA} and count ((down it2) where "remove a connection" in (payload(it3)).4) = 0) each 0`, ids.nodo);
-  assert.deepEqual(vigentes.valor, ['nodo-vecino']);
-  const permisos = leer(eje, `(payload(last ((down it) where "change a connection's permissions" in (payload(it2)).4 and ${HECHA}))).6`, ids.conexion);
-  assert.deepEqual(permisos.valor, ['leer-salud']);
-  assert.match(eje.obtener(ids.conexion).payload[6][0][0], /^[0-9a-f]{64}$/, 'la clave del otro nodo, x-only: un dato');
+  const bien = { ledger: 'ab'.repeat(32), key: CLAVES[N.vecino].publica, level: 2, header: 'cd'.repeat(32) };
+  const prueba = async (cambio) => A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, ...bien, ...cambio }, N.vecino, { t: hora(1200), firmar: (ev) => firmar(ev, CLAVES[N.vecino].privada) });
+  assert.ok((await prueba({})).ok, 'el bueno pasa en seco');
+  for (const [cambio, parametro] of [
+    [{ ledger: 'ab'.repeat(31) }, 'ledger'],
+    [{ ledger: 'xy'.repeat(32) }, 'ledger'],
+    [{ key: CLAVES[N.vecino].publica.toUpperCase() }, 'key'],
+    [{ key: CLAVES[N.vecino].publica + '00' }, 'key'],
+    [{ level: 9 }, 'level'],
+    [{ header: 'cd'.repeat(32) + 'c' }, 'header'],
+  ]) {
+    const r = await prueba(cambio);
+    assert.equal(r.ok, false, JSON.stringify(cambio));
+    assert.ok(r.motivos.some((m) => m.parametro === parametro), JSON.stringify(cambio) + ': ' + JSON.stringify(r.motivos));
+  }
+  const falta = await A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, ledger: bien.ledger, key: bien.key, level: 2 }, N.vecino, { t: hora(1201) });
+  assert.ok(falta.motivos.some((m) => m.parametro === 'header'), 'la cabecera es obligatoria');
+});
+
+test('la lectura «anchors asked»: por pedido, quién, libro, clave, nivel, cabecera e instante, leído del libro del nodo', async () => {
+  const { eje, ids } = await ejemplo();
+  assert.deepEqual(lectura(eje, 'anchors asked', ids.nodo).map(idDe), [ids.pedidoAncla]);
+  const p = ids.pedidoAncla;
+  assert.deepEqual(leer(eje, 'first it.3', p).valor, [N.vecino], 'quién');
+  assert.deepEqual(leer(eje, '(payload(it)).6.0', p).valor, ['ab'.repeat(32)], 'libro');
+  assert.deepEqual(leer(eje, '(payload(it)).6.1', p).valor, [CLAVES[N.vecino].publica], 'clave de la línea');
+  assert.deepEqual(leer(eje, '(payload(it)).6.2', p).valor, [2], 'nivel');
+  assert.deepEqual(leer(eje, '(payload(it)).6.3', p).valor, ['cd'.repeat(32)], 'cabecera');
+  assert.deepEqual(leer(eje, 'first it.6.0', p).valor, [eje.obtener(p).t], 'instante');
+  // Solo los del nodo que se lee: sobre otra alta del dueño, nada.
+  assert.deepEqual(lectura(eje, 'anchors asked', ids.autoridad), []);
+});
+
+test('conexiones: el invitado al nodo con R del dueño está vigente, con su clave, sus relés, su grupo y su precio; el titular y la visita, invitados a otra cosa, no', async () => {
+  const { eje, ids } = await ejemplo();
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino]);
+  const de = (q) => leer(eje, DE_LA_CONEXION[q], ids.conexion).valor;
+  assert.deepEqual(de('clave'), [CLAVES[N.vecino].publica]);
+  assert.deepEqual(de('reles'), ['wss://vecino.ejemplo.invalid', 'wss://vecino-2.ejemplo.invalid']);
+  assert.deepEqual(de('grupo'), [3]);
+  assert.deepEqual(de('precio').map((x) => x?.v ?? x), [[['my R'], [1]]]);
+  assert.deepEqual(de('r'), [1], 'le dieron 2 y devolvió 1 al pedir el ancla');
+  assert.equal(eje.obtener(ids.conexion).sobre, ids.invitacionConexion, 'su alta cuelga de la invitación');
+  assert.deepEqual(eje.obtener(ids.invitacionConexion).payload[5], [{ ref: ids.nodo }], 'al dominio del nodo');
+  assert.ok(eje.saldo(N.titular, 'R:' + N.operador) > 0 && eje.saldo(N.visita, 'R:' + N.operador) > 0, 'tienen R del dueño, pero no son conexiones del nodo');
+});
+
+test('conexiones: el veto la quita, y quedarse sin R también', async () => {
+  const { eje, ids } = await ejemploNodo();
+  // El otro nodo: aceptó y tiene R, pero está vetado (grupo 5, precio «nothing»).
+  assert.equal(eje.obtener(ids.quitarConexion).en, '3530000000');
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.grupo, ids.otraConexion).valor, [5]);
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.r, ids.otraConexion).valor, [1]);
+  assert.ok(!lectura(eje, 'current connections', ids.nodo).map(idDe).includes(N.dePaso));
+  // El vecino devuelve la R que le queda pidiendo otra ancla: deja de estar vigente.
+  const r = await A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, ledger: 'ab'.repeat(32), key: CLAVES[N.vecino].publica, level: 3, header: '34'.repeat(32) }, N.vecino, { t: hora(1300), firmar: (ev) => firmar(ev, CLAVES[N.vecino].privada) });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  await eje.anadir(r.evento);
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo), []);
+  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 2);
+});
+
+test('los relés los declara el invitado en su propia alta; nadie los declara en el alta de otro', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const reles = eje.obtener(ids.relesVecino);
+  assert.equal([reles.autor, reles.sobre, reles.en].join(' '), [N.vecino, ids.conexion, '1300000000'].join(' '));
+  // Lanzada sobre el alta de otro, no se ofrece allí y la plantilla escribe en la propia (su 5: =first me.6).
+  assert.ok(!A.acciones(eje, ids.otraConexion, 1, N.vecino).some((a) => a.nombre === 'declare my relays'));
+  assert.ok(A.acciones(eje, ids.conexion, 1, N.vecino).some((a) => a.nombre === 'declare my relays'));
+  const r = await A.transaccion(eje, 'declare my relays', { X: ids.otraConexion, relays: ['wss://intruso.ejemplo.invalid'] }, N.vecino, { t: hora(1400), firmar: (ev) => firmar(ev, CLAVES[N.vecino].privada) });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  assert.equal(r.evento.sobre, ids.conexion, 'cae en su propia alta');
+  // Escrita a mano en el 1.3 del alta de otro: la atención del otro la cobra, y no entra.
+  const aMano = await escribirPagando(eje, { autor: N.vecino, sobre: ids.otraConexion, en: '1300000000', t: hora(1401), movimientos: [pagaElCoste(N.vecino)], payload: ['relés de otro', ['wss://intruso.ejemplo.invalid'], 'all announced movements happened', N.vecino, 'declare my relays'] }, CLAVES[N.vecino].privada).then(() => null, (e) => e.message);
+  assert.match(aMano, /attention has a price/);
+  // Y la lectura solo cuenta las del dueño del alta: los del otro nodo son los suyos.
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.reles, ids.otraConexion).valor, ['wss://paso.ejemplo.invalid']);
 });
 
 test('un eje con la época 0 a secas da los mismos veredictos que antes: nada de esta época le afecta', async () => {

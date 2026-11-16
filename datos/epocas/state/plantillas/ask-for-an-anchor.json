@@ -1,0 +1,125 @@
+[
+  ["ask for an anchor"],
+  [
+    [
+      ["amount"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [1],
+      [1, "how much of the R of the owner of the node I return to it: the price of the anchor (by default, one unit)"]
+    ],
+    [
+      ["about"],
+      ["ref"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [2],
+      ["=first it.5", "the node that is asked: X"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [3],
+      ["=me", "=first it.3", "who asks and who is asked: the owner of the node"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [4],
+      ["ask for an anchor", "the action"]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [5],
+      ["anchor request", "the type of the record: a request for an anchor"]
+    ],
+    [
+      ["ledger"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["6.0"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [6],
+      ["the ledger that asks for the anchor: the id of its genesis (64 hexadecimal characters in lower case); a datum, not a reference: that ledger is not this one"]
+    ],
+    [
+      ["key"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["6.1"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [7],
+      ["the key of the line: the public key (x-only, 64 hexadecimal characters in lower case) that signs its batch headers"]
+    ],
+    [
+      ["level"],
+      ["number"],
+      ["=it in epoch.7.6.1"],
+      ["me"],
+      ["payload"],
+      ["6.2"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [8],
+      ["the level asked: a level of the cascade (epoch.7.6.1)"]
+    ],
+    [
+      ["header"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["6.3"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «pedir el ancla y la conexión como invitado»): parámetro de «ask for an anchor»"],
+      ["required"],
+      [9],
+      ["the batch header to anchor: its hash (64 hexadecimal characters in lower case)"]
+    ]
+  ],
+  ["=\"node\" in (payload(it)).5 and count (me.1 where R in it2.0.0.0 and it2.0.0.1 = first it.3 and it2.1 > 0) > 0"],
+  [["me"], ["person"]],
+  ["=transfer first memo.1 R.(first it.3) from me to first it.3"],
+  ["3", "=first (first it.3).6"],
+  [
+    "VG 17-11 (por Core State; agram-equipo/CONTRASTE_V1_V2.md, punto 1 y (b)): «tienes custodia de quien te ha dado su R». Pedir el ancla se escribe en el libro del padre, donde quien pide tiene alta y tiene la R: es el mismo movimiento que «return R (ask for attention)» de la época 0 (devuelve R del dueño del nodo a su emisor y ancla en el 3 de su alta), ofrecido sobre el alta del nodo a quien tenga esa R. El dueño del nodo es quien escribió su alta (el operador). La R vuelve, no se quema: el dueño la puede volver a dar",
+    "El lote del otro libro va como DATOS, no como referencias (los ejes no se leen entre sí): 6.0 el libro (el id de su génesis), 6.1 la clave de la línea (x-only), 6.2 el nivel pedido (de epoch.7.6.1), 6.3 la cabecera (su hash). Sin regla de validez nueva: el precio lo comprueba «attention has a price» (el grupo de quien pide en la atención del dueño, con «my R», su R devuelta). El nodo lee lo que tiene pendiente de servir con la lectura «anchors asked»",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [3, 11],
+  ["ask for an anchor: {me} returns {first ev.1} R to {first it.3} and asks it to anchor a batch header"]
+]
