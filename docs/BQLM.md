@@ -382,7 +382,7 @@ for (const r of escrituras) {
 ```
 
 ```text
-34 condiciones, 3 reglas que escriben y 20 lecturas
+35 condiciones, 3 reglas que escriben y 20 lecturas
 no pasa: E is minted by and to its issuer: huesped mints E of casa, or to someone else
 no pasa: P is repositioned one step at a time: huesped mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin
 no pasa: minting E needs own R issued: huesped mints E and has never issued R of its own
@@ -437,6 +437,7 @@ En el orden del 8 (el de `EPOCA_0_BTML.condiciones`).
 | acting on an account needs P on it | Un registro anclado en el 4 de una cuenta del banco o en uno de sus hijos 4.1 … 4.9 (el registro que dice «connect an account» en su 4; lo que se ordena hacer con ella: la orden de pago de StateArk), o anclado en la cuenta con «update the balance», «grant the permission» o «renew the permission» en su 4 (sus saldos y permisos), solo vale si quien lo escribe, o el dueño de la cosa que lo escribe (el autor de su alta, `A.6.3`), tiene P sobre la cuenta, sobre el registro entero o su mirada 1 (`A.2.1`, la condición de «minting E needs P on its record»). Encargo «cuenta del banco», VG 16-11 (`docs/notas/CUENTA_BANCO.md`) |
 | the bank speaks through the owner's thing | En una cuenta del banco, un permiso o una renovación anclados en ella solo valen si los escribe una cosa del dueño de la cuenta (no el dueño; el autor de su alta, `A.6.3`, es el autor de la cuenta) con el vencimiento (su 1.1) dentro de su t más los días de la cuenta; un saldo, si su instante (su 1.3) no es posterior a su t. Revisión de seguridad, 16-11 (`docs/notas/CUENTA_BANCO.md`) |
 | an account lives in its owner's book | PROVISIONAL (a falta del sí de VG, 16-11): un registro escrito con «connect an account» solo vale si su autor es el autor del génesis del eje (`first (first before.1).3`): la cuenta del banco se conecta en el libro propio |
+| only the owner sets who keeps it | Un registro que dice «add a parent», «remove a parent» o «set the kind of owner» en su 4 (padres y copias, A19, 16-11) solo vale si su autor escribió el elemento del que cuelga (`first (first ev.6.5).3`) o el génesis del libro (`first (first before.1).3`); solo se mira con una de esas acciones. `contrato.custodia` lo vuelve a comprobar al leer |
 
 Las tres reglas que escriben van detrás, en el mismo orden del 8 (§5):
 

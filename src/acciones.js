@@ -26,6 +26,7 @@
 //   acciones(eje, X, k, yo)                 las plantillas del punto de vista k cuya condición pasa para yo sobre X
 //   transaccion(eje, plantilla, params, yo) construye la transacción y la valida en seco: { ok, evento, motivos, ejecucion }
 //   ejecucion(eje, plantilla, params, yo)   lo que exige en T cada parte y la denominación propuesta (el 4 ejecuta; decisión 7)
+//   sobreDe(eje, plantilla, params, yo)     el registro del que colgará lo que escribe (X o el que nombra su 5): la línea de antes de firmar
 //   camino(eje, X, yo)                      lo que falta: lo del tutorial, lo que derivan las reglas, las sugerencias
 //   autoejecutar(eje, X, yo, firmar)        lanza los pasos míos en orden mientras pasen
 //   modoDeEjecucion(eje, plantilla)         su modo de ejecución: { declarado, modo, revisado } (system sin revisión se lee agent)
@@ -593,6 +594,27 @@ function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, p
     denominacion: piezas, paga, cubre: paga >= aPagar - 1e-9, alcanza: alcanzaPara(eje, yo, [...piezas, ...transferencias], t),
     escalas: [...ESCALAS_REALES],
   };
+}
+
+/**
+ * El registro del que colgará lo que escribe una plantilla lanzada sobre X (encargo «padres y copias», N2: la línea de
+ * antes de firmar dice quién lo guardará): X, o el que nombra su 5 («=first me.6», el anuncio de «pay»…), resuelto con los
+ * parámetros dados y los defectos, como al construir la transacción. null si la plantilla solo lee o lanza el camino, si X
+ * no está en el eje o si el ancla no se resuelve. Solo lee.
+ */
+export function sobreDe(eje, cual, params = {}, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const plantilla = plantillaDeTransaccion(cual, opciones);
+  if (!plantilla || esLectura(plantilla) || esCamino(plantilla)) return null;
+  const { X: cualX, ...dados } = params;
+  const X = eventoDe(eje, cualX);
+  if (!X || !eje?.obtener(X.id) || typeof yo !== 'string' || !yo) return null;
+  try {
+    const prep = preparar(eje, plantilla, X, yo, dados, { t: relojDe(eje, opciones), epoca: epocaDe(opciones, eje), idioma: idiomaDe(eje, yo, opciones) });
+    return typeof prep.sobre === 'string' && eje.obtener(prep.sobre) ? prep.sobre : null;
+  } catch {
+    return null;
+  }
 }
 
 /**

@@ -28,6 +28,7 @@ import * as acciones from '../src/acciones.js';
 import * as pasosDe from '../src/pasos.js';
 import * as modelos from '../src/modelos.js';
 import * as exterior from '../src/exterior.js';
+import { ESCALAS_REALES } from '../src/tokens.js';
 import { nombreDeRegla } from '../src/bqlm.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
 import { t, etiquetaLlana } from './textos.js';
@@ -183,6 +184,25 @@ function marcaDeVerificado(eje, X, opciones) {
 function firmezaDelRegistro(eje, X, opciones) {
   const f = contrato.firmeza(eje, X, opciones);
   return f ? { ...f, minimas: exterior.ajustesDelEje(eje, opciones).confirmaciones } : null;
+}
+
+/**
+ * «Quién guarda esto» en el reverso de un registro (encargo «padres y copias», A19): lo que da contrato.custodia (los padres,
+ * de qué elemento salen, la clase del dueño y su plazo) y el nodo de contrato.quienGuarda, más lo que la carta solo pone
+ * en texto: el nombre del elemento del que se hereda y si X es la raíz del libro (el bloque se titula «este libro»). null si
+ * el registro no está.
+ */
+function custodiaDelRegistro(eje, X, ctx) {
+  const c = contrato.custodia(eje, X, ctx.opciones);
+  if (!c) return null;
+  return {
+    ...c,
+    libro: X === eje.genesisId,
+    // La escala del plazo por su nombre (el índice de epoch.7.0 es el de ESCALAS_REALES): la carta solo la pone en texto.
+    plazoEscala: c.plazo && Number.isInteger(c.plazo.escala) ? ESCALAS_REALES[c.plazo.escala] ?? null : null,
+    deTexto: c.heredado ? legibleDe(eje, { ref: c.de }, null, ctx.opciones).texto : null,
+    nodo: contrato.quienGuarda(eje, ctx.yo, X, ctx.opciones).nodo,
+  };
 }
 
 function pagoDelRegistro(eje, X, ctx) {
@@ -716,6 +736,8 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
       ...marcaDeVerificado(eje, X, ctx.opciones),
       // Las estaciones de firmeza (encargo «firmeza», VG 16-11): en el reverso sustituyen a la marca de verificado.
       firmeza: firmezaDelRegistro(eje, X, ctx.opciones),
+      // Quién guarda esto (encargo «padres y copias», A19): sus padres, de dónde vienen, el plazo por defecto y el nodo.
+      custodia: custodiaDelRegistro(eje, X, ctx),
       // El recibo de pago (X.6.8.3): «pagado», «pago pendiente de bloque» o «no vale», y «buscar su recibo de pago» con «pay url».
       pago: pagoDelRegistro(eje, X, ctx),
     };
@@ -950,7 +972,10 @@ export function formulario(eje, X, accion, yo, valores = {}, opciones = {}) {
   const { id, nombre } = accionDe(canonico, o);
   const lectura = acciones.esLectura(plantilla);
   const camino = acciones.esCamino(plantilla);
-  return { X, accion: id, nombre, pv, campos, lectura, camino, ofrecida: Boolean(ofrecida), ...(opciones.ejecutar && !lectura && !camino ? { ejecucion: ejecucionDe(eje, X, canonico, yo, valores, o) } : {}) };
+  // La línea de antes de firmar (encargo «padres y copias», N2): quién guardará lo que se escribe, colgado de donde colgará.
+  const sobre = lectura || camino ? null : acciones.sobreDe(eje, canonico, { ...valores, X }, yo, o);
+  const quienGuarda = sobre ? contrato.quienGuarda(eje, yo, sobre, o) : null;
+  return { X, accion: id, nombre, pv, campos, lectura, camino, ofrecida: Boolean(ofrecida), ...(quienGuarda ? { quienGuarda } : {}), ...(opciones.ejecutar && !lectura && !camino ? { ejecucion: ejecucionDe(eje, X, canonico, yo, valores, o) } : {}) };
 }
 
 /**

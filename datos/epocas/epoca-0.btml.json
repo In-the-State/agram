@@ -178,7 +178,8 @@
     {"ref":"279aee2b215027c1a5f15f855f686bfdd1bcbcf6b5a03b6564f6a9509d16ef7e"},
     {"ref":"a4a7ee336d00e8f8ac80e00c3091581e00e2eb4427a13330256ab00c948d6f65"},
     {"ref":"9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea"},
-    {"ref":"a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"}
+    {"ref":"a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"},
+    {"ref":"c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617"}
   ],
   [
     [
@@ -3130,7 +3131,48 @@
           "template issue E tied to X param commitment label: compromiso",
           "template issue E tied to X param commitment help: cuánto de mi P sobre X (o sobre su mirada 1) se bloquea con la serie como salida: el compromiso que pide la cuota de un registro con capacidad (1 por defecto si X declara su capacidad en su 2; sin capacidad no se bloquea nada)",
           "the bank speaks through the owner's thing: {first ev.3} escribe un permiso que no es de una cosa del dueño de la cuenta, o un permiso o un saldo con una fecha que su registro no permite",
-          "an account lives in its owner's book: {first ev.3} conecta una cuenta en un libro que no es el suyo (su génesis lo escribió {first (first before.1).3})"
+          "an account lives in its owner's book: {first ev.3} conecta una cuenta en un libro que no es el suyo (su génesis lo escribió {first (first before.1).3})",
+          "template add a parent: añadir un padre",
+          "template add a parent param name label: nombre",
+          "template add a parent param name help: el nombre del padre: el 0 de su registro (lo que es)",
+          "template add a parent param does label: qué hace",
+          "template add a parent param does help: lo que hace el padre: keeps (guarda la copia cifrada), seals (sella hacia arriba) o keeps and seals (las dos cosas)",
+          "template add a parent param key label: clave",
+          "template add a parent param key help: la clave pública con la que el padre firma sus cabeceras de lote (x-only, 64 caracteres hexadecimales en minúsculas); nunca una clave privada",
+          "template add a parent param who label: quién",
+          "template add a parent param who help: quién pone el padre: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template add a parent param actions label: acción",
+          "template add a parent param actions help: la acción",
+          "template add a parent param level label: nivel",
+          "template add a parent param level help: el nivel en el que sella el padre: un nivel de la cascada (epoch.7.6.1); sin él, no se dice",
+          "template add a parent param grade label: grado",
+          "template add a parent param grade help: el grado que declara el padre (quién responde), opaco como el de un eslabón del sello: un número o un texto corto; sin él, no se dice",
+          "template add a parent param url label: dirección",
+          "template add a parent param url help: dónde se encuentra al padre: una dirección http o https, sin credenciales; sin ella, no se dice",
+          "template add a parent message: {me} añade el padre {first ev.0} a {first it.0}",
+          "template remove a parent: quitar un padre",
+          "template remove a parent param parent label: padre",
+          "template remove a parent param parent help: el padre que se quita: un registro escrito con «añadir un padre» en el 9 de este elemento",
+          "template remove a parent param criteria label: criterio",
+          "template remove a parent param criteria help: la plantilla de cerrado del registro",
+          "template remove a parent param who label: quién",
+          "template remove a parent param who help: quién quita el padre: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template remove a parent param actions label: acción",
+          "template remove a parent param actions help: la acción",
+          "template remove a parent message: {me} quita el padre {first (first ev.1).0} de {first it.0}",
+          "template set the kind of owner: decir de quién es",
+          "template set the kind of owner param kind label: clase",
+          "template set the kind of owner param kind help: la clase del dueño de este elemento y de lo que cuelga de él: una de las clases de la cadencia de anclaje (epoch.7.5.1); da el plazo de anclaje por defecto",
+          "template set the kind of owner param about label: sobre",
+          "template set the kind of owner param about help: de qué trata el registro: el elemento",
+          "template set the kind of owner param criteria label: criterio",
+          "template set the kind of owner param criteria help: la plantilla de cerrado del registro",
+          "template set the kind of owner param who label: quién",
+          "template set the kind of owner param who help: quién lo dice: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template set the kind of owner param actions label: acción",
+          "template set the kind of owner param actions help: la acción",
+          "template set the kind of owner message: {me} dice que el dueño de {first it.0} es de la clase {first ev.0}",
+          "only the owner sets who keeps it: {first ev.3} dice quién guarda {first (first ev.6.5).0}, que no escribió, en un libro cuyo génesis no escribió"
         ]
       ],
       [
@@ -3274,7 +3316,10 @@
         {"ref":"4efc22fba2982d79d2545e6768e7591cdbfd893a99693ecba9253826c49780e0"},
         {"ref":"9e2c94486ab65a40f0bef6a3401432a861d1ecc5d6dd33111ab79ceb03e9824f"},
         {"ref":"f420028e91ea856f84b9f01d1a641aaa3fcb699af8368dc63bc9843186172e76"},
-        {"ref":"dee46772ef10d44f6ae9e35974ce1e19466fca47cf6088c372dac7209e18afd5"}
+        {"ref":"dee46772ef10d44f6ae9e35974ce1e19466fca47cf6088c372dac7209e18afd5"},
+        {"ref":"c86e8cf586f51031fb12c017c807ccd20e206a416f9e013fe7214a7f6f156a01"},
+        {"ref":"e32320e88634620543caf44460ee413ef266bd104371a216feeaa246bd8f7a8d"},
+        {"ref":"6855920bf1834b1f262bf338df52510bd88a941a152ff4dee6845505d4ed5ed0"}
       ]
     ],
     [

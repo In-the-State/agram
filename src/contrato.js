@@ -37,6 +37,9 @@
 //   cascadaDe(epoca)                       { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] }: el 7.5 y el 7.6
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
 //   yo(eje, identidad)                     mi alta y sus posiciones: cartera, criterio, atención, tiempo
+//   custodia(eje, id)                      quién guarda un registro: { de, heredado, padres, clase, plazo } (los padres del elemento con
+//                                          configuración más cercano hacia arriba, él incluido; la clase del dueño y su plazo de 7.5)
+//   quienGuarda(eje, yo, sobre)            la línea de antes de firmar: { nodo, padres: [{ nombre, guarda, sella }], de }
 //   cuenta(eje, id)                        la cuenta del banco de un registro (o de la clave de su E): nombre, banco, su E única,
 //                                          el saldo que manda, el estado del permiso y quién ordena (con P sobre ella); o null
 //   configuracion(eje, yo)                 mis preferencias (el registro en el 9 de mi alta) o los defectos de la plantilla
@@ -66,6 +69,7 @@ import { ajustesDelEje } from './exterior.js';
 import { recuento, miradasDe } from './motor.js';
 import { estadoDePaquete } from './lente.js';
 import { cajasDelTres, conversacionDelTres as conversacionTres } from './tres.js';
+import { destino } from './sincronia.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
 const RE_SERIE = /^[EPRT]:.+/;
@@ -2277,6 +2281,130 @@ export function cuenta(eje, id, { t } = {}) {
     permiso: { estado, vence, registro: ultimo?.id ?? null },
     ordenan: eje.identidades().filter((x) => eje.poderSobre(x, ev.id, undefined, 1) > 0),
   };
+}
+
+// ---------- padres y copias (VG 16-11, state/ANCLAJE_EN_CASCADA.md §7; encargo «padres y copias», A19; docs/notas/PADRES.md) ----------
+
+/**
+ * Lo que hace de un registro una configuración de quién guarda un elemento, por lo que dice su 4 (la acción con que se
+ * escribió: el nombre canónico de su plantilla de la época), y dónde cuelga: el 9 del elemento (lo que le configura).
+ * Lo que hace un padre (el 1.0 de su registro): guarda la copia cifrada, sella hacia arriba o las dos cosas.
+ */
+export const CUSTODIA = Object.freeze({
+  padre: 'add a parent',
+  quitar: 'remove a parent',
+  clase: 'set the kind of owner',
+  en: '9000000000',
+  hace: Object.freeze({ keeps: Object.freeze({ guarda: true, sella: false }), seals: Object.freeze({ guarda: false, sella: true }), 'keeps and seals': Object.freeze({ guarda: true, sella: true }) }),
+});
+
+const RE_CLAVE_XONLY = /^[0-9a-f]{64}$/;
+
+/** Una dirección http(s) sin credenciales, tal cual se escribió, o null (nada secreto sale de aquí). */
+function urlDePadre(x) {
+  if (typeof x !== 'string' || !x.trim()) return null;
+  try {
+    const u = new URL(x.trim());
+    return /^https?:$/.test(u.protocol) && !u.username && !u.password ? x.trim() : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * ¿Cuenta la configuración que `autor` escribe sobre el elemento `elemento` (un evento)? Solo la de quien escribió el
+ * elemento o la de la identidad del génesis del libro (la regla «only the owner sets who keeps it» lo rechaza al escribir;
+ * aquí se vuelve a comprobar al leer, para un libro escrito antes de la regla o en otra época).
+ */
+function configuraElElemento(eje, autor, elemento) {
+  if (typeof autor !== 'string') return false;
+  return autor === elemento.autor || autor === eje.obtener(eje.genesisId)?.autor;
+}
+
+/**
+ * Un padre leído de su registro (el que escribe «add a parent»): 0 el nombre; 1.0 qué hace y 1.1 el nivel en que sella;
+ * 2.0 la clave x-only con que firma sus cabeceras y 2.1 el grado que declara; 3.1 su dirección. Lo opcional que falta, o
+ * que no es lo que dice ser (un nivel que la época no tiene, una dirección que no es http(s) o lleva credenciales), sale
+ * null. Sin nombre, sin una clave x-only o sin qué hace, no es un padre: null.
+ */
+function padreDe(r, niveles) {
+  const p = Array.isArray(r?.payload) ? r.payload : [];
+  const nombre = texto(hoja(p[0]));
+  const hace = CUSTODIA.hace[texto(hoja(p[1]?.[0]))];
+  const clave = texto(hoja(p[2]?.[0]));
+  if (!nombre || !hace || !RE_CLAVE_XONLY.test(clave ?? '')) return null;
+  const nivel = hoja(p[1]?.[1]);
+  const grado = hoja(p[2]?.[1]);
+  return {
+    id: r.id,
+    nombre,
+    clave,
+    guarda: hace.guarda,
+    sella: hace.sella,
+    nivel: niveles.includes(nivel) ? nivel : null,
+    grado: typeof grado === 'number' || (typeof grado === 'string' && grado.trim()) ? grado : null,
+    url: urlDePadre(hoja(p[3]?.[1])),
+  };
+}
+
+/**
+ * Quién guarda un registro (VG 16-11: «copias y padres son lo mismo, y son configurables: ninguno, uno o varios»; «la
+ * configuración cuelga de un elemento y se hereda hacia abajo»). Solo lee:
+ *   { de, heredado, padres: [{ id, nombre, clave, guarda, sella, nivel, grado, url }], clase, plazo: { escala, segundos } }
+ * `de` es el elemento del que sale la configuración de padres: el más cercano hacia arriba por el hilo (`sobre`), el propio
+ * `id` incluido, que tenga algún padre vivo en su 9 (null si no hay ninguno hasta la raíz); `heredado`, si `de` no es `id`.
+ * Los padres, por llegada: los registros «add a parent» anclados en el 9 de `de` por quien escribió `de` o por la identidad
+ * del génesis, menos los retirados (un «remove a parent» de los mismos, anclado en el mismo 9, que los refiere en su 1).
+ * Quitar el último padre de un elemento lo deja sin configuración propia: vuelve a heredar la de arriba.
+ * `clase` sale de su propia herencia (puede venir de otro elemento que los padres): el registro «set the kind of owner»
+ * más cercano hacia arriba con una clase de epoch.7.5 (en un mismo elemento, el último); sin ninguno, la clase del plazo
+ * más largo de 7.5. `plazo`, el de esa clase en 7.5 (cascadaDe). null si `id` no está en el eje.
+ */
+export function custodia(eje, id, opciones = {}) {
+  if (!eje || typeof id !== 'string' || !eje.obtener?.(id)) return null;
+  opciones = conEpoca(eje, opciones);
+  const cascada = cascadaDe(epocaDe(opciones, eje));
+  const niveles = cascada.capas.map((c) => c.nivel);
+  const llegada = new Map((eje.orden ?? []).map((x, i) => [x, i]));
+  const porLlegada = (a, b) => (llegada.get(a.id) ?? 0) - (llegada.get(b.id) ?? 0);
+  const validos = (elemento, accion) => eje.sobre(elemento.id, CUSTODIA.en).filter((r) => accionesDelRegistro(r).includes(accion) && configuraElElemento(eje, r.autor, elemento)).sort(porLlegada);
+  let de = null;
+  let padres = [];
+  let clase = null;
+  for (const elemento of eje.hilo(id)) {
+    if (de === null) {
+      const quitados = new Set(validos(elemento, CUSTODIA.quitar).map((r) => hoja(r.payload?.[1])).map((x) => (esReferencia(x) ? x.ref : x)).filter((x) => typeof x === 'string'));
+      const vivos = validos(elemento, CUSTODIA.padre).filter((r) => !quitados.has(r.id)).map((r) => padreDe(r, niveles)).filter(Boolean);
+      if (vivos.length) [de, padres] = [elemento.id, vivos];
+    }
+    if (clase === null) {
+      const dichas = validos(elemento, CUSTODIA.clase).map((r) => texto(hoja(r.payload?.[0]))).filter((k) => k && cascada.plazos[k]);
+      if (dichas.length) clase = dichas[dichas.length - 1];
+    }
+    if (de !== null && clase !== null) break;
+  }
+  // Sin clase dicha: la del plazo más largo de 7.5 (a igual plazo, la primera).
+  if (clase === null) for (const [k, v] of Object.entries(cascada.plazos)) if (clase === null || (v.segundos ?? -1) > (cascada.plazos[clase].segundos ?? -1)) clase = k;
+  const plazo = clase ? { escala: cascada.plazos[clase].escala, segundos: cascada.plazos[clase].segundos } : null;
+  return { de, heredado: de !== null && de !== id, padres, clase, plazo };
+}
+
+/**
+ * Lo que dirá la carta en una línea antes de firmar (VG 16-11, «transparente no es invisible», N2): quién va a guardar lo
+ * que `yo` escribe colgado de `sobre` (el elemento del que va a colgar). → { nodo, padres: [{ nombre, guarda, sella }], de }
+ * `nodo` es el nombre de máquina del transporte configurado (el de la dirección de sincronia.destino), o null si el libro
+ * no sale de este dispositivo; `padres` y `de`, los de custodia(eje, sobre) ([] y null si `sobre` no está en el eje).
+ */
+export function quienGuarda(eje, yo, sobre, opciones = {}) {
+  const c = typeof sobre === 'string' ? custodia(eje, sobre, opciones) : null;
+  let nodo = null;
+  try {
+    const d = typeof yo === 'string' && yo ? destino(eje, yo, opciones) : null;
+    nodo = d?.url ? new URL(d.url).hostname || null : null;
+  } catch {
+    nodo = null;
+  }
+  return { nodo, padres: (c?.padres ?? []).map(({ nombre, guarda, sella }) => ({ nombre, guarda, sella })), de: c?.de ?? null };
 }
 
 /**
