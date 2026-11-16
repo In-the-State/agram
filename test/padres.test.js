@@ -206,7 +206,7 @@ test('la carta: el bloque «quién guarda esto» del reverso («este libro» en 
   h = await reverso(proyecto.id);
   assert.match(h, /<div class="custodia" data-padres="2" data-heredado><h4>quién guarda esto<\/h4>/);
   assert.match(h, /<li class="custodia-padre" data-guarda="1" data-sella="0" data-lee="1"><b>trabajo<\/b> <span>guarda una copia<\/span> <span class="custodia-lee">puede leerlo<\/span> <small class="custodia-lee-de">por defecto de la época<\/small><\/li>/);
-  assert.match(h, /<b>universidad<\/b> <span>guarda y sella<\/span> <small>Bitcoin · grado compartido<\/small> <span class="custodia-lee">puede leerlo<\/span>/);
+  assert.match(h, /<b>universidad<\/b> <span>guarda y sella<\/span> <small>nivel 4 · grado compartido<\/small> <span class="custodia-lee">puede leerlo<\/span>/);
   assert.match(h, /<small class="custodia-heredado">heredado de empresa<\/small>/);
   assert.match(h, /plazo de anclaje por defecto: 1 semana \(dueño: empresa\)/);
   assert.doesNotMatch(h, /custodia-nodo/);

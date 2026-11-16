@@ -2,7 +2,10 @@
 // state/ANCLAJE_EN_CASCADA.md §7.8; docs/notas/FIRMEZA.md). Un libro pequeño de ana, con bea invitada, y un registro en
 // cada estado de las estaciones de firmeza del reverso:
 //   - en firme en cada uno de los cuatro niveles (lo que exige la familia más alta que mueve: solo el coste, el nivel 1;
-//     acuñar R, el 2; mover P, el 3; acuñar E, el 4), con grado y red en algunos eslabones;
+//     acuñar R, el 2; mover P, el 3; acuñar E, el 4), con los eslabones de frontera con StateArk (VG 17-11, encargo «firm
+//     lee grados»): la casa [1, 0] (local), la federación [2, 1] (compartido), el protocolo [3, 1] y el que llega a Bitcoin
+//     [4, 2, 0] (con proveedor, red de pruebas); la red, solo en el que llega a Bitcoin;
+//   - la persona sola: acuña E y llega al nivel 4 con sus cuatro cabeceras locales ([n, 0] en cada nivel), sin Bitcoin;
 //   - se puede usar y aún no en firme (acuña R y solo tiene su recibo de llegada, el nivel 1);
 //   - lo pedido por la escala del T que quema al escribirlo: pendiente (paga con el año: el nivel 4 en un año), a tiempo
 //     (paga con minutos y su eslabón de nivel 2 llega en el minuto), fuera de plazo alcanzado tarde (llega a los diez
@@ -11,8 +14,10 @@
 //   - y uno en duda: su sello pasa por una cabecera de la línea del observador que se ha bifurcado (dos cabeceras con el
 //     mismo número), anotada en el eje.
 // Los sellos, los recibos y sus claves (el observador, el relé y los firmantes de cada nivel) son INVENTADOS y se fabrican
-// aquí, en cada construcción (ejemplos/ikisai/sellos.mjs): cabeceras de lote v2 firmadas de verdad con esas claves, que la
-// regla «sealed» comprueba. Nada de esto es real: ni el observador, ni la red, ni los bloques.
+// aquí, en cada construcción (ejemplos/ikisai/sellos.mjs): cabeceras de lote v2 firmadas de verdad con esas claves, que las
+// reglas «sealed» y «firm» comprueban. La cuenta raíz declara el observador («observer keys») y las claves de línea de cada
+// nivel («line keys»): «firm» solo cuenta un eslabón cuya clave está declarada. Nada de esto es real: ni el observador, ni
+// la red, ni los bloques.
 
 import { Eje } from '../../src/eje.js';
 import * as A from '../../src/acciones.js';
@@ -35,6 +40,7 @@ export const PAPELES = Object.freeze({
   nivel2: 'firmeza: acuña R y llega al nivel 2',
   nivel3: 'firmeza: mueve P y llega al nivel 3',
   bitcoin: 'firmeza: acuña E y llega a Bitcoin',
+  sola: 'firmeza: la persona sola acuña E y llega al nivel 4 sin Bitcoin',
   usable: 'firmeza: acuña R, la casa lo tiene y aún no está en firme',
   pendiente: 'pedido: paga con el año y pide Bitcoin en un año',
   aTiempo: 'pedido: paga con minutos y llega al nivel 2 en el minuto',
@@ -58,7 +64,14 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   // Las claves inventadas de fuera: el observador de cabeceras (lo declara ana, la cuenta raíz) y el relé de los recibos.
   const observador = await generarClaves();
   const rele = await generarClaves();
-  const ajustes = contrato.registroDeAjustes('exterior settings', { 'observer keys': observador.publica }, { quien: 'ana' });
+  // Las claves de línea de cada nivel (inventadas): la casa, la federación y el protocolo; y las de la persona sola, una por
+  // nivel (la de arriba firma también su cabecera de nivel 4). Primero las propias de cada nivel, en su orden.
+  const casa = await generarClaves();
+  const federacion = await generarClaves();
+  const protocolo = await generarClaves();
+  const sola = await Promise.all([1, 2, 3, 4].map(() => generarClaves()));
+  const lineas = [casa, federacion, protocolo, ...sola].map((c) => c.publica).join(' ');
+  const ajustes = contrato.registroDeAjustes('exterior settings', { 'observer keys': observador.publica, 'line keys': lineas }, { quien: 'ana' });
   await salida.escribirDesde(eje, { modo: 'sequenced', autor: 'ana', sobre: alta, en: direccion([9]), payload: ajustes, t: despues(30) }, priv('ana'));
 
   /** ana escribe un registro sobre su alta pagando su coste con una unidad de cada escala que lo cubra, más lo que mueva. */
@@ -72,7 +85,12 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
     if (!x.ok) throw new Error(nombre + ' (' + yo + '): ' + x.motivos.map((m) => m.mensaje).join('; '));
     return eje.anadir(x.evento);
   };
-  const sellar = async (ev, capas, bloque) => eje.marcarSello(ev.id, await selloEnCascada(ev.id, { observador, capas, instante: bloque }));
+  const sellar = async (ev, capas, bloque, arriba = observador) => eje.marcarSello(ev.id, await selloEnCascada(ev.id, { observador: arriba, capas, instante: bloque }));
+  // Los eslabones de frontera (VG 17-11): [nivel, grado] con el grado y la red como posiciones de epoch.7.6.4 y 7.6.6.
+  const CASA = { nivel: 1, grado: 0, claves: casa };
+  const FEDERACION = { nivel: 2, grado: 1, claves: federacion };
+  const PROTOCOLO = { nivel: 3, grado: 1, claves: protocolo };
+  const BITCOIN = { nivel: 4, grado: 2, red: 0 };
   const recibir = (ev, instante) => eje.marcarRecibo(ev.id, reciboFirmado(rele, { instante, semilla: ev.id }));
   const R = (n) => ({ token: 'R', emisor: 'ana', cantidad: n, de: null, a: 'ana' });
   const r = {};
@@ -81,14 +99,20 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   r.casa = await escribe('casa', ['segundo'], despues(60));
   recibir(r.casa, despues(60));
   r.nivel2 = await escribe('nivel2', ['minuto'], despues(120), [R(3)]);
-  await sellar(r.nivel2, [{ nivel: 1, grado: 'casera', hora: segundos(despues(121)) }, { nivel: 2, grado: 'federación', hora: segundos(despues(150)) }, { nivel: 4, hora: segundos(despues(3000)) }], despues(3600));
+  await sellar(r.nivel2, [{ ...CASA, hora: segundos(despues(121)) }, { ...FEDERACION, hora: segundos(despues(150)) }, { ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
   const nota = await lanzar('anchor here', alta, { title: 'una nota con P', content: 'diez P sobre ella' }, 'ana', despues(180));
   r.nivel3 = await lanzar('reposition P toward X', alta, { }, 'ana', despues(200));
   void nota;
-  await sellar(r.nivel3, [{ nivel: 3, grado: 'protocolo', hora: segundos(despues(900)) }, { nivel: 4, grado: 2, red: 'pruebas', hora: segundos(despues(3000)) }], despues(3600));
+  await sellar(r.nivel3, [{ ...PROTOCOLO, hora: segundos(despues(900)) }, { ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
   const soporte = await escribe('bitcoin', ['minuto'], despues(240));
   r.bitcoin = await lanzar('issue E tied to X', soporte.id, { denomination: 'entrada', quantity: 1 }, 'ana', despues(260));
-  await sellar(r.bitcoin, [{ nivel: 4, grado: 2, red: 'pruebas', hora: segundos(despues(3000)) }], despues(3600));
+  await sellar(r.bitcoin, [{ ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
+
+  // La persona sola: sus cuatro cabeceras locales ([n, 0]) sellan un registro que acuña E; arriba firma su propia línea de
+  // nivel 4, no el observador de Bitcoin, así que «sealed» no vale y el nivel 4 lo alcanza la cadena, con grado local.
+  const soporteSolo = await escribe('sola', ['minuto'], despues(270));
+  r.sola = await lanzar('issue E tied to X', soporteSolo.id, { denomination: 'entrada', quantity: 1 }, 'ana', despues(280));
+  await sellar(r.sola, sola.slice(0, 3).map((claves, k) => ({ nivel: k + 1, grado: 0, claves, hora: segundos(despues(281 + 60 * k)) })).concat([{ nivel: 4, grado: 0, hora: segundos(despues(3000)) }]), despues(3600), sola[3]);
 
   // Se puede usar, aún no en firme: acuña R (exige el nivel 2) y solo lo tiene la casa.
   r.usable = await escribe('usable', ['minuto'], despues(300), [R(2)]);
@@ -97,20 +121,20 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   // Lo pedido por la escala.
   r.pendiente = await escribe('pendiente', ['anio'], despues(360));
   r.aTiempo = await escribe('aTiempo', ['minuto'], despues(420));
-  await sellar(r.aTiempo, [{ nivel: 2, hora: segundos(despues(450)) }, { nivel: 4, hora: segundos(despues(460)) }], despues(470));
+  await sellar(r.aTiempo, [{ ...FEDERACION, hora: segundos(despues(450)) }, { ...BITCOIN, hora: segundos(despues(460)) }], despues(470));
   r.tarde = await escribe('tarde', ['minuto'], despues(480));
-  await sellar(r.tarde, [{ nivel: 2, hora: segundos(despues(1080)) }, { nivel: 4, hora: segundos(despues(1200)) }], despues(1300));
+  await sellar(r.tarde, [{ ...FEDERACION, hora: segundos(despues(1080)) }, { ...BITCOIN, hora: segundos(despues(1200)) }], despues(1300));
   r.sinAlcanzar = await escribe('sinAlcanzar', ['segundo'], despues(540));
 
   // Lo colgado: bea pide para él el nivel 4 en un día (paga con su día); llega a Bitcoin a las cinco horas.
   r.colgado = await escribe('colgado', ['minuto'], despues(600));
   const peticion = await lanzar('ask for more firmness', r.colgado.id, { scale: 3 }, 'bea', despues(7200));
-  await sellar(r.colgado, [{ nivel: 1, hora: segundos(despues(601)) }, { nivel: 4, hora: segundos(despues(18000)) }], despues(18000));
+  await sellar(r.colgado, [{ ...CASA, hora: segundos(despues(601)) }, { ...BITCOIN, hora: segundos(despues(18000)) }], despues(18000));
 
   // En duda: la línea del observador se bifurca en su número 1 (dos cabeceras con el mismo número, de la misma clave), y el
   // sello de este registro pasa por su cabecera 1.
   r.enDuda = await escribe('enDuda', ['minuto'], despues(660));
-  eje.marcarSello(r.enDuda.id, await selloEnCascada(r.enDuda.id, { observador, capas: [{ nivel: 1, hora: segundos(despues(661)) }, { nivel: 4, numero: 1, hora: segundos(despues(3000)) }], instante: despues(3600) }));
+  eje.marcarSello(r.enDuda.id, await selloEnCascada(r.enDuda.id, { observador, capas: [{ ...CASA, hora: segundos(despues(661)) }, { ...BITCOIN, numero: 1, hora: segundos(despues(3000)) }], instante: despues(3600) }));
   const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32), hora: segundos(despues(3000)) }, observador);
   const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), hora: segundos(despues(3001)) }, observador);
   eje.marcarBifurcacion({ a: a.decupla, b: b.decupla });

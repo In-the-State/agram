@@ -494,7 +494,7 @@ const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : '') + (o?.pe
 
 /** El nombre de un nivel del sello en cascada (un número de la época, VG 16-11) en el idioma de la interfaz: nivel_<n>; si no lo hay, «nivel n». */
 const textoCapa = (nivel) => (t('nivel_' + nivel) === 'nivel_' + nivel ? t('nivelSinTexto', { n: nivel }) : t('nivel_' + nivel));
-/** El grado de un eslabón (opaco, VG 16-11): grado_<valor> si la carta lo tiene; si no, «grado <valor>». Nada lo compara. Su red, igual: red_<valor> o «red <valor>». */
+/** El grado de un eslabón (su nombre en la época, VG 17-11: local, shared, provider): grado_<valor> si la carta lo tiene; si no, «grado <valor>». Su red, igual: red_<valor> o «red <valor>». */
 const textoGrado = (g) => (t('grado_' + g) === 'grado_' + g ? t('gradoSinTexto', { g }) : t('grado_' + g));
 const textoRed = (r) => (t('red_' + r) === 'red_' + r ? t('redSinTexto', { r }) : t('red_' + r));
 /** La palabra de resumen de la firmeza: en duda, en firme, o se puede usar sin estar aún en firme. */
@@ -519,8 +519,9 @@ function htmlPedidosDeNivel(f, nivel) {
 
 /**
  * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (data-nivel), en su orden,
- * con su estado (data-estado: alcanzada, pendiente, saltada), su grado y su red cuando el eslabón los dice («grado X · red Y», sin comparar),
- * la que exige el registro señalada (data-exigida) y, en la última (Bitcoin), lo de hoy (las confirmaciones y «en firme» con
+ * con su ritmo detrás del nombre («nivel 4 · día»), su estado (data-estado: alcanzada, pendiente, saltada), su grado y su red
+ * cuando lo alcanza un eslabón («con proveedor · red de pruebas»: los nombres de la época, VG 17-11),
+ * la que exige el registro señalada (data-exigida) y, en la última, lo de hoy (las confirmaciones y «en firme» con
  * las del ajuste: htmlVerificado); detrás, la palabra de resumen. Todo sale de contrato.firmeza; aquí no se decide nada.
  * '' sin firmeza.
  */
@@ -530,9 +531,11 @@ function htmlFirmeza(f) {
   const estaciones = f.capas.map((c, k) => {
     const exigida = c.nivel === f.exigida;
     const grado = c.grado !== undefined && c.grado !== null ? textoGrado(c.grado) + (c.red !== undefined && c.red !== null ? ' · ' + textoRed(c.red) : '') : '';
-    const titulo = textoCapa(c.nivel) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (grado ? ' · ' + grado : '') + (exigida ? ' · ' + t('capaExigida') : '');
+    // El nombre del nivel y, detrás, su ritmo (VG 17-11: «el nivel es el ritmo»): «nivel 4 · día».
+    const nombre = textoCapa(c.nivel) + (c.ritmo ? ' · ' + t('escalaUna_' + c.ritmo) : '');
+    const titulo = nombre + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (grado ? ' · ' + grado : '') + (exigida ? ' · ' + t('capaExigida') : '');
     const bitcoin = k === ultima && c.estado === 'alcanzada' && f.confirmaciones ? ' ' + htmlVerificado({ confirmaciones: f.confirmaciones, enFirme: f.enFirme, minimas: f.minimas }) : '';
-    return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.nivel))}</span>${grado ? ` <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}${htmlPedidosDeNivel(f, c.nivel)}</li>`;
+    return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(nombre)}</span>${grado ? ` · <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}${htmlPedidosDeNivel(f, c.nivel)}</li>`;
   }).join('');
   const r = resumenFirmeza(f);
   return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida !== null && f.exigida !== undefined ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;

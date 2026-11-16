@@ -292,6 +292,7 @@ export const TEXTOS = Object.freeze({
     'ajuste_seal url': 'quién sella',
     'ajuste_pay url': 'quién cobra',
     'ajuste_observer keys': 'quién vigila los sellos',
+    'ajuste_line keys': 'quién sella cada nivel',
     'ajuste_confirmations': 'cuándo un sello es firme',
     'ajuste_guide url': 'dónde está la guía',
     // lo que hizo un asiento del libro, en llano (VG 14-11, #83): ninguna primitiva del libro sale en pantalla
@@ -471,12 +472,18 @@ export const TEXTOS = Object.freeze({
     enFirme: 'en firme',
     enFirmeTitulo: 'en firme: está verificado y su bloque ya tiene las confirmaciones que pide el eje ({n} de {minimas}; los ajustes del exterior de la cuenta raíz)',
     verificadoTitulo: 'verificado: su sello de tiempo está en un bloque comprobado, el transporte dio su recibo de llegada y los tres relojes van en orden',
-    // las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (epoch.7.6); el grado y la red, datos de cada eslabón, sin textos de grados ni de redes concretos
+    // las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (epoch.7.6), con su ritmo
+    // (escalaUna_<escala>); el grado y la red, los nombres de la época (epoch.7.6.4 y 7.6.6; VG 17-11, encargo «firm lee grados»)
     firmezaTitulo: 'hasta qué capa ha llegado su sello',
-    nivel_1: 'casa',
+    nivel_1: 'nivel 1',
     nivel_2: 'nivel 2',
     nivel_3: 'nivel 3',
-    nivel_4: 'Bitcoin',
+    nivel_4: 'nivel 4',
+    grado_local: 'local',
+    grado_shared: 'compartido',
+    grado_provider: 'con proveedor',
+    red_test: 'red de pruebas',
+    red_main: 'red principal',
     nivelSinTexto: 'nivel {n}',
     gradoSinTexto: 'grado {g}',
     redSinTexto: 'red {r}',

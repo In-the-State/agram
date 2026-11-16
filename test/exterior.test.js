@@ -48,7 +48,7 @@ test('la plantilla «exterior settings» es de la época (9.2.5): relé, archivo
   assert.equal(contrato.plantillas(null).find((p) => p.nombre === PLANTILLA).donde, '9250000000');
   assert.deepEqual(contrato.clavesDeConfiguracionDe(PLANTILLA).map((c) => [c.pv, c.clave, c.defecto]), [
     [1, 'relay url', undefined], [2, 'blossom url', undefined], [3, 'seal url', undefined], [4, 'pay url', undefined],
-    [6, 'observer keys', undefined], [7, 'confirmations', 6], [8, 'guide url', undefined],
+    [6, 'observer keys', undefined], [7, 'confirmations', 6], [8, 'guide url', undefined], [9, 'line keys', undefined],
   ]);
   assert.deepEqual(contrato.configuracionDe(null, 'vg', PLANTILLA), { confirmations: 6, de: null }, 'sin registro, sin url: nada va por fuera; en firme a las 6 confirmaciones');
   const etiqueta = (clave, idioma) => contrato.texto(null, contrato.claves.parametro(PLANTILLA, clave, 'label'), idioma, { original: clave });
@@ -64,10 +64,10 @@ test('la plantilla «exterior settings» es de la época (9.2.5): relé, archivo
 
 test('exterior(): las tres url de mi registro (http o https, sin la barra final); lo que no es una url y lo vacío no cuentan; el último registro manda; sin huecos: solo las claves con valor, y sus valores en paralelo (VG 13-11, #77)', async () => {
   const c = await cuentaDeVg();
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [], confirmaciones: 6 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [], lineas: [], confirmaciones: 6 });
   const a = await ajustarExterior(c, { 'relay url': 'http://127.0.0.1:8788/', 'blossom url': 'https://archivos.ejemplo/', 'seal url': 'ftp://no-es-http' });
-  assert.deepEqual(a.campos.map((x) => x.clave), ['relay url', 'blossom url', 'seal url', 'pay url', 'observer keys', 'confirmations', 'guide url']);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: 'https://archivos.ejemplo', sello: null, pago: null, guia: null, observadores: [], confirmaciones: 6 });
+  assert.deepEqual(a.campos.map((x) => x.clave), ['relay url', 'blossom url', 'seal url', 'pay url', 'observer keys', 'confirmations', 'guide url', 'line keys']);
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: 'https://archivos.ejemplo', sello: null, pago: null, guia: null, observadores: [], lineas: [], confirmaciones: 6 });
   // Sin huecos ni rellenos (#77): 0 el nombre, 1 las claves de los ajustes con valor, 2 sus valores en paralelo, 3 quién, 4 su ayuda, 5 el tipo; ninguna posición vacía ni «-»
   assert.deepEqual(a.payload.map((x) => x.length), [1, 4, 4, 1, 1, 1]);
   assert.deepEqual(a.payload.slice(0, 3), [[PLANTILLA], ['relay url', 'blossom url', 'seal url', 'confirmations'], ['http://127.0.0.1:8788/', 'https://archivos.ejemplo/', 'ftp://no-es-http', 6]]);
@@ -78,7 +78,7 @@ test('exterior(): las tres url de mi registro (http o https, sin la barra final)
   assert.equal(b.cambiado, true);
   assert.deepEqual(b.payload.slice(0, 3), [[PLANTILLA], ['relay url', 'seal url', 'confirmations'], ['http://127.0.0.1:8788/', 'http://127.0.0.1:8787', 6]]);
   await salida.escribirDesde(c.eje, { modo: 'sequenced', autor: 'vg', sobre: b.sobre, en: b.en, payload: b.payload, t: T(2) }, c.cuenta.privada);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: null, sello: 'http://127.0.0.1:8787', pago: null, guia: null, observadores: [], confirmaciones: 6 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: null, sello: 'http://127.0.0.1:8787', pago: null, guia: null, observadores: [], lineas: [], confirmaciones: 6 });
   assert.equal(G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', {}).cambiado, false, 'sin cambios, nada que escribir');
   // El registro es de configuración: no se manda a ninguna IA, como el de la guía.
   const id = contrato.configuracionDe(c.eje, 'vg', PLANTILLA).de;
@@ -96,7 +96,7 @@ test('observer keys, confirmations y guide url (claves de un registro de ajustes
   const dado = CLAVE_A + ' ' + CLAVE_B.toUpperCase() + ' ' + CLAVE_A + ' no-es-clave';
   const a = await ajustarExterior(c, { 'observer keys': dado, confirmations: '12', 'guide url': 'http://127.0.0.1:8799/' });
   assert.deepEqual(a.payload.slice(1, 3), [['observer keys', 'confirmations', 'guide url'], [dado, 12, 'http://127.0.0.1:8799/']]);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: 'http://127.0.0.1:8799', observadores: [CLAVE_A, CLAVE_B], confirmaciones: 12 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: 'http://127.0.0.1:8799', observadores: [CLAVE_A, CLAVE_B], lineas: [], confirmaciones: 12 });
   assert.deepEqual(contrato.validar(c.eje, contrato.configuracionDe(c.eje, 'vg', PLANTILLA).de), []);
   // Los textos del formulario, en los dos idiomas: en inglés (el canónico) la ayuda es la del propio registro de la plantilla.
   const ayudas = (idioma) => G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', {}, { idioma }).campos.map((x) => x.ayuda);
@@ -111,7 +111,7 @@ test('observer keys, confirmations y guide url (claves de un registro de ajustes
   const b = G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', { 'observer keys': '', 'guide url': '', confirmations: 'muchas' });
   assert.deepEqual(b.payload.slice(1, 3), [['confirmations'], [12]]);
   await salida.escribirDesde(c.eje, { modo: 'sequenced', autor: 'vg', sobre: b.sobre, en: b.en, payload: b.payload, t: T(2) }, c.cuenta.privada);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [], confirmaciones: 12 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [], lineas: [], confirmaciones: 12 });
   // Como una clave repetida (varias hojas, un valor por clave) también se lee.
   const l = G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', { 'observer keys': CLAVE_A });
   const lista = contrato.registroDeAjustes(PLANTILLA, { 'observer keys': [CLAVE_A, CLAVE_B], confirmations: 12 }, { quien: 'vg' });
@@ -239,7 +239,7 @@ test('profundidad y «en firme»: (altura del último sello verificado conocido 
   assert.deepEqual(de(e1.id), [100, 6, true], '105 − 100 + 1 = 6');
   assert.equal(de(e2.id)[2], false);
   // Las confirmaciones que cuentan son las de la cuenta raíz del eje (la del génesis), con sus defectos si no hay registro.
-  assert.deepEqual(exterior.ajustesDelEje(eje), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [obs.publica], confirmaciones: 6 });
+  assert.deepEqual(exterior.ajustesDelEje(eje), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [obs.publica], lineas: [], confirmaciones: 6 });
   await ajustarExterior({ cuenta, eje }, { confirmations: '3', 'observer keys': obs.publica + ' ' + CLAVE_A }, 5);
   assert.deepEqual(exterior.ajustesDelEje(eje).observadores, [obs.publica, CLAVE_A]);
   assert.equal(exterior.ajustesDelEje(eje).confirmaciones, 3);
@@ -280,7 +280,7 @@ test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) 
   assert.equal(reverso.centro.cara, 'reverso');
   assert.equal(reverso.centro.verificado, true);
   assert.equal(reverso.centro.confirmaciones, 1);
-  assert.match(html(reverso), /<li class="estacion-firmeza" data-nivel="4" data-estado="alcanzada"[^>]*><span class="estacion-firmeza-nombre">Bitcoin<\/span> <small class="verificado" data-confirmaciones="1"[^>]*>◆ verificado · 1 confirmación<\/small><\/li>/);
+  assert.match(html(reverso), /<li class="estacion-firmeza" data-nivel="4" data-estado="alcanzada"[^>]*><span class="estacion-firmeza-nombre">nivel 4 · día<\/span> <small class="verificado" data-confirmaciones="1"[^>]*>◆ verificado · 1 confirmación<\/small><\/li>/);
 
   // Pasan los bloques: el último sello conocido sube la profundidad («verificado · N confirmaciones») y, con las 6 de los ajustes del eje, «en firme».
   const otro = celdas(sin).find((o) => o.X !== X).X;
@@ -288,12 +288,12 @@ test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) 
   const tres = await arbol({ foco: { X: compra.id, pv: 5 } }, ORDENADOR);
   assert.equal(tres.centro.confirmaciones, 3, '3 − 1 + 1');
   assert.equal(tres.centro.enFirme, undefined);
-  assert.match(html(tres), /data-nivel="4"[^>]*><span class="estacion-firmeza-nombre">Bitcoin<\/span> <small class="verificado" data-confirmaciones="3"[^>]*>◆ verificado · 3 confirmaciones<\/small>/);
+  assert.match(html(tres), /data-nivel="4"[^>]*><span class="estacion-firmeza-nombre">nivel 4 · día<\/span> <small class="verificado" data-confirmaciones="3"[^>]*>◆ verificado · 3 confirmaciones<\/small>/);
   const ultimo = celdas(sin).find((o) => o.X !== X && o.X !== otro).X;
   await sellar(ultimo, 6);
   const firme = await arbol({ foco: { X: compra.id, pv: 5 } }, ORDENADOR);
   assert.deepEqual([firme.centro.confirmaciones, firme.centro.enFirme, firme.centro.minimas], [6, true, 6], '6 − 1 + 1');
-  assert.match(html(firme), /data-nivel="4"[^>]*><span class="estacion-firmeza-nombre">Bitcoin<\/span> <small class="verificado" data-en-firme data-confirmaciones="6" title="en firme: [^"]*\(6 de 6;[^"]*">◆ en firme<\/small>/);
+  assert.match(html(firme), /data-nivel="4"[^>]*><span class="estacion-firmeza-nombre">nivel 4 · día<\/span> <small class="verificado" data-en-firme data-confirmaciones="6" title="en firme: [^"]*\(6 de 6;[^"]*">◆ en firme<\/small>/);
   assert.doesNotMatch(html(firme), /verificado · \d/, 'en firme sustituye a «N confirmaciones»');
   // La celda de la matriz del 4 dice lo mismo de cada ejecución.
   const matriz = html(await arbol({ foco: { X: compra.id, pv: 4 } }, ORDENADOR));

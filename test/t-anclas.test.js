@@ -164,7 +164,8 @@ test('una prueba mejor sustituye a la anterior: la que alcanza más niveles pasa
   assert.equal(eje.marcarSello(r.id, taproot), true);
   assert.equal(eje.marcarSello(r.id, cascada), true, 'más reciente, pero mejor: sustituye');
   assert.equal(eje.sello(r.id).hash, cascada.hash);
-  assert.deepEqual(contrato.firmeza(eje, r.id).capas.map((c) => c.estado), ['alcanzada', 'alcanzada', 'pendiente', 'alcanzada'].map((x, k) => (k === 2 ? 'saltada' : x)));
+  // Sus eslabones de nivel 1 y 2 no tienen la clave declarada (VG 17-11, «firm lee grados»): solo el último, por «sealed».
+  assert.deepEqual(contrato.firmeza(eje, r.id).capas.map((c) => c.estado), ['saltada', 'saltada', 'saltada', 'alcanzada']);
   assert.equal(eje.marcarSello(r.id, peor), false, 'más antigua, pero peor: no sustituye');
   assert.equal(eje.sello(r.id).hash, cascada.hash);
   // A igual alcance, la más antigua (como antes).
@@ -185,7 +186,8 @@ test('el ejemplo «firmeza»: un registro en cada estado; la carta pinta lo pedi
   const f = (x) => contrato.firmeza(eje, x.id, { ahora });
   // En firme en cada uno de los cuatro niveles (lo que exige su familia), con grado y red en alguno.
   assert.deepEqual(['casa', 'nivel2', 'nivel3', 'bitcoin'].map((k) => [f(r[k]).exigida, f(r[k]).firme]), [[1, true], [2, true], [3, true], [4, true]]);
-  assert.deepEqual(f(r.nivel3).capas.map((c) => [c.grado, c.red]).at(-1), [2, 'pruebas']);
+  assert.deepEqual(f(r.nivel3).capas.map((c) => [c.grado, c.red]).at(-1), ['provider', 'test'], 'el eslabón que llega a Bitcoin, [4, 2, 0]: los nombres de la época');
+  assert.deepEqual([f(r.sola).firme, f(r.sola).alcanzada, f(r.sola).capas.map((c) => c.grado)], [true, 4, ['local', 'local', 'local', 'local']], 'la persona sola, sin Bitcoin');
   assert.deepEqual([f(r.usable).firme, f(r.usable).alcanzada, f(r.usable).exigida], [false, 1, 2], 'se puede usar, aún no en firme');
   const propio = (k) => f(r[k]).pedidos.find((p) => p.origen === 'propio').estado;
   assert.deepEqual(['pendiente', 'aTiempo', 'tarde', 'sinAlcanzar'].map(propio), ['pendiente', 'a tiempo', 'fuera de plazo', 'fuera de plazo']);

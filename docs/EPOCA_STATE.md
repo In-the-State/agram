@@ -2,7 +2,7 @@
 
 Para quien monta el eje de un nodo (Core AARPIA). VG 16-11, #124: el nodo, visto desde dentro, es un eje, y su época es esta. Fuente y generador en `datos/epocas/state/` (`LEEME.md`); eje de ejemplo en `ejemplos/state/nodo.mjs`; pruebas en `test/epoca-state.test.js`.
 
-- **Id**: el de `datos/epocas/state/state-0.ids.json` (`epoca`). Hereda de la época 0 definitiva (`d6688507…`) y no la cambia.
+- **Id**: el de `datos/epocas/state/state-0.ids.json` (`epoca`). Hereda de la época 0 definitiva (`22c5a796…`) y no la cambia.
 - **Genérica**: vale para cualquier nodo de la clase `state`. Nada real va en la época: dominios, claves y máquinas van en el libro del nodo, como datos de sus altas.
 
 ## 1. Quién es quién
