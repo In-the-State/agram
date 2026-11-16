@@ -56,7 +56,7 @@
 
 import { Eje } from '../../src/eje.js';
 import { direccion, indicesDe, esReferencia } from '../../src/btml.js';
-import { evaluar } from '../../src/bql.js';
+import { leerPosicion } from '../../src/contexto-eje.js';
 import { familiaDe, partirClave } from '../../src/tokens.js';
 import { capacidadDe, tramoDe, siguiente, cerrado, ANUNCIO } from '../../src/motor.js';
 import { entrarPorInvitacion } from './altas.mjs';
@@ -342,8 +342,9 @@ export async function abrirTemporada(eje, habitacion, { noches = TEMPORADA, t, p
 
 /**
  * Una reserva: la escribe quien reserva sobre la habitación, ANCLADA EN LA PLAZA (en = 1.k). Prefijo denso, de 0 a
- * 4, sin relleno: la plaza y su precio van por referencia (no copias) y las fórmulas viven en la misma décupla
- * anidada (1), porque LOCAL lee a su profundidad; su criterio (2) son los de la habitación y la plantilla de cerrado
+ * 4, sin relleno: la plaza y su precio van por referencia (no copias) y el total es una fórmula del payload (BQL
+ * mínimo, it = la reserva) que lee lo escrito en su 1, desplegada: la cantidad en 1.3.1 y la unidad en 1.3.2 (el
+ * BQL mínimo solo opera con números); su criterio (2) son los de la habitación y la plantilla de cerrado
  * (encargo 3b: el dueño la nombra en su PV2); 4 es lo que prepara. Lo lejano, por anclaje: las noches (la décupla
  * [[entrada], [salida]]) se anclan en el 7 de la propia reserva (la salida no se ocupa), y lo que se va a mover se
  * anuncia en su 4.1 (motor.ANUNCIO) como movimientos anunciados del libro (VG 12-11, decisión 8: no tocan saldos):
@@ -362,8 +363,7 @@ export async function reservar(eje, { autor, habitacion, plaza: k, noches, t, no
       [{ ref: habitacion.id, dir: plaza(k) }], // 1.0 la plaza: [[nombre], [precio], [capacidad]] (cada posición entre corchetes: la 1 es una décupla)
       [n], // 1.1 noches
       [{ ref: habitacion.id, dir: precioDe(k) }], // 1.2 precio por noche: dentro de la plaza elegida
-      ['=LOCAL(2) * LOCAL(1)'], // 1.3 total: precio por noche × noches
-      ['=LOCAL(3) + LOCAL(1) * 1 dia'], // 1.4 el total compuesto con el tiempo que ocupa
+      [['total'], ['=(payload(it)).1.2.1 * (payload(it)).1.1'], ['EUR']], // 1.3 total: precio por noche (su cantidad) × noches, desplegado
     ], // 1 recursos
     [{ ref: habitacion.id, dir: '2000000000' }, CERRADO], // 2 criterios: los de la habitación y la plantilla de cerrado
     [autor, 'recepcion'], // 3 comunicación: quién habla con quién
@@ -381,12 +381,25 @@ export async function reservar(eje, { autor, habitacion, plaza: k, noches, t, no
     payload: tramo,
   }, privada);
   // Lo que se va a mover (encargo 3b): la casa entrega un token de la plaza por noche; quien reserva paga el total.
-  const total = evaluar(eje, reserva.id, [1, 3]);
-  const anuncios = [['ocupar', lista.map((noche) => anunciado(seriePlaza(habitacion.id, k, noche), 1, CASA, autor))], ...(total.valor?.tipo === 'magnitud' ? [['pagar', [anunciado(EUR, total.valor.cantidad, autor, CASA)]]] : [])];
+  const total = totalDe(eje, reserva);
+  const anuncios = [['ocupar', lista.map((noche) => anunciado(seriePlaza(habitacion.id, k, noche), 1, CASA, autor))], ...(total.cantidad !== undefined ? [['pagar', [anunciado(EUR, total.cantidad, autor, CASA)]]] : [])];
   for (const [que, movimientos] of anuncios) {
     await escribirPagando(eje, { autor, sobre: reserva.id, en: ANUNCIO, t, movimientos: [minutos(autor), ...movimientos], payload: que }, privada);
   }
   return reserva;
+}
+
+/**
+ * El total de una reserva, leído con el BQL mínimo (contexto-eje.leerPosicion): la cantidad en 1.3.1 (la fórmula) y la
+ * unidad en 1.3.2. { cantidad, unidad, texto }: cantidad, un número si se resuelve; si no, undefined y el texto dice por qué.
+ */
+export function totalDe(eje, reserva) {
+  const id = reserva.id ?? reserva;
+  const c = leerPosicion(eje, id, [1, 3, 1]);
+  const u = leerPosicion(eje, id, [1, 3, 2]);
+  const cantidad = c.estado === 'RESUELTO' && c.valor.length === 1 && typeof c.valor[0] === 'number' ? c.valor[0] : undefined;
+  const unidad = u.estado === 'RESUELTO' && u.valor.length === 1 && typeof u.valor[0] === 'string' ? u.valor[0] : undefined;
+  return { cantidad, unidad, texto: cantidad === undefined ? c.texto : cantidad + ' ' + (unidad ?? '') };
 }
 
 /** Un movimiento anunciado (VG 12-11, decisión 8): la serie, cuánto, de quién y a quién, sin tocar saldos (motor.siguiente lo lee). */
@@ -454,8 +467,8 @@ export async function confirmarReserva(eje, reserva, { claves = {}, t = '2026-11
   nochesDe(eje, reserva);
   const ya = { entrega: hecho(CASA, 'Plaza entregada'), pago: hecho(quien, 'Pagada') };
   if (cerrado(eje, reserva.id).cerrado && ya.entrega && ya.pago) return { ...ya, yaConfirmada: true };
-  const total = evaluar(eje, reserva.id, [1, 3]);
-  const alcanza = total.estado === 'RESUELTO' && total.valor.tipo === 'magnitud' && total.valor.unidad === 'EUR' && eje.saldo(quien, EUR) >= total.valor.cantidad;
+  const total = totalDe(eje, reserva);
+  const alcanza = total.cantidad !== undefined && total.unidad === 'EUR' && eje.saldo(quien, EUR) >= total.cantidad;
   if (!hecho(quien, 'Pagada') && !alcanza) throw new Error('sin saldo para pagar ' + total.texto + ': no se entrega la plaza');
   const entrega = (await cumplir(eje, reserva, CASA, { t, titulo: 'Plaza entregada', privada: priv(CASA) })) ?? hecho(CASA, 'Plaza entregada');
   const pago = (await cumplir(eje, reserva, quien, { t, titulo: 'Pagada', privada: priv(quien) })) ?? hecho(quien, 'Pagada');

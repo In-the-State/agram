@@ -160,10 +160,10 @@ export async function ejemploComprasHermanas({ claves: dadas = {} } = {}) {
     movimientos: [hora('vecina'), eur('vecina', 'cocina', 12)],
     payload: [
       'Compra de dos guisos',
-      [[{ ref: menu.id, dir: '1000000000' }], [2], ['=2 * 6 EUR']], // fórmula resuelta
+      [[{ ref: menu.id, dir: '1000000000' }], [2], [['dos guisos'], ['=2 * 6'], ['EUR']]], // fórmula resuelta: 12 EUR desplegado (1.2.1 la cantidad, 1.2.2 la unidad)
       [{ ref: menu.id, dir: '2000000000' }],
       ['vecina', 'cocina'],
-      ['pagar', '=LOCAL(9)'], // fórmula pendiente: la 9 no está desarrollada
+      ['pagar', '=(payload(it)).9 + 0'], // fórmula pendiente: la 9 no está desarrollada
     ],
   });
   const cafe = await escribir({
@@ -195,7 +195,7 @@ export async function ejemploComprasHermanas({ claves: dadas = {} } = {}) {
     sobre: cena.id,
     t: '2026-11-07T16:20:00Z',
     movimientos: [hora('vecina'), eur('vecina', 'cocina', 7)],
-    payload: ['Sopa para llevar', [[{ ref: cena.id, dir: '1000000000' }], [1], ['=9 EUR - 2 EUR']]],
+    payload: ['Sopa para llevar', [[{ ref: cena.id, dir: '1000000000' }], [1], [['con descuento'], ['=9 - 2'], ['EUR']]]],
   });
 
   // Proyecto B: el mercado, su cosa y un puesto con dos compras.
