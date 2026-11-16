@@ -158,13 +158,12 @@ const dirCorta = (dir) => {
  */
 function marcaDeVerificado(eje, X, opciones) {
   const v = contrato.verificado(eje, X, opciones);
-  // «pendiente de sello» (encargo «verificado-regla», #50 y #67): el eje tiene sello configurado y la regla del sello aún
-  // no lo da por bueno porque le falta el dato (contrato.verificado, pendienteDeSello); nada se rechaza.
+  // «pendiente de sello» ya no se pinta (VG 16-11, encargo «firmeza»): «ejecutada» no espera al sello; hasta qué capa ha
+  // llegado lo dicen las estaciones de firmeza del reverso.
   // «pendiente de segundo factor» (VG 12/13-11, #66, #70): lo que el registro mueve alcanza un criterio de su autor y aún
   // falta la autorización de su titular (acciones.segundoFactor); con su motivo, para el title.
   const sf = acciones.segundoFactor(eje, X, opciones);
   const segundo = sf?.pendiente ? { pendienteDeSegundoFactor: true, motivoSegundoFactor: sf.motivo } : {};
-  if (v?.pendienteDeSello) return { pendienteDeSello: true, ...segundo };
   if (!v?.ok) return segundo;
   return { verificado: true, ...(v.profundidad !== null ? { confirmaciones: v.profundidad } : {}), ...(v.enFirme ? { enFirme: true, minimas: exterior.ajustesDelEje(eje, opciones).confirmaciones } : {}), ...segundo };
 }
@@ -175,6 +174,17 @@ function marcaDeVerificado(eje, X, opciones) {
  * lectura «paid» (contrato.verificado, X.6.8.6) es verdadera, 'pendiente' si la sincronía de la cuenta espera su recibo
  * (estadoDePago), 'noVale' si «paid» es falsa; sin recibo ni espera, null. Nunca una pantalla de pagar.
  */
+/**
+ * Las estaciones de firmeza de un registro en su reverso (VG 16-11: «la carta enseña, en el 5, hasta qué capa ha llegado»;
+ * encargo «firmeza»): lo que da contrato.firmeza (una estación por capa de la época, epoch.7.6, con su estado; la exigida;
+ * firme y en duda; las confirmaciones de la de Bitcoin) y las confirmaciones que pide el eje (para el title de «en firme»).
+ * La carta no decide nada: solo lo pinta. null si el registro no está.
+ */
+function firmezaDelRegistro(eje, X, opciones) {
+  const f = contrato.firmeza(eje, X, opciones);
+  return f ? { ...f, minimas: exterior.ajustesDelEje(eje, opciones).confirmaciones } : null;
+}
+
 function pagoDelRegistro(eje, X, ctx) {
   const buscar = Boolean(ctx.yo && exterior.exterior(eje, ctx.yo, ctx.opciones).pago);
   const v = eje.pago?.(X) ? contrato.verificado(eje, X, ctx.opciones) : null;
@@ -684,6 +694,8 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
       tLegible: ev?.t ? fechaDelRegistro(ev.t, ctx.estado.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null,
       // «verificado» (los tres relojes, contrato.verificado): solo si lo está; una marca discreta, nunca un dato de la carta.
       ...marcaDeVerificado(eje, X, ctx.opciones),
+      // Las estaciones de firmeza (encargo «firmeza», VG 16-11): en el reverso sustituyen a la marca de verificado.
+      firmeza: firmezaDelRegistro(eje, X, ctx.opciones),
       // El recibo de pago (X.6.8.3): «pagado», «pago pendiente de bloque» o «no vale», y «buscar su recibo de pago» con «pay url».
       pago: pagoDelRegistro(eje, X, ctx),
     };
@@ -1693,7 +1705,7 @@ function estadosDeEstaciones(eje, R, ctx) {
   const estados = new Map();
   for (const e of acciones.estaciones(eje, R, ctx.opciones)) {
     for (const id of e.pendientes) estados.set(id, (e.autorizados ?? []).includes(id) ? 'autorizada' : 'propuesta');
-    for (const id of e.hechos) estados.set(id, [...(e.pendientesDeSello ?? []), ...(e.pendientesDeSegundoFactor ?? [])].includes(id) ? e.estacionDe?.[id] ?? 'autorizada' : 'ejecutada');
+    for (const id of e.hechos) estados.set(id, (e.pendientesDeSegundoFactor ?? []).includes(id) ? e.estacionDe?.[id] ?? 'autorizada' : 'ejecutada');
   }
   return estados;
 }
@@ -1750,11 +1762,10 @@ function celdasDeMatriz(eje, R, pv, d, g, ctx, { pagina, entrar }) {
       n.estado = x.estacion;
       n.accion = x.accion;
       if (n.X) {
-        // En la matriz, «pendiente de sello» solo lo movido que su estación deja en autorizada (acciones.ejecuciones), no todo lo que aún no tiene sello.
-        const { pendienteDeSello: _sinSello, pendienteDeSegundoFactor: _sinSegundo, motivoSegundoFactor: _motivo, ...marca } = marcaDeVerificado(eje, n.X, ctx.opciones);
+        // En la matriz, «pendiente de segundo factor» solo lo movido que su estación deja en autorizada (acciones.ejecuciones).
+        const { pendienteDeSegundoFactor: _sinSegundo, motivoSegundoFactor: _motivo, ...marca } = marcaDeVerificado(eje, n.X, ctx.opciones);
         Object.assign(n, marca);
       }
-      if (x.pendienteDeSello) n.pendienteDeSello = true;
       // El segundo factor (#66, #70): lo que su estación deja en autorizada porque espera la autorización del titular.
       if (x.pendienteDeSegundoFactor) n.pendienteDeSegundoFactor = true;
       const [fila, columna] = conEjes ? [x.oficio, x.ejecucion] : [x.posicion, x.pv];

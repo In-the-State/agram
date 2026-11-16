@@ -468,8 +468,8 @@ function htmlFlotante(f) {
 /** Las ejecuciones que se ven en una celda de la matriz; las demás, contadas («+n»). */
 const EJECUCIONES_EN_CELDA = 3;
 
-/** El nombre de una estación de la fábrica (propuesta, autorizada, ejecutada), en el idioma de la interfaz. */
-const textoEstacion = (estado) => t({ ejecutada: 'estadoEjecutada', autorizada: 'estadoAutorizada' }[estado] ?? 'estadoPropuesta');
+/** El nombre de una estación de la fábrica (propuesta, autorizada, ejecutada, verificada: «en firme»), en el idioma de la interfaz. */
+const textoEstacion = (estado) => t({ verificada: 'estadoVerificada', ejecutada: 'estadoEjecutada', autorizada: 'estadoAutorizada' }[estado] ?? 'estadoPropuesta');
 
 /** El texto de la marca de verificado: «verificado», «verificado · N confirmaciones» si se conoce la profundidad, «en firme» si ya las tiene todas. */
 const textoVerificado = (o) => (o.enFirme ? t('enFirme') : o.confirmaciones === 1 ? t('verificadoUnaConfirmacion') : o.confirmaciones > 1 ? t('verificadoConfirmaciones', { n: o.confirmaciones }) : t('verificado'));
@@ -487,11 +487,39 @@ function htmlPago(p, X) {
   const boton = p.buscar && p.estado !== 'pagado' ? `<button type="button" class="enlace buscar-pago" data-buscar-pago data-x="${attr(X)}" title="${attr(t('buscarPagoTitulo'))}">${escapar(t('buscarPago'))}</button>` : '';
   return `<p class="verificado-linea pago-linea">${[marca, boton].filter(Boolean).join(' ')}</p>`;
 }
-/** «pendiente de sello» (encargo «verificado-regla», #50 y #67): movido, pero el eje tiene sello y aún no está «sealed». */
-const htmlPendienteDeSello = () => `<small class="pendiente-sello" title="${attr(t('pendienteDeSelloTitulo'))}">${escapar(t('pendienteDeSello'))}</small>`;
+
 /** «pendiente de segundo factor» (VG 12/13-11, #66, #70): movido, pero espera la autorización del titular; su title, el motivo del núcleo si lo hay. */
 const htmlPendienteDeSegundoFactor = (o) => `<small class="pendiente-segundo-factor" title="${attr(o?.motivoSegundoFactor || t('pendienteDeSegundoFactorTitulo'))}">${escapar(t('pendienteDeSegundoFactor'))}</small>`;
-const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : o?.pendienteDeSello ? htmlPendienteDeSello() : '') + (o?.pendienteDeSegundoFactor ? htmlPendienteDeSegundoFactor(o) : '');
+const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : '') + (o?.pendienteDeSegundoFactor ? htmlPendienteDeSegundoFactor(o) : '');
+
+/** El nombre de un nivel del sello en cascada (un número de la época, VG 16-11) en el idioma de la interfaz: nivel_<n>; si no lo hay, «nivel n». */
+const textoCapa = (nivel) => (t('nivel_' + nivel) === 'nivel_' + nivel ? t('nivelSinTexto', { n: nivel }) : t('nivel_' + nivel));
+/** El grado de un eslabón (opaco, VG 16-11): grado_<valor> si la carta lo tiene; si no, «grado <valor>». Nada lo compara. */
+const textoGrado = (g) => (t('grado_' + g) === 'grado_' + g ? t('gradoSinTexto', { g }) : t('grado_' + g));
+/** La palabra de resumen de la firmeza: en duda, en firme, o se puede usar sin estar aún en firme. */
+const resumenFirmeza = (f) => (f.enDuda ? 'enDuda' : f.firme ? 'firme' : 'usable');
+const TEXTO_RESUMEN = Object.freeze({ enDuda: 'firmezaEnDuda', firme: 'firmezaFirme', usable: 'firmezaUsable' });
+const TEXTO_ESTADO_CAPA = Object.freeze({ alcanzada: 'capaAlcanzada', pendiente: 'capaPendiente', saltada: 'capaSaltada' });
+/**
+ * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (data-nivel), en su orden,
+ * con su estado (data-estado: alcanzada, pendiente, saltada), su grado cuando el eslabón lo dice («grado X», sin comparar),
+ * la que exige el registro señalada (data-exigida) y, en la última (Bitcoin), lo de hoy (las confirmaciones y «en firme» con
+ * las del ajuste: htmlVerificado); detrás, la palabra de resumen. Todo sale de contrato.firmeza; aquí no se decide nada.
+ * '' sin firmeza.
+ */
+function htmlFirmeza(f) {
+  if (!f?.capas?.length) return '';
+  const ultima = f.capas.length - 1;
+  const estaciones = f.capas.map((c, k) => {
+    const exigida = c.nivel === f.exigida;
+    const grado = c.grado !== undefined && c.grado !== null ? textoGrado(c.grado) : '';
+    const titulo = textoCapa(c.nivel) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (grado ? ' · ' + grado : '') + (exigida ? ' · ' + t('capaExigida') : '');
+    const bitcoin = k === ultima && c.estado === 'alcanzada' && f.confirmaciones ? ' ' + htmlVerificado({ confirmaciones: f.confirmaciones, enFirme: f.enFirme, minimas: f.minimas }) : '';
+    return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.nivel))}</span>${grado ? ` <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}</li>`;
+  }).join('');
+  const r = resumenFirmeza(f);
+  return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida !== null && f.exigida !== undefined ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;
+}
 
 /**
  * Lo de dentro de una celda de la matriz (encargo «datos2», issue #11: la celda es la lista de ejecuciones): cada una
@@ -1030,7 +1058,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
-      ${ancla}${c.verificado ? `<p class="verificado-linea">${htmlVerificado(c)}</p>` : c.pendienteDeSello ? `<p class="verificado-linea">${htmlPendienteDeSello()}</p>` : ''}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
+      ${ancla}${htmlFirmeza(c.firmeza)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
       ${htmlBtml(c.btml)}
       ${pasosHtml}${validacion}
     </section>`;

@@ -4,8 +4,8 @@
 // reglas de la época escritas con las primitivas de verificación; contrato.verificado es la fachada que las evalúa. Y
 // «paid» (X.6.8.6: el recibo de pago de StateArk copiado en X.6.8.3), con el carril de pagos de la simulación ddcc475 (observador y puntero). Sellos completos sintéticos (test/ayudas-sello.js) y los de la
 // simulación de StateArk (servidor/sim/sello-agram.js): verdadero con todo; PENDIENTE si falta un dato; falso con una
-// clave no declarada, una firma mala o una prueba que no cuadra. Y «sin verificar no se ejecuta»: las estaciones de
-// epoch.4.3 con y sin sello configurado, y «pendiente de sello» en la carta.
+// clave no declarada, una firma mala o una prueba que no cuadra. Y las estaciones de epoch.4.3 con y sin sello
+// configurado: desde el 16-11 (VG, encargo «firmeza») «ejecutada» no espera al sello y «verificada» exige «firm».
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -269,7 +269,7 @@ test('«received» (X.6.8.4): el recibo de llegada firmado por su relé es verda
   assert.deepEqual(contrato.verificado(b, y1.id).pendiente.map((p) => p.lectura), ['sello', 'recibo']);
 });
 
-test('«sin verificar no se ejecuta» (epoch.4.3): sin sello configurado, ejecutada como siempre; con «seal url» en la raíz y sin sellar, autorizada y «pendiente de sello»; sellado, verificada', async () => {
+test('las estaciones de epoch.4.3 desde el 16-11 (encargo «firmeza»): ejecutada no espera al sello, con o sin sello configurado; verificada cuando todo lo que lo cumple está «firm», y la carta la llama «en firme»', async () => {
   const c = await ejemploCompra();
   await ejemploFabrica(c.eje, c);
   const { eje, compra } = c;
@@ -277,32 +277,34 @@ test('«sin verificar no se ejecuta» (epoch.4.3): sin sello configurado, ejecut
   const [anuncio] = deE().hechos;
   assert.ok(anuncio, 'la fábrica de la compra tiene un anuncio de E ya movido');
   assert.equal(acciones.estacionDeAnuncio(eje, anuncio), 'ejecutada', 'sin «seal url» en la cuenta raíz, como antes');
-  assert.deepEqual(deE().pendientesDeSello, []);
+  assert.equal(deE().pendientesDeSello, undefined, 'ya no hay «pendientes de sello»');
 
-  // La cuenta raíz (casa) configura el sello y declara su observador: lo movido sin sello comprobado se queda en autorizada.
+  // La cuenta raíz (casa) configura el sello y declara su observador: lo movido sin sello comprobado YA NO se queda en
+  // autorizada (antes del 16-11, sí: «pendiente de sello»); se puede usar antes de estar en firme.
   const obs = await observadorDePrueba();
   await declararExterior(eje, { observadores: [obs.publica], sello: 'http://127.0.0.1:8787' });
-  assert.equal(acciones.estacionDeAnuncio(eje, anuncio), 'autorizada');
-  assert.deepEqual(deE().pendientesDeSello, [anuncio]);
+  assert.equal(acciones.estacionDeAnuncio(eje, anuncio), 'ejecutada');
   assert.deepEqual(deE().hechos, [anuncio], 'nada se rechaza ni se deshace: sigue movido');
   const ej = acciones.ejecuciones(eje, compra.id).find((x) => x.ocupante?.ref === anuncio);
-  assert.deepEqual([ej.estacion, ej.pendienteDeSello], ['autorizada', true]);
+  assert.deepEqual([ej.estacion, ej.pendienteDeSello], ['ejecutada', undefined]);
 
-  // La carta: la celda del 4 lo pinta en el color de autorizada, con «pendiente de sello».
+  // La carta: la celda del 4 lo pinta ejecutada, sin «pendiente de sello».
   const ORDENADOR = { ancho: 1920, alto: 1080 };
   const cuatro = html(await arbolEnIdioma({ foco: { X: compra.id, pv: 4 } }, eje, 'huesped', ORDENADOR, { idioma: 'es' }));
-  assert.match(cuatro, /<li class="ejecucion" data-estado="autorizada"[^>]*>(?:(?!<\/li>).)*<small class="pendiente-sello" title="[^"]+">pendiente de sello<\/small><\/li>/s);
+  assert.doesNotMatch(cuatro, /pendiente-sello/);
 
-  // Sellar todo lo que lo cumple (lo anclado sobre el anuncio) con la prueba completa: verificada.
+  // Sellar todo lo que lo cumple (lo anclado sobre el anuncio) con la prueba completa: «firm» (llega a Bitcoin), verificada.
   const cumplen = eje.sobre(anuncio).map((h) => h.id);
   assert.ok(cumplen.length > 0);
   for (const [k, id] of cumplen.entries()) eje.marcarSello(id, await selloCompleto(id, { altura: 10 + k, observador: obs }));
+  for (const id of cumplen) assert.equal(contrato.firmeza(eje, id).firme, true);
   assert.equal(acciones.estacionDeAnuncio(eje, anuncio), 'verificada');
-  assert.deepEqual(deE().pendientesDeSello, []);
   assert.deepEqual(deE().verificados, [anuncio]);
+  const verificada = html(await arbolEnIdioma({ foco: { X: compra.id, pv: 4 } }, eje, 'huesped', ORDENADOR, { idioma: 'es' }));
+  assert.match(verificada, /<li class="ejecucion" data-estado="verificada" title="en firme">(?:(?!<\/li>).)*<small class="estacion-nombre">en firme<\/small>/s, 'textoEstacion tiene el texto de «verificada»');
 });
 
-test('el reverso de un registro con sello configurado y sin sello comprobado dice «pendiente de sello»; sin sello configurado, nada', async () => {
+test('el reverso de un registro con sello configurado y sin sello comprobado: las estaciones de firmeza (encargo «firmeza») sustituyen a «pendiente de sello»; sin sello configurado, tampoco hay marca', async () => {
   const c = await ejemploCompra();
   const { eje, compra } = c;
   const ORDENADOR = { ancho: 1920, alto: 1080 };
@@ -311,8 +313,10 @@ test('el reverso de un registro con sello configurado y sin sello comprobado dic
   assert.doesNotMatch(html(await reverso()), /pendiente-sello/);
   await declararExterior(eje, { sello: 'http://127.0.0.1:8787' });
   const r = await reverso();
-  assert.equal(r.centro.pendienteDeSello, true);
-  assert.match(html(r), /<p class="verificado-linea"><small class="pendiente-sello" title="[^"]+">pendiente de sello<\/small><\/p>/);
+  assert.equal(r.centro.pendienteDeSello, undefined, 'desde el 16-11 la carta ya no pinta «pendiente de sello»');
+  // Encargo «firmeza» (VG 16-11): en el reverso, la fila de estaciones sustituye a la marca de hoy: nada sellado, «se puede usar, aún no en firme».
+  assert.doesNotMatch(html(r), /pendiente-sello/);
+  assert.match(html(r), /<div class="firmeza" data-resumen="usable"[^>]*><ol class="estaciones-firmeza">(?:<li class="estacion-firmeza" data-nivel="[0-9]+" data-estado="pendiente"[^>]*>(?:(?!<\/li>).)*<\/li>){4}<\/ol><small class="firmeza-resumen" title="[^"]+">se puede usar, aún no en firme<\/small><\/div>/s);
 });
 
 // ---------- «paid» (X.6.8.6): el recibo de pago de StateArk copiado en X.6.8.3 (encargos «taproot» y «pago2», Core AGRAM 13-11) ----------

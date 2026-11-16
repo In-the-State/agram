@@ -32,6 +32,9 @@
 //   relojesFueraDeOrden(eje, id)           si los tres relojes de un registro (X.6.8) van fuera de orden: la lectura «clocks out of order»
 //   verificado(eje, id)                    { ok, sello, recibo, relojes, altura, profundidad, enFirme, pendiente, pendienteDeSello }: lo que dicen las reglas «sealed» y «received»
 //                                          de la época, relojes en orden, cuántas confirmaciones tiene y lo que falta para comprobarlo (§4.4)
+//   firmeza(eje, id)                       { capas: [{ nivel, estado, grado? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme }: hasta qué
+//                                          nivel del sello en cascada ha llegado (la regla «firm», X.6.8.9) y si está en duda por una bifurcación
+//   cascadaDe(epoca)                       { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] }: el 7.5 y el 7.6
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
 //   yo(eje, identidad)                     mi alta y sus posiciones: cartera, criterio, atención, tiempo
 //   configuracion(eje, yo)                 mis preferencias (el registro en el 9 de mi alta) o los defectos de la plantilla
@@ -53,7 +56,7 @@ import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, esFormula } from './bqlm.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
 import { ocupantes as ocupantesDe } from './encaje.js';
-import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken } from './tokens.js';
+import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken, movimientosReales } from './tokens.js';
 import { esInstante, msUTC, msDeGuardado } from './instante.js';
 import { HITOS, cajaDeCuota, confluir, situar, SIN_BASE_ESCRITA } from './bases.js';
 import { pasoDe } from './pasos.js';
@@ -1790,6 +1793,40 @@ export function pvDeEntrada(eje, X, id) {
   return (ev.sobre ? digitoReferido(ev.payload, ev.sobre) : null) ?? 0;
 }
 
+/** Dónde pone la época el plazo de anclaje de cada nivel y los niveles del sello en cascada (VG 16-11, encargo «firmeza»). */
+const CASCADA = Object.freeze({ plazos: [7, 5], capas: [7, 6], calendario: [7, 0] });
+
+/**
+ * El sello en cascada según la época (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 y §7; encargo «firmeza»). De epoch.7.5, por
+ * clase de dueño de la línea, el plazo máximo desde la última cabecera anclada en Bitcoin (dato para quien sella: AGRAM no lo
+ * exige); de epoch.7.6, los niveles de abajo arriba (números: el orden es el rango), cada uno con su ritmo máximo de sellos
+ * (cabeceras de lote) y la familia de token que queda en firme en él. Plazos y ritmos son ESCALAS de T: el índice de la
+ * escala en epoch.7.0 de la misma época (el dígito de la serie de T); aquí se resuelven sus segundos (null si 7.0 no tiene
+ * ese índice). Lee la época dada (un registro de época cargado o su décupla; por defecto, la 0): una época hija que fije su
+ * 7.5 o su 7.6 manda (la resuelta ya lleva lo suyo).
+ * → { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] } (ritmo en segundos).
+ */
+export function cascadaDe(epoca = EPOCA_0_BTML) {
+  const raiz = raizDe(epoca ?? EPOCA_0_BTML);
+  const calendario = hojas(en(raiz, CASCADA.calendario));
+  const segundosDe = (k) => {
+    const fila = Number.isSafeInteger(k) && k >= 0 ? calendario[k] : undefined;
+    const s = Array.isArray(fila) ? Number(hoja(fila[1])) : NaN;
+    return Number.isFinite(s) ? s : null;
+  };
+  const indice = (x) => (Number.isSafeInteger(x) ? x : null);
+  const plazos = en(raiz, CASCADA.plazos);
+  const claves = hojas(plazos?.[1]).map(texto);
+  const valores = hojas(plazos?.[2]);
+  const capas = en(raiz, CASCADA.capas);
+  const ritmos = hojas(capas?.[2]);
+  const familias = hojas(capas?.[3]);
+  return {
+    plazos: Object.fromEntries(claves.map((k, i) => [k, { escala: indice(valores[i]), segundos: segundosDe(indice(valores[i])) }]).filter(([k]) => k)),
+    capas: hojas(capas?.[1]).map((nivel, i) => ({ nivel: Number.isSafeInteger(nivel) ? nivel : null, escala: indice(ritmos[i]), ritmo: segundosDe(indice(ritmos[i])), familia: texto(familias[i]) ?? null })).filter((c) => c.nivel !== null),
+  };
+}
+
 /** Dónde pone la época los estados del futuro (VG 12-11, estudio BQL-transacciones): 0 la cabecera, 1… [[nombre], [cuándo], [su fecha]]. */
 const ESTADOS_DEL_FUTURO = [7, 4];
 
@@ -1861,7 +1898,69 @@ export function relojesFueraDeOrden(eje, id, opciones = {}) {
  * X.6.8.1 («received») y X.6.8.6 el recibo de pago copiado en X.6.8.3 («paid»). Los nombres y las fórmulas son de la
  * época; aquí solo las posiciones, como «clocks out of order» en X.6.9.
  */
-const COMPRUEBA = Object.freeze({ sello: '=first (first it.6).8.5', recibo: '=first (first it.6).8.4', pago: '=first (first it.6).8.6' });
+const COMPRUEBA = Object.freeze({ sello: '=first (first it.6).8.5', recibo: '=first (first it.6).8.4', pago: '=first (first it.6).8.6', firmeza: '=first (first it.6).8.9' });
+
+/**
+ * Las familias que un registro mueve con SUS PROPIAS SENTENCIAS (Core AGRAM 16-11, encargo «firmeza»): lo declarado y no
+ * anunciado (lo que cambia de manos, se acuña, se quema por decisión o se bloquea), sin la quema de T real de su autor (el
+ * coste de escribir) y sin lo que el libro da solo (los diez P por escribir, por recibir E o R: no son movimientos del
+ * registro). El mismo criterio que la regla «firm» (X.6.8.9).
+ */
+function familiasSentenciadas(ev) {
+  const coste = (m) => m.token === 'T' && (m.a === null || m.a === undefined) && m.de === ev.autor && ESCALAS_REALES.includes(m.escala);
+  return [...new Set(movimientosReales(ev).filter((m) => m && typeof m.token === 'string' && !coste(m)).map((m) => m.token))];
+}
+
+/**
+ * La firmeza de un registro (VG 16-11: «la carta enseña, en el 5, hasta qué capa ha llegado»; encargo «firmeza»; la
+ * fachada de la regla «firm», X.6.8.9, como verificado() lo es de «sealed»). Los niveles son los de la época (cascadaDe, 7.6).
+ * → { capas: [{ nivel, estado, grado? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme } o null si el registro no está:
+ *   capas      uno por nivel de 7.6, en su orden, con su estado: «alcanzada» (la prueba pasa por él; el primero, también
+ *              con su recibo de llegada; el último, Bitcoin, con «sealed»), «saltada» (por debajo del más alto alcanzado,
+ *              y la prueba no pasa por él) o «pendiente» (por encima); en cada nivel alcanzado por un eslabón de la cadena,
+ *              `grado`: el que dice ese eslabón (9.k.4, opaco: nada lo compara) o null;
+ *   alcanzada  el número del nivel más alto alcanzado, o null;
+ *   exigida    el del nivel de la familia más alta que el registro mueve con sus propias sentencias (sin el coste de
+ *              escribir ni el P que da el libro); el primero si no mueve nada;
+ *   firme      lo que da la regla «firm» (falso si queda PENDIENTE): la época decide, no esta función;
+ *   enDuda     true si su sello en cascada pasa por una cabecera de una clave acusada de bifurcación (eje.bifurcaciones)
+ *              con número igual o mayor que el de la bifurcación (SIP 0 §3: nada castiga solo; «sealed» y «firm» no cambian);
+ *   confirmaciones, enFirme  los de verificado(): la profundidad de su bloque y si ya tiene las de los ajustes del exterior.
+ */
+export function firmeza(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  if (typeof id !== 'string' || !eje?.obtener?.(id)) return null;
+  const ev = eje.obtener(id);
+  const epoca = epocaDe(opciones, eje);
+  const tabla = cascadaDe(epoca).capas;
+  const v = verificado(eje, id, opciones);
+  const ctx = new ContextoEje(eje, { epoch: epoca });
+  const recibido = eje.recibo?.(id) ? comprobar(COMPRUEBA.recibo, ctx, id).valor === true : false;
+  const sello = eje.sello?.(id)?.decupla;
+  const cadena = Array.isArray(sello) && sello[6] === 'cascada' && Array.isArray(sello[9]) ? sello[9].filter(Array.isArray) : [];
+  // El nivel de cada eslabón (9.k.1) y su grado (9.k.4), el del primer eslabón de ese nivel.
+  const gradoDeNivel = new Map();
+  for (const e of cadena) {
+    const nivel = hoja(e[1]);
+    if (Number.isSafeInteger(nivel) && !gradoDeNivel.has(nivel)) gradoDeNivel.set(nivel, e[4] === undefined ? null : hoja(e[4]) ?? null);
+  }
+  const ultima = tabla.length - 1;
+  const alcanza = tabla.map((c, k) => (k === ultima ? v.sello : k === 0 ? gradoDeNivel.has(c.nivel) || recibido : v.sello && gradoDeNivel.has(c.nivel)));
+  const alto = alcanza.lastIndexOf(true);
+  const familias = familiasSentenciadas(ev);
+  const exigida = Math.max(0, ...tabla.map((c, k) => (familias.includes(c.familia) ? k : -1)));
+  const cabeceras = cadena.map((e) => e[0]).filter(Array.isArray).map((c) => ({ numero: c[1], clave: c[5] }));
+  const enDuda = (typeof eje.bifurcaciones === 'function' ? eje.bifurcaciones() : []).some((b) => cabeceras.some((c) => c.clave === b.acusado && Number.isSafeInteger(c.numero) && c.numero >= b.numero));
+  return {
+    capas: tabla.map((c, k) => ({ nivel: c.nivel, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente', ...(alcanza[k] && gradoDeNivel.has(c.nivel) ? { grado: gradoDeNivel.get(c.nivel) } : {}) })),
+    alcanzada: alto < 0 ? null : tabla[alto].nivel,
+    exigida: tabla[exigida]?.nivel ?? null,
+    firme: comprobar(COMPRUEBA.firmeza, ctx, id).valor === true,
+    enDuda,
+    confirmaciones: v.profundidad,
+    enFirme: v.enFirme,
+  };
+}
 
 /** Lo que da una lectura de verdadero o falso sobre un registro: { valor: true | false } o { pendiente: motivo } si falta el dato. */
 function comprobar(expr, ctx, id) {
@@ -1894,7 +1993,7 @@ function comprobar(expr, ctx, id) {
  *   pendiente  [{ lectura: 'sello' | 'recibo' | 'pago', motivo }]: lo que no se pudo comprobar porque falta un dato (el motivo de
  *            la regla, que dice cuál), nunca verdadero;
  *   pendienteDeSello  true si el eje tiene sello configurado (la «seal url» de la cuenta raíz, before.8.3) y la regla del
- *            sello queda pendiente: «sin verificar no se ejecuta» (#50), lo que la carta enseña como «pendiente de sello».
+ *            sello queda pendiente (#50). Desde el 16-11 (VG, encargo «firmeza») ninguna estación espera al sello y la carta no lo pinta: lo dicen las estaciones de firmeza (firmeza()).
  * Sin sello verificado nunca es ok: sin Bitcoin no hay «verificado».
  */
 export function verificado(eje, id, opciones = {}) {
