@@ -148,7 +148,7 @@ Los guisos mueven 12 EUR de los 32 que mueven las cuatro compras del menú (37,5
 
 **Scened**, igual: `escena()` no mide ningún registro y `recuentos.medidas` es `null`; con `{ medidas: true }`, o después con `medidasDeEscena(eje, escena)`, suma la medida del 8 de cada foco en escena (la misma función, una vez por foco). El render sobrio lo dice en una línea propia (`medidas del 8: bajo demanda …` o `medidas del 8 (suma de n focos): …`).
 
-**En el frontend** (`ui/ocho.js`, enganchado en `app.js`): la celda 8 llama a `ocho` al pintarse (es ahí donde se mide el foco; `mapa()` se pide sin medidas). Arriba, tres botones reales con `aria-pressed` (`hermanos`, `proyecto`, `todo el eje`); la elegida se recuerda en el navegador (`agram.ocho.cohorte`) solo como comodidad, y sin almacenamiento vuelve a hermanos. Debajo, de dónde se lee («entre hermanos · base 1a2b3c4d · sin novedades · n 4» o «sin base escrita (respaldo al vuelo)»), una fila por serie con la cantidad del foco, su caja y su cuota, y en una línea más discreta, marcada «información», los recuentos. Todo envuelve: a 400 px, sin scroll horizontal (un P sobre un registro se enseña con ocho caracteres de su id). En Scened, un botón «medir la escena» pide la suma. El cielo animado (`mundos/cielo.js`, `datosCielo`) lee con `ocho`, la misma función que la celda sobria: una sola verdad.
+**En la web antigua** (`ui/ocho.js`, enganchado en `app.js`; retirada con el BQL V0, #113: la carta lee la celda 8 por el contrato): la celda 8 llama a `ocho` al pintarse (es ahí donde se mide el foco; `mapa()` se pide sin medidas). Arriba, tres botones reales con `aria-pressed` (`hermanos`, `proyecto`, `todo el eje`); la elegida se recuerda en el navegador (`agram.ocho.cohorte`) solo como comodidad, y sin almacenamiento vuelve a hermanos. Debajo, de dónde se lee («entre hermanos · base 1a2b3c4d · sin novedades · n 4» o «sin base escrita (respaldo al vuelo)»), una fila por serie con la cantidad del foco, su caja y su cuota, y en una línea más discreta, marcada «información», los recuentos. Todo envuelve: a 400 px, sin scroll horizontal (un P sobre un registro se enseña con ocho caracteres de su id). En Scened, un botón «medir la escena» pide la suma. El cielo animado (`mundos/cielo.js`, `datosCielo`) lee con `ocho`, la misma función que la celda sobria: una sola verdad.
 
 ### 0.5 bis Las formas de la división, por modo
 
@@ -233,11 +233,11 @@ Cada pieza de `focos`: `posicion`, `id`, `autor`, `t`, `sobre`, `en`, `nivel`, `
 |---|---|---|---|
 | `hilo` | foco → su antecesor más cercano **que esté en la escena** | `saltos`; si es directo (1 salto), `en`: la dirección donde está anclado | siempre que algún antecesor sea foco |
 | `referencia` | foco → foco al que apunta una referencia BTML de su payload | `camino` (dónde está la referencia en el foco que la tiene), `dir` (a qué posición apunta) | cada referencia del payload entero, a cualquier profundidad |
-| `formula` | foco → foco nombrado por un `REF` de una fórmula BQL de su payload | `camino`, `dir` | lectura estática del árbol de la fórmula (`bql.analizar`): no se evalúa nada |
+| `formula` | foco → foco nombrado en una fórmula de su payload por un texto literal de 64 hex (su id) | `camino`, `dir` | lectura estática del árbol de la fórmula (`bqlm.registrosDeFormula`): no se evalúa nada |
 
-Un `REF` da arista con **las mismas reglas con que REF resuelve en BQL** (`src/bql.js`): el primer argumento, un texto literal con el id o un prefijo, con o sin `@`, sin distinguir mayúsculas, hexadecimal y único en el eje; el segundo, si está, un texto literal de diez dígitos (sin él, la raíz `0000000000`). Lo que en BQL da ERROR (referencia mal formada o ambigua, una dirección que no es un texto de diez dígitos, como `"12"` o el número `1200000000`) o PENDIENTE (prefijo ausente del eje) no da arista; una fórmula que no se puede analizar, tampoco. Un `REF` con un argumento calculado (una expresión) depende de evaluar y no se lee aquí. Un `REF` anidado (dentro de `FILTRAR`, `SUMAR`…) sí cuenta. `BUSCAR`, `ACTUAL` y demás dependen de evaluar y no dan aristas. La prueba `lectura estática de REF` contrasta cada caso con `bql.consultar`: hay arista si y solo si BQL lo resuelve, y apunta a lo que BQL lee (sus `dependencias`).
+Retirada de BQL V0 (#113): una fórmula del payload es BQL mínimo (`docs/BQLM.md` §14) y nombra otro registro por su id entero, un texto literal de 64 hex. Da arista cada literal así que sea un registro del eje, con la dirección de los dígitos fijos que le siguen (`(payload("<id>")).1.2.1` → `1210000000`; sin ellos, la raíz): lo mismo que se mira antes de evaluarla (`bqlm.registrosDeFormula`). Un id que no está en el eje no da arista (la fórmula queda PENDIENTE). Lo que sigue describía el `REF` del V0: un `REF` daba arista con **las mismas reglas con que REF resolvía en BQL V0** (`src/bql.js`, borrado): el primer argumento, un texto literal con el id o un prefijo, con o sin `@`, sin distinguir mayúsculas, hexadecimal y único en el eje; el segundo, si está, un texto literal de diez dígitos (sin él, la raíz `0000000000`). Lo que en BQL da ERROR (referencia mal formada o ambigua, una dirección que no es un texto de diez dígitos, como `"12"` o el número `1200000000`) o PENDIENTE (prefijo ausente del eje) no da arista; una fórmula que no se puede analizar, tampoco. Un `REF` con un argumento calculado (una expresión) depende de evaluar y no se lee aquí. Un `REF` anidado (dentro de `FILTRAR`, `SUMAR`…) sí cuenta. `BUSCAR`, `ACTUAL` y demás dependen de evaluar y no dan aristas. La prueba `lectura estática de REF` contrasta cada caso con `bql.consultar`: hay arista si y solo si BQL lo resuelve, y apunta a lo que BQL lee (sus `dependencias`).
 
-Las referencias (BTML o REF) a registros que no están en la escena no son aristas: se cuentan en `recuentos.referenciasFuera`.
+Las referencias (BTML o un id en una fórmula) a registros que no están en la escena no son aristas: se cuentan en `recuentos.referenciasFuera`.
 
 ## 5. Recuentos
 
@@ -287,12 +287,12 @@ Una cabecera con el marco común y las cifras (`31 de 10000 posiciones · mín 1
 | `hilo→1 en 1000000000` | escrito sobre el foco 1, anclado en su posición 1 |
 | `hilo→0 (3 saltos)` | el foco 0 es su antecesor, tres registros más arriba |
 | `ref 1.0→0:1000000000` | en su posición 1.0 hay una referencia a la 1000000000 del foco 0 |
-| `fórmula 1→1:1200000000` | la fórmula de su posición 1 lee con REF la 1200000000 del foco 1 |
+| `fórmula 1.1.0→1:1210000000` | la fórmula de su 1.1 (el ocupante 0 de esa lista) lee la 1.2.1 del foco 1, que nombra por su id |
 | `hermano 1 de 2 (3 en el eje)` | primero de los dos hermanos que hay en la escena; en el eje son tres |
 
 ## 8. Ejemplo ejecutable
 
-La compra del ejemplo, su cuenta (con la fórmula `=REF("b0d35693", "1200000000") + 2 EUR`) y dos compras hermanas más del mismo menú:
+La compra del ejemplo, su cuenta (con la fórmula `=(payload("<id de la compra>")).1.2.1 + 2` en su 1.1) y dos compras hermanas más del mismo menú:
 
 ```sh
 node --input-type=module -e "
@@ -316,17 +316,17 @@ console.log(render(escena(eje, [compra.id, c2.id, c3.id, menu.id], { ahora, capa
 ```
 
 ```text
-escena · 5 de 5 focos · común f6ebd2f9 · época 0 · camino raíz · 31 de 10000 posiciones · mín 1000 (no llega) · máx 10000
+escena · 5 de 5 focos · común f6ebd2f9 · época 0 · camino raíz · 33 de 10000 posiciones · mín 1000 (no llega) · máx 10000
 0 n0 f6ebd2f9 cocina · 0 Menú del día · 1 [3] · 2 [2] · hermano 1 de 1 · pasado 5 futuro 0 · ← 7
 1 n1 a2d5241f huesped · 0 Compra del menú del día · 1 [3] · 2 [2] · 3 [2] · 4 [2] · 5 purchase · hermano 1 de 3 · pasado 4 futuro 0 · hilo→0 · ref 1.0.0→0:1000000000 · ref 2.0→0:2000000000 · ← 2
-2 n2 415eaa23 cocina · 0 Cuenta del menú · 1 =REF("a2d5241f", "1200000000") … · 2 =LOCAL(1) + 15 min · 3 ==no es fórmula · hermano 1 de 1 · pasado 4 futuro 0 · hilo→1 en 1000000000 · fórmula 1→1:1200000000
+2 n2 4663b13b cocina · 0 Cuenta del menú · 1 [3] · 2 15 min · 3 ==no es fórmula · hermano 1 de 1 · pasado 4 futuro 0 · hilo→1 en 1000000000 · fórmula 1.1.0→1:1210000000
 3 n1 089a62ea huesped · 0 Segunda compra · 1 [3] · hermano 2 de 3 · pasado 3 futuro 0 · hilo→0 · ref 1.0→0:1000000000
 4 n1 581f8401 huesped · 0 Tercera compra · 1 [3] · hermano 3 de 3 · pasado 3 futuro 0 · hilo→0 · ref 1.0→0:1000000000
 aristas: hilo 4 · referencia 4 · fórmula 1 · fuera de escena 0
 recuentos: grupos 3 · pasado 19 · futuro 0
 medidas del 8 (suma de 5 focos): escritos 4 · movimientos 8 · posiciones 17 · identidades 8
 ---
-escena · 4 de 4 focos · común df76b91d · época 0 · camino raíz · 43 de 10000 posiciones · mín 1000 (no llega) · máx 10000
+escena · 4 de 4 focos · común df76b91d · época 0 · camino raíz · 45 de 10000 posiciones · mín 1000 (no llega) · máx 10000
 0 n0 df76b91d casa · Casa de ejemplo · hermano 1 de 1 · pasado 3 futuro 0 · ← 1
 1 n1 c0dab795 casa · 0 cocina · hermano 1 de 1 (3 en el eje) · pasado 2 futuro 0 · hilo→0 · ← 1
 2 n2 f6ebd2f9 cocina · 0 Menú del día · 1 [3] · 2 [2] · hermano 1 de 1 · pasado 5 futuro 0 · hilo→1 · ← 3
@@ -335,7 +335,7 @@ aristas: hilo 3 · referencia 2 · fórmula 0 · fuera de escena 0
 recuentos: grupos 4 · pasado 14 · futuro 0
 medidas del 8: bajo demanda (escena con { medidas: true })
 ---
-escena · 3 de 3 focos · común f6ebd2f9 · época 0 · camino raíz · 31 de 10000 posiciones · mín 1000 (no llega) · máx 10000
+escena · 3 de 3 focos · común f6ebd2f9 · época 0 · camino raíz · 33 de 10000 posiciones · mín 1000 (no llega) · máx 10000
 0 n1 a2d5241f huesped · 0 Compra del menú del día · 1 [3] · 2 [2] · 3 [2] · 4 [2] · 5 purchase · hermano 1 de 3 · pasado 4 futuro 0
 1*n1 089a62ea huesped · 0 Segunda compra · 1 [3] · hermano 2 de 3 · pasado 3 futuro 0
 2 n1 581f8401 huesped · 0 Tercera compra · 1 [3] · hermano 3 de 3 · pasado 3 futuro 0
@@ -343,13 +343,13 @@ aristas: hilo 0 · referencia 0 · fórmula 0 · fuera de escena 4
 recuentos: grupos 1 · pasado 10 · futuro 0
 medidas del 8: bajo demanda (escena con { medidas: true })
 ---
-escena · 2 de 4 focos · común f6ebd2f9 · época 0 · camino raíz · 27 de 30 posiciones · mín 1000 (no llega) · máx 10000
+escena · 2 de 4 focos · común f6ebd2f9 · época 0 · camino raíz · 29 de 30 posiciones · mín 1000 (no llega) · máx 10000
 0 n1 a2d5241f huesped · 0 Compra del menú del día · 1 [3] · 2 [2] · 3 [2] · 4 [2] · 5 purchase · hermano 1 de 2 (3 en el eje) · pasado 4 futuro 0
 1 n1 089a62ea huesped · 0 Segunda compra · 1 [3] · hermano 2 de 2 (3 en el eje) · pasado 3 futuro 0
 aristas: hilo 0 · referencia 0 · fórmula 0 · fuera de escena 3
 recuentos: grupos 1 · pasado 7 · futuro 0
 medidas del 8: bajo demanda (escena con { medidas: true })
-aviso: capacidad de la escena: 30 posiciones. El foco 581f8401 (3º de 4) la llevaría a 31; la escena se corta ahí y quedan fuera 2 focos: 581f8401 f6ebd2f9. Trae 27 de 31 posiciones.
+aviso: capacidad de la escena: 30 posiciones. El foco 581f8401 (3º de 4) la llevaría a 33; la escena se corta ahí y quedan fuera 2 focos: 581f8401 f6ebd2f9. Trae 29 de 33 posiciones.
 ```
 
 Lectura de la primera escena: se pidieron en desorden y el marco las coloca por el hilo, en preorden. El menú es el común (n0) y recibe siete aristas: el hilo de las tres compras y sus cuatro referencias. La cuenta (n2) cuelga de la compra anclada en su posición 1 (los recursos) y su fórmula lee la 1.2 de la compra (el precio); por eso va justo detrás de la compra y antes de la segunda compra: las tres compras siguen el orden de llegada, pero no van seguidas. En la segunda, el génesis es un terminal y sale como tal, sin índice. En la última, la compra trae 24 posiciones con contenido (ella, que con el criterio de cerrado en su 2 tiene una más que antes del encargo 3b, el menú, las altas, el génesis y la cuenta escrita encima), la segunda compra suma 4 y la tercera pasaría de 30: se corta ahí y el menú, pedido detrás, también queda fuera.
@@ -370,12 +370,14 @@ Lectura de la primera escena: se pidieron en desorden y el marco las coloca por 
 | Escritura desde Scened | Sin formulario: la proporción de Scened está sin fijar (`escritura('scened')` es `null`). Su máximo (10000) es el mismo para la escena y para emitir, y `escribirDesde` lo aplica (`docs/MOTOR.md` §7.1); su mínimo (1000) solo se informa. |
 | **[X] decidir VG:** la proporción de Scened y de Be | Sin propuesta: `escritura('scened')` y `escritura('be')` son `null`. Ya no está pendiente el mínimo de Be (VG, 7-11 noche, 10.4): no tiene, responde exactamente lo que se le pide (§0). |
 | **[X] decidir VG:** si `ordenDeEscala` llega a rechazar | Solo informa (§0.4); nadie la aplica todavía. |
-| Render animado y mundos | Solo el sobrio. El primer mundo animado (`mundos/hilos.js`, en el frontend) anima el eje temporal de un foco, no una escena. |
+| Render animado y mundos | Solo el sobrio. El primer mundo animado (`mundos/hilos.js`, de la web antigua, retirada) animaba el eje temporal de un foco, no una escena. |
 | Colisiones entre focos (dos focos que ocupan la misma dirección de un tercero) | No son aristas; están en `encaje.ocupantes` de cada registro. |
 | Bases del 8 en la escena (confluencia) | La medida del 8 de cada foco se suma bajo demanda (§0.5); no se funden bases. |
-| Aristas de BQL evaluado (`BUSCAR`, `ACTUAL`…, o un `REF` con argumentos calculados) | Solo `REF` con argumentos literales, leído en el árbol de la fórmula, sin evaluar (§4). |
+| Aristas de una fórmula evaluada (lo que da `down`, un `where`…, o un id calculado) | Solo los ids escritos como texto literal de 64 hex, leídos en el árbol de la fórmula, sin evaluar (§4). |
 
 ## 10. En el frontend: la vista sobria de Scened
+
+Esta vista era de la web antigua (`ui/escena.js`), que se retiró con el BQL V0 (#113); `escenaDe` sigue en el núcleo (`test/escena-ui.test.js`). Lo que hacía:
 
 Un cuarto botón, **Scened**, junto a Pointed, Sequenced y Mapped (`index.html`). La vista vive en `ui/escena.js`; `app.js` solo la engancha (una rama en `pintar()` y `pintarScened()`). Llama a `escenaDe(estado.eje, estado.foco, { alcance, camino: estado.camino })` tal cual, sin código propio de cohortes. Render sobrio, a 400 px sin desbordar:
 

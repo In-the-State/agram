@@ -1,11 +1,11 @@
 # El motor AGRAM: el ciclo tal como existe
 
-AGRAM es el motor: la ejecución real sobre la estructura de datos (BTML, `docs/BTML.md`) y la lógica de vistas (BQL, `docs/BQL.md`). Este documento describe **lo que existe hoy** en `src/motor.js`, `src/escritura.js`, `src/modos.js`, `src/tiempo.js`, `src/persistencia.js` y `src/bases.js`, con firmas de funciones, tablas y ejemplos ejecutados con Node 24 desde la raíz del repositorio. Lo que no existe se marca «pendiente». Fuente de verdad: esos seis módulos y `test/motor.test.js`, `test/escritura.test.js`, `test/modos.test.js`, `test/fabrica-1000.test.js`, `test/tiempo.test.js`, `test/confluencia.test.js`, `test/persistencia.test.js`, `test/bases.test.js`, `test/eprt.test.js`, `test/vector.test.js` y, para el ciclo del encargo 3b, `test/reglas-3b.test.js`.
+AGRAM es el motor: la ejecución real sobre la estructura de datos (BTML, `docs/BTML.md`) y la lógica de vistas (el BQL mínimo, `docs/BQLM.md`). Este documento describe **lo que existe hoy** en `src/motor.js`, `src/escritura.js`, `src/modos.js`, `src/tiempo.js`, `src/persistencia.js` y `src/bases.js`, con firmas de funciones, tablas y ejemplos ejecutados con Node 24 desde la raíz del repositorio. Lo que no existe se marca «pendiente». Fuente de verdad: esos seis módulos y `test/motor.test.js`, `test/escritura.test.js`, `test/modos.test.js`, `test/fabrica-1000.test.js`, `test/tiempo.test.js`, `test/confluencia.test.js`, `test/persistencia.test.js`, `test/bases.test.js`, `test/eprt.test.js`, `test/vector.test.js` y, para el ciclo del encargo 3b, `test/reglas-3b.test.js`.
 
 Convenciones:
 
 - Los ejemplos se ejecutan **desde la raíz del repositorio** con `node --input-type=module -e "..."` (Node ≥ 20). La salida que sigue a cada ejemplo es la salida real.
-- El eje de ejemplo es `ejemplos/ikisai/compra-food.mjs` (datos inventados). Sus ids son deterministas (hash del cuerpo con `t` fijo): génesis `607d3035`, alta `20be0387`, menú `7d2cecd4`, compra `b0d35693`, cuenta `b7d73503`. En las salidas los ids se acortan a ocho caracteres con `corto`. Los tres documentos (`docs/BTML.md`, `docs/BQL.md` y este) citan los mismos ids; en un programa no se copian, se usan `compra.id`, `cuenta.id`… (cambian en cuanto cambia el cuerpo de un evento: pasó con la PR #18, con la PR #28, que cambió el vector que guardan las consolidaciones, con la PR #35, que puso el génesis en series, y con el encargo 3b, que dejó el génesis sin movimientos y hace entrar a la huésped por una invitación).
+- El eje de ejemplo es `ejemplos/ikisai/compra-food.mjs` (datos inventados). Sus ids son deterministas (hash del cuerpo con `t` fijo): génesis `607d3035`, alta `20be0387`, menú `7d2cecd4`, compra `b0d35693`, cuenta `b7d73503`. En las salidas los ids se acortan a ocho caracteres con `corto`. Los documentos (`docs/BTML.md` y este) citan los mismos ids; en un programa no se copian, se usan `compra.id`, `cuenta.id`… (cambian en cuanto cambia el cuerpo de un evento: pasó con la PR #18, con la PR #28, que cambió el vector que guardan las consolidaciones, con la PR #35, que puso el génesis en series, y con el encargo 3b, que dejó el génesis sin movimientos y hace entrar a la huésped por una invitación).
 - Toda escritura recibe `t` explícito. `escribirDesde` usa `new Date().toISOString()` si falta, y entonces los ids no son reproducibles.
 - Un «registro» y un «evento» son lo mismo. El «foco» es el registro sobre el que se trabaja. Una «consolidación» (o propuesta) es el registro que escribe `consolidar` en la fábrica del foco: un registro más, sin fase.
 
@@ -21,13 +21,13 @@ Convenciones:
 | `src/modos.js` | Mínimo y máximo por modo (los mismos para leer y emitir), proporción | `MODOS`, `nombreModo`, `maximo`, `minimo`, `alcanceDe`, `lectura`, `tope`, `escritura`, `contarPosiciones`, `cabeTope`, `cabeEscritura`, `proporcion`, `proporcionDe` |
 | `src/tiempo.js` | Eje temporal (PV6/PV7), §8; reexporta de `bases.js` lo del 8 que otros módulos leían aquí (§8.3) | `banda`, `ejeTemporal`; de `bases.js`: `HITOS`, `ALCANCES`, `MEDIDAS`, `comparables`, `confluir`, `proyectoDe`, `etiquetaClave`, `SIN_BASE_ESCRITA` |
 | `src/persistencia.js` | Guardar y reconstruir el eje | `serializar`, `restaurar`, `guardarLocal`, `cargarLocal`, `borrarLocal`, `apartarLocal`, `VERSION` |
-| `src/bases.js` | Bases del 8: la única medida, registros fundibles en la posición 8 escritos por la propia cosa o por quien tiene P sobre ella, y su lectura por cohortes; confluir como respaldo declarado (§14) | `medir`, `posicionesDe`, `clavesDe`, `unitaria`, `fundir`, `identidadDe`, `puedeEscribirBase`, `calcularBase`, `escribirBase`, `leerBase`, `frescura`, `comprobar`, `situar`, `confluir`, `comparables`, `proyectoDe`, `valorDeBases`, `erroresDeBases`, `cajasEtiquetadas`, `hijos`, `esBase`, `basesEn`, `basePorId`, `baseDePayload`, `payloadDeBase`, `empaquetar`, `bloqueDe`, `cortesDe`, `cajaDe`, `clavesDeMedidas`, `etiquetaClave`, `estadisticaVacia`, `ALCANCES`, `CAJAS`, `CIELO`, `COSTE_BASE`, `CAMPOS_BASE`, `CAMPOS_FOCO`, `ETIQUETAS`, `HITOS`, `MEDIDAS`, `NINGUNA`, `ORIGENES_CORTES`, `SECCIONES`, `SIN_BASE_ESCRITA`, `TITULO` |
+| `src/bases.js` | Bases del 8: la única medida, registros fundibles en la posición 8 escritos por la propia cosa o por quien tiene P sobre ella, y su lectura por cohortes; confluir como respaldo declarado (§14) | `medir`, `posicionesDe`, `clavesDe`, `unitaria`, `fundir`, `identidadDe`, `puedeEscribirBase`, `calcularBase`, `escribirBase`, `leerBase`, `frescura`, `comprobar`, `situar`, `confluir`, `comparables`, `proyectoDe`, `cajasEtiquetadas`, `hijos`, `esBase`, `basesEn`, `basePorId`, `baseDePayload`, `payloadDeBase`, `empaquetar`, `bloqueDe`, `cortesDe`, `cajaDe`, `clavesDeMedidas`, `etiquetaClave`, `estadisticaVacia`, `ALCANCES`, `CAJAS`, `CIELO`, `ETIQUETAS`, `HITOS`, `MEDIDAS`, `NINGUNA`, `ORIGENES_CORTES`, `SECCIONES`, `SIN_BASE_ESCRITA`, `TITULO` |
 
 `src/index.js` reexporta `modos.js` en plano y los demás como espacios de nombres: `motor`, `salida` (= `escritura.js`), `tiempo`, `persistencia`, `bases`. Es decir: `import { motor, salida, tiempo, persistencia, lectura } from './src/index.js'`.
 
 Debajo de todo está el libro: el eje (`src/eje.js`) es una envoltura de `src/libro.js` que traduce cada evento a una transacción (`eje.transaccion`) y la asienta con las condiciones de `src/condiciones/`; las capas de validez leen el eje de justo antes de un registro (`eje.antes(k)`) con las mismas condiciones (`docs/notas/CAPA_CERO.md`). `src/index.js` lo reexporta como los espacios de nombres `libro` y `condiciones`.
 
-Dependencias: el motor lee el eje (`src/eje.js`), el encaje (`src/encaje.js`, `ocupantes`, `vector`, `signo`) y BQL (`src/bql.js`, `evaluar`), y escribe con `escribirDesde` y `eje.escribir`. `tiempo.js` usa `propuestas` del motor. Las lecturas del ciclo (`cerrado`, `siguiente`, `recuento`, `peso`) evalúan con el BQL mínimo (`src/bqlm.js`, sobre `src/contexto-eje.js`) las plantillas de la época 0 (`src/epocas.js`).
+Dependencias: el motor lee el eje (`src/eje.js`), el encaje (`src/encaje.js`, `ocupantes`, `vector`, `signo`) y el BQL mínimo (las fórmulas del payload y lo escrito, con `contexto-eje.leerPosicion` y `bqlm.leerFormula`, `docs/BQLM.md` §14), y escribe con `escribirDesde` y `eje.escribir`. `tiempo.js` usa `propuestas` del motor. Las lecturas del ciclo (`cerrado`, `siguiente`, `recuento`, `peso`) evalúan con el BQL mínimo (`src/bqlm.js`, sobre `src/contexto-eje.js`) las plantillas de la época 0 (`src/epocas.js`).
 
 ## 1. El ciclo
 
@@ -53,7 +53,7 @@ Reglas de fondo, tal como están en el código:
 - **Cada uno mueve lo suyo.** Un movimiento sale de quien escribe (`de === autor`); la única excepción es aceptar la propia invitación (§4.4). Un intercambio son dos registros, uno de cada parte, y lo que los une es el proceso: el dueño anuncia en su 4.1 qué se mueve, de quién a quién, y la plantilla de cerrado lo comprueba (§4.1).
 - **Cerrado lo dice el proceso.** «Hay procesos que se cierran y otros no» (mapa §15 [D] N5): el dueño nombra en su criterio la plantilla de cerrado (por defecto, la de la época: «all announced movements happened») y `cerrado` la evalúa. Nada se guarda: se vuelve a leer cada vez.
 - **El P es peso de criterio, no permiso.** P se obtiene al escribir, al conseguir E y al recibir R de su emisor; se reposiciona por el árbol; pesa por dominio; y cuenta en una decisión según el recuento que el dueño declara en su PV2 (§4.2, §4.3). Nadie acuña P a mano y no hay P del génesis sobre todo el eje.
-- **Elegir no publica.** `ELEGIR` de BQL devuelve una colección; la única fijación es `consolidar`, que no borra alternativas: las elecciones se guardan como referencias a sus fuentes, con el vector de encaje de cada una.
+- **Elegir no publica.** Una fórmula que resuelve a registros devuelve una lista; la única fijación es `consolidar`, que no borra alternativas: las elecciones se guardan como referencias a sus fuentes, con el vector de encaje de cada una.
 - **Cada cambio tiene clase.** La fábrica parte de la matriz de 100 del foco y emite solo lo modificado, en la matriz 10×10×10 (posición × subposición × clase de modificación). La matriz es **relativa al camino**: bajo un camino de profundidad n, la clase es el dígito n + 2 de la dirección (el tercero desde el camino; sin camino, el tercero), y se lee de la dirección con el camino, `claseDe(dir, camino)` (§7.2): ningún registro guarda un campo de clase (§3.5).
 - **Todo cuesta tiempo.** Cada registro mueve T del autor: un minuto por posición del registro, heredadas incluidas (cartón piedra, §7.3). Es el token `T:minuto`: cada escala de T es un token distinto, sin conversión, así que escribir exige tener minutos. Y cada modo tiene dos límites: la proporción, que solo propone y avisa, y un tope duro de posiciones emitidas, que rechaza (§7.1).
 
@@ -66,9 +66,9 @@ descubrir(eje, foco, { camino = [], posiciones = [1, 2, 3, 4], epoca, maximo = I
 caminoVisible(ocupante)                                                // → number[]  camino de la etiqueta: el del ocupante y, si su contenido es un array con posición 0, un 0 más (solo para mostrar)
 ```
 
-**Elegibilidad antes que límites** (R8; mapa §12 [D] «Quién ocupa una posición ajena»; `src/elegibles.js`). Los candidatos de `descubrir` y los que `proponer` lee por BQL son solo los ocupantes **elegibles** según el criterio del dueño del foco: lo propio, y los escritos de quien nombra su 2.3 (con `cualquiera`, todos) o, si no, los suyos y los de quien aparece en su 3, con las correcciones que el dueño ancle ahí (`docs/BQL.md` §7.4). `maximo`, `total` y `limitada` cuentan solo esos; los escritos que no lo son van en `noElegibles`, un recuento que no puntúa. Un escrito ajeno no deja de estar en el eje ni en `encaje.ocupantes`.
+**Elegibilidad antes que límites** (R8; mapa §12 [D] «Quién ocupa una posición ajena»; `src/elegibles.js`). Los candidatos de `descubrir` y los que `proponer` lee por BQL son solo los ocupantes **elegibles** según el criterio del dueño del foco: lo propio, y los escritos de quien nombra su 2.3 (con `cualquiera`, todos) o, si no, los suyos y los de quien aparece en su 3, con las correcciones que el dueño ancle ahí (`src/elegibles.js`). `maximo`, `total` y `limitada` cuentan solo esos; los escritos que no lo son van en `noElegibles`, un recuento que no puntúa. Un escrito ajeno no deja de estar en el eje ni en `encaje.ocupantes`.
 
-`descubrir` no escribe. Para cada posición de interacción (por defecto 1–4: recursos, criterios, comunicación, fábrica) devuelve la dirección `direccion([...camino, i])` y sus **candidatos**: los ocupantes de esa dirección en el foco (`encaje.ocupantes`, orden por encaje bajo la `epoca` que se elija al leer; ver `docs/BTML.md` §6) más tres campos calculados con BQL: el estado y el texto de su camino exacto, y una etiqueta para mostrarlo. Con `maximo`, entrega como mucho esos candidatos por posición (los primeros por encaje) sin presentar el corte como completo: `total` dice cuántos hay y `limitada` si se cortó.
+`descubrir` no escribe. Para cada posición de interacción (por defecto 1–4: recursos, criterios, comunicación, fábrica) devuelve la dirección `direccion([...camino, i])` y sus **candidatos**: los ocupantes de esa dirección en el foco (`encaje.ocupantes`, orden por encaje bajo la `epoca` que se elija al leer; ver `docs/BTML.md` §6) más tres campos leídos con el BQL mínimo (`contexto-eje.leerPosicion`): el estado y el texto de su camino exacto, y una etiqueta para mostrarlo. Con `maximo`, entrega como mucho esos candidatos por posición (los primeros por encaje) sin presentar el corte como completo: `total` dice cuántos hay y `limitada` si se cortó.
 
 | Campo del candidato | Origen | Contenido |
 |---|---|---|
@@ -77,10 +77,10 @@ caminoVisible(ocupante)                                                // → nu
 | `autor`, `t` | encaje | solo en escritos |
 | `origenDir`, `destino`, `vector`, `distancia`, `acuerdo`, `signo`, `faltas`, `excedentes` | encaje | el encaje del candidato en la posición |
 | `empate`, `empatados`, `justificacion` | encaje | si el encaje no lo separa de otro (y con cuántos) y el motivo del encaje en texto |
-| `estado`, `texto` | `bql.evaluar(eje, evento, candidato.camino)` | `RESUELTO` / `PENDIENTE` / `INCOMPATIBLE` / `ERROR` y el texto del valor del **camino exacto** del ocupante (`docs/BQL.md` §1; mapa §12 [D]: «todos son ocupantes con su camino exacto»). Una referencia a un evento ausente no se evalúa: es `PENDIENTE` (`PENDIENTE: evento ausente del eje: <id8>`), como dice el encaje. Un elemento de una lista (`enLista`, `indice`) es un candidato aparte y muestra **su propio valor** (`LOCAL` por índice), no el de la lista entera: el menú de tres platos da tres candidatos, «ensalada», «guiso» y «fruta». |
-| `etiqueta` | `bql.evaluar(eje, evento, caminoVisible(candidato)).texto` | el texto que se muestra: de un array, el de su posición 0; si no, el mismo `texto`. No decide el estado: una fórmula pendiente en la posición 0 no vuelve pendiente al candidato, y `[1]` y `[1, 0]` se distinguen por su estado y su texto (auditoría de ajuste 2). |
+| `estado`, `texto` | `leerPosicion(eje, evento, candidato.camino)` | `RESUELTO` / `PENDIENTE` (también «PENDIENTE POR LÍMITE») / `ERROR` y el texto del **camino exacto** del ocupante (mapa §12 [D]: «todos son ocupantes con su camino exacto»): una fórmula se lee con `it` = su registro (`docs/BQLM.md` §14); lo escrito, con el mismo lector (`(payload(it)).camino`). Un presupuesto por registro leído. Una referencia a un evento ausente no se evalúa: es `PENDIENTE` (`PENDIENTE: evento ausente del eje: <id8>`), como dice el encaje. Un elemento de una lista (`enLista`, `indice`) es un candidato aparte y muestra **su propio valor** (su lugar en la lista, `nth`), no el de la lista entera: el menú de tres platos da tres candidatos, «ensalada», «guiso» y «fruta». |
+| `etiqueta` | `leerPosicion(eje, evento, caminoVisible(candidato)).texto` | el texto que se muestra: de un array, el de su posición 0; si no, el mismo `texto`. No decide el estado: una fórmula pendiente en la posición 0 no vuelve pendiente al candidato, y `[1]` y `[1, 0]` se distinguen por su estado y su texto (auditoría de ajuste 2). |
 
-`caminoVisible` añade un `0` al camino cuando el contenido es un array con posición 0: de un array, la etiqueta es su posición 0; el estado no. De un terminal o una referencia se muestra lo que hay. BQL no sigue la referencia en `evaluar` (texto `→ <id>`), sí la sigue el candidato de origen `referencia`, que ya es lo alcanzado.
+`caminoVisible` añade un `0` al camino cuando el contenido es un array con posición 0: de un array, la etiqueta es su posición 0; el estado no. De un terminal o una referencia se muestra lo que hay: el lector sigue la referencia (como lo alcanzado por el candidato de origen `referencia`).
 
 Errores: `foco desconocido: <id>` si el foco no está en el eje.
 
@@ -101,13 +101,13 @@ console.log('registros antes y después:', eje.orden.length);
 
 ```text
 1 1000000000 4 candidatos
-  propio     a2d5241f camino [1] visible [1,0] · RESUELTO · [3 posiciones] · etiqueta → f6ebd2f9 · exacto
-  propio     a2d5241f camino [1,0] visible [1,0] · RESUELTO · ensalada · guiso · fruta · etiqueta ensalada · guiso · fruta · exacto
-  referencia f6ebd2f9 camino [1] visible [1,0] · RESUELTO · ensalada · guiso · fruta · etiqueta ensalada · exacto
-  escrito    415eaa23 camino [] visible [0] · RESUELTO · [4 posiciones] · etiqueta Cuenta del menú · exacto
+  propio     a2d5241f camino [1] visible [1,0] · RESUELTO · [[{"ref":"f6ebd2f980f29bcce3b88886846324c5a53ebf78868a6607dda7de6eef5b47c3","dir":"1000000000"}],[1],["EUR 12"]] · etiqueta ensalada, guiso, fruta · exacto
+  propio     a2d5241f camino [1,0] visible [1,0] · RESUELTO · ensalada, guiso, fruta · etiqueta ensalada, guiso, fruta · exacto
+  referencia f6ebd2f9 camino [1] visible [1,0] · RESUELTO · ensalada, guiso, fruta · etiqueta ensalada · exacto
+  escrito    4663b13b camino [] visible [0] · RESUELTO · ["Cuenta del menú",[["precio con propina"],["=(payload(\"a2d5241f88f3e69c5a02945e590b50865dc91e856433f35305198c8e0a8e880e\")).1.2.1 + 2"],["EUR"]],"15 min","==no es fórmula"] · etiqueta Cuenta del menú · exacto
 2 2000000000 3 candidatos
-  propio     a2d5241f camino [2] visible [2] · RESUELTO · sin gluten · vegetariano · etiqueta sin gluten · vegetariano · exacto
-  referencia f6ebd2f9 camino [2] visible [2,0] · RESUELTO · sin gluten · vegetariano · etiqueta sin gluten · exacto
+  propio     a2d5241f camino [2] visible [2] · RESUELTO · sin gluten, vegetariano · etiqueta sin gluten, vegetariano · exacto
+  referencia f6ebd2f9 camino [2] visible [2,0] · RESUELTO · sin gluten, vegetariano · etiqueta sin gluten · exacto
   propio     a2d5241f camino [2] visible [2] · RESUELTO · all announced movements happened · etiqueta all announced movements happened · exacto
 3 3000000000 2 candidatos
   propio     a2d5241f camino [3] visible [3] · RESUELTO · huesped · etiqueta huesped · exacto
@@ -115,11 +115,11 @@ console.log('registros antes y después:', eje.orden.length);
 4 4000000000 2 candidatos
   propio     a2d5241f camino [4] visible [4] · RESUELTO · pagar · etiqueta pagar · exacto
   propio     a2d5241f camino [4] visible [4] · RESUELTO · servir · etiqueta servir · exacto
-[["1100000000",["propio:1"]],["1200000000",["propio:12 EUR"]]]
+[["1100000000",["propio:1"]],["1200000000",["propio:EUR 12"]]]
 registros antes y después: 8
 ```
 
-Lectura: en la posición 1 de la compra colisionan `[1]` y `[1, 0]` (cada uno con su estado y su texto; los dos llevan la misma etiqueta, la referencia al menú), lo que esa referencia alcanza (`ensalada`, representación del menú:1) y la cuenta que cocina escribió en `1000000000` (`exacto`: está anclada justo en la dirección buscada). Los cuatro son exactos y salen en orden de llegada; con la convención vigente (`docs/BTML.md` §6.5) solo una referencia que alcanza otra dirección tiene vector distinto de cero.
+Lectura: en la posición 1 de la compra colisionan `[1]` y `[1, 0]` (cada uno con su estado y su texto), lo que la referencia del menú alcanza y la cuenta que cocina escribió en `1000000000` (`exacto`: está anclada justo en la dirección buscada). Los textos salen del BQL mínimo (`leerPosicion`): lo escrito que es una décupla se enseña tal cual (JSON) y una lista, con sus ocupantes separados por comas; un elemento de lista (o un camino que entra en una lista) se lee por su lugar en ella, como lo escribió su autor: una referencia, lo que alcanza; una hoja, ella misma. Así la etiqueta de la referencia es «ensalada» (el 0 de la lista del menú) y el tercer candidato del 2 (el elemento 1 de `[ref, «all announced movements happened»]`) lee su texto. Los cuatro son exactos y salen en orden de llegada; con la convención vigente (`docs/BTML.md` §6.5) solo una referencia que alcanza otra dirección tiene vector distinto de cero.
 
 ### 2.1 Proponer (operador B): elecciones desde las fórmulas del foco
 
@@ -132,44 +132,46 @@ proponer(eje, foco, { camino = [], posiciones = [1, 2, 3, 4] } = {})  // → { f
 | Lo que hay en `[...camino, i]` del foco | Qué propone en `elecciones[i]` | `origenes[k].desde` |
 |---|---|---|
 | sin desarrollar | nada (la posición no entra) | — |
-| fórmula que resuelve a una **colección** | `{ candidato }` con su primer ítem (el mejor encaje, salvo que la fórmula ORDENE otra cosa) | `'formula'` |
+| fórmula (BQL mínimo, `it` = el foco) que resuelve a **registros** | `{ candidato }` con el primero; lo que el BQL mínimo no da (de dónde se coloca, el vector y el signo) lo calcula `encaje.ocupantes`: si está anclado sobre el foco, es el escrito de la posición donde se ancló | `'formula'` |
 | fórmula que resuelve a un **número** | el número | `'formula'` |
-| fórmula que resuelve a otro valor (magnitud, composición, texto…) | su **texto** formateado (`r.texto`), como terminal nuevo | `'formula'` |
+| fórmula que resuelve a otro valor (un texto, varios) | su **texto** (`r.texto`), como terminal nuevo | `'formula'` |
 | contenido literal (terminal, array o referencia) | `{ ref: foco, dir }`: lo literal se propone por referencia | `'foco'` |
-| fórmula PENDIENTE, INCOMPATIBLE o ERROR, o colección vacía | nada; se informa en `pendientes` (`{ posicion, motivo }`) | — |
+| fórmula PENDIENTE o ERROR, o que no da nada | nada; se informa en `pendientes` (`{ posicion, motivo }`; sin nada, `'sin candidatos'`) | — |
 
-Ejemplo: el ciclo entero sobre la cuenta, con el pago tomado de la fórmula en vez de teclearlo. Consolidar compone; el pago lo registra la persona huésped sobre la consolidación, moviendo lo suyo.
+Ejemplo: el ciclo entero sobre la cuenta, con el pago tomado de su fórmula (la cantidad en su 1.1, la unidad en su 1.2: la magnitud desplegada, `docs/BQLM.md` §14) en vez de teclearlo. Consolidar compone; el pago lo registra la persona huésped sobre la consolidación, moviendo lo suyo.
 
 ```sh
 node --input-type=module -e "
 import { ejemploCompra, ejemploCuenta } from './ejemplos/ikisai/compra-food.mjs';
 import { proponer, consolidar, registrar, cerrado, propuestas, OPERADORES, FABRICA } from './src/motor.js';
-import { evaluar } from './src/bql.js';
+import { leerPosicion } from './src/contexto-eje.js';
 const corto = (x) => JSON.stringify(x).replace(/[0-9a-f]{64}/g, (m) => m.slice(0, 8));
 const { eje, compra } = await ejemploCompra();
 const cuenta = await ejemploCuenta(eje, compra);
 console.log(JSON.stringify(OPERADORES));
 const p = proponer(eje, cuenta.id);
-console.log(corto(p.elecciones));
-console.log(corto(p.origenes.map((o) => o.posicion + ':' + o.desde)), corto(p.pendientes));
+console.log(corto(p.elecciones), corto(p.origenes.map((o) => o.posicion + ':' + o.desde)), corto(p.pendientes));
+const q = proponer(eje, cuenta.id, { camino: [1], posiciones: [1, 2] });
+console.log(corto(q.elecciones), corto(q.origenes.map((o) => o.posicion + ':' + o.desde + ':' + o.texto)));
 const T = '2026-11-07T16:00:00Z';
 const cons = await consolidar(eje, { autor: 'huesped', foco: cuenta.id, t: T, titulo: 'Pago de la cuenta', elecciones: p.elecciones });
-console.log(corto(cons.payload), '·', evaluar(eje, cons.id, [1]).valor.tipo);
-const importe = evaluar(eje, cuenta.id, [1]).valor;
-await registrar(eje, { autor: 'huesped', sobre: cons.id, en: FABRICA, t: T, payload: 'pago la cuenta', movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: 'huesped', a: null }, { token: 'E', emisor: 'casa', denominacion: importe.unidad, cantidad: importe.cantidad, de: 'huesped', a: 'cocina' }] });
-console.log(importe.cantidad, importe.unidad, '· EUR cocina', eje.saldo('cocina', 'E:casa/EUR'), 'huesped', eje.saldo('huesped', 'E:casa/EUR'), '·', corto(propuestas(eje, cuenta.id).map((x) => [x.titulo, x.cerrado])), cerrado(eje, cons.id).plantilla);
+console.log(corto(cons.payload));
+const cantidad = leerPosicion(eje, cuenta.id, [1, 1]).valor[0];
+const unidad = leerPosicion(eje, cuenta.id, [1, 2]).valor[0];
+await registrar(eje, { autor: 'huesped', sobre: cons.id, en: FABRICA, t: T, payload: 'pago la cuenta', movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: 'huesped', a: null }, { token: 'E', emisor: 'casa', denominacion: unidad, cantidad, de: 'huesped', a: 'cocina' }] });
+console.log(cantidad, unidad, '· EUR cocina', eje.saldo('cocina', 'E:casa/EUR'), 'huesped', eje.saldo('huesped', 'E:casa/EUR'), '·', corto(propuestas(eje, cuenta.id).map((x) => [x.titulo, x.cerrado])), cerrado(eje, cons.id).plantilla);
 "
 ```
 
 ```text
 {"Q":"descubrir","B":"proponer","C":"consolidar"}
-{"1":"14 EUR (12 EUR + 2 EUR)","2":"14 EUR (12 EUR + 2 EUR) + 15 min","3":{"ref":"415eaa23","dir":"3000000000"}}
-["1:formula","2:formula","3:foco"] []
-["Pago de la cuenta","14 EUR (12 EUR + 2 EUR)","14 EUR (12 EUR + 2 EUR) + 15 min",{"ref":"415eaa23","dir":"3000000000"}] · texto
+{"1":{"ref":"4663b13b","dir":"1000000000"},"2":{"ref":"4663b13b","dir":"2000000000"},"3":{"ref":"4663b13b","dir":"3000000000"}} ["1:foco","2:foco","3:foco"] []
+{"1":14,"2":{"ref":"4663b13b","dir":"1200000000"}} ["1:formula:14","2:foco:EUR"]
+["Pago de la cuenta",{"ref":"4663b13b","dir":"1000000000"},{"ref":"4663b13b","dir":"2000000000"},{"ref":"4663b13b","dir":"3000000000"}]
 14 EUR · EUR cocina 26 huesped 34 · [["Pago de la cuenta",true]] all announced movements happened
 ```
 
-Lectura: la cuenta tiene fórmulas en 1 y 2 y un texto escapado en 3; la 4 no existe y no propone. La consolidación guarda el **texto** de la magnitud con su desglose (`"14 EUR (12 EUR + 2 EUR)"`), que BQL vuelve a leer como `texto`, no como magnitud (§13.16). El importe del pago no sale de la consolidación: se toma de la fórmula (`evaluar(...).valor`) y se pasa a mano al registro del pago, con `unidad` como denominación de E y el emisor de la serie escrito aparte (`emisor: 'casa'`: desde la PR #35 la serie es `E:casa/EUR`). Las unidades de BQL son etiquetas y no dicen de quién es la serie (`docs/BQL.md` §3). La consolidación no anuncia nada en su 4.1, así que su plantilla de cerrado (la de la época, «all announced movements happened») la da por cerrada desde que se escribe: nada comprueba que el texto consolidado y el movimiento registrado digan lo mismo. Para que lo compruebe, el dueño anuncia el movimiento (§4.1).
+Lectura: en su raíz la cuenta lleva una décupla en 1 (la magnitud desplegada: su fórmula en 1.1, la unidad en 1.2), un terminal en 2 y un texto escapado en 3: las tres son lo escrito y se proponen por referencia; la 4 no existe y no propone. Con `camino: [1]`, el 1.1 es una fórmula que da un número (14) y entra como terminal; el 1.2, lo escrito. El importe del pago no sale de la consolidación: se lee de la cuenta (`leerPosicion`, la cantidad en 1.1 y la unidad en 1.2) y se pasa a mano al registro del pago, con la unidad como denominación de E y el emisor de la serie escrito aparte (`emisor: 'casa'`: desde la PR #35 la serie es `E:casa/EUR`). Una unidad es un texto escrito y no dice de quién es la serie. La consolidación no anuncia nada en su 4.1, así que su plantilla de cerrado (la de la época, «all announced movements happened») la da por cerrada desde que se escribe: nada comprueba que el texto consolidado y el movimiento registrado digan lo mismo. Para que lo compruebe, el dueño anuncia el movimiento (§4.1).
 
 ## 3. Consolidar
 
@@ -229,8 +231,8 @@ console.log(JSON.stringify(cerrado(eje, c.id)));
 
 ```text
 true true huesped
-["Pago del menú",{"ref":"415eaa23","dir":"0000000000"},"sin lactosa",{"ref":"a2d5241f","dir":"3000000000"},"pagar 14 EUR"]
-{"motor":"fabrica","fuentes":["415eaa23"],"encaje":[{"posicion":1,"evento":"415eaa23","tipo":"escrito","origen":"1000000000","destino":"1000000000","vector":[0,0,0,0,0,0,0,0,0,0],"signo":"exacto"}],"nuevos":[{"posicion":2,"destino":"2000000000"},{"posicion":4,"destino":"4000000000"}],"modo":"mapped"}
+["Pago del menú",{"ref":"4663b13b","dir":"0000000000"},"sin lactosa",{"ref":"a2d5241f","dir":"3000000000"},"pagar 14 EUR"]
+{"motor":"fabrica","fuentes":["4663b13b"],"encaje":[{"posicion":1,"evento":"4663b13b","tipo":"escrito","origen":"1000000000","destino":"1000000000","vector":[0,0,0,0,0,0,0,0,0,0],"signo":"exacto"}],"nuevos":[{"posicion":2,"destino":"2000000000"},{"posicion":4,"destino":"4000000000"}],"modo":"mapped"}
 [{"token":"T","escala":"minuto","cantidad":5,"de":"huesped","a":null}] minutos gastados 5 EUR movidos 0
 {"cerrado":true,"plantilla":"all announced movements happened","estado":"RESUELTO","motivo":null,"fin":"cumplido"}
 ```
@@ -659,7 +661,7 @@ Decisión de VG (7-11-2026, tarde): «siempre estamos aplicando los puntos de vi
 
 **Base en el foco.** Un hueco (de posición, de subposición o de clase) tiene base si el foco tiene contenido **en ese camino exacto**, sin seguir referencias. Lo que cuelga de un terminal no tiene base (igual que en el encaje, `docs/BTML.md` §4.2), **salvo la posición 0 de la raíz de un foco terminal**, que se hereda como antes de la matriz: si el foco (o su nodo bajo `camino`) es un terminal, escribir en su posición 1 hereda la 0 con `{ ref: foco, dir: direccion([...camino, 0]) }`, y esa dirección alcanza el terminal por la colisión de ceros finales (`resolver(terminal, '0000000000')` da el terminal). Así lo hacía `main`, y así `app.js` sigue pudiendo escribir sobre el génesis. **[X] decidir VG**: el mapa §12 dice «un terminal no tiene posición 0 (PENDIENTE)»; hasta que lo decida se conserva lo que había, y solo para la raíz (lo demás que cuelga de un terminal, como `0.0` o `1`, no tiene base y se ancla). Así, toda referencia heredada alcanza algo en el foco (lo comprueba `test/fabrica-1000.test.js` celda a celda, con caminos `[]`, `[1]` y `[1, 2]`, sobre la compra y sobre el génesis). Para pagar el precio de la compra (`[1][2][4]`), el precio es un terminal (`'EUR 12'`) y no tiene clases 0–3 que heredar: la celda se **ancla** en `1240000000`. Si el foco desarrolla las clases de la celda (`[1][2]` es un array), se heredan por referencia a `1200000000`…`1230000000` y el pago va dentro. **[X] decidir VG**: si, mientras el foco no desarrolla las clases de una celda, lo no modificado se hereda por referencia a la celda `i.j` (dentro del registro) en vez de anclarse (hoy).
 
-**Ceros finales.** Una dirección con ceros finales nombra la colisión (mapa §12): la heredada o la vista de una subposición 0 (`4.0`, `1.2.0`) se escribe con la dirección de la posición (`4000000000`, `1200000000`), y `resolver` da la posición entera (`['pagar', 'servir']`, no `'pagar'`); ver `0.0` alcanza el registro entero. Lo mismo con un `camino` que acaba en 0: su dirección es la de su padre (`direccion([1, 0]) === direccion([1])`), así que un registro que va en ella está en esa colisión. **[X] decidir VG**: si ver o heredar una subposición 0 (o anidar bajo un camino que acaba en 0) necesita una referencia por índice exacto (como BUSCAR por índice, mapa §12). Hasta entonces se conserva lo que había: la dirección con ceros finales.
+**Ceros finales.** Una dirección con ceros finales nombra la colisión (mapa §12): la heredada o la vista de una subposición 0 (`4.0`, `1.2.0`) se escribe con la dirección de la posición (`4000000000`, `1200000000`), y `resolver` da la posición entera (`['pagar', 'servir']`, no `'pagar'`); ver `0.0` alcanza el registro entero. Lo mismo con un `camino` que acaba en 0: su dirección es la de su padre (`direccion([1, 0]) === direccion([1])`), así que un registro que va en ella está en esa colisión. **[X] decidir VG**: si ver o heredar una subposición 0 (o anidar bajo un camino que acaba en 0) necesita una referencia por índice exacto (un índice exacto, mapa §12). Hasta entonces se conserva lo que había: la dirección con ceros finales.
 
 **Ver y heredar.** Una celda vista (`{ ref: foco, dir: i.j }` en `[i][j][0]`) y una heredada en la misma celda son el mismo valor. Lo que las distingue es `contexto.heredadas`: el registro dice qué heredó, y lo demás se vio o se escribió (`desdeMapped` devuelve además `vistas`). **[X] decidir VG**: si ver necesita una marca propia en el payload.
 
@@ -681,7 +683,7 @@ CLASES                                     // los nombres de clase: 0–4 de VG;
 claseDe(dir, camino = [])                  // → la clase de la dirección leída desde el camino: su dígito en la profundidad camino.length + 2 (sin camino, el tercero)
 ```
 
-**Ítems de entrada** (`item`): se recorta el texto; vacío → error `ítem vacío`; `/^@([0-9a-f]{4,64})(?::([0-9]{10}))?$/i` → referencia por prefijo hexadecimal (`resolverRef`: `referencia desconocida: <p>` si ningún id empieza así, `referencia ambigua: <p>` si varios); `/^-?\d+(\.\d+)?$/` → número JS; cualquier otra cosa → la cadena tal cual (`'12 EUR'` y `'=LOCAL(1)'` son cadenas; su sentido lo pone BQL). Un `@` seguido de algo que no es hexadecimal de 4 a 64 caracteres (`'@zzzz'`, `'@ab'`, `'@5c9fbf11:12'`) **es texto**, no error; `referencia demasiado corta` solo lo da `resolverRef` llamado directamente con menos de cuatro caracteres.
+**Ítems de entrada** (`item`): se recorta el texto; vacío → error `ítem vacío`; `/^@([0-9a-f]{4,64})(?::([0-9]{10}))?$/i` → referencia por prefijo hexadecimal (`resolverRef`: `referencia desconocida: <p>` si ningún id empieza así, `referencia ambigua: <p>` si varios); `/^-?\d+(\.\d+)?$/` → número JS; cualquier otra cosa → la cadena tal cual (`'12 EUR'` y `'=(payload(it)).1'` son cadenas; su sentido lo pone el BQL mínimo al leerlas). Un `@` seguido de algo que no es hexadecimal de 4 a 64 caracteres (`'@zzzz'`, `'@ab'`, `'@5c9fbf11:12'`) **es texto**, no error; `referencia demasiado corta` solo lo da `resolverRef` llamado directamente con menos de cuatro caracteres.
 
 **Pointed** escribe un terminal; si `item` no da un terminal → `Pointed escribe un terminal` (no ocurre con `item`, que siempre devuelve terminales).
 
@@ -722,7 +724,7 @@ import { resolver } from './src/btml.js';
 const corto = (x) => JSON.stringify(x).replace(/[0-9a-f]{64}/g, (m) => m.slice(0, 8));
 const { eje, compra, menu } = await ejemploCompra();
 const m8 = menu.id.slice(0, 8);
-console.log(corto([item(eje, ' hola '), item(eje, '12.5'), item(eje, '-3'), item(eje, '12 EUR'), item(eje, '@' + m8), item(eje, '@' + m8 + ':1000000000'), item(eje, '=LOCAL(1)')]));
+console.log(corto([item(eje, ' hola '), item(eje, '12.5'), item(eje, '-3'), item(eje, '12 EUR'), item(eje, '@' + m8), item(eje, '@' + m8 + ':1000000000'), item(eje, '=(payload(it)).1')]));
 for (const t of ['', '@ffff', '@zzzz', '@ab', '@' + m8 + ':12']) try { console.log(corto(item(eje, t))); } catch (e) { console.log(e.message); }
 for (const p of [menu.id.slice(0, 4), '@ab', 'ffff']) try { console.log(corto(resolverRef(eje, p))); } catch (e) { console.log(e.message); }
 console.log(corto(desdePointed(eje, 'servido')), corto(desdePointed(eje, '@' + m8)));
@@ -743,7 +745,7 @@ try { desdeMapped(eje, [], compra.id); } catch (e) { console.log(e.message); }
 ```
 
 ```text
-["hola",12.5,-3,"12 EUR",{"ref":"f6ebd2f9"},{"ref":"f6ebd2f9","dir":"1000000000"},"=LOCAL(1)"]
+["hola",12.5,-3,"12 EUR",{"ref":"f6ebd2f9"},{"ref":"f6ebd2f9","dir":"1000000000"},"=(payload(it)).1"]
 ítem vacío
 referencia desconocida: ffff
 "@zzzz"
@@ -986,7 +988,7 @@ console.log(d.futuro.map((x) => x.tipo + ':' + x.contenido + ':' + x.delta + ':'
 0:segundo 59:minuto 60:hora 3599:hora 3600:dia 86400:semana 604800:ciclo 2419200:anio 31536000:mas · banda(-90) hora
 ahora 2026-11-07T15:00:00Z · pasado 5 de 5 · futuro 2 de 2
   pasado registro      b8466f0c huesped  2026-11-07T14:30:00Z   -1800 hora
-  pasado registro      415eaa23 cocina   2026-11-07T14:10:00Z   -3000 hora
+  pasado registro      4663b13b cocina   2026-11-07T14:10:00Z   -3000 hora
   pasado registro      f6ebd2f9 cocina   2026-11-07T09:00:00Z  -21600 dia
   pasado registro      c0dab795 casa     2026-11-07T09:00:00Z  -21600 dia
   pasado registro      df76b91d casa     2026-11-07T09:00:00Z  -21600 dia
@@ -1123,7 +1125,7 @@ import { desdeMapped, escribirDesde } from './src/escritura.js';
 import { ejeTemporal } from './src/tiempo.js';
 import { situar } from './src/bases.js';
 import { serializar, restaurar } from './src/persistencia.js';
-import { evaluar } from './src/bql.js';
+import { leerPosicion } from './src/contexto-eje.js';
 
 const corto = (x) => JSON.stringify(x).replace(/[0-9a-f]{64}/g, (m) => m.slice(0, 8));
 const gastaT = (de, cantidad) => (cantidad === undefined ? pagaElCoste(de) : { token: 'T', escala: 'minuto', cantidad, de, a: null });
@@ -1171,15 +1173,15 @@ const minutos = s8.tokens['T:minuto']; // R7: el 8 sitúa cantidades; los termin
 console.log('8 entre hermanos:', s8.frescura, '· n', s8.n, '· T:minuto: foco', minutos.foco, 'caja', minutos.caja, '· cuota', minutos.cuota, '· terminales (recuento):', s8.medidas.terminales.foco);
 // 10. Persistir y restaurar: las lecturas se recalculan desde los eventos.
 const otro = await restaurar(JSON.parse(JSON.stringify(serializar(eje))));
-console.log('restaurado', otro.orden.length, 'eventos · cerrado', cerrado(otro, cons.id).cerrado, '· posición 2 de la consolidación:', evaluar(otro, cons.id, [2]).texto);
+console.log('restaurado', otro.orden.length, 'eventos · cerrado', cerrado(otro, cons.id).cerrado, '· posición 2 de la consolidación:', leerPosicion(otro, cons.id, [2]).texto);
 ```
 
 ```text
 génesis sin movimientos true · P de la casa sobre él 10
 pedido [{"ref":"cc3524e3","dir":"0000000000"},[[{"ref":"cc3524e3","dir":"1100000000"}],[1]],{"ref":"cc3524e3","dir":"2000000000"},[["huesped"],["cocina"]]] · heredadas [0,2] · coste 6 min
-posición 1 propio [2 posiciones] (exacto) · propio PENDIENTE: posición sin desarrollar: 1100000000 cae dentro de la lista de la 1; una dirección no nombra ocupantes de una lista (se leen por índice: BUSCAR o LOCAL) (exacto) · referencia guiso (reducir)
-posición 2 propio → cc3524e3 (exacto) · referencia sin gluten · vegetariano (exacto)
-posición 3 propio [2 posiciones] (exacto) · propio huesped (exacto)
+posición 1 propio [[{"ref":"cc3524e326dc2c4ba26fe371bf644ec91ee8464a30132722218a53d28830a5b8","dir":"1100000000"}],[1]] (exacto) · propio ∅ (exacto) · referencia guiso (reducir)
+posición 2 propio sin gluten, vegetariano (exacto) · referencia sin gluten, vegetariano (exacto)
+posición 3 propio [["huesped"],["cocina"]] (exacto) · propio huesped (exacto)
 posición 4 nada
 consolidación ["Pedido del guiso",{"ref":"cc3524e3","dir":"1100000000"},"sin lactosa",{"ref":"a9a690e4","dir":"3000000000"},"pagar 14 EUR"] · en la fábrica true · encaje [{"posicion":1,"evento":"cc3524e3","tipo":"referencia","origen":"1100000000","destino":"1000000000","vector":[0,1,0,0,0,0,0,0,0,0],"signo":"reducir"}]
 cerrado false · cocina espera ["mover 14 E:casa/EUR de huesped a cocina"]
@@ -1195,7 +1197,7 @@ Lectura de la salida:
 
 - `génesis sin movimientos`: el génesis es la época 0 en el eje, el alta de la casa; su emisión fue la transacción siguiente, y la casa obtuvo diez P sobre él por escribirlo.
 - `pedido`: las posiciones 0 y 2 no se rellenaron y están por debajo de la 3, así que se heredan del menú por referencia; seis posiciones, seis minutos.
-- `posición 1`: colisionan `[1]` y `[1, 0]` (la referencia al guiso, que cae dentro de la lista del menú: por eso sale `PENDIENTE`, una dirección no nombra ocupantes de una lista) con lo que esa referencia alcanza. El guiso vive en la profundidad 1.1 del menú y se coloca en la 1 del pedido: vector `[0, 1, …]` (candidato − buscado), signo `reducir`. `posición 4 nada`: nadie ha escrito en el 4 del pedido.
+- `posición 1`: colisionan `[1]` y `[1, 0]` (la referencia al guiso, que cae dentro de la lista del menú: leída por posiciones, el BQL mínimo la sigue y no alcanza nada, `∅`; el V0 decía `PENDIENTE`) con lo que esa referencia alcanza, leído por su lugar en la lista: «guiso». El guiso vive en la profundidad 1.1 del menú y se coloca en la 1 del pedido: vector `[0, 1, …]` (candidato − buscado), signo `reducir`. `posición 4 nada`: nadie ha escrito en el 4 del pedido.
 - `consolidación`: la elección de la 1 es la referencia al guiso; la 3 se hereda del pedido; el encaje guardado es el del candidato elegido.
 - `cerrado false` hasta que pasa lo anunciado; cocina espera a la huésped. El pago es la transacción de `siguiente`: un minuto de T y los 14 EUR de la huésped a cocina. Con él, la consolidación queda cerrada. El hilo del pago recorre autores: huésped (pago) → huésped (consolidación) → huésped (pedido) → cocina (menú) → casa (alta) → casa (génesis).
 - `futuro`: la única propuesta del pedido está cerrada y el pedido no tiene posición 7. `8 entre hermanos`: nadie ha escrito la base del 8 del menú, así que `situar` usa el respaldo al vuelo y lo dice («sin base escrita»), solo por cantidades (R7).
@@ -1306,7 +1308,7 @@ Las anotaciones de tipo son documentación; el código es JavaScript puro sin de
 | Coste real de las operaciones; si el relleno heredado se cobra (**[X] decidir VG**) | Un minuto de T por posición del registro (heredadas incluidas), también en cada anuncio y en cada pago. |
 | Anidar hileras o décuplas en una posición por decisión | Sin celda, `en` lo elige quien llama (`direccion(camino)` por defecto); con celda o con `escribirSalida`, el registro va en la dirección del camino y lo anclado en la de su celda. |
 | Reglas por dimensión para el signo guardado en `encaje`; cambio del encaje con la época | El vector se guarda tal cual; ninguna regla lo filtra. |
-| Caché y snapshot en la evaluación segura | BQL tiene pila de ciclos y presupuesto; no hay caché (`docs/BQL.md` §9). |
+| Caché y snapshot en la evaluación segura | El BQL mínimo tiene límites y presupuesto por evaluación (y uno por registro para las fórmulas del payload, `docs/BQLM.md` §3 y §14); no hay caché. |
 | Proyecciones reales en PV7: timelocks, hashlocks, fechas dentro del payload | Solo escritos con `t > ahora` y la posición 7 del foco. |
 | Comprobar `t` contra un reloj o contra el orden del eje | Solo `Date.parse`. |
 | Persistencia en base de datos; anclaje a una cadena; sincronización entre visores | Lista de eventos en memoria; `localStorage` por visor. |
@@ -1349,18 +1351,17 @@ identidadDe(eje, id)                 // → la cosa (con clave) que el propio re
 puedeEscribirBase(eje, autor, id)    // → { puede, por: 'identidad' | 'poder' | null, motivo }: la propia cosa o quien tiene P sobre el registro, con clave
 hijos(eje, id); esBase(eje, ev)      // → lo escrito sobre el registro sin sus bases válidas; si un evento es una base válida
 calcularBase(eje, registro, { epoca }) // → { hijos, subarbol, refsHijos, refsBases, hasta, sinBase, epoca }, sin escribir
-escribirBase(eje, { registro, autor, privada, t, epoca }) // → evento en el 8 del registro, firmado por autor (por defecto la propia cosa), que gasta 1 minuto de su T
+escribirBase(eje, { registro, autor, privada, t, epoca, escala }) // → evento en el 8 del registro, firmado por autor (por defecto la propia cosa), que paga el coste de escribir (un minuto por posición, quemaDelCoste)
 leerBase(eje, id)                    // → la vigente (la última llegada), con autor, por, anteriores y frescura { t, hijosNuevos, basesNuevas, debajo, sinNovedades }, o null
 comprobar(eje, base, { epoca })      // → { alDia, diferencias }: recalcula y compara, bajando por las bases fundidas que siguen vigentes
 situar(eje, foco, { alcance, epoca, respaldo }) // → el foco en su caja, leído del 8 de la cohorte (escrita: true); sin base, PENDIENTE «sin base escrita» o, con respaldo, confluir
 confluir(eje, foco, { alcance, epoca }) // → respaldo declarado: lo mismo, calculado al vuelo recorriendo la cohorte (escrita: false, frescura «sin base escrita»)
 comparables(eje, foco, alcance); proyectoDe(eje, foco) // → los registros de una cohorte recorriendo el eje (solo para el respaldo y Scened); el proyecto del foco
-valorDeBases(eje, id, args); erroresDeBases(args) // → lo que devuelve BASES() en BQL; por qué unos argumentos no valen
 ```
 
 | Paso | Quién | `sobre` / `en` | `contexto` | Mueve |
 |---|---|---|---|---|
-| escribir una base | la propia cosa del registro (`identidadDe`) o quien tiene P sobre él, firmando con su clave | el registro / `CIELO` | `{ bases: true, n, nSubarbol, hasta, epoca, sinBase }` | `COSTE_BASE`: 1 minuto de su T ([X] coste) |
+| escribir una base | la propia cosa del registro (`identidadDe`) o quien tiene P sobre él, firmando con su clave | el registro / `CIELO` | `{ bases: true, n, nSubarbol, hasta, epoca, sinBase }` | lo que la regla del coste exige por sus posiciones (`quemaDelCoste`, VG 12-11, #64 b) |
 
 - **Una sola medida.** `medir` vive en `bases.js` y es la única: `tiempo.js` ya no mide ni puntúa (se retiran `tiempo.medir`, `tiempo.medidasDe` y `tiempo.comparar`, §8.3).
 - **Dos estadísticas por base.** `hijos`: el fundido de las medidas de los hijos del registro (la cohorte de hermanos de cada uno). `subarbol`: el registro y todo lo que cuelga de él (la cohorte de proyecto y la general). El subárbol funde, **sin releer registros**, el subárbol de la base vigente de cada hijo: el 8 del proyecto funde las bases de sus hijos y el del génesis, las de los proyectos. Un hijo sin base cuenta por sí mismo y, si tiene descendencia, queda en `sinBase` ([X] cómo se completa).
@@ -1372,7 +1373,7 @@ valorDeBases(eje, id, args); erroresDeBases(args) // → lo que devuelve BASES()
 - **Las bases no son hermanas, escritos ni comparables** de lo que miden: `medir`, `comparables` y `posicionesDe` las saltan, así que escribir una base no cambia lo que mide.
 - **Corregir = escribir otra base.** La anterior queda en el 8 como colisión; `leerBase` da la última y cuenta las `anteriores`.
 - **Frescura y comprobación.** `frescura` cuenta lo llegado sin releer: hijos después de `hasta`, hijos cuya base vigente ya no es la fundida y lo mismo, sumado, en las fundidas (`debajo`). No ve cambios en lo ya medido; para eso, `comprobar` recalcula. `situar` dice en `cambiadas` las medidas en que el foco, medido ahora, cae en una caja vacía aunque la base lo incluya.
-- **`BASES()`, `CAJA()` y `FRESCURA()` en BQL** (`docs/BQL.md` §7.13 y §7.14). Leen la base escrita y heredan el gancho `puedeLeer` (leer la base y, si hay que situarlo, el anfitrión y sus fórmulas) y el presupuesto de la fórmula (cobran lo que examina la lectura del 8). Sin base, PENDIENTE «sin base escrita» con el modo de escribirla; nunca calculan al vuelo.
+- **Las fórmulas no leen el 8.** Las palabras `BASES()`, `CAJA()` y `FRESCURA()` del BQL V0 se retiraron con él (#113, `docs/notas/RETIRADA_BQL_V0.md`) sin sustituto: el 8 se lee con `situar`, `leerBase`, `confluir` y `mapped.ocho`. `medir` sigue contando las fórmulas resueltas y pendientes del registro, leídas con el BQL mínimo (`bqlm.leerFormula`, un presupuesto por registro).
 - **La celda 8 de Mapped y el cielo.** `mapped.ocho(eje, foco, { alcance, epoca })` da lo que lee la celda 8 (la base escrita o el respaldo, dicho), por cantidades (R7; integra lo que daba `bases.ochoPorCantidades`): hermanos por defecto, proyecto o todo el eje; primero las cantidades por serie con su caja, su cuota en la cohorte y la caja de esa cuota, y la cuota del foco frente a su padre (`mapped.cuota`); después los recuentos, como información y sin caja; `mapped.textoOcho` es su texto. `mundos/cielo.js` (`datosCielo`) lee con la misma `ocho`: dibuja una constelación por cantidad y la décupla, enseña los recuentos aparte y dice «sin base escrita». En sobrio la pinta `ui/ocho.js`, al pintarse la celda: es ahí donde se mide el foco, porque `mapped.mapa` solo mide con `{ medidas: true }` y Scened solo suma bajo demanda (`docs/MODOS.md` §0.5).
 - **Sin nivel ni grado.** Las diez cajas llevan las etiquetas de `HITOS` (`hito` en `situar`), texto informativo; nada asigna nivel ni grado ni puntúa.
 
