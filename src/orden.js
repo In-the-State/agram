@@ -20,7 +20,7 @@ export const ESQUEMA_DEL_RECIBO = 'stateark.recibo@1';
 export const CLASES_ENCADENABLES = Object.freeze(['llegada', 'aceptación']);
 
 /** La clase de la contradicción del orden (provisional: StateArk la añadirá a la SIP con su nombre y sus vectores). */
-export const CLASE_DE_ORDEN_DOBLE = 'dos recibos con el mismo orden';
+export const CLASE_DE_ORDEN_DOBLE = 'contradicción en la cadena de recibos';
 
 const HEX64 = /^[0-9a-f]{64}$/;
 const HEX128 = /^[0-9a-f]{128}$/;
@@ -86,7 +86,7 @@ export function comprobarEslabon(recibo, previo) {
 const copia = (x) => JSON.parse(JSON.stringify(x));
 
 /**
- * LA CONTRADICCIÓN DEL ORDEN («dos recibos con el mismo orden»): dos recibos válidos (comprobarRecibo) del mismo emisor y
+ * LA CONTRADICCIÓN DEL ORDEN («contradicción en la cadena de recibos»): dos recibos válidos (comprobarRecibo) del mismo emisor y
  * el mismo universo que no pueden ser los dos verdad: el mismo «orden» con distinto registro; el mismo registro con dos
  * «orden»; el mismo «orden» y registro con distinto «anterior»; o, en órdenes seguidos, un «anterior» que no es el recibo
  * de ese sitio. Dos recibos iguales (o el mismo recibo vuelto a firmar con todo igual menos su t) no lo son. Se le dan

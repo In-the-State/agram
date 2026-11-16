@@ -1,6 +1,6 @@
 // El orden firmado (docs/notas/ORDEN_FIRMADO.md): el recibo que el servidor firma por cada registro lleva su «orden» en
 // la cadena del eje (desde '0', en texto) y su «anterior» (el id del recibo de orden − 1). src/orden.js lo comprueba sin
-// fiarse y da la prueba de contradicción («dos recibos con el mismo orden»); src/sincronia.js lo encadena, lo guarda y
+// fiarse y da la prueba de contradicción («contradicción en la cadena de recibos»); src/sincronia.js lo encadena, lo guarda y
 // dice el estado ('firmado', 'sin firmar', 'contradicho'); la simulación de AARPIA (servidor/sim/aarpia/) lo firma. El
 // vector de StateArk (stateark/sip/vectores/recibos/llegada.json, solo lectura) manda sobre la forma: se comprueba aquí
 // si está (fuera del repo); si no, esa prueba se salta y lo dice. El servicio que miente es solo de estas pruebas: envuelve
@@ -121,6 +121,25 @@ test('el vector de StateArk: comprobarRecibo da por buena su cadena, el eslabón
   assert.equal(ordenDoble(repetido[1], repetido[2]).motivo, 'el mismo orden con dos registros', v.manipulaciones[1].nombre);
   assert.equal(ordenDoble(v.cadena[1].sobre, v.cadena[2].sobre), null, 'la cadena buena no se contradice');
   assert.equal(v.selladas.at(-1), v.cadena.at(-1).sobre.id, 'lo sellado es el último de la tanda');
+});
+
+test('los vectores de contradicción de StateArk: ordenDoble da la misma clase, el mismo motivo de fondo y el mismo id, del derecho y del revés', { skip: existsSync(VECTOR) ? false : 'falta el vector de StateArk (stateark/sip/vectores/recibos/llegada.json)' }, () => {
+  const v = JSON.parse(readFileSync(VECTOR, 'utf8'));
+  assert.equal(v.contradicciones.length, 4);
+  const motivos = new Set();
+  for (const c of v.contradicciones) {
+    const p = ordenDoble(c.prueba.a, c.prueba.b);
+    assert.ok(p, c.nombre);
+    assert.equal(p.clase, c.prueba.clase, c.nombre);
+    assert.equal(p.clase, CLASE_DE_ORDEN_DOBLE);
+    assert.equal(p.emisor, c.prueba.acusado, c.nombre);
+    assert.equal(p.id, c.prueba.id, c.nombre);
+    assert.equal(ordenDoble(c.prueba.b, c.prueba.a).id, c.prueba.id, c.nombre);
+    assert.equal(ordenDoble(c.prueba).id, c.prueba.id, c.nombre);
+    assert.equal(ordenDoble(c.prueba.a, c.prueba.a), null, c.nombre);
+    motivos.add(p.motivo);
+  }
+  assert.equal(motivos.size, 4);
 });
 
 test('la simulación firma la cadena: «orden» desde 0 en texto, «anterior» del 1 en adelante, universo «relé · eje»; GET /eventos/recibo da `sobre`; el cliente encadena y dice «firmado» (servido = firmado + 1)', async () => {

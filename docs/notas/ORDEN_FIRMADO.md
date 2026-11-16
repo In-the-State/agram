@@ -40,7 +40,7 @@ el recibo único entero tal como va en el content del 7701 (solo esos seis campo
 
 ## La contradicción
 
-Clase `CLASE_DE_ORDEN_DOBLE = 'dos recibos con el mismo orden'` (provisional, como la bifurcación de cabeceras; StateArk la añadirá a la SIP con su nombre y sus vectores). Dos recibos **válidos** del **mismo emisor y el mismo universo** son la prueba si:
+Clase `CLASE_DE_ORDEN_DOBLE = 'contradicción en la cadena de recibos'` (el nombre de la SIP 0, StateArk main af7dc6e; el id de la prueba casa byte a byte con sus vectores). Dos recibos **válidos** del **mismo emisor y el mismo universo** son la prueba si:
 
 1. tienen el mismo «orden» y distinto registro;
 2. son del mismo registro con dos «orden»;
@@ -50,7 +50,7 @@ Clase `CLASE_DE_ORDEN_DOBLE = 'dos recibos con el mismo orden'` (provisional, co
 Dos recibos iguales, o el mismo recibo vuelto a firmar con todo igual menos su `t`, no lo son. La prueba son **los dos recibos enteros**. `ordenDoble(a, b)` (o `ordenDoble({ a, b })`, para una guardada) la comprueba sin libro y la da:
 
 ```
-{ clase: 'dos recibos con el mismo orden', motivo, emisor, universo, ordenes: [de a, de b], registros: [de a, de b], a, b, id }
+{ clase: 'contradicción en la cadena de recibos', motivo, emisor, universo, ordenes: [de a, de b], registros: [de a, de b], a, b, id }
 id = SHA-256(canonico({ clase, ids: [id menor, id mayor] }))
 ```
 
