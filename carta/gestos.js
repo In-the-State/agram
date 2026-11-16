@@ -47,6 +47,9 @@ const UMBRAL_ARRASTRE = 24;
  *   denominacion(escala, form)  ejecutar: la escala de la que parte la T que se quema (el formulario sigue con lo escrito)
  *   cerrar()                 cerrar el aro, el formulario o la configuración
  *   enviar(form)             enviar el formulario de una acción
+ *   reglas() · reglasCambio(id) · reglasVolver() · reglasProponer() · reglasActuar(que, id) · reglasPosicion(posicion, form) · reglasPropuesta(form)
+ *                            «Reglas del libro» (A21; carta/reglas.js): abrirla, un cambio, volver a la lista, proponer, sus acciones
+ *   ajustesElemento(X)       «Ajustes de este elemento» (A21): lo fijado y lo heredado del libro
  *   configurar(form | null, parte)  abrir la configuración de una parte (null, '2' mis criterios y preferencias | '9' guía y exterior) o guardarla (el formulario)
  *   retocarTexto(clave, idioma)  el modo «retocar textos» (A20): tocar un texto marcado (data-retocar) abre su retoque y no hace lo suyo
  *   retoqueIdioma(idioma) · guardarRetoque(form) · retoqueOriginal(clave, idioma) · modoRetocar(encendido)  la hoja del retoque, la lista y el interruptor
@@ -209,6 +212,13 @@ export function instalar(raiz, m) {
     if (b('[data-asa]')) { e.preventDefault(); return; }
     // El 3 por tema (encargo pv3): el botón que cicla de una caja, el interrogante de un sitio y una posición de su cruceta.
     if ((el = b('[data-filtro-caja]'))) { e.preventDefault(); m.filtroCaja?.(Number(el.dataset.filtroCaja)); return; }
+    // «Reglas del libro» y «Ajustes de este elemento» (A21; carta/reglas.js).
+    if ((el = b('[data-reglas-abrir]'))) { e.preventDefault(); m.reglas?.(); return; }
+    if ((el = b('[data-reglas-cambio]'))) { e.preventDefault(); m.reglasCambio?.(el.dataset.reglasCambio); return; }
+    if ((el = b('[data-reglas-volver]'))) { e.preventDefault(); m.reglasVolver?.(); return; }
+    if ((el = b('[data-reglas-proponer]'))) { e.preventDefault(); m.reglasProponer?.(); return; }
+    if ((el = b('[data-reglas-actuar]'))) { e.preventDefault(); m.reglasActuar?.(el.dataset.reglasActuar, el.dataset.id); return; }
+    if ((el = b('[data-ajustes-elemento]'))) { e.preventDefault(); m.ajustesElemento?.(el.dataset.ajustesElemento); return; }
     if ((el = b('[data-sitio-lanzar]'))) {
       e.preventDefault();
       let valores = {};
@@ -495,6 +505,7 @@ export function instalar(raiz, m) {
     if (f.matches('[data-formulario]')) m.enviar?.(f);
     else if (f.matches('[data-configuracion]')) m.configurar?.(f);
     else if (f.matches('[data-retoque]')) m.guardarRetoque?.(f);
+    else if (f.matches('[data-reglas-propuesta]')) m.reglasPropuesta?.(f);
     else if (f.matches('[data-crear]')) m.crear?.(f);
     else if (f.matches('[data-restaurar]')) m.restaurar?.(f);
     else if (f.matches('[data-copia-form]')) m.copia?.(f);
@@ -515,6 +526,8 @@ export function instalar(raiz, m) {
     // El interruptor «retocar los textos de este libro» y el idioma de la hoja de un retoque (A20).
     if (t.matches('[data-retocar-modo]')) { m.modoRetocar?.(Boolean(t.checked)); return; }
     if (t.matches('[data-retoque-idioma]')) { m.retoqueIdioma?.(t.value); return; }
+    // «Proponer un cambio» (A21): elegir qué cambia pone en «cómo queda» el valor de hoy.
+    if (t.matches('[data-reglas-posicion]')) { m.reglasPosicion?.(t.value, t.form ?? t.closest?.('form') ?? null); return; }
     // La escala de la que parte la T que se quema al ejecutar (VG 12-11, decisión 7): la denominación se recalcula.
     if (t.matches('[data-denominacion]')) { m.denominacion?.(t.value, t.form ?? t.closest?.('form') ?? null); return; }
     if (t.matches('[data-formato]')) { m.formato?.(t.dataset.formato, t.value); return; }

@@ -128,3 +128,7 @@ Ninguna se acerca a los límites. El tiempo: validar un «enact a change» sobre
 - Una propuesta sin aprobar no caduca: los apoyos quedan bloqueados hasta que se retiran.
 - Una lista de nombres cuyas presiones suman 0 dejaría «support» en ERROR (división por cero): el núcleo no la deja entrar (§2).
 - Hasta diez registros nuevos por cambio (el 1.2 es una décupla).
+
+## Para la carta
+
+Hecho (tramo 2, paso 4): la vista «Reglas del libro» lista los cambios con su estado, su barra de apoyo por nombres, sus acciones con su coste, la firmeza de la aprobación y «salir a un libro hijo»; propone parámetros y, detrás de «avanzado», la pieza escrita. `carta/reglas.js`, `docs/CONTRATO.md` §5 bis.2, `test/carta-reglas.test.js`.
