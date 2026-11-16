@@ -33,6 +33,7 @@ import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
+import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMovibles, proponer as proponerCambio, ajustesDelElemento, conGobierno } from './reglas.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -66,6 +67,9 @@ const estado = {
   // Retocar un texto en su sitio (A20 escalón 1): el modo «retocar textos» (solo cuenta para quien puede retocar en este
   // libro; arranca apagado) y la hoja abierta ({ clave, idioma, texto, aviso, motivos }) o null.
   retocar: false, retoque: null,
+  // «Reglas del libro» (A21; carta/reglas.js): la vista abierta ({ cambio: id | null, proponer: { posicion, valores } | null,
+  // aviso, motivos, exito }) o null; y «Ajustes de este elemento» abierta ({ X }) o null.
+  reglas: null, ajustes: null,
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -317,6 +321,10 @@ function extraDe() {
     exteriorAjustes: estado.config && estado.eje ? conEtiquetasLlanas(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, porDefectoDelSitio().exterior), idioma()) ?? undefined : undefined,
     segundoFactor: estado.config && estado.eje ? segundoFactorDeConfiguracion(estado.eje, estado.identidad) ?? undefined : undefined,
     retocarTextos: estado.config && estado.eje ? retocarTextosDe() : undefined,
+    // «Reglas del libro» y «Ajustes de este elemento» (A21): sus vistas, y la entrada desde la configuración y desde el génesis.
+    reglas: estado.reglas && estado.eje ? reglasDe() : undefined,
+    ajustesElemento: estado.ajustes && estado.eje ? ajustesDelElemento(estado.eje, estado.ajustes.X, estado.identidad) ?? undefined : undefined,
+    entradaReglas: estado.eje ? conGobierno(estado.eje) : false, genesisId: estado.eje?.genesisId,
     parteConfiguracion: estado.config || undefined, arranque: estado.arranque, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
     archivo: (id) => archivos.contenido(id), // los archivos adjuntos (el HTML del PV0 en su iframe aislado, las imágenes)
   };
@@ -326,6 +334,59 @@ function extraDe() {
 function retocarTextosDe() {
   const r = textosRetocados(estado.eje, estado.identidad);
   return r ? { ...r, activo: estado.retocar, idioma: idioma() } : undefined;
+}
+
+// ---------- «Reglas del libro» y «Ajustes de este elemento» (A21 y A23, tramo 2, paso 4; carta/reglas.js) ----------
+
+/** ¿Firma mi cuenta con el guardián y su sesión no consta cerrada? Entonces «poner en vigor» lo hace sola la carta. */
+const conGuardianAbierto = () => estado.cuenta?.guardian === true && !estado.cuenta.soloLeer && !estado.guardian.sesionCerrada;
+
+/** La vista «Reglas del libro» de ahora: la lista, el cambio abierto o el formulario de proponer (dom.js htmlReglas). */
+function reglasDe() {
+  const r = estado.reglas;
+  const lista = reglasDelLibro(estado.eje, estado.identidad);
+  const cambio = r.cambio ? cambioDelLibro(estado.eje, r.cambio, estado.identidad) : null;
+  let proponer = null;
+  if (r.proponer) {
+    const parametros = parametrosMovibles(estado.eje);
+    const elegido = parametros.find((x) => x.posicion === r.proponer.posicion);
+    proponer = { ...r.proponer, parametros, clase: r.proponer.clase ?? (elegido ? (elegido.gobierno ? 'gobierno' : 'corriente') : null) };
+  }
+  // Con el guardián, a quien propuso no se le enseña el botón: la carta lo pone en vigor sola (ponerEnVigorSolo).
+  return { lista, cambio, proponer, guardian: conGuardianAbierto() && cambio?.autor === estado.identidad, aviso: r.aviso, motivos: r.motivos, exito: r.exito };
+}
+
+/** Lo escrito en el formulario de proponer: { titulo, explicacion, posicion, valor, pieza }. */
+function valoresDePropuesta(form) {
+  const v = (n) => form?.querySelector?.('[name="' + n + '"]')?.value;
+  return { titulo: v('titulo') ?? '', explicacion: v('explicacion') ?? '', posicion: v('posicion') || null, valor: v('valor'), pieza: v('pieza') ?? '' };
+}
+
+/**
+ * Con la sesión del guardián abierta (diseño §8): los cambios que propuse, aprobados y con la prueba ya al nivel pedido, se
+ * ponen en vigor solos (el guardián pide su diálogo: carta/anfitrion.js segundoFactorDe). Una vez por aprobación.
+ */
+const intentadosEnVigor = new Set();
+async function ponerEnVigorSolo() {
+  if (!conGuardianAbierto() || !estado.reglas || !estado.eje || !(await sesionAbierta(guardian, estado.cuenta.publica))) return;
+  const eje = estado.eje;
+  const yo = estado.identidad;
+  for (const c of reglasDelLibro(eje, yo).cambios) {
+    if (c.estado !== 'aprobado' || c.autor !== yo || estado.eje !== eje) continue;
+    const d = cambioDelLibro(eje, c.id, yo);
+    if (!d?.poner?.ofrecida || intentadosEnVigor.has(d.poner.X)) continue;
+    intentadosEnVigor.add(d.poner.X);
+    const r = await actuarEnCambio(eje, c.id, 'poner', yo, firmarCon(yo));
+    if (!estado.reglas) return;
+    if (r.asentado) {
+      trasEscribir();
+      estado.reglas.exito = t('reglasHecho', { accion: t('reglasAccion_poner'), id: r.asentado.id.slice(0, 8) });
+      marcarNuevos();
+    } else {
+      estado.reglas.motivos = motivosConGuardian(r.motivos ?? []);
+    }
+    pintar();
+  }
 }
 
 // ---------- la guía del PV9 ----------
@@ -566,6 +627,8 @@ function cambiarDeEje(eje, identidad) {
   estado.config = false;
   estado.retocar = false;
   estado.retoque = null;
+  estado.reglas = null;
+  estado.ajustes = null;
   estado.vistos = new Set();
   estado.nuevos = new Set();
   estado.arranque = null;
@@ -1033,6 +1096,8 @@ const manejadores = {
     else if (estado.retoque) estado.retoque = null;
     else if (estado.config) { estado.config = false; estado.motivosPreferencias = []; }
     else if (estado.formulario) estado.formulario = null;
+    else if (estado.reglas) estado.reglas = null;
+    else if (estado.ajustes) estado.ajustes = null;
     else if (estado.sitio) estado.sitio = null;
     else if (estado.aro) estado.aro = null;
     else if (estado.celdaMatriz) estado.celdaMatriz = null; // la celda abierta de la matriz del 4 (encargo «el4»)
@@ -1091,6 +1156,98 @@ const manejadores = {
       f.motivos = motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)); // lo escrito sigue en el formulario (f.valores)
       f.resultado = null;
     }
+    pintar();
+  },
+  // ---- «Reglas del libro» y «Ajustes de este elemento» (A21 y A23; carta/reglas.js) ----
+  /** Abrir «Reglas del libro» (desde la configuración o desde el génesis): la lista de cambios. */
+  reglas() {
+    if (!estado.eje) return;
+    estado.reglas = { cambio: null, proponer: null, aviso: null, motivos: [], exito: null };
+    estado.config = false;
+    estado.sitio = null;
+    estado.aro = null;
+    estado.formulario = null;
+    limpiarMensajes();
+    tocar(estado.foco.X, 'reglas del libro');
+    pintar();
+    void ponerEnVigorSolo();
+  },
+  /** El detalle de un cambio (su propuesta). */
+  reglasCambio(id) {
+    if (!estado.reglas || typeof id !== 'string') return;
+    estado.reglas = { ...estado.reglas, cambio: id, proponer: null, aviso: null, motivos: [], exito: null };
+    tocar(estado.foco.X, 'cambio ' + id.slice(0, 8));
+    pintar();
+    void ponerEnVigorSolo();
+  },
+  /** Volver a la lista de cambios. */
+  reglasVolver() {
+    if (!estado.reglas) return;
+    estado.reglas = { ...estado.reglas, cambio: null, proponer: null, aviso: null, motivos: [] };
+    pintar();
+  },
+  /** El formulario de proponer un cambio. */
+  reglasProponer() {
+    if (!estado.reglas) return;
+    estado.reglas = { ...estado.reglas, cambio: null, proponer: { posicion: null, valores: {}, clase: null }, aviso: null, motivos: [], exito: null };
+    tocar(estado.foco.X, 'proponer un cambio');
+    pintar();
+  },
+  /** Elegir qué cambia: «cómo queda» parte del valor de hoy de esa posición; lo demás escrito se guarda. */
+  reglasPosicion(posicion, form) {
+    const p = estado.reglas?.proponer;
+    if (!p) return;
+    const { titulo, explicacion, pieza } = valoresDePropuesta(form);
+    estado.reglas.proponer = { posicion: posicion || null, valores: { titulo, explicacion, pieza }, clase: null };
+    estado.reglas.aviso = null;
+    estado.reglas.motivos = [];
+    pintar();
+  },
+  /** «Proponer»: la carta comprueba antes de escribir; si pasa, «propose a change» por el camino de siempre. */
+  async reglasPropuesta(form) {
+    const p = estado.reglas?.proponer;
+    if (!p || !estado.eje) return;
+    const v = valoresDePropuesta(form);
+    limpiarMensajes();
+    const r = await proponerCambio(estado.eje, estado.identidad, v, firmarCon(estado.identidad));
+    if (!estado.reglas) return;
+    if (r.asentado) {
+      trasEscribir();
+      estado.reglas = { cambio: r.asentado.id, proponer: null, aviso: null, motivos: [], exito: t('reglasPropuesto', { id: r.asentado.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '') };
+      tocar(estado.foco.X, 'propuesto ' + r.asentado.id.slice(0, 8));
+      marcarNuevos();
+    } else {
+      estado.reglas.proponer = { posicion: v.posicion, valores: v, clase: r.comprobacion?.claseLlana ?? null, avanzado: Boolean(v.pieza) };
+      estado.reglas.aviso = r.aviso ?? null;
+      estado.reglas.motivos = motivosConGuardian(r.motivos ?? []);
+    }
+    pintar();
+  },
+  /** Apoyar, retirar el apoyo, aprobar, retirar la propuesta o poner en vigor, por el camino de siempre (coste, firma, sincronía). */
+  async reglasActuar(que, id) {
+    if (!estado.reglas || !estado.eje) return;
+    limpiarMensajes();
+    const r = await actuarEnCambio(estado.eje, id, que, estado.identidad, firmarCon(estado.identidad));
+    if (!estado.reglas) return;
+    if (r.asentado) {
+      trasEscribir();
+      estado.reglas = { ...estado.reglas, aviso: null, motivos: [], exito: t('reglasHecho', { accion: t('reglasAccion_' + que), id: r.asentado.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '') };
+      tocar(estado.foco.X, que + ' ' + String(id).slice(0, 8));
+      marcarNuevos();
+    } else {
+      estado.reglas = { ...estado.reglas, aviso: null, motivos: motivosConGuardian(r.motivos ?? []), exito: null };
+    }
+    pintar();
+  },
+  /** «Ajustes de este elemento» (desde su configuración, la cruceta de su 0). */
+  ajustesElemento(X) {
+    if (!X || !estado.eje?.obtener(X)) return;
+    estado.ajustes = { X };
+    estado.sitio = null;
+    estado.aro = null;
+    estado.formulario = null;
+    limpiarMensajes();
+    tocar(X, 'ajustes de este elemento');
     pintar();
   },
   // ---- retocar un texto en su sitio (A20 escalón 1, docs/notas/RETOQUES.md) ----

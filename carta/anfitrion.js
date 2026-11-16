@@ -23,6 +23,7 @@ import { ContextoEje } from '../src/contexto-eje.js';
 import { epocaDelEje } from '../src/epocas.js';
 import { clavePublicaValida, verificar } from '../src/autoridad.js';
 import { canonico, cuerpo } from '../src/evento.js';
+import { pideDialogo } from './reglas.js';
 
 /** El global del anfitrión, leído UNA vez al cargar (si leerlo lanza, como si no estuviera). */
 const delGlobal = (() => { try { return globalThis.__AGRAM_ANFITRION__; } catch { return undefined; } })();
@@ -152,12 +153,15 @@ function plano(o, ctx) {
  * factor» de la época sobre la candidata (sus criterios que alcanza; la misma que usa acciones.transaccion y, ya escrito,
  * acciones.segundoFactor para decir «por autorizar»). Sin criterios de su autor ni de otra plantilla, no (el atajo de
  * acciones.segundoFactor); el génesis tampoco (sin libro no hay criterios). Si no se puede calcular (sin eje, la lectura
- * parada por un límite, un error): verdadero; ante la duda, el diálogo del guardián.
+ * parada por un límite, un error): verdadero; ante la duda, el diálogo del guardián. Los registros del gobierno de las
+ * reglas que piden diálogo (carta/reglas.js pideDialogo: proponer, apoyar, aprobar y poner en vigor un cambio), siempre.
  */
 export function segundoFactorDe(eje, { canonico, id } = {}) {
   try {
     const cuerpo = JSON.parse(canonico);
     if (cuerpo?.sobre === null && cuerpo?.contexto?.genesis === true) return false;
+    // El gobierno de las reglas (A21, diseño §8 y §9): proponer, apoyar, aprobar y poner en vigor piden siempre diálogo.
+    if (pideDialogo(cuerpo?.payload)) return true;
     if (!eje || typeof eje.obtener !== 'function') return true;
     if (!acciones.criteriosDeSegundoFactor(eje, cuerpo.autor).length && !acciones.criteriosDeOtraPlantilla(eje).length) return false;
     const ctx = new ContextoEje(eje, { ev: { ...cuerpo, id }, epoch: epocaDelEje(eje) });

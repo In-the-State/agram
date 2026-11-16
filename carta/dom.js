@@ -413,7 +413,16 @@ function htmlSitio(s, arbol = null, extra = {}) {
     return `<div class="sitio-posicion${p.accion && !con ? ' tocable' : ''}" data-posicion="${p.posicion}" data-color="${p.posicion}"><span class="numero">${p.posicion}</span>${tocar}${con ? `<div class="sitio-controles"${nodo('sitio-controles', { posicion: p.posicion })}>${con}</div>` : ''}</div>`;
   };
   const cuerpo = [...celdas.entries()].map(([k, ps]) => { const [f, c] = k.split(','); return `<li class="sitio-celda" style="--fila:${Number(f) + 1};--columna:${Number(c) + 1}">${ps.map(posicion).join('')}</li>`; }).join('');
-  return `<div class="sitio-fondo" data-cerrar><div class="sitio-cruceta"${nodo('sitio', { lugar: s.lugar })} data-x="${attr(s.X)}" data-sitio-de="${attr(s.lugar)}"${s.general ? ' data-sitio-general' : ''} role="dialog" aria-label="${attr(t('sitioDe', { lugar: s.lugar, que: s.texto }))}"><header><h2><span class="sitio-icono" aria-hidden="true">?</span> ${escapar(t(s.general ? 'sitioCeroDe' : 'sitioDe', { lugar: s.lugar, que: s.texto }))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header><ol class="sitio-posiciones">${cuerpo}</ol></div></div>`;
+  return `<div class="sitio-fondo" data-cerrar><div class="sitio-cruceta"${nodo('sitio', { lugar: s.lugar })} data-x="${attr(s.X)}" data-sitio-de="${attr(s.lugar)}"${s.general ? ' data-sitio-general' : ''} role="dialog" aria-label="${attr(t('sitioDe', { lugar: s.lugar, que: s.texto }))}"><header><h2><span class="sitio-icono" aria-hidden="true">?</span> ${escapar(t(s.general ? 'sitioCeroDe' : 'sitioDe', { lugar: s.lugar, que: s.texto }))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>${s.general ? htmlEntradasDelElemento(s.X, extra) : ''}<ol class="sitio-posiciones">${cuerpo}</ol></div></div>`;
+}
+
+/**
+ * En la configuración de un elemento (la cruceta de su 0): «Ajustes de este elemento» y, en el génesis del libro con
+ * gobierno, «Reglas del libro» (A21; carta/reglas.js). La app dice si el libro tiene gobierno y cuál es su génesis.
+ */
+function htmlEntradasDelElemento(X, extra = {}) {
+  const reglas = extra.entradaReglas && extra.genesisId === X ? ` <button type="button"${nodo('control')} data-reglas-abrir title="${attr(t('reglasAbrirTitulo'))}">${escapar(t('reglasAbrir'))}</button>` : '';
+  return `<p class="sitio-entradas"><button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesElementoTitulo'))}">${escapar(t('ajustesElemento'))}</button>${reglas}</p>`;
 }
 
 /** Una fracción entre 0 y 1 con tres decimales, para una variable de CSS (solo un número: nada del dato llega al estilo). */
@@ -1414,7 +1423,7 @@ const DE_LA_PARTE_9 = new Set(['sync url', 'sync ledger']);
  * de lectura del libro compartido: sin `name` (no entra en el registro de preferencias: la app lo lee por
  * data-clave-lectura y lo guarda en el almacén local de la cuenta, nunca en el eje).
  */
-export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterior, segundoFactor, parte = '2', retocar = null } = {}) {
+export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterior, segundoFactor, parte = '2', retocar = null, reglas = false } = {}) {
   if (!p) return '';
   const modo = retocar?.activo ? { idioma: retocar.idioma } : null; // el modo «retocar textos» (A20), si está encendido
   // Un campo con opciones (el modelo, #4) es un desplegable con ellas; los demás, texto.
@@ -1427,7 +1436,7 @@ export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterio
   const esDelNueve = (c) => DE_LA_PARTE_9.has(c.clave);
   const campos = p.campos.filter((c) => esDelNueve(c) === del9).map((c) => `<div class="campo"><label for="pref-${c.pv}">${escapar(c.etiqueta)}</label>${control(c)}<small class="ayuda">${escapar(c.ayuda)}</small></div>`).join('')
     + (del9 && typeof claveLectura === 'string' ? `<div class="campo"><label for="pref-clave-lectura">${t('claveLectura')}</label><input id="pref-clave-lectura" data-clave-lectura type="password" value="${attr(claveLectura)}" title="${attr(t('claveLecturaAyuda'))}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(t('claveLecturaAyuda'))}</small></div>` : '')
-    + (del9 ? htmlAjustesGuia(guia) + htmlAjustesExterior(exterior) : htmlSegundoFactor(segundoFactor) + htmlRetocarTextos(retocar));
+    + (del9 ? htmlAjustesGuia(guia) + htmlAjustesExterior(exterior) : htmlSegundoFactor(segundoFactor) + htmlRetocarTextos(retocar) + htmlEntradaReglas(reglas));
   return `<div class="formulario-fondo" data-cerrar><form class="formulario configuracion"${nodo('configuracion')} data-configuracion data-parte="${del9 ? 9 : 2}" aria-label="${attr(t(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios'))}">
     <header><h2><span class="numero">${del9 ? 9 : 2}</span> ${tr(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios', {}, modo)}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
     <p class="ayuda">${tr(del9 ? 'configuracionAyuda9' : 'configuracionAyuda2', {}, modo)}</p>
@@ -1472,6 +1481,136 @@ export function htmlRetoque(r) {
     ${avisos.length ? `<ul class="motivos" role="alert">${avisos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : ''}
     <footer>${original}<button type="submit"${r.existe ? '' : ' disabled'}>${escapar(t('guardar'))}</button></footer>
   </form></div>`;
+}
+
+// ---------- «Reglas del libro» y «Ajustes de este elemento» (A21 y A23, tramo 2, paso 4; carta/reglas.js) ----------
+
+/** Una parte de 0 a 1 en por ciento, redondeada: «50 %». */
+const porciento = (x) => (Number.isFinite(x) ? Math.round(x * 100) + ' %' : '—');
+/** El coste de una acción como lo dice el formulario de cualquier acción: «cuesta 5 min de T (5 min)». */
+const textoDeCoste = (c) => (c ? t('reglasCoste', { t: textoDeSegundos(c.exigido), paga: textoDePiezas(c.denominacion) }) : '');
+/** La entrada a «Reglas del libro» (desde la configuración y desde el génesis): un botón llano, solo si el libro tiene gobierno. */
+const htmlEntradaReglas = (si) => (si ? `<p class="reglas-entrada"><button type="button"${nodo('control')} data-reglas-abrir title="${attr(t('reglasAbrirTitulo'))}">${escapar(t('reglasAbrir'))}</button></p>` : '');
+
+/**
+ * La vista «Reglas del libro» (carta/reglas.js), para el móvil: una hoja como la de cualquier formulario. `v`: { lista
+ * (reglasDelLibro), cambio (cambioDelLibro, o null), proponer (el formulario de proponer, o null), guardian (con la sesión
+ * del guardián: «poner en vigor» lo hace sola la carta), aviso, motivos, exito }. Todo dato va escapado: un título, una
+ * explicación o una pieza escrita nunca entran como HTML. En pantalla no sale «época».
+ */
+export function htmlReglas(v) {
+  if (!v?.lista) return '';
+  const avisos = [...(v.aviso ? [v.aviso] : []), ...(v.motivos ?? []).map((m) => m?.mensaje ?? m)];
+  const mensajes = (avisos.length ? `<ul class="motivos" role="alert">${avisos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '') + (v.exito ? `<p class="exito" role="status">${escapar(v.exito)}</p>` : '');
+  const cuerpo = v.proponer ? htmlProponerCambio(v.proponer) : v.cambio ? htmlCambio(v.cambio, v) : htmlListaDeCambios(v.lista);
+  return `<div class="formulario-fondo" data-cerrar><section class="formulario reglas"${nodo('reglas')} role="dialog" aria-label="${attr(t('reglasTitulo'))}">
+    <header><h2>${escapar(t('reglasTitulo'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    ${v.cambio || v.proponer ? `<p class="reglas-volver"><button type="button" class="enlace"${nodo('control')} data-reglas-volver>${escapar(t('reglasVolver'))}</button></p>` : ''}
+    ${mensajes}${cuerpo}
+  </section></div>`;
+}
+
+/** La versión vigente y la lista de cambios, lo más nuevo arriba, cada uno con su estado en llano y su apoyo. */
+function htmlListaDeCambios(l) {
+  if (!l.gobierno) return `<p class="ayuda">${escapar(t('reglasSinGobierno'))}</p>`;
+  const version = l.version.cambios ? t(l.version.cambios === 1 ? 'reglasVersionUno' : 'reglasVersion', { n: l.version.cambios, desde: l.version.desde ?? '' }) : t('reglasVersionNacimiento');
+  const items = l.cambios.map((c) => `<li class="reglas-cambio" data-estado="${attr(c.estado)}"><button type="button"${nodo('control')} data-reglas-cambio="${attr(c.id)}"><span class="reglas-cambio-titulo">${escapar(c.titulo)}</span> <small class="reglas-estado" data-estado="${attr(c.estado)}">${escapar(t('reglasEstado_' + c.estado))}</small>${c.estado === 'propuesto' && c.apoyo !== null ? ` <small class="reglas-apoyo-corto">${escapar(t('reglasApoyoCorto', { apoyo: porciento(c.apoyo) }))}</small>` : ''}<small class="reglas-quien">${escapar(t('reglasPropuso', { quien: c.quien, cuando: c.cuando }))} · ${escapar(t('reglasClase_' + c.claseLlana))}</small></button></li>`).join('');
+  return `<p class="reglas-version">${escapar(version)}</p>
+    ${l.cambios.length ? `<ol class="reglas-cambios">${items}</ol>` : `<p class="ayuda">${escapar(t('reglasNingunCambio'))}</p>`}
+    ${l.puedeProponer ? `<footer><button type="button"${nodo('control')} data-reglas-proponer>${escapar(t('reglasProponer'))}</button></footer>` : ''}`;
+}
+
+/** Una pieza que toca un cambio: un parámetro con su valor de hoy y el nuevo; una regla, una acción o un texto, con su escrito desplegable. */
+function htmlPiezaDeCambio(p, enVigor) {
+  if (p.tipo === 'parametro') {
+    const [hoy, queda] = enVigor ? ['reglasAntes', 'reglasAhora'] : ['reglasHoy', 'reglasQueda'];
+    return `<li class="reglas-pieza" data-tipo="parametro" data-posicion="${attr(p.posicion)}">${p.nombre ? `<b>${escapar(p.nombre)}</b> ` : ''}<small><code>${escapar(p.posicion)}</code></small><br><span class="reglas-valor-hoy"><small>${escapar(t(hoy))}</small> ${escapar(p.hoy || '—')}</span> → <span class="reglas-valor-queda"><small>${escapar(t(queda))}</small> ${escapar(p.queda || '—')}</span></li>`;
+  }
+  const hoy = p.hoy ? `<details><summary>${escapar(t('reglasPiezaHoy'))}</summary><pre>${escapar(p.hoy)}</pre></details>` : `<small>${escapar(t('reglasPiezaNoHay'))}</small>`;
+  return `<li class="reglas-pieza" data-tipo="${attr(p.tipo)}"><b>${escapar(t('reglasPieza_' + p.tipo, { nombre: p.nombre }))}</b> ${hoy}<details><summary>${escapar(t('reglasPiezaNueva'))}</summary><pre>${escapar(p.queda)}</pre></details></li>`;
+}
+
+/** La barra de apoyo: «support» frente al umbral de su clase, lo que falta, quién cuenta y quién apoya y con cuánto. */
+function htmlBarraDeApoyo(b, estado) {
+  const apoyos = b.apoyos.length
+    ? `<ul class="reglas-apoyos">${b.apoyos.map((a) => `<li${a.enLista ? '' : ' data-no-cuenta'}>${escapar(t(a.enLista ? 'reglasApoyoDe' : 'reglasApoyoNoCuenta', { quien: a.quien, parte: porciento(a.parte) }))}</li>`).join('')}</ul>`
+    : `<p class="ayuda">${escapar(t('reglasNadieApoya'))}</p>`;
+  const falta = b.falta > 0 ? t('reglasFalta', { falta: porciento(b.falta) }) : t('reglasLlega');
+  const barra = estado === 'propuesto' ? `<div class="reglas-barra" style="--apoyo:${fraccionCss(b.apoyo)};--umbral:${fraccionCss(b.umbral)}" role="meter" aria-valuemin="0" aria-valuemax="100" aria-valuenow="${Math.round(fraccionCss(b.apoyo) * 100)}"><span class="reglas-barra-apoyo"></span><span class="reglas-barra-umbral"></span></div>` : '';
+  return `<div class="reglas-apoyo"><h3>${escapar(t('reglasApoyoTitulo'))}</h3>${barra}<p class="reglas-apoyo-linea">${escapar(t('reglasApoyo', { apoyo: porciento(b.apoyo), umbral: porciento(b.umbral) }))}${estado === 'propuesto' ? ' · ' + escapar(falta) : ''}</p>
+    <p class="ayuda"><small>${escapar(t('reglasCuentan', { nombres: b.nombres.map((n) => n.quien || n.nombre).join(', ') }))}</small></p>
+    <h4>${escapar(t('reglasQuienApoya'))}</h4>${apoyos}${b.avisoFueraDeLista ? `<p class="aviso reglas-fuera-de-lista">${escapar(t('reglasFueraDeLista'))}</p>` : ''}</div>`;
+}
+
+/** El detalle de un cambio: qué cambia, la barra, las acciones con su coste, la firmeza de la aprobación y «salir a un libro hijo». */
+function htmlCambio(c, v) {
+  const enVigor = c.estado === 'enVigor';
+  const piezas = c.piezas.length ? `<ul class="reglas-piezas">${c.piezas.map((p) => htmlPiezaDeCambio(p, enVigor)).join('')}</ul>` : `<p class="ayuda">${escapar(t('reglasSinPiezas'))}</p>`;
+  const aviso = c.aviso ? `<ul class="motivos" role="alert"><li>${escapar(t('reglasNoSeFunde'))} ${escapar(c.aviso)}</li></ul>` : '';
+  // «Poner en vigor» con la sesión del guardián lo hace sola la carta (con su diálogo); con clave en el navegador, un botón.
+  const acciones = c.acciones.filter((a) => !(a.que === 'poner' && v.guardian)).map((a) => `<li><button type="button"${nodo('accion')} data-reglas-actuar="${attr(a.que)}" data-id="${attr(c.id)}">${escapar(t('reglasAccion_' + a.que))}</button>${a.coste ? ` <small class="reglas-coste">${escapar(textoDeCoste(a.coste))}</small>` : ''}</li>`).join('');
+  const f = c.firmeza;
+  const firmeza = f && (c.estado === 'aprobado' || enVigor)
+    ? `<div class="reglas-firmeza"><h3>${escapar(t('reglasFirmezaTitulo'))}</h3><p>${escapar(f.pedido ? t('reglasFirmezaPide', { nivel: textoCapa(f.pedido) }) : t('reglasFirmezaSinNivel'))}</p>${f.capas ? htmlFirmeza(f) : ''}${c.estado === 'aprobado' ? `<p>${escapar(t(f.llega ? 'reglasFirmezaLlega' : 'reglasFirmezaNoLlega'))}${f.llega && v.guardian ? ' ' + escapar(t('reglasPonerSola')) : ''}</p>` : ''}</div>`
+    : '';
+  const salir = c.salir?.ofrecida && !enVigor && c.estado !== 'retirado'
+    ? `<p class="reglas-salir">${escapar(t('reglasSalir'))} <button type="button" class="enlace"${nodo('accion')} data-sitio-lanzar="${attr(c.salir.accion)}" data-x="${attr(c.salir.X)}" data-valores="{}">${escapar(t('reglasSalirBoton'))}</button></p>`
+    : '';
+  return `<article class="reglas-detalle" data-id="${attr(c.id)}" data-estado="${attr(c.estado)}">
+    <h3 class="reglas-cambio-titulo">${escapar(c.titulo)}</h3>
+    <p class="reglas-explicacion">${escapar(c.explicacion)}</p>
+    <p class="reglas-quien"><small>${escapar(t('reglasPropuso', { quien: c.quien, cuando: c.cuando }))} · ${escapar(t('reglasClase_' + c.claseLlana))}</small></p>
+    <p class="reglas-estado-linea"><small class="reglas-estado" data-estado="${attr(c.estado)}">${escapar(t('reglasEstado_' + c.estado))}</small></p>
+    <h3>${escapar(t('reglasQueCambia'))}</h3>${piezas}${aviso}
+    ${htmlBarraDeApoyo(c.barra, c.estado)}
+    ${acciones ? `<ul class="reglas-acciones">${acciones}</ul>` : ''}
+    ${firmeza}${salir}
+  </article>`;
+}
+
+/**
+ * «Proponer un cambio» (carta/reglas.js proponer): título y explicación, qué parámetro (la lista de los que se pueden mover,
+ * con el de hoy) y cómo queda (parte del valor de hoy), la clase que le toca y, detrás de «avanzado», pegar la pieza escrita.
+ * `p`: { parametros, posicion, valores: { titulo, explicacion, valor, pieza }, clase (corriente | gobierno | null), avanzado }.
+ */
+function htmlProponerCambio(p) {
+  const val = p.valores ?? {};
+  const elegido = p.parametros.find((x) => x.posicion === p.posicion) ?? null;
+  const marca = (x) => (x.suelo ? ' · ' + t('reglasMarcaSuelo') : x.gobierno ? ' · ' + t('reglasMarcaGobierno') : '');
+  const opciones = `<option value=""${elegido ? '' : ' selected'}></option>` + p.parametros.map((x) => `<option value="${attr(x.posicion)}"${x === elegido ? ' selected' : ''}>${escapar((x.nombre ? x.nombre + ' · ' : '') + x.posicion.replace(/^epoch\./, '') + ' = ' + x.texto.slice(0, 40) + marca(x))}</option>`).join('');
+  const valor = val.valor ?? elegido?.texto ?? '';
+  return `<form class="reglas-proponer"${nodo('formulario')} data-reglas-propuesta>
+    <p class="ayuda">${escapar(t('reglasProponerAyuda'))}</p>
+    <div class="campo"><label for="reglas-titulo">${escapar(t('reglasCampoTitulo'))}</label><input id="reglas-titulo" name="titulo" type="text" value="${attr(val.titulo ?? '')}" autocomplete="off"></div>
+    <div class="campo"><label for="reglas-explicacion">${escapar(t('reglasCampoExplicacion'))}</label><textarea id="reglas-explicacion" name="explicacion" rows="2" autocomplete="off">${escapar(val.explicacion ?? '')}</textarea></div>
+    <div class="campo"><label for="reglas-posicion">${escapar(t('reglasCampoQue'))}</label><select id="reglas-posicion" name="posicion" data-reglas-posicion>${opciones}</select></div>
+    <div class="campo"><label for="reglas-valor">${escapar(t('reglasCampoValor'))}</label><input id="reglas-valor" name="valor" type="text" value="${attr(valor)}" autocomplete="off"${elegido ? '' : ' disabled'}>${elegido ? `<small class="ayuda">${escapar(t('reglasCampoValorAyuda', { hoy: elegido.texto }))}</small>` : ''}</div>
+    ${p.clase ? `<p class="reglas-clase">${escapar(t('reglasClaseQueToca', { clase: t('reglasClase_' + p.clase) }))}</p>` : ''}
+    <details class="reglas-avanzado"${p.avanzado || val.pieza ? ' open' : ''}><summary>${escapar(t('reglasAvanzado'))}</summary><p class="ayuda"><small>${escapar(t('reglasAvanzadoAyuda'))}</small></p><textarea name="pieza" rows="6" spellcheck="false" autocomplete="off">${escapar(val.pieza ?? '')}</textarea></details>
+    <footer><button type="submit">${escapar(t('reglasProponerBoton'))}</button></footer>
+  </form>`;
+}
+
+/**
+ * «Ajustes de este elemento» (carta/reglas.js ajustesDelElemento): lo que el elemento tiene fijado, con quién y cuándo, y
+ * lo que toma de las reglas del libro («del libro»: el valor base y lo que se admite). Cada uno con el botón de la plantilla
+ * de siempre para cambiarlo (el mismo data-sitio-lanzar de la cruceta: abre su formulario con lo que ya se sabe).
+ */
+export function htmlAjustesDelElemento(a) {
+  if (!a) return '';
+  const boton = (c, clave) => (c ? ` <button type="button" class="enlace"${nodo('accion')} data-sitio-lanzar="${attr(c.accion)}" data-x="${attr(c.X)}" data-valores="${attr(JSON.stringify(c.valores ?? {}))}" title="${attr(c.nombre)}">${escapar(t(clave))}</button>` : '');
+  const fijado = a.fijado.length
+    ? `<ul class="ajustes-lista">${a.fijado.map((f) => `<li class="ajuste" data-id="${attr(f.id)}"><b>${escapar(f.que)}</b>${f.valores.map((x) => ` · ${escapar(x.etiqueta)}: ${escapar(x.valor)}`).join('')} <small class="ajuste-quien">${escapar(t('ajustesQuienCuando', { quien: f.quien, cuando: f.cuando }))}</small>${boton(f.cambiar, 'ajustesCambiar')}</li>`).join('')}</ul>`
+    : `<p class="ayuda">${escapar(t('ajustesNadaFijado'))}</p>`;
+  const heredado = a.heredado.length
+    ? `<ul class="ajustes-lista">${a.heredado.map((h) => `<li class="ajuste" data-del-libro><b>${escapar(h.que)}</b>${h.clave ? ` · ${escapar(h.clave)}` : ''}: ${escapar(t('ajustesBase', { base: h.base || '—' }))}${h.admitidos ? ` <small>${escapar(t('ajustesAdmitidos', { valores: h.admitidos }))}</small>` : ''} <small class="ajuste-del-libro">${escapar(t('ajustesDelLibro'))}</small>${boton(h.cambiar, 'ajustesFijar')}</li>`).join('')}</ul>`
+    : '';
+  return `<div class="formulario-fondo" data-cerrar><section class="formulario ajustes-elemento"${nodo('ajustes')} data-x="${attr(a.X)}" role="dialog" aria-label="${attr(t('ajustesElemento'))}">
+    <header><h2>${escapar(t('ajustesElemento'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <p class="ayuda">${escapar(a.texto)}</p>
+    <h3>${escapar(t('ajustesFijado'))}</h3>${fijado}
+    ${heredado ? `<h3>${escapar(t('ajustesHeredado'))}</h3>${heredado}` : ''}
+  </section></div>`;
 }
 
 /**
@@ -1684,8 +1823,9 @@ export function html(arbol, extra = {}) {
     ${a.apilada ? htmlDigitos(a.secuencia) : ''}
     ${htmlAro(a.aro)}
     ${htmlSitio(a.sitio, a, extra)}
+    ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}
     ${htmlFormulario(a.formulario)}
-    ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos }) : ''}${htmlRetoque(a.retoque)}
+    ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
     ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true }) : ''}
     ${htmlCopia(extra.copia)}
   </div>`;

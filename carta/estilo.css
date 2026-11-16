@@ -1153,3 +1153,37 @@ html.mapped body{padding:0}
 .retoque-item{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline;overflow-wrap:anywhere}
 .retoque-item .retoque-quien{color:var(--muted)}
 .retoque-item button{font-size:12px}
+/* «Reglas del libro» y «Ajustes de este elemento» (A21 y A23; carta/reglas.js): una hoja sobria como la de cualquier
+   formulario, pensada para el móvil. La barra de apoyo es una franja con el apoyo y una marca en el umbral de su clase. */
+.reglas-volver,.reglas-entrada,.sitio-entradas{margin:0}
+.sitio-entradas{display:flex;flex-wrap:wrap;gap:6px;padding:0 0 6px}
+.reglas-version{margin:0;font-size:14px}
+.reglas-cambios{list-style:none;margin:0;padding:0;display:grid;gap:6px}
+.reglas-cambio button{width:100%;text-align:left;display:flex;flex-wrap:wrap;gap:2px 8px;align-items:baseline;padding:8px 10px}
+.reglas-cambio-titulo{font-weight:600;overflow-wrap:anywhere}
+.reglas-estado{border:1px solid var(--rule);border-radius:999px;padding:0 6px;font-size:12px}
+.reglas-estado[data-estado="enVigor"]{border-color:var(--ok);color:var(--ok)}
+.reglas-estado[data-estado="retirado"]{color:var(--muted)}
+.reglas-quien,.reglas-apoyo-corto,.reglas-coste,.ajuste-quien,.ajuste-del-libro{color:var(--muted);font-size:12px}
+.reglas-cambio .reglas-quien{flex-basis:100%}
+.reglas-explicacion{margin:0;overflow-wrap:anywhere;white-space:pre-wrap}
+.reglas-detalle{display:grid;gap:6px}
+.reglas-detalle h3,.ajustes-elemento h3{margin:6px 0 0;font-size:1rem}
+.reglas-detalle h4{margin:4px 0 0;font-size:14px}
+.reglas-piezas,.reglas-apoyos,.reglas-acciones,.ajustes-lista{list-style:none;margin:0;padding:0;display:grid;gap:6px;font-size:14px}
+.reglas-pieza{overflow-wrap:anywhere}
+.reglas-pieza pre{margin:4px 0 0;max-height:40vh;overflow:auto;font-size:11px;white-space:pre-wrap;overflow-wrap:anywhere}
+.reglas-valor-queda{font-weight:600}
+.reglas-barra{position:relative;height:10px;border:1px solid var(--rule);border-radius:999px;overflow:hidden;background:var(--panel)}
+.reglas-barra-apoyo{position:absolute;inset:0 auto 0 0;width:calc(var(--apoyo) * 100%);background:var(--accent)}
+.reglas-barra-umbral{position:absolute;top:0;bottom:0;left:calc(var(--umbral) * 100%);width:2px;background:var(--fg)}
+.reglas-apoyo-linea{margin:4px 0 0}
+.reglas-apoyos [data-no-cuenta]{color:var(--muted)}
+.reglas-fuera-de-lista{margin:4px 0 0}
+.reglas-acciones li{display:flex;flex-wrap:wrap;gap:4px 8px;align-items:baseline}
+.reglas-salir{margin:6px 0 0;font-size:13px;color:var(--muted)}
+.reglas-proponer{display:grid;gap:8px}
+.reglas-proponer select,.reglas-proponer input[type=text],.reglas-proponer textarea{width:100%;box-sizing:border-box;font:inherit}
+.reglas-avanzado textarea{font-family:var(--mono);font-size:12px}
+.reglas-clase{margin:0;font-size:14px}
+.ajuste{overflow-wrap:anywhere}
