@@ -14,7 +14,8 @@
 // La cuenta en el guardián (camino B, VG 17-11; docs/ANFITRION.md «La cuenta en el guardián»): si el mismo objeto ofrece
 // además crearCuenta, cuentas, firmar y sesion (`guardian`), una cuenta nueva nace en el guardián y la carta firma TODO
 // con él (firmanteDeCuenta): propone sin firmar y el guardián firma con la clave de la propia cuenta, que la carta nunca
-// ve. Sin esos cuatro verbos, `guardian` es null y todo sigue por el camino A, como hoy.
+// ve. Sin esos cuatro verbos, `guardian` es null y todo sigue por el camino A, como hoy. `pedirSesion` es un verbo
+// opcional más (abre la sesión sin escribir ningún registro): no entra en la detección.
 
 import * as acciones from '../src/acciones.js';
 import { evaluar } from '../src/bqlm.js';
@@ -56,6 +57,7 @@ export const ERRORES_DEL_GUARDIAN = Object.freeze({
   session_closed: 'guardianSesionCerrada',
   cancelled_by_holder: 'guardianNoFirmado',
   unknown_account: 'guardianSinCuenta',
+  dialog_busy: 'guardianOtroDialogo',
 });
 
 const HEX64 = /^[0-9a-f]{128}$/;
@@ -83,6 +85,33 @@ export async function sesionAbierta(g, publica) {
     return r !== null && typeof r === 'object' && r.abierta === true;
   } catch {
     return false;
+  }
+}
+
+/** ¿Ofrece el guardián el verbo opcional `pedirSesion`? Nunca lanza. */
+export function puedePedirSesion(g) {
+  try {
+    return g !== null && typeof g === 'object' && typeof g.pedirSesion === 'function';
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Pide al guardián que abra la sesión (`pedirSesion({ publica })`: su diálogo nativo, sin escribir ningún registro) y
+ * devuelve `{ abierta, caduca }`. Con la misma limpieza que `sesionAbierta`: solo `abierta === true` cuenta como abierta
+ * (cualquier otra forma, o un rechazo, es `{ abierta: false, caduca: null }`) y `caduca` solo se conserva si es un número
+ * o un texto. Sin el verbo, null. Nunca lanza.
+ */
+export async function pedirSesion(g, publica) {
+  if (!puedePedirSesion(g)) return null;
+  try {
+    const r = await g.pedirSesion({ publica });
+    const abierta = r !== null && typeof r === 'object' && r.abierta === true;
+    const c = abierta ? r.caduca : null;
+    return { abierta, caduca: (typeof c === 'number' && Number.isFinite(c)) || (typeof c === 'string' && c !== '') ? c : null };
+  } catch {
+    return { abierta: false, caduca: null };
   }
 }
 

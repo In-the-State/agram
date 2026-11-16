@@ -1451,12 +1451,16 @@ export function htmlSincronia(s) {
 /**
  * El aviso persistente de una cuenta del guardián (camino B; carta/anfitrion.js): abierta solo para leer (`soloLeer`: el
  * texto que toca) o con la sesión del guardián cerrada (`sesionCerrada`: el aviso y el botón que la abre con una firma
- * pedida por el usuario, data-guardian-abrir). Sin nada de eso (y siempre en el camino A), nada.
+ * pedida por el usuario, data-guardian-abrir; sin él, `puedeAbrir === false`, solo el aviso de que se abrirá con la próxima
+ * firma; `noAbrio`: el guardián no la abrió, una línea más). Sin nada de eso (y siempre en el camino A), nada.
  */
 export function htmlGuardian(g) {
   if (!g || (!g.soloLeer && !g.sesionCerrada)) return '';
   if (g.soloLeer) return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(g.sinGuardian ? 'guardianSoloLeerSinGuardian' : 'guardianSoloLeer'))}</p>`;
-  return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t('guardianSesionCerrada'))} <button type="button" class="enlace" data-guardian-abrir title="${attr(t('guardianAbrirTitulo'))}"${g.abriendo ? ' disabled aria-busy="true"' : ''}>${escapar(t('guardianAbrir'))}</button></p>`;
+  const sinBoton = g.puedeAbrir === false;
+  const boton = sinBoton ? '' : ` <button type="button" class="enlace" data-guardian-abrir title="${attr(t('guardianAbrirTitulo'))}"${g.abriendo ? ' disabled aria-busy="true"' : ''}>${escapar(t('guardianAbrir'))}</button>`;
+  const noAbrio = g.noAbrio && !g.abriendo ? ` <small data-guardian-no-abrio>${escapar(t('guardianNoAbrio'))}</small>` : '';
+  return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(sinBoton ? 'guardianSesionCerradaSinBoton' : 'guardianSesionCerrada'))}${boton}${noAbrio}</p>`;
 }
 
 /** Los controles de «opinar» (carta/opinar.js): el conmutador con su contador y, si hay opiniones, exportar, copiar y borrar la última. */

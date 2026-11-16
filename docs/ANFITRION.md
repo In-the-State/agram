@@ -61,9 +61,12 @@ firmar({ publica, canonico, id, segundoFactor }) → { id, firma }   la prueba d
 firmarServicio({ publica, evento }) → firma                 evento NIP-98 sin firmar; el guardián recalcula su id
 sesion(publica) → { abierta, caduca }
 criterios({ publica, registros }) → { aceptados }           opcional; registros = [{ canonico, id, firma }]; sin sesión
+pedirSesion({ publica }) → { abierta, caduca }              opcional; abre la sesión sin escribir ningún registro
 ```
 
-Los errores, como rechazo con `code`: `session_closed`, `cancelled_by_holder`, `id_mismatch`, `unknown_account`. Dentro de una sesión abierta el guardián firma los registros corrientes sin diálogo; con `segundoFactor` verdadero abre siempre su diálogo.
+`pedirSesion` (opcional, no entra en la detección del camino B): la página pide y el guardián enseña su diálogo nativo (8 h, 1 h o cancelar) y devuelve el estado. Si la sesión ya está abierta, devuelve su estado sin diálogo. Si el titular cancela, durante 60 s cualquier `pedirSesion` devuelve `{ abierta: false }` sin diálogo. Nunca hay dos diálogos de sesión a la vez: mientras hay uno a la vista, devuelve `{ abierta: false }`. `crearCuenta` sin sesión entra en la misma protección: durante la pausa rechaza con `cancelled_by_holder`, y con otro diálogo de sesión a la vista, con `dialog_busy`.
+
+Los errores, como rechazo con `code`: `session_closed`, `cancelled_by_holder`, `dialog_busy`, `id_mismatch`, `unknown_account`. Dentro de una sesión abierta el guardián firma los registros corrientes sin diálogo; con `segundoFactor` verdadero abre siempre su diálogo.
 
 Pruebas del núcleo: `test/firmante.test.js`.
 
@@ -72,8 +75,8 @@ Pruebas del núcleo: `test/firmante.test.js`.
 - `carta/anfitrion.js` detecta el camino B (`guardian`) cuando el anfitrión ofrece `crearCuenta`, `cuentas`, `firmar` y `sesion`; sin ellos todo sigue por el camino A, como hoy.
 - Con camino B, crear una cuenta pide la pública al guardián y todo lo de su alta se firma con `firmanteDeCuenta`: `({ canonico, id }) => guardian.firmar({ publica, canonico, id, segundoFactor })`. En el navegador no hay clave privada: la cuenta lleva `guardian: true` y no hay `agram.clave.<alta>`. Al abrirla, si `cuentas()` no trae su pública (o no hay guardián), se abre solo para leer y lo dice.
 - `segundoFactor` lo calcula la carta con la lectura «second factor» de la época sobre la candidata (la misma de `acciones.transaccion`); si no puede, verdadero.
-- Lo automático (la sincronía, seguir el camino) consulta antes `sesion(publica)`: cerrada, no firma y deja un aviso persistente con el botón «abrir la sesión», que pide una firma con un gesto. Lo que se pide con un gesto se intenta siempre. Lo que solo se mira (el camino del árbol, previsualizar) no se le pide al guardián.
+- Lo automático (la sincronía, seguir el camino) consulta antes `sesion(publica)`: cerrada, no firma y deja un aviso persistente. Su botón «abrir la sesión» es un gesto: con algo parado esperando firma, lo firma (su diálogo abre la sesión); si no hay nada parado y el guardián ofrece `pedirSesion`, llama a ese verbo y vuelve a mirar la sesión, sin escribir ningún registro; si no lo ofrece, el botón no se enseña y el aviso dice que la sesión se abrirá con la próxima firma. Si el guardián no la abre (`{ abierta: false }`), el aviso se queda con «El guardián no ha abierto la sesión. Inténtalo dentro de un minuto.» y no reintenta sola. Lo que se pide con un gesto se intenta siempre. Lo que solo se mira (el camino del árbol, previsualizar) no se le pide al guardián.
 - El servicio de pagos firma con `firmarServicio`. La copia de seguridad no lleva clave privada (la cuenta, el eje y la marca; la clave de lectura, cifrada con la frase como hoy).
-- Los rechazos se dicen en llano (`carta/textos.js`, `guardian…`); el detalle de un fallo desconocido, en la consola.
+- Los rechazos se dicen en llano (`carta/textos.js`, `guardian…`); `dialog_busy` al crear la cuenta: «El guardián tiene otro diálogo abierto. Ciérralo y vuelve a intentarlo.», y como `cancelled_by_holder` no deja la carta a medias (el formulario conserva lo escrito); el detalle de un fallo desconocido, en la consola.
 
 Pruebas: `test/carta-guardian.test.js`.
