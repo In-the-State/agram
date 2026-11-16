@@ -50,8 +50,8 @@ async function mundo() {
 }
 
 /** La huésped escribe su criterio de segundo factor. */
-async function criterio(m, family, amount) {
-  const r = await A.transaccion(m.eje, 'second factor', { X: m.altaH, family, amount, holder: 'cartera' }, 'huesped', { t: T1 });
+async function criterio(m, family, amount, t = T1) {
+  const r = await A.transaccion(m.eje, 'second factor', { X: m.altaH, family, amount, holder: 'cartera' }, 'huesped', { t });
   assert.ok(r.ok, JSON.stringify(r.motivos));
   await m.eje.anadir(r.evento);
 }
@@ -159,7 +159,9 @@ test('#70 la autorización, desglosada: una línea por cosa («5 min a cartera, 
 
 test('#70 los motivos no bloqueantes del núcleo salen como aviso (la lectura del segundo factor desbordada, estado PENDIENTE) y el 6 marca lo desbordado', async () => {
   const m = await mundo();
-  for (let i = 0; i < 69; i++) await criterio(m, ['E:casa/EUR', 'E:otra/U' + i], 1);
+  // Época 0 final (#70): la lectura recorre los movimientos una vez por criterio y 200 caben; desborda hacia los 300 en la
+  // candidata. La mitad, el día antes, para que a la huésped le llegue la T de escribirlos.
+  for (let i = 0; i < 320; i++) await criterio(m, ['E:casa/EUR', 'E:otra/U' + i], 1, i < 160 ? '2026-11-07T12:00:00Z' : T1);
   const a = await formPago(m);
   const e = a.formulario.ejecucion;
   assert.equal(e.desbordado, true);

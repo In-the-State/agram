@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { LibroLocal, ESCALA_INTERACCION, ESCALA_REGISTRO, REGLA_DEL_T, VERSION_LOCAL } from '../src/local.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { diaCivil } from '../src/tokens.js';
 import * as agram from '../src/index.js';
@@ -19,7 +19,7 @@ const T = (s) => '2026-11-07T15:00:' + String(s).padStart(2, '0') + 'Z';
 function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   cambiar(e);
-  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
 }
 
 test('las escalas son niveles de agregación: la interacción es la primera de la época (segundo) y el registro que engloba, la siguiente (minuto)', () => {
@@ -76,7 +76,7 @@ test('sin T de segundo del día, ver y tocar devuelven el motivo de la regla de 
   await eje.escribir({ autor: 'huesped', sobre: eje.alta('huesped').id, en: '9000000000', t: '2026-11-07T18:00:00Z', movimientos: [pagaElCoste('huesped')], payload: agram.contrato.registroDeAjustes('preferences', { step: 10, render: 'sober', language: 'es', sizes: [1, 2, 3] }, { quien: 'huesped' }) });
   const otro = new LibroLocal(eje, 'huesped', { epoca: epocaCon((e) => { e[1][3][1][0][1] = [1]; }) });
   otro.ver(menu.id, { t: T(0) });
-  assert.match(otro.ver(menu.id, { t: T(1) }).motivo, /^writing burns today's T: huesped quema menos T del que cuesta escribir \(60 segundos\), o más del que le queda hoy/);
+  assert.match(otro.ver(menu.id, { t: T(1) }).motivo, /^huesped quema menos T del que cuesta escribir \(60 segundos\), o más del que le queda hoy/);
 });
 
 test('englobar escribe UN solo registro de escala minuto en el eje: quema 1 T de minuto, su 6 ancla el recorrido, su 7 dice la escala, y queda anclado a lo anterior', async () => {

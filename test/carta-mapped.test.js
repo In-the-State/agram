@@ -13,7 +13,7 @@ import * as A from '../src/acciones.js';
 import * as modelos from '../src/modelos.js';
 import { instalar } from '../carta/gestos.js';
 import { EPOCA_0_BTML, cargarEpocaBtml, REGISTROS_DE_MODELOS } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { ejemploReserva } from '../ejemplos/ikisai/reserva-booking.mjs';
 import { ejemploComprasHermanas } from '../ejemplos/ikisai/compras-hermanas.mjs';
@@ -30,7 +30,7 @@ function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   const plantillas = JSON.parse(JSON.stringify(PLANTILLAS_DE_EPOCA_DATOS));
   cambiar(e, plantillas);
-  return cargarEpocaBtml(e, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], plantillas, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], plantillas, id: EPOCA_0_BTML.id });
 }
 
 /** La suma de una lista de fracciones. */

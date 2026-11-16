@@ -43,7 +43,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla, POR_LIMITE } from './bqlm.js';
 import { crearEvento, canonico as canonicoDe, cuerpo as cuerpoDe } from './evento.js';
 import { partirClave, validarMovimiento, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, esAnunciado, claveToken } from './tokens.js';
 import { exigido as exigidoDe, tDelCoste, escalaQueAlcanza, REGLA_DEL_COSTE, quemaDelCoste } from './escritura.js';
@@ -51,7 +51,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe } from './contrato.js';
 import { recuento, cerrado as cerradoDe } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
 
@@ -885,15 +885,50 @@ export function estacionesDelAnuncio(opciones = {}) {
  * (el motor solo comprueba: los nombres y las condiciones son de la época). null si no es un registro del eje.
  */
 export function estacionDeAnuncio(eje, id, opciones = {}) {
+  return estacionDeAnuncioConMotivos(eje, id, opciones)?.estacion ?? null;
+}
+
+/**
+ * La estación de un anuncio y lo que no se ha podido comprobar (#70: el desbordamiento no se calla en las estaciones):
+ * { estacion, desbordado, motivos: [{ regla, mensaje, estado, estaciones }] } o null si no es un registro del eje. Una
+ * estación de epoch.4.3 cuya fórmula no se resuelve por un límite de cálculo de BQL (PENDIENTE POR LÍMITE, como la
+ * lectura «second factor» con muchos criterios del mismo autor) no se cumple, como antes; pero si va DETRÁS de la última que se cumple
+ * (podría cambiar la estación), el anuncio queda `desbordado` y `motivos` dice cuáles no se han podido comprobar y por
+ * qué. `regla` es la lectura de la época que no se ha podido hacer, si el motivo la nombra.
+ */
+export function estacionDeAnuncioConMotivos(eje, id, opciones = {}) {
   opciones = conEpoca(eje, opciones);
   if (!eje?.obtener(id)) return null;
-  const ctx = contextoDe(eje, epocaDe(opciones, eje), {});
+  const epoca = epocaDe(opciones, eje);
+  const ctx = contextoDe(eje, epoca, {});
   let fuera = null;
+  let sinComprobar = [];
   for (const { nombre, comprueba } of estacionesDelAnuncio(opciones)) {
-    const cumple_ = comprueba === AUTORIZA.recuento ? recuentoPasa(eje, id) : esFormula(comprueba) && cumple(comprueba, ctx, id);
-    if (cumple_) fuera = nombre;
+    if (comprueba === AUTORIZA.recuento) {
+      if (recuentoPasa(eje, id)) [fuera, sinComprobar] = [nombre, []];
+      continue;
+    }
+    if (!esFormula(comprueba)) continue;
+    const r = evaluar(comprueba, ctx, { sujeto: id });
+    if (r.estado === 'RESUELTO' && r.valor.length === 1 && r.valor[0] === true) [fuera, sinComprobar] = [nombre, []];
+    else if (r.subtipo === POR_LIMITE) sinComprobar.push({ estacion: nombre, estado: r.estado, motivo: r.motivo ?? r.estado });
   }
-  return fuera;
+  if (!sinComprobar.length) return { estacion: fuera, desbordado: false, motivos: [] };
+  const idioma = opciones.idioma ?? 'es';
+  const lecturas = (Array.isArray(epoca?.lecturas) ? epoca.lecturas : []).map((r) => nombreDeRegla(r)).filter(Boolean);
+  // Un motivo por causa (las estaciones que no se han podido comprobar por lo mismo, juntas).
+  const porCausa = new Map();
+  for (const x of sinComprobar) {
+    if (!porCausa.has(x.motivo)) porCausa.set(x.motivo, { estado: x.estado, estaciones: [] });
+    if (!porCausa.get(x.motivo).estaciones.includes(x.estacion)) porCausa.get(x.motivo).estaciones.push(x.estacion);
+  }
+  const motivos = [...porCausa].map(([why, { estado, estaciones }]) => ({
+    regla: lecturas.find((n) => String(why).includes(n + ':')) ?? null,
+    mensaje: motivoDelSegundoFactor('stage unreadable', { stages: estaciones.map((e) => '«' + e + '»').join(', '), current: fuera ?? '', why }, { idioma, epoca }),
+    estado,
+    estaciones,
+  }));
+  return { estacion: fuera, desbordado: true, motivos };
 }
 
 /**
@@ -906,7 +941,9 @@ export function estacionDeAnuncio(eje, id, opciones = {}) {
  * `pendientesDeSegundoFactor` (VG 12/13-11, #66, #70) son los hechos que epoch.4.3 deja en autorizada porque algo de lo
  * que los cumple espera su segundo factor (segundoFactor: la lectura «second factor» sin su «authorized by the holder»);
  * un hecho que solo espera el segundo factor no está en `pendientesDeSello` (lo que lo cumple está sellado o el eje no
- * tiene sello configurado).
+ * tiene sello configurado). `desbordados` (#70) son los anuncios cuya estación no se ha podido comprobar del todo (una
+ * fórmula de epoch.4.3 queda PENDIENTE por un límite de cálculo de BQL, como la lectura «second factor» con muchos
+ * criterios del mismo autor) y `motivosDe` sus motivos por id (estacionDeAnuncioConMotivos): no se calla.
  */
 export function estaciones(eje, X, opciones = {}) {
   opciones = conEpoca(eje, opciones);
@@ -926,7 +963,11 @@ export function estaciones(eje, X, opciones = {}) {
     const anunciados = [...new Set(de(anuncios))];
     const pendientes = [...new Set(de(s + '.4.8'))];
     // La estación de cada anuncio (epoch.4.3); «autorizada» solo si la estación de su familia autoriza (su 4 de epoch.4.2).
-    const estacion = new Map(anunciados.map((id) => { const x = estacionDeAnuncio(eje, id, opciones); return [id, x === 'autorizada' && !e.autoriza ? 'propuesta' : x]; }));
+    const conMotivos = new Map(anunciados.map((id) => [id, estacionDeAnuncioConMotivos(eje, id, opciones)]));
+    const estacion = new Map(anunciados.map((id) => { const x = conMotivos.get(id)?.estacion ?? null; return [id, x === 'autorizada' && !e.autoriza ? 'propuesta' : x]; }));
+    // #70: una estación que no se ha podido comprobar (el límite de cálculo de BQL) no se calla: el anuncio sale en
+    // `desbordados` y su motivo en `motivosDe`.
+    const desbordados = anunciados.filter((id) => conMotivos.get(id)?.desbordado);
     const sinEjecutar = anunciados.filter((id) => !pendientes.includes(id) && estacion.get(id) !== 'ejecutada' && estacion.get(id) !== 'verificada');
     const conSegundoFactor = new Set(sinEjecutar.filter((id) => eje.sobre(id).some((h) => esperaSegundoFactor(eje, h, opciones))));
     return {
@@ -936,8 +977,19 @@ export function estaciones(eje, X, opciones = {}) {
       pendientesDeSello: sinEjecutar.filter((id) => !conSegundoFactor.has(id) || sinSellar(eje, id, ctx)),
       pendientesDeSegundoFactor: [...conSegundoFactor],
       estacionDe: Object.fromEntries(estacion),
+      desbordados,
+      motivosDe: Object.fromEntries(desbordados.map((id) => [id, conMotivos.get(id).motivos])),
     };
   });
+}
+
+/** Un movimiento anunciado en llano: «huesped da 1 hora a cocina» (los formatos «legible announced movement» de epoch.9.4). */
+function movimientoLegible(eje, m, idioma, opciones) {
+  const o = { idioma, epoca: epocaDe(opciones, eje) };
+  // Quién, por su identidad (como la frase de previsualizar de la carta); cuánto, por su serie legible.
+  const partes = { amount: legible(eje, { serie: m.serie, cantidad: m.cantidad }, undefined, o).texto, from: m.de ?? '', to: m.a ?? '' };
+  const formato = textoDe(eje, claves.legible(m.a ? 'announced movement' : 'announced movement from'), idioma, { original: m.a ? '{from} gives {amount} to {to}' : '{from} gives {amount}', epoca: o.epoca });
+  return String(formato).replace(/\{([^{}]+)\}/g, (_, k) => String(partes[k] ?? ''));
 }
 
 /** ¿Espera este registro su segundo factor? (segundoFactor) */
@@ -976,7 +1028,9 @@ export function ejecuciones(eje, X, opciones = {}) {
   const plantillaDe = new Map();
   const sinSello = new Set();
   const sinSegundoFactor = new Set();
+  const motivosDe = new Map();
   for (const e of estaciones(eje, ev.id, opciones)) {
+    for (const [id, m] of Object.entries(e.motivosDe ?? {})) motivosDe.set(id, m);
     for (const id of e.pendientesDeSello ?? []) sinSello.add(id);
     for (const id of e.pendientesDeSegundoFactor ?? []) sinSegundoFactor.add(id);
     for (const id of e.anunciados) plantillaDe.set(id, e.plantilla);
@@ -996,6 +1050,7 @@ export function ejecuciones(eje, X, opciones = {}) {
     // Lo que no es un anuncio y alcanza un segundo factor de su autor: autorizada hasta que el titular lo autoriza.
     const sf = estacionDe.has(h.id) ? null : segundoFactor(eje, h.id, opciones);
     if (sf?.pendiente) sinSegundoFactor.add(h.id);
+    if (sf?.motivos?.length) motivosDe.set(h.id, sf.motivos);
     const estacion = estacionDe.get(h.id) ?? (sf?.exige ? (sf.pendiente ? 'autorizada' : 'ejecutada') : null);
     return {
       ocupante: { ref: h.id }, pv: accion && porNombre.has(accion) ? porNombre.get(accion).pv : null, posicion: Number.isInteger(posicion) ? posicion : null, accion, estacion,
@@ -1004,9 +1059,33 @@ export function ejecuciones(eje, X, opciones = {}) {
       ...(sinSello.has(h.id) ? { pendienteDeSello: true } : {}),
       // el segundo factor (#66, #70): movido, pero espera la autorización del titular (una cosa del autor).
       ...(sinSegundoFactor.has(h.id) ? { pendienteDeSegundoFactor: true } : {}),
+      // #70: lo que no se ha podido comprobar (un límite de cálculo de BQL) no se calla: `desbordado` y sus motivos.
+      ...(motivosDe.has(h.id) ? { desbordado: true, motivos: motivosDe.get(h.id) } : {}),
     };
   })];
 }
+
+// ---------- 4 ter. las preferencias de formato (#93) ----------
+
+/** El nombre de la plantilla de las preferencias de formato (#93): la que lee configuracionDeFormato. */
+export const AJUSTES_DE_FORMATO = 'format settings';
+
+/**
+ * Mis preferencias de formato (#93): el registro «format settings» anclado en el 9 de mi alta por mí (el último), leído
+ * por sus claves, como «language» en las preferencias; sin registro, los de siempre (el primer valor de cada una).
+ * → { 'date format': legible | larga | corta | iso, 'number format': tal-cual | agrupados, 'editor style': expandido |
+ * compacto, 'editor view': crudo | formateado, de }. Un valor que la enumeración de la plantilla no tiene (un registro
+ * escrito a mano) vuelve al de siempre; validar(eje, registro) lo señala.
+ */
+export function configuracionDeFormato(eje, quien, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const c = configuracionDe(eje, quien, AJUSTES_DE_FORMATO, opciones);
+  for (const { clave, defecto, valores } of clavesDeConfiguracionDe(AJUSTES_DE_FORMATO, opciones)) {
+    if (Array.isArray(valores) && !valores.includes(c[clave])) c[clave] = defecto;
+  }
+  return c;
+}
+
 
 // ---------- 4 bis. el segundo factor (VG 12/13-11, #66, #70; SIP 0 de StateArk) ----------
 
@@ -1102,6 +1181,10 @@ const MOTIVOS_DEL_SEGUNDO_FACTOR = Object.freeze({
   'second factor unreadable': Object.freeze({
     en: 'the reading «{rule}» could not be done ({why}): {author} has {n} second factor criteria and the reading goes over the computation budget; it is unknown whether this awaits the authorization of its holder',
     es: 'la lectura «{rule}» no se ha podido hacer ({why}): {author} tiene {n} criterios de segundo factor y la lectura pasa del presupuesto de cálculo; no se sabe si esto espera la autorización de su titular',
+  }),
+  'stage unreadable': Object.freeze({
+    en: 'it could not be checked whether it reaches {stages} ({why}): it stays in «{current}» without knowing whether it moves on',
+    es: 'no se ha podido comprobar si llega a {stages} ({why}): se queda en «{current}» sin saber si avanza',
   }),
   'authorization without T': Object.freeze({
     en: '{thing} has no T to write the authorization: the proposal transferred {transferred} and it takes {needed}',
@@ -1459,7 +1542,9 @@ export async function camino(eje, X, yo, opciones = {}) {
     const porQuien = new Map();
     for (const m of a.movimientos) porQuien.set(m.de, [...(porQuien.get(m.de) ?? []), m]);
     for (const [de, ms] of porQuien) {
-      const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ?? '') + ' ' + ms.map((m) => m.cantidad + ' ' + m.serie + ' ' + m.de + (m.a ? ' → ' + m.a : '')).join('; '); // sin destino resuelto (a: null) no se imprime «→ null» (repaso beta #2)
+      // En llano (época 0 final, #9 del añadido): cuánto por su nombre, de quién y a quién por su 0, con el formato de la
+      // época («legible announced movement»); sin destino resuelto (a: null), sin «a» (repaso beta #2: nunca «→ null»).
+      const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ? a.que + ': ' : '') + ms.map((m) => movimientoLegible(eje, m, idioma, opciones)).join('; ');
       const estacion = estacionDe.get(partirClave(ms[0].serie).token);
       if (de === yo && estacion) {
         const paso = mio(estacion.plantilla, { announcement: { ref: anuncio.id } });

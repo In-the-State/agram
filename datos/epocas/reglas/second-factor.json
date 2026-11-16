@@ -8,7 +8,7 @@
     "moves"
   ],
   [
-    "=(down (first (first it.3).6)) where last (first it2.6).5 = \"2400000000\" and \"second factor\" in (payload(it2)).4 and first it2.3 = first it.3 and count ((moves it) where not (\"anunciado\" in it3.2) and it3.3.0 = first it.3 and (first it3.0 in (payload(it2)).1 or \"E\" in (payload(it2)).1 and E in it3.0.0.0 or \"P\" in (payload(it2)).1 and P in it3.0.0.0 or \"R\" in (payload(it2)).1 and R in it3.0.0.0 or \"T\" in (payload(it2)).1 and T in it3.0.0.0)) > 0 and sum (((moves it) where not (\"anunciado\" in it3.2) and it3.3.0 = first it.3 and (first it3.0 in (payload(it2)).1 or \"E\" in (payload(it2)).1 and E in it3.0.0.0 or \"P\" in (payload(it2)).1 and P in it3.0.0.0 or \"R\" in (payload(it2)).1 and R in it3.0.0.0 or \"T\" in (payload(it2)).1 and T in it3.0.0.0)) each 1) >= first (payload(it2)).2"
+    "=(down (first (first it.3).6)) where last (first it2.6).5 = \"2400000000\" and count ((payload(it2)) where \"second factor\" in it3.4 and count ((first it2.3) where it4 = first it.3 and count ((sum (((moves it) where it5.3.0 = it4 and not (\"anunciado\" in it5.2) and count ((first it5.0) where count (it3.1 where it6 in it7 or \"E\" in it7 and E in it5.0.0.0 or \"P\" in it7 and P in it5.0.0.0 or \"R\" in it7 and R in it5.0.0.0 or \"T\" in it7 and T in it5.0.0.0) > 0) > 0) each 1)) where it5 > 0 and it5 >= first it3.2) > 0) > 0) > 0"
   ],
   [
     "X.6.8.7"

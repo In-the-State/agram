@@ -11,7 +11,7 @@ import { modelo, propio, pieza, modelosDeLaEpoca, cabecera, leerPieza, piezasDeM
 import { importar, importarPaquetes, mundoDe } from '../arte/importar.mjs';
 import { configuracion, validar, registroDeAjustes } from '../src/contrato.js';
 import { EPOCA_0_BTML, cargarEpocaBtml, REGISTROS_DE_MODELOS } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { modelosDe, modeloConPiezas, SIN_PIEZAS, MUNDOS } from '../datos/epocas/generar.mjs';
 import { validarPayload } from '../src/btml.js';
 import { evaluar } from '../src/bqlm.js';
@@ -26,7 +26,7 @@ const T = '2026-11-07T18:00:00Z';
 function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   cambiar(e);
-  return cargarEpocaBtml(e, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], id: EPOCA_0_BTML.id });
 }
 
 /** La configuración de `quien` con el modelo `nombre`: un registro de preferencias en el 9 de su alta. */

@@ -44,7 +44,7 @@ async function ajustarPreferencias({ cuenta, eje }, valores, m = 1) {
 }
 
 test('la plantilla «exterior settings» es de la época (9.2.5): relé, archivos, sello (y la reserva de pagos), claves del observador, confirmaciones (6) y guía (el 5 es el tipo), con su texto en es y su canónico en en', () => {
-  assert.deepEqual(contrato.plantillas(null).map((p) => p.nombre), ['purchase', 'booking', 'guide settings', 'opinion', PLANTILLA, 'preferences']);
+  assert.deepEqual(contrato.plantillas(null).map((p) => p.nombre), ['purchase', 'booking', 'guide settings', 'opinion', PLANTILLA, 'format settings', 'preferences']);
   assert.equal(contrato.plantillas(null).find((p) => p.nombre === PLANTILLA).donde, '9250000000');
   assert.deepEqual(contrato.clavesDeConfiguracionDe(PLANTILLA).map((c) => [c.pv, c.clave, c.defecto]), [
     [1, 'relay url', undefined], [2, 'blossom url', undefined], [3, 'seal url', undefined], [4, 'pay url', undefined],

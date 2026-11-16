@@ -38,9 +38,9 @@ function rellenos(x, ruta = 'raíz') {
 
 const jsonDe = (carpeta) => (existsSync(new URL(carpeta, CARPETA)) ? readdirSync(new URL(carpeta, CARPETA)).filter((f) => f.endsWith('.json')).map((f) => [carpeta + f, JSON.parse(readFileSync(new URL(carpeta + f, CARPETA), 'utf8'))]) : []);
 
-test('los datos de la época no tienen ningún «-» ni ninguna posición vacía: la época, las reglas, las plantillas, la guía, los modelos y las correcciones', () => {
+test('los datos de la época no tienen ningún «-» ni ninguna posición vacía: la época, las reglas, las plantillas, la guía y los modelos', () => {
   assert.deepEqual(rellenos(EPOCA_0_BTML_DATOS), []);
-  const archivos = [['epoca-0.btml.json', JSON.parse(readFileSync(new URL('epoca-0.btml.json', CARPETA), 'utf8'))], ...['reglas/', 'plantillas/', 'guia/', 'modelos/', 'correcciones/'].flatMap(jsonDe)];
+  const archivos = [['epoca-0.btml.json', JSON.parse(readFileSync(new URL('epoca-0.btml.json', CARPETA), 'utf8'))], ...['reglas/', 'plantillas/', 'guia/', 'modelos/'].flatMap(jsonDe)];
   assert.ok(archivos.length > 100, 'las reglas y las plantillas están: ' + archivos.length);
   for (const [nombre, datos] of archivos) assert.deepEqual(rellenos(datos), [], nombre);
 });

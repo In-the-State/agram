@@ -10,6 +10,8 @@ import assert from 'node:assert/strict';
 import * as A from '../src/acciones.js';
 import * as contrato from '../src/contrato.js';
 import { EPOCA_0_BTML } from '../src/epocas.js';
+import { ContextoEje } from '../src/contexto-eje.js';
+import { evaluar, leerRegla, Presupuesto, LIMITES } from '../src/bqlm.js';
 import { ANUNCIO } from '../src/motor.js';
 import { generarClaves, firmarPosesion } from '../src/autoridad.js';
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
@@ -20,6 +22,7 @@ import { pagaElCoste } from './ayudas-coste.js';
 import { arbol as arbolEnIdioma, formulario, preferencias, segundoFactorDeConfiguracion } from '../carta/carta.js';
 import { html, htmlConfiguracion } from '../carta/dom.js';
 
+const T0 = '2026-11-07T12:00:00Z';
 const T1 = '2026-11-08T12:00:00Z';
 const ORDENADOR = { ancho: 1920, alto: 1080 };
 const regla = (nombre) => EPOCA_0_BTML.lecturas.find((r) => r[0][0] === nombre);
@@ -356,7 +359,7 @@ test('prepago como transferencia: la cosa escribe su autorización con lo transf
   assert.equal(A.estacionDeAnuncio(m.eje, m.anuncio.id), 'ejecutada');
 });
 
-test('prepago como transferencia: 65 criterios son una tarifa de 65 s (más que el minuto) y aun así se transfiere lo de escribir (5 min); el registro asentado ya desborda la lectura y lo dice', async () => {
+test('prepago como transferencia: 65 criterios son una tarifa de 65 s (más que el minuto) y aun así se transfiere lo de escribir (5 min); el registro asentado se lee entero (antes desbordaba hacia los 55)', async () => {
   const m = await mundo();
   for (let i = 0; i < 65; i++) await criterio(m, ['E:casa/EUR', 'E:otra/U' + i], 1); // cada criterio, distinto (una serie más que no se mueve)
   assert.equal(A.criteriosDeSegundoFactor(m.eje, 'huesped').length, 65);
@@ -366,11 +369,11 @@ test('prepago como transferencia: 65 criterios son una tarifa de 65 s (más que 
   const cosaPropia = m.eje.saldoT('cartera', 'minuto', T1);
   const r = await pagar(m);
   assert.deepEqual([r.autorizacion, quemaDe(r.evento, 'huesped'), transfiereDe(r.evento, 'huesped', 'cartera')], [300, 300, 300]);
-  // Con la transferencia, el registro mueve tres cosas (la quema, la transferencia y el pago): la lectura «second factor»
-  // sobre lo asentado pasa del presupuesto antes (hacia los 55 criterios; sin la transferencia, hacia los 69). No se calla.
+  // Con la transferencia, el registro mueve tres cosas (la quema, la transferencia y el pago); la lectura «second factor»
+  // recorre sus movimientos una vez por criterio (#70, época 0 final) y se lee entera: espera a la cosa, sin desbordar.
   const sf = A.segundoFactor(m.eje, r.evento.id);
-  assert.deepEqual([sf.estado, sf.motivos.map((x) => x.regla)], ['PENDIENTE', ['second factor']]);
-  assert.ok(A.porAutorizar(m.eje, 'huesped').some((x) => x.id === r.evento.id && x.desbordado));
+  assert.deepEqual([sf.estado, sf.exige, sf.pendiente, sf.criterios.length, sf.motivos], ['RESUELTO', true, true, 65, []]);
+  assert.ok(A.porAutorizar(m.eje, 'huesped').some((x) => x.id === r.evento.id && !x.desbordado));
   // La autorización se escribe igual con lo transferido.
   const buena = await A.autorizar(m.eje, r.evento.id, 'cartera', m.cosa.privada, { t: T1 });
   assert.ok(buena.ok, JSON.stringify(buena.motivos));
@@ -436,10 +439,86 @@ test('un criterio sobre T se alcanza también con la T transferida (cuenta como 
   assert.deepEqual([f.elementos, f.partes[2].transferencias.map((x) => [x.cosa, x.elementos, x.tarifa, x.segundos])], [2, [['cartera', 2, 60, 300]]]);
 });
 
-test('defecto visible: con muchos criterios del mismo autor (69) la lectura «second factor» pasa del presupuesto de BQL y sale como motivo en ejecucion, segundoFactor y porAutorizar, no en silencio', async () => {
+// ---------- #70: la lectura «second factor» con muchos criterios del mismo autor (época 0 final) ----------
+
+/**
+ * Una huésped con `n` criterios «second factor», cada uno con la serie que paga (E:casa/EUR, cantidad 1) y otra que no
+ * se mueve: la mitad escrita el día antes (T0) y la otra el día del pago (T1), para que le llegue la T del día de
+ * escribirlos (cada criterio cuesta 6 minutos). Después, la cocina abre el encargo y anuncia el pago de 7 EUR.
+ */
+async function mundoConCriterios(n) {
+  const c = await ejemploCompra();
+  const { eje, menu } = c;
+  const cosa = await generarClaves();
+  const altaH = eje.alta('huesped').id;
+  const r = await A.transaccion(eje, 'register a thing', { X: altaH, thing: 'cartera', minutes: 60, key: cosa.publica }, 'huesped', { t: T0 });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  await eje.anadir(await firmarPosesion(r.evento, 'cartera', cosa.privada));
+  for (let i = 0; i < n; i++) {
+    const q = await A.transaccion(eje, 'second factor', { X: altaH, family: ['E:casa/EUR', 'E:otra/U' + i], amount: 1, holder: 'cartera' }, 'huesped', { t: i < n / 2 ? T0 : T1 });
+    assert.ok(q.ok, i + ': ' + JSON.stringify(q.motivos));
+    await eje.anadir(q.evento);
+  }
+  const encargo = await eje.escribir({ autor: 'cocina', sobre: menu.id, t: T1, payload: ['Encargo', ['x'], ['all announced movements happened'], ['cocina', 'huesped']], movimientos: [pagaElCoste('cocina')] });
+  const anunciado = { token: 'E', emisor: 'casa', denominacion: 'EUR', cantidad: 7, de: 'huesped', a: 'cocina', estado: 'anunciado', refiere: '2026-11-20T10:00:00Z' };
+  const anuncio = await eje.escribir({ autor: 'cocina', sobre: encargo.id, en: ANUNCIO, t: T1, payload: 'pagar la cena', movimientos: [pagaElCoste('cocina'), anunciado] });
+  return { ...c, eje, encargo, anuncio, cosa, altaH };
+}
+
+/** Lo que gasta la lectura «second factor» de un registro: { estado, valor, usados } (los ocupantes expandidos). */
+function gastoDeLaLectura(eje, sujeto) {
+  const presupuesto = new Presupuesto(Number.MAX_SAFE_INTEGER);
+  const r = leerRegla(regla('second factor'), sujeto, new ContextoEje(eje, { epoch: EPOCA_0_BTML }), { presupuesto });
+  return { ...r, usados: presupuesto.usados };
+}
+
+// La regla de antes (beta 54651a9): dos recorridos de los movimientos por criterio, y «payload(it2)» en cada paso.
+const ANTES = '=(down (first (first it.3).6)) where last (first it2.6).5 = "2400000000" and "second factor" in (payload(it2)).4 and first it2.3 = first it.3 and count ((moves it) where not ("anunciado" in it3.2) and it3.3.0 = first it.3 and (first it3.0 in (payload(it2)).1 or "E" in (payload(it2)).1 and E in it3.0.0.0 or "P" in (payload(it2)).1 and P in it3.0.0.0 or "R" in (payload(it2)).1 and R in it3.0.0.0 or "T" in (payload(it2)).1 and T in it3.0.0.0)) > 0 and sum (((moves it) where not ("anunciado" in it3.2) and it3.3.0 = first it.3 and (first it3.0 in (payload(it2)).1 or "E" in (payload(it2)).1 and E in it3.0.0.0 or "P" in (payload(it2)).1 and P in it3.0.0.0 or "R" in (payload(it2)).1 and R in it3.0.0.0 or "T" in (payload(it2)).1 and T in it3.0.0.0)) each 1) >= first (payload(it2)).2';
+
+test('la lectura «second factor» de la época 0 final da lo mismo que la de antes: familias, series, cantidad 0, lo de otros, lo anunciado, la candidata', async () => {
   const m = await mundo();
-  for (let i = 0; i < 69; i++) await criterio(m, ['E:casa/EUR', 'E:otra/U' + i], 1);
-  const aviso = /^la lectura «second factor» no se ha podido hacer \(second factor: límite de cálculo: más de 10000 ocupantes expandidos\): huesped tiene 69 criterios de segundo factor/;
+  // Criterios de todas las formas: familia, serie, varias, cantidad 0, umbral no alcanzado, P, R.
+  for (const [family, amount] of [['E', 5], ['E', 8], ['T', 3], ['T:minuto', 0], [['E:otra/USD', 'E:casa/EUR'], 7], [['E:otra/USD', 'T:hora'], 1], ['P', 0], ['R', 1], ['E:casa/EUR', 0], [['E', 'E:casa/EUR'], 14]]) await criterio(m, family, amount);
+  const leer = (ctx, X) => {
+    const antes = evaluar(ANTES, ctx, { sujeto: X });
+    const ahora = leerRegla(regla('second factor'), X, ctx);
+    assert.equal(ahora.estado, antes.estado, String(X?.k ?? X));
+    assert.deepEqual(ahora.valor.map((o) => ctx.valor(o)), antes.valor.map((o) => ctx.valor(o)), String(X?.k ?? X));
+    return ahora.valor.length;
+  };
+  // La candidata (aún sin asentar): lo que declara.
+  const { evento: candidata } = await A.transaccion(m.eje, 'pay', { X: m.encargo.id }, 'huesped', { t: T1 });
+  const ctxC = new ContextoEje(m.eje, { epoch: EPOCA_0_BTML, ev: candidata });
+  assert.equal(leer(ctxC, ctxC.nombre('ev')), 5);
+  const { evento: pago } = await pagar(m);
+  const ctx = new ContextoEje(m.eje, { epoch: EPOCA_0_BTML });
+  // Todo el libro: la compra, el anuncio (lo anunciado no cuenta), los criterios, las altas, el pago.
+  for (const X of m.eje.orden.filter((id) => !m.eje.esDeLaEpoca?.(id))) leer(ctx, X);
+  assert.equal(leer(ctx, pago.id), 5, 'E 5, T 3, T:minuto 0, las dos series (7) y E:casa/EUR 0; no E 8, ni USD con T:hora, ni P 0 (la obtención es de nadie), ni R, ni E con su serie (el pago cuenta una vez: 7 < 14)');
+});
+
+test('la lectura «second factor» se lee entera con 200 criterios del mismo autor (un recorrido de los movimientos por criterio): en la candidata, en lo asentado, en la estación y en lo por autorizar', async () => {
+  const m = await mundoConCriterios(200);
+  assert.equal(A.criteriosDeSegundoFactor(m.eje, 'huesped').length, 200);
+  const e = A.ejecucion(m.eje, 'pay', { X: m.encargo.id }, 'huesped', { t: T1 });
+  assert.deepEqual([e.segundoFactor.exige, e.segundoFactor.motivos, e.elementos, e.motivos], [true, [], 200, []]);
+  const r = await pagar(m);
+  const sf = A.segundoFactor(m.eje, r.evento.id);
+  assert.deepEqual([sf.estado, sf.exige, sf.pendiente, sf.criterios.length, sf.motivos], ['RESUELTO', true, true, 200, []]);
+  // Dentro del presupuesto: antes, unos 194 ocupantes por criterio sobre este pago (6 asientos, 3 de la huésped); ahora,
+  // 49 (unos 13 del criterio, 3 por asiento y 5 más por asiento de su autor): 9808 de 10000.
+  const gasto = gastoDeLaLectura(m.eje, r.evento.id);
+  assert.deepEqual([gasto.estado, gasto.valor.length], ['RESUELTO', 200]);
+  assert.ok(gasto.usados < LIMITES.ocupantes, gasto.usados + ' ocupantes');
+  assert.ok(gasto.usados <= 50 * 200, gasto.usados + ' ocupantes: no más de 50 por criterio');
+  assert.deepEqual(A.estacionDeAnuncioConMotivos(m.eje, m.anuncio.id), { estacion: 'autorizada', desbordado: false, motivos: [] });
+  assert.deepEqual(deE(m).desbordados, []);
+  assert.ok(A.porAutorizar(m.eje, 'huesped').every((x) => !x.desbordado));
+});
+
+test('defecto visible: con más criterios de los que caben (320) la lectura «second factor» pasa del presupuesto de BQL y sale como motivo en ejecucion, segundoFactor, porAutorizar y la estación del anuncio, no en silencio', async () => {
+  const m = await mundoConCriterios(320);
+  const aviso = /^la lectura «second factor» no se ha podido hacer \(second factor: límite de cálculo: más de 10000 ocupantes expandidos\): huesped tiene 320 criterios de segundo factor/;
   const e = A.ejecucion(m.eje, 'pay', { X: m.encargo.id }, 'huesped', { t: T1 });
   assert.equal(e.ok, true, 'no bloquea');
   const del4 = e.motivos.filter((x) => x.regla === 'second factor');
@@ -447,19 +526,29 @@ test('defecto visible: con muchos criterios del mismo autor (69) la lectura «se
   assert.match(del4[0].mensaje, aviso);
   assert.equal(del4[0].estado, 'PENDIENTE');
   assert.deepEqual([e.segundoFactor.exige, e.segundoFactor.motivos.length], [false, 1], 'la lectura sobre la candidata tampoco se resuelve, y lo dice');
-  assert.deepEqual([e.elementos, e.autorizacion], [69, 300], 'lo de la vuelta que sí se leyó: la transferencia se calcula igual');
   const r = await pagar(m);
   assert.match(r.segundoFactor.motivos[0].mensaje, aviso);
   const sf = A.segundoFactor(m.eje, r.evento.id);
   assert.deepEqual([sf.exige, sf.pendiente, sf.estado, sf.motivos.map((x) => x.regla)], [false, false, 'PENDIENTE', ['second factor']]);
   assert.match(sf.motivos[0].mensaje, aviso);
-  assert.match(A.segundoFactor(m.eje, r.evento.id, { idioma: 'en' }).motivos[0].mensaje, /^the reading «second factor» could not be done .*huesped has 69 second factor criteria/);
+  assert.match(A.segundoFactor(m.eje, r.evento.id, { idioma: 'en' }).motivos[0].mensaje, /^the reading «second factor» could not be done .*huesped has 320 second factor criteria/);
   // En la lista de lo por autorizar: con su motivo y marcado como desbordado (no se sabe si espera).
   const x = A.porAutorizar(m.eje, 'huesped').find((y) => y.id === r.evento.id);
   assert.ok(x, 'sale en porAutorizar');
   assert.deepEqual([x.desbordado, x.propio, x.motivos.length], [true, true, 1]);
   assert.match(x.falta, aviso);
   assert.ok(A.porAutorizar(m.eje, 'cartera').some((y) => y.id === r.evento.id && y.titular && y.desbordado), 'también para la cosa titular');
+  // La estación del anuncio (epoch.4.3, que lee X.6.8.7 dentro de su fórmula): sigue en «propuesta», pero desbordada y
+  // con su motivo, en estacionDeAnuncioConMotivos, en estaciones (desbordados, motivosDe) y en la celda del 4 (ejecuciones).
+  assert.equal(A.estacionDeAnuncio(m.eje, m.anuncio.id), 'propuesta');
+  const est = A.estacionDeAnuncioConMotivos(m.eje, m.anuncio.id);
+  assert.deepEqual([est.estacion, est.desbordado, est.motivos.length, est.motivos[0].regla, est.motivos[0].estado], ['propuesta', true, 1, 'second factor', 'PENDIENTE']);
+  assert.match(est.motivos[0].mensaje, /^no se ha podido comprobar si llega a «autorizada», «ejecutada»(, «verificada»)? \(second factor: límite de cálculo: más de 10000 ocupantes expandidos\): se queda en «propuesta» sin saber si avanza$/);
+  assert.match(A.estacionDeAnuncioConMotivos(m.eje, m.anuncio.id, { idioma: 'en' }).motivos[0].mensaje, /^it could not be checked whether it reaches «autorizada»/);
+  assert.deepEqual([deE(m).desbordados, deE(m).motivosDe[m.anuncio.id]], [[m.anuncio.id], est.motivos]);
+  const celda = A.ejecuciones(m.eje, m.encargo.id).find((y) => y.ocupante?.ref === m.anuncio.id);
+  assert.deepEqual([celda.estacion, celda.desbordado, celda.motivos], ['propuesta', true, est.motivos]);
+  assert.equal(A.estacionDeAnuncioConMotivos(m.eje, 'no-existe'), null);
 });
 
 test('porAutorizar: los registros míos pendientes de segundo factor y los que me toca autorizar como titular (o mi cosa); nada pendiente, nada; autorizado, sale', async () => {

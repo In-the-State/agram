@@ -369,7 +369,7 @@ export class ContextoEje {
       case 'memo':
         return this.#ev ? this.#propio(this.#ev.payload, d, null, []) : [];
       case 'regla':
-        // Un registro de la época: lo suyo, con sus correcciones detrás (el cargador las pone en su posición).
+        // Un registro de la época: lo suyo.
         return this.#propio(nodo.v, d, null, []);
       case 'dec':
         return [...this.#propio(nodo.v, d, nodo.id, nodo.camino), ...(nodo.id ? this.#escritos(nodo.id, [...nodo.camino, d]) : [])];

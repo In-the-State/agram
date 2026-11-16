@@ -133,7 +133,7 @@ test('#83 lo que hizo un asiento del libro se dice en llano: crear, gastar, rese
   const { eje, compra } = await ejemploCompra();
   assert.deepEqual(['acunar', 'quemar', 'transferir', 'bloquear', 'liberar'].map((p) => t('primitiva_' + p)), ['crear', 'gastar', 'transferir', 'reservar', 'liberar']);
   const v = visible(html(await arbol({ foco: { X: compra.id, pv: 6 } }, eje, 'huesped', GRANDE, ES)));
-  assert.match(v, /crear 1 hora · gastar 1 hora · transferir 12 EUR/);
+  assert.match(v, /crear 1 hora · gastar 1 hora · transferir 12 euros de Casa de ejemplo/);
   assert.doesNotMatch(v, /\b(acunar|quemar|bloquear)\b/);
   // el aro del móvil y el sequenced dicen lo mismo
   const m = visible(html(await arbol({ foco: { X: compra.id, pv: 6 } }, eje, 'huesped', MOVIL, ES)));

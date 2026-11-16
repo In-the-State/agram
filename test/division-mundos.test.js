@@ -16,7 +16,7 @@ import * as A from '../src/acciones.js';
 import { pasos } from '../src/pasos.js';
 import { HITOS } from '../src/bases.js';
 import { EPOCA_0_BTML, cargarEpocaBtml, REGISTROS_DE_MODELOS } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { ejemploCompra, ejemploJardinYParque, ejemploFabrica, ejemploFuturoYCohorte } from '../ejemplos/ikisai/compra-food.mjs';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
 import { sinArte } from './ayudas-arte.js';
@@ -31,7 +31,7 @@ function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   const plantillas = JSON.parse(JSON.stringify(PLANTILLAS_DE_EPOCA_DATOS));
   cambiar(e, plantillas);
-  return cargarEpocaBtml(e, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], plantillas, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], plantillas, id: EPOCA_0_BTML.id });
 }
 
 /** La fila de epoch.8.7 de un PV en una copia de los datos de la época. */
@@ -758,7 +758,7 @@ test('el 1 a pantalla completa: el pie de cada esquina con lo que mide su hijo (
   assert.deepEqual(uno.coste, hijos[0].coste);
   assert.deepEqual(dos.capacidad, { capacidad: 2, comprometido: 0, disponible: 2, franja: '' });
   assert.deepEqual(tres.flujo.map((f) => [f.serie, f.entra, f.sale]), hijos[2].salidas.map((x) => [x.serie, 0, x.cantidad]));
-  assert.deepEqual(tres.flujo.map((f) => f.texto).slice(0, 2), ['hora', 'EUR'], 'la serie, legible');
+  assert.deepEqual(tres.flujo.map((f) => f.texto).slice(0, 2), ['hora', 'euros de Casa de ejemplo'], 'la serie, legible');
   assert.equal(['coste', 'capacidad', 'flujo'].some((k) => k in cuatro), false);
   const h = rejillaHtml(html(a));
   assert.ok(h.includes(`<p class="hijo-coste">${t('hijoCoste', { coste: 'EUR 12' })}</p>`));

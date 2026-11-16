@@ -39,6 +39,8 @@
 //   texto(eje, clave, idioma, { original }) un texto de la época por su clave («template <nombre>», «level <nombre>»…)
 //                                          en un idioma (epoch.9.4), o el canónico (en) o el original si falta
 //   legible(eje, valor, tipo, { idioma })  un valor de una posición o un parámetro en texto legible, con sus partes
+//   ceroLegible(eje, X, { idioma })        el 0 de un registro escrito por plantilla, vuelto a componer en el idioma de quien lee
+//   configuracionDeFormato(eje, yo)        mis preferencias de formato (fecha, números, editor de BTML): «format settings»
 //   desdeLegible(texto, tipo, { eje })     la inversa mínima para editar los tipos simples: { valor } o { motivo }
 //   opciones(eje, X, pv, { yo, idioma })   lo que se puede escribir en una posición, de los datos: [{ valor, texto }] (issue #5)
 //
@@ -78,6 +80,7 @@ const CLAVE = Object.freeze({
   tamano: (nombre) => 'size ' + nombre,
   legible: (que) => 'legible ' + que,
   motivo: (que) => 'reason ' + que,
+  denominacion: (codigo) => 'denomination ' + codigo, // el nombre de una denominación de E en el idioma (EUR → euros; #83)
   oficio: (nombre) => 'office ' + nombre,
   ejecucion: (nombre) => 'execution ' + nombre,
   modo: (nombre) => 'launch mode ' + nombre, // los tres modos de ejecución de una plantilla (VG 12-11, #71.1): person, agent, system
@@ -108,6 +111,7 @@ const SITIO = Object.freeze({
   divisionDelMundo: [8, 7], // 1 la división de cada mundo a pantalla completa: [[pv], [profundidad], [nota], [claves], [valores]] (#77)
   pasosDeTamano: [8, 6], // 1 los pasos de tamaño de un PV en Mapped: [[nombre], [fracción en una esquina], [fracción en un lado], [datos que caben]]
   cerrados: [9, 0, 1, 1], // las plantillas de cerrado: [[nombre], [fórmula]]
+  recuentos: [9, 0, 0], // 1 las plantillas de recuento: [[nombre], [fórmula]]; detrás, lo que no es un recuento de esta época: [[nombre], [por qué]]
   plantillas: [9, 2], // 0 la cabecera (0.1 el tipo genérico por dígito), 1… las plantillas de dominio
   preferencias: [9, 3], // la plantilla «preferences»
   guia: [9, 9], // 0 la cabecera, 1… las referencias a los registros de la guía del PV9 (leer: docs/CONTRATO.md §16)
@@ -2308,8 +2312,10 @@ export function mensaje(eje, regla, idioma = 'en', { ev, ...opciones } = {}) {
     const del = registros.find((x) => hojas(x[0]).includes(idioma));
     const entradas = hojas(del?.[1]);
     const prefijo = nombre + ': ';
-    const propio = entradas.find((x) => typeof x === 'string' && x.startsWith(prefijo))
-      ?? (Array.isArray(del?.[1]) && esDecupla(del[1]) ? del[1].filter(Array.isArray).map((par) => (hoja(hoja(par[0])) === nombre ? prefijo + hoja(par[1]) : undefined)).find(Boolean) : undefined);
+    // La entrada es «<regla>: <texto>»: el nombre es la clave, no parte del mensaje (#83, época 0 final): la traducción
+    // va sin el nombre canónico delante; el canónico (en, el 9 de la regla) lo sigue llevando.
+    const propio = entradas.find((x) => typeof x === 'string' && x.startsWith(prefijo))?.slice(prefijo.length)
+      ?? (Array.isArray(del?.[1]) && esDecupla(del[1]) ? del[1].filter(Array.isArray).map((par) => (hoja(hoja(par[0])) === nombre ? hoja(par[1]) : undefined)).find(Boolean) : undefined);
     if (propio) plantillaTexto = propio;
   }
   if (!eje && !ev) return plantillaTexto;
@@ -2369,6 +2375,14 @@ function plano_(formato, partes) {
 
 /** Los nombres de las plantillas de cerrado de la época (epoch.9.0.1: «all announced movements happened»). */
 const cerradosDe = (epoca) => hojas(en(raizDe(epoca), SITIO.cerrados)).filter(Array.isArray).map((c) => texto(hoja(c[0]))).filter(Boolean);
+
+/**
+ * Los nombres de las plantillas de recuento de la época (epoch.9.0.0.1: «weighted sum», «weighted mean», «threshold») y
+ * de lo que la época dice que no es un recuento suyo («one per person»): las listas de [[nombre], […]] del 9.0.0.
+ */
+const recuentosDe = (epoca) => hojas(en(raizDe(epoca), SITIO.recuentos)).slice(1)
+  .filter((x) => Array.isArray(x) && x.length > 0 && x.every((c) => Array.isArray(c) && Array.isArray(c[0])))
+  .flatMap((lista) => lista.map((c) => texto(hoja(c[0])))).filter(Boolean);
 
 /** Los nombres de las plantillas de transacción de la época (epoch.9.6), con su id. */
 const accionesDe = (epoca) => (Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).map((x) => ({ id: x.id, nombre: texto(hoja(x.plantilla?.[0])) })).filter((x) => x.nombre);
@@ -2473,8 +2487,12 @@ export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
     const p = partirClave(s);
     if (p.token === 'E' && p.emisor && p.denominacion) {
       const registro = p.registro ?? eje?.registroDe?.(s) ?? null;
-      const partes = { familia: p.token, emisor: p.emisor, denominacion: p.denominacion, registro, registroTexto: registro ? ceroDe(eje, registro, { epoca }) : null };
-      return { texto: F('series E', { denomination: p.denominacion, issuer: p.emisor, record: partes.registroTexto ?? '' }), partes };
+      // #83: el nombre de la denominación en el idioma (la tabla «denomination <código>» de epoch.9.4; lo no listado, su
+      // código tal cual) y el emisor por su 0 (el de su alta): «euros de casa», «casa euros».
+      const nombre = texto_(eje, CLAVE.denominacion(p.denominacion), idioma, { original: p.denominacion, epoca });
+      const emisorTexto = otro(p.emisor, TIPO.identidad).texto;
+      const partes = { familia: p.token, emisor: p.emisor, denominacion: p.denominacion, nombre, emisorTexto, registro, registroTexto: registro ? ceroDe(eje, registro, { epoca }) : null };
+      return { texto: F('series E', { denomination: nombre, issuer: emisorTexto, record: partes.registroTexto ?? '' }), partes };
     }
     if (p.token === 'P' && p.raiz) {
       const registro = ceroDe(eje, p.raiz, { epoca }) ?? p.raiz.slice(0, 8);
@@ -2500,7 +2518,79 @@ export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
   if (plantillas(eje, { epoca }).some((p) => p.nombre === s)) return { texto: texto_(eje, CLAVE.plantilla(s), idioma, { original: s, epoca }), partes: { plantilla: s } };
   // El nombre de una plantilla de cerrado (el criterio por defecto de un registro): también su traducción.
   if (cerradosDe(epoca).includes(s)) return { texto: texto_(eje, CLAVE.plantilla(s), idioma, { original: s, epoca }), partes: { cerrado: s } };
+  // El nombre de una plantilla de recuento («weighted sum»…, epoch.9.0.0): también su traducción.
+  if (recuentosDe(epoca).includes(s)) return { texto: texto_(eje, CLAVE.plantilla(s), idioma, { original: s, epoca }), partes: { recuento: s } };
   return { texto: s, partes: { valor: s } };
+}
+
+/**
+ * El 0 legible de un registro escrito por plantilla, en el idioma de quien LEE (#83; decisión Core 16-11). El registro no
+ * cambia: su 0 es el mensaje canónico en inglés de la plantilla que lo escribió (acciones.transaccion), porque el libro es
+ * compartido por gente con idiomas distintos y la validación no depende del idioma. Lo que cambia es la lectura: si el
+ * registro nombra en su 4 una plantilla de transacción de la época y su 0 es exactamente lo que da el mensaje canónico de
+ * esa plantilla (su 9) sobre el propio registro (ev = el registro como candidata, sin movimientos ni 0, como lo vio la
+ * plantilla; me = su autor; it = el registro sobre el que se ancla),
+ * se vuelve a componer con el mensaje de la plantilla en el idioma (epoch.9.4, «template <nombre> message», sin el nombre
+ * de la plantilla delante) y cada hueco legible: una identidad por su 0, una serie por su nombre, un registro por su 0
+ * (legible a su vez) y lo vacío, «nadie» («legible nobody»). Si no (un 0 escrito a mano, un registro que no nombra
+ * plantilla, una plantilla que ya no es la que lo escribió), su 0 tal cual. → { texto, plantilla, compuesto } o null si X
+ * no es un registro del eje. Lo que el registro no guarda: el id (la versión) de la plantilla, solo su nombre; se usa la
+ * plantilla de ese nombre de la época que se lee, y se comprueba con el canónico que sigue dando lo escrito.
+ */
+export function ceroLegible(eje, X, { idioma = 'en', ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  const ev = eventoDe(eje, X);
+  if (!ev || !eje?.obtener?.(ev.id)) return null;
+  const cero = ceroDe(eje, ev.id, { epoca });
+  const tal = { texto: cero, plantilla: null, compuesto: false };
+  if (typeof cero !== 'string' || !Array.isArray(ev.payload)) return tal;
+  const porNombre = new Map((Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).map((x) => [texto(hoja(x.plantilla?.[0])), x.plantilla]));
+  const nombre = hojas(ev.payload[4]).find((x) => typeof x === 'string' && porNombre.has(x));
+  if (!nombre) return tal;
+  const p = porNombre.get(nombre);
+  const canonico = texto(ultima(p[9]));
+  if (typeof canonico !== 'string') return tal;
+  // La candidata como la vio la plantilla al escribir el mensaje (acciones.transaccion): sin movimientos ni id, y sin su 0.
+  const candidata = { autor: ev.autor, sobre: ev.sobre, en: ev.en, t: ev.t, movimientos: [], payload: [undefined, ...ev.payload.slice(1)] };
+  const ctx = new ContextoEje(eje, { ev: candidata, epoch: epoca, me: ev.autor });
+  const sujeto = typeof ev.sobre === 'string' && eje.obtener(ev.sobre) ? ev.sobre : ev.id;
+  if (rellenar(canonico, ctx, { sujeto }) !== cero) return { ...tal, plantilla: nombre };
+  const profundidad = (opciones.profundidad ?? 0) + 1;
+  const prefijo = nombre + ': ';
+  let formato = texto_(eje, CLAVE.mensaje(nombre), idioma, { original: canonico, epoca });
+  if (formato.startsWith(prefijo)) formato = formato.slice(prefijo.length);
+  const nadie = texto_(eje, CLAVE.legible('nobody'), idioma, { original: 'nobody', epoca });
+  const o = { ...opciones, epoca, idioma, profundidad };
+  const deUno = (x) => {
+    const deTexto = typeof x === 'string' && RE_ID.test(x) && eje.obtener(x);
+    if (deTexto || (x && typeof x === 'object' && (x.k === 'reg' || x.k === 'ev'))) {
+      const id = deTexto ? x : x.k === 'ev' ? ev.id : x.id;
+      // Un registro sin 0 es «nadie», como lo vacío (#83: «nadie» en lugar de «∅»).
+      return (profundidad < 3 ? ceroLegible(eje, id, o)?.texto : ceroDe(eje, id, { epoca })) ?? null;
+    }
+    const v = x && typeof x === 'object' ? (x.simbolo ?? ctx.valor(x)) : x;
+    if (v === undefined || v === null) return null;
+    return legible(eje, v, undefined, { idioma, epoca }).texto;
+  };
+  const hueco = (expr) => {
+    // «first X.0» es el 0 de X: si X es un registro, su 0 legible (no el texto que guarda).
+    const m = /^(first|last) (.+)\.0$/.exec(expr.trim());
+    if (m) {
+      const base = evaluar(m[1] + ' ' + m[2], ctx, { sujeto });
+      const esRegistro = (x) => (x && typeof x === 'object' && x.k === 'reg') || (typeof x === 'string' && RE_ID.test(x) && Boolean(eje.obtener(x)));
+      if (base.estado === 'RESUELTO' && base.valor.length && base.valor.every(esRegistro)) {
+        const t = base.valor.map(deUno);
+        // Un registro sin 0 de texto (su 0 es una referencia, una décupla): lo que da el hueco tal cual, legible.
+        if (t.every((x) => x !== null && x !== '')) return t.join(', ');
+      }
+    }
+    const r = evaluar(expr, ctx, { sujeto });
+    if (r.estado !== 'RESUELTO') return '{' + expr + ': ' + r.estado + '}';
+    const t = r.valor.map(deUno).filter((x) => x !== null && x !== '');
+    return t.length ? t.join(', ') : nadie;
+  };
+  return { texto: formato.replace(/\{([^{}]+)\}/g, (_, expr) => hueco(expr)), plantilla: nombre, compuesto: true };
 }
 
 /** ¿Es un tipo que desdeLegible sabe leer de un texto? Los tipos genéricos de la época (epoch.9.2.0.1: texto, número, identidad, referencia, instante, nivel); lo demás (una décupla) se edita en BTML. */
@@ -2684,3 +2774,5 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, ...resto } = {}) {
 // Lo que está por autorizar para quien mira (VG 14-11, #70 (2)): la lectura vive con el segundo factor, en acciones.js; se
 // expone aquí con el resto de lo que lee la carta (acciones ya importa contrato: el ciclo solo vale en tiempo de llamada).
 export { porAutorizar } from './acciones.js';
+// Las preferencias de formato (#93): el nombre de su plantilla vive en acciones (este módulo no lleva escrito ningún nombre de la época).
+export { configuracionDeFormato, AJUSTES_DE_FORMATO } from './acciones.js';

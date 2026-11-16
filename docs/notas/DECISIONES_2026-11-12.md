@@ -23,6 +23,7 @@ Cada nota tiene cuatro líneas: *Qué se decidió*, *Por qué* (lo que dice la f
 | 7. Lo del 13-11 | #75, #76, #77, #78, #70 (segundo factor) |
 | 8. Lo del 14-11 | #70 (3) (autorizar quema T) y (3) bis (prepago como transferencia), #80 (cerrado por decisión), #81 (BQL puro) |
 | 9. La época en el eje | #107 bis |
+| 11. La época 0 final (16-11) | #70 (la lectura «second factor» a 200 criterios), #83 (el 0 legible, las series, los recuentos), #119 (sin correcciones), #93 (preferencias de formato), los textos sin BQL V0 |
 | 10. Lo del 15-11 | #112 (firmante inyectable), H13 de #67 (claves en cualquier registro), la invitación declara la clave del invitado, orígenes y ritmo de `be.mjs epoca --publicar` |
 
 Al final: «Lo que queda abierto» y «Lo que las fuentes no dicen o dicen distinto».
@@ -466,6 +467,21 @@ Fuente: `stateark/sip/HUECOS_BQL.md` H13; #67 («pendiente capa 3»).
 - **La sim de StateArk** recopiada al commit cb83eda (`servidor/sim/stateark/LEEME.md`): no cambia la forma de ningún sello ni recibo.
 
 ---
+
+## 11. La época 0 final (16-11)
+
+**Por qué junto** (VG 16-11): la aceptación se hace sobre lo terminado, y la época 0 es un dato fijado por hash: todo lo pendiente de la 0 cambia su id una sola vez. El id nuevo es `f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8`; el de ayer (`9cd5a949…`) queda en `IDS_ANTERIORES_DE_LA_0` para los ejes del nodo y la SIP de StateArk.
+
+- **#70, «second factor» en un recorrido.** La regla liga el payload del criterio, el autor y la suma con `where` de un elemento y recorre los movimientos una vez por criterio: 49 ocupantes por criterio en vez de 194, 200 criterios caben (9 808 de 10 000). *Por qué:* con 55 criterios ya quedaba PENDIENTE; el resultado es el mismo que el de antes (prueba de paridad) y pasar de ~260 exige cambiar el lenguaje.
+- **#70, el desbordamiento en las estaciones.** `estacionDeAnuncioConMotivos`, `estaciones` (`desbordados`, `motivosDe`) y `ejecuciones` (`desbordado`, `motivos`). *Por qué:* el anuncio se quedaba en «propuesta» sin decir que no se había podido comprobar; ahora se distingue con su motivo, como en `ejecucion`, `segundoFactor` y `porAutorizar`.
+- **#83, el 0 legible.** `contrato.ceroLegible(eje, X, { idioma })` recompone el 0 de lo escrito por plantilla en el idioma de quien lee; el registro no cambia. *Por qué* (decisión Core): el libro es compartido por gente con idiomas distintos y la validación ha de ser independiente del idioma; lo que el registro no guarda es la versión de la plantilla, y se comprueba con su canónico.
+- **#83, las traducciones sin el nombre delante.** Los mensajes de reglas y plantillas en `epoch.9.4` ya no empiezan por «<nombre>: ». *Por qué:* el nombre es el 0 de su décupla; el mensaje es otra cosa (el canónico inglés lo sigue llevando).
+- **#83, series de E y recuentos.** «euros de casa» / «casa euros» (tabla «denomination <código>» en la época; lo no listado, su código); «weighted sum» y compañía con su traducción. *Por qué:* «EUR» y los nombres internos eran jerga; la ayuda de «second factor» dice «(euros de casa)».
+- **#119, sin correcciones.** Fuera la opción `correcciones` de `cargarEpocaBtml` y `CORRECCIONES_DE_EPOCA_DATOS`. *Por qué:* una época no se corrige, se versiona; el mecanismo no tenía ningún uso.
+- **#93, preferencias de formato.** La plantilla «format settings» (fecha, números, estilo y vista del editor) y `configuracionDeFormato`. *Por qué:* los criterios de la cara 5 vivían en el almacén local porque «preferences» no los conocía; «preferences» está llena, así que va aparte, como los ajustes de la guía.
+- **El paso del camino en llano.** «huesped da 1 hora a cocina» en vez de «1 T:hora huesped → cocina», con formatos de la época. *Por qué:* los formatos son datos y había que meterlos en este cambio de id; la composición es del núcleo.
+- **Los textos de la época sin BQL V0.** Los ejemplos de las reglas cortas (`=LOCAL(0)`, `=REF(…)`…) en BQL mínimo (`first (payload(it)).0`…), comprobados con el analizador; «BUSCAR, FILTRAR, ORDENAR, ELEGIR» y «SUMAR» en llano. *Por qué:* entran en el id; retirar el V0 en la ola siguiente no debe volver a cambiarlo.
+- **«pay url».** Su ayuda dice ya lo que hace (el servicio de pagos de StateArk). *Por qué:* lo pide Core para el encargo de pagos, dentro del mismo id.
 
 ## Lo que queda abierto
 

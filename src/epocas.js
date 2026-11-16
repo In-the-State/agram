@@ -26,7 +26,7 @@ import { ARIDAD, indicesDe, esLista, esReferencia, esTerminal, esDecupla, valida
 import { canonico } from './evento.js';
 import { sha256, aHex } from './cripto.js';
 import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve } from './bqlm.js';
-import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 
 export const PV = Object.freeze([
   'representación', // 0 · PV0, lente libre
@@ -241,9 +241,8 @@ const textoNoVacio = (x) => typeof x === 'string' && x.length > 0;
  * T 1.3, cada una [[nombre], [estructura], [estado]]); 2 las reglas largas
  * (condiciones): la lista de referencias { ref } a sus registros, uno por
  * regla (VG, 10-11, A1), que el cargador resuelve con `registros`
- * ([{ id, registro }]) y `correcciones` ([{ sobre, en, ocupante }]: un
- * ocupante añadido a la posición `en` del registro de una regla; vale el
- * último); cada regla, una décupla del molde con las diez posiciones llenas;
+ * ([{ id, registro }]); cada regla, una décupla del molde con las diez
+ * posiciones llenas (una regla no se corrige: se versiona, #119);
  * 3 la plantilla de identidad y el autor del primer registro; 4 primitivas y
  * despliegues; 5 las cien reglas cortas (5.p.d = [[nombre], [significado],
  * [ejemplo]]); 6 procedencia ([[notas], [claves], [valores]], #77: la clave «hereda»); 7 calendario y reloj; 8 cortes de las cajas,
@@ -253,13 +252,13 @@ const textoNoVacio = (x) => typeof x === 'string' && x.length > 0;
  * Devuelve lo mismo que cargarEpoca (regla, reglaCorta, larga, reglaLarga,
  * ordinal, cortes, cortesConOrigen), y además `payload` y `registro` (la
  * décupla congelada: el registro `epoch` que lee el BQL mínimo,
- * src/contexto-eje.js), `condiciones` (las reglas del 2, en su orden, con
- * sus correcciones), `reglasConId` ([{ id, regla }], las mismas con su id) y
+ * src/contexto-eje.js), `condiciones` (las reglas del 2, en su orden),
+ * `reglasConId` ([{ id, regla }], las mismas con su id) y
  * `registros` (Map id → regla: lo que el BQL mínimo alcanza al seguir una
  * referencia del 2). Las reglas largas por ruta de cargarEpoca no existen
  * aquí: las del 2 son condiciones, no nombres de rutas.
  */
-export function cargarEpocaBtml(payload, { registros = [], plantillas = [], correcciones = [], id = null, validar = true } = {}) {
+export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id = null, validar = true } = {}) {
   // `validar: false` solo para una época RESUELTA por herencia (cargarEpocaEscrita): sus dos partes ya se validaron, y
   // una colección combinada (el 4.3, el 1.2.1) puede pasar de diez entradas.
   const v = validar ? validarPayload(payload) : { ok: true };
@@ -287,20 +286,12 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], corr
   // 2: las reglas largas (condiciones). Cada regla es su propio registro (VG, 10-11, A1): el 2 de la época es
   // la LISTA de referencias { ref } a esos registros, una hoja por regla, sin tope de diez; el cargador las
   // resuelve con `registros` ([{ id, registro }]: hoy, los de datos/epocas/reglas/). Cada regla lleva las diez
-  // posiciones llenas y la condición «=…» en el 2. Las correcciones son ocupantes añadidos a una posición del
-  // registro de la regla (no la cambian en sitio, ni su id): se leen después de lo suyo, y vale el último.
+  // posiciones llenas y la condición «=…» en el 2 (el último ocupante). Una regla no se corrige: se versiona (#119; el
+  // mecanismo de correcciones, ocupantes añadidos desde fuera, se retiró en la época 0 final).
   const porId = new Map();
   for (const r of registros) {
     if (!r || typeof r.id !== 'string' || !Array.isArray(r.registro)) throw new TypeError(nombre + ': un registro de la época es { id, registro }');
     porId.set(r.id, r.registro);
-  }
-  const corregidas = new Map(); // id → [{ en, ocupante }]
-  for (const c of correcciones) {
-    if (!c || !porId.has(c.sobre)) throw new TypeError(nombre + ': la corrección ' + (c?.archivo ?? '') + ' no es sobre una regla de la época: ' + String(c?.sobre).slice(0, 8));
-    if (!esIndice(Number(c.en)) || String(c.en).length !== 1) throw new TypeError(nombre + ': una corrección va en una posición de la regla, un dígito (en: «' + c.en + '»)');
-    if (!esTerminal(c.ocupante)) throw new TypeError(nombre + ': lo que añade una corrección es una hoja');
-    if (!corregidas.has(c.sobre)) corregidas.set(c.sobre, []);
-    corregidas.get(c.sobre).push({ en: Number(c.en), ocupante: c.ocupante });
   }
   const entradas = Array.isArray(registro[2]) ? registro[2] : [];
   if (!esLista(entradas) || !entradas.every((x) => esReferencia(x) && x.dir === undefined)) {
@@ -312,7 +303,6 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], corr
     const r = porId.get(ref);
     if (!Array.isArray(r) || r.length !== ARIDAD || !r.every((x) => Array.isArray(x) && x.length > 0)) throw new TypeError(nombre + ': ' + donde + ' lleva las diez posiciones llenas');
     const efectiva = r.map((x) => [...x]);
-    for (const { en, ocupante } of corregidas.get(ref) ?? []) efectiva[en].push(ocupante);
     const c = efectiva[2][efectiva[2].length - 1];
     const formula = (x) => typeof x === 'string' && x.startsWith('=') && !x.startsWith('==');
     // La lectura de un punto de vista (encargo «lecturas»): cada ocupante de su 2, una fórmula o «js <nombre>».
@@ -343,7 +333,7 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], corr
   // lo asienta el libro en la misma transacción (src/eje.js).
   const escrituras = Object.freeze(reglasDel2.filter((x) => esEscritura(x.regla)).map((x) => x.regla));
   // Lo que alcanza una referencia a un registro de la época: todos los que se pasan (las reglas, y desde el encargo
-  // 3c-2b los modelos de visualización y sus piezas, que referencia el 9.7), con las reglas del 2 corregidas encima.
+  // 3c-2b los modelos de visualización y sus piezas, que referencia el 9.7), y las reglas del 2.
   const registrosDeEpoca = new Map([...porId].map(([id, r]) => [id, congelarCopia(r)]));
   for (const x of reglasDel2) registrosDeEpoca.set(x.id, x.regla);
 
@@ -421,12 +411,11 @@ export const REGISTROS_DE_MODELOS = Object.freeze(MODELOS_DE_EPOCA_DATOS.flatMap
 
 /**
  * La época 0 como décupla BTML (datos/epocas/epoca-0.btml.json), con los
- * registros de sus reglas (datos/epocas/reglas/), sus correcciones
- * (datos/epocas/correcciones/) y sus modelos de visualización con sus piezas
+ * registros de sus reglas (datos/epocas/reglas/) y sus modelos de visualización con sus piezas
  * (datos/epocas/modelos/): las mismas cien reglas cortas que EPOCA_0. No
  * está en EPOCAS: es la misma época en otro formato.
  */
-export const EPOCA_0_BTML = cargarEpocaBtml(EPOCA_0_BTML_DATOS, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS, ...GUIA_DE_EPOCA_DATOS], plantillas: PLANTILLAS_DE_EPOCA_DATOS, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML_ID });
+export const EPOCA_0_BTML = cargarEpocaBtml(EPOCA_0_BTML_DATOS, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS, ...GUIA_DE_EPOCA_DATOS], plantillas: PLANTILLAS_DE_EPOCA_DATOS, id: EPOCA_0_BTML_ID });
 
 /** El id de la época 0: el registro con id conocido que el génesis lleva en su contexto (contexto.epoca) y que una invitación referencia en su 2. */
 export { EPOCA_0_BTML_ID };
@@ -690,12 +679,18 @@ export function fusionarRaices(base, hija, { registroDe = () => undefined, ids =
  * Ids anteriores de la época 0 que el código sigue reconociendo como ella: el de beta 16f30d2 (antes de normalizar su 6
  * a [[notas], [claves], [valores]], #107), del que hereda la SIP 0 de StateArk y que nombra el génesis de los ejes de
  * entonces; y el de 0d95471b, antes de H13 (15-11: las dos reglas de las claves declaradas admiten claves en cualquier
- * registro y en la invitación), del que hereda la SIP 0 viva y que nombran los génesis de los ejes de ayer. La época 0
- * que se carga con ellos es la de hoy.
+ * registro y en la invitación), del que hereda la SIP 0 viva y que nombran los génesis de los ejes de ayer; y el de
+ * 9cd5a949, antes de la época 0 final (16-11), el de los ejes del nodo y la SIP de StateArk de hoy. La época 0 que se
+ * carga con ellos es la de hoy.
  */
 export const IDS_ANTERIORES_DE_LA_0 = Object.freeze([
   '8346d2f80a855093dc7818b7d8fa811b38f309f48e70b2f2c067359ea5e5d6e8',
   '0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858', // antes de H13: las reglas de las claves declaradas (15-11)
+  // Antes de la época 0 final (16-11: «second factor» en un recorrido, el 0 legible, las series de E, los recuentos, las
+  // preferencias de formato, los textos sin BQL V0, sin correcciones): los ejes del nodo y la época SIP de StateArk, que
+  // hereda por id, la nombran y siguen resolviendo hasta que se reescriban. Core vacía esta muleta al crear el eje de la
+  // aceptación.
+  '9cd5a949ae30d3ef3dff698eec90f600d62a229d77aa17c1bf6b702fff6415f0',
 ]);
 
 /** Las épocas que este código conoce, por id: la 0 (la que trae el código, con sus ids anteriores) y las que se registren (registrarEpoca). */

@@ -22,7 +22,7 @@
       "digito": 0,
       "nombre": "representación",
       "significado": "PV0: la lente libre sobre el registro en foco (nombre, cifra, imagen, HTML). Puede engañar; no garantiza verdad.",
-      "ejemplo": "compra 0 = 'Compra del menú del día'; =LOCAL(0) lo devuelve."
+      "ejemplo": "compra 0 = 'Compra del menú del día'; con it = la compra, =first (payload(it)).0 lo devuelve (payload(it): lo escrito, sin lo que el libro junta en sus posiciones)."
     },
     {
       "profundidad": 0,
@@ -35,7 +35,7 @@
       "profundidad": 0,
       "digito": 2,
       "nombre": "criterios",
-      "significado": "PV2, jardín: lo que distingue cosas aparentemente iguales; decisiones y preferencias; BUSCAR, FILTRAR, ORDENAR, ELEGIR.",
+      "significado": "PV2, jardín: lo que distingue cosas aparentemente iguales; decisiones y preferencias; buscar, filtrar (where), ordenar (by) y elegir (first, last, nth).",
       "ejemplo": "menú 2 = ['sin gluten', 'vegetariano']; compra 2 = [ref menú:2]."
     },
     {
@@ -92,21 +92,21 @@
       "digito": 0,
       "nombre": "qué es",
       "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): qué es la parte; su nombre o cara, lo que se ve si no se desarrolla.",
-      "ejemplo": "compra 1.0 = [ref menú:1]: qué es lo comprado; =LOCAL(1, 0, 0) lee su ocupante (la referencia, seguida); x.0 ocupa la misma dirección que x (colisión por ceros)."
+      "ejemplo": "compra 1.0 = [ref menú:1]: qué es lo comprado; =first (payload(it)).1.0 lee su ocupante (la referencia, seguida); x.0 ocupa la misma dirección que x (colisión por ceros)."
     },
     {
       "profundidad": 1,
       "digito": 1,
       "nombre": "cuánto",
-      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): cuánto; su magnitud (número con unidad, veces, duración), donde SUMAR y el producto tienen sentido.",
-      "ejemplo": "compra 1.1 = 1 (un menú): =LOCAL(1, 1) * 12 EUR da 12 EUR."
+      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): cuánto; su magnitud (número con unidad, veces, duración), donde la suma (sum) y el producto tienen sentido.",
+      "ejemplo": "compra 1.1 = 1 (un menú): =first (payload(it)).1.1 * (first (payload(it)).1.2).1 da 12 (los EUR, en (first (payload(it)).1.2).2: el BQL mínimo solo opera números)."
     },
     {
       "profundidad": 1,
       "digito": 2,
       "nombre": "con qué condición",
       "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): con qué condición; el criterio que la distingue o la condiciona: precio, requisito, límite.",
-      "ejemplo": "compra 1.2 = 'EUR 12': =REF(compra, \"1200000000\") da 12 EUR; una corrección escrita en '1200000000' es otro ocupante."
+      "ejemplo": "compra 1.2 = 'EUR 12': =(first (payload(it)).1.2).1 da 12 y =(first (payload(it)).1.2).2 da EUR; lo que se escribe después anclado en '1200000000' es otro ocupante (=last it.1.2)."
     },
     {
       "profundidad": 1,
@@ -126,7 +126,7 @@
       "profundidad": 1,
       "digito": 5,
       "nombre": "dónde encaja",
-      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): dónde encaja; la dirección o referencia donde encaja en el árbol, lo que BUSCAR(LOCAL(5)) recibiría.",
+      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): dónde encaja; la dirección o referencia donde encaja en el árbol, la que sirve para buscarlo y situarlo.",
       "ejemplo": "Un escrito en la 1.5 de una reserva de Booking = { ref: calendario, dir: '7000000000' }: dónde encajan sus recursos."
     },
     {
@@ -190,7 +190,7 @@
       "digito": 4,
       "nombre": "qué se hace",
       "significado": "Aplicado al nodo de arriba (la parte, el nodo de la profundidad 1): qué se hace; la operación que lo produjo: suma, producto, elección, consolidación.",
-      "ejemplo": "Los 14 EUR de la cuenta nacen de una suma: =REF(compra, \"1200000000\") + 2 EUR."
+      "ejemplo": "Los 14 EUR de la cuenta nacen de una suma: =(first (payload(it)).1.2).1 + 2, con it = la compra (los EUR, en su 1.2)."
     },
     {
       "profundidad": 2,
@@ -225,7 +225,7 @@
       "digito": 9,
       "nombre": "cómo",
       "significado": "Aplicado al nodo de arriba (la parte, el nodo de la profundidad 1): cómo; el camino de cálculo, la fórmula o la instrucción que lo obtiene.",
-      "ejemplo": "La fórmula '=REF(…) + 2 EUR'; con '==' se guarda como texto sin evaluarse."
+      "ejemplo": "La fórmula '=(first (payload(it)).1.2).1 + 2'; con '==' se guarda como texto sin evaluarse."
     },
     {
       "profundidad": 3,
@@ -719,7 +719,7 @@
     }
   ],
   "dudas": [
-    "1 · [X] decidir VG. Profundidad 2: ¿posiciones consultables (LOCAL(1, 2, 2) = 'EUR') o lectura de BQL sobre los campos que ya guarda el valor (unidad, desglose, dependencias)? En el registro de salida de la fábrica ya está decidido: el tercer dígito es la clase de modificación.",
+    "1 · [X] decidir VG. Profundidad 2: ¿posiciones consultables ((first (payload(it)).1.2).2 = \"EUR\", hoy el despliegue D-VALOR del BQL mínimo) o lectura de BQL sobre los campos que ya guarda el valor (unidad, desglose, dependencias)? En el registro de salida de la fábrica ya está decidido: el tercer dígito es la clase de modificación.",
     "2 · [X] decidir VG. Más de diez (mesas de doce, grupos grandes): ¿registro propio referenciado o vista BQL? Una lista ya es de n (VG, 7-11 noche: por hojas): el límite de diez queda por evento y por décupla.",
     "3 · [X] decidir VG. Una referencia BTML es una dirección y una dirección no entra en una lista: ¿cómo se referencia un ocupante concreto de una lista (el guiso del menú)? Hoy se referencia la lista entera.",
     "4 · [X] decidir VG. La convención para que un grupo de hojas sea décupla (envolver su 0: [[qué], cuánto, …]) es de los ejemplos; ¿se fija como forma canónica u otra (por ejemplo, envolver todas)?"

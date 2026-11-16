@@ -8,7 +8,7 @@ import { readFileSync } from 'node:fs';
 import * as C from '../src/contrato.js';
 import { pintar, pintarPara } from './carta-texto.mjs';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { evaluar } from '../src/bqlm.js';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { crearEvento } from '../src/evento.js';
@@ -34,7 +34,7 @@ const corto = (x) => JSON.stringify(x).replace(/[0-9a-f]{64}/g, (m) => m.slice(0
 function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   cambiar(e);
-  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, plantillas: PLANTILLAS_DE_EPOCA_DATOS, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, plantillas: PLANTILLAS_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
 }
 
 const { eje, menu, compra, alta } = await ejemploCompra();
@@ -51,7 +51,7 @@ test('plantilla: la compra nombra «purchase» en su 5 y la reserva «booking»;
   const { eje: b, reserva } = await ejemploReserva();
   assert.equal(C.nombreDePlantilla(C.plantilla(b, reserva.id)), 'booking');
   // Las que hay: las de dominio de la época (detrás de su cabecera), las preferencias y las del eje.
-  assert.deepEqual(C.plantillas(eje).map((p) => [p.nombre, p.donde]), [['purchase', '9210000000'], ['booking', '9220000000'], ['guide settings', '9230000000'], ['opinion', '9240000000'], ['exterior settings', '9250000000'], ['preferences', '9300000000']]);
+  assert.deepEqual(C.plantillas(eje).map((p) => [p.nombre, p.donde]), [['purchase', '9210000000'], ['booking', '9220000000'], ['guide settings', '9230000000'], ['opinion', '9240000000'], ['exterior settings', '9250000000'], ['format settings', '9260000000'], ['preferences', '9300000000']]);
   for (const p of C.plantillas(eje)) assert.ok(C.esPlantilla(p.registro) && p.registro[4][4].includes('template'), p.nombre + ': su 4.4 dice template');
   // Un id de un registro que no es plantilla, una referencia a una posición de la época que no lo es, o un nombre
   // desconocido, no son plantilla; una referencia a la plantilla de la época sí, y una plantilla escrita en el eje también.
@@ -283,28 +283,28 @@ test('configuracion: los defectos de la plantilla «preferences» si no hay regi
 
 // ---------- 8. mensajes ----------
 
-test('mensaje: el 9 de cada regla en español (epoch.9.4, «es») con los mismos huecos, resueltos como el 9 de toda regla; sin el idioma o sin la regla, el inglés', async () => {
-  assert.equal(C.mensaje(eje, 'every event moves tokens', 'es'), 'every event moves tokens: la transacción no mueve ningún token');
+test('mensaje: el 9 de cada regla en español (epoch.9.4, «es») con los mismos huecos, resueltos como el 9 de toda regla; sin el idioma o sin la regla, el inglés; la traducción sin el nombre de la regla delante (#83)', async () => {
+  assert.equal(C.mensaje(eje, 'every event moves tokens', 'es'), 'la transacción no mueve ningún token');
   assert.equal(C.mensaje(eje, 'every event moves tokens', 'en'), 'every event moves tokens: the transaction moves no token');
   assert.equal(C.mensaje(eje, 'every event moves tokens', 'fr'), 'every event moves tokens: the transaction moves no token', 'sin el idioma, el inglés');
   assert.equal(C.mensaje(eje, 'no existe', 'es'), null);
-  assert.equal(C.mensaje(eje, 'writing a record gives ten P on it', 'es', { ev: compra }), 'writing a record gives ten P on it: huesped obtiene 10 P sobre el registro que escribe');
+  assert.equal(C.mensaje(eje, 'writing a record gives ten P on it', 'es', { ev: compra }), 'huesped obtiene 10 P sobre el registro que escribe');
   assert.equal(C.mensaje(eje, EPOCA_0_BTML.escrituras[0], 'en', { ev: compra }), 'writing a record gives ten P on it: huesped gets 10 P on the record it writes', 'la regla misma, o su nombre');
-  assert.equal(C.mensaje(null, 'nobody mints T', 'es'), 'nobody mints T: {first ev.3} acuña {sum ((ev.1 where T in it.0.0.0 and mint in it.4) each 1)} T; cada uno tiene la asignación de hoy', 'sin eje ni candidata, los huecos quedan');
+  assert.equal(C.mensaje(null, 'nobody mints T', 'es'), '{first ev.3} acuña {sum ((ev.1 where T in it.0.0.0 and mint in it.4) each 1)} T; cada uno tiene la asignación de hoy', 'sin eje ni candidata, los huecos quedan');
   assert.deepEqual(C.idiomas(), ['en', 'es']);
   // Todas las reglas de hoy tienen su traducción, con los mismos huecos y distinta del original.
   const huecos = (s) => [...s.matchAll(/\{([^{}]+)\}/g)].map((m) => m[1]);
   for (const { regla } of EPOCA_0_BTML.reglasConId) {
     const en = regla[9].at(-1);
     const es = C.mensaje(null, regla, 'es');
-    assert.ok(es.startsWith(regla[0][0] + ': '), regla[0][0] + ': el nombre canónico delante');
+    assert.ok(!es.startsWith(regla[0][0] + ': '), regla[0][0] + ': sin el nombre canónico delante (el nombre es el 0 de la regla)');
     assert.notEqual(es, en, regla[0][0] + ': traducida');
     assert.deepEqual(huecos(es), huecos(en), regla[0][0] + ': los mismos huecos');
   }
   // Una regla rechazando, con su mensaje en español y los huecos rellenos sobre la candidata.
   const robo = await crearEvento({ autor: 'cocina', sobre: menu.id, t: '2026-11-07T18:00:00Z', movimientos: [minuto('cocina'), { token: 'E', emisor: 'casa', denominacion: 'EUR', cantidad: 1, de: 'huesped', a: 'cocina' }], payload: 'robo' });
   assert.match((await eje.validar(robo)).join('; '), /nobody moves tokens of others: cocina moves from huesped/);
-  assert.equal(C.mensaje(eje, 'nobody moves tokens of others', 'es', { ev: robo }), 'nobody moves tokens of others: cocina mueve desde huesped');
+  assert.equal(C.mensaje(eje, 'nobody moves tokens of others', 'es', { ev: robo }), 'cocina mueve desde huesped');
 });
 
 // ---------- 9. la carta de texto y la ausencia de constantes ----------
@@ -374,7 +374,7 @@ test('nada sale de una constante del módulo: cambiar la época cambia las etiqu
   assert.equal(C.madurez(eje, semilla, o).nombre, 'semilla');
   assert.equal(C.madurez(eje, compra, o).nombre, 'lista');
   assert.deepEqual(C.tamanos(o).map((t) => [t.nombre, t.datos]), [['hueco', 2], ['tarjeta', 4], ['pantalla', 10]]);
-  assert.equal(C.mensaje(eje, 'every event moves tokens', 'es', o), 'every event moves tokens: nada se mueve');
+  assert.equal(C.mensaje(eje, 'every event moves tokens', 'es', o), 'nada se mueve');
   assert.equal(C.configuracion(eje, 'cocina', o).step, 25);
   assert.match(pintar(eje, compra.id, 1, o), /^\[hueco · matriz\] /);
   assert.match(pintar(eje, compra.id, 2, o), /\n  1 · pedido \(arrival\): /, 'la plantilla «purchase» fija «arrival» en su 1.8: manda sobre el defecto de la época');
