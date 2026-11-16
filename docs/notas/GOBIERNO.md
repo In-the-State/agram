@@ -89,6 +89,8 @@ Hacerlo cumplir (que un cambio no sustituya una regla del suelo, no quite nada d
 
 ## 7. Lo que queda para el motor (encargo siguiente)
 
+Hecho en el encargo del motor (A23): `docs/notas/VERSIONES.md`. Lo que sigue es lo que se le pidió.
+
 - Comprobar al proponer y al poner en vigor que el cambio es una época hija que carga sobre la época vigente **en ese punto**, que no toca el suelo y que su clase no se queda corta. Hoy solo se mira la forma que alcanza el BQL (§5).
 - Al aceptar «put a change in force», fundir el cambio y abrir una versión de la época del eje (`eje.epoca()` la vigente, `eje.epocaDe(id)`, `eje.versiones()`), y las cachés por versión.
 - **Las referencias del cambio**: un cambio cuya raíz referencia registros nuevos (`{ ref }` a una regla o una plantilla que viene en su 1.2) lo rechaza hoy el suelo de las referencias ausentes (`src/condiciones/evento.js`: «referencia a un evento que no está en el eje»); solo pasan las marcas a la época del libro y a los registros que ya tiene. El núcleo ha de reconocer como resueltas las referencias a los registros que trae el propio cambio.
