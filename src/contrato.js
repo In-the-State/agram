@@ -2308,14 +2308,15 @@ export function mensaje(eje, regla, idioma = 'en', { ev, ...opciones } = {}) {
   const nombre = nombreDeRegla(r);
   let plantillaTexto = texto(ultima(r[9])) ?? nombre;
   if (idioma && idioma !== 'en') {
-    const registros = hojas(en(raiz, SITIO.mensajes)).slice(1).filter(Array.isArray);
-    const del = registros.find((x) => hojas(x[0]).includes(idioma));
-    const entradas = hojas(del?.[1]);
+    // Los registros de ese idioma, en su orden: una época que hereda añade el suyo detrás de los de su base (docs/CONTRATO.md
+    // §5 bis), y con la misma clave manda el último (la hija sobre la base).
+    const registros = hojas(en(raiz, SITIO.mensajes)).slice(1).filter(Array.isArray).filter((x) => hojas(x[0]).includes(idioma));
     const prefijo = nombre + ': ';
     // La entrada es «<regla>: <texto>»: el nombre es la clave, no parte del mensaje (#83, época 0 final): la traducción
     // va sin el nombre canónico delante; el canónico (en, el 9 de la regla) lo sigue llevando.
-    const propio = entradas.find((x) => typeof x === 'string' && x.startsWith(prefijo))?.slice(prefijo.length)
+    const delRegistro = (del) => hojas(del?.[1]).find((x) => typeof x === 'string' && x.startsWith(prefijo))?.slice(prefijo.length)
       ?? (Array.isArray(del?.[1]) && esDecupla(del[1]) ? del[1].filter(Array.isArray).map((par) => (hoja(hoja(par[0])) === nombre ? hoja(par[1]) : undefined)).find(Boolean) : undefined);
+    const propio = registros.map(delRegistro).filter(Boolean).at(-1);
     if (propio) plantillaTexto = propio;
   }
   if (!eje && !ev) return plantillaTexto;
@@ -2324,7 +2325,11 @@ export function mensaje(eje, regla, idioma = 'en', { ev, ...opciones } = {}) {
 
 // ---------- 9. textos de la época por clave, y valores legibles ----------
 
-/** Los textos de cada idioma de la época por clave: idioma → Map(clave → texto); se lee una vez por época (la raíz está congelada). */
+/**
+ * Los textos de cada idioma de la época por clave: idioma → Map(clave → texto); se lee una vez por época (la raíz está
+ * congelada). Dentro de un registro manda la primera entrada de cada clave; si hay varios registros del mismo idioma (una
+ * época que hereda añade el suyo detrás de los de su base, docs/CONTRATO.md §5 bis), se juntan y manda el último.
+ */
 const TEXTOS = new WeakMap();
 function textosDe(raiz) {
   if (!TEXTOS.has(raiz)) {
@@ -2335,7 +2340,11 @@ function textosDe(raiz) {
         const i = typeof h === 'string' ? h.indexOf(': ') : -1;
         if (i > 0 && !mapa.has(h.slice(0, i))) mapa.set(h.slice(0, i), h.slice(i + 2));
       }
-      for (const codigo of hojas(r[0])) if (typeof codigo === 'string' && !porIdioma.has(codigo)) porIdioma.set(codigo, mapa);
+      for (const codigo of hojas(r[0])) {
+        if (typeof codigo !== 'string') continue;
+        if (!porIdioma.has(codigo)) porIdioma.set(codigo, new Map(mapa));
+        else for (const [k, v] of mapa) porIdioma.get(codigo).set(k, v);
+      }
     }
     TEXTOS.set(raiz, porIdioma);
   }

@@ -1,0 +1,88 @@
+[
+  ["renew an expiry"],
+  [
+    [
+      ["what"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «renew an expiry»"],
+      ["required"],
+      [1],
+      ["=first (payload(it)).1.0", "what expires (by default, what the renewed record says)"]
+    ],
+    [
+      ["when"],
+      ["instant"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «renew an expiry»"],
+      ["required"],
+      [2],
+      ["the new date"]
+    ],
+    [
+      ["renews"],
+      ["ref"],
+      ["=count it.5 > 0"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «renew an expiry»"],
+      ["required"],
+      [3],
+      ["=first it.5", "the expiry it renews (X)"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «renew an expiry»"],
+      ["required"],
+      [4],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «renew an expiry»"],
+      ["required"],
+      [5],
+      ["=me", "who writes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «renew an expiry»"],
+      ["required"],
+      [6],
+      ["renew an expiry", "the action"]
+    ]
+  ],
+  ["=first it.3 = me and (\"set an expiry\" in (payload(it)).4 or \"renew an expiry\" in (payload(it)).4)"],
+  [["me"], ["person"]],
+  ["write"],
+  ["7", "=first (up it)"],
+  [
+    "La renovación: un vencimiento nuevo en el 7 de la misma pieza, con la referencia al que renueva en su 1.2. El vigente de cada «qué» es el último que llegó",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [7, 11],
+  ["renew an expiry: {last ev.1.0} now expires on {last ev.1.1}"]
+]

@@ -1,0 +1,76 @@
+[
+  ["measure a piece"],
+  [
+    [
+      ["what"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «measure a piece»"],
+      ["required"],
+      [1],
+      ["what is measured (the same word as the 1.0 of its threshold)"]
+    ],
+    [
+      ["value"],
+      ["number"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «measure a piece»"],
+      ["required"],
+      [2],
+      ["the measure"]
+    ],
+    [
+      ["unit"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «measure a piece»"],
+      ["required"],
+      [3],
+      ["its unit (the same as the 1.2 of its threshold)"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «measure a piece»"],
+      ["required"],
+      [4],
+      ["=me", "who writes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «measure a piece»"],
+      ["required"],
+      [5],
+      ["measure a piece", "the action"]
+    ]
+  ],
+  ["=\"piece\" in (payload(it)).5 and (first it.3 = me or \"agent\" in (payload(first me.6)).5 and first ((path (first me.6)) where \"node\" in (payload(it2)).5) = first ((path it) where \"node\" in (payload(it2)).5))"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["8"],
+  [
+    "Una medida en el 8 de la pieza (como «measure» de la época 0: 0 qué, 1 cuánto, 2 la unidad), en modo agente: la escribe el vigía del nodo sobre cada pieza sin pagar atención (añadido del 16-11, punto 11; la regla «attention has a price» de esta época), o el dueño de la pieza",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [8, 10],
+  ["measure a piece: {me} measures {first ev.0} of {first it.0}: {last ev.1} {first ev.2}"]
+]

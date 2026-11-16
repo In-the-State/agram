@@ -1,0 +1,112 @@
+[
+  ["register the node"],
+  [
+    [
+      ["node"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [1],
+      ["the identity of the node (a name without an alta in this ledger)"]
+    ],
+    [
+      ["minutes"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [2],
+      ["the minutes of T I give the node to write with (any whole number)"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [4],
+      ["=me", "who registers it: the operator, who builds the node and owns its pieces"]
+    ],
+    [
+      ["holder"],
+      ["identity"],
+      ["=count it.6 > 0"],
+      ["me"],
+      ["payload"],
+      ["3.2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [5],
+      ["its holder: who decides; writes in the 2.4 of this alta which templates require authorization and who signs them"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [6],
+      ["register the node", "the action"]
+    ],
+    [
+      ["name"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [7],
+      ["=first (payload(ev)).3.1", "the name of the node, the 0 of its alta (by default, its identity)"]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [8],
+      ["node", "the type of the record: a node of the class state (its path is the 9 of this template)"]
+    ]
+  ],
+  ["=first it.5 = first me.6"],
+  [["me"], ["person"]],
+  ["=transfer first memo.1 T.1 from me to first memo.3.1"],
+  ["1.4", "=first (first it.3).6"],
+  [
+    "El alta del nodo (paso 1 del camino): una cosa del operador, con su clave, su T y su titular (3.2), y «node» en su 5, que la hace del tipo «node» de esta época (epoch.9.2): su 9 es el camino del nodo. Ancla en el 1.4 del alta de quien la escribe, como «register a thing»; desde un nodo ya escrito, esa fórmula da la misma alta, así que el paso queda hecho",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [1, 10],
+  ["register the node: {me} registers a node of the class state"]
+]

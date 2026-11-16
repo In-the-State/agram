@@ -1,0 +1,128 @@
+[
+  ["register a deployment"],
+  [
+    [
+      ["thing"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [1],
+      ["the identity of the new deployment (a name without an alta in this ledger)"]
+    ],
+    [
+      ["minutes"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [2],
+      ["the minutes of T I give it to write with (any whole number); a thing has no daily T: it spends what its owner gives it, and an agent gets its endowment here, as an invitation gives minutes"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [4],
+      ["=me", "who registers it: the operator, owner of the node"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [5],
+      ["register a deployment", "the action"]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [6],
+      [
+        "piece",
+        "deployment",
+        "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+      ]
+    ],
+    [
+      ["commit"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["6.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["required"],
+      [7],
+      ["the commit it deploys"]
+    ],
+    [
+      ["arguments"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["6.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["optional"],
+      [8],
+      ["how it is started (its arguments)"]
+    ],
+    [
+      ["volume"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["6.2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register a deployment»"],
+      ["optional"],
+      [9],
+      ["the volume it keeps its data in (it needs the arguments: no gaps)"]
+    ]
+  ],
+  ["=first it.3 = me and \"node\" in (payload(it)).5"],
+  [["me"], ["person"]],
+  ["=transfer first memo.1 T.1 from me to first memo.3.1"],
+  ["1.4"],
+  [
+    "Un despliegue (container): cómo se levanta, el commit (6.0), sus argumentos (6.1) y su volumen (6.2). La carta que sirve cada puerta es un despliegue. Ancla en el 1.4 del nodo",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [1, 17],
+  ["{first (payload(ev)).3.1}"]
+]

@@ -1,0 +1,64 @@
+[
+  ["declare agent"],
+  [
+    [
+      ["about"],
+      ["ref"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «declare agent»"],
+      ["required"],
+      [1],
+      ["=first it.5", "the alta of the agent (X)"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «declare agent»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «declare agent»"],
+      ["required"],
+      [3],
+      ["=me", "who writes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «declare agent»"],
+      ["required"],
+      [4],
+      ["declare agent", "the action"]
+    ]
+  ],
+  ["=first it.3 = me and \"agent\" in (payload(it)).5 and count ((down it) where \"declare agent\" in (payload(it2)).4) = 0"],
+  [["me"], ["person"]],
+  ["write"],
+  ["9"],
+  [
+    "Declara agente una pieza de papel «agent» (la lectura «declared as an agent» de la época 0, epoch.9.0.4: un registro en el 9 de su alta, de su dueño, con «declare agent» en su 4): desde ahí lanza las plantillas «agent» y no las «person»",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [9, 11],
+  ["declare agent: {me} declares {first it.0} an agent"]
+]
