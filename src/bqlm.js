@@ -1,8 +1,8 @@
 // BQL mínimo (BQLM): expresiones sobre posiciones BTML, con un léxico corto en
-// inglés (VG, 9-11, mapa §16 [D] «Molde de regla y léxico mínimo de BQL»). No
-// sustituye todavía a src/bql.js: es el módulo que después evaluará las
-// condiciones de las reglas de la época (el 2 de cada regla, src/epocas.js).
-// Gramática, semántica y ejemplos: docs/BQLM.md.
+// inglés (VG, 9-11, mapa §16 [D] «Molde de regla y léxico mínimo de BQL»). Es el
+// único lenguaje del núcleo: las reglas y plantillas de la época y, desde la
+// retirada de BQL V0 (#113), las fórmulas escritas en el payload de un registro
+// (leerFormula, al final de este módulo). Gramática, semántica y ejemplos: docs/BQLM.md.
 //
 // Léxico, exacto y nada más:
 //   posiciones      X.d.d…  (X = ev, epoch, before, it, it2…, o una expresión entre paréntesis)
@@ -33,7 +33,7 @@
 // Semántica: toda expresión vale una LISTA de ocupantes. Una posición da sus
 // ocupantes por llegada; una lista de uno se usa como su elemento en la
 // aritmética y en las comparaciones (decisión G3); comparar una lista de más de
-// uno es ERROR; and y or son perezosos. Tres estados, como el BQL actual:
+// uno es ERROR; and y or son perezosos. Tres estados:
 // RESUELTO, PENDIENTE (falta algo que resolver: una posición vacía donde hace
 // falta un valor, una referencia a un evento que no ha llegado, un límite) y
 // ERROR (sintaxis, un nombre que no es del léxico, tipos que no operan).
@@ -166,7 +166,7 @@ export const COSTE_FIRMA = 65536;
 /** Lo que cuesta un TapTweak (subir la interna a un punto, multiplicar el generador y sumar): como una firma. */
 export const COSTE_TAPTWEAK = COSTE_FIRMA;
 
-/** El subtipo de PENDIENTE cuando se agota un límite de cálculo (como en BQL V0). */
+/** El subtipo de PENDIENTE cuando se agota un límite de cálculo. */
 export const POR_LIMITE = 'PENDIENTE POR LÍMITE';
 
 /** Una parada de la evaluación: PENDIENTE (con su subtipo, si lo hay) o ERROR, con su motivo. */

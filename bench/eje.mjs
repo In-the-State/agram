@@ -1,7 +1,7 @@
 // Banco de rendimiento del núcleo de AGRAM. Sin dependencias: Node y el
 // propio núcleo. Construye ejes de 1.000, 5.000 y 20.000 registros con un
 // generador con semilla (identidades con y sin clave, escritos sobre focos al
-// azar con colisiones, referencias, fórmulas BQL y ciclos del motor) y mide
+// azar con colisiones, referencias, fórmulas del BQL mínimo y consolidaciones del motor) y mide
 // lo que cuesta escribir, validar, leer y guardar a cada tamaño. Las bases
 // del 8 (src/bases.js, de la PR #44, en main desde la #55) se miden si el
 // módulo tiene esa API (calcularBase, escribirBase, situar); si no, se saltan.
@@ -23,12 +23,13 @@ import { crearEvento, verificarId } from '../src/evento.js';
 import { direccion } from '../src/btml.js';
 import { contarPosiciones } from '../src/modos.js';
 import { ocupantes, arbol } from '../src/encaje.js';
-import { consultar, evaluar, esFormula } from '../src/bql.js';
+import { esFormula, leerFormula, Presupuesto } from '../src/bqlm.js';
+import { contextoDeLectura, leerPosicion } from '../src/contexto-eje.js';
 import { serializar, restaurar } from '../src/persistencia.js';
 import { mapa } from '../src/mapped.js';
-import { ejeTemporal, confluir } from '../src/tiempo.js';
-import { medir } from '../src/bases.js'; // la única medida del 8 (tiempo.medidasDe se retira: VG, 7-11 noche)
-import { consolidar, autorizar, ejecutar, liberar, pesoAutorizacion } from '../src/motor.js';
+import { ejeTemporal } from '../src/tiempo.js';
+import { medir, confluir } from '../src/bases.js'; // la única medida del 8 (tiempo.medidasDe se retira: VG, 7-11 noche)
+import { consolidar } from '../src/motor.js';
 
 // ---------- argumentos ----------
 
@@ -138,8 +139,9 @@ const PESOS_PV = [1, 4, 3, 2, 3, 1, 1, 2, 1, 1];
  * (n/40, personas: viven de su asignación de T del día; el 85 % con clave; el 20 % con P para
  * autorizar); y el resto, escritos sobre focos al azar (6 % sobre una «plaza»
  * donde todo colisiona, 12 % sobre otros focos calientes, 37 % sobre lo
- * reciente, el resto uniforme) con referencias, fórmulas BQL y, un 3 % de
- * las veces, un ciclo del motor (consolidar → autorizar → ejecutar).
+ * reciente, el resto uniforme) con referencias, fórmulas del BQL mínimo y, un
+ * 3 % de las veces, una consolidación del motor (encargo 3b: ya no hay
+ * autorizar ni ejecutar; cada parte registra lo suyo).
  */
 async function construir(n, semilla) {
   const az = new Azar(semilla);
@@ -166,10 +168,10 @@ async function construir(n, semilla) {
     demostracion: true,
     identidad: GENESIS,
     emision: [
+      { token: 'R', cantidad: 10 }, // emitir E exige R propia emitida (VG, 9-11, D2)
       { token: 'E', denominacion: 'EUR', cantidad: 1e12 },
-      { token: 'P', ambito: 'genesis', cantidad: 1e6 },
     ],
-    foco: ['Banco de rendimiento', ['recursos', 10, '5 EUR'], ['criterio', '=CONTAR(BUSCAR("1000000000"))'], 'comunicación', '=CONTAR(BUSCAR(4))'],
+    foco: ['Banco de rendimiento', ['recursos', 10, '5 EUR'], ['criterio', '=count it.1'], 'comunicación', '=count it.4'],
     t: new Date(T0).toISOString(),
     clave: claveG.publica,
     privada: claveG.privada,
@@ -210,7 +212,7 @@ async function construir(n, semilla) {
       // La cosa del proyecto (la identidad propia que escribe su base: src/bases.js) no tiene asignación: la raíz le da
       // unos minutos de la suya (Core, 8-11), que conserva hasta gastarlos, y no escribe nada más.
       movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: GENESIS, a: null }, { token: 'T', escala: 'minuto', cantidad: 5, de: GENESIS, a: id }, ...dotacion(id)], // escribir consume T
-      payload: ['Proyecto ' + k, ['recursos', az.ent(100), (1 + az.ent(90)) + ' EUR'], ['criterios', az.de(PALABRAS)], 'comunicación', '=CONTAR(BUSCAR(4))'],
+      payload: ['Proyecto ' + k, ['recursos', az.ent(100), (1 + az.ent(90)) + ' EUR'], ['criterios', az.de(PALABRAS)], 'comunicación', '=count it.4'],
       contexto: { claves: { [id]: par.publica } }, // una cosa: su alta la escribe la raíz (VG, 10-11, B1)
     });
     proyectos.push({ id: ev.id, identidad: id });
@@ -225,7 +227,6 @@ async function construir(n, semilla) {
       if (par) privadas.set(id, par.privada);
       await escribir('alta propia', { autor: id, sobre: g, t: new Date(T0).toISOString(), movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: id, a: null }], payload: 'alta de ' + id, contexto: par ? { claves: { [id]: par.publica } } : {} });
       movimientos.push(...dotacion(id));
-      if (az.prob(0.2)) { movimientos.push({ token: 'P', ambito: 'genesis', cantidad: 10, de: GENESIS, a: id }); autorizadores.push(id); }
       nombres.push(id);
       escritores.push(id);
     }
@@ -266,15 +267,15 @@ async function construir(n, semilla) {
     const id = az.prob(0.5) ? ids[ids.length - 1 - az.ent(Math.min(200, ids.length))] : az.de(ids);
     return az.prob(0.5) ? { ref: id } : { ref: id, dir: dirDentro(eje.obtener(id).payload) };
   };
+  // Fórmulas del payload en BQL mínimo (docs/BQLM.md §14: it es el registro que la lleva; lee lo escrito).
   const FORMULAS = [
-    () => '=LOCAL(' + (1 + az.ent(9)) + ') + 1',
-    () => '=CONTAR(BUSCAR(' + az.ent(10) + '))',
-    () => '=CONTAR(BUSCAR("' + direccion([1 + az.ent(9)]) + '"))',
-    () => '=SUMAR(FILTRAR(BUSCAR(' + (1 + az.ent(9)) + '), ORIGEN() = "escrito"))',
-    () => '=CONTAR(FILTRAR(BUSCAR("' + direccion([1 + az.ent(9)]) + '"), ACUERDO() = 10))',
-    () => '=ELEGIR(ORDENAR(BUSCAR(' + az.ent(10) + '), DESPLAZAMIENTO()), 1)',
-    () => '=REF("' + az.de(eje.orden).slice(0, 8) + '")',
-    () => '=' + (1 + az.ent(50)) + ' EUR + ' + (1 + az.ent(50)) + ' EUR',
+    () => '=(payload(it)).' + (1 + az.ent(9)) + ' + 1',
+    () => '=count it.' + az.ent(10),
+    () => '=count (down it where last it2.6.5 = "' + direccion([1 + az.ent(9)]) + '")',
+    () => '=count (down it where count it2.5 > 0)',
+    () => '=first (down it by 0 - count it2.1)',
+    () => '=first (payload("' + az.de(eje.orden) + '")).0',
+    () => '=' + (1 + az.ent(50)) + ' + ' + (1 + az.ent(50)),
   ];
   const contenido = (prof) => {
     const r = az.num();
@@ -293,34 +294,17 @@ async function construir(n, semilla) {
     return p;
   };
 
-  // El ciclo del motor: consolidar → autorizar → ejecutar, cada uno un registro.
+  // El motor: una consolidación (encargo 3b: ya no hay autorizar, ejecutar ni liberar; cada parte registra lo suyo).
   let ciclos = 0;
   async function cicloMotor() {
     const foco = elegirFoco();
     const autor = az.de(escritores);
     const elecciones = { 1: referencia(), 2: az.de(PALABRAS) };
     if (az.prob(0.5)) elecciones[3] = referencia();
-    let a = ahoraMs();
-    const c = await consolidar(eje, { autor, foco, elecciones, t: instante(foco) }, privadas.get(autor));
+    const a = ahoraMs();
+    await consolidar(eje, { autor, foco, elecciones, t: instante(foco) }, privadas.get(autor));
     anotar('motor: consolidar', ahoraMs() - a);
     ciclos++;
-    if (eje.orden.length >= n || !az.prob(0.8)) return;
-    // Autorizar es bloquear P sobre el registro del recurso hasta el umbral (VG, 7-11 noche): aquí las raíces no
-    // emiten P propio, así que cuenta el P del eje, y la mayoría la tiene el génesis. Bloquea lo justo para pasar
-    // de la mitad y, ejecutada o no, lo libera: así sigue teniendo P para la siguiente.
-    const autorizante = GENESIS;
-    const { emitido } = pesoAutorizacion(eje, c.id);
-    a = ahoraMs();
-    await autorizar(eje, { autorizante, consolidacion: c.id, cantidad: Math.floor(emitido / 2) + 1, t: instante(foco, c.id) }, privadas.get(autorizante));
-    anotar('motor: autorizar', ahoraMs() - a);
-    if (eje.orden.length < n && az.prob(0.7)) {
-      a = ahoraMs();
-      await ejecutar(eje, { autor, consolidacion: c.id, t: instante(foco, c.id), movimientos: [{ token: 'E', emisor: GENESIS, denominacion: 'EUR', cantidad: 5, de: autor, a: az.de(escritores) }] }, privadas.get(autor));
-      anotar('motor: ejecutar', ahoraMs() - a);
-    }
-    a = ahoraMs();
-    await liberar(eje, { titular: autorizante, consolidacion: c.id, t: instante(foco, c.id) }, privadas.get(autorizante));
-    anotar('motor: liberar', ahoraMs() - a);
   }
 
   while (eje.orden.length < n) {
@@ -433,26 +417,26 @@ async function pasada(n, semilla, solo = null) {
     fila('vistas', 'ejeTemporal · ' + nombre + ' (ms)', et.mediana, r.focos[nombre].hilo + ' en el hilo; ' + et.ultimo.totalPasado + ' pasado, ' + et.ultimo.totalFuturo + ' futuro');
   }
 
-  // BUSCAR / FILTRAR / ORDENAR / REF, consultadas desde la posición 9 del foco.
+  // Lecturas del BQL mínimo con it = el foco (bqlm.leerFormula, como una fórmula de su payload).
   if (quiere('bql')) {
   const CONSULTAS = [
-    ['BUSCAR dirección, colisión entera', 'CONTAR(BUSCAR("1000000000"))'],
-    ['BUSCAR índice, camino exacto', 'CONTAR(BUSCAR(1))'],
-    ['FILTRAR por origen', 'CONTAR(FILTRAR(BUSCAR("1000000000"), ORIGEN() = "escrito"))'],
-    ['FILTRAR leyendo ACTUAL(0), para en el primero sin 0', 'CONTAR(FILTRAR(BUSCAR("1000000000"), ACTUAL(0) = "x"))'],
-    ['ORDENAR + ELEGIR', 'ELEGIR(ORDENAR(BUSCAR("1000000000"), DESPLAZAMIENTO(), "desc"), 3)'],
+    ['la posición 1: lo implícito, lo propio y lo escrito', '=count it.1'],
+    ['lo anclado en el 1 (down + where)', '=count (down it where last it2.6.5 = "1000000000")'],
+    ['lo anclado en el 1, leyendo su 0', '=count (down it where last it2.6.5 = "1000000000" and count (payload(it2)).0 > 0)'],
+    ['by + first', '=first (down it by 0 - count it2.1)'],
   ];
+  const ctx = contextoDeLectura(eje);
   for (const nombre of ['caliente', 'mediano', 'génesis']) {
     const id = focos[nombre];
     for (const [etiqueta, f] of CONSULTAS) {
-      const m = await cronometrar(() => consultar(eje, id, [9], f));
+      const m = await cronometrar(() => leerFormula(f, { k: 'reg', id }, ctx, { presupuesto: new Presupuesto() }));
       const u = m.ultimo;
-      fila('BQL', etiqueta + ' · ' + nombre + ' (ms)', m.mediana, u.estado === 'RESUELTO' ? u.texto.slice(0, 32) : u.estado + (u.parcial ? ' (' + u.parcial.examinados + ' de ' + u.parcial.de + ')' : ''));
+      fila('BQL', etiqueta + ' · ' + nombre + ' (ms)', m.mediana, u.estado === 'RESUELTO' ? u.texto.slice(0, 32) : (u.subtipo ?? u.estado));
     }
   }
   const viejo = eje.orden[Math.floor(eje.orden.length / 3)];
-  const ref = await cronometrar(() => consultar(eje, focos.hoja, [1], 'REF("' + viejo.slice(0, 8) + '")'), { min: 20 });
-  fila('BQL', 'REF por prefijo de 8 (ms)', ref.mediana, 'un registro de hace un tercio del eje');
+  const ref = await cronometrar(() => leerFormula('=first (payload("' + viejo + '")).0', { k: 'reg', id: focos.hoja }, ctx, { presupuesto: new Presupuesto() }), { min: 20 });
+  fila('BQL', 'leer otro registro por su id (ms)', ref.mediana, 'un registro de hace un tercio del eje');
   const slots = [];
   const recoger = (id, nodo, ind) => {
     if (Array.isArray(nodo)) nodo.forEach((h, i) => recoger(id, h, [...ind, i]));
@@ -461,7 +445,7 @@ async function pasada(n, semilla, solo = null) {
   for (let k = 0; k < 300; k++) { const id = az.de(eje.orden); recoger(id, eje.obtener(id).payload, []); }
   const estados = {};
   const ev = await unaVez(() => {
-    for (const [id, ind] of slots) { const s = evaluar(eje, id, ind).estado; estados[s] = (estados[s] ?? 0) + 1; }
+    for (const [id, ind] of slots) { const s = leerPosicion(eje, id, ind, { contexto: ctx }).estado; estados[s] = (estados[s] ?? 0) + 1; }
   });
   fila('BQL', 'evaluar una fórmula del eje (ms/fórmula)', ev.mediana / Math.max(1, slots.length), slots.length + ' de 300 registros al azar: ' + Object.entries(estados).map(([k, v]) => k + ' ' + v).join(', '));
   }
@@ -534,7 +518,7 @@ async function pasada(n, semilla, solo = null) {
   for (let k = 0; k < 100; k++) {
     const autor = conClave[k % conClave.length];
     const sobre = az.de(eje.orden);
-    nuevos.push({ autor, sobre, en: '1000000000', t: b.instante(sobre), movimientos: [{ token: 'T', escala: 'minuto', cantidad: 3, de: autor, a: null }], payload: ['nuevo', k, '=CONTAR(BUSCAR(1))'] });
+    nuevos.push({ autor, sobre, en: '1000000000', t: b.instante(sobre), movimientos: [{ token: 'T', escala: 'minuto', cantidad: 3, de: autor, a: null }], payload: ['nuevo', k, '=count it.1'] });
   }
   fila('escribir', 'eje.escribir firmado: crear + firmar + añadir (ms/evento)', await porElemento(nuevos, (d) => eje.escribir(d, b.privadas.get(d.autor))), nuevos.length + ' eventos');
   return r;
