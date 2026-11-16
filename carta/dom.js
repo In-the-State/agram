@@ -468,6 +468,18 @@ const textoEstacion = (estado) => t({ ejecutada: 'estadoEjecutada', autorizada: 
 const textoVerificado = (o) => (o.enFirme ? t('enFirme') : o.confirmaciones === 1 ? t('verificadoUnaConfirmacion') : o.confirmaciones > 1 ? t('verificadoConfirmaciones', { n: o.confirmaciones }) : t('verificado'));
 const tituloVerificado = (o) => (o.enFirme ? t('enFirmeTitulo', { n: o.confirmaciones, minimas: o.minimas }) : t('verificadoTitulo'));
 const htmlVerificado = (o) => `<small class="verificado"${o.enFirme ? ' data-en-firme' : ''}${o.confirmaciones ? ` data-confirmaciones="${attr(o.confirmaciones)}"` : ''} title="${attr(tituloVerificado(o))}">◆ ${escapar(textoVerificado(o))}</small>`;
+/** Los textos del estado del pago de un registro (carta.js pagoDelRegistro). */
+const TEXTO_PAGO = Object.freeze({ pagado: 'pagado', pendiente: 'pagoPendiente', noVale: 'pagoNoVale' });
+/**
+ * El pago de un registro en su reverso (encargo «carta: pagos»): «pagado», «pago pendiente de bloque» o «el recibo de pago
+ * no vale», y el botón «buscar su recibo de pago» (con «pay url»; no si ya está pagado). '' sin nada que enseñar.
+ */
+function htmlPago(p, X) {
+  if (!p || (!p.estado && !p.buscar)) return '';
+  const marca = p.estado ? `<small class="pago" data-pago="${attr(p.estado)}" title="${attr(t(TEXTO_PAGO[p.estado] + 'Titulo'))}">${escapar(t(TEXTO_PAGO[p.estado]))}</small>` : '';
+  const boton = p.buscar && p.estado !== 'pagado' ? `<button type="button" class="enlace buscar-pago" data-buscar-pago data-x="${attr(X)}" title="${attr(t('buscarPagoTitulo'))}">${escapar(t('buscarPago'))}</button>` : '';
+  return `<p class="verificado-linea pago-linea">${[marca, boton].filter(Boolean).join(' ')}</p>`;
+}
 /** «pendiente de sello» (encargo «verificado-regla», #50 y #67): movido, pero el eje tiene sello y aún no está «sealed». */
 const htmlPendienteDeSello = () => `<small class="pendiente-sello" title="${attr(t('pendienteDeSelloTitulo'))}">${escapar(t('pendienteDeSello'))}</small>`;
 /** «pendiente de segundo factor» (VG 12/13-11, #66, #70): movido, pero espera la autorización del titular; su title, el motivo del núcleo si lo hay. */
@@ -994,7 +1006,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
-      ${ancla}${c.verificado ? `<p class="verificado-linea">${htmlVerificado(c)}</p>` : c.pendienteDeSello ? `<p class="verificado-linea">${htmlPendienteDeSello()}</p>` : ''}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}
+      ${ancla}${c.verificado ? `<p class="verificado-linea">${htmlVerificado(c)}</p>` : c.pendienteDeSello ? `<p class="verificado-linea">${htmlPendienteDeSello()}</p>` : ''}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
       ${htmlBtml(c.btml)}
       ${pasosHtml}${validacion}
     </section>`;

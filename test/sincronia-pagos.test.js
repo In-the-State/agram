@@ -220,3 +220,10 @@ test('un fallo del servicio de pagos no rompe la sincronización; el tope por pa
   assert.equal(informe.pagos, undefined);
   assert.equal(sin.esperarPago('no-es-un-id'), false);
 });
+
+test('el ejemplo (ejemplos/pagos/recibo.mjs): pagar con puntero, minar, sincronizar y «paid» verdadero en el segundo lector', async () => {
+  const { ejemploRecibo } = await import('../ejemplos/pagos/recibo.mjs');
+  const r = await ejemploRecibo();
+  assert.deepEqual([r.informeA.pagos.anotados, r.informeB.pagos.anotados], [[r.registro.id], [r.registro.id]]);
+  assert.deepEqual([r.pagadoA, r.pagadoB], [true, true]);
+});

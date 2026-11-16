@@ -162,7 +162,7 @@ const sincronizar = sinc.enSerie(async () => {
   if (archivos.pendientes.size && !informe.sinRed) await archivos.subirPendientes(); // lo adjuntado sin red, como la cola de eventos
   if (estado.sincronia !== S || estado.eje !== eje) return; // otra cuenta en pantalla: lo de esta ya quedó guardado
   estado.lineaSincronia = sinc.lineaDeEstado(S, informe);
-  if (informe.reordenado || informe.anadidos.length) {
+  if (informe.reordenado || informe.anadidos.length || informe.pagos?.anotados.length) {
     guardar();
     marcarNuevos();
     await pintar();
@@ -179,9 +179,19 @@ function pintarSincronia() {
   else raiz.querySelector('.sitio-cruceta[data-sitio-general] .guardado')?.insertAdjacentHTML('afterend', nuevo);
 }
 
+/**
+ * El firmante de la cuenta para el servicio de pagos (src/pago.js): firma el id del evento NIP-98 con la clave de la
+ * cuenta, el mismo material con el que firma sus registros (autoridad.firmar); la privada no sale de aquí.
+ */
+function firmanteDeLaCuenta() {
+  const privada = estado.cuenta?.privada;
+  if (!privada) return {};
+  return { pubkey: autoridad.publicaDe(privada), firmar: async (id) => (await autoridad.firmar({ id }, privada)).firma };
+}
+
 /** Abre la sincronía de la cuenta en pantalla (con servidor, eje compartido y clave de lectura) y sincroniza sin esperar. */
 function abrirSincronia() {
-  estado.sincronia = estado.cuenta && estado.eje ? sinc.abrir({ alta: estado.cuenta.alta, eje: estado.eje, yo: estado.cuenta.identidad }) : null;
+  estado.sincronia = estado.cuenta && estado.eje ? sinc.abrir({ alta: estado.cuenta.alta, eje: estado.eje, yo: estado.cuenta.identidad, firmante: firmanteDeLaCuenta() }) : null;
   estado.lineaSincronia = null;
   if (estado.sincronia) void sincronizar();
 }
@@ -1069,6 +1079,24 @@ const manejadores = {
   cerrarRoseton() {
     estado.rosetones = {};
     pintar();
+  },
+  /**
+   * «buscar su recibo de pago» en el reverso de un registro (encargo «carta: pagos»): lo apunta en la sincronía de la
+   * cuenta (esperarPago, por el puntero del pago: el id del registro) y sincroniza; el recibo entra cuando llega. Sin
+   * libro compartido o sin «pay url» no hay a quién pedirlo: se dice.
+   */
+  buscarPago(X) {
+    const S = estado.sincronia;
+    if (!X || !estado.eje?.obtener(X)) return;
+    if (!S?.pago) {
+      estado.aviso = t('pagoSinLibro');
+      pintar();
+      return;
+    }
+    S.esperarPago(X);
+    guardar();
+    pintar();
+    void sincronizar();
   },
   /** El reverso como editor de BTML (#93): alternar el BTML crudo y el formateado; la elección se guarda en este navegador. */
   formatear() {
