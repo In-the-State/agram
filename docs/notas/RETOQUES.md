@@ -38,3 +38,5 @@ El nombre de una plantilla, de una regla o de una lectura (su 0, en inglés) es 
 ## Para la carta
 
 Sus textos propios (`carta/textos.js`) se retocan con la clave «carta <clave>». El núcleo los guarda y los devuelve tal cual; sus huecos los comprueba la carta. El contrato le deja `retoque`, `retoques`, `puedeRetocar` y `conClaves` (la clave con que se leyó cada texto); están en `docs/CONTRATO.md` §8.1 bis. Pruebas: `test/retoques.test.js`.
+
+**Ya está en la carta** (17-11): el modo «retocar textos» de la configuración, la hoja del retoque y la lista «Textos retocados» (`carta/carta.js` `retoqueDeTexto`, `guardarRetoque`, `textosRetocados`; `carta/dom.js` `htmlRetoque`; README «Retocar los textos de tu libro»). Pruebas: `test/carta-retoques.test.js`.

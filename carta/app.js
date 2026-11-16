@@ -17,12 +17,12 @@
 // sincronizan nunca. Nada de esto bloquea: se escribe en local y la cola sube lo pendiente.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
-import { t, idiomaDeInterfaz } from './textos.js';
+import { t, idiomaDeInterfaz, usarRetoques } from './textos.js';
 import * as cuentas from './cuentas.js';
 import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
@@ -63,6 +63,9 @@ const estado = {
   // que se paró por ella (lo que rehace el botón «abrir la sesión»), si el botón está firmando, y los criterios de segundo
   // factor ya pasados al guardián (sus ids).
   guardian: { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null, noAbrio: false },
+  // Retocar un texto en su sitio (A20 escalón 1): el modo «retocar textos» (solo cuenta para quien puede retocar en este
+  // libro; arranca apagado) y la hoja abierta ({ clave, idioma, texto, aviso, motivos }) o null.
+  retocar: false, retoque: null,
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -313,9 +316,16 @@ function extraDe() {
     guiaAjustes: estado.config && estado.eje ? guiaAjustesDe() : undefined,
     exteriorAjustes: estado.config && estado.eje ? conEtiquetasLlanas(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, porDefectoDelSitio().exterior), idioma()) ?? undefined : undefined,
     segundoFactor: estado.config && estado.eje ? segundoFactorDeConfiguracion(estado.eje, estado.identidad) ?? undefined : undefined,
+    retocarTextos: estado.config && estado.eje ? retocarTextosDe() : undefined,
     parteConfiguracion: estado.config || undefined, arranque: estado.arranque, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
     archivo: (id) => archivos.contenido(id), // los archivos adjuntos (el HTML del PV0 en su iframe aislado, las imágenes)
   };
+}
+
+/** «Retocar los textos de este libro» en la configuración (A20): el interruptor y la lista, solo para quien puede retocar. */
+function retocarTextosDe() {
+  const r = textosRetocados(estado.eje, estado.identidad);
+  return r ? { ...r, activo: estado.retocar, idioma: idioma() } : undefined;
 }
 
 // ---------- la guía del PV9 ----------
@@ -420,6 +430,7 @@ async function pintar() {
   marca.promesa = (async () => {
     let a = null;
     estado.formato = formatoDe(); // los criterios de formato del BTML del reverso
+    if (!estado.eje) usarRetoques(null); // sin libro, los textos de la carta tal como nacieron (arbol instala los de cada libro)
     if (estado.eje) {
       try {
         a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarParaVer(estado.identidad) });
@@ -553,6 +564,8 @@ function cambiarDeEje(eje, identidad) {
   estado.sitio = null;
   estado.rosetones = {};
   estado.config = false;
+  estado.retocar = false;
+  estado.retoque = null;
   estado.vistos = new Set();
   estado.nuevos = new Set();
   estado.arranque = null;
@@ -1017,6 +1030,7 @@ const manejadores = {
     if (hayRosetonAmpliado(estado.rosetones)) estado.rosetones = {};
     else if (estado.copia) estado.copia = null;
     else if (estado.arranque && estado.eje) estado.arranque = null;
+    else if (estado.retoque) estado.retoque = null;
     else if (estado.config) { estado.config = false; estado.motivosPreferencias = []; }
     else if (estado.formulario) estado.formulario = null;
     else if (estado.sitio) estado.sitio = null;
@@ -1076,6 +1090,63 @@ const manejadores = {
     } else {
       f.motivos = motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)); // lo escrito sigue en el formulario (f.valores)
       f.resultado = null;
+    }
+    pintar();
+  },
+  // ---- retocar un texto en su sitio (A20 escalón 1, docs/notas/RETOQUES.md) ----
+  /** El interruptor de la configuración: encender o apagar el modo «retocar textos» (solo cuenta para quien puede retocar). */
+  modoRetocar(encendido) {
+    estado.retocar = Boolean(encendido);
+    if (!estado.retocar) estado.retoque = null;
+    tocar(estado.foco.X, 'retocar textos ' + (estado.retocar ? 'encendido' : 'apagado'));
+    pintar();
+  },
+  /** Un texto marcado tocado en el modo «retocar textos»: abre su hoja (la clave y el idioma con que se leyó). */
+  retocarTexto(clave, enIdioma) {
+    if (!estado.retocar || typeof clave !== 'string' || !clave) return;
+    estado.retoque = { clave, idioma: enIdioma || idioma(), texto: null, aviso: null, motivos: [] };
+    tocar(estado.foco.X, 'retocar ' + clave);
+    pintar();
+  },
+  /** Otro idioma en la hoja del retoque: el texto de hoy en ese idioma. */
+  retoqueIdioma(otro) {
+    if (!estado.retoque || typeof otro !== 'string' || !otro) return;
+    estado.retoque = { ...estado.retoque, idioma: otro, texto: null, aviso: null, motivos: [] };
+    pintar();
+  },
+  /** «Guardar» en la hoja: el registro «retouch a text» por el mismo camino que cualquier acción (firmado, asentado, guardado y sincronizado). */
+  async guardarRetoque(form) {
+    const r0 = estado.retoque;
+    if (!r0 || !estado.eje) return;
+    const texto = form?.querySelector?.('[data-retoque-texto]')?.value ?? '';
+    limpiarMensajes();
+    const r = await guardarRetoque(estado.eje, estado.identidad, { clave: r0.clave, idioma: r0.idioma, texto }, firmarCon(estado.identidad));
+    if (r.asentado) {
+      trasEscribir();
+      estado.retoque = null;
+      estado.exito = t('retoqueGuardado', { id: r.asentado.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
+      tocar(estado.foco.X, 'retocado ' + r0.clave);
+      marcarNuevos();
+    } else {
+      estado.retoque = { ...r0, texto, aviso: r.aviso ?? null, motivos: r.aviso ? [] : motivosConGuardian(r.motivos ?? []) };
+    }
+    pintar();
+  },
+  /** «Volver al texto original» (en la hoja o en la lista): el registro sin texto, que retira los retoques de esa clave en ese idioma. */
+  async retoqueOriginal(clave, idiomaDelRetoque) {
+    if (!estado.eje || typeof clave !== 'string' || !clave) return;
+    limpiarMensajes();
+    const r = await guardarRetoque(estado.eje, estado.identidad, { clave, idioma: idiomaDelRetoque || idioma(), texto: null }, firmarCon(estado.identidad));
+    if (r.asentado) {
+      trasEscribir();
+      if (estado.retoque?.clave === clave) estado.retoque = null;
+      estado.exito = t('retoqueRetirado', { id: r.asentado.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
+      tocar(estado.foco.X, 'original ' + clave);
+      marcarNuevos();
+    } else if (estado.retoque?.clave === clave) {
+      estado.retoque = { ...estado.retoque, aviso: r.aviso ?? null, motivos: r.aviso ? [] : motivosConGuardian(r.motivos ?? []) };
+    } else {
+      estado.aviso = r.aviso ?? motivosConGuardian(r.motivos ?? []).map((m) => m.mensaje ?? m).join(' · ');
     }
     pintar();
   },

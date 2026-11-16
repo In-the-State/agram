@@ -31,7 +31,7 @@ import * as exterior from '../src/exterior.js';
 import { ESCALAS_REALES } from '../src/tokens.js';
 import { nombreDeRegla } from '../src/bqlm.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
-import { t, etiquetaLlana } from './textos.js';
+import { t, etiquetaLlana, usarRetoques, textoDeLaCarta, retoqueDeLaCartaNoVale, huecosDe, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { editorDeBtml, fechaDelRegistro } from './formato-btml.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
@@ -846,10 +846,10 @@ function nombreDePlantillaDe(eje, X, ctx) {
   return clave === undefined ? null : contrato.texto(eje, contrato.claves.plantilla(clave), ctx.opciones.idioma, { original: clave, epoca: ctx.opciones.epoca });
 }
 
-/** El nombre de una acción del aro en el idioma, y su id (lo que la carta lanza: el id nombra la plantilla en transaccion). */
-function accionDe(nombreCanonico, opciones) {
+/** El nombre de una acción del aro en el idioma, y su id (lo que la carta lanza: el id nombra la plantilla en transaccion). Con el eje delante, con los retoques de su libro (A20). */
+function accionDe(nombreCanonico, opciones, eje = null) {
   const p = acciones.plantillasDeTransaccion(opciones).find((x) => x.nombre === nombreCanonico);
-  return { id: p?.id ?? nombreCanonico, nombre: contrato.texto(null, contrato.claves.plantilla(nombreCanonico), opciones.idioma, { original: nombreCanonico, epoca: opciones.epoca }) };
+  return { id: p?.id ?? nombreCanonico, nombre: contrato.texto(eje, contrato.claves.plantilla(nombreCanonico), opciones.idioma, { original: nombreCanonico, epoca: opciones.epoca }) };
 }
 
 /**
@@ -873,9 +873,11 @@ const opcionesDe = (eje, X, pv, ctx) => contrato.opciones(eje, X, pv, { yo: ctx.
 function nodoAro(eje, X, yo, ctx) {
   const abierto = ctx.estado.aro?.pv ?? null;
   const huecos = LATERALES.map((pv) => {
-    const lista = acciones.acciones(eje, X, pv, yo, ctx.opciones);
+    // Con «retocar textos» (A20), las claves con que el núcleo leyó los nombres (contrato.conClaves).
+    const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, yo, ctx.opciones), lecturas: null };
     const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
-    const resumen = (a) => ({ id: a.id, nombre: a.etiqueta, lectura: a.lectura, camino: a.camino, faltan: a.parametros.filter((p) => p.falta && !p.archivo).map((p) => p.etiqueta) }); // lo que sale de subir un archivo no «falta»: lo pone el selector
+    const resumen = (a) => ({ id: a.id, nombre: a.etiqueta, lectura: a.lectura, camino: a.camino, faltan: a.parametros.filter((p) => p.falta && !p.archivo).map((p) => p.etiqueta), // lo que sale de subir un archivo no «falta»: lo pone el selector
+      ...(lecturas ? { retocar: claveLeida(lecturas, contrato.claves.plantilla(a.nombre), ctx.opciones) } : {}) });
     const accion = porDefecto ? resumen(porDefecto) : null;
     const otras = lista.filter((a) => a !== porDefecto).map(resumen);
     const opciones = opcionesDe(eje, X, pv, ctx);
@@ -984,8 +986,10 @@ function opcionesDeParametro(eje, X, p, en, yo, o) {
  * edita en texto, contrato.desdeLegible) o se edita en BTML.
  * `opciones` de cada campo: los valores posibles del parámetro (opcionesDeParametro), el desplegable con «otro…» del formulario.
  * → { X, accion (el id), nombre, pv, campos: [{ nombre, etiqueta, tipo, requerido, ayuda, validacion, posicion, valor, legible, simple, falta, opciones }], lectura, camino } o null.
+ * Con `opciones.retocar` (el modo «retocar textos», A20), además la clave con que se leyó cada texto: `retocar` en el
+ * formulario (su nombre) y en cada campo ({ etiqueta, ayuda }), cada una { clave, idioma } o null (claveLeida).
  */
-export function formulario(eje, X, accion, yo, valores = {}, opciones = {}) {
+export function formulario(eje, X, accion, yo, valores = {}, { retocar = false, ...opciones } = {}) {
   const plantilla = acciones.plantillaDeTransaccion(accion, opciones);
   if (!plantilla) return null;
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
@@ -994,26 +998,33 @@ export function formulario(eje, X, accion, yo, valores = {}, opciones = {}) {
   const ofrecida = acciones.acciones(eje, X, pv, yo, o).find((a) => a.nombre === canonico);
   const defectos = new Map((ofrecida?.parametros ?? []).map((p) => [p.nombre, p.valor]));
   const en = anclaDeAccion(plantilla);
+  // La etiqueta y la ayuda de cada parámetro, leídas de nuevo con el eje delante (acciones.parametros las lee sin él): así
+  // llevan los retoques del libro (A20); sin retoques, el mismo texto.
+  const delLibro = (p, que, original) => leidoConClave(() => contrato.texto(eje, contrato.claves.parametro(canonico, p.nombre, que), o.idioma, { original, epoca: o.epoca }), original, o, retocar);
   const campos = acciones.parametros(plantilla, { ...o, eje }).map((p) => {
     const valor = valores[p.nombre] !== undefined ? valores[p.nombre] : defectos.get(p.nombre);
+    const etiqueta = delLibro(p, 'label', p.etiqueta);
+    const ayuda = delLibro(p, 'help', p.ayuda);
     return {
-      nombre: p.nombre, etiqueta: p.etiqueta, tipo: p.tipo, requerido: p.requerido, ayuda: p.ayuda, validacion: p.validacion, posicion: p.posicion,
+      nombre: p.nombre, etiqueta: etiqueta.texto, tipo: p.tipo, requerido: p.requerido, ayuda: ayuda.texto, validacion: p.validacion, posicion: p.posicion,
       archivo: acciones.archivoDe(p), // un parámetro que sale de subir un archivo (su referencia o su formato): la app abre el selector
       valor: valor === undefined ? null : valor,
       legible: valor === undefined ? '' : legibleDe(eje, valor, p.tipo, o).texto,
       simple: contrato.esTipoSimple(p.tipo, o),
       falta: p.requerido && valor === undefined,
       opciones: opcionesDeParametro(eje, X, p, en, yo, o),
+      ...(retocar ? { retocar: { etiqueta: etiqueta.clave, ayuda: ayuda.clave } } : {}),
     };
   });
-  const { id, nombre } = accionDe(canonico, o);
+  const titulo = leidoConClave(() => accionDe(canonico, o, eje), null, o, retocar);
+  const { id, nombre } = titulo.texto;
   const lectura = acciones.esLectura(plantilla);
   const camino = acciones.esCamino(plantilla);
   // La línea de antes de firmar (encargo «padres y copias», N2): quién guardará lo que se escribe, colgado de donde colgará;
   // y, desde «puede leer» (V7), también los padres de lo que enlazará.
   const sobre = lectura || camino ? null : acciones.sobreDe(eje, canonico, { ...valores, X }, yo, o);
   const quienGuarda = sobre ? contrato.quienGuarda(eje, yo, sobre, { ...o, enlaza: acciones.enlazaDe(eje, canonico, { ...valores, X }, yo, o) }) : null;
-  return { X, accion: id, nombre, pv, campos, lectura, camino, ofrecida: Boolean(ofrecida), ...(quienGuarda ? { quienGuarda } : {}), ...(opciones.ejecutar && !lectura && !camino ? { ejecucion: ejecucionDe(eje, X, canonico, yo, valores, o) } : {}) };
+  return { X, accion: id, nombre, pv, campos, lectura, camino, ofrecida: Boolean(ofrecida), ...(quienGuarda ? { quienGuarda } : {}), ...(opciones.ejecutar && !lectura && !camino ? { ejecucion: ejecucionDe(eje, X, canonico, yo, valores, o) } : {}), ...(retocar ? { retocar: titulo.clave } : {}) };
 }
 
 /**
@@ -1089,6 +1100,161 @@ export async function previsualizar(eje, X, accion, valores, yo, firmar, opcione
     return t(clave, { cuanto: cuanto(m), de: sujeto(m.de), a: sujeto(m.a) });
   });
   return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, frase: frases.join('; '), ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
+}
+
+// ---------- retocar un texto en su sitio (A20 escalón 1, VG 17-11; docs/notas/RETOQUES.md, docs/CONTRATO.md §8.1 bis) ----------
+
+/**
+ * La plantilla de la época que retoca un texto (docs/CONTRATO.md §8.1 bis): la de transacción que se lanza sobre el génesis
+ * del libro y ancla en su 9.4, con el idioma, la clave y el texto en sus posiciones 1.0, 1.1 y 1.2. La carta no escribe su
+ * nombre ni los de sus parámetros (son de la época): la reconoce por esa forma. → { nombre, idioma, clave, texto } (el
+ * nombre de la plantilla y los de esos tres parámetros) o null si la época no la trae.
+ */
+const ANCLA_DEL_RETOQUE = '9.4';
+const POSICIONES_DEL_RETOQUE = Object.freeze(['1.0', '1.1', '1.2']);
+function plantillaDeRetoque(opciones = {}) {
+  for (const { nombre, plantilla } of acciones.plantillasDeTransaccion(opciones)) {
+    const ancla = hojas(plantilla?.[5]);
+    if (ancla.length !== 1 || ancla[0] !== ANCLA_DEL_RETOQUE) continue;
+    const por = new Map(acciones.parametros(plantilla, { epoca: opciones.epoca }).map((p) => [p.posicion, p.nombre]));
+    if (POSICIONES_DEL_RETOQUE.every((k) => por.has(k))) {
+      const [idioma, clave, texto] = POSICIONES_DEL_RETOQUE.map((k) => por.get(k));
+      return { nombre, idioma, clave, texto };
+    }
+  }
+  return null;
+}
+/** Los valores de los parámetros del retoque (plantillaDeRetoque): sin texto, retira. */
+const valoresDeRetoque = (p, idioma, clave, texto) => ({ [p.idioma]: idioma, [p.clave]: clave, ...(typeof texto === 'string' && texto ? { [p.texto]: textoParaEscribir(texto) } : {}) });
+
+/**
+ * El texto de nacimiento de una clave en un idioma (sin los retoques del libro), el que se compara con un retoque: el de
+ * la carta (carta/textos.js) para «carta <clave>»; el mensaje de la regla con ese nombre; el texto de la época por la
+ * clave; para un idioma que no la tiene, el original (el 9 de la plantilla de «template <nombre> message», o el de
+ * cualquier idioma, que conserva los huecos). null si la clave no existe: no se puede retocar.
+ */
+export function textoDeNacimiento(clave, idioma, opciones = {}) {
+  if (typeof clave !== 'string' || !clave) return null;
+  if (clave.startsWith(PREFIJO_DE_LA_CARTA)) return textoDeLaCarta(clave.slice(PREFIJO_DE_LA_CARTA.length), idioma) ?? null;
+  const o = { epoca: opciones.epoca };
+  const regla = contrato.mensaje(null, clave, idioma, o);
+  if (typeof regla === 'string') return regla;
+  const propio = contrato.texto(null, clave, idioma, o);
+  if (typeof propio === 'string') return propio;
+  const m = /^template (.+) message$/.exec(clave);
+  const p = m ? acciones.plantillaDeTransaccion(m[1], o) : null;
+  const delNueve = p ? hojas(p[9]).filter((x) => typeof x === 'string').at(-1) : undefined;
+  if (typeof delNueve === 'string') return delNueve;
+  for (const otro of contrato.idiomas(o)) {
+    const x = contrato.texto(null, clave, otro, o);
+    if (typeof x === 'string') return x;
+  }
+  return null;
+}
+
+/** { clave, idioma } de una lectura del núcleo si su clave se puede retocar (existe: textoDeNacimiento), o null. */
+const retocableDe = (l, o) => (l && typeof l.clave === 'string' && textoDeNacimiento(l.clave, l.idioma, o) !== null ? { clave: l.clave, idioma: l.idioma } : null);
+
+/**
+ * Lo que da `leer` (una lectura síncrona del contrato) y la clave con que el núcleo leyó su texto (contrato.conClaves: la
+ * última lectura), si se puede retocar. → { texto: lo leído (o `original` si nada), clave: { clave, idioma } | null }.
+ */
+function leidoConClave(leer, original, o, conClave = true) {
+  const { valor, lecturas } = contrato.conClaves(leer);
+  return { texto: valor ?? original, clave: conClave ? retocableDe(lecturas.at(-1), o) : null };
+}
+
+/** Entre las lecturas de conClaves, la de esa clave (la última), si se puede retocar: { clave, idioma } o null. */
+function claveLeida(lecturas, clave, o) {
+  return retocableDe([...(lecturas ?? [])].reverse().find((l) => l.clave === clave), o);
+}
+
+/** Los motivos de un rechazo con la clave de su texto (el nombre de la regla, que es su clave), si se puede retocar. */
+function motivosRetocables(motivos, o) {
+  return (motivos ?? []).map((m) => (typeof m?.regla === 'string' ? { ...m, retocar: retocableDe({ clave: m.regla, idioma: o.idioma }, o) } : m));
+}
+
+/** El texto tal como se escribe en el registro: uno que empieza por «=» sería una fórmula y el núcleo lo ignoraría; «==» lo escapa (RETOQUES.md). */
+const textoParaEscribir = (texto) => (texto.startsWith('=') ? '=' + texto : texto);
+
+/**
+ * ¿Se puede guardar este retoque? null si sí; si no, el aviso en llano (no se escribe nada: un retoque que el núcleo vaya a
+ * ignorar no se escribe). `texto` null es «volver al texto original» (retirar). Los huecos {…} se comprueban con la
+ * misma regla que el núcleo (un subconjunto exacto de los del texto de nacimiento); los de la carta, los comprueba la
+ * carta (textos.js retoqueDeLaCartaNoVale, que además no admite los signos de marcado).
+ */
+export function comprobarRetoque(eje, yo, { clave, idioma, texto = null } = {}, opciones = {}) {
+  if (!contrato.puedeRetocar(eje, yo)) return t('retoqueNoPuede');
+  const nacimiento = textoDeNacimiento(clave, idioma, opciones);
+  if (nacimiento === null || typeof idioma !== 'string' || !idioma) return t('retoqueNoExiste');
+  const vigente = contrato.retoque(eje, clave, idioma, { epoca: opciones.epoca });
+  if (texto === null) return vigente ? null : t('retoqueSinRetoque');
+  const nuevo = String(texto).trim();
+  if (!nuevo) return t('retoqueVacio');
+  if (nuevo === (vigente?.texto ?? nacimiento)) return t('retoqueIgual');
+  if (clave.startsWith(PREFIJO_DE_LA_CARTA)) {
+    const no = retoqueDeLaCartaNoVale(clave.slice(PREFIJO_DE_LA_CARTA.length), nuevo, idioma);
+    if (no?.motivo === 'signos') return t('retoqueSignos', { signos: no.signos.join(' ') });
+    if (no?.motivo === 'hueco') return t('retoqueHuecoNuevo', { huecos: no.huecos.join(' ') });
+    if (no) return t('retoqueNoExiste');
+    return null;
+  }
+  const permitidos = new Set(huecosDe(nacimiento));
+  const nuevos = huecosDe(nuevo).filter((h) => !permitidos.has(h));
+  return nuevos.length ? t('retoqueHuecoNuevo', { huecos: nuevos.join(' ') }) : null;
+}
+
+/**
+ * La hoja «retocar un texto» de la clave `clave` en `idioma` (el de quien mira si no se da), para quien puede retocar en
+ * este libro: el texto de hoy (`hoy`: el retoque vigente o el de nacimiento) y lo escrito (`texto`), los idiomas del libro
+ * (contrato.idiomas con el eje: también los que solo existen por retoques), el texto de nacimiento, sus huecos, el retoque
+ * vigente ({ texto, quien, cuando, id } o null) y lo que cuesta guardarlo (`coste`: { exigido, denominacion } de
+ * acciones.ejecucion, la misma cuenta que el formulario de cualquier acción). → el nodo, o null si yo no puede retocar.
+ */
+export function retoqueDeTexto(eje, yo, { clave, idioma = null, texto = null, aviso = null, motivos = [] } = {}, opciones = {}) {
+  if (typeof clave !== 'string' || !clave || !contrato.puedeRetocar(eje, yo)) return null;
+  const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
+  const en = typeof idioma === 'string' && idioma ? idioma : o.idioma;
+  const nacimiento = textoDeNacimiento(clave, en, o);
+  const v = contrato.retoque(eje, clave, en, { epoca: o.epoca });
+  const hoy = v?.texto ?? nacimiento ?? '';
+  const escrito = typeof texto === 'string' ? texto : hoy;
+  const idiomas = [...new Set([...contrato.idiomas(eje, { epoca: o.epoca }), o.idioma, en].filter((x) => typeof x === 'string' && x))];
+  const p = plantillaDeRetoque(o);
+  const e = p ? acciones.ejecucion(eje, p.nombre, { X: eje.genesisId, ...valoresDeRetoque(p, en, clave, escrito.trim()) }, yo, o) : null;
+  return {
+    clave, idioma: en, idiomas, hoy, texto: escrito, nacimiento, existe: nacimiento !== null, huecos: huecosDe(nacimiento ?? ''),
+    vigente: v ? { texto: v.texto, quien: legibleDe(eje, v.quien, ['identity'], o).texto, cuando: legibleDe(eje, v.cuando, ['instant'], o).texto, id: v.id } : null,
+    coste: e?.ok ? { exigido: e.exigido, denominacion: e.denominacion } : null,
+    aviso: aviso ?? null, motivos: motivos ?? [],
+  };
+}
+
+/**
+ * Guarda un retoque (A20): comprueba (comprobarRetoque) y, si vale, escribe el registro «retouch a text» sobre el génesis
+ * del libro por el mismo camino que cualquier acción de la carta (enviar: acciones.transaccion, firmado con `firmar`, y
+ * asentado). `texto` null retira los retoques de esa clave en ese idioma (vuelve el de nacimiento). → lo que da enviar
+ * (`asentado`, `motivos` en llano) más `aviso` (lo que no se escribió por la comprobación, o null).
+ */
+export async function guardarRetoque(eje, yo, { clave, idioma, texto = null } = {}, firmar, opciones = {}) {
+  const aviso = comprobarRetoque(eje, yo, { clave, idioma, texto }, opciones);
+  if (aviso) return { ok: false, asentado: null, motivos: [], aviso };
+  const p = plantillaDeRetoque(opciones);
+  if (!p) return { ok: false, asentado: null, motivos: [], aviso: t('retoqueNoExiste') };
+  const r = await enviar(eje, eje.genesisId, p.nombre, valoresDeRetoque(p, idioma, clave, texto === null ? null : String(texto).trim()), yo, firmar, opciones);
+  return { ...r, motivos: motivosEnLlano(r.motivos, eje, opciones), aviso: null };
+}
+
+/**
+ * La lista «Textos retocados» de la configuración (A20), para quien puede retocar en este libro: los retoques vigentes
+ * (contrato.retoques) con su clave, idioma, texto, quién (legible) y cuándo (legible). → { lista } o null si yo no puede.
+ */
+export function textosRetocados(eje, yo, opciones = {}) {
+  if (!contrato.puedeRetocar(eje, yo)) return null;
+  const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
+  return {
+    lista: contrato.retoques(eje, { epoca: o.epoca }).map((r) => ({ clave: r.clave, idioma: r.idioma, texto: r.texto, quien: legibleDe(eje, r.quien, ['identity'], o).texto, cuando: legibleDe(eje, r.cuando, ['instant'], o).texto, id: r.id })),
+  };
 }
 
 /**
@@ -2280,6 +2446,8 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
   if (!opciones.epoca && typeof eje?.epoca === 'function') opciones = { ...opciones, epoca: eje.epoca() };
   const m = { ...MEDIDAS, ...medidas };
   const X = typeof estado.foco === 'string' ? estado.foco : estado.foco?.X;
+  // Los retoques de los textos propios de la carta en este libro (A20 escalón 1): t los lee, en cada pintado los vigentes.
+  usarRetoques(contrato.retoques(eje, opciones), idiomaDe(eje, yo, opciones));
   const ev = eventoDe(eje, X);
   if (!ev) return { tipo: 'carta', X: X ?? null, vacio: true, avisos: [t('noHayFoco')] };
   const yoDatos = yo ? contrato.yo(eje, yo, { t: opciones.t, epoca: opciones.epoca }) : null;
@@ -2294,8 +2462,10 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
   // defecto de la época (epoch.9.3.7), si no el de la carta.
   const limiteDe = (c) => (typeof c?.animations === 'number' && c.animations > 0 ? c.animations : null);
   const limite = (configuracion.de && limiteDe(configuracion)) || limiteDe(defectos) || LIMITE_DE_ANIMACIONES;
+  // El modo «retocar textos» (A20 escalón 1): solo existe para quien puede retocar en este libro (hoy, su dueño).
+  const retocar = estado.retocar === true && contrato.puedeRetocar(eje, yo) ? { idioma } : null;
   const ctx = {
-    estado, eje, opciones: { ...opciones, idioma }, animado, soloPropio, X, yo: yo ?? null,
+    estado, eje, opciones: { ...opciones, idioma }, animado, soloPropio, X, yo: yo ?? null, retocar,
     variantes: cabecera.variantes,
     cabecera,
     cadena: animado ? modelos.modelo(eje, yo, opciones) : [],
@@ -2385,7 +2555,9 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     : Number.isInteger(estado.aro.nuevo) ? nodoAroNuevo(eje, estado.aro.X, estado.aro.nuevo, ctx) : nodoAro(eje, estado.aro.X, yo, ctx);
   // El formulario en modo ejecutar (VG 12-11, decisión 7): abierto desde una celda del 4 o un paso del camino del 9.
   const conEjecutar = estado.formulario?.ejecutar ? { ejecutar: { escala: estado.formulario.escala ?? null } } : {};
-  const form = estado.formulario?.accion && eje.obtener(estado.formulario.X) ? formulario(eje, estado.formulario.X, estado.formulario.accion, yo, estado.formulario.valores ?? {}, { ...ctx.opciones, ...conEjecutar }) : null;
+  const form = estado.formulario?.accion && eje.obtener(estado.formulario.X) ? formulario(eje, estado.formulario.X, estado.formulario.accion, yo, estado.formulario.valores ?? {}, { ...ctx.opciones, ...conEjecutar, ...(retocar ? { retocar: true } : {}) }) : null;
+  // La hoja «retocar un texto» (A20), abierta tocando un texto en el modo «retocar textos».
+  const retoque = estado.retoque?.clave ? retoqueDeTexto(eje, yo, estado.retoque, opciones) : null;
   // El personaje de un sitio abierto (encargo pv3): la cruceta del nodo, si no hay formulario encima.
   const sitio = !form && estado.sitio?.X && eje.obtener(estado.sitio.X) ? nodoSitio(eje, estado.sitio, yo, ctx) : null;
   return {
@@ -2416,7 +2588,9 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     ...(secuencia ? { secuencia: { filas: secuencia.filas, pasado: secuencia.pasado, futuro: secuencia.futuro, digitos: secuencia.digitos } } : {}),
     aro,
     sitio,
-    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, reverso: Boolean(estado.formulario.reverso), animado } : null,
+    formulario: form ? { ...form, motivos: retocar ? motivosRetocables(estado.formulario.motivos ?? [], ctx.opciones) : estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, reverso: Boolean(estado.formulario.reverso), animado } : null,
+    ...(retocar ? { retocar } : {}),
+    ...(retoque ? { retoque } : {}),
     camino,
     local: localDe(estado.local, opciones.t),
     tiempo: yoDatos?.tiempo ?? null,
