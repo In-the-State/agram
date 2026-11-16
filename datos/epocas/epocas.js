@@ -603,6 +603,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea"
+    },
+    {
+      "ref": "a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"
     }
   ],
   [
@@ -6421,7 +6424,8 @@ export const EPOCA_0_BTML_DATOS = [
           "acting on an account needs P on it: {first ev.3} actúa sobre la cuenta {first (first ev.6.5).0} (una orden, un saldo o un permiso) y ni quien escribe ni su dueño tienen P sobre ella",
           "template issue E tied to X param commitment label: compromiso",
           "template issue E tied to X param commitment help: cuánto de mi P sobre X (o sobre su mirada 1) se bloquea con la serie como salida: el compromiso que pide la cuota de un registro con capacidad (1 por defecto si X declara su capacidad en su 2; sin capacidad no se bloquea nada)",
-          "the bank speaks through the owner's thing: {first ev.3} escribe un permiso que no es de una cosa del dueño de la cuenta, o un permiso o un saldo con una fecha que su registro no permite"
+          "the bank speaks through the owner's thing: {first ev.3} escribe un permiso que no es de una cosa del dueño de la cuenta, o un permiso o un saldo con una fecha que su registro no permite",
+          "an account lives in its owner's book: {first ev.3} conecta una cuenta en un libro que no es el suyo (su génesis lo escribió {first (first before.1).3})"
         ]
       ],
       [
@@ -6659,7 +6663,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "ae55c652cf838632342ea5db1a90fbcc06d6c66741dd0db20404be6ebb82ac0a"
         },
         {
-          "ref": "71164092666e605305538f03d5ba58fa58a91b92a03e25bbe155cf86f0c683f4"
+          "ref": "26e48a5b39f23bab6ec64eb60f1534713252b86add2af1e48ed5d10b6114eadb"
         },
         {
           "ref": "9e0b82e0b2aa0466e27698672ea196ec67b3654e7638f89f6dbd9485901c7e56"
@@ -8180,6 +8184,48 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "against others: its siblings, what is anchored on the same record, and the comparables of the cohort its owner chose"
+      ]
+    ]
+  },
+  {
+    "archivo": "an-account-lives-in-its-owner-s-book.json",
+    "id": "a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb",
+    "registro": [
+      [
+        "an account lives in its owner's book"
+      ],
+      [
+        0
+      ],
+      [
+        "=not (\"connect an account\" in ev.4) or first ev.3 = first (first before.1).3"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "PROVISIONAL (Core AGRAM 16-11, a falta del sí expreso de VG; encargo «cuenta del banco»): la cuenta del banco solo se conecta en el libro propio. Un registro escrito con «connect an account» (lo dice su 4) solo vale si su autor es el autor del génesis del eje (el primer registro del libro, before.1, y su 3)",
+        "Dentro de ese libro sigue mandando el P sobre la cuenta («acting on an account needs P on it»): una persona invitada que gana P sobre ella ordena",
+        "Solo se mira cuando la candidata dice «connect an account» (el or es perezoso): before.1 no se recorre para lo demás"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after the bank speaks through the owner's thing"
+      ],
+      [
+        "an account lives in its owner's book: {first ev.3} connects an account in a ledger that is not its own (its genesis was written by {first (first before.1).3})"
       ]
     ]
   },
@@ -12286,7 +12332,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "connect-an-account.json",
-    "id": "71164092666e605305538f03d5ba58fa58a91b92a03e25bbe155cf86f0c683f4",
+    "id": "26e48a5b39f23bab6ec64eb60f1534713252b86add2af1e48ed5d10b6114eadb",
     "registro": [
       [
         "connect an account"
@@ -12523,7 +12569,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=first it.5 = first me.6"
+        "=first it.5 = first me.6 and me = first (first before.1).3"
       ],
       [
         [
@@ -12544,7 +12590,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «La cuenta del banco es una E única, como una mesa. El saldo es un dato de su registro, que se actualiza con lo que dice el banco. No hay unidades de euro fungibles en el libro.» Conectar un banco es dar de alta una cosa, con una plantilla: esta. Elegir el banco queda hecho al escribir la cuenta",
         "Ancla en el 1.1 de mi alta (mis recursos: lo que tengo), desde donde se lance. 0 el nombre que le pone su dueño (el 0 de un registro es lo que es); 1.0 el banco y 1.1 los días que dura el permiso (180 por defecto); 2 la capacidad, el entero 1, donde el eje lee el tope de E (tokens.capacidadDe): la E única se acuña después, con «issue E tied to X» sobre este registro, y no cabe otra; 3 quién; 4 la acción; 5 el tipo «account», cuya plantilla de datos lleva en su 9 el camino de la cuenta",
         "Sin criterio de cierre en el 2: el 2 es la capacidad (tokens.capacidadDe solo lee un entero solo en el 2) y la cuenta se lee con la plantilla de cerrado de la época por defecto (motor.cerrado, sin nombre en su criterio)",
-        "Nada de credenciales, números de cuenta ni datos del banco: solo el nombre que le pone su dueño y el nombre del banco. La credencial va al guardián de StateArk, fuera del libro"
+        "Nada de credenciales, números de cuenta ni datos del banco: solo el nombre que le pone su dueño y el nombre del banco. La credencial va al guardián de StateArk, fuera del libro",
+        "PROVISIONAL (Core AGRAM 16-11, a falta del sí expreso de VG): solo se ofrece a quien escribió el génesis del eje; la regla «an account lives in its owner's book» lo exige al escribir"
       ],
       [
         "epoch 0"
@@ -20186,7 +20233,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "0fbdbed4f715701432b671b7f4dc11aa59b4cad8e2021f9c27dd1a182b991115";
+export const EPOCA_0_BTML_ID = "6bdd53b1410cb1745161f54106d5201f55a9bf9dff43114ad23e4dda9d6caace";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

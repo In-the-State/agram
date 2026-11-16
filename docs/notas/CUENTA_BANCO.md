@@ -20,6 +20,15 @@ Core AGRAM, 16-11 (encargo «cuenta del banco», rama `beta-banco`). Decisión d
 
 **El camino del 9**: elegir el banco (connect an account, hecho al escribirla), dar el permiso (grant the permission, lo escribe la conectora: lo de una cosa mía cuenta como mío en el camino), volver (issue E tied to X, la E única: la plantilla bloquea además el P que pide la cuota, su «commitment») y renovar (renew the permission, en el 7.2 de la cuenta: el paso queda hecho en cuanto hay una renovación; cuándo vence lo dice `contrato.cuenta`). Las renovaciones no se encadenan unas de otras porque la regla tendría que subir por `path`, que no pasa de diez niveles. Sin permiso o con él caducado, la cuenta dice «sin permiso» y lo que se escriba de saldo no cuenta.
 
+## PROVISIONAL: la cuenta solo se conecta en el libro propio
+
+A falta del sí expreso de VG (Core AGRAM, 16-11), en un commit aparte que se puede quitar entero:
+
+- Regla «an account lives in its owner's book»: un registro escrito con «connect an account» solo vale si su autor es el autor del génesis del eje (el primer registro del libro: `first (first before.1).3`). Solo se mira cuando la candidata dice «connect an account».
+- «connect an account» solo se ofrece a quien escribió el génesis.
+- Dentro de ese libro sigue mandando el P: la regla «acting on an account needs P on it» y `contrato.cuenta` no cambian; una persona invitada al libro que gana P sobre la cuenta ordena.
+- El ejemplo es el libro propio de ana, con bea invitada por ella.
+
 ## Lo que pone StateArk (carril «banco»)
 
 - **La credencial** (el consentimiento del banco, sus tokens): al guardián de StateArk, nunca al libro.

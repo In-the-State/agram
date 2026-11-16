@@ -287,3 +287,21 @@ test('la carta pinta lo que da contrato.cuenta: en el anverso de la cuenta, el s
   const sin = html(await arbol({ foco: { X: cuenta.id, pv: 0 } }, eje, 'ana', ORDENADOR));
   assert.ok(sin.includes('data-permiso="falta"') && sin.includes(textoDeLaCarta('cuentaSinSaldo')));
 });
+
+// ---------- 8. PROVISIONAL (a falta del sí de VG): la cuenta solo se conecta en el libro propio ----------
+
+test("provisional: «an account lives in its owner's book»: en un libro ajeno conectar una cuenta se rechaza (ni se ofrece); en el propio pasa, y una persona invitada al libro propio gana P y ordena", async () => {
+  const { eje, cuenta, lanzar } = await mundo(); // el libro de ana (su génesis): bea está invitada
+  const altaBea = eje.alta('bea').id;
+  assert.ok(!A.acciones(eje, altaBea, 1, 'bea').some((a) => a.nombre === 'connect an account'), 'a bea no se le ofrece en el libro de ana');
+  const ajena = await A.transaccion(eje, 'connect an account', { X: altaBea, name: 'la mía', bank: 'Banco de Ejemplo' }, 'bea', { t: T1 });
+  assert.deepEqual([ajena.ok, reglas(ajena)], [false, ["an account lives in its owner's book"]]);
+  assert.match(ajena.motivos[0].mensaje, /bea .*(ana)/);
+  await assert.rejects(eje.anadir(ajena.evento), /an account lives in its owner's book: bea connects an account in a ledger that is not its own \(its genesis was written by ana\)/);
+  // En el propio, sí (la de mundo() ya pasó); y bea, invitada, gana P sobre la cuenta y ordena.
+  assert.ok(C.cuenta(eje, cuenta.id));
+  await lanzar('anchor here', cuenta.id, { title: 'nota', content: 'x' }, 'bea', T2);
+  await lanzar('reposition P toward X', cuenta.id, {}, 'bea', T2);
+  const orden = await ordenar(eje, cuenta, 'bea');
+  assert.deepEqual([orden.autor, C.cuenta(eje, cuenta.id).ordenan], ['bea', ['ana', 'bea']]);
+});

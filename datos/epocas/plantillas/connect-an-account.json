@@ -35,7 +35,10 @@
       ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"],
       ["required"],
       [3],
-      [180, "how many days the permission of the bank lasts (about six months): each permission expires at most this long after it is given, and renewing it is a step of the path"]
+      [
+        180,
+        "how many days the permission of the bank lasts (about six months): each permission expires at most this long after it is given, and renewing it is a step of the path"
+      ]
     ],
     [
       ["capacity"],
@@ -86,7 +89,7 @@
       ["account", "the type of the record: account (its path is the 9 of the data template «account»)"]
     ]
   ],
-  ["=first it.5 = first me.6"],
+  ["=first it.5 = first me.6 and me = first (first before.1).3"],
   [["me"], ["person"]],
   ["write"],
   ["1.1", "=first me.6"],
@@ -94,7 +97,8 @@
     "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «La cuenta del banco es una E única, como una mesa. El saldo es un dato de su registro, que se actualiza con lo que dice el banco. No hay unidades de euro fungibles en el libro.» Conectar un banco es dar de alta una cosa, con una plantilla: esta. Elegir el banco queda hecho al escribir la cuenta",
     "Ancla en el 1.1 de mi alta (mis recursos: lo que tengo), desde donde se lance. 0 el nombre que le pone su dueño (el 0 de un registro es lo que es); 1.0 el banco y 1.1 los días que dura el permiso (180 por defecto); 2 la capacidad, el entero 1, donde el eje lee el tope de E (tokens.capacidadDe): la E única se acuña después, con «issue E tied to X» sobre este registro, y no cabe otra; 3 quién; 4 la acción; 5 el tipo «account», cuya plantilla de datos lleva en su 9 el camino de la cuenta",
     "Sin criterio de cierre en el 2: el 2 es la capacidad (tokens.capacidadDe solo lee un entero solo en el 2) y la cuenta se lee con la plantilla de cerrado de la época por defecto (motor.cerrado, sin nombre en su criterio)",
-    "Nada de credenciales, números de cuenta ni datos del banco: solo el nombre que le pone su dueño y el nombre del banco. La credencial va al guardián de StateArk, fuera del libro"
+    "Nada de credenciales, números de cuenta ni datos del banco: solo el nombre que le pone su dueño y el nombre del banco. La credencial va al guardián de StateArk, fuera del libro",
+    "PROVISIONAL (Core AGRAM 16-11, a falta del sí expreso de VG): solo se ofrece a quien escribió el génesis del eje; la regla «an account lives in its owner's book» lo exige al escribir"
   ],
   ["epoch 0"],
   [1, 6],

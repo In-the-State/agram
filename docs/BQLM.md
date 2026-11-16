@@ -382,7 +382,7 @@ for (const r of escrituras) {
 ```
 
 ```text
-33 condiciones, 3 reglas que escriben y 19 lecturas
+34 condiciones, 3 reglas que escriben y 19 lecturas
 no pasa: E is minted by and to its issuer: huesped mints E of casa, or to someone else
 no pasa: P is repositioned one step at a time: huesped mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin
 no pasa: minting E needs own R issued: huesped mints E and has never issued R of its own
@@ -436,6 +436,7 @@ En el orden del 8 (el de `EPOCA_0_BTML.condiciones`).
 | a person joins by an invitation | Quien escribe sin alta (es su primera transacción: su alta) la ancla sobre una invitación (su 0 dice «invitation») de una identidad con alta que la nombra en su 3.1, dentro de su 7 (hasta cuándo vale, leído con el reloj de la caducidad de E: el menor entre el t de la aceptación y el reloj de los demás, `before.6.3`), sin fecharse antes del último t del libro (`before.6.0`; revisión de seguridad) y, si nombra una clave en su 3.5, con esa clave declarada. La única alta sin invitación es la del génesis, la primera identidad, que no pasa por las reglas |
 | acting on an account needs P on it | Un registro anclado en el 4 de una cuenta del banco o en uno de sus hijos 4.1 … 4.9 (el registro que dice «connect an account» en su 4; lo que se ordena hacer con ella: la orden de pago de StateArk), o anclado en la cuenta con «update the balance», «grant the permission» o «renew the permission» en su 4 (sus saldos y permisos), solo vale si quien lo escribe, o el dueño de la cosa que lo escribe (el autor de su alta, `A.6.3`), tiene P sobre la cuenta, sobre el registro entero o su mirada 1 (`A.2.1`, la condición de «minting E needs P on its record»). Encargo «cuenta del banco», VG 16-11 (`docs/notas/CUENTA_BANCO.md`) |
 | the bank speaks through the owner's thing | En una cuenta del banco, un permiso o una renovación anclados en ella solo valen si los escribe una cosa del dueño de la cuenta (no el dueño; el autor de su alta, `A.6.3`, es el autor de la cuenta) con el vencimiento (su 1.1) dentro de su t más los días de la cuenta; un saldo, si su instante (su 1.3) no es posterior a su t. Revisión de seguridad, 16-11 (`docs/notas/CUENTA_BANCO.md`) |
+| an account lives in its owner's book | PROVISIONAL (a falta del sí de VG, 16-11): un registro escrito con «connect an account» solo vale si su autor es el autor del génesis del eje (`first (first before.1).3`): la cuenta del banco se conecta en el libro propio |
 
 Las tres reglas que escriben van detrás, en el mismo orden del 8 (§5):
 

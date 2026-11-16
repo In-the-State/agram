@@ -1,0 +1,16 @@
+[
+  ["an account lives in its owner's book"],
+  [0],
+  ["=not (\"connect an account\" in ev.4) or first ev.3 = first (first before.1).3"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "PROVISIONAL (Core AGRAM 16-11, a falta del sí expreso de VG; encargo «cuenta del banco»): la cuenta del banco solo se conecta en el libro propio. Un registro escrito con «connect an account» (lo dice su 4) solo vale si su autor es el autor del génesis del eje (el primer registro del libro, before.1, y su 3)",
+    "Dentro de ese libro sigue mandando el P sobre la cuenta («acting on an account needs P on it»): una persona invitada que gana P sobre ella ordena",
+    "Solo se mira cuando la candidata dice «connect an account» (el or es perezoso): before.1 no se recorre para lo demás"
+  ],
+  ["epoch 0"],
+  ["after the bank speaks through the owner's thing"],
+  ["an account lives in its owner's book: {first ev.3} connects an account in a ledger that is not its own (its genesis was written by {first (first before.1).3})"]
+]
