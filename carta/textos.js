@@ -433,6 +433,12 @@ export const TEXTOS = Object.freeze({
     rechazadoReglas: 'de otro dispositivo: las reglas no lo admiten aquí',
     rechazadoReorden: 'de aquí: dejó de valer al llegar antes otro',
     rechazadoServidor: 'de aquí: el servidor no lo acepta',
+    // el orden firmado (src/orden.js; docs/notas/ORDEN_FIRMADO.md)
+    ordenSinFirmar: 'El servidor de este libro no firma el orden de llegada.',
+    ordenContradicho: 'El servidor de este libro ha firmado dos órdenes distintos. Guarda una copia y no te fíes de él.',
+    ordenRecibos: 'los dos recibos que se contradicen',
+    ordenCopiar: 'copiar',
+    ordenCopiarTitulo: 'copia los dos recibos firmados (JSON) al portapapeles: son la prueba; guárdalos fuera de este navegador',
     servidorVacio: 'el servidor aún no tiene ningún registro de este eje',
     servidorDeOtraCuenta: 'el eje «{eje}» del servidor no es el de esta cuenta',
     ejeDelServidor: 'eje bajado del libro compartido · {cuantos} registros',

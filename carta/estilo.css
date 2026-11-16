@@ -91,6 +91,7 @@ small{color:var(--muted)}
 .sitio-controles .sincronia .error{color:var(--warn)}
 .sitio-controles .sincronia .rechazados summary{cursor:pointer;color:var(--warn)}
 .sitio-controles .sincronia .rechazados ul{margin:4px 0;padding-left:18px}
+.sitio-controles .sincronia [data-orden-pruebas]{display:block;width:100%;box-sizing:border-box;font:10px var(--mono)}
 .sitio-controles .sincronia code{font-family:var(--mono)}
 
 /* la escena */

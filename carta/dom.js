@@ -1437,7 +1437,9 @@ function htmlSoy(arbol, { cuentas = [], cuenta = null } = {}) {
 /**
  * La línea del libro compartido, junto a «guardado en este navegador» (carta/sincronia.js lineaDeEstado): lo que falta
  * por subir, sin red, el orden que cambió o «al día»; los errores tal cual; y lo que no entró, en un desplegable con el
- * id corto, el motivo y de dónde viene. Sin sincronía (un ejemplo, o una cuenta sin servidor), nada.
+ * id corto, el motivo y de dónde viene. Sin sincronía (un ejemplo, o una cuenta sin servidor), nada. El orden firmado
+ * (`s.orden`): «sin firmar», una línea llana; «contradicho», un aviso que no se va solo y los dos recibos en un
+ * desplegable, para copiarlos (data-orden-copiar, carta/gestos.js).
  */
 export function htmlSincronia(s) {
   if (!s) return '';
@@ -1445,7 +1447,12 @@ export function htmlSincronia(s) {
   const rechazados = s.rechazados?.length
     ? `<details class="rechazados"><summary>${escapar(s.titulo)}</summary><ul>${s.rechazados.map((r) => `<li><code>${escapar(r.id)}</code> ${escapar(r.motivo)} <small>(${escapar(r.deTexto)})</small></li>`).join('')}</ul></details>`
     : '';
-  return `<small class="sincronia" data-sincronia role="status" title="${attr(t('sincroniaTitulo'))}">${(s.partes ?? []).map(escapar).join(' · ')}${errores}${rechazados}</small>`;
+  const o = s.orden;
+  const orden = !o ? ''
+    : o.estado === 'contradicho'
+      ? `<span class="error orden-firmado" role="alert" data-orden-fraude> · ${escapar(o.texto)}<details class="rechazados"><summary>${escapar(t('ordenRecibos'))}</summary><button type="button" class="enlace" data-orden-copiar title="${attr(t('ordenCopiarTitulo'))}">${escapar(t('ordenCopiar'))}</button><textarea readonly rows="6" data-orden-pruebas>${escapar(o.pruebas ?? '')}</textarea></details></span>`
+      : `<span class="orden-firmado"> · ${escapar(o.texto)}</span>`;
+  return `<small class="sincronia" data-sincronia role="status" title="${attr(t('sincroniaTitulo'))}">${(s.partes ?? []).map(escapar).join(' · ')}${orden}${errores}${rechazados}</small>`;
 }
 
 /**

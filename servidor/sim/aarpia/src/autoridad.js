@@ -81,11 +81,11 @@ export class Autoridad {
     }
   }
 
-  /** El recibo único de aceptación que va en el content del 7701: lo firma la autoridad, con núcleo y época. */
-  contenidoDeAceptacion(sobre, instante, rele) {
+  /** El recibo único de aceptación que va en el content del 7701: lo firma la autoridad, con núcleo y época y el eslabón `cadena` ({ orden, anterior? }) de su eje. */
+  contenidoDeAceptacion(sobre, instante, rele, cadena) {
     const tag = (n) => sobre.tags.find((t) => t[0] === n)?.[1];
     const eje = tag('h');
-    return aceptacion({ idAgram: tag('g'), idNostr: sobre.id, eje, instante: instante.toISOString(), rele, nucleo: this.nucleo, epoca: this.epocaDe(eje, JSON.parse(sobre.content)) ?? undefined }, this.privada);
+    return aceptacion({ idAgram: tag('g'), idNostr: sobre.id, eje, instante: instante.toISOString(), rele, nucleo: this.nucleo, epoca: this.epocaDe(eje, JSON.parse(sobre.content)) ?? undefined, ...(cadena ?? {}) }, this.privada);
   }
 
   /** Las etiquetas que la aceptación añade al recibo 7701. */

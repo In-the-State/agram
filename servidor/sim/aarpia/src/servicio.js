@@ -4,6 +4,8 @@
 //
 //   POST /eventos/ejes · POST /eventos · GET /eventos?eje&desde&cuantos   → idénticos a AGRAM
 //   GET  /eventos/recibo?eje=…&id=<id AGRAM>                            → el reloj X.6.8.1 (nuevo, no rompe nada)
+//        { instante, rele, firma, recibo, sobre }: `sobre` es el recibo único entero (stateark.recibo@1:
+//        schema, emisor, t, recibo, id, firma), con «orden» y «anterior» (la llegada encadenada, docs/notas/ORDEN_FIRMADO.md)
 //        errores con { error, codigo }: 401 clave (también eje que no existe: misma respuesta, #106) · 404 sin-recibo · 405 metodo (los textos no cambian)
 //
 // Diferencias con la función de Supabase, todas internas:
@@ -21,6 +23,9 @@
 // recibo 7701 se sella por lotes de `lote` (contrato §3 aplicado a §2: el tercer reloj vigila el
 // reloj del relé; y como el 7701 lleva nucleo y epoca, queda anclado CON QUÉ se juzgó cada evento):
 //   GET /eventos/sello?eje=…&id=<id AGRAM>  → { recibo, prueba, verificacion } (minar es cosa del sellador)
+// y cada lote lleva además, como hoja, el id (del recibo único) del último recibo encadenado de cada eje que
+// creció desde el lote anterior: el remate del orden firmado (Correcciones del 17-11, punto 5). Quien tenga la
+// cadena pide la prueba de ese id al mismo sellador, como la de cualquier id.
 
 import { crearApi, hashDeClave } from '../../../supabase/funciones/eventos/api.js';
 import * as verificar from '../../../supabase/funciones/eventos/verificar.js';
@@ -32,6 +37,16 @@ import { crearArchivos } from '../../../supabase/funciones/archivos/api.js';
 import { crearBlossom } from './blossom.js';
 import { almacenArchivos } from './archivos.js';
 import { crearEspejo } from './espejo.js';
+import { ESQUEMA } from './recibo.js';
+
+/** El recibo único (stateark.recibo@1) del content de un 7701, solo sus seis campos, o null. */
+export function sobreDe(recibo) {
+  let r = null;
+  try { r = JSON.parse(recibo.content); } catch { return null; }
+  if (r?.schema !== ESQUEMA) return null;
+  const { schema, emisor, t, recibo: decupla, id, firma } = r;
+  return { schema, emisor, t, recibo: decupla, id, firma };
+}
 
 /**
  * El almacén que espera api.js, sobre un relé. Los ejes (nombre y hash de la
@@ -42,6 +57,17 @@ export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(),
   const indices = new Map(); // eje → [{ orden, id, nostr, recibido }] por llegada
   const lista = (eje) => indices.get(eje) ?? [];
   const eventoDe = (fila) => desenvolver(rele.consultar({ ids: [fila.nostr] })[0]);
+  let enCursoInsertar = Promise.resolve();
+  async function insertarYa(eje, { id, cuerpo }) {
+    if (lista(eje).some((x) => x.id === id)) return null;
+    await antesDePublicar(eje, cuerpo);
+    const sobre = await envolver({ evento: cuerpo, eje, privada: privadaTransporte, claveDe: (n) => almacen.claveDe(eje, n), ahora: ahora() });
+    const r = await rele.publicar(sobre);
+    if (!r.ok) throw new Error('el relé no aceptó el evento: ' + r.motivo);
+    const fila = { orden: lista(eje).length + 1, id, nostr: sobre.id, recibido: relojDeRecibo(r.recibo).instante };
+    indices.get(eje).push(fila);
+    return { orden: fila.orden, recibido: fila.recibido };
+  }
 
   const almacen = {
     async crearEje(eje, claveHash) {
@@ -70,15 +96,11 @@ export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(),
       const f = lista(eje).find((x) => x.id === id);
       return f ? { orden: f.orden, recibido: f.recibido } : null;
     },
-    async insertar(eje, { id, cuerpo }) {
-      if (lista(eje).some((x) => x.id === id)) return null;
-      await antesDePublicar(eje, cuerpo);
-      const sobre = await envolver({ evento: cuerpo, eje, privada: privadaTransporte, claveDe: (n) => almacen.claveDe(eje, n), ahora: ahora() });
-      const r = await rele.publicar(sobre);
-      if (!r.ok) throw new Error('el relé no aceptó el evento: ' + r.motivo);
-      const fila = { orden: lista(eje).length + 1, id, nostr: sobre.id, recibido: relojDeRecibo(r.recibo).instante };
-      indices.get(eje).push(fila);
-      return { orden: fila.orden, recibido: fila.recibido };
+    // De uno en uno: el `orden` servido y el «orden» firmado de la cadena se dan en el mismo paso (nada se cruza entre dos POST).
+    insertar(eje, datos) {
+      const r = enCursoInsertar.then(() => insertarYa(eje, datos));
+      enCursoInsertar = r.catch(() => {});
+      return r;
     },
     async listar(eje, desde, cuantos) {
       return lista(eje).filter((f) => f.orden > desde).slice(0, cuantos).map((f) => ({ orden: f.orden, recibido: f.recibido, cuerpo: eventoDe(f) }));
@@ -99,11 +121,13 @@ export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(),
         indices.get(eje).push({ orden: indices.get(eje).length + 1, id: valores(ev, 'g')[0], nostr: ev.id, recibido: recibo ? relojDeRecibo(recibo).instante : null });
       }
     },
-    /** El reloj X.6.8.1 de un evento AGRAM del eje, o null. */
+    /** El reloj X.6.8.1 de un evento AGRAM del eje, con `sobre` (el recibo único entero del content del 7701, si lo hay), o null. */
     async recibo(eje, id) {
       const f = lista(eje).find((x) => x.id === id);
       const recibo = f && rele.reciboDe(f.nostr);
-      return recibo ? relojDeRecibo(recibo) : null;
+      if (!recibo) return null;
+      const s = sobreDe(recibo);
+      return { ...relojDeRecibo(recibo), ...(s ? { sobre: s } : {}) };
     },
   };
   return almacen;
@@ -118,7 +142,7 @@ export function crearServicio({
   espejos = [], // relés Nostr de verdad a los que se replica todo lo guardado (src/espejo.js), p. ej. el strfry de la casa
   archivo = null, // con él, el libro persiste: el relé en `archivo` (JSONL) y los ejes en `archivo`.ejes.json; llamar a abrir()
   privadaTransporte = generarClaves().privada,
-  rele = new Rele({ archivo: archivo ?? undefined, alGuardar: espejos.length ? crearEspejo({ urls: espejos, aviso: (m) => console.error('[espejo] ' + m) }).enviar : null, firmantesDeRechazo: autoridad ? [autoridad.publica] : [], firmantesDeEvento: autoridad ? [publicaDe(privadaTransporte)] : null, contenidoRecibo: autoridad ? (sobre, instante, rele) => autoridad.contenidoDeAceptacion(sobre, instante, rele) : null, etiquetasRecibo: autoridad ? (sobre) => autoridad.etiquetasDeAceptacion(valores(sobre, 'h')[0], JSON.parse(sobre.content)) : undefined }),
+  rele = new Rele({ archivo: archivo ?? undefined, alGuardar: espejos.length ? crearEspejo({ urls: espejos, aviso: (m) => console.error('[espejo] ' + m) }).enviar : null, firmantesDeRechazo: autoridad ? [autoridad.publica] : [], firmantesDeEvento: autoridad ? [publicaDe(privadaTransporte)] : null, contenidoRecibo: autoridad ? (sobre, instante, rele, cadena) => autoridad.contenidoDeAceptacion(sobre, instante, rele, cadena) : null, etiquetasRecibo: autoridad ? (sobre) => autoridad.etiquetasDeAceptacion(valores(sobre, 'h')[0], JSON.parse(sobre.content)) : undefined }),
   crearEjes = { secreto: 'prueba' },
   ahora = () => new Date(),
   blossom = crearBlossom({ ahora }),
@@ -132,18 +156,24 @@ export function crearServicio({
     antesDePublicar: autoridad ? (eje, ev) => autoridad.aplicar(eje, ev) : undefined,
     alCrearEje: archivoEjes ? (filas) => writeFileSync(archivoEjes, JSON.stringify(filas)) : undefined,
   });
-  // El sellado de los recibos 7701 por lotes.
+  // El sellado de los recibos 7701 por lotes; cada lote lleva además el id del último recibo encadenado de cada eje que
+  // creció (el remate del orden firmado: con su sello, el orden de toda la cadena hasta él queda fijado en el tiempo).
   let porSellar = [];
+  const ultimos = new Map(); // eje → id del recibo único del último eslabón, desde el lote anterior
   async function sellarPendientes() {
     if (!sellador || !porSellar.length) return null;
-    const ids = porSellar;
+    const ids = [...porSellar, ...ultimos.values()];
     porSellar = [];
+    ultimos.clear();
     return sellador.sellar(ids);
   }
   if (sellador) {
     let vivos = false;
     rele.suscribir([{ kinds: [7701] }], (ev) => {
       if (!vivos) return; // lo ya guardado al arrancar no se vuelve a sellar aquí
+      const eje = valores(ev, 'h')[0];
+      const eslabon = eje === undefined ? null : rele.ultimoEslabon(eje);
+      if (eslabon) ultimos.set(eje, eslabon.id);
       porSellar.push(ev.id);
       if (porSellar.length >= lote) sellarPendientes();
     }, () => { vivos = true; });

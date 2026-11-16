@@ -12,6 +12,12 @@
 // Con `archivo` el relé es también el ARCHIVO que nunca purga (contrato §1): cada evento que
 // guarda se añade como una línea JSON, en orden de llegada, y al arrancar se vuelve a leer
 // (verificando cada firma). Es lo que permite reconstruir el libro y revalidarlo entero.
+//
+// La llegada encadenada (SIP 0; docs/notas/ORDEN_FIRMADO.md): el recibo de cada 7700 lleva su
+// «orden» en la cadena de su eje (etiqueta h; desde 0, en texto decimal) y su «anterior» (el id del
+// recibo de orden − 1; falta solo en el 0). Una cadena por eje: `cadenas` guarda el último eslabón
+// de cada uno y, al abrir el archivo, se rehace leyendo los 7701 guardados (los que no traen
+// «orden», de antes de la cadena, no cuentan). Un 7703 no entra en la cadena.
 
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { firmar, verificar, publicaDe, generarClaves, valores } from './nostr.js';
@@ -56,7 +62,7 @@ export class Rele {
    * @param {() => Date} [o.ahora] el reloj del relé (inyectable en las pruebas)
    * @param {number[]} [o.kinds]   kinds admitidos (por defecto 7700, 7701 y 7703)
    * @param {(ev) => string[][]} [o.etiquetasRecibo]  etiquetas extra del recibo de un 7700 (la autoridad pone nucleo y epoca)
-   * @param {(ev, instante: Date) => Promise<object>} [o.contenidoRecibo]  el recibo único (stateark.recibo@1) que va en el content del 7701; por defecto, uno de «llegada» firmado por el relé
+   * @param {(ev, instante: Date, rele: string, cadena?: { orden: number, anterior?: string }) => Promise<object>} [o.contenidoRecibo]  el recibo único (stateark.recibo@1) que va en el content del 7701, con el eslabón `cadena` de su eje; por defecto, uno de «llegada» firmado por el relé
    * @param {string[]} [o.firmantesDeRechazo]  claves que pueden publicar un 7703 (la de la autoridad)
    * @param {string[]|null} [o.firmantesDeEvento]  si se da, solo esas claves publican un 7700 (con autoridad: la de transporte, que solo publica lo ya juzgado)
    * @param {string} [o.archivo]   ruta del archivo JSONL donde se guarda todo, en orden de llegada (se carga con `abrir`)
@@ -67,7 +73,8 @@ export class Rele {
     this.ahora = ahora;
     this.kinds = kinds;
     this.etiquetasRecibo = etiquetasRecibo;
-    this.contenidoRecibo = contenidoRecibo ?? ((ev, instante) => llegada({ idAgram: valores(ev, 'g')[0] ?? '—', idNostr: ev.id, eje: valores(ev, 'h')[0] ?? '—', instante: instante.toISOString(), rele: this.publica }, this.privada));
+    this.contenidoRecibo = contenidoRecibo ?? ((ev, instante, _rele, cadena) => llegada({ idAgram: valores(ev, 'g')[0] ?? '—', idNostr: ev.id, eje: valores(ev, 'h')[0] ?? '—', instante: instante.toISOString(), rele: this.publica, ...(cadena ?? {}) }, this.privada));
+    this.cadenas = new Map(); // eje → { orden, id }: el último recibo encadenado de cada eje
     this.eventos = new Map(); // id → { ev, llegada }
     this.siguiente = 1;
     this.subs = new Set();
@@ -87,9 +94,25 @@ export class Rele {
       if (this.eventos.has(ev.id)) continue;
       if (!(await verificar(ev))) throw new Error('el archivo del relé tiene un evento que no verifica: ' + ev.id);
       this.eventos.set(ev.id, { ev, llegada: this.siguiente++ });
+      if (ev.kind === KIND_RECIBO) this.anotarEslabon(ev);
       n++;
     }
     return n;
+  }
+
+  /** Apunta el recibo 7701 `recibo` como último eslabón de la cadena de su eje, si trae «orden» (los de antes de la cadena, no). */
+  anotarEslabon(recibo) {
+    const eje = valores(recibo, 'h')[0];
+    let r = null;
+    try { r = JSON.parse(recibo.content); } catch { /* sin recibo único: no encadena */ }
+    const k = Array.isArray(r?.recibo?.[2]) ? r.recibo[2].indexOf('orden') : -1;
+    if (eje === undefined || k < 0 || !/^(0|[1-9][0-9]*)$/.test(r.recibo[3]?.[k] ?? '')) return;
+    this.cadenas.set(eje, { orden: Number(r.recibo[3][k]), id: r.id });
+  }
+
+  /** El último recibo encadenado del eje `eje`: { orden, id } (id: el del recibo único), o null. */
+  ultimoEslabon(eje) {
+    return this.cadenas.get(eje) ?? null;
   }
 
   /** Todos los eventos guardados, en orden de llegada. */
@@ -120,8 +143,14 @@ export class Rele {
     const tags = [['e', ev.id], ['ms', instante.toISOString()]];
     for (const n of ['g', 'h']) for (const v of valores(ev, n)) tags.push([n, v]);
     tags.push(...this.etiquetasRecibo(ev));
-    const content = JSON.stringify(await this.contenidoRecibo(ev, instante, this.publica));
-    return firmar({ kind: KIND_RECIBO, created_at: Math.floor(instante.getTime() / 1000), tags, content }, this.privada);
+    // El eslabón: el siguiente orden de la cadena de su eje y, si no es el 0, el id del recibo anterior.
+    const eje = valores(ev, 'h')[0];
+    const previo = eje === undefined ? null : this.cadenas.get(eje);
+    const cadena = eje === undefined ? undefined : previo ? { orden: previo.orden + 1, anterior: previo.id } : { orden: 0 };
+    const content = JSON.stringify(await this.contenidoRecibo(ev, instante, this.publica, cadena));
+    const recibo = await firmar({ kind: KIND_RECIBO, created_at: Math.floor(instante.getTime() / 1000), tags, content }, this.privada);
+    this.anotarEslabon(recibo);
+    return recibo;
   }
 
   guardar(ev) {
