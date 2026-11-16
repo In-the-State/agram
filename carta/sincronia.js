@@ -13,6 +13,11 @@
 //   ejeDelServidor({ cuenta, … })     → un dispositivo sin eje local: el eje nace del génesis del servidor
 //   enSerie(fn)                       → las llamadas de una en una: la que llega con otra en marcha, se repite al acabar
 //   lineaDeEstado(S, informe)         → lo que enseña la línea de estado (carta/dom.js htmlSincronia)
+//   soltar(S, alta)                   → al cambiar de libro: la sincronía de antes se suelta (su estado queda guardado)
+//
+// Varios libros (A24, §4.6): sigue habiendo UNA sola sincronía viva, la del libro abierto. Al cambiar de libro, la de antes
+// se suelta (soltar) y se abre la del nuevo (abrir); los demás libros se ponen al día al entrar. No hay sincronía de fondo.
+// Cada libro tiene su destino y su clave de lectura, por alta, como siempre.
 
 import { sincronia, sello as selloDeTiempo, pago as pagos } from '../src/index.js';
 import * as cuentas from './cuentas.js';
@@ -75,6 +80,18 @@ export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora, fir
 
 /** ¿Sigue la cuenta en este navegador? (Si se olvidó mientras se sincronizaba, no se vuelve a escribir nada suyo.) */
 const sigue = (alta) => cuentas.cuentas().some((c) => c.alta === alta);
+
+/**
+ * Suelta la sincronía de un libro al cambiar a otro (A24, §4.6): guarda su estado por su alta (si el libro sigue en este
+ * navegador) y devuelve null, lo que queda como sincronía de ese libro: nadie vuelve a llamarla. Lo que tuviera en marcha
+ * acaba y guarda lo suyo por su alta (pasar), sin tocar el libro nuevo. Nunca lanza.
+ */
+export function soltar(S, alta) {
+  try {
+    if (S && alta && sigue(alta)) cuentas.guardarEstadoSincronia(alta, S.serializar());
+  } catch { /* sin almacenamiento: nada que guardar */ }
+  return null;
+}
 
 /**
  * Sincroniza una vez: S.sincronizar(eje) (baja, valida, reordena si hace falta, sube lo pendiente; nunca lanza por

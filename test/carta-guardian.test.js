@@ -131,7 +131,7 @@ test('crear una cuenta en el guardián: ninguna clave privada en el almacén, la
     assert.equal(almacen.has(Q.CLAVES.clave(r.cuenta.alta)), false, 'sin agram.clave.<alta>');
     const [privada] = g.privadas();
     assert.ok(![...almacen.values()].some((v) => v.includes(privada)), 'la privada no está en ningún sitio del almacén');
-    assert.deepEqual(Q.cuentas(), [{ nombre: 'Víctor Gil', idioma: 'en', identidad: 'victor-gil', alta: r.cuenta.alta, publica: r.publica, guardian: true }]);
+    assert.deepEqual(Q.cuentas(), [{ nombre: 'Víctor Gil', idioma: 'en', identidad: 'victor-gil', alta: r.cuenta.alta, publica: r.publica, guardian: true, libro: r.cuenta.alta }]); // A24: con su libro
     const abierta = await Q.abrirCuenta(r.cuenta.alta, { guardian: g });
     assert.deepEqual([abierta.eje.orden, abierta.publica, abierta.soloLeer, abierta.privada], [r.eje.orden, r.publica, undefined, undefined]);
   });
@@ -346,13 +346,13 @@ test('sin anfitrión, crear una cuenta va por el camino A exactamente como hoy',
   await conAlmacen(async (almacen) => {
     const r = await Q.crearCuenta({ nombre: 'Víctor', idioma: 'en', t: T1, htmlInicial: true });
     assert.deepEqual(Object.keys(r), ['cuenta', 'eje', 'privada', 'publica']);
-    assert.deepEqual(Object.keys(r.cuenta), ['nombre', 'idioma', 'identidad', 'alta', 'publica'], 'sin marca');
+    assert.deepEqual(Object.keys(r.cuenta), ['nombre', 'idioma', 'identidad', 'alta', 'publica', 'libro'], 'sin marca (y con su libro, A24)');
     assert.match(r.privada, /^[0-9a-f]{64}$/);
     assert.equal(autoridad.publicaDe(r.privada), r.publica);
     for (const id of r.eje.orden) assert.equal(await autoridad.verificar(r.eje.obtener(id), r.publica), true);
     assert.equal(await Q.guardarCuenta(r), true);
     assert.equal(almacen.get(Q.CLAVES.clave(r.cuenta.alta)), r.privada, 'la clave, en el navegador, como hoy');
-    assert.deepEqual(JSON.parse(almacen.get(Q.CLAVES.cuentas)), [{ nombre: 'Víctor', idioma: 'en', identidad: 'victor', alta: r.cuenta.alta, publica: r.publica }]);
+    assert.deepEqual(JSON.parse(almacen.get(Q.CLAVES.cuentas)), [{ nombre: 'Víctor', idioma: 'en', identidad: 'victor', alta: r.cuenta.alta, publica: r.publica, libro: r.cuenta.alta }]); // A24: con su libro
     const abierta = await Q.abrirCuenta(r.cuenta.alta);
     assert.deepEqual([abierta.privada, abierta.soloLeer], [r.privada, undefined]);
     const copia = await Q.exportarCuenta(r, FRASE, { iteraciones: 1000, t: T1 });

@@ -208,9 +208,70 @@ function custodiaDelRegistro(eje, X, ctx) {
     enlazadas: (c.ramas ?? []).filter((r) => r.de !== c.de).map((r) => ({ ...r, porTexto: legibleDe(eje, { ref: r.por }, null, ctx.opciones).texto })),
     // En «este libro», por padre, en qué ramas guarda, sella y lee (contrato.ramasDelLibro, Core 17-11); solo con más de una rama.
     porPadre: X === eje.genesisId ? padresPorRama(eje, ctx) : null,
-    // Los libros privados que cuelgan de X (encargo «abrir aquí un libro privado»): solo que existen y quién los abrió, de contrato.librosPrivados.
-    privados: contrato.librosPrivados(eje, X, ctx.opciones).map(({ libro, quien }) => ({ libro, quien })),
+    // Los libros privados que cuelgan de X (encargo «abrir aquí un libro privado»): que existen y quién los abrió, de
+    // contrato.librosPrivados, con el id entero del libro; y, con varios libros (A24, §4.5), «Entrar» en los míos.
+    privados: privadosDe(eje, X, ctx),
+    // En el génesis de un libro que cuelga de otro (A24, §4.5): de qué cuelga, con «Volver» si tengo el grande aquí.
+    cuelga: X === eje.genesisId ? cuelgaDelLibro(eje, ctx) : null,
+    // «Abrir aquí un libro privado» (A24, §4.4): en una cuenta que firma, donde puedo escribir el anuncio sobre X.
+    abrirPrivado: puedoAbrirPrivado(eje, X, ctx) ? X : null,
   };
+}
+
+// ---------- varios libros (A24; agram-equipo/DISENO_CARTA_VARIOS_LIBROS.md §4.4 y §4.5) ----------
+// La app pasa en `opciones.libros` lo que sabe de este dispositivo: { propios: las entradas de mi clave (carta/cuentas.js:
+// { alta, libro, nombre, cuelga }), puedeAbrir (una cuenta que firma), puedeAnunciar (el anfitrión da claves de línea) }.
+// Sin `libros` (un ejemplo, las pruebas de siempre), todo queda como antes: la línea del libro privado, sin enlace.
+
+const misLibros = (ctx) => (Array.isArray(ctx.opciones?.libros?.propios) ? ctx.opciones.libros.propios.filter((e) => e && typeof e.alta === 'string') : []);
+
+/**
+ * Los libros privados que cuelgan de X, para quien mira: de cada uno, el libro (id entero) y quién lo abrió; si es uno de
+ * mis libros y el enlace es recíproco (mi entrada dice que cuelga de este libro y de X: contrato.cuelgaDe, solo del autor
+ * de su génesis), `entrar` (el alta de mi entrada); si no es recíproco, `noReciproco` y no se ofrece entrar. Además, mis
+ * libros que dicen colgar de X y aún no están anunciados aquí (`sinAnunciar`), con `entrar`.
+ */
+function privadosDe(eje, X, ctx) {
+  const mios = misLibros(ctx);
+  const deX = (e) => e.cuelga?.libro === eje.genesisId && e.cuelga?.elemento === X;
+  const lista = contrato.librosPrivados(eje, X, ctx.opciones).map(({ libro, quien }) => {
+    const mio = mios.find((e) => e.libro === libro);
+    if (!mio) return { libro, quien };
+    return { libro, quien, nombre: mio.nombre, ...(deX(mio) ? { entrar: mio.alta } : { noReciproco: true }) };
+  });
+  for (const e of mios) if (e.libro && deX(e) && !lista.some((l) => l.libro === e.libro)) lista.push({ libro: e.libro, nombre: e.nombre, sinAnunciar: true, entrar: e.alta });
+  return lista;
+}
+
+/**
+ * De qué cuelga este libro (contrato.cuelgaDe), en su génesis: el libro grande y el elemento, sus nombres si los sé (el del
+ * libro grande, de su entrada en este dispositivo; el del elemento, de la mía), `volver` (el alta de mi entrada del grande,
+ * si lo tengo aquí), si ya consta anunciado y si se ofrece anunciarlo desde aquí (`anunciar`: soy el autor del génesis, el
+ * anfitrión da claves de línea y tengo el grande aquí). null si no cuelga de nada.
+ */
+function cuelgaDelLibro(eje, ctx) {
+  const c = contrato.cuelgaDe(eje);
+  if (!c) return null;
+  const mios = misLibros(ctx);
+  const grande = mios.find((e) => e.libro === c.libro) ?? null;
+  const propio = mios.find((e) => e.libro === eje.genesisId);
+  const mismo = propio?.cuelga?.libro === c.libro && propio?.cuelga?.elemento === c.elemento;
+  const anunciado = mismo && propio.cuelga.anunciado === true;
+  const autor = eje.obtener(eje.genesisId)?.autor === ctx.yo;
+  return {
+    libro: c.libro, elemento: c.elemento, libroNombre: grande?.nombre ?? null, elementoNombre: mismo ? propio.cuelga.nombre ?? null : null,
+    volver: grande?.alta ?? null, anunciado, autor, anunciar: Boolean(!anunciado && autor && grande && ctx.opciones?.libros?.puedeAnunciar === true),
+  };
+}
+
+/** ¿Se ofrece «abrir aquí un libro privado» sobre X? En una cuenta que firma, si puedo escribir sobre X su anuncio (la plantilla lo ofrece). */
+function puedoAbrirPrivado(eje, X, ctx) {
+  if (ctx.opciones?.libros?.puedeAbrir !== true || !ctx.yo) return false;
+  try {
+    return acciones.acciones(eje, X, 9, ctx.yo, ctx.opciones).some((a) => a.nombre === contrato.LIBRO_PRIVADO.abrir);
+  } catch {
+    return false;
+  }
 }
 
 /**

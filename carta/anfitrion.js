@@ -16,6 +16,11 @@
 // con él (firmanteDeCuenta): propone sin firmar y el guardián firma con la clave de la propia cuenta, que la carta nunca
 // ve. Sin esos cuatro verbos, `guardian` es null y todo sigue por el camino A, como hoy. `pedirSesion` es un verbo
 // opcional más (abre la sesión sin escribir ningún registro): no entra en la detección.
+//
+// Varios libros (A24, acordado con Core StateArk el 17-11): la misma clave firma en varios libros. La carta añade `libro`
+// (el id del génesis del libro abierto) a `firmar({ publica, libro, … })` y a `criterios({ publica, libro, registros })`, y
+// pide las claves de línea de un libro con el verbo opcional `clavesDeLinea({ publica, libro }) → [{ nivel, clave }]`. Un
+// anfitrión que no mira `libro` sigue valiendo; uno sin `clavesDeLinea` no da ninguna.
 
 import * as acciones from '../src/acciones.js';
 import { evaluar } from '../src/bqlm.js';
@@ -24,6 +29,7 @@ import { epocaDelEje } from '../src/epocas.js';
 import { clavePublicaValida, verificar } from '../src/autoridad.js';
 import { canonico, cuerpo } from '../src/evento.js';
 import { pideDialogo } from './reglas.js';
+import { LIBRO_PRIVADO } from '../src/contrato.js';
 
 /** El global del anfitrión, leído UNA vez al cargar (si leerlo lanza, como si no estuviera). */
 const delGlobal = (() => { try { return globalThis.__AGRAM_ANFITRION__; } catch { return undefined; } })();
@@ -138,6 +144,13 @@ export async function crearEnElGuardian(g, nombre) {
   return publica;
 }
 
+/** ¿Es la candidata un registro del enlace entre dos libros (su 4 dice «open a private book here» o «this book hangs from»)? */
+function esDelLibroPrivado(payload) {
+  const x = Array.isArray(payload) ? payload[4] : undefined;
+  const lista = Array.isArray(x) ? x : [x];
+  return lista.some((a) => a === LIBRO_PRIVADO.abrir || a === LIBRO_PRIVADO.cuelga);
+}
+
 /** La lectura del segundo factor sobre una candidata (la de acciones.transaccion: «second factor», X.6.8.7, con ev = la candidata). */
 const SEGUNDO_FACTOR_DE_LA_CANDIDATA = '(first ev.6).8.7';
 
@@ -162,6 +175,8 @@ export function segundoFactorDe(eje, { canonico, id } = {}) {
     if (cuerpo?.sobre === null && cuerpo?.contexto?.genesis === true) return false;
     // El gobierno de las reglas (A21, diseño §8 y §9): proponer, apoyar, aprobar y poner en vigor piden siempre diálogo.
     if (pideDialogo(cuerpo?.payload)) return true;
+    // Abrir un libro privado (A24, §4.8): «open a private book here» y «this book hangs from» piden siempre diálogo.
+    if (esDelLibroPrivado(cuerpo?.payload)) return true;
     if (!eje || typeof eje.obtener !== 'function') return true;
     if (!acciones.criteriosDeSegundoFactor(eje, cuerpo.autor).length && !acciones.criteriosDeOtraPlantilla(eje).length) return false;
     const ctx = new ContextoEje(eje, { ev: { ...cuerpo, id }, epoch: epocaDelEje(eje) });
@@ -174,17 +189,33 @@ export function segundoFactorDe(eje, { canonico, id } = {}) {
 }
 
 /**
+ * El libro en que se firma (A24): el id del génesis del eje que se mira o, si lo que se firma es un génesis (aún no hay
+ * eje: un libro que nace), su propio id. Sin eje y sin génesis, null. Nunca lanza.
+ */
+export function libroDeLaFirma(eje, { canonico, id } = {}) {
+  if (typeof eje?.genesisId === 'string' && eje.genesisId) return eje.genesisId;
+  try {
+    const c = JSON.parse(canonico);
+    return c?.sobre === null && c?.contexto?.genesis === true && typeof id === 'string' ? id : null;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * El firmante de una cuenta del guardián, el único que la carta usa para ella: ({ canonico, id }) →
  * guardian.firmar({ publica, canonico, id, segundoFactor }), con `segundoFactor` calculado sobre el eje de `eje()` (el que
- * está en pantalla). Tiene la forma del firmante del núcleo, que comprueba lo que vuelve (forma, id, que verifica con la
+ * está en pantalla) y `libro`, el id del génesis de ese eje (el del registro mismo si es un génesis: libroDeLaFirma). Con
+ * `dialogo`, `segundoFactor` siempre verdadero: el guardián abre su diálogo (abrir un libro privado). Tiene la forma del firmante del núcleo, que comprueba lo que vuelve (forma, id, que verifica con la
  * clave); aquí se comprueba también, para dar un `code`. `error`: el error de la última firma (null si firmó), para
  * decirlo en llano.
  */
-export function firmanteDeCuenta(g, publica, { eje = () => null } = {}) {
+export function firmanteDeCuenta(g, publica, { eje = () => null, dialogo = false } = {}) {
   const firmar = async ({ canonico, id }) => {
     firmar.error = null;
     try {
-      const r = await g.firmar({ publica, canonico, id, segundoFactor: segundoFactorDe(eje(), { canonico, id }) });
+      const e = eje();
+      const r = await g.firmar({ publica, libro: libroDeLaFirma(e, { canonico, id }), canonico, id, segundoFactor: dialogo === true || segundoFactorDe(e, { canonico, id }) });
       // Lo que vuelve se comprueba aquí también (el núcleo lo vuelve a hacer), para que un fallo del guardián lleve `code`
       // y la carta lo diga en llano: otro id, id_mismatch; una firma que no es o no verifica con la cuenta, invalid_signature.
       const objeto = r !== null && typeof r === 'object';
@@ -220,8 +251,8 @@ export function firmanteDeServicio(g, publica) {
 }
 
 /**
- * El verbo opcional `criterios({ publica, registros }) → { aceptados }` (cerrado con StateArk el 17-11): si el guardián lo
- * ofrece, recibe los registros de los criterios de segundo factor del titular (acciones.criteriosDeSegundoFactor: los
+ * El verbo opcional `criterios({ publica, libro, registros }) → { aceptados }` (cerrado con StateArk el 17-11): si el guardián lo
+ * ofrece, recibe el libro (el id del génesis de `eje`: los criterios van por clave y libro, A24) y los registros de los criterios de segundo factor del titular (acciones.criteriosDeSegundoFactor: los
  * «second factor» de su 2.4) como [{ canonico, id, firma }] (el cuerpo canónico, su id y su firma). No pide sesión; con una
  * cuenta que no tiene rechaza con unknown_account. De `aceptados` no se depende. → { ids, error } (ids: los pasados, para
  * no repetir lo mismo; error: el rechazo, o null), o null si no lo ofrece. Nunca lanza.
@@ -233,13 +264,52 @@ export async function pasarCriterios(g, eje, identidad, publica) {
       .map((ev) => ({ canonico: canonico(cuerpo(ev)), id: ev.id, firma: ev.firma ?? null }));
     let error = null;
     try {
-      await g.criterios({ publica, registros });
+      await g.criterios({ publica, libro: eje.genesisId ?? null, registros });
     } catch (e) {
       error = e ?? new Error('el guardián no aceptó los criterios'); // un fallo del guardián no rompe la carta
     }
     return { ids: registros.map((r) => r.id), error };
   } catch {
     return null;
+  }
+}
+
+/** ¿Ofrece el anfitrión el verbo opcional `clavesDeLinea`? Nunca lanza. */
+export function puedeDarClavesDeLinea(g) {
+  try {
+    return g !== null && typeof g === 'object' && typeof g.clavesDeLinea === 'function';
+  } catch {
+    return false;
+  }
+}
+
+const CLAVE_XONLY = /^[0-9a-f]{64}$/;
+/** Cuántas claves de línea, como mucho (la plantilla «open a private book here»: de una a cuatro). */
+const MAX_CLAVES_DE_LINEA = 4;
+
+/**
+ * Las claves de línea de un libro (A24, §4.4; acordado con Core StateArk el 17-11): el verbo opcional del anfitrión
+ * `clavesDeLinea({ publica, libro }) → [{ nivel, clave }]`. Lo que vuelve se limpia: solo pares con un nivel entero positivo
+ * sin repetir y una clave x-only (64 hex en minúsculas), cuatro como mucho; lo demás se tira (la plantilla vuelve a
+ * comprobarlo al escribir). Sin el verbo (o la clave en el navegador: no hay anfitrión que selle), si lanza o devuelve otra
+ * cosa: []. Nunca lanza.
+ */
+export async function clavesDeLinea(g, publica, libro) {
+  if (!puedeDarClavesDeLinea(g) || typeof publica !== 'string' || typeof libro !== 'string') return [];
+  try {
+    const r = await g.clavesDeLinea({ publica, libro });
+    if (!Array.isArray(r)) return [];
+    const fuera = [];
+    for (const x of r) {
+      const nivel = x !== null && typeof x === 'object' ? x.nivel : undefined;
+      const clave = x !== null && typeof x === 'object' ? x.clave : undefined;
+      if (!Number.isInteger(nivel) || nivel < 1 || typeof clave !== 'string' || !CLAVE_XONLY.test(clave) || fuera.some((c) => c.nivel === nivel)) continue;
+      fuera.push({ nivel, clave });
+      if (fuera.length === MAX_CLAVES_DE_LINEA) break;
+    }
+    return fuera;
+  } catch {
+    return [];
   }
 }
 

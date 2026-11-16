@@ -15,6 +15,12 @@
 // clave de lectura en este navegador sincroniza su eje con el servidor: al entrar (sin esperar: se pinta ya con lo
 // local), tras cada escritura, al volver la red y cada 30 s con la pestaña visible; de una en una. Los ejemplos no
 // sincronizan nunca. Nada de esto bloquea: se escribe en local y la cola sube lo pendiente.
+//
+// Varios libros (A24; carta/libros.js): una persona es una clave y esa clave tiene varios libros. «Tus libros», en la
+// cabecera, cambia de libro con lo que ya hay (entrarEnCuenta → entrarCon → cambiarDeEje: la sincronía de antes se suelta
+// y se abre la del nuevo; los criterios se vuelven a mandar al guardián). «Abrir aquí un libro privado» crea el libro
+// pequeño con mi clave, escribe en él de qué cuelga y, si el anfitrión da claves de línea, lo anuncia en el grande;
+// «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
 import { arbol, porFirmar, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
@@ -28,7 +34,8 @@ import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
-import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios, pedirSesion, puedePedirSesion } from './anfitrion.js';
+import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios, pedirSesion, puedePedirSesion, clavesDeLinea, puedeDarClavesDeLinea } from './anfitrion.js';
+import * as libros from './libros.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
@@ -70,6 +77,9 @@ const estado = {
   // «Reglas del libro» (A21; carta/reglas.js): la vista abierta ({ cambio: id | null, proponer: { posicion, valores } | null,
   // aviso, motivos, exito }) o null; y «Ajustes de este elemento» abierta ({ X }) o null.
   reglas: null, ajustes: null,
+  // «Abrir aquí un libro privado» (A24, §4.4; carta/libros.js): el diálogo abierto ({ X, elemento, nombre, fase, cuelga,
+  // anuncio, claves, pequeno, … }) o null.
+  libroPrivado: null,
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -316,7 +326,9 @@ function extraDe() {
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
-    cuentas: cuentas.cuentas(), cuenta: estado.cuenta ? { nombre: estado.cuenta.nombre, alta: estado.cuenta.alta, identidad: estado.cuenta.identidad } : null,
+    cuentas: conEtiquetas(cuentas.cuentas()), cuenta: estado.cuenta ? { nombre: estado.cuenta.nombre, alta: estado.cuenta.alta, identidad: estado.cuenta.identidad } : null,
+    // Varios libros (A24): «Tus libros» y el diálogo del libro privado.
+    libros: estado.cuenta ? tusLibrosDe() : undefined, libroPrivado: estado.libroPrivado ?? undefined,
     guiaAjustes: estado.config && estado.eje ? guiaAjustesDe() : undefined,
     exteriorAjustes: estado.config && estado.eje ? conEtiquetasLlanas(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, porDefectoDelSitio().exterior), idioma()) ?? undefined : undefined,
     segundoFactor: estado.config && estado.eje ? segundoFactorDeConfiguracion(estado.eje, estado.identidad) ?? undefined : undefined,
@@ -494,7 +506,7 @@ async function pintar() {
     if (!estado.eje) usarRetoques(null); // sin libro, los textos de la carta tal como nacieron (arbol instala los de cada libro)
     if (estado.eje) {
       try {
-        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarParaVer(estado.identidad) });
+        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarParaVer(estado.identidad), ...(estado.cuenta ? { libros: librosDelArbol() } : {}) });
       } catch (e) {
         a = { vacio: true, avisos: [t('noSePinta', { motivo: e.message ?? e })] };
         console.error(e);
@@ -633,7 +645,8 @@ function cambiarDeEje(eje, identidad) {
   estado.nuevos = new Set();
   estado.arranque = null;
   estado.copia = null;
-  estado.sincronia = null; // la del eje de antes no sigue (la de una cuenta se abre en entrarCon)
+  estado.sincronia = sinc.soltar(estado.sincronia, estado.cuenta?.alta); // la del libro de antes se suelta (la del nuevo se abre en entrarCon)
+  estado.libroPrivado = null;
   estado.lineaSincronia = null;
   limpiarMensajes();
 }
@@ -650,10 +663,33 @@ function descargar(texto, nombre) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+// ---------- varios libros (A24; carta/libros.js) ----------
+
+/** Las entradas con su etiqueta como nombre (dos libros con el mismo nombre se distinguen con ocho letras de su libro). */
+function conEtiquetas(lista) {
+  const e = libros.etiquetas(lista);
+  return lista.map((c) => ({ ...c, nombre: e.get(c.alta) ?? c.nombre }));
+}
+/** Las entradas de mi clave en este dispositivo (la del libro abierto). */
+const misEntradas = () => (estado.cuenta ? cuentas.cuentas().filter((c) => cuentas.mismaClave(c.publica, estado.cuenta.publica)) : []);
+/** ¿Firma la cuenta abierta? (una del navegador con su clave, o una del guardián que no está solo para leer) */
+const firmaLaCuenta = () => Boolean(estado.cuenta && (estado.cuenta.guardian === true ? estado.cuenta.firmante : estado.cuenta.privada));
+/** Lo que el árbol sabe de mis libros (carta.js opciones.libros): las entradas de mi clave, si puedo abrir uno privado y si el anfitrión da claves. */
+const librosDelArbol = () => ({ propios: misEntradas(), puedeAbrir: firmaLaCuenta(), puedeAnunciar: estado.cuenta?.guardian === true && Boolean(estado.cuenta.firmante) && puedeDarClavesDeLinea(guardian) });
+/** ¿Tiene destino de sincronía ese libro? El abierto, si sincroniza; los demás, si guardaron su estado de sincronía y tienen clave de lectura. */
+const conDestino = (alta) => (alta === estado.cuenta?.alta ? Boolean(estado.sincronia) : Boolean(cuentas.claveLectura(alta) && cuentas.estadoSincronia(alta)?.url));
+/** Lo que lista «Tus libros» (libros.tusLibros). */
+const tusLibrosDe = () => libros.tusLibros(cuentas.cuentas(), { publica: estado.cuenta?.publica, abierto: estado.cuenta?.alta, conDestino });
+/** El firmante de eventos de la cuenta abierta (lo que firma en el grande al anunciar). */
+const firmarEnElAbierto = () => firmarCon(estado.identidad);
+
 // ---------- mi cuenta ----------
 
-/** Entra en una cuenta guardada en este navegador: su eje, su clave, mi alta como foco. false (y el motivo en el aviso) si no se abre. */
-async function entrarEnCuenta(alta) {
+/**
+ * Entra en una cuenta guardada en este navegador: su eje, su clave, mi alta como foco (o `foco`, el registro donde se llega
+ * al entrar o volver entre libros, si está en ese eje). false (y el motivo en el aviso) si no se abre.
+ */
+async function entrarEnCuenta(alta, { foco = null } = {}) {
   let r = await cuentas.abrirCuenta(alta, { guardian });
   // Sin eje aquí: el del libro compartido, si la clave cuadra (la privada, o la pública de una cuenta del guardián).
   if (!r.eje && (r.privada || (r.cuenta?.guardian === true && r.publica))) r = await ejeDesdeElLibro(r);
@@ -671,8 +707,31 @@ async function entrarEnCuenta(alta) {
   }
   entrarCon(r);
   estado.guardado = t('cuentaAbierta', { nombre: r.cuenta.nombre, cuantos: r.eje.orden.length });
-  irA(r.cuenta.alta);
+  irA(foco && r.eje.obtener(foco) ? foco : r.cuenta.alta);
   return true;
+}
+
+/**
+ * Restaura la copia de todos mis libros (A24, §4.7): cada libro como la copia de uno (cuentas.restaurarTodos), lo guarda
+ * aquí sin bajar nada del servidor (la sincronía lo pone al día al entrar) y entra en el primero que no cuelga de otro.
+ * Los que fallan se dicen, con su motivo, y no paran a los demás.
+ */
+async function restaurarTodos(ar, texto, frase) {
+  try {
+    const { restaurados, fallidos } = await cuentas.restaurarTodos(texto, frase);
+    for (const x of restaurados) await cuentas.guardarCuenta(await cuentas.conGuardian(x, guardian), { recordar: false });
+    const noVan = fallidos.length ? t('librosNoRestaurados', { lista: fallidos.map((f) => t('libroFallido', { posicion: f.posicion, nombre: f.nombre ?? f.libro ?? '', motivo: f.motivo })).join('; ') }) : '';
+    if (!restaurados.length) { ar.ocupado = false; ar.motivos = [{ mensaje: noVan }]; await pintar(); return; }
+    const primero = restaurados.find((x) => !x.cuenta.cuelga) ?? restaurados[0];
+    if (!(await entrarEnCuenta(primero.cuenta.alta))) return;
+    estado.exito = t('librosRestaurados', { cuantos: restaurados.length });
+    estado.aviso = noVan;
+    pintar();
+  } catch (e) {
+    ar.ocupado = false;
+    ar.motivos = [{ mensaje: String(e?.message ?? e) }];
+    await pintar();
+  }
 }
 
 /**
@@ -1092,6 +1151,7 @@ const manejadores = {
   cerrar() {
     if (hayRosetonAmpliado(estado.rosetones)) estado.rosetones = {};
     else if (estado.copia) estado.copia = null;
+    else if (estado.libroPrivado) estado.libroPrivado = null;
     else if (estado.arranque && estado.eje) estado.arranque = null;
     else if (estado.retoque) estado.retoque = null;
     else if (estado.config) { estado.config = false; estado.motivosPreferencias = []; }
@@ -1740,8 +1800,10 @@ const manejadores = {
   /** La pantalla de arranque: el menú, crear, restaurar, probar con un ejemplo o entrar en una cuenta guardada. */
   async arranque(que) {
     limpiarMensajes();
-    if (que === 'crear') {
-      estado.arranque = { modo: 'crear', campos: cuentas.camposDelAlta({ idioma: idiomaDeInterfaz() }), valores: {}, motivos: [] };
+    if (que === 'crear' || que === 'crear-mio') {
+      // «crear-mio» (A24, §4.2): un libro nuevo con la clave del libro abierto; «crear», persona nueva (una clave nueva).
+      const conMiClave = que === 'crear-mio' && firmaLaCuenta();
+      estado.arranque = { modo: 'crear', campos: cuentas.camposDelAlta({ idioma: idiomaDeInterfaz() }), valores: {}, motivos: [], conClave: firmaLaCuenta(), conMiClave };
     } else if (que === 'restaurar') {
       estado.arranque = { modo: 'restaurar', motivos: [] };
     } else if (que === EJEMPLO) {
@@ -1752,9 +1814,10 @@ const manejadores = {
       await entrarEnCuenta(que.slice('cuenta:'.length));
       return;
     } else {
-      estado.arranque = { modo: 'menu' };
+      estado.arranque = { modo: 'menu', conClave: firmaLaCuenta() };
     }
     estado.copia = null;
+    estado.libroPrivado = null;
     estado.config = false;
     estado.formulario = null;
     estado.aro = null;
@@ -1770,7 +1833,11 @@ const manejadores = {
     await pintar();
     try {
       // Camino B: la cuenta nace en el guardián (su clave nunca llega aquí) y todo lo de su alta lo firma él.
-      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes: ajustesDelSitio.defectos(), htmlInicial: true, ...(guardian ? { guardian } : {}) });
+      // Un libro nuevo con mi clave (A24, §4.2): la de la entrada abierta (con el guardián, la misma pública) y mi identidad;
+      // sin «sync ledger» del sitio, que es el nombre del libro compartido del otro: el nuevo queda solo en este dispositivo.
+      const mio = ar.conMiClave && estado.cuenta ? estado.cuenta : null;
+      const ajustes = mio ? Object.fromEntries(Object.entries(ajustesDelSitio.defectos() ?? {}).filter(([k]) => k !== sincronia.CONFIGURACION.eje)) : ajustesDelSitio.defectos();
+      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...(guardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
       const guardada = await cuentas.guardarCuenta(r);
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');
@@ -1808,6 +1875,8 @@ const manejadores = {
       await pintar();
       return;
     }
+    // La copia de todos mis libros (A24, §4.7): cada libro, tal cual; uno malo no estropea los demás y se dice cuál.
+    if (cuentas.esCopiaDeTodos(texto)) { await restaurarTodos(ar, texto, frase); return; }
     try {
       // La copia de una cuenta del guardián: para leer hasta que el guardián de este equipo tenga la cuenta (conGuardian).
       const r = await cuentas.conGuardian(await cuentas.restaurarCuenta(texto, frase), guardian);
@@ -1839,10 +1908,13 @@ const manejadores = {
     }
   },
   /** La copia de seguridad: abrir el diálogo (null) o, con el formulario, cifrar con la frase y descargar el archivo. */
-  async copia(form) {
+  async copia(form, { todos = false } = {}) {
     if (!estado.cuenta) return;
     if (!form) {
-      estado.copia = { archivo: cuentas.nombreDeArchivo(estado.cuenta), minimo: FRASE_MINIMA, motivos: [], hecho: '' };
+      // La de todos mis libros (A24, §4.7): un archivo con la copia de cada libro de mi clave, tal cual.
+      estado.copia = todos
+        ? { todos: true, archivo: cuentas.nombreDeArchivoDeTodos(estado.cuenta), cuantos: misEntradas().length, minimo: FRASE_MINIMA, motivos: [], hecho: '' }
+        : { archivo: cuentas.nombreDeArchivo(estado.cuenta), minimo: FRASE_MINIMA, motivos: [], hecho: '' };
       estado.config = false;
       estado.formulario = null;
       estado.aro = null;
@@ -1860,16 +1932,126 @@ const manejadores = {
     c.ocupado = true;
     await pintar();
     try {
-      const archivo = await cuentas.exportarCuenta({ cuenta: estado.cuenta, eje: estado.eje, privada: estado.cuenta.privada, claveLectura: cuentas.claveLectura(estado.cuenta.alta) }, frase);
+      let fuera = '';
+      let archivo;
+      if (c.todos) {
+        guardar(); // lo de este libro, al día antes de leerlo
+        const { libros: mios, fallidos } = await libros.librosParaCopia(misEntradas(), { guardian });
+        archivo = await cuentas.exportarTodos(mios, frase);
+        if (fallidos.length) fuera = ' · ' + t('copiaDeTodosSinAlguno', { lista: fallidos.map((f) => `«${f.nombre}» (${f.motivo})`).join('; ') });
+      } else archivo = await cuentas.exportarCuenta({ cuenta: estado.cuenta, eje: estado.eje, privada: estado.cuenta.privada, claveLectura: cuentas.claveLectura(estado.cuenta.alta) }, frase);
       descargar(cuentas.textoDeArchivo(archivo), c.archivo);
       estado.copia = null;
-      estado.exito = t('copiaDescargada', { archivo: c.archivo });
+      estado.exito = t('copiaDescargada', { archivo: c.archivo }) + fuera;
     } catch (e) {
       c.ocupado = false;
       c.motivos = [{ mensaje: String(e?.message ?? e) }];
     }
     await pintar();
   },
+  /** La copia de todos mis libros: abre el diálogo de la copia en ese modo. */
+  copiaTodos() { return manejadores.copia(null, { todos: true }); },
+
+  // ---------- varios libros (A24; carta/libros.js) ----------
+
+  /** «Tus libros»: tocar uno cambia de libro con lo que ya hay (su foco, su alta). */
+  async libro(alta) {
+    if (!alta || alta === estado.cuenta?.alta) return;
+    limpiarMensajes();
+    await entrarEnCuenta(alta);
+  },
+  /** «Abrir otro libro»: la pantalla de arranque de hoy, sobre la carta. */
+  libroOtro() { return manejadores.arranque('menu'); },
+  /** «Entrar» en uno de mis libros privados: cambiar de libro y llegar a `foco` (el génesis del pequeño). */
+  async libroEntrar(alta, foco) {
+    if (!cuentas.cuentas().some((c) => c.alta === alta)) { estado.aviso = t('libroNoEsta'); pintar(); return; }
+    limpiarMensajes();
+    await entrarEnCuenta(alta, { foco });
+  },
+  /** «Volver» al libro grande: cambiar de libro y llegar al elemento del que cuelga el pequeño. */
+  async libroVolver(alta, foco) { return manejadores.libroEntrar(alta, foco); },
+  /**
+   * «Anunciarlo en el libro grande», desde el génesis del pequeño: pide las claves de línea de este libro y, si las hay,
+   * vuelve al elemento del grande con el anuncio a la vista (su coste antes de confirmar). Sin claves, se dice llano.
+   */
+  async libroAnunciar(alta, X) {
+    const pequeno = estado.cuenta;
+    if (!pequeno || !estado.eje) return;
+    limpiarMensajes();
+    const libro = estado.eje.genesisId;
+    const claves = await clavesDeLinea(guardian, pequeno.publica, libro);
+    if (!claves.length) { estado.aviso = t('libroSinSellador'); pintar(); return; }
+    const nombre = pequeno.nombre;
+    if (!(await entrarEnCuenta(alta, { foco: X }))) return;
+    if (!estado.eje.obtener(X)) return;
+    if (contrato.librosPrivados(estado.eje, X).some((l) => l.libro === libro)) {
+      cuentas.marcarCuelga(pequeno.alta, { anunciado: true });
+      estado.exito = t('libroYaAnunciado');
+      pintar();
+      return;
+    }
+    const elemento = ceroDe(estado.eje, X, { idioma: idioma() }, X.slice(0, 8));
+    estado.libroPrivado = { X, elemento, nombre, fase: 'anunciar', guardian: estado.cuenta?.guardian === true, claves: claves.length, clavesDeLinea: claves, anuncio: libros.costeDelAnuncio(estado.eje, X, estado.identidad, { libro, claves }), entrar: pequeno.alta, libro };
+    pintar();
+  },
+  /** «Abrir aquí un libro privado» sobre X: el diálogo, con el nombre del elemento por defecto y lo que cuesta, a la vista. */
+  async libroPrivado(X) {
+    if (!firmaLaCuenta() || !estado.eje?.obtener(X)) return;
+    limpiarMensajes();
+    estado.aro = null;
+    estado.formulario = null;
+    const previa = await libros.previaDelLibroPrivado(estado.eje, X, estado.identidad, { idioma: idioma() });
+    estado.libroPrivado = { X, ...previa, fase: 'pedir', guardian: estado.cuenta?.guardian === true, motivos: [] };
+    pintar();
+  },
+  /**
+   * Confirmado el nombre: crea el libro pequeño con mi clave y escribe en él de qué cuelga (libros.abrirLibroPrivado). Si el
+   * anfitrión da claves de línea, el anuncio en este libro se enseña con su coste para confirmarlo; si no, se dice llano.
+   * Lo hecho queda aunque un paso falle, y se dice qué falta.
+   */
+  async libroPrivadoCrear(form) {
+    const lp = estado.libroPrivado;
+    if (!lp || lp.fase !== 'pedir' || lp.ocupado || !estado.cuenta) return;
+    const nombre = String(valoresDe(form).nombre ?? '').trim() || lp.nombre;
+    lp.nombre = nombre;
+    lp.motivos = [];
+    lp.ocupado = true;
+    await pintar();
+    try {
+      const c = estado.cuenta;
+      const r = await libros.abrirLibroPrivado({ grande: { eje: estado.eje, cuenta: c, privada: c.privada }, X: lp.X, nombre, ...(c.guardian === true ? { guardian } : {}) });
+      Object.assign(lp, { ocupado: false, entrar: r.pequeno.cuenta.alta, libro: r.pequeno.eje.genesisId });
+      if (r.falta) Object.assign(lp, { fase: 'hecho', falta: r.falta, motivos: r.motivos });
+      else if (r.claves.length) Object.assign(lp, { fase: 'anunciar', claves: r.claves.length, clavesDeLinea: r.claves, anuncio: libros.costeDelAnuncio(estado.eje, lp.X, estado.identidad, { libro: lp.libro, claves: r.claves }) });
+      else Object.assign(lp, { fase: 'hecho', sinClaves: true });
+    } catch (e) {
+      lp.ocupado = false;
+      lp.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
+    }
+    pintar();
+  },
+  /** El anuncio en este libro («open a private book here» sobre X, con el id del pequeño y sus claves de línea), confirmado. */
+  async libroPrivadoAnunciar() {
+    const lp = estado.libroPrivado;
+    if (!lp || lp.fase !== 'anunciar' || lp.ocupado) return;
+    lp.ocupado = true;
+    lp.motivos = [];
+    await pintar();
+    try {
+      const r = await libros.anunciarLibroPrivado(estado.eje, lp.X, estado.identidad, { libro: lp.libro, claves: lp.clavesDeLinea, firmar: firmarEnElAbierto() });
+      lp.ocupado = false;
+      if (r.ok && r.asentado) {
+        trasEscribir();
+        cuentas.marcarCuelga(lp.entrar, { anunciado: true });
+        Object.assign(lp, { fase: 'hecho', anunciado: true });
+        marcarNuevos();
+      } else Object.assign(lp, { fase: 'hecho', falta: r.sinClaves ? null : 'anuncio', sinClaves: Boolean(r.sinClaves), motivos: motivosConGuardian(r.motivos ?? []) });
+    } catch (e) {
+      Object.assign(lp, { ocupado: false, fase: 'hecho', falta: 'anuncio', motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] });
+    }
+    pintar();
+  },
+
   /** Olvidar esta cuenta en este navegador (su eje, su clave y sus libros locales); sin copia no se recupera. */
   async olvidar() {
     const c = estado.cuenta;

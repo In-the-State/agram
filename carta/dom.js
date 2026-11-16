@@ -595,9 +595,107 @@ function htmlCustodia(c) {
   const ramas = (c.enlazadas ?? []).map((r) => `<div class="custodia-rama"><small class="custodia-rama-por">${escapar(t('custodiaTambien', { por: r.porTexto ?? '' }))}</small>${htmlPadresDeRama(r.padres)}</div>`).join('');
   const plazo = c.plazo ? `<small class="custodia-plazo">${escapar(t('custodiaPlazo', { plazo: c.plazoEscala ? t('custodiaUna', { escala: t('escalaUna_' + c.plazoEscala) }) : t('custodiaSegundos', { n: c.plazo.segundos }), clase: textoClase(c.clase) }))}</small>` : '';
   const nodo = c.nodo ? `<small class="custodia-nodo">${escapar(t('custodiaNodo'))}</small>` : '';
-  // Una línea por libro privado que cuelga de aquí (encargo «abrir aquí un libro privado»): que existe y quién lo abrió; el id, en corto y sin enlace.
-  const privados = (c.privados ?? []).map((l) => `<small class="custodia-privado">${escapar(t('custodiaLibroPrivado', { libro: corto(l.libro), quien: l.quien ?? '' }))}</small>`).join('');
+  // Una línea por libro privado que cuelga de aquí (encargo «abrir aquí un libro privado»): que existe y quién lo abrió; el id,
+  // en corto. Con varios libros (A24, §4.5): «Entrar» en los míos, «no recíproco» si el enlace no lo dicen los dos lados, mis
+  // libros aún sin anunciar; en el génesis de un libro pequeño, de qué cuelga y «Volver»; y «abrir aquí un libro privado».
+  const privados = (c.privados ?? []).map(htmlLineaPrivado).join('') + htmlCuelgaDe(c.cuelga) + htmlAbrirPrivado(c.abrirPrivado);
   return `<div class="custodia" data-padres="${c.padres?.length ?? 0}"${c.heredado ? ' data-heredado' : ''}><h4>${escapar(t(c.libro ? 'custodiaLibro' : 'custodiaTitulo'))}</h4>${padres}${heredado}${ramas}${plazo}${nodo}${privados}${htmlPorPadre(c.porPadre)}</div>`;
+}
+
+// ---------- varios libros (A24; carta/libros.js, agram-equipo/DISENO_CARTA_VARIOS_LIBROS.md §4.3 a §4.5) ----------
+
+/** «Entrar» en uno de mis libros con un foco de llegada (data-libro-entrar: su alta; data-foco: el registro donde se llega). */
+const botonEntrar = (alta, foco) => `<button type="button" class="enlace"${nodo('control')} data-libro-entrar="${attr(alta)}" data-foco="${attr(foco ?? '')}" title="${attr(t('libroEntrarTitulo'))}">${escapar(t('libroEntrar'))}</button>`;
+
+/**
+ * Una línea de libro privado en «quién guarda esto»: la de siempre (que existe y quién lo abrió, sin enlace) o, si es uno
+ * de mis libros, con «Entrar» (si el enlace es recíproco) o con el aviso de que no lo es; un libro mío que aún no se anuncia
+ * aquí, su propia línea con «Entrar».
+ */
+function htmlLineaPrivado(l) {
+  if (l.sinAnunciar) return `<small class="custodia-privado" data-mio data-sin-anunciar>${escapar(t('libroMioSinAnunciar', { nombre: l.nombre ?? corto(l.libro) }))} ${botonEntrar(l.entrar, l.libro)}</small>`;
+  const linea = escapar(t('custodiaLibroPrivado', { libro: corto(l.libro), quien: l.quien ?? '' }));
+  if (l.entrar) return `<small class="custodia-privado" data-mio>${linea} ${botonEntrar(l.entrar, l.libro)}</small>`;
+  if (l.noReciproco) return `<small class="custodia-privado" data-mio data-no-reciproco>${linea} · ${escapar(t('libroNoReciproco'))}</small>`;
+  return `<small class="custodia-privado">${linea}</small>`;
+}
+
+/**
+ * En el génesis de un libro que cuelga de otro: «este libro cuelga de «elemento», en «libro»», con «Volver» si tengo el
+ * grande en este dispositivo; si no consta anunciado en el grande (y es mío), se dice llano y, si se puede, «Anunciarlo en
+ * el libro grande» (lleva al elemento del grande y abre el anuncio).
+ */
+function htmlCuelgaDe(c) {
+  if (!c) return '';
+  const volver = c.volver ? ` <button type="button" class="enlace"${nodo('control')} data-libro-volver="${attr(c.volver)}" data-foco="${attr(c.elemento)}" title="${attr(t('libroVolverTitulo'))}">${escapar(t('libroVolver'))}</button>` : '';
+  const anunciar = c.anunciar ? ` <button type="button" class="enlace"${nodo('control')} data-libro-anunciar="${attr(c.volver)}" data-foco="${attr(c.elemento)}">${escapar(t('libroAnunciar'))}</button>` : '';
+  const sinAnunciar = !c.anunciado && c.autor ? `<small class="custodia-cuelga-anuncio">${escapar(t(c.anunciar ? 'libroSinAnunciar' : 'libroSinSellador'))}${anunciar}</small>` : '';
+  return `<p class="custodia-cuelga" data-cuelga="${attr(c.libro)}">${escapar(t('libroCuelgaDe', { elemento: c.elementoNombre ?? corto(c.elemento), libro: c.libroNombre ?? corto(c.libro) }))}${volver}</p>${sinAnunciar}`;
+}
+
+/** «Abrir aquí un libro privado» (§4.4): un gesto sobre el elemento X (data-libro-privado). */
+const htmlAbrirPrivado = (X) => (typeof X === 'string' && X
+  ? `<p class="custodia-abrir"><button type="button"${nodo('accion')} data-libro-privado="${attr(X)}" title="${attr(t('libroPrivadoTitulo'))}">${escapar(t('libroPrivadoAbrir'))}</button></p>`
+  : '');
+
+/**
+ * «Tus libros» (§4.3), en la cabecera de la carta: un desplegable con los libros de mi clave (el abierto, marcado), debajo de
+ * cada uno los que cuelgan de él con el nombre del elemento, «solo en este dispositivo» en los que no tienen destino de
+ * sincronía, aparte «otras personas en este dispositivo», y al final «Abrir otro libro» (la pantalla de arranque). Tocar
+ * uno cambia de libro (data-libro). `l`: lo que da libros.tusLibros. Sin ella (un ejemplo), nada.
+ */
+export function htmlTusLibros(l) {
+  if (!l) return '';
+  const boton = (f, extra = '') => `<button type="button" data-libro="${attr(f.alta)}"${f.abierto ? ' aria-current="true" disabled' : ''}>${escapar(f.etiqueta)}</button>${extra}${f.soloAqui ? ` <small class="solo-aqui">${escapar(t('libroSoloAqui'))}</small>` : ''}`;
+  const cuelgaDe = (elemento) => ` <small class="cuelga-de">${escapar(t('libroCuelgaDeElemento', { elemento }))}</small>`;
+  const colgados = (f) => (f.colgados?.length ? `<ul class="tus-libros-colgados">${f.colgados.map((h) => `<li>${boton(h, cuelgaDe(h.elemento))}</li>`).join('')}</ul>` : '');
+  const propios = (l.propios ?? []).map((f) => `<li>${boton(f, f.cuelga ? cuelgaDe(f.cuelga.elemento) : '')}${colgados(f)}</li>`).join('');
+  const otras = l.otras?.length ? `<p class="tus-libros-otras">${escapar(t('libroOtrasPersonas'))}</p><ul class="tus-libros-lista" data-otras>${l.otras.map((f) => `<li>${boton(f)}</li>`).join('')}</ul>` : '';
+  const abierto = [...(l.propios ?? []), ...(l.propios ?? []).flatMap((f) => f.colgados ?? []), ...(l.otras ?? [])].find((f) => f.abierto);
+  return `<details class="tus-libros"${nodo('control')} data-tus-libros><summary>${escapar(t('tusLibros'))}${abierto ? ` · <b>${escapar(abierto.etiqueta)}</b>` : ''}</summary>
+    <ul class="tus-libros-lista" data-propios>${propios}</ul>${otras}
+    <p class="tus-libros-otro"><button type="button" data-libro-otro>${escapar(t('libroAbrirOtro'))}</button></p>
+  </details>`;
+}
+
+/**
+ * El diálogo «Abrir aquí un libro privado» (§4.4). `p`: { X, elemento, nombre, fase: 'pedir' | 'anunciar' | 'hecho', cuelga
+ * (el coste de escribir de qué cuelga), anuncio (el del anuncio, con las claves que dio el anfitrión), claves (cuántas),
+ * guardian, entrar (el alta del libro creado), libro, anunciado, sinClaves, falta, aviso, motivos, ocupado }. Cada registro,
+ * con su coste a la vista antes de confirmar; lo que falte, dicho llano.
+ */
+export function htmlLibroPrivado(p) {
+  if (!p) return '';
+  const motivos = p.motivos?.length ? `<ul class="motivos" role="alert">${p.motivos.map((m) => `<li>${escapar(m.mensaje ?? m)}</li>`).join('')}</ul>` : '';
+  const aviso = p.aviso ? `<p class="aviso" role="alert">${escapar(p.aviso)}</p>` : '';
+  const coste = (c) => (c ? t('reglasCoste', { t: textoDeSegundos(c.exigido), paga: textoDePiezas(c.denominacion) }) : t('libroPrivadoSinCoste'));
+  const guardianLinea = p.guardian ? `<p class="ayuda">${escapar(t('libroPrivadoGuardian'))}</p>` : '';
+  let cuerpo;
+  if (p.fase === 'anunciar') {
+    cuerpo = `<p class="exito" role="status">${escapar(t('libroPrivadoCreado', { nombre: p.nombre }))}</p>
+      <p data-coste-anuncio>${escapar(t('libroPrivadoAnunciarCoste', { elemento: p.elemento, claves: p.claves, coste: coste(p.anuncio) }))}</p>
+      ${guardianLinea}${aviso}${motivos}
+      <footer><button type="button" data-libro-privado-anunciar ${p.ocupado ? 'disabled' : ''}>${escapar(t(p.ocupado ? 'libroPrivadoAnunciando' : 'libroPrivadoAnunciarAqui'))}</button> <button type="button" data-cerrar>${escapar(t('libroPrivadoAhoraNo'))}</button></footer>`;
+  } else if (p.fase === 'hecho') {
+    const falta = p.falta === 'cuelga' ? t('libroPrivadoFaltaCuelga') : p.falta === 'anuncio' ? t('libroPrivadoFaltaAnuncio') : p.sinClaves ? t('libroPrivadoSinClaves') : '';
+    cuerpo = `<p class="exito" role="status">${escapar(t(p.anunciado ? 'libroPrivadoAnunciado' : 'libroPrivadoCreado', { nombre: p.nombre, elemento: p.elemento }))}</p>
+      ${falta ? `<p class="aviso" data-falta>${escapar(falta)}</p>` : ''}${aviso}${motivos}
+      <footer>${p.entrar ? botonEntrar(p.entrar, p.libro) : ''} <button type="button" data-cerrar>${escapar(t('cerrar'))}</button></footer>`;
+  } else {
+    cuerpo = `<p class="ayuda">${escapar(t('libroPrivadoAyuda', { elemento: p.elemento }))}</p>
+      <div class="campo"><label for="libro-privado-nombre">${escapar(t('libroPrivadoNombre'))}</label><input id="libro-privado-nombre" name="nombre" type="text" value="${attr(p.nombre ?? '')}" required autocomplete="off"></div>
+      <ol class="libro-privado-pasos">
+        <li>${escapar(t('libroPrivadoPaso1'))}</li>
+        <li data-coste-cuelga>${escapar(t('libroPrivadoPaso2', { coste: coste(p.cuelga) }))}</li>
+        <li>${escapar(t('libroPrivadoPaso3', { elemento: p.elemento }))}</li>
+      </ol>
+      ${guardianLinea}${aviso}${motivos}
+      <footer><button type="submit" ${p.ocupado ? 'disabled' : ''}>${escapar(t(p.ocupado ? 'libroPrivadoCreando' : 'libroPrivadoCrear'))}</button></footer>`;
+  }
+  return `<div class="formulario-fondo" data-cerrar><form class="formulario libro-privado"${nodo('formulario')} data-libro-privado-form data-x="${attr(p.X)}" data-fase="${attr(p.fase ?? 'pedir')}" aria-label="${attr(t('libroPrivadoAbrir'))}">
+    <header><h2>${escapar(t('libroPrivadoAbrir'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    ${cuerpo}
+  </form></div>`;
 }
 
 /** En «este libro», con más de una rama: cada padre con las ramas en que guarda, sella y lee (contrato.ramasDelLibro, por carta.js). */
@@ -1694,7 +1792,7 @@ function controlesDelCero(arbol, { ejemplos = [], ejemplo = null, guardado = '',
   const tiempo = arbol.tiempo ? Object.entries(arbol.tiempo).filter(([, v]) => v > 0).map(([k, v]) => `${v} ${v === 1 ? t('escalaUna_' + k) : t('escala_' + k)}`).join(' · ') : '';
   const local = arbol.local ? `<span class="tiempo" title="${attr(t('tiempoLocalTitulo', { serie: arbol.local.serie }))}">${escapar(t('hoy', { segundos: arbol.local.gastadoHoy }))}${tiempo ? ' · ' + escapar(tiempo) : ''}</span><button type="button" class="englobar"${nodo('control')} data-englobar ${arbol.local.pendientes ? '' : 'disabled'} title="${attr(t('englobarTitulo', { cuantas: arbol.local.pendientes }))}">${t('englobar')}${arbol.local.pendientes ? ` · ${arbol.local.pendientes}` : ''}</button>` : '';
   const propios = cuenta
-    ? `<button type="button"${nodo('control')} data-copia title="${attr(t('copiaTitulo'))}">${t('copiaDeSeguridad')}</button><button type="button"${nodo('control')} data-olvidar title="${attr(t('olvidarTitulo'))}">${t('olvidar')}</button>`
+    ? `<button type="button"${nodo('control')} data-copia title="${attr(t('copiaTitulo'))}">${t('copiaDeSeguridad')}</button><button type="button"${nodo('control')} data-copia-todos title="${attr(t('copiaDeTodosTitulo'))}">${escapar(t('copiaDeTodos'))}</button><button type="button"${nodo('control')} data-olvidar title="${attr(t('olvidarTitulo'))}">${t('olvidar')}</button>`
     : `<button type="button"${nodo('control')} data-reiniciar title="${attr(t('reiniciarTitulo'))}">${t('reiniciar')}</button>`;
   const config = `<button type="button"${nodo('control')} data-config="2" title="${attr(t('configuracionTitulo'))}">${t('configuracionCriterios')}</button>`;
   const ajustes = `<button type="button"${nodo('control')} data-config="9" title="${attr(t('ajustesGuiaExteriorTitulo'))}">${t('ajustesGuiaExterior')}</button>`;
@@ -1732,9 +1830,11 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false } = {}) {
         : `<input id="${id}" name="${attr(c.nombre)}" type="text" value="${attr(valor)}" required autocomplete="${c.nombre === 'nombre' ? 'name' : 'off'}" placeholder="${attr((c.marcador ?? []).join(' · '))}" title="${attr(c.ayuda ?? '')}">`;
       return `<div class="campo"><label for="${id}">${escapar(c.etiqueta)} <small class="numero">${c.pv}</small></label>${control}<small class="ayuda">${escapar(c.ayuda ?? '')}</small></div>`;
     }).join('');
-    cuerpo = `<form class="formulario arranque-form" data-crear aria-label="${attr(t('crearMiCuenta'))}">
-      <header><h2>${t('crearMiCuenta')}</h2>${volver}</header>
-      <p class="ayuda">${escapar(t('crearAyuda'))}</p>
+    // Un libro nuevo con mi clave (A24, §4.2): el mismo formulario; la clave es la del libro abierto.
+    const titulo = ar.conMiClave ? t('libroNuevoConMiClave') : ar.conClave ? t('personaNueva') : t('crearMiCuenta');
+    cuerpo = `<form class="formulario arranque-form" data-crear${ar.conMiClave ? ' data-con-mi-clave' : ''} aria-label="${attr(titulo)}">
+      <header><h2>${escapar(titulo)}</h2>${volver}</header>
+      <p class="ayuda">${escapar(t(ar.conMiClave ? 'libroNuevoConMiClaveAyuda' : 'crearAyuda'))}</p>
       ${campos}${motivos}
       <footer><button type="submit" ${ar.ocupado ? 'disabled' : ''}>${t(ar.ocupado ? 'creando' : 'crear')}</button></footer>
     </form>`;
@@ -1754,7 +1854,7 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false } = {}) {
       <p class="ayuda">${escapar(t('arranqueIntro'))}</p>
       ${entrar}${motivos}
       <div class="opciones">
-        <button type="button" class="principal" data-arranque="crear">${t('crearMiCuenta')}</button>
+        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${t('crearMiCuenta')}</button>`}
         <button type="button" data-arranque="restaurar">${t('restaurarUnaCuenta')}</button>
         <button type="button" data-arranque="ejemplo">${t('probarConEjemplo')}</button>
       </div>
@@ -1768,8 +1868,8 @@ export function htmlCopia(c) {
   if (!c) return '';
   const motivos = c.motivos?.length ? `<ul class="motivos" role="alert">${c.motivos.map((m) => `<li>${escapar(m.mensaje ?? m)}</li>`).join('')}</ul>` : '';
   return `<div class="formulario-fondo" data-cerrar><form class="formulario copia"${nodo('copia')} data-copia-form aria-label="${attr(t('copiaDeSeguridad'))}">
-    <header><h2>${t('copiaDeSeguridad')}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
-    <p class="ayuda">${escapar(t('copiaAyuda', { archivo: c.archivo ?? '' }))}</p>
+    <header><h2>${escapar(t(c.todos ? 'copiaDeTodos' : 'copiaDeSeguridad'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <p class="ayuda">${escapar(t(c.todos ? 'copiaDeTodosAyuda' : 'copiaAyuda', { archivo: c.archivo ?? '', cuantos: c.cuantos ?? '' }))}</p>
     <p class="aviso">${escapar(t('copiaEsFoto'))}</p>
     <div class="campo"><label for="copia-frase-1">${t('frase')}</label><input id="copia-frase-1" name="frase" type="password" autocomplete="new-password" required minlength="${Number(c.minimo) || 0}"><small class="ayuda">${escapar(t('fraseAyuda', { minimo: c.minimo }))}</small></div>
     <div class="campo"><label for="copia-frase-2">${t('repetirFrase')}</label><input id="copia-frase-2" name="frase2" type="password" autocomplete="new-password" required></div>
@@ -1815,6 +1915,7 @@ export function html(arbol, extra = {}) {
   return `<div class="${clase}"${nodo('carta', { modo: a.apilada ? 'apilada' : 'matriz', render: a.animado ? 'animado' : 'sobrio', ancho: a.medidas?.ancho, alto: a.medidas?.alto, x0: a.centro?.representacion?.texto ?? '' })} data-x="${a.X}" data-disposicion="${attr(a.disposicion)}" data-animaciones="${Number(a.limite) || 0}">
     ${estilos}
     ${a.apilada ? htmlCeroColumna(a.centro?.sitio) : ''}
+    ${htmlTusLibros(extra.libros)}
     ${avisos.length ? `<p class="aviso" role="alert">${avisos.map(escapar).join(' · ')}</p>` : ''}${htmlGuardian(extra.guardian)}
     ${extra.exito ? `<p class="exito" role="status">${escapar(extra.exito)}</p>` : ''}
     ${htmlRosetones(a.rosetones, { apilada: a.apilada, parte: 'arriba' })}
@@ -1828,6 +1929,7 @@ export function html(arbol, extra = {}) {
     ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
     ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true }) : ''}
     ${htmlCopia(extra.copia)}
+    ${htmlLibroPrivado(extra.libroPrivado)}
   </div>`;
 }
 
