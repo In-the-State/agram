@@ -403,7 +403,7 @@ export const TEXTOS = Object.freeze({
     // el segundo factor (VG 12/13-11, #66, #70): la app de StateArk autoriza lo que pasa del umbral de mi 2.4
     pendienteDeSegundoFactor: 'pendiente de segundo factor',
     pendienteDeSegundoFactorTitulo: 'movido, pero lo que mueve pasa del umbral de tu segundo factor: se queda en autorizado hasta que tu cosa titular lo autorice desde StateArk (no se rechaza nada)',
-    exigidoAutorizacion: 'autorización: {t} ({n} que piden segundo factor), se quema ya, en esta propuesta',
+    exigidoAutorizacion: 'autorización: {t} ({n} que piden segundo factor), se transfiere a la cosa que autoriza, que escribe su autorización con esa T',
     porAutorizar: 'por autorizar',
     porAutorizarTitulo: 'lo que está movido pero espera el segundo factor de su cosa titular (no se rechaza nada)',
     avisoSegundoFactor: 'esto pedirá el segundo factor: lo que mueve pasa de tu umbral y se quedará en autorizado hasta que {titulares} lo autorice desde StateArk',
