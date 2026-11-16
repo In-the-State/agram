@@ -46,7 +46,7 @@ export const CLAVES = Object.freeze({
   sincronia: (alta) => 'agram.sync.estado.' + alta,
 });
 
-/** Las claves de localStorage de los ejemplos (las de siempre: carta/app.js y antigua/ui/ejemplos.js). */
+/** Las claves de localStorage de los ejemplos (las de siempre: carta/app.js y carta/ejemplos.js). */
 export const CLAVES_EJEMPLO = Object.freeze({
   eje: 'agram.eje',
   claves: 'agram.claves',
@@ -176,6 +176,9 @@ export const firmarCon = (privada) => (ev) => autoridad.firmar(ev, privada);
 const leer = (clave) => { try { return globalThis.localStorage?.getItem(clave) ?? null; } catch { return null; } };
 const escribir = (clave, valor) => { try { if (!globalThis.localStorage) return false; globalThis.localStorage.setItem(clave, valor); return true; } catch { return false; } };
 const borrar = (clave) => { try { globalThis.localStorage?.removeItem(clave); } catch { /* sin almacenamiento */ } };
+
+/** localStorage como comodidad: puede no existir o fallar, y entonces no pasa nada (null al leer; false al guardar). */
+export { leer as leerLocal, escribir as guardarLocal };
 
 /** Mis cuentas en este navegador: [{ nombre, idioma, identidad, alta, publica }], sin claves privadas. */
 export function cuentas() {

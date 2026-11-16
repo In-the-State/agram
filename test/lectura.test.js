@@ -10,8 +10,6 @@ import * as agram from '../src/index.js';
 import { cargarEpoca, EPOCA_0 } from '../src/epocas.js';
 import { ejemploCompra, ejemploCuenta } from '../ejemplos/ikisai/compra-food.mjs';
 import { leidos } from '../ejemplos/ikisai/leer.mjs';
-import { htmlLeido, alternarLeido, leidoAbierto } from '../antigua/ui/leido.js';
-import { vistaClasificar } from '../antigua/ui/clasificar.js';
 import { pagaElCoste } from './ayudas-coste.js';
 
 test('las dos líneas de VG, leídas: el menú (una lista) y la compra (una décupla), salida exacta', async () => {
@@ -147,42 +145,4 @@ test('el ejemplo leer.mjs imprime la compra, el menú y la reserva', async () =>
   assert.match(bloques[0], /^compra · huesped · .* · sobre menú en 0000000000\n0 · representación: Compra del menú del día/);
   assert.match(bloques[1], /^menú · cocina · .*\n0 · representación: Menú del día\n1 · recursos: ensalada · guiso · fruta · 3 ocupantes/);
   assert.match(bloques[2], /^reserva · huesped · .* · sobre habitación en 1100000000\n0 · representación: Reserva de la cama individual/);
-});
-
-test('la UI pinta el conmutador «leído» y, abierto, el registro en un <pre> que envuelve', async () => {
-  const { eje, menu, compra } = await ejemploCompra();
-  const cerrado = htmlLeido(eje, compra.id, { abierto: false });
-  assert.match(cerrado, /<button type="button" class="leido-boton" data-leido aria-pressed="false" aria-expanded="false" aria-controls="leido-foco"/);
-  assert.doesNotMatch(cerrado, /<pre/);
-  const abierto = htmlLeido(eje, compra.id, { abierto: true, nombres: { [menu.id]: 'menú' } });
-  assert.match(abierto, /aria-pressed="true"/);
-  assert.match(abierto, /<pre id="leido-foco" class="leido-texto"[^>]*>[^<]*0 · representación: Compra del menú del día\n1 · recursos:\n {2}0 · qué es: → menú:1/);
-  // El texto va escapado: un < del payload no abre HTML.
-  const raro = await eje.escribir({ autor: 'cocina', sobre: compra.id, t: '2026-11-07T15:00:00Z', movimientos: [pagaElCoste('cocina')], payload: ['<b>negrita</b>'] });
-  assert.match(htmlLeido(eje, raro.id, { abierto: true }), /&lt;b&gt;negrita&lt;\/b&gt;/);
-  // El conmutador alterna (y en Node, sin almacenamiento, no pasa nada).
-  const antes = leidoAbierto();
-  assert.equal(alternarLeido(), !antes);
-  assert.equal(alternarLeido(antes), antes);
-  // El CSS del <pre> envuelve las líneas: sin scroll horizontal a 400 px.
-  const { readFileSync } = await import('node:fs');
-  const css = readFileSync(new URL('../antigua/index.html', import.meta.url), 'utf8');
-  assert.match(css, /\.leido-texto\{[^}]*white-space:pre-wrap[^}]*overflow-wrap:anywhere/);
-  const app = readFileSync(new URL('../antigua/app.js', import.meta.url), 'utf8');
-  assert.match(app, /htmlLeido\(estado\.eje, estado\.foco/);
-  assert.match(app, /instalarLeido\(\{ pintar \}\)/);
-});
-
-test('Clasificar pinta «leído» de la posición en foco', async () => {
-  const { eje, compra } = await ejemploCompra();
-  alternarLeido(true);
-  try {
-    const html = vistaClasificar({ eje, foco: compra.id, camino: [], en: '1', identidad: 'huesped' });
-    assert.match(html, /aria-controls="leido-clasificar"/);
-    assert.match(html, /<pre id="leido-clasificar"[^>]*>[^<]*· posición 1\n1 · recursos:\n {2}0 · qué es: → [0-9a-f]{8}:1/);
-    assert.doesNotMatch(html, /<pre id="leido-clasificar"[^>]*>[^<]*2 · criterios/);
-  } finally {
-    alternarLeido(false);
-  }
-  assert.doesNotMatch(vistaClasificar({ eje, foco: compra.id, camino: [], en: '1', identidad: 'huesped' }), /<pre id="leido-clasificar"/);
 });
