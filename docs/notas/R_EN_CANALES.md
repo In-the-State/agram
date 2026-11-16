@@ -25,7 +25,7 @@ En los mensajes, si se escribe el 1.5, el 1.3 y el 1.4 que falten van como `-` (
 - **Abrir también la da**: «open a conversation» en nombre del interlocutor lleva una unidad de R del servicio al agente, además del precio de su grupo.
 - **El interlocutor de fuera no tiene R ni la recibe**: es una cosa sin clave. Lo que el agente devuelve va al servicio.
 - Si un mensaje que entra no lleva R del servicio (o lleva R de otro emisor), no entra.
-- Para dar más de una («le doy 10»), el 1.5 del «message in».
+- Para dar más de una («le doy 10»), el 1.5 del «message in» (el parámetro `give` de la plantilla; en las seis plantillas de la tabla se llama así).
 
 ## Qué tiene que hacer un conversador (el que hace hablar al agente)
 
