@@ -223,11 +223,24 @@ test('3 a 9: plantilla de identidad, primitivas y despliegues, procedencia, cale
   assert.deepEqual(val('epoch.0'), ['época 0', 'epoch 0']);
 });
 
-/** Los números de un árbol de expresión del BQL mínimo (sus literales). */
+/** El dígito de la escala de un movimiento (su 0.0.1): un índice del calendario de la época (epoch.7.0), no una cantidad. */
+const esDigitoDeEscala = (x) => x?.n === 'paso' && x.base?.n === 'it' && x.digitos.join('.') === '0.0.1';
+const esNumero = (x) => x?.n === 'lit' && typeof x.v === 'number';
+
+/**
+ * Los números de un árbol de expresión del BQL mínimo (sus literales). No cuentan los que son una POSICIÓN, como no
+ * cuentan los dígitos de un camino (Core AGRAM 17-11, #137): el k de «nth k» y el dígito de escala con que se compara
+ * el 0.0.1 de un movimiento (las lecturas «firm», «asked» y «on time» recorren así los niveles de epoch.7.6 y las
+ * escalas de epoch.7.0).
+ */
 function numerosDe(arbol, fuera = []) {
   if (!arbol || typeof arbol !== 'object') return fuera;
   if (arbol.n === 'lit' && typeof arbol.v === 'number') fuera.push(arbol.v);
-  for (const v of Object.values(arbol)) if (v && typeof v === 'object' && !Object.isFrozen(v)) numerosDe(v, fuera);
+  const posiciones = new Set();
+  if (arbol.n === 'nth' && esNumero(arbol.k)) posiciones.add(arbol.k);
+  if (arbol.n === 'cmp' && esDigitoDeEscala(arbol.a) && esNumero(arbol.b)) posiciones.add(arbol.b);
+  if (arbol.n === 'cmp' && esDigitoDeEscala(arbol.b) && esNumero(arbol.a)) posiciones.add(arbol.a);
+  for (const v of Object.values(arbol)) if (v && typeof v === 'object' && !Object.isFrozen(v) && !posiciones.has(v)) numerosDe(v, fuera);
   return fuera;
 }
 
@@ -261,6 +274,10 @@ test('A3: ninguna regla lleva un número que la época tenga (los datos del mund
   const conAnio = [...EPOCA_0_BTML.condiciones[0]];
   conAnio[2] = ['=(first ev.6.0).0 <= before.6.0.0 + 31536000'];
   assert.deepEqual(numerosDeRegla(conAnio).filter((n) => deLaEpoca.has(n) && !neutros.has(n)), [31536000]);
+  // Las posiciones no cuentan, pero una cantidad escrita al lado sí: el nivel 5 y la escala 5 no, las 24 horas sí.
+  const conPosiciones = [...EPOCA_0_BTML.lecturas.find((r) => r[0][0] === 'asked')];
+  conPosiciones[2] = ['=count (it.1 where (nth 5 epoch.7.6.1) in it2.4 and it2.0.0.1 >= 5 and 5 > it2.0.0.1 and it2.0.1 >= 24 and count it2.3 = 7) > 0'];
+  assert.deepEqual(numerosDeRegla(conPosiciones).filter((n) => deLaEpoca.has(n) && !neutros.has(n)), [24, 7]);
   // «at most a year ahead» lee el año del calendario de la época.
   const anio = EPOCA_0_BTML.condiciones.find((r) => r[0][0] === 'at most a year ahead');
   assert.match(anio[2][0], /epoch\.7\.0\.6\.1/);
