@@ -4,6 +4,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 import { generar, archivos, epocaState } from '../datos/epocas/state/generar.mjs';
 import { EPOCA_0_BTML, cargarEpocaEscrita } from '../src/epocas.js';
@@ -15,7 +16,7 @@ import { ContextoEje } from '../src/contexto-eje.js';
 import { evaluar, leerRegla } from '../src/bqlm.js';
 import { firmar } from '../src/autoridad.js';
 import { sinTraducir } from '../docs/sin-traducir.mjs';
-import { ejemploNodo, N, CLAVES, hora, claveDePrueba } from '../ejemplos/state/nodo.mjs';
+import { ejemploNodo, N, CLAVES, hora, claveDePrueba, HUELLA } from '../ejemplos/state/nodo.mjs';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 
@@ -52,9 +53,9 @@ test('la época se genera desde su fuente, sin fallos, y los archivos están al 
   const g = generar();
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: npm run epoca:state`);
-  assert.equal(g.registros.length, 58, '20 reglas (10 de ellas lecturas con nombre) y 38 plantillas de transacción');
+  assert.equal(g.registros.length, 61, '21 reglas (10 de ellas lecturas con nombre) y 40 plantillas de transacción');
   const ids = JSON.parse(readFileSync('datos/epocas/state/state-0.ids.json', 'utf8'));
-  assert.equal(ids.registrosAlPublicar, 60, 'el génesis, la raíz y sus 58 registros');
+  assert.equal(ids.registrosAlPublicar, 63, 'el génesis, la raíz y sus 61 registros');
 });
 
 test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; src/ no la importa', () => {
@@ -66,8 +67,8 @@ test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; sr
   const e = cargarEpocaEscrita(epocaState());
   assert.equal(e.id, g.id);
   assert.equal(e.hereda, ID_DE_LA_0);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 38);
-  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 16, 'cuatro reglas sustituyen a las de la 0 con el mismo nombre (second factor y las tres de la atención) y se añaden seis reglas y diez lecturas con nombre');
+  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 40);
+  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 17, 'cuatro reglas sustituyen a las de la 0 con el mismo nombre (second factor y las tres de la atención) y se añaden siete reglas y diez lecturas con nombre');
   for (const n of ['anchors asked', 'current connections', 'conversations', 'conversation title', 'conversation archived', 'messages of', 'message count', 'last message', 'delivery', 'messages to deliver']) assert.ok(e.lecturas.some((r) => r[0][0] === n), n);
   for (const n of ['add a connection', "change a connection's permissions", 'remove a connection']) assert.ok(!e.transacciones.some((x) => x.plantilla[0][0] === n), 'fuera: ' + n);
   for (const n of ['second factor', 'attention has a price', 'attention group', 'attention price']) assert.notEqual(e.reglasConId.find((x) => x.regla[0][0] === n).id, EPOCA_0_BTML.reglasConId.find((x) => x.regla[0][0] === n).id);
@@ -707,4 +708,81 @@ test('el peso de un mensaje: cuatro posiciones con solo texto', async () => {
   assert.equal(coste(ids.preguntaCasa), 4, '0, 1.0, 1.1 y 1.2: cuatro minutos');
   assert.equal(coste(ids.entraTelegram), 5, 'con un adjunto, cinco');
   assert.equal(coste(ids.respuestaCasa), 6, 'en respuesta a, sin adjunto: el adjunto va como «-», seis');
+});
+
+// Punto C (decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima).
+/** «interlocutor of»: la identidad que lee la plantilla de lectura sobre el alta del servicio (∅ si no hay). */
+const interlocutorDe = async (eje, ids, channel, fingerprint, minuto) => {
+  const r = await A.transaccion(eje, 'interlocutor of', { X: ids.altaServicio, channel, fingerprint }, N.servicio, { t: hora(minuto) });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  return r.lectura.mensaje;
+};
+
+test('register an interlocutor: una cosa del servicio sin clave, con un segundo de T, su canal y su huella; «interlocutor of» la da', async () => {
+  const { eje, ids } = await ejemplo();
+  const alta = eje.obtener(ids.interlocutor);
+  assert.equal([alta.autor, alta.sobre, alta.en].join(' '), [N.servicio, ids.altaServicio, '1400000000'].join(' '), 'en el 1.4 de la propia alta del servicio');
+  assert.deepEqual(alta.payload, [N.interlocutor, [1], ['all announced movements happened'], [[N.servicio], [N.interlocutor]], ['register an interlocutor'], ['interlocutor'], [['telegram'], [HUELLA]]]);
+  assert.deepEqual(alta.movimientos.filter((m) => m.a !== null), [{ token: 'T', escala: 'segundo', cantidad: 1, de: N.servicio, a: N.interlocutor }], 'solo un segundo de T: lo mínimo para abrir su cuenta');
+  assert.equal(eje.alta(N.interlocutor).id, ids.interlocutor);
+  assert.equal(eje.esPersona(N.interlocutor), false, 'una cosa del servicio');
+  assert.equal(eje.clave(N.interlocutor), undefined, 'sin clave: no actúa');
+  assert.equal(await interlocutorDe(eje, ids, 'telegram', HUELLA, 3500), N.interlocutor);
+  assert.equal(await interlocutorDe(eje, ids, 'telegram', 'ab'.repeat(32), 3501), '∅', 'una huella que nadie dio de alta: nada');
+  assert.ok(A.acciones(eje, ids.altaServicio, 1, N.servicio).some((a) => a.nombre === 'register an interlocutor'), 'se ofrece al servicio sobre su alta');
+});
+
+test('register an interlocutor: el canal de la casa o fuera de la lista no; la huella mal formada no; la misma pareja dos veces por el mismo escritor no da dos', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const alta = (params, minuto) => A.transaccion(eje, 'register an interlocutor', { X: ids.altaServicio, thing: 'interlocutor-prueba', channel: 'telegram', fingerprint: 'cd'.repeat(32), ...params }, N.servicio, { t: hora(minuto), firmar: (ev) => firmar(ev, CLAVES[N.servicio].privada) });
+  for (const [cambio, parametro] of [
+    [{ channel: 'house' }, 'channel'],
+    [{ channel: 'fax' }, 'channel'],
+    [{ fingerprint: 'CD'.repeat(32) }, 'fingerprint'],
+    [{ fingerprint: 'cd'.repeat(31) }, 'fingerprint'],
+    [{ fingerprint: 'cd'.repeat(32) + 'c' }, 'fingerprint'],
+  ]) {
+    const r = await alta(cambio, 3600);
+    assert.equal(r.ok, false, JSON.stringify(cambio));
+    assert.ok(r.motivos.some((m) => m.parametro === parametro), JSON.stringify(cambio) + ': ' + JSON.stringify(r.motivos));
+  }
+  // A mano, con el canal de la casa: la regla.
+  const aManoCasa = await escribirPagando(eje, { autor: N.servicio, sobre: ids.altaServicio, en: '1400000000', t: hora(3601), movimientos: [pagaElCoste(N.servicio), { token: 'T', escala: 'segundo', cantidad: 1, de: N.servicio, a: 'de-la-casa' }], payload: ['de-la-casa', 1, 'all announced movements happened', [N.servicio, 'de-la-casa'], 'register an interlocutor', 'interlocutor', [['house'], ['cd'.repeat(32)]]] }, CLAVES[N.servicio].privada).then(() => null, (e) => e.message);
+  assert.match(aManoCasa, /an interlocutor is registered once/);
+  // La misma pareja de canal y huella que ya dio de alta (la del ejemplo), con otro nombre: no entra; la lectura da la primera.
+  const otra = await alta({ thing: 'interlocutor-repetido', fingerprint: HUELLA }, 3602);
+  assert.equal(otra.ok, false);
+  assert.ok(otra.motivos.some((m) => /an interlocutor is registered once|ya dio de alta/.test(m.mensaje)), JSON.stringify(otra.motivos));
+  assert.equal(eje.alta('interlocutor-repetido'), null);
+  assert.equal(await interlocutorDe(eje, ids, 'telegram', HUELLA, 3603), N.interlocutor);
+  // La misma huella en otro canal sería otra pareja: aquí solo hay un canal de fuera, así que se comprueba con una huella nueva.
+  const nueva = await alta({}, 3604);
+  assert.ok(nueva.ok, JSON.stringify(nueva.motivos));
+  await eje.anadir(nueva.evento);
+  assert.equal(await interlocutorDe(eje, ids, 'telegram', 'cd'.repeat(32), 3605), 'interlocutor-prueba');
+  assert.equal((await alta({ thing: 'otra-vez' }, 3606)).ok, false, 'y esa, dos veces, tampoco');
+});
+
+test('Telegram de punta a punta con «register an interlocutor»; un interlocutor de fuera que no es de tipo «interlocutor» no vale', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const fp = createHash('sha256').update('agram/prueba/interlocutor-2').digest('hex');
+  await lanzar(eje, 'register an interlocutor', ids.altaServicio, { thing: 'interlocutor-2', channel: 'telegram', fingerprint: fp }, N.servicio, 3700);
+  assert.equal(await interlocutorDe(eje, ids, 'telegram', fp, 3701), 'interlocutor-2');
+  const conv = await lanzar(eje, 'open a conversation', ids.agenteCasa, { interlocutor: 'interlocutor-2', title: 'Por Telegram' }, N.servicio, 3702);
+  const entra = await lanzar(eje, 'message in', conv.id, { channel: 'telegram', text: 'hola', file: 'telegram:AgAD-prueba_2' }, N.servicio, 3703);
+  const sale = await lanzar(eje, 'message out', conv.id, { text: 'hola, ¿qué necesitas?', 'reply to': entra.id }, N.agenteCasa, 3704);
+  assert.deepEqual(lecturaIds(eje, 'messages to deliver', conv.id), [sale.id]);
+  await lanzar(eje, 'delivery result', sale.id, { result: 'failed', cause: 'sin red' }, N.servicio, 3705);
+  assert.deepEqual(lecturaIds(eje, 'messages to deliver', conv.id), [sale.id]);
+  const enviado = await lanzar(eje, 'delivery result', sale.id, { result: 'sent', reference: 'ref-prueba-2' }, N.servicio, 3706);
+  assert.deepEqual(lecturaIds(eje, 'delivery', sale.id), [enviado.id]);
+  assert.deepEqual(lectura(eje, 'messages to deliver', conv.id), []);
+  assert.deepEqual(lectura(eje, 'message count', conv.id), [2]);
+  // Una cosa del servicio que no es de tipo «interlocutor» (dada de alta a mano, sin el 5): no abre conversación de fuera.
+  await escribirPagando(eje, { autor: N.servicio, sobre: ids.altaServicio, en: '1400000000', t: hora(3707), movimientos: [pagaElCoste(N.servicio), { token: 'T', escala: 'segundo', cantidad: 1, de: N.servicio, a: 'cosa-sin-tipo' }], payload: ['cosa-sin-tipo', 1, 'all announced movements happened', [N.servicio, 'cosa-sin-tipo'], 'register a thing'] }, CLAVES[N.servicio].privada);
+  const r = await A.transaccion(eje, 'open a conversation', { X: ids.agenteCasa, interlocutor: 'cosa-sin-tipo' }, N.servicio, { t: hora(3708), firmar: (ev) => firmar(ev, CLAVES[N.servicio].privada) });
+  assert.equal(r.ok, false);
+  assert.ok(r.motivos.some((m) => /who opens|abre una conversación/.test(m.mensaje)), JSON.stringify(r.motivos));
+  // Ni escribe en su nombre en una conversación (a mano) que lo nombrara.
+  assert.match(await aMano(eje, N.servicio, conv.id, '3000000000', mensaje('message in', 'telegram', 'cosa-sin-tipo', 'colado'), 3709), /a message names a channel and its interlocutor|who writes a message/);
 });
