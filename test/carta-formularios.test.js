@@ -374,7 +374,14 @@ test('la propuesta que sube de escala porque hoy no alcanza la que bastaba lo di
   assert.doesNotMatch(html(antes), /data-sube-de/);
   // la huésped agota hoy sus minutos y sus segundos
   const quema = (escala) => ({ token: 'T', escala, cantidad: eje.saldoT('huesped', escala, T1), de: 'huesped', a: null });
-  await eje.escribir({ autor: 'huesped', sobre: menu.id, t: T1, payload: 'un día largo', movimientos: [quema('minuto'), quema('segundo')] });
+  await eje.escribir({ autor: 'huesped', sobre: menu.id, t: T1, payload: 'un día largo', movimientos: [quema('minuto')] });
+  // solo sin minutos, con segundos de sobra: la propuesta no baja del minuto (#78) ni sube; dice que no alcanza
+  const sinMinutos = await form();
+  const m = sinMinutos.formulario.ejecucion;
+  assert.deepEqual([m.propuesta.desde, m.propuesta.subeDe, m.alcanza], ['minuto', undefined, false]);
+  assert.match(anverso(html(sinMinutos)), /hoy no te queda tanta T en esa escala/);
+  assert.doesNotMatch(html(sinMinutos), /data-sube-de/);
+  await eje.escribir({ autor: 'huesped', sobre: menu.id, t: T1, payload: 'y sigue', movimientos: [quema('segundo')] });
   assert.deepEqual([eje.saldoT('huesped', 'minuto', T1), eje.saldoT('huesped', 'segundo', T1)], [0, 0]);
   const a = await form();
   const e = a.formulario.ejecucion;
