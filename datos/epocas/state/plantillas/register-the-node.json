@@ -74,6 +74,18 @@
       ["register the node", "the action"]
     ],
     [
+      ["name"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
+      ["required"],
+      [7],
+      ["=first (payload(ev)).3.1", "the name of the node, the 0 of its alta (by default, its identity)"]
+    ],
+    [
       ["type"],
       ["text"],
       ["any"],
@@ -82,7 +94,7 @@
       ["5"],
       ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"],
       ["required"],
-      [7],
+      [8],
       ["node", "the type of the record: a node of the class state (its path is the 9 of this template)"]
     ]
   ],
@@ -96,5 +108,5 @@
   ],
   ["state 0"],
   [1, 10],
-  ["{last ev.3.1}"]
+  ["register the node: {me} registers a node of the class state"]
 ]

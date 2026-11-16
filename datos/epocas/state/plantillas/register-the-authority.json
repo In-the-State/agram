@@ -100,6 +100,21 @@
       ["required"],
       [8],
       ["the sha256 of the core it runs (64 hexadecimal characters)"]
+    ],
+    [
+      ["name"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the authority»"],
+      ["required"],
+      [9],
+      [
+        "=first (payload(ev)).3.1",
+        "the name of the authority, the 0 of its alta (by default, its identity)"
+      ]
     ]
   ],
   ["=first it.3 = me and \"node\" in (payload(it)).5"],
@@ -112,5 +127,5 @@
   ],
   ["state 0"],
   [1, 11],
-  ["{last ev.3.1}"]
+  ["register the authority: {me} registers the authority of {first it.0}"]
 ]

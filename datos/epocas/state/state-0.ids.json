@@ -1,5 +1,5 @@
 {
-  "epoca": "fc2b68493b87aa594befee37b4a355723af9980bf11683758c74d8dca4a5adf2",
+  "epoca": "e93a6f98beb152031024beb57868f76876797ccc7cd7301e14f7d638b55aa33e",
   "hereda": "f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8",
   "registrosAlPublicar": 36,
   "reglas": [
@@ -18,7 +18,7 @@
     {
       "nombre": "register the node",
       "archivo": "register-the-node.json",
-      "id": "08e691787adc9b5c66cae88437158ee92cea37173a23bce59f6d20fafb73b67f",
+      "id": "4e8875cf5078a13cb588b04d4fe3bb0082609d7078f0c9460073b7e775e0eaab",
       "ocho": [
         1,
         10
@@ -27,7 +27,7 @@
     {
       "nombre": "register the authority",
       "archivo": "register-the-authority.json",
-      "id": "b10941a624add076631112ccd461e117740241611bc72f28c8073a918dd97d98",
+      "id": "9f05b1b57a96106afa11004b80cdaafd7d92f124ff57fad15972a21844409b32",
       "ocho": [
         1,
         11
@@ -36,7 +36,7 @@
     {
       "nombre": "register the relay",
       "archivo": "register-the-relay.json",
-      "id": "08591f7194e244b71047eb22e0b2913e8a5ae87f23aaeb9a3b238a35e9d4cfa4",
+      "id": "faafd3fdaf5763e97982ed61a6255a4196ac12879eb1621c0071c6956a4c0f2f",
       "ocho": [
         1,
         12
@@ -45,7 +45,7 @@
     {
       "nombre": "register the archive",
       "archivo": "register-the-archive.json",
-      "id": "2ed5757f1c4f29aceb6fd2650fd16355f8f57627f5923c35edd0666bde68a7b9",
+      "id": "8d2e47f05b213638dd721118e8cff9c6a9b1a824c7c9601ec837026a56868c1d",
       "ocho": [
         1,
         13
@@ -54,7 +54,7 @@
     {
       "nombre": "declare a context",
       "archivo": "declare-a-context.json",
-      "id": "baf2ebe5dd572901e35a4d633797a43a30798d9f65bc6da4acb8144a8e535ec6",
+      "id": "a49dfff38b622a274bdfd01b775a20cf8e992e640afc75a71452c12eee8e7c4a",
       "ocho": [
         1,
         14
@@ -63,7 +63,7 @@
     {
       "nombre": "register a container",
       "archivo": "register-a-container.json",
-      "id": "93a551710bbfdc1ec54593f76be4c02dccdfb3c7e519641f294e6317092529ad",
+      "id": "9562944e34802835fd3de6cd207559126a35ea7fd486657ee90623a4c62523ff",
       "ocho": [
         1,
         15
@@ -72,7 +72,7 @@
     {
       "nombre": "register a gate",
       "archivo": "register-a-gate.json",
-      "id": "317637008f7f414ea61d375a8273e49d97a071300b509095c72d45fe367cfbf1",
+      "id": "d5af1a261e6c4972a85f18e0d136a3b74548ca7c32cdd953390eed267adc3c85",
       "ocho": [
         1,
         16
@@ -81,7 +81,7 @@
     {
       "nombre": "register a deployment",
       "archivo": "register-a-deployment.json",
-      "id": "19d6c693f40c9b3fbfc820417278274dcb7ca012d1d5262fbae07dae9cd02d81",
+      "id": "d9cbf221d18b4950d5256ffc83eed79cf916113b5f6cb558b20f78ca804e0073",
       "ocho": [
         1,
         17
@@ -90,7 +90,7 @@
     {
       "nombre": "register a worker",
       "archivo": "register-a-worker.json",
-      "id": "fa9129f64b3dc2d120fc7fb98f90903b159b55ab4a483a2650c98114afbec010",
+      "id": "04ebbdc6414c81d91d946a4c72e284d59d16488553d1e7ad6bf3d39d040355f5",
       "ocho": [
         1,
         18
@@ -99,7 +99,7 @@
     {
       "nombre": "register an agent",
       "archivo": "register-an-agent.json",
-      "id": "3de00414b8b41696d75a1c24e2294439a2a01289de96fc29aa6b2b0b6dea467b",
+      "id": "a44078dbb936693535b094d1e80a456a116ff593d96cefeceefa71967e4f8fb6",
       "ocho": [
         1,
         19
@@ -108,7 +108,7 @@
     {
       "nombre": "register a served ledger",
       "archivo": "register-a-served-ledger.json",
-      "id": "1859c27eb343f9baa4e64774016b9172adccabf38a871e862f3e9f42324713aa",
+      "id": "115eb139132624882a79f61b8c5b39b435fa4f24effd1a63f9398e8e4f31fb41",
       "ocho": [
         1,
         20

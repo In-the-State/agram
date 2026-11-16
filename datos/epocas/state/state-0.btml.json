@@ -1,5 +1,5 @@
 {
-  "id": "fc2b68493b87aa594befee37b4a355723af9980bf11683758c74d8dca4a5adf2",
+  "id": "e93a6f98beb152031024beb57868f76876797ccc7cd7301e14f7d638b55aa33e",
   "hereda": "f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8",
   "raiz": [
     [
@@ -1045,9 +1045,11 @@
             "template register the node param holder help: su titular: quien decide; escribe en el 2.4 de esta alta qué plantillas requieren autorización y quién las firma",
             "template register the node param actions label: acción",
             "template register the node param actions help: la acción",
+            "template register the node param name label: nombre",
+            "template register the node param name help: el nombre de el nodo, el 0 de su alta (por defecto, su identidad)",
             "template register the node param type label: tipo",
             "template register the node param type help: el tipo del registro: un nodo de la clase state (su camino es el 9 de esta plantilla)",
-            "template register the node message: {last ev.3.1}",
+            "template register the node message: dar de alta el nodo: {me} da de alta un nodo de la clase state",
             "template register the authority: dar de alta la autoridad",
             "template register the authority param thing label: nombre",
             "template register the authority param thing help: la identidad de la autoridad (un nombre sin alta en este eje)",
@@ -1065,7 +1067,9 @@
             "template register the authority param commit help: el commit del núcleo que corre",
             "template register the authority param sha256 label: sha256",
             "template register the authority param sha256 help: el sha256 del núcleo que corre (64 caracteres hexadecimales)",
-            "template register the authority message: {last ev.3.1}",
+            "template register the authority param name label: nombre",
+            "template register the authority param name help: el nombre de la autoridad, el 0 de su alta (por defecto, su identidad)",
+            "template register the authority message: dar de alta la autoridad: {me} da de alta la autoridad de {first it.0}",
             "template register the relay: dar de alta el relé",
             "template register the relay param thing label: nombre",
             "template register the relay param thing help: la identidad de el relé (un nombre sin alta en este eje)",
@@ -1079,7 +1083,9 @@
             "template register the relay param actions help: la acción",
             "template register the relay param type label: tipo y papel",
             "template register the relay param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
-            "template register the relay message: {last ev.3.1}",
+            "template register the relay param name label: nombre",
+            "template register the relay param name help: el nombre de el relé, el 0 de su alta (por defecto, su identidad)",
+            "template register the relay message: dar de alta el relé: {me} da de alta el relé de {first it.0}",
             "template register the archive: dar de alta el archivo",
             "template register the archive param thing label: nombre",
             "template register the archive param thing help: la identidad de el archivo (un nombre sin alta en este eje)",
@@ -1093,7 +1099,9 @@
             "template register the archive param actions help: la acción",
             "template register the archive param type label: tipo y papel",
             "template register the archive param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
-            "template register the archive message: {last ev.3.1}",
+            "template register the archive param name label: nombre",
+            "template register the archive param name help: el nombre de el archivo, el 0 de su alta (por defecto, su identidad)",
+            "template register the archive message: dar de alta el archivo: {me} da de alta el archivo de {first it.0}",
             "template declare a context: declarar un contexto",
             "template declare a context param thing label: nombre",
             "template declare a context param thing help: la identidad de el contexto (un nombre sin alta en este eje)",
@@ -1111,7 +1119,9 @@
             "template declare a context param event help: el id del evento de fuera que declara el contexto (un puntero, no una copia)",
             "template declare a context param relay url label: url del relé",
             "template declare a context param relay url help: el relé donde se lee ese evento",
-            "template declare a context message: {last ev.3.1}",
+            "template declare a context param name label: nombre",
+            "template declare a context param name help: el nombre de el contexto, el 0 de su alta (por defecto, su identidad)",
+            "template declare a context message: declarar un contexto: {me} declara un contexto de {first it.0}",
             "template register a container: dar de alta un contenedor",
             "template register a container param thing label: nombre",
             "template register a container param thing help: la identidad de el contenedor (un nombre sin alta en este eje)",
@@ -1129,7 +1139,7 @@
             "template register a container param digest help: el digest de su imagen (sha256:…)",
             "template register a container param image label: imagen",
             "template register a container param image help: el nombre de la imagen, si lo tiene",
-            "template register a container message: {last ev.3.1}",
+            "template register a container message: {first (payload(ev)).3.1}",
             "template register a gate: dar de alta una puerta",
             "template register a gate param thing label: nombre",
             "template register a gate param thing help: la identidad de la puerta (un nombre sin alta en este eje)",
@@ -1143,7 +1153,7 @@
             "template register a gate param actions help: la acción",
             "template register a gate param type label: tipo y papel",
             "template register a gate param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
-            "template register a gate message: {last ev.3.1}",
+            "template register a gate message: {first (payload(ev)).3.1}",
             "template register a deployment: dar de alta un despliegue",
             "template register a deployment param thing label: nombre",
             "template register a deployment param thing help: la identidad de el despliegue (un nombre sin alta en este eje)",
@@ -1163,7 +1173,7 @@
             "template register a deployment param arguments help: cómo se arranca (sus argumentos)",
             "template register a deployment param volume label: volumen",
             "template register a deployment param volume help: el volumen donde guarda sus datos (pide los argumentos: sin huecos)",
-            "template register a deployment message: {last ev.3.1}",
+            "template register a deployment message: {first (payload(ev)).3.1}",
             "template register a worker: dar de alta un worker",
             "template register a worker param thing label: nombre",
             "template register a worker param thing help: la identidad de el worker (un nombre sin alta en este eje)",
@@ -1177,7 +1187,7 @@
             "template register a worker param actions help: la acción",
             "template register a worker param type label: tipo y papel",
             "template register a worker param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
-            "template register a worker message: {last ev.3.1}",
+            "template register a worker message: {first (payload(ev)).3.1}",
             "template register an agent: dar de alta un agente",
             "template register an agent param thing label: nombre",
             "template register an agent param thing help: la identidad de el agente (un nombre sin alta en este eje)",
@@ -1199,7 +1209,7 @@
             "template register an agent param actions help: la acción",
             "template register an agent param type label: tipo y papel",
             "template register an agent param type help: el tipo del registro y su papel: una pieza de un nodo, y su papel de la lista cerrada (autoridad, contenedor, relé, puerta, archivo, despliegue, worker, agente, contexto, eje servido, conexión)",
-            "template register an agent message: {last ev.3.1}",
+            "template register an agent message: {first (payload(ev)).3.1}",
             "template register a served ledger: dar de alta un eje servido",
             "template register a served ledger param thing label: nombre",
             "template register a served ledger param thing help: la identidad de el eje servido (un nombre sin alta en este eje)",
@@ -1217,7 +1227,7 @@
             "template register a served ledger param ledger help: el nombre del eje servido",
             "template register a served ledger param genesis label: génesis",
             "template register a served ledger param genesis help: el id de su génesis",
-            "template register a served ledger message: {last ev.3.1}",
+            "template register a served ledger message: {first (payload(ev)).3.1}",
             "template require authorization: requerir autorización",
             "template require authorization param templates label: plantillas",
             "template require authorization param templates help: las plantillas cuyos registros no se ejecutan sin la firma: una por ocupante (por defecto, la lista inicial de la tabla 3.2, con esta misma plantilla dentro)",
@@ -1618,37 +1628,37 @@
         },
         [
           {
-            "ref": "08e691787adc9b5c66cae88437158ee92cea37173a23bce59f6d20fafb73b67f"
+            "ref": "4e8875cf5078a13cb588b04d4fe3bb0082609d7078f0c9460073b7e775e0eaab"
           },
           {
-            "ref": "b10941a624add076631112ccd461e117740241611bc72f28c8073a918dd97d98"
+            "ref": "9f05b1b57a96106afa11004b80cdaafd7d92f124ff57fad15972a21844409b32"
           },
           {
-            "ref": "08591f7194e244b71047eb22e0b2913e8a5ae87f23aaeb9a3b238a35e9d4cfa4"
+            "ref": "faafd3fdaf5763e97982ed61a6255a4196ac12879eb1621c0071c6956a4c0f2f"
           },
           {
-            "ref": "2ed5757f1c4f29aceb6fd2650fd16355f8f57627f5923c35edd0666bde68a7b9"
+            "ref": "8d2e47f05b213638dd721118e8cff9c6a9b1a824c7c9601ec837026a56868c1d"
           },
           {
-            "ref": "baf2ebe5dd572901e35a4d633797a43a30798d9f65bc6da4acb8144a8e535ec6"
+            "ref": "a49dfff38b622a274bdfd01b775a20cf8e992e640afc75a71452c12eee8e7c4a"
           },
           {
-            "ref": "93a551710bbfdc1ec54593f76be4c02dccdfb3c7e519641f294e6317092529ad"
+            "ref": "9562944e34802835fd3de6cd207559126a35ea7fd486657ee90623a4c62523ff"
           },
           {
-            "ref": "317637008f7f414ea61d375a8273e49d97a071300b509095c72d45fe367cfbf1"
+            "ref": "d5af1a261e6c4972a85f18e0d136a3b74548ca7c32cdd953390eed267adc3c85"
           },
           {
-            "ref": "19d6c693f40c9b3fbfc820417278274dcb7ca012d1d5262fbae07dae9cd02d81"
+            "ref": "d9cbf221d18b4950d5256ffc83eed79cf916113b5f6cb558b20f78ca804e0073"
           },
           {
-            "ref": "fa9129f64b3dc2d120fc7fb98f90903b159b55ab4a483a2650c98114afbec010"
+            "ref": "04ebbdc6414c81d91d946a4c72e284d59d16488553d1e7ad6bf3d39d040355f5"
           },
           {
-            "ref": "3de00414b8b41696d75a1c24e2294439a2a01289de96fc29aa6b2b0b6dea467b"
+            "ref": "a44078dbb936693535b094d1e80a456a116ff593d96cefeceefa71967e4f8fb6"
           },
           {
-            "ref": "1859c27eb343f9baa4e64774016b9172adccabf38a871e862f3e9f42324713aa"
+            "ref": "115eb139132624882a79f61b8c5b39b435fa4f24effd1a63f9398e8e4f31fb41"
           },
           {
             "ref": "34554b9092a2c4dbc634ca659a72c92c3ff8b4ada1c05ee96592344b9bb00a8e"
@@ -2008,6 +2018,39 @@
         ],
         [
           [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the node»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "=first (payload(ev)).3.1",
+            "the name of the node, the 0 of its alta (by default, its identity)"
+          ]
+        ],
+        [
+          [
             "type"
           ],
           [
@@ -2032,7 +2075,7 @@
             "required"
           ],
           [
-            7
+            8
           ],
           [
             "node",
@@ -2070,7 +2113,7 @@
         10
       ],
       [
-        "{last ev.3.1}"
+        "register the node: {me} registers a node of the class state"
       ]
     ],
     [
@@ -2338,6 +2381,39 @@
           [
             "the sha256 of the core it runs (64 hexadecimal characters)"
           ]
+        ],
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the authority»"
+          ],
+          [
+            "required"
+          ],
+          [
+            9
+          ],
+          [
+            "=first (payload(ev)).3.1",
+            "the name of the authority, the 0 of its alta (by default, its identity)"
+          ]
         ]
       ],
       [
@@ -2369,7 +2445,7 @@
         11
       ],
       [
-        "{last ev.3.1}"
+        "register the authority: {me} registers the authority of {first it.0}"
       ]
     ],
     [
@@ -2573,6 +2649,39 @@
             "relay",
             "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
           ]
+        ],
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the relay»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "=first (payload(ev)).3.1",
+            "the name of the relay, the 0 of its alta (by default, its identity)"
+          ]
         ]
       ],
       [
@@ -2604,7 +2713,7 @@
         12
       ],
       [
-        "{last ev.3.1}"
+        "register the relay: {me} registers the relay of {first it.0}"
       ]
     ],
     [
@@ -2808,6 +2917,39 @@
             "archive",
             "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
           ]
+        ],
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the archive»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "=first (payload(ev)).3.1",
+            "the name of the archive, the 0 of its alta (by default, its identity)"
+          ]
         ]
       ],
       [
@@ -2839,7 +2981,7 @@
         13
       ],
       [
-        "{last ev.3.1}"
+        "register the archive: {me} registers the archive of {first it.0}"
       ]
     ],
     [
@@ -3107,6 +3249,39 @@
           [
             "the relay where that event is read"
           ]
+        ],
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «declare a context»"
+          ],
+          [
+            "required"
+          ],
+          [
+            9
+          ],
+          [
+            "=first (payload(ev)).3.1",
+            "the name of the context, the 0 of its alta (by default, its identity)"
+          ]
         ]
       ],
       [
@@ -3138,7 +3313,7 @@
         14
       ],
       [
-        "{last ev.3.1}"
+        "declare a context: {me} declares a context of {first it.0}"
       ]
     ],
     [
@@ -3437,7 +3612,7 @@
         15
       ],
       [
-        "{last ev.3.1}"
+        "{first (payload(ev)).3.1}"
       ]
     ],
     [
@@ -3672,7 +3847,7 @@
         16
       ],
       [
-        "{last ev.3.1}"
+        "{first (payload(ev)).3.1}"
       ]
     ],
     [
@@ -4003,7 +4178,7 @@
         17
       ],
       [
-        "{last ev.3.1}"
+        "{first (payload(ev)).3.1}"
       ]
     ],
     [
@@ -4238,7 +4413,7 @@
         18
       ],
       [
-        "{last ev.3.1}"
+        "{first (payload(ev)).3.1}"
       ]
     ],
     [
@@ -4603,7 +4778,7 @@
         19
       ],
       [
-        "{last ev.3.1}"
+        "{first (payload(ev)).3.1}"
       ]
     ],
     [
@@ -4902,7 +5077,7 @@
         20
       ],
       [
-        "{last ev.3.1}"
+        "{first (payload(ev)).3.1}"
       ]
     ],
     [

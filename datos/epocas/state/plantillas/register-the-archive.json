@@ -76,6 +76,21 @@
         "archive",
         "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
       ]
+    ],
+    [
+      ["name"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register the archive»"],
+      ["required"],
+      [7],
+      [
+        "=first (payload(ev)).3.1",
+        "the name of the archive, the 0 of its alta (by default, its identity)"
+      ]
     ]
   ],
   ["=first it.3 = me and \"node\" in (payload(it)).5"],
@@ -88,5 +103,5 @@
   ],
   ["state 0"],
   [1, 13],
-  ["{last ev.3.1}"]
+  ["register the archive: {me} registers the archive of {first it.0}"]
 ]
