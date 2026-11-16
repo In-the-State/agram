@@ -9,11 +9,11 @@ import { fusionarRaices, cargarEpocaBtml, erroresDeEpocaEscrita, heredaDe, idDeR
 import { erroresDelSuelo } from './suelo.js';
 import { RAIZ } from './evento.js';
 
-export { GOBIERNO, UMBRAL_CORRIENTE, UMBRAL_DE_GOBIERNO, SUELO, PIEZAS_DE_GOBIERNO, CLASE_CORRIENTE, CLASE_DE_GOBIERNO, erroresDelSuelo } from './suelo.js';
+export { GOBIERNO, UMBRAL_CORRIENTE, UMBRAL_DE_GOBIERNO, NOMBRES, PRESION_MAXIMA, SUELO, PIEZAS_DE_GOBIERNO, CLASE_CORRIENTE, CLASE_DE_GOBIERNO, PREFIJO_DE_POSICION, erroresDelSuelo, presionDeLosNombres, sueloDe, piezasDeGobiernoDe } from './suelo.js';
 
-// ---------- Constantes: provisional hasta fundir el encargo de la época («el gobierno del cambio de reglas, parte de
-// época», rama beta-gobierno). Core las ajusta al fundir. Las del 7.9 (umbrales, suelo, piezas de gobierno) son las del
-// diseño §4.1 y viven en src/suelo.js. ----------
+// ---------- Constantes: las posiciones de las plantillas del gobierno de la época 0 (docs/notas/GOBIERNO.md §3; una
+// prueba, test/versiones.test.js, vigila que casan con la época 0 real). Las del 7.9 (umbrales, nombres, suelo, piezas de
+// gobierno) son las del diseño §4.1 y viven en src/suelo.js. ----------
 
 /** Los nombres de las plantillas del gobierno que mira el núcleo (diseño §3; el 0 de cada plantilla). */
 export const PROPONER = 'propose a change';

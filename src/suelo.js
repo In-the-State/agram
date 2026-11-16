@@ -50,6 +50,30 @@ export function caminoDePosicion(s) {
   return partes.map(Number);
 }
 
+/** Quién cuenta (diseño §4.1; docs/notas/GOBIERNO.md §2): la lista de nombres de 7.9.5, la presión máxima en 9.0.0.4. */
+export const NOMBRES = Object.freeze([7, 9, 5]);
+export const PRESION_MAXIMA = Object.freeze([9, 0, 0, 4]);
+// Un nombre «nombre k» es una magnitud (D-VALOR): la misma forma que src/contexto-eje.js (RE_MAGNITUD), copiada aquí
+// porque este módulo no puede importar el contexto (lo importa src/epocas.js).
+const RE_MAGNITUD = /^(?:(-?\d+(?:\.\d+)?)\s+([\p{L}€$%][\p{L}\p{N}_€$%]*)|([\p{L}€$%][\p{L}\p{N}_€$%]*)\s+(-?\d+(?:\.\d+)?))$/u;
+
+/**
+ * La suma de las presiones de los nombres de 7.9.5 (lo que divide la lectura «support»), o null si la época no tiene esa
+ * fila. Cada hoja distinta de 0: una magnitud «nombre k» pesa k; cualquier otra (una identidad), la presión máxima
+ * (9.0.0.4). Sin nombres (solo el 0), cuenta el dueño con la presión máxima.
+ */
+export function presionDeLosNombres(epoca) {
+  const raiz = raizDe(epoca);
+  if (!Array.isArray(en(raiz, GOBIERNO)) || en(raiz, NOMBRES) === undefined) return null;
+  const maxima = Number(primera(en(raiz, PRESION_MAXIMA)));
+  const nombres = hojasDe(en(raiz, NOMBRES)).filter((h) => h !== 0 && h !== '0');
+  if (!nombres.length) return maxima;
+  return nombres.reduce((s, h) => {
+    const m = typeof h === 'string' ? RE_MAGNITUD.exec(h.trim()) : null;
+    return s + (m ? Number(m[1] ?? m[4]) : maxima);
+  }, 0);
+}
+
 /** La lista del suelo de una época (su 7.9.6): nombres y posiciones, en su orden; [] si no la tiene. */
 export function sueloDe(epoca) {
   return textos(en(raizDe(epoca), SUELO));
@@ -105,6 +129,8 @@ export function erroresDelSuelo(base, resultado, { clase } = {}) {
     if (!Number.isFinite(nuevoAlto)) motivos.push('deja el umbral de un cambio de gobierno (epoch.7.9.2) sin un número');
     else if (Number.isFinite(corriente) && nuevoAlto < corriente) motivos.push('deja el umbral de un cambio de gobierno (epoch.7.9.2, ' + nuevoAlto + ') por debajo del de un cambio corriente (epoch.7.9.1, ' + corriente + ')');
   }
+  const presion = presionDeLosNombres(resultado);
+  if (presion !== null && !(presion > 0)) motivos.push('deja en quién cuenta (epoch.7.9.5) nombres cuyas presiones suman ' + presion + ': el apoyo de un cambio se divide por esa suma, y ha de ser más que 0');
   if (clase !== undefined && clase !== CLASE_DE_GOBIERNO) {
     const piezas = [...new Set([...piezasDeGobiernoDe(base), ...piezasDeGobiernoDe(resultado)])];
     const tocadas = piezas.filter((p) => toca(base, resultado, p));
