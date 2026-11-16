@@ -31,6 +31,7 @@ import * as exterior from '../src/exterior.js';
 import { nombreDeRegla } from '../src/bqlm.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
 import { t, etiquetaLlana } from './textos.js';
+import { editorDeBtml, fechaDelRegistro } from './formato-btml.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
 const PIEZA = Object.freeze({ elemento: 'elemento', munequito: 'munequito', icono: 'icono', etapa: 'etapa', fondo: 'fondo', marco: 'marco', movimiento: 'movimiento' });
@@ -630,6 +631,9 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
       ocupantes: { total: o.total, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamano, ctx, tipoDato, { posicion: pv })) },
       ancla: ev ? { sobre: ev.sobre ?? null, en: ev.en ? dirCorta(ev.en) : '', sobreTexto: ev.sobre ? legibleDe(eje, { ref: ev.sobre }, null, ctx.opciones).texto : null } : null,
       validacion: contrato.validar(eje, X, ctx.opciones),
+      // El reverso como editor de BTML (VG, 14-11, #93): las líneas del payload del registro, crudas o formateadas, y los criterios de formato.
+      btml: editorDeBtml(eje, X, ctx.estado.formato, { idioma: ctx.opciones.idioma, idiomas: contrato.idiomas(ctx.opciones), opciones: { epoca: ctx.opciones.epoca } }),
+      tLegible: ev?.t ? fechaDelRegistro(ev.t, ctx.estado.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null,
       // «verificado» (los tres relojes, contrato.verificado): solo si lo está; una marca discreta, nunca un dato de la carta.
       ...marcaDeVerificado(eje, X, ctx.opciones),
     };
@@ -670,7 +674,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
 function porAutorizarDe(eje, X, pv, ctx) {
   if (pv !== 6 || !ctx.yo || eje.alta(ctx.yo)?.id !== X) return null;
   const lista = contrato.porAutorizar(eje, ctx.yo, { epoca: ctx.opciones.epoca, idioma: ctx.opciones.idioma });
-  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio })) : null;
+  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado) })) : null;
 }
 
 /** El nombre de la plantilla de datos de X en el idioma, o null si no tiene. */
@@ -862,6 +866,12 @@ function ejecucionDe(eje, X, accion, yo, valores, o) {
     escala: escala ?? e.propuesta.desde, elegida: Boolean(escala), cubre: e.cubre, alcanza: e.alcanza, escalas: e.escalas,
     incompleto: Boolean(e.incompleto), // faltan parámetros: lo exigido es el de lo que ya hay
     boton: contrato.botonDeEjecutar(eje, X, o),
+    // Los motivos que el núcleo da sin bloquear (lo que falta al registro, la lectura de segundo factor desbordada: `estado`
+    // PENDIENTE), en llano (VG 14-11, #89 y #70): arriba del botón si está apagado, como aviso si no.
+    motivos: motivosEnLlano(e.motivos, eje, o),
+    desbordado: (e.motivos ?? []).some((m) => m.estado === 'PENDIENTE'),
+    // El desglose de la autorización (#70, partes.autorizacion.transferencias): una línea por cosa titular, con su nombre legible.
+    autorizacion: (e.partes.find((p) => p.parte === 'autorizacion')?.transferencias ?? []).map((x) => ({ ...x, cosaTexto: legibleDe(eje, x.cosa, ['identity'], o).texto })),
     // el segundo factor (VG 12/13-11, #66, #70): lo que movería alcanza un criterio de quien ejecuta; se avisa antes
     ...(e.segundoFactor?.exige ? { segundoFactor: { titulares: e.segundoFactor.titulares } } : {}),
   };
@@ -902,7 +912,14 @@ export async function previsualizar(eje, X, accion, valores, yo, firmar, opcione
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
   const quien = (x) => (x === null || x === undefined ? t('nadie') : legibleDe(eje, x, ['identity'], o).texto);
   const movimientos = (r.evento?.movimientos ?? []).map((m) => `${quien(m.de)} → ${quien(m.a)} · ${legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto}${m.estado ? ' · ' + m.estado + (m.salida ? ' ' + m.salida : '') : ''}`);
-  return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
+  // Lo que se enseña al mantener pulsado un paso del camino (VG 14-11, #90): una frase, «se movería 1 hora de ti a cocina».
+  const sujeto = (x) => (x === yo ? t('previaTu') : quien(x));
+  const cuanto = (m) => legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto;
+  const frases = (r.evento?.movimientos ?? []).map((m) => {
+    const clave = m.estado === 'anunciado' ? 'previaAnuncia' : m.de === null || m.de === undefined ? 'previaCrea' : m.a === null || m.a === undefined ? 'previaGasta' : 'previaMueve';
+    return t(clave, { cuanto: cuanto(m), de: sujeto(m.de), a: sujeto(m.a) });
+  });
+  return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, frase: frases.join('; '), ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
 }
 
 /**
@@ -1060,13 +1077,29 @@ function rosetonesDe(eje, yoDatos, ctx, medidas) {
       comprimido: propio && typeof propio.k === 'number' ? { dato: propio.k, de: propio.de, que: propio.nombre } : { dato: total, de: null, que: null },
     };
     if (nivel >= NIVEL.tarjeta) {
-      const o = contrato.ocupantes(eje, alta, pv, 0, tamanoDeNivel(2, ctx.opciones)?.datos ?? ctx.paso, ctx.opciones);
+      // La tarjeta flotante lleva los datos de su paso; la pantalla completa (nivel 3), todo lo que el núcleo da de esa posición de mi alta en una página.
+      const cuantos = nivel >= NIVEL.bloque ? Math.max(ctx.paso, tamanoDeNivel(3, ctx.opciones)?.datos ?? 0) : tamanoDeNivel(2, ctx.opciones)?.datos ?? ctx.paso;
+      const o = contrato.ocupantes(eje, alta, pv, 0, cuantos, ctx.opciones);
       const tipoDato = contrato.tipo(eje, alta, pv, ctx.opciones);
       nodo.ocupantes = { total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(1, ctx.opciones), ctx, tipoDato, { posicion: pv })) };
     }
     return nodo;
   });
 }
+
+/**
+ * Pulsar un rosetón (VG, 14-11, #91): el comprimido se amplía (flota sobre la carta, de uno en uno); el ampliado, o el
+ * de la pantalla completa, se cierra al pulsar el mismo. Es solo estado de pantalla: devuelve los rosetones nuevos.
+ */
+export function alternarRoseton(rosetones, pv) {
+  return (rosetones?.[pv] ?? NIVEL.comprimido) >= NIVEL.tarjeta ? {} : { [pv]: NIVEL.tarjeta };
+}
+
+/** El doble toque en un rosetón: su vista ampliada a pantalla completa (la configuración de la cartera la llenará de más). */
+export const rosetonAPantallaCompleta = (pv) => ({ [pv]: NIVEL.bloque });
+
+/** ¿Hay un rosetón ampliado (flotando o a pantalla completa)? Pulsar fuera de él lo cierra. */
+export const hayRosetonAmpliado = (rosetones) => Object.values(rosetones ?? {}).some((n) => n >= NIVEL.tarjeta);
 
 /** El camino de X para yo, como lo da el núcleo, con cada paso marcado como mío, de espera o hecho; lo que se lanza, por su id y su nombre en el idioma. */
 async function caminoDe(eje, X, yo, ctx) {
@@ -1570,11 +1603,12 @@ function valorEnLlano(eje, p, ctx) {
   const partes = [cero !== undefined ? String(cero) : legibleDe(eje, { ref: p.de }, null, ctx.opciones).texto];
   const [desde, hasta] = hojas(hojas(pl[6])[2]);
   if (typeof desde === 'string' && typeof hasta === 'string' && Date.parse(desde) <= Date.parse(hasta)) {
-    partes.push(t('ratoMinutos', { n: Math.max(1, Math.round((Date.parse(hasta) - Date.parse(desde)) / 60000)) }));
+    const n = Math.max(1, Math.round((Date.parse(hasta) - Date.parse(desde)) / 60000));
+    partes.push(t(n === 1 ? 'ratoUnMinuto' : 'ratoMinutos', { n }));
     const cuando = horaLlana(hasta);
     if (cuando) partes.push(cuando);
   }
-  return partes.join(' · ');
+  return partes.join(', ');
 }
 
 /**
@@ -2045,7 +2079,8 @@ const pasoDelArbol = (pv, k, escala) => {
  *   aro: { X, pv } | null    el aro abierto sobre un registro (pv: el hueco desplegado); { X, nuevo: d }: sobre el
  *                            hueco vacío d de X, con un input nuevo que crea el elemento en X.d (issue #22)
  *   formulario: { X, accion, valores, motivos, resultado } | null
- *   rosetones: { [pv]: 1-2 } el paso de cada rosetón de identidad
+ *   rosetones: { [pv]: 1-3 } el paso de cada rosetón de identidad (1 comprimido, 2 ampliado flotando, 3 pantalla completa)
+ *   formato: { formateado, fecha, numeros, estilo } los criterios del editor de BTML del reverso (carta/formato-btml.js)
  *   local: LibroLocal | null el libro local de yo (solo se lee)
  *   leido: boolean           si la lente «leído» del 0 está abierta
  *   nuevos: Set<id>          las transacciones del diario llegadas desde la última vez (lo que el animado anima: efectos y actuar)
@@ -2195,7 +2230,7 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     ...(secuencia ? { secuencia: { filas: secuencia.filas, pasado: secuencia.pasado, futuro: secuencia.futuro, digitos: secuencia.digitos } } : {}),
     aro,
     sitio,
-    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, animado } : null,
+    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, reverso: Boolean(estado.formulario.reverso), animado } : null,
     camino,
     local: localDe(estado.local, opciones.t),
     tiempo: yoDatos?.tiempo ?? null,

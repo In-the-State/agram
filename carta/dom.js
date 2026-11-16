@@ -548,25 +548,44 @@ function htmlEjecutarEnCelda(a) {
 }
 
 /**
- * Ejecutar en el formulario (VG 12-11, decisión 7): lo que cada parte exige en T (el coste por posición, lo que mueve la
- * plantilla) y la suma; la denominación propuesta o la que sale de la escala elegida (el desplegable: las escalas del
- * calendario, menores o mayores), si cubre lo exigido y si el saldo de hoy la alcanza.
+ * Ejecutar en el formulario, la cara que ve quien decide (VG 12-11, decisión 7; VG 14-11, #89 y #70): lo exigido en total, la
+ * denominación propuesta o la que sale de la escala elegida (el desplegable: las escalas del calendario), una línea por cosa
+ * que autoriza («5 min a cartera, que autoriza»), el aviso del segundo factor y los avisos que el núcleo da sin bloquear. El
+ * desglose por partes, con el nombre de la regla, va al reverso (htmlEjecucionReverso).
  */
 function htmlEjecucion(e) {
   if (!e) return '';
-  const [coste, plantilla] = e.partes;
-  const autorizacion = e.partes.find((p) => p.parte === 'autorizacion');
-  const partes = [`<li data-parte="coste">${escapar(t('exigidoCoste', { n: coste.posiciones, t: textoDeSegundos(coste.segundos) }))}</li>`]
-    .concat(autorizacion ? [`<li data-parte="autorizacion">${escapar(t('exigidoAutorizacion', { n: autorizacion.elementos, t: textoDeSegundos(autorizacion.segundos) }))}</li>`] : [])
-    .concat(plantilla?.segundos > 0 ? [`<li data-parte="plantilla">${escapar(t('exigidoPlantilla', { t: textoDeSegundos(plantilla.segundos) }))}</li>`] : [])
-    .concat(plantilla?.anunciado > 0 ? [`<li data-parte="anunciado">${escapar(t('exigidoAnunciado', { t: textoDeSegundos(plantilla.anunciado) }))}</li>`] : [])
-    .concat([`<li data-parte="total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></li>`]);
   const opciones = e.escalas.map((x) => `<option value="${attr(x)}"${x === e.escala ? ' selected' : ''}>${escapar(t('escala_' + x))}${x === e.propuesta.desde ? ' ' + escapar(t('escalaPropuesta')) : ''}</option>`).join('');
+  const autoriza = e.autorizacion?.length
+    ? `<ul class="autoriza">${e.autorizacion.map((x) => `<li data-autoriza="${attr(x.cosa)}">${escapar(t('autorizaLinea', { t: textoDeSegundos(x.segundos), cosa: x.cosaTexto }))}</li>`).join('')}</ul>` : '';
   // El segundo factor (VG 12/13-11, #66, #70): lo que movería alcanza un criterio de quien ejecuta; se avisa antes de ejecutar.
   const segundo = e.segundoFactor ? `<p class="aviso-segundo-factor" role="note">${escapar(t('avisoSegundoFactor', { titulares: e.segundoFactor.titulares.join(', ') }))}</p>` : '';
+  const delNucleo = (e.motivos ?? []).map((m) => `<small class="aviso${m.estado === 'PENDIENTE' ? ' desbordado' : ''}" role="note"${m.estado === 'PENDIENTE' ? ' data-desbordado' : ''}>${escapar(m.mensaje)}</small>`).join('');
   const avisos = (e.incompleto ? `<small class="aviso">${escapar(t('exigidoIncompleto'))}</small>` : '') + (e.cubre ? '' : `<small class="aviso">${escapar(t('denominacionNoCubre'))}</small>`) + (e.alcanza ? '' : `<small class="aviso">${escapar(t('denominacionNoAlcanza'))}</small>`);
-  return `<section class="ejecucion-t" aria-label="${attr(t('ejecucionTitulo'))}"><h3>${escapar(t('ejecucionTitulo'))}</h3><ul class="exigido">${partes.join('')}</ul>
-      <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${segundo}</section>`;
+  return `<section class="ejecucion-t" aria-label="${attr(t('ejecucionTitulo'))}"><h3>${escapar(t('ejecucionTitulo'))}</h3><p class="exigido-total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></p>
+      <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${autoriza}${segundo}${delNucleo}</section>`;
+}
+
+/** Con el botón de ejecutar apagado, una línea arriba dice qué le falta al registro: el rango en que está y el que lo marca (contrato.botonDeEjecutar). */
+function htmlBotonApagado(e) {
+  const b = e?.boton;
+  if (!b || b.estado !== 'apagado' || !b.marca) return '';
+  const marca = `${b.marca.nivel}.${b.marca.grado}`;
+  const texto = b.nombre ? t('ejecutarApagado', { nombre: b.nombre, rango: `${b.nivel}.${b.grado}`, marca }) : t('ejecutarApagadoSinRango', { marca });
+  return `<p class="boton-apagado-motivo" role="status">${escapar(texto)}</p>`;
+}
+
+/** Lo exigido en T por partes, con el nombre de la regla y de la plantilla: el reverso del formulario de ejecutar. */
+function htmlEjecucionReverso(e) {
+  if (!e) return '';
+  const [coste, plantilla] = e.partes;
+  const autorizacion = e.partes.find((p) => p.parte === 'autorizacion');
+  const partes = [`<li data-parte="coste">${escapar(t('exigidoCoste', { n: coste.posiciones, t: textoDeSegundos(coste.segundos) }))} <code>${escapar(coste.regla ?? '')}</code></li>`]
+    .concat(autorizacion ? [`<li data-parte="autorizacion">${escapar(t('exigidoAutorizacion', { n: autorizacion.elementos, t: textoDeSegundos(autorizacion.segundos) }))}</li>`] : [])
+    .concat(plantilla?.segundos > 0 ? [`<li data-parte="plantilla">${escapar(t('exigidoPlantilla', { t: textoDeSegundos(plantilla.segundos) }))} <code>${escapar(plantilla.plantilla ?? '')}</code></li>`] : [])
+    .concat(plantilla?.anunciado > 0 ? [`<li data-parte="anunciado">${escapar(t('exigidoAnunciado', { t: textoDeSegundos(plantilla.anunciado) }))}</li>`] : [])
+    .concat([`<li data-parte="total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></li>`]);
+  return `<h4>${escapar(t('reversoDesglose'))}</h4><ul class="exigido">${partes.join('')}</ul>`;
 }
 
 /** La matriz del 4: la esquina, la ejecución arriba (o los diez tipos de interacción), y cada fila con su oficio (o su posición) delante; la diagonal (la escalera) marcada con su peldaño; cada celda con ocupante, una estación con su estado (y su sello si está ejecutada, solo CSS), que se abre al pulsarla; encima, la abierta; debajo, lo que no tiene celda. */
@@ -756,7 +775,7 @@ function htmlPropuesta(p) {
 
 /** Lo que daría un paso previsualizado (carta.previsualizar): si pasaría y con qué movimientos, o por qué no. */
 function htmlPrevia(v) {
-  const texto = v.ok ? (v.movimientos?.length ? t('previaPasa', { movimientos: v.movimientos.join(' · ') }) : t('previaPasaSinMovimientos')) : t('previaNoPasa', { motivos: (v.motivos ?? []).map((m) => m.mensaje).join('; ') });
+  const texto = v.ok ? (v.frase || t('previaPasaSinMovimientos')) : t('previaNoPasa', { motivos: (v.motivos ?? []).map((m) => m.mensaje).join('; ') });
   return `<small class="previa${v.ok ? ' pasa' : ' no-pasa'}" role="status">${escapar(texto)}</small>`;
 }
 
@@ -784,14 +803,16 @@ export function htmlCamino(c, { X } = {}) {
     if (p.propuesta !== null && p.propuesta !== undefined) return htmlPropuesta(p);
     const clase = p.hecho ? 'hecho' : p.espera ? 'espera' : p.mio ? 'mio' : 'otro';
     const falta = comun && typeof p.falta === 'string' && p.falta.startsWith(comun + ' · ') ? p.falta.slice(comun.length + 3) : (p.falta ?? '');
-    const cuerpo = `<span class="fuente">${escapar(p.fuente)}</span> <span class="falta">${escapar(falta)}</span>`;
     const marca = p.hecho ? `<span class="marca">${t('hecho')}</span>` : p.espera ? `<span class="marca">${escapar(t('esperaA', { quien: p.espera }))}</span>` : '';
-    // Previsualizar (encargo «datos3»): construye y valida el paso sin escribir; lo que daría, debajo.
+    // Un paso mío tiene una sola acción visible, la del paso, con el nombre de su plantilla en llano (VG 14-11, #90). Mantenerlo
+    // pulsado enseña lo que haría (una frase, sin escribir nada: gestos.js → previsualizar); la fuente y la regla, al reverso.
     const previa = c.previa?.paso === i ? htmlPrevia(c.previa) : '';
-    const ver = p.hacer && !p.hacer.lectura ? ` <button type="button" class="previsualizar"${nodo('control')} data-previsualizar="${i}" data-x="${attr(p.hacer?.X ?? X ?? '')}" data-accion="${attr(p.hacer.id)}" title="${attr(t('previsualizarTitulo'))}">${t('previsualizar')}</button>` : '';
+    const reverso = `<span class="paso-reverso" hidden><small>${escapar(t('pasoDeDonde'))}: <code>${escapar(p.fuente ?? '')}</code></small>${p.regla ? ` <small>${escapar(t('pasoRegla'))}: <code>${escapar(p.regla)}</code></small>` : ''}${p.porque ? ` <small>${escapar(t('pasoPorque'))}: ${escapar(p.porque)}</small>` : ''}</span>`;
+    const voltear = `<button type="button" class="voltear-paso"${nodo('control')} data-voltear-paso aria-pressed="false" aria-label="${attr(t('pasoVoltear'))}" title="${attr(t('pasoVoltear'))}">↻</button>`;
+    const accion = p.hacer && !p.hacer.lectura ? ` data-previsualizar="${i}"` : '';
     return p.mio
-      ? `<li class="paso ${clase}"${nodo('paso')}><button type="button" data-paso="${i}" data-x="${attr(p.hacer?.X ?? X ?? '')}" data-lanzar="${attr(p.hacer.id)}">${escapar(p.hacer.nombre)}</button>${ver} ${cuerpo}${previa}</li>`
-      : `<li class="paso ${clase}"${nodo('paso')}>${cuerpo} ${marca}</li>`;
+      ? `<li class="paso ${clase}"${nodo('paso')}><button type="button" data-paso="${i}" data-x="${attr(p.hacer?.X ?? X ?? '')}" data-lanzar="${attr(p.hacer.id)}" data-accion="${attr(p.hacer.id)}"${accion} title="${attr(t('pasoTitulo', { nombre: p.hacer.nombre }))}">${escapar(p.hacer.nombre)}</button> <span class="falta">${escapar(falta)}</span> ${voltear}${reverso}${previa}</li>`
+      : `<li class="paso ${clase}"${nodo('paso')}><span class="falta">${escapar(falta)}</span> ${marca} ${voltear}${reverso}</li>`;
   }).join('');
   const niveles = c.niveles ? `<p class="niveles">${t('paraUbicarse')} ${c.niveles.map((n) => `<span>${escapar(n)}</span>`).join(' → ')}</p>` : '';
   const seguir = c.pasos.some((p) => p.mio && !p.hacer?.lectura && (p.propuesta === null || p.propuesta === undefined)) ? `<button type="button" class="seguir" data-seguir>${t('seguir')}</button>` : '';
@@ -814,7 +835,7 @@ function htmlPropuestasFuera(p) {
 /** Lo por autorizar de mi alta (VG 14-11, #70): una línea por registro, «por autorizar: <su 0> · <qué falta>». */
 function htmlPorAutorizar(l) {
   if (!l?.length) return '';
-  const filas = l.map((x) => `<li class="por-autorizar-linea" data-por-autorizar="${attr(x.id)}"><button type="button" class="enlace" data-abrir="${attr(x.id)}">${escapar(t('porAutorizar'))}: ${escapar(x.que)}</button> · <small>${escapar(x.falta ?? '')}</small></li>`).join('');
+  const filas = l.map((x) => `<li class="por-autorizar-linea${x.desbordado ? ' desbordado' : ''}" data-por-autorizar="${attr(x.id)}"${x.desbordado ? ' data-desbordado' : ''}><button type="button" class="enlace" data-abrir="${attr(x.id)}">${escapar(t('porAutorizar'))}: ${escapar(x.que)}</button> · ${x.desbordado ? `<b class="marca-desbordado">${escapar(t('porAutorizarDesbordado'))}</b> · ` : ''}<small>${escapar(x.falta ?? '')}</small></li>`).join('');
   return `<section class="por-autorizar"${nodo('por-autorizar')} title="${attr(t('porAutorizarTitulo'))}"><ul>${filas}</ul></section>`;
 }
 
@@ -836,7 +857,7 @@ export function htmlGuia(g) {
     + (g.pensando ? `<li class="guia-yo"><b>${t('guiaYo')}</b> ${escapar(g.pendiente ?? '')}</li><li class="guia-pensando" role="status">${t('guiaPensando')}</li>` : '');
   const rapidas = g.preguntas.map((q, i) => `<button type="button"${nodo('control')} data-guia-rapida="${i}"${g.pensando ? ' disabled' : ''}>${escapar(q)}</button>`).join('');
   return `<section class="guia"${nodo('guia')} data-guia aria-label="${attr(t('guia'))}">
-    <header class="guia-cabeza"><h4>${t('guia')}</h4><small class="ayuda">${escapar(t(g.via === 'direct' ? 'guiaViaDirecta' : 'guiaViaServidor'))}</small>${g.historial.length ? `<button type="button"${nodo('control')} data-guia-vaciar title="${attr(t('guiaVaciarTitulo'))}">${t('guiaVaciar')}</button>` : ''}</header>
+    <header class="guia-cabeza"><h4>${t('guia')}</h4><small class="ayuda">${escapar(t(g.via === 'direct' ? 'guiaViaDirecta' : g.ejemplo ? 'guiaViaEjemplo' : 'guiaViaServidor'))}</small>${g.historial.length ? `<button type="button"${nodo('control')} data-guia-vaciar title="${attr(t('guiaVaciarTitulo'))}">${t('guiaVaciar')}</button>` : ''}</header>
     <ol class="guia-historial" aria-live="polite">${turnos || `<li class="nada">${t('guiaVacia')}</li>`}</ol>
     ${g.error ? `<p class="aviso" role="alert">${escapar(g.error)}</p>` : ''}
     <div class="guia-rapidas">${rapidas}</div>
@@ -928,6 +949,23 @@ function htmlDigitos(s) {
   return `<nav class="digitos"${nodo('control')} aria-label="${attr(t('digitosTitulo'))}">${s.digitos.map((d) => `<button type="button" class="digito" data-digito="${d.pv}" data-color="${d.pv}" title="${attr(d.pv + ' · ' + (d.etiqueta ?? ''))}" aria-label="${attr(d.pv + ' · ' + (d.etiqueta ?? ''))}">${d.pv}</button>`).join('')}</nav>`;
 }
 
+/**
+ * El reverso como editor de código (VG, 14-11, #93): el BTML del registro como TEXTO en una <pre><code> de solo lectura, con
+ * una línea por fila numerada, sangrada por nivel y un color por tipo de valor (las clases t-*); «formatear» alterna el BTML
+ * crudo y el formateado para leer y, formateado, enseña los criterios de formato para que quien mira los establezca. Todo
+ * lo que viene del BTML se escapa: nada de él es HTML ni se ejecuta.
+ */
+function htmlBtml(b) {
+  if (!b) return '';
+  const lineas = b.lineas.map((l) => `<span class="btml-linea" data-nivel="${l.nivel}"><span class="btml-n" aria-hidden="true">${l.n}</span>${l.trozos.map((z) => `<span class="t-${z.k}">${escapar(z.v)}</span>`).join('')}</span>`).join('\n');
+  const criterios = b.criterios.length ? `<fieldset class="btml-criterios"><legend>${t('btmlCriterios')}</legend>${b.criterios.map((c) => `<label class="btml-criterio"><span>${escapar(c.etiqueta)}</span><select data-formato="${attr(c.clave)}">${c.opciones.map((o) => `<option value="${attr(o.valor)}"${o.valor === c.valor ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}</select></label>`).join('')}<small class="ayuda">${t('btmlCriteriosAyuda')}</small></fieldset>` : '';
+  return `<div class="btml-editor${b.formateado ? ' formateado' : ''}"${nodo('control')}>
+    <div class="btml-barra"><span class="btml-titulo">${t('btmlTitulo')}</span><button type="button" class="btml-formatear" data-formatear aria-pressed="${b.formateado}" title="${attr(t('btmlFormatearTitulo'))}">${t('btmlFormatear')}</button></div>
+    ${criterios}
+    ${b.lineas.length ? `<pre class="btml-codigo" tabindex="0" aria-label="${attr(t('btmlTitulo'))}"><code>${lineas}</code></pre>` : `<p class="ayuda">${t('btmlSinDatos')}</p>`}
+  </div>`;
+}
+
 /** El centro: el anverso (0), el reverso (5) o un PV abierto como foco. */
 function htmlCentro(c, arbol, { leidoTexto } = {}) {
   const voltear = `<button type="button" class="voltear" data-voltear aria-label="${attr(t('voltear'))} (${attr(t(c.cara === 'anverso' ? 'voltearAnverso' : 'voltearReverso'))})" title="${attr(t('voltear'))}">⟲</button>`;
@@ -948,16 +986,17 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   }
   if (c.cara === 'reverso') {
     const ancla = c.ancla ? `<p class="ancla">${t('sobre')} <button type="button" class="enlace" data-abrir="${attr(c.ancla.sobre ?? '')}" ${c.ancla.sobre ? '' : 'disabled'}>${escapar(c.ancla.sobreTexto ?? t('laRaiz'))}</button>${c.ancla.en ? ` · ${t('en')} ${escapar(c.ancla.en)}` : ''}</p>` : '';
-    const pasos = c.pasos ? `<ul class="pasos">${Object.values(c.pasos.porPv).concat(c.pasos.comun ? [c.pasos.comun] : []).map((p) => `<li><b>${escapar(p.nombre)}</b> ${p.k === null ? '—' : escapar(p.k)}${p.de ? `<small>/${escapar(p.de)}</small>` : ''}</li>`).join('')}</ul>` : '';
+    // Sin los pasos que no dicen nada (un «cuando —/10»: sin valor no hay paso que contar).
+    const pasos = c.pasos ? Object.values(c.pasos.porPv).concat(c.pasos.comun ? [c.pasos.comun] : []).filter((p) => p.k !== null && p.k !== undefined) : [];
+    const pasosHtml = pasos.length ? `<ul class="pasos">${pasos.map((p) => `<li><b>${escapar(p.nombre)}</b> ${escapar(p.k)}${p.de ? `<small>/${escapar(p.de)}</small>` : ''}</li>`).join('')}</ul>` : '';
     const validacion = c.validacion?.length ? `<ul class="motivos">${c.validacion.map((v) => `<li>${escapar(v.motivo)}</li>`).join('')}</ul>` : '';
     return `<section class="nucleo reverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'reverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
-      <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time>${escapar(c.t)}</time>` : ''}</p>
+      <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
       ${ancla}${c.verificado ? `<p class="verificado-linea">${htmlVerificado(c)}</p>` : c.pendienteDeSello ? `<p class="verificado-linea">${htmlPendienteDeSello()}</p>` : ''}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}
-      ${htmlOcupantes(c.ocupantes, { pv: c.pv })}
-      <label class="campo campo-5"${nodo('campo', { d: 5 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(c.plantilla ?? '')}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>
-      ${pasos}${validacion}
+      ${htmlBtml(c.btml)}
+      ${pasosHtml}${validacion}
     </section>`;
   }
   // A pantalla completa, los dos sitios del arte (#94): con rejilla, los pinta la rejilla (htmlRejilla); sin ella, aquí: el
@@ -978,17 +1017,31 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
  */
 function htmlRoseton(r, { enSuSitio = false } = {}) {
   const sitio = enSuSitio && r.sitio ? ` sitio-f${r.sitio.fila} sitio-c${r.sitio.columna}${r.sitio.centro ? ' sitio-centro' : ''}` : '';
-  return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${r.nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[r.nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('deMiAlta', { que: r.etiqueta }))}">
+  // A pantalla completa (nivel 3) el rosetón se queda comprimido en su sitio: lo grande es la hoja de htmlRosetonPantalla.
+  const nivel = r.nivel >= NIVEL.bloque ? NIVEL.comprimido : r.nivel;
+  const ampliado = nivel >= NIVEL.tarjeta && r.ocupantes;
+  // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
+  return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
     <span class="numero">${r.pv}</span><span class="dato">${escapar(r.comprimido.dato)}</span>
-    ${r.nivel >= NIVEL.tarjeta && r.ocupantes ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>` : ''}
+    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>` : ''}
   </button>`;
+}
+/** El doble toque: la misma vista del rosetón ampliado a pantalla completa, con lo que el núcleo da de esa posición de mi alta. */
+function htmlRosetonPantalla(lista) {
+  const r = lista.find((x) => x.nivel >= NIVEL.bloque && x.ocupantes);
+  if (!r) return '';
+  const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
+  return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
+    <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span><small>${escapar(r.ocupantes.total)}</small><button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
+    <ul>${filas}</ul>
+  </section>`;
 }
 const nav = (lista, clase, enSuSitio = false) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio })).join('')}</nav>`;
 const ARRIBA = [1, 2, 0, 3, 4];
 function htmlRosetones(lista, { apilada = false, parte } = {}) {
   if (!lista?.length) return '';
   // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa).
-  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) : '';
+  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista) : '';
   const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
   return mias.length ? nav(mias, `rosetones-${parte}`) : '';
 }
@@ -1055,12 +1108,13 @@ function valorDeInput(c) {
  */
 function htmlFormulario(f) {
   if (!f) return '';
+  // La cara de quien decide: la etiqueta, el desplegable de valores posibles y el input; el tipo, la fórmula de validación y el
+  // BTML en crudo van al reverso (VG 14-11, #89), que se abre a propósito.
   const campo = (c) => {
     const id = 'param-' + c.nombre.replace(/\W+/g, '-');
     const tipoInput = c.tipo === 'number' ? 'number' : c.tipo === 'instant' ? 'datetime-local' : 'text';
     const valor = valorDeInput(c);
     const crudo = c.valor === null || c.valor === undefined ? '' : JSON.stringify(c.valor);
-    const btml = crudo ? `<details class="btml"><summary>${t('verEnBtml')}</summary><code>${escapar(crudo)}</code></details>` : '';
     // Con valores posibles (contrato.opciones), un desplegable; «otro…» destapa el input (que es el que se envía).
     const opciones = c.opciones ?? [];
     const crudoTexto = c.valor === null || c.valor === undefined || typeof c.valor === 'object' ? null : String(c.valor);
@@ -1071,21 +1125,37 @@ function htmlFormulario(f) {
       ? `<select class="param-opciones" data-otro-de="${id}" aria-label="${attr(c.etiqueta)}"${c.requerido ? ' required' : ''}>${elegida || otro ? '' : '<option value="" selected></option>'}${opciones.map((o) => `<option value="${attr(o.valor)}"${o === elegida ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}<option value="${attr(t('otro'))}" data-otro${otro ? ' selected' : ''}>${escapar(t('otro'))}</option></select>`
       : '';
     const valorDelInput = valor; // el legible, como siempre (el crudo en data-crudo); elegir otra opción pone su valor
-    return `<div class="campo ${c.falta ? 'falta' : ''}"><label for="${id}">${escapar(c.etiqueta)}${c.requerido ? ` <abbr title="${attr(t('requerido'))}">*</abbr>` : ''} <small class="tipo">${escapar(c.tipo)}</small></label>
+    return `<div class="campo ${c.falta ? 'falta' : ''}"><label for="${id}">${escapar(c.etiqueta)}${c.requerido ? ` <abbr title="${attr(t('requerido'))}">*</abbr>` : ''}</label>
       ${select}<input id="${id}" name="${attr(c.nombre)}" type="${tipoInput}" ${tipoInput === 'number' ? 'step="any"' : ''} value="${attr(valorDelInput)}" ${c.requerido && !opciones.length ? 'required' : ''} data-tipo="${attr(c.tipo)}" data-etiqueta="${attr(c.etiqueta)}" data-simple="${c.simple ? 1 : 0}" data-crudo="${attr(crudo)}" data-legible="${attr(valorDelInput)}" data-validacion="${attr(c.validacion ?? '')}" title="${attr(c.ayuda)}" autocomplete="off"${opciones.length && !otro ? ' hidden' : ''}>
-      <small class="ayuda">${escapar(c.ayuda)}${c.validacion ? ` <code>${escapar(c.validacion)}</code>` : ''}</small>${btml}</div>`;
+      <small class="ayuda">${escapar(c.ayuda)}</small></div>`;
+  };
+  // El reverso de un campo: su tipo, su fórmula de validación y el valor en BTML.
+  const campoReverso = (c) => {
+    const crudo = c.valor === null || c.valor === undefined ? '' : JSON.stringify(c.valor);
+    return `<li class="campo-reverso"><b>${escapar(c.etiqueta)}</b> <small>${escapar(t('reversoTipo'))} <code>${escapar(c.tipo)}</code></small>${c.validacion ? ` <small>${escapar(t('reversoFormula'))} <code>${escapar(c.validacion)}</code></small>` : ''}${crudo ? `<details class="btml"><summary>${t('verEnBtml')}</summary><code>${escapar(crudo)}</code></details>` : ''}</li>`;
   };
   // A la vista, solo lo obligatorio; lo opcional, tras «más».
-  const opcionales = f.campos.filter((c) => !c.requerido);
-  const campos = f.campos.filter((c) => c.requerido).map(campo).join('')
-    + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t('masParametrosTitulo'))}">${t('masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
+  // Al ejecutar (#89), solo lo que falta por decidir: lo que ya viene dado queda recogido tras «ya resuelto» (sus inputs siguen, para enviarse).
+  const aparte = f.ejecucion ? (c) => !(c.requerido && c.falta) : (c) => !c.requerido;
+  const opcionales = f.campos.filter(aparte);
+  const campos = f.campos.filter((c) => !aparte(c)).map(campo).join('')
+    + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t(f.ejecucion ? 'yaResueltoTitulo' : 'masParametrosTitulo'))}">${t(f.ejecucion ? 'yaResuelto' : 'masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
   const motivos = f.motivos?.length ? `<ul class="motivos" role="alert">${f.motivos.map((m) => `<li>${escapar(m.mensaje)}</li>`).join('')}</ul>` : '';
   const resultado = f.resultado ? `<p class="exito" role="status">${escapar(f.resultado)}</p>` : '';
-  return `<div class="formulario-fondo" data-cerrar><form class="formulario" data-formulario${nodo('formulario')} data-x="${f.X}" data-accion="${attr(f.accion)}" aria-label="${attr(f.nombre)}">
-    <header><h2>${escapar(f.nombre)}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+  const reverso = Boolean(f.reverso);
+  const pie = reverso
+    ? `<button type="button"${nodo('control')} data-voltear-formulario title="${attr(t('formularioVolverTitulo'))}">${t('formularioVolver')}</button>`
+    : f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${t('ejecutar')}</button>` : `<button type="submit">${t(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`;
+  return `<div class="formulario-fondo" data-cerrar><form class="formulario" data-formulario${nodo('formulario')} data-x="${f.X}" data-accion="${attr(f.accion)}"${reverso ? ' data-reverso' : ''} aria-label="${attr(f.nombre)}">
+    <header><h2>${escapar(f.nombre)}</h2><button type="button" class="voltear-formulario" data-voltear-formulario aria-pressed="${reverso}" aria-label="${attr(t('formularioVoltear'))}" title="${attr(t('formularioVoltear'))}">↻</button><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <div class="cara cara-anverso"${reverso ? ' hidden' : ''}>
     ${f.ofrecida ? '' : `<p class="aviso">${t('noSeOfrece')}</p>`}
-    ${campos}${htmlEjecucion(f.ejecucion)}${motivos}${resultado}
-    <footer>${f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${t('ejecutar')}</button>` : `<button type="submit">${t(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`}</footer>
+    ${htmlBotonApagado(f.ejecucion)}${campos}${htmlEjecucion(f.ejecucion)}${motivos}${resultado}
+    </div>
+    <div class="cara cara-reverso"${reverso ? '' : ' hidden'}>
+      <h3>${escapar(t('reversoTitulo'))}</h3><ul class="campos-reverso">${f.campos.map(campoReverso).join('')}</ul>${htmlEjecucionReverso(f.ejecucion)}
+    </div>
+    <footer>${pie}</footer>
   </form></div>`;
 }
 
