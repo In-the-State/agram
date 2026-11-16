@@ -6,7 +6,8 @@
 //     (nivel 0); en vigor, las dos retiran su apoyo (ya no cambia nada) y recuperan su P;
 //   - una propuesta de gobierno («nombrar a cris»): solo ana la apoya; la mitad de la presión no llega a los dos tercios y
 //     no se aprueba.
-// El motor (que la época del libro cambie al poner un cambio en vigor) es del encargo siguiente: aquí la época no cambia.
+// Con el motor de versiones (A23, docs/notas/VERSIONES.md), poner en vigor «más margen» abre una versión nueva de la época
+// del libro: eje.epoca() lleva el margen de 900 s; eje.epocaDe(id) da la de cada registro; eje.versiones(), la lista.
 //
 //   node ejemplos/gobierno.mjs
 

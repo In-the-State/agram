@@ -26,6 +26,7 @@ import { ARIDAD, indicesDe, esLista, esReferencia, esTerminal, esDecupla, valida
 import { canonico } from './evento.js';
 import { sha256, aHex } from './cripto.js';
 import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve, esFormula } from './bqlm.js';
+import { erroresDelSuelo } from './suelo.js';
 import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS, RETOQUES_0_DATOS } from '../datos/epocas/epocas.js';
 
 export const PV = Object.freeze([
@@ -744,6 +745,9 @@ export function cargarEpocaEscrita(escrita, { conocidas = EPOCAS_POR_ID } = {}) 
     }
     const lista = [...todos].map(([k, r]) => ({ id: k, registro: r }));
     e = cargarEpocaBtml(fusion, { registros: lista, plantillas: lista, id, validar: false });
+    // El suelo de la base (A21 y A23, diseño §5; src/suelo.js): una época hija de nacimiento puede ampliarlo, no encogerlo.
+    const suelo = erroresDelSuelo(base, e);
+    if (suelo.length) throw new TypeError(nombre + ': no respeta el suelo de la época de la que hereda: ' + suelo.join('; '));
   }
   return Object.freeze({
     ...e,

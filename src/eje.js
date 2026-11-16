@@ -57,6 +57,7 @@ import { ContextoEje } from './contexto-eje.js';
 import { quemaDelCoste } from './escritura.js';
 import { validarPayload } from './btml.js';
 import { bifurcacion } from './sello.js';
+import { motivosAlProponer, entradaEnVigor, dice, PROPONER, PONER_EN_VIGOR } from './versiones.js';
 
 export { reglasDelTope, SIN_CAPACIDAD } from './condiciones/tope.js';
 
@@ -162,6 +163,11 @@ export class Eje {
   #epoca = null; // la época del eje, cargada y resuelta (#107): la escrita en su libro, o la que el génesis referencia y el código conoce (la 0)
   #escritura = null; // si el génesis escribe su época: { id, esperados, eventos, contenidos } (los registros de la época que han entrado, en orden, y los ids de sus payloads)
   #deLaEpoca = new Set(); // ids de los registros de la época: están en el libro (eventos, orden) pero no cuelgan del génesis como hijos
+  // Las versiones de la época (A23, src/versiones.js): una por cada «put a change in force» aceptado, en orden, cada una
+  // { epoca (la versión, cargada), anterior, registro (el que la puso en vigor), propuesta, posicion (el número de entrada
+  // del primer registro que se juzga con ella) }. Vacío: la época de nacimiento es la vigente. #epoca es siempre la última.
+  #versiones = [];
+  #enVigor = new Map(); // id de la propuesta → id del registro que puso su cambio en vigor (un cambio entra una sola vez)
 
   /**
    * exigirFirmas: todo autor debe tener clave registrada y firmar. Si no, solo firman quienes tienen clave.
@@ -284,11 +290,59 @@ export class Eje {
    * en su libro tras el génesis o, si el génesis no la escribe, la que referencia (contexto.epoca) si el código la
    * conoce, y si no la 0 que trae el código (los ejes de antes, cuyo génesis nombra un id de la época 0 de entonces).
    * Lanza si el génesis escribe su época y aún no está entera en el libro.
+   * Con cambios en vigor (A23, src/versiones.js), la VERSIÓN vigente: la última, la de nacimiento con cada cambio fundido
+   * encima en el orden en que entró en vigor. El id es el de siempre. Al validar un registro es justo la que le toca.
    */
   epoca() {
     if (this.#epoca) return this.#epoca;
     if (this.#escritura) throw new Error(this.#faltaEpoca());
     return EPOCA_0_BTML;
+  }
+
+  /** La época de nacimiento: la primera versión (null si el génesis escribe su época y aún no está entera). */
+  #nacimiento() {
+    if (this.#versiones.length) return this.#versiones[0].anterior;
+    return this.#epoca ?? (this.#escritura ? null : EPOCA_0_BTML);
+  }
+
+  /**
+   * La versión de la época con la que entró el registro `id` (A23): la vigente justo antes de él, para enseñarlo como se
+   * escribió (su plantilla, sus textos y sus reglas de entonces). El registro que pone un cambio en vigor entró con la
+   * anterior. null si el eje no tiene ese registro.
+   */
+  epocaDe(id) {
+    const k = this.#llegada.get(typeof id === 'string' ? id : id?.id);
+    if (k === undefined) return null;
+    for (let i = this.#versiones.length - 1; i >= 0; i--) if (this.#versiones[i].posicion <= k) return this.#versiones[i].epoca;
+    return this.#nacimiento();
+  }
+
+  /**
+   * Las versiones de la época del eje (A23), en orden: [{ numero, epoca (el id de la época, el de siempre), registro (el
+   * que la puso en vigor; null la de nacimiento), propuesta (la del cambio), nombre («<época>» o «<época>/<registro>»),
+   * posicion (el número de entrada desde el que rige), desde (el id del primer registro que se juzga con ella, o null si
+   * aún no hay ninguno), version (la época cargada) }]. La primera es la de nacimiento; la última, la vigente.
+   */
+  versiones() {
+    const nacimiento = this.#nacimiento();
+    const id = nacimiento?.id ?? null;
+    const fila = (numero, version, registro, propuesta, posicion) => Object.freeze({ numero, epoca: id, registro, propuesta, nombre: registro ? id + '/' + registro : id, posicion, desde: this.orden[posicion] ?? null, version });
+    return [fila(0, nacimiento, null, null, 0), ...this.#versiones.map((v, i) => fila(i + 1, v.epoca, v.registro, v.propuesta, v.posicion))];
+  }
+
+  /**
+   * Lo que el núcleo comprueba de `ev` como cambio de reglas (A23, src/versiones.js), con el eje de antes de `ev`:
+   * { motivos: [textos], entrada } (entrada: la entrada en vigor ya resuelta, o null). Solo mira los registros que dicen
+   * «propose a change» o «put a change in force» con una versión vigente que trae esa plantilla: para los demás, nada.
+   */
+  #motor(ev) {
+    if (!(dice(ev, PROPONER) || dice(ev, PONER_EN_VIGOR)) || (this.#escritura && !this.#epoca)) return SIN_MOTOR;
+    const epoca = this.#epocaVigente();
+    const motivos = [...motivosAlProponer(epoca, ev)];
+    const libro = { obtener: (id) => this.eventos.get(id), sobre: (id) => this.sobre(id), genesisId: this.genesisId, enVigor: this.#enVigor };
+    const entrada = entradaEnVigor(libro, epoca, ev);
+    if (entrada) motivos.push(...entrada.motivos);
+    return { motivos, entrada: entrada?.version ? entrada : null };
   }
 
   /** ¿Es `id` un registro de la época escrita en el libro (parte de la apertura del génesis, no un hijo suyo)? */
@@ -698,6 +752,8 @@ export class Eje {
     this.#epoca = otro.#epoca;
     this.#escritura = otro.#escritura;
     this.#deLaEpoca = otro.#deLaEpoca;
+    this.#versiones = otro.#versiones;
+    this.#enVigor = otro.#enVigor;
   }
 
   get genesisId() {
@@ -1253,7 +1309,7 @@ export class Eje {
     if (esRegistroDeEpoca(ev)) return formados(await this.#erroresDeEpoca(ev));
     if (this.#escritura && !this.#epoca) return formados([this.#faltaEpoca()]);
     const { motivos } = await this.#libro.probar(this.transaccion(ev), condicionesDe(this.#epocaVigente()), this.contexto(ev));
-    return motivosDeTx(ev, motivos);
+    return [...motivosDeTx(ev, motivos), ...delMotor(this.#motor(ev).motivos)];
   }
 
   /**
@@ -1322,13 +1378,15 @@ export class Eje {
     if (this.#escritura && !this.#epoca) throw rechazo('evento rechazado: ' + this.#faltaEpoca(), formados([this.#faltaEpoca()]));
     const tx = this.transaccion(ev);
     const { motivos, simulacion } = await this.#libro.probar(tx, condicionesDe(this.#epocaVigente()), this.contexto(ev));
-    if (motivos.length) {
-      const lista = motivosDeTx(ev, motivos);
+    // El núcleo como motor de versiones (A23): un cambio que no vale al proponerlo o al ponerlo en vigor se rechaza aquí.
+    const motor = this.#motor(ev);
+    if (motivos.length || motor.motivos.length) {
+      const lista = [...motivosDeTx(ev, motivos), ...delMotor(motor.motivos)];
       const errores = lista.map((m) => m.texto);
       // Si todos los motivos callan aquí (el gasto del T del día lo dice TT-4), el texto crudo de cada uno, como siempre.
       throw rechazo('evento rechazado: ' + (errores.length ? errores : motivos.map((m) => m.texto)).join('; '), lista.length ? lista : motivosDeTx(ev, motivos, true));
     }
-    this.#aplicar(ev, tx, simulacion); // la copia de copiaGuardable ya está congelada entera: lo guardado no se modifica en sitio
+    this.#aplicar(ev, tx, simulacion, motor); // la copia de copiaGuardable ya está congelada entera: lo guardado no se modifica en sitio
     return ev;
   }
 
@@ -1523,7 +1581,7 @@ export class Eje {
    * eje (lo escrito sobre cada registro, por autor, por prefijo; el reloj; las
    * claves y los tipos; qué series existen y su contrato).
    */
-  #aplicar(ev, tx = this.transaccion(ev), simulacion = undefined) {
+  #aplicar(ev, tx = this.transaccion(ev), simulacion = undefined, motor = undefined) {
     // Demostración: solo la bandera firmada del génesis (SEG-02, revisión de main 7-11 noche). Un eje que viene
     // de la versión 2 no es de demostración por serlo: la exención de clave vale solo dentro de su prefijo
     // (#exigeClave), no para lo que se le añade después.
@@ -1553,6 +1611,9 @@ export class Eje {
     // escribió su alta, o quien la escribe ahora. Se mira antes de asentar: después ya tiene cuenta.
     const reglas3 = this.orden.length >= this.eventosV2;
     const conAsignacion = reglas3 && this.#escribePersona(ev);
+    // La entrada en vigor de un cambio (A23) se mira con el eje de antes del registro: la que ya resolvió anadir o, al
+    // reaplicar lo ya validado (eje.antes), otra vez aquí (fundir es una lectura con memoria: src/versiones.js).
+    const entrada = (motor ?? (dice(ev, PONER_EN_VIGOR) ? this.#motor(ev) : SIN_MOTOR)).entrada;
     const asientos = this.#libro.asentar(tx, simulacion);
     this.#llegada.set(ev.id, this.orden.length);
     this.eventos.set(ev.id, ev);
@@ -1615,6 +1676,12 @@ export class Eje {
         this.#obtenidoDeSerie.set(k, (this.#obtenidoDeSerie.get(k) ?? 0) + cantidad);
       }
     }
+    // Una versión nueva de la época (A23): rige desde el registro siguiente; este se juzgó con la anterior.
+    if (entrada?.version && !this.#enVigor.has(entrada.propuesta)) {
+      this.#versiones.push({ epoca: entrada.version, anterior: this.#epoca, registro: ev.id, propuesta: entrada.propuesta, posicion: this.orden.length });
+      this.#enVigor.set(entrada.propuesta, ev.id);
+      this.#epoca = entrada.version;
+    }
   }
 
 }
@@ -1638,6 +1705,13 @@ function motivosDeTx(ev, motivos, crudos = false) {
 
 /** Textos sueltos (la forma, la época escrita) como motivos de eje.motivos: fallan, sin regla ni causa. */
 const formados = (errores) => errores.map((texto) => ({ texto, regla: null, estado: 'falla', causa: null }));
+
+/** El nombre con que eje.motivos firma lo que rechaza el motor de versiones (A23, src/versiones.js). */
+export const REGLA_DEL_MOTOR = 'núcleo:versiones';
+/** Los textos del motor de versiones como motivos de eje.motivos: fallan, con la regla REGLA_DEL_MOTOR. */
+const delMotor = (textos) => textos.map((texto) => ({ texto, regla: REGLA_DEL_MOTOR, estado: 'falla', causa: null }));
+/** Lo que dice el motor de versiones de un registro que no es un cambio de reglas: nada. */
+const SIN_MOTOR = Object.freeze({ motivos: Object.freeze([]), entrada: null });
 
 /** El error de un rechazo (#100): su mensaje, de siempre; `motivos`, con forma; `code`, la causa si es por límite. */
 function rechazo(mensaje, motivos) {

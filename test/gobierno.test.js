@@ -137,10 +137,14 @@ test('gobierno: proponer, apoyar, retirar el apoyo, aprobar y poner en vigor con
   assert.equal(f.payload[1].length, 1, 'sin prueba en su 1.1');
   assert.equal(decidio(p), P.poner, 'estado: en vigor');
   const otra = await intenta(P.poner, { X: e.id }, 'ana');
-  assert.deepEqual(reglas(otra), ['a change comes into force with its proof'], 'en vigor dos veces');
+  // Lo rechaza la regla de la época y, por su cuenta, el núcleo (A23, src/versiones.js: un cambio entra en vigor una sola vez).
+  assert.deepEqual(reglas(otra), ['a change comes into force with its proof', null], 'en vigor dos veces');
+  assert.match(otra.motivos[1].mensaje, /ya está en vigor desde el registro [0-9a-f]{8}: un cambio entra en vigor una sola vez/);
   assert.equal(A.acciones(eje, e.id, 6, 'ana').some((a) => a.nombre === P.poner), false);
-  // La época del libro no cambia (el motor es el encargo siguiente).
-  assert.equal(eje.epoca().registro[7][3][0][0], 600);
+  // El motor de versiones (A23, docs/notas/VERSIONES.md): la época del libro pasa a la versión con el cambio; su id no cambia.
+  assert.equal(eje.epoca().registro[7][3][0][0], 900);
+  assert.equal(eje.epocaDe(f.id).registro[7][3][0][0], 600, 'el registro que lo pone en vigor se juzgó con la anterior');
+  assert.equal(eje.versiones().length, 2);
   // «changes»: las propuestas del libro.
   const q = await m.propone('ana', 'ordinary', 'otro');
   const cambios = leerRegla(eje.epoca().lecturas.find((x) => x[0][0] === 'changes'), eje.genesisId, m.ctx());
@@ -259,7 +263,7 @@ test('gobierno: poner en vigor con prueba: la que no cubre el registro, la de un
   assert.equal(r.ok, true, JSON.stringify(r.motivos));
   assert.deepEqual(r.evento.payload[1][1], buena.decupla, 'la décupla de sello va en su 1.1');
   await eje.anadir(r.evento);
-  assert.deepEqual(reglas(await con(buena)), regla, 'una vez');
+  assert.deepEqual(reglas(await con(buena)), [...regla, null], 'una vez: lo dice la regla y, por su cuenta, el núcleo (A23)');
   // De gobierno: nivel 4. Por defecto la plantilla toma el sello que el libro guarda del registro (su 6.8.2); el entero
   // (el observador declarado: llega a Bitcoin) pasa.
   await declararExterior(eje, { lineas: [casa.publica], observadores: [obs.publica], t: m.reloj() });

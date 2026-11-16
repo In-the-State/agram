@@ -12,6 +12,7 @@
 import { validarForma, verificarId } from '../evento.js';
 import { esReferencia } from '../btml.js';
 import { EPOCA_0_BTML, EPOCAS_POR_ID } from '../epocas.js';
+import { idsDelCambio } from '../versiones.js';
 
 /** EV-1, EV-2, EV-3, TT-5, TT-7, PP-1, BL-1, RR-1 y la forma BTML (suelo): validarForma, sin mirar el eje. */
 export const FORMA = Object.freeze({
@@ -105,7 +106,10 @@ export function referenciasAusentes(ctx) {
   // eje (#107): la escrita en su libro, con las de su cadena de herencia, o la 0 que trae el código.
   const e = ctx.epoca ?? EPOCA_0_BTML;
   const deLaEpoca = (id) => id === e.id || (Array.isArray(e.ids) && e.ids.includes(id)) || EPOCAS_POR_ID.get(id) === e || e.registros.has(id);
-  const tiene = typeof ctx.registro === 'function' ? (id) => deLaEpoca(id) || Boolean(ctx.registro(id)) : deLaEpoca;
+  // Un «propose a change» (A23, src/versiones.js) lleva los registros de su cambio en el payload: su raíz puede referenciarlos.
+  const delCambio = idsDelCambio(ctx.evento, e);
+  const deLaEpocaODelCambio = (id) => deLaEpoca(id) || delCambio.has(id);
+  const tiene = typeof ctx.registro === 'function' ? (id) => deLaEpocaODelCambio(id) || Boolean(ctx.registro(id)) : deLaEpocaODelCambio;
   return [...new Set(referenciasDe(ctx.evento.payload))].filter((id) => !tiene(id));
 }
 
