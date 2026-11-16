@@ -6753,7 +6753,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template open a private book here param actions label: acción",
           "template open a private book here param actions help: la acción",
           "template open a private book here param headers url label: dirección de las cabeceras",
-          "template open a private book here param headers url help: dónde publica el libro privado sus cabeceras de lote: una dirección http o https, comprobada como las de «exterior settings»; sin ella, no se dice",
+          "template open a private book here param headers url help: dónde publica el libro privado sus cabeceras de lote: una dirección http o https, comprobada como las de los ajustes del exterior; sin ella, no se dice",
           "template open a private book here message: {me} abre el libro privado {first memo.1.0} en {first it.0}",
           "template this book hangs from: este libro cuelga de",
           "template this book hangs from param book label: libro",
@@ -24592,7 +24592,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "5260d0df3907fbdd110ce6b412c6cf382bca16a1fc870665d4ec4335a52d0baa";
+export const EPOCA_0_BTML_ID = "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

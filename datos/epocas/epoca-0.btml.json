@@ -3320,7 +3320,7 @@
           "template open a private book here param actions label: acción",
           "template open a private book here param actions help: la acción",
           "template open a private book here param headers url label: dirección de las cabeceras",
-          "template open a private book here param headers url help: dónde publica el libro privado sus cabeceras de lote: una dirección http o https, comprobada como las de «exterior settings»; sin ella, no se dice",
+          "template open a private book here param headers url help: dónde publica el libro privado sus cabeceras de lote: una dirección http o https, comprobada como las de los ajustes del exterior; sin ella, no se dice",
           "template open a private book here message: {me} abre el libro privado {first memo.1.0} en {first it.0}",
           "template this book hangs from: este libro cuelga de",
           "template this book hangs from param book label: libro",
