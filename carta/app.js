@@ -28,7 +28,7 @@ import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
-import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios } from './anfitrion.js';
+import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios, pedirSesion, puedePedirSesion } from './anfitrion.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
@@ -62,7 +62,7 @@ const estado = {
   // La cuenta del guardián (camino B, carta/anfitrion.js): si su sesión está cerrada (el aviso persistente), lo automático
   // que se paró por ella (lo que rehace el botón «abrir la sesión»), si el botón está firmando, y los criterios de segundo
   // factor ya pasados al guardián (sus ids).
-  guardian: { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null },
+  guardian: { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null, noAbrio: false },
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -305,7 +305,7 @@ function extraDe() {
     ejemplos: EJEMPLOS.map((e) => ({ id: e.id, etiqueta: e.etiqueta })), ejemplo: ejemploElegido(), guardado: estado.guardado, aviso: estado.aviso, exito: estado.exito, nuevos: estado.nuevos,
     anfitrion: Boolean(anfitrion), autorizando,
     // Camino B: el aviso persistente de la cuenta del guardián (solo para leer, o la sesión cerrada con su botón).
-    guardian: estado.cuenta?.guardian === true ? { soloLeer: Boolean(estado.cuenta.soloLeer), sinGuardian: !guardian, sesionCerrada: estado.guardian.sesionCerrada, abriendo: estado.guardian.abriendo } : undefined,
+    guardian: estado.cuenta?.guardian === true ? { soloLeer: Boolean(estado.cuenta.soloLeer), sinGuardian: !guardian, sesionCerrada: estado.guardian.sesionCerrada, abriendo: estado.guardian.abriendo, puedeAbrir: Boolean(estado.guardian.pendiente) || puedePedirSesion(guardian), noAbrio: estado.guardian.noAbrio } : undefined,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
@@ -623,7 +623,7 @@ async function ejeDesdeElLibro(r) {
 function entrarCon({ cuenta, eje, privada, soloLeer }) {
   cambiarDeEje(eje, cuenta.identidad);
   estado.cuenta = { ...cuenta, privada };
-  estado.guardian = { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null };
+  estado.guardian = { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null, noAbrio: false };
   if (cuenta.guardian === true) {
     estado.cuenta.soloLeer = Boolean(soloLeer) || !guardian;
     estado.cuenta.firmante = estado.cuenta.soloLeer ? null : firmanteDeCuenta(guardian, cuenta.publica, { eje: () => estado.eje });
@@ -1314,9 +1314,10 @@ const manejadores = {
     pintar();
   },
   /**
-   * El botón del aviso «la sesión del guardián está cerrada» (camino B): una firma pedida por el usuario, que es lo que
-   * abre el diálogo del guardián: rehace lo automático que se paró (seguir) o, si no hay nada parado, guarda este rato
-   * (englobar, un registro de verdad). Después vuelve a mirar la sesión: abierta, el aviso se va.
+   * El botón del aviso «la sesión del guardián está cerrada» (camino B), un gesto del usuario: con algo parado esperando
+   * firma, lo rehace (seguir: su firma abre el diálogo del guardián); si no, pide la sesión con `pedirSesion` (el diálogo
+   * del guardián, sin escribir ningún registro). Después vuelve a mirar la sesión: abierta, el aviso se va; si el guardián
+   * no la abrió, el aviso se queda con una línea (no reintenta sola).
    */
   async abrirGuardian() {
     const g = estado.guardian;
@@ -1325,17 +1326,21 @@ const manejadores = {
     g.abriendo = true;
     limpiarMensajes();
     await pintar();
+    g.noAbrio = false;
     const pendiente = g.pendiente;
     g.pendiente = null;
     try {
       if (pendiente?.que === 'seguir') await manejadores.seguir({ gesto: true, X: pendiente.X });
       else {
-        tocar(estado.foco.X, 'abrir la sesión del guardián'); // lo que englobar escribe: este gesto, al menos
-        await manejadores.englobar();
+        const r = await pedirSesion(guardian, cuenta.publica); // null: sin el verbo, el botón no se enseña
+        if (r && !r.abierta) g.noAbrio = true;
       }
     } finally {
       g.abriendo = false;
-      if (estado.cuenta === cuenta) g.sesionCerrada = !(await sesionAbierta(guardian, cuenta.publica));
+      if (estado.cuenta === cuenta) {
+        g.sesionCerrada = !(await sesionAbierta(guardian, cuenta.publica));
+        if (!g.sesionCerrada) g.noAbrio = false;
+      }
       pintar();
     }
   },

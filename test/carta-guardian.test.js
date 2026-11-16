@@ -22,7 +22,7 @@ import { htmlGuardian } from '../carta/dom.js';
 import { t } from '../carta/textos.js';
 import {
   guardian as guardianDeLaPagina, guardianDe, anfitrionDe, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, segundoFactorDe,
-  claveDelError, codigoDe, pasarCriterios, tieneLaCuenta,
+  claveDelError, codigoDe, pasarCriterios, tieneLaCuenta, pedirSesion, puedePedirSesion,
 } from '../carta/anfitrion.js';
 
 const T1 = '2026-11-17T10:00:00Z';
@@ -35,7 +35,7 @@ const conCodigo = (code) => Object.assign(new Error('el guardián dice ' + code)
  * crear la cuenta y al firmar (su diálogo); `cerrar()` la cierra y `cancelar` hace que el titular no firme. Apunta cada
  * llamada (sin la firma).
  */
-function guardianDePrueba({ conCriterios = false } = {}) {
+function guardianDePrueba({ conCriterios = false, conPedirSesion = false } = {}) {
   const claves = new Map();
   const llamadas = { crear: [], firmar: [], servicio: [], sesion: 0, cuentas: 0, criterios: [] };
   const g = {
@@ -75,6 +75,8 @@ function guardianDePrueba({ conCriterios = false } = {}) {
     cerrar() { g.abierta = false; },
   };
   if (conCriterios) g.criterios = async ({ publica, registros }) => { llamadas.criterios.push({ publica, registros }); if (!claves.has(publica)) throw conCodigo('unknown_account'); return { aceptados: registros.length }; };
+  // El verbo opcional: abre la sesión (el diálogo) sin escribir nada, salvo que el titular cancele u haya otro diálogo.
+  if (conPedirSesion) g.pedirSesion = async ({ publica }) => { llamadas.pedir = [...(llamadas.pedir ?? []), publica]; if (!g.cancelar && !g.ocupado) g.abierta = true; return { abierta: g.abierta, caduca: g.abierta ? 1e12 : null }; };
   g.llamadas = llamadas;
   g.privadas = () => [...claves.values()];
   g.olvidar = (publica) => claves.delete(publica);
@@ -357,4 +359,74 @@ test('sin anfitrión, crear una cuenta va por el camino A exactamente como hoy',
     assert.equal(copia.guardian, undefined);
     assert.equal(typeof copia.clave?.datos, 'string', 'la copia lleva la privada cifrada, como hoy');
   });
+});
+
+test('pedirSesion: con el verbo abre la sesión sin escribir ningún registro y devuelve { abierta, caduca }; sin él, null y el guardián sigue siendo de cuatro verbos', async () => {
+  const g = guardianDePrueba({ conPedirSesion: true });
+  const c = await cuentaDelGuardian(g);
+  const antes = [...c.eje.orden];
+  const firmas = g.llamadas.firmar.length;
+  g.cerrar();
+  assert.equal(guardianDe(g), g, 'pedirSesion no entra en la detección');
+  assert.equal(puedePedirSesion(g), true);
+  assert.deepEqual(await pedirSesion(g, c.publica), { abierta: true, caduca: 1e12 });
+  assert.deepEqual(g.llamadas.pedir, [c.publica], 'se pide con { publica }');
+  assert.equal(await sesionAbierta(g, c.publica), true);
+  assert.deepEqual([c.eje.orden, g.llamadas.firmar.length], [antes, firmas], 'ni un registro, ni una firma');
+  // Cancelado u ocupado: { abierta: false }, caduca null.
+  g.cerrar();
+  g.cancelar = true;
+  assert.deepEqual(await pedirSesion(g, c.publica), { abierta: false, caduca: null });
+  g.cancelar = false;
+  g.ocupado = true;
+  assert.deepEqual(await pedirSesion(g, c.publica), { abierta: false, caduca: null });
+  // Sin el verbo: null (y el guardián de siempre sigue siendo guardián).
+  const sin = guardianDePrueba();
+  assert.equal(puedePedirSesion(sin), false);
+  assert.equal(await pedirSesion(sin, c.publica), null);
+  assert.equal(guardianDe(sin), sin);
+  assert.equal(await pedirSesion(null, c.publica), null);
+  const traicionero = { get pedirSesion() { throw new Error('no'); } };
+  assert.equal(puedePedirSesion(traicionero), false);
+  assert.equal(await pedirSesion(traicionero, c.publica), null);
+});
+
+test('pedirSesion: una respuesta con forma rara no se da por abierta; un rechazo tampoco; caduca solo si es número o texto', async () => {
+  for (const raro of [undefined, null, 'abierta', 1, true, [], {}, { abierta: 'true' }, { abierta: 1 }, { abierta: false, caduca: 5 }, { abierta: [true] }]) {
+    const r = await pedirSesion({ pedirSesion: async () => raro }, 'a'.repeat(64));
+    assert.deepEqual(r, { abierta: false, caduca: null }, JSON.stringify(raro));
+  }
+  assert.deepEqual(await pedirSesion({ pedirSesion: async () => { throw conCodigo('dialog_busy'); } }, 'a'.repeat(64)), { abierta: false, caduca: null });
+  assert.deepEqual(await pedirSesion({ pedirSesion: () => { throw new Error('síncrono'); } }, 'a'.repeat(64)), { abierta: false, caduca: null });
+  assert.deepEqual(await pedirSesion({ pedirSesion: async () => ({ abierta: true }) }, 'a'.repeat(64)), { abierta: true, caduca: null });
+  assert.deepEqual(await pedirSesion({ pedirSesion: async () => ({ abierta: true, caduca: { x: 1 } }) }, 'a'.repeat(64)), { abierta: true, caduca: null });
+  assert.deepEqual(await pedirSesion({ pedirSesion: async () => ({ abierta: true, caduca: '2026-11-17T18:00:00Z' }) }, 'a'.repeat(64)), { abierta: true, caduca: '2026-11-17T18:00:00Z' });
+});
+
+test('crearCuenta que rechaza con dialog_busy (o cancelled_by_holder): se dice en llano y no nace nada a medias', async () => {
+  const g = guardianDePrueba();
+  const ocupado = { ...g, crearCuenta: async () => { throw conCodigo('dialog_busy'); } };
+  const e = await Q.crearCuenta({ nombre: 'Víctor', t: T1, guardian: ocupado }).then(() => null, (x) => x);
+  assert.equal(codigoDe(e), 'dialog_busy');
+  assert.equal(t(claveDelError(e)), 'El guardián tiene otro diálogo abierto. Ciérralo y vuelve a intentarlo.');
+  assert.equal(g.llamadas.firmar.length, 0, 'no se firmó nada');
+  assert.equal(t(claveDelError(conCodigo('cancelled_by_holder'))), 'No has firmado. No se ha escrito nada.', 'el otro rechazo sigue con su texto');
+  // Y la cuenta se puede crear en cuanto el guardián queda libre.
+  const c = await Q.crearCuenta({ nombre: 'Víctor', t: T1, guardian: g });
+  assert.equal(c.cuenta.guardian, true);
+});
+
+test('el aviso de la sesión cerrada: con botón si se puede abrir, sin él (con el aviso de la próxima firma) si no, y con la línea de que no se abrió', () => {
+  const con = htmlGuardian({ sesionCerrada: true, puedeAbrir: true });
+  assert.match(con, /data-guardian-abrir/);
+  assert.match(con, /La sesión del guardián está cerrada\. Ábrela para firmar\./);
+  assert.doesNotMatch(con, /data-guardian-no-abrio/);
+  const sin = htmlGuardian({ sesionCerrada: true, puedeAbrir: false });
+  assert.doesNotMatch(sin, /data-guardian-abrir|<button/);
+  assert.match(sin, /La sesión del guardián está cerrada\. Se abrirá con la próxima firma\./);
+  const noAbrio = htmlGuardian({ sesionCerrada: true, puedeAbrir: true, noAbrio: true });
+  assert.match(noAbrio, /data-guardian-abrir/, 'el aviso y el botón se quedan');
+  assert.match(noAbrio, /El guardián no ha abierto la sesión\. Inténtalo dentro de un minuto\./);
+  assert.doesNotMatch(htmlGuardian({ sesionCerrada: true, puedeAbrir: true, noAbrio: true, abriendo: true }), /no ha abierto/, 'mientras pide, la línea se quita');
+  assert.equal(htmlGuardian({ sesionCerrada: false, noAbrio: true }), '', 'abierta, nada');
 });
