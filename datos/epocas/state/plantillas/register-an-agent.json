@@ -1,0 +1,140 @@
+[
+  ["register an agent"],
+  [
+    [
+      ["thing"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [1],
+      ["the identity of the new agent (a name without an alta in this ledger)"]
+    ],
+    [
+      ["minutes"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [2],
+      ["the minutes of T I give it to write with (any whole number); a thing has no daily T: it spends what its owner gives it, and an agent gets its endowment here, as an invitation gives minutes"]
+    ],
+    [
+      ["key"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["key", "{thing}"],
+      ["{key}"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required if signed"],
+      [3],
+      ["its public key (x-only, 64 hexadecimal characters): this alta declares it; required only if the ledger demands signatures"]
+    ],
+    [
+      ["proof"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["proof", "{thing}"],
+      ["{proof}"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["optional"],
+      [4],
+      ["the proof of possession: the signature of the thing, with its key, on the id of this record; the thing makes it"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [5],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["model"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [6],
+      ["the model it runs and its provider (client.model)"]
+    ],
+    [
+      ["limits"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2.2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["optional"],
+      [7],
+      ["its limits, one per occupant (how much it can spend, how often it writes)"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [8],
+      ["=me", "who registers it: the operator, owner of the node"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [9],
+      ["register an agent", "the action"]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «register an agent»"],
+      ["required"],
+      [10],
+      [
+        "piece",
+        "agent",
+        "the type of the record and its role: a piece of a node, and its role from the closed list (authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger, connection)"
+      ]
+    ]
+  ],
+  ["=first it.3 = me and \"node\" in (payload(it)).5"],
+  [["me"], ["person"]],
+  ["=transfer first memo.1 T.1 from me to first memo.3.1"],
+  ["1.4"],
+  [
+    "Un agente (contract.ai_agent): el vigía y el ejecutor del nodo lo son. Su modelo (2.1) y sus límites (2.2) en su 2; su dotación de T, los minutos de su 1 (cualquier número entero). Ancla en el 1.4 del nodo; que lance como agente lo dice su dueño con «declare agent»",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [1, 19],
+  ["{last ev.3.1}"]
+]

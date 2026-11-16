@@ -1,0 +1,307 @@
+{
+  "epoca": "fc2b68493b87aa594befee37b4a355723af9980bf11683758c74d8dca4a5adf2",
+  "hereda": "f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8",
+  "registrosAlPublicar": 36,
+  "reglas": [
+    {
+      "nombre": "attention has a price",
+      "archivo": "attention-has-a-price.json",
+      "id": "f1e0056efad42822d62f50024c8528ed2c758299d6f6ec7b93bdf5b3760c779a"
+    },
+    {
+      "nombre": "second factor",
+      "archivo": "second-factor.json",
+      "id": "1af6230598af77dc02ce3a2168fce1d4d8fc726dd825632d15e9fd4a70f1fe8b"
+    }
+  ],
+  "plantillas": [
+    {
+      "nombre": "register the node",
+      "archivo": "register-the-node.json",
+      "id": "08e691787adc9b5c66cae88437158ee92cea37173a23bce59f6d20fafb73b67f",
+      "ocho": [
+        1,
+        10
+      ]
+    },
+    {
+      "nombre": "register the authority",
+      "archivo": "register-the-authority.json",
+      "id": "b10941a624add076631112ccd461e117740241611bc72f28c8073a918dd97d98",
+      "ocho": [
+        1,
+        11
+      ]
+    },
+    {
+      "nombre": "register the relay",
+      "archivo": "register-the-relay.json",
+      "id": "08591f7194e244b71047eb22e0b2913e8a5ae87f23aaeb9a3b238a35e9d4cfa4",
+      "ocho": [
+        1,
+        12
+      ]
+    },
+    {
+      "nombre": "register the archive",
+      "archivo": "register-the-archive.json",
+      "id": "2ed5757f1c4f29aceb6fd2650fd16355f8f57627f5923c35edd0666bde68a7b9",
+      "ocho": [
+        1,
+        13
+      ]
+    },
+    {
+      "nombre": "declare a context",
+      "archivo": "declare-a-context.json",
+      "id": "baf2ebe5dd572901e35a4d633797a43a30798d9f65bc6da4acb8144a8e535ec6",
+      "ocho": [
+        1,
+        14
+      ]
+    },
+    {
+      "nombre": "register a container",
+      "archivo": "register-a-container.json",
+      "id": "93a551710bbfdc1ec54593f76be4c02dccdfb3c7e519641f294e6317092529ad",
+      "ocho": [
+        1,
+        15
+      ]
+    },
+    {
+      "nombre": "register a gate",
+      "archivo": "register-a-gate.json",
+      "id": "317637008f7f414ea61d375a8273e49d97a071300b509095c72d45fe367cfbf1",
+      "ocho": [
+        1,
+        16
+      ]
+    },
+    {
+      "nombre": "register a deployment",
+      "archivo": "register-a-deployment.json",
+      "id": "19d6c693f40c9b3fbfc820417278274dcb7ca012d1d5262fbae07dae9cd02d81",
+      "ocho": [
+        1,
+        17
+      ]
+    },
+    {
+      "nombre": "register a worker",
+      "archivo": "register-a-worker.json",
+      "id": "fa9129f64b3dc2d120fc7fb98f90903b159b55ab4a483a2650c98114afbec010",
+      "ocho": [
+        1,
+        18
+      ]
+    },
+    {
+      "nombre": "register an agent",
+      "archivo": "register-an-agent.json",
+      "id": "3de00414b8b41696d75a1c24e2294439a2a01289de96fc29aa6b2b0b6dea467b",
+      "ocho": [
+        1,
+        19
+      ]
+    },
+    {
+      "nombre": "register a served ledger",
+      "archivo": "register-a-served-ledger.json",
+      "id": "1859c27eb343f9baa4e64774016b9172adccabf38a871e862f3e9f42324713aa",
+      "ocho": [
+        1,
+        20
+      ]
+    },
+    {
+      "nombre": "require authorization",
+      "archivo": "require-authorization.json",
+      "id": "34554b9092a2c4dbc634ca659a72c92c3ff8b4ada1c05ee96592344b9bb00a8e",
+      "ocho": [
+        2,
+        10
+      ]
+    },
+    {
+      "nombre": "set a threshold",
+      "archivo": "set-a-threshold.json",
+      "id": "ff5ccdd862e3f66fcb4bc9015190a5de56b77cb34b3f72d984b8d20057831ba5",
+      "ocho": [
+        2,
+        11
+      ]
+    },
+    {
+      "nombre": "restart a piece",
+      "archivo": "restart-a-piece.json",
+      "id": "f9f14103ab8bd1d04b39bdc61b7f9db9da1cb35eed79c816b5a30f446e0efb5c",
+      "ocho": [
+        4,
+        10
+      ]
+    },
+    {
+      "nombre": "deploy another version",
+      "archivo": "deploy-another-version.json",
+      "id": "c0f0ee94db816467e8e421574bb8dc2cbaada3bf82c72abb6c9d987b3b0e6309",
+      "ocho": [
+        4,
+        11
+      ]
+    },
+    {
+      "nombre": "change the core",
+      "archivo": "change-the-core.json",
+      "id": "00cf8adb6d11c827433128f1ecd545e50f90421d9b6c2d7329418d3e88217a7e",
+      "ocho": [
+        4,
+        12
+      ]
+    },
+    {
+      "nombre": "rotate a key",
+      "archivo": "rotate-a-key.json",
+      "id": "91ca8bf60834dea80ffe33991ca8c105e3abf241719b254b011edc1cb50fcfc9",
+      "ocho": [
+        4,
+        13
+      ]
+    },
+    {
+      "nombre": "add a mirror relay",
+      "archivo": "add-a-mirror-relay.json",
+      "id": "65313bdca917bbe432000c252c58efded8df2952f8a86e020c4dbbdf137d3621",
+      "ocho": [
+        4,
+        14
+      ]
+    },
+    {
+      "nombre": "remove a mirror relay",
+      "archivo": "remove-a-mirror-relay.json",
+      "id": "01dca6401fbf16d7037d8f71e4d056cf73c5cd8e85d4b39f9a8a11cfe451219d",
+      "ocho": [
+        4,
+        15
+      ]
+    },
+    {
+      "nombre": "shut down",
+      "archivo": "shut-down.json",
+      "id": "61119b87c596b83c88a350e7557c5ca16b3be4edc3c43661fdf613e11893ab68",
+      "ocho": [
+        4,
+        16
+      ]
+    },
+    {
+      "nombre": "resend the mirror queue",
+      "archivo": "resend-the-mirror-queue.json",
+      "id": "a2b55c77ea23b3ecc84bd16bcf347f4f308d898e2e366c78e67104ae62f25f87",
+      "ocho": [
+        4,
+        17
+      ]
+    },
+    {
+      "nombre": "seal the pending",
+      "archivo": "seal-the-pending.json",
+      "id": "4f075916a964d6fa05ec36b6a69df50e4ab55191538e65487f2f879a2ca65669",
+      "ocho": [
+        4,
+        18
+      ]
+    },
+    {
+      "nombre": "add a connection",
+      "archivo": "add-a-connection.json",
+      "id": "69304345595d158c496f4c3d20334b9bb00be02802c900fbe4e463d791888c2e",
+      "ocho": [
+        4,
+        19
+      ]
+    },
+    {
+      "nombre": "change a connection's permissions",
+      "archivo": "change-a-connection-s-permissions.json",
+      "id": "fb2ab00d9315c8bc7771c509165141f21200abe8369025a78d373aad95f7aea3",
+      "ocho": [
+        4,
+        20
+      ]
+    },
+    {
+      "nombre": "remove a connection",
+      "archivo": "remove-a-connection.json",
+      "id": "630e1d450b0acc05543ea078e49968d648d19cb208fe471b02637f84fc0fa9e4",
+      "ocho": [
+        4,
+        21
+      ]
+    },
+    {
+      "nombre": "leave a receipt",
+      "archivo": "leave-a-receipt.json",
+      "id": "591436becca13b8333838b6fcd1adf95b4c138173e52bc9d084d3dc351520cfb",
+      "ocho": [
+        4,
+        22
+      ]
+    },
+    {
+      "nombre": "report a failure",
+      "archivo": "report-a-failure.json",
+      "id": "e7e524d63fb869c7bac724b3b11cc4b0a2e718faf427719f65adf3eb01667dc2",
+      "ocho": [
+        4,
+        23
+      ]
+    },
+    {
+      "nombre": "set an expiry",
+      "archivo": "set-an-expiry.json",
+      "id": "6ab44c6d5dc140f0996ec0ead0dbbd1a3ce51fb127d65191262148c4473fa8e0",
+      "ocho": [
+        7,
+        10
+      ]
+    },
+    {
+      "nombre": "renew an expiry",
+      "archivo": "renew-an-expiry.json",
+      "id": "7971a7b1c3c240306101e6d3a97bbb7de0fa30e4d1205e687cfbd0d99fa62e7c",
+      "ocho": [
+        7,
+        11
+      ]
+    },
+    {
+      "nombre": "measure a piece",
+      "archivo": "measure-a-piece.json",
+      "id": "bbf535e13f3621e4f312bb3cbe465d83cf4b4ae1a80ba0eb9dd8075a9ad123be",
+      "ocho": [
+        8,
+        10
+      ]
+    },
+    {
+      "nombre": "put in service",
+      "archivo": "put-in-service.json",
+      "id": "bd69c21c2b92530ecdf3543b605b377d5540eeb7ece9884f86682d9ba6669c53",
+      "ocho": [
+        9,
+        10
+      ]
+    },
+    {
+      "nombre": "declare agent",
+      "archivo": "declare-agent.json",
+      "id": "29e5245c5c8126221b6d0edbb8e9c0617593f9f0eeedab26cc0ae48f4465c390",
+      "ocho": [
+        9,
+        11
+      ]
+    }
+  ]
+}

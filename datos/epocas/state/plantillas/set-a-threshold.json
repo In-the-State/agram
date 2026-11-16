@@ -1,0 +1,88 @@
+[
+  ["set a threshold"],
+  [
+    [
+      ["what"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «set a threshold»"],
+      ["required"],
+      [1],
+      ["what is measured (the same word the measures of the piece use in their 0)"]
+    ],
+    [
+      ["limit"],
+      ["number"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «set a threshold»"],
+      ["required"],
+      [2],
+      ["the limit"]
+    ],
+    [
+      ["unit"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «set a threshold»"],
+      ["required"],
+      [3],
+      ["its unit (the same as in the 2 of the measures)"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «set a threshold»"],
+      ["required"],
+      [4],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «set a threshold»"],
+      ["required"],
+      [5],
+      ["=me", "who writes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «set a threshold»"],
+      ["required"],
+      [6],
+      ["set a threshold", "the action"]
+    ]
+  ],
+  ["=first it.3 = me and \"piece\" in (payload(it)).5"],
+  [["me"], ["person"]],
+  ["write"],
+  ["2.8"],
+  [
+    "Un umbral de máquina (UI_NODO §1.2: ni «declare capacity or threshold», que es el umbral de un recuento, ni «set a minimum» sirven): en el 2.8 de la pieza (criterios sobre lo que se mide), con claves estables: 1.0 qué se mide, 1.1 el límite, 1.2 la unidad. El vigía lo lee de ahí. Cambiarlo requiere autorización (está en la lista inicial)",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [2, 11],
+  ["set a threshold: {me} sets {last ev.1.0} of {first it.0} at {last ev.1.1} {last ev.1.2}"]
+]

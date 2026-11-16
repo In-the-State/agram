@@ -1,0 +1,80 @@
+[
+  ["require authorization"],
+  [
+    [
+      ["templates"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «require authorization»"],
+      ["required"],
+      [1],
+      [
+        "restart a piece",
+        "deploy another version",
+        "change the core",
+        "admit someone",
+        "remove someone",
+        "rotate a key",
+        "add a mirror relay",
+        "remove a mirror relay",
+        "shut down",
+        "set a threshold",
+        "require authorization",
+        "add a connection",
+        "change a connection's permissions",
+        "remove a connection",
+        "the templates whose records do not run without the signature: one per occupant (by default, the initial list of table 3.2, with this template in it)"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «require authorization»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["signer"],
+      ["identity"],
+      ["=count it.6 > 0"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «require authorization»"],
+      ["required"],
+      [3],
+      ["who signs: the identity whose signature authorizes (a thing of the holder whose key StateArk keeps, or the holder); it writes and signs the authorization"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «require authorization»"],
+      ["required"],
+      [4],
+      ["require authorization", "the action"]
+    ]
+  ],
+  ["=\"node\" in (payload(it)).5 and first (payload(it)).3.2 = me"],
+  [["me"], ["person"]],
+  ["write"],
+  ["2.4"],
+  [
+    "El criterio «requiere autorización» (UI_NODO §3; VG 14-11, tabla 3.2): lo escribe el titular del nodo (el 3.2 de su alta) en el 2.4 del alta del nodo: 1 la lista de plantillas que no se ejecutan sin la firma, 3 quién firma. Un registro escrito con una de ellas bajo el nodo queda «autorizada, pendiente» hasta que quien firma escribe y firma su autorización: la lectura «second factor» de esta época (X.6.8.7) alcanza, además de los criterios del autor, los del nodo por plantilla. Cambiar el criterio requiere a su vez autorización: esta plantilla está en su propia lista inicial",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [2, 10],
+  ["require authorization: {me} requires the signature of {last ev.3} for the templates of its list"]
+]

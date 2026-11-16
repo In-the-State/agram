@@ -1123,6 +1123,30 @@ export function criteriosDeSegundoFactor(eje, yo) {
   return eje.sobre(alta, SEGUNDO_FACTOR.en).filter((h) => h.autor === yo && hojas(h.payload?.[4]).includes(SEGUNDO_FACTOR.criterio)).map((h) => criterioDe(eje, h.id));
 }
 
+/**
+ * Los criterios del 2.4 que NO son «second factor» (los escribe otra plantilla de la época): una época que hereda puede
+ * redefinir la lectura «second factor» para que alcancen registros de otros autores (docs/CONTRATO.md §12.4 bis; la época
+ * de la clase state, el criterio de un nodo por plantilla). Mientras el eje no tiene ninguno, todo sigue como en la 0 (el
+ * atajo «sin criterios propios del autor no hay nada que leer»); con alguno, se lee siempre. Cada uno, como criterioDe;
+ * se recuerda por eje mientras el libro no crece.
+ */
+const CRITERIOS_DE_OTRA_PLANTILLA = new WeakMap();
+export function criteriosDeOtraPlantilla(eje) {
+  if (!Array.isArray(eje?.orden)) return [];
+  const visto = CRITERIOS_DE_OTRA_PLANTILLA.get(eje);
+  if (visto && visto.n === eje.orden.length) return visto.criterios;
+  const criterios = [];
+  for (const id of eje.orden) {
+    const ev = eje.obtener(id);
+    if (ev?.en === SEGUNDO_FACTOR.en && !eje.esDeLaEpoca?.(id) && !hojas(ev.payload?.[4]).includes(SEGUNDO_FACTOR.criterio)) criterios.push(criterioDe(eje, id));
+  }
+  CRITERIOS_DE_OTRA_PLANTILLA.set(eje, { n: eje.orden.length, criterios });
+  return criterios;
+}
+
+/** ¿Puede esperar segundo factor lo que escribe `autor`? Si tiene criterios propios o el eje tiene criterios de otra plantilla (arriba). */
+const puedeTenerSegundoFactor = (eje, autor) => criteriosDeSegundoFactor(eje, autor).length > 0 || criteriosDeOtraPlantilla(eje).length > 0;
+
 /** Las autorizaciones ancladas sobre un registro (las que dicen «autorización» en su 0), de quien sean: { id, autor, firmante, titular, uso, sobre }. */
 function autorizacionesSobre(eje, id) {
   return eje.sobre(id).filter((h) => hojas(h.payload?.[0]).includes(SEGUNDO_FACTOR.objeto[0])).map((h) => ({
@@ -1146,8 +1170,9 @@ export function segundoFactor(eje, X, opciones = {}) {
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener(ev.id)) return null;
   const epoca = epocaDe(opciones, eje);
-  // Atajo: sin criterios «second factor» de su autor (el 2.4 de su alta, lo que lee la regla) no hay nada que leer.
-  if (!criteriosDeSegundoFactor(eje, ev.autor).length) return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: 'RESUELTO', motivos: [] };
+  // Atajo: sin criterios «second factor» de su autor (el 2.4 de su alta, lo que lee la regla de la 0) ni criterios de otra
+  // plantilla en el eje (los que una época hija hace alcanzar a otros autores), no hay nada que leer.
+  if (!puedeTenerSegundoFactor(eje, ev.autor)) return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: 'RESUELTO', motivos: [] };
   const idioma = opciones.idioma ?? 'es';
   const ctx = contextoDe(eje, epoca, {});
   const exigen = valores(SEGUNDO_FACTOR.exige, ctx, ev.id);
@@ -1318,7 +1343,7 @@ const transferenciasCortas = (transferencias, opciones) => transferencias.filter
  */
 function autorizacionDe(eje, epoca, candidata, base, { yo, t, idioma }) {
   const motivos = [];
-  if (!criteriosDeSegundoFactor(eje, candidata.autor).length) return { segundos: 0, elementos: 0, transferencias: [], motivos };
+  if (!puedeTenerSegundoFactor(eje, candidata.autor)) return { segundos: 0, elementos: 0, transferencias: [], motivos };
   const uso = usoDeT(base, yo);
   let transferencias = [];
   let elementos = 0;
@@ -1416,10 +1441,12 @@ export function porAutorizar(eje, yo, opciones = {}) {
   if (typeof yo !== 'string' || !yo || !eje) return [];
   // Yo y mis cosas (las que su alta escribí yo): a quien se le pide firmar es a una de ellas.
   const mios = new Set([yo, ...(eje.identidades?.() ?? []).filter((i) => i !== yo && eje.esPersona(i) === false && eje.obtener(eje.alta(i)?.id)?.autor === yo)]);
-  // Los autores con algún criterio que me concierne: yo, y quien nombra como titular a uno mío.
+  // Los autores con algún criterio que me concierne: yo, y quien nombra como titular a uno mío. Un criterio de otra
+  // plantilla que nombra a uno mío (criteriosDeOtraPlantilla: puede alcanzar a cualquier autor) los hace a todos.
+  const ajenos = criteriosDeOtraPlantilla(eje).some((c) => mios.has(c.titular));
   const autores = new Set();
   for (const a of eje.identidades?.() ?? []) {
-    if (a === yo || criteriosDeSegundoFactor(eje, a).some((c) => mios.has(c.titular))) autores.add(a);
+    if (a === yo || ajenos || criteriosDeSegundoFactor(eje, a).some((c) => mios.has(c.titular))) autores.add(a);
   }
   const cuantos = opciones.cuantos ?? 50;
   const lista = [];
@@ -1432,7 +1459,7 @@ export function porAutorizar(eje, yo, opciones = {}) {
       // La lectura no se ha podido hacer (el presupuesto de cálculo): no se sabe si espera, así que se lista con su motivo
       // (`desbordado`), no se calla. Me concierne si es mío o si su autor tiene un criterio que nombra a una cosa mía.
       const propio = ev.autor === yo;
-      const titular = criteriosDeSegundoFactor(eje, ev.autor).some((c) => mios.has(c.titular));
+      const titular = ajenos || criteriosDeSegundoFactor(eje, ev.autor).some((c) => mios.has(c.titular));
       if (propio || titular) lista.push({ id: ev.id, autor: ev.autor, que, propio, titular, titulares: [], faltan: [], falta: sf.motivos[0].mensaje, motivos: sf.motivos, desbordado: true });
       continue;
     }
@@ -1512,9 +1539,12 @@ export async function camino(eje, X, yo, opciones = {}) {
 
   // (1) El tutorial: el 9 de la plantilla de X (la de datos, o la de identidad si X es un alta) y el 9 del propio X.
   const esAlta = [...eje.identidades()].some((id) => eje.alta(id)?.id === ev.id);
-  // El tutorial del alta (el 9 de la plantilla de identidad) es de quien la escribió: su dueño.
-  const deIdentidad = esAlta && ev.autor === yo ? nombresDel9(en(raiz, SITIO.identidad)) : [];
-  const nombres = [...nombresDel9(plantillaDeDatos(eje, ev, opciones)), ...deIdentidad, ...nombresDel9(ev.payload)];
+  // El tutorial del alta (el 9 de la plantilla de identidad) es de quien la escribió: su dueño; salvo que X tenga un tipo
+  // cuyo 9 ya es un camino (nombra plantillas de transacción: el alta de una cosa con su tipo, como el nodo de la época de
+  // la clase state): entonces su camino es el de su tipo.
+  const delTipo = nombresDel9(plantillaDeDatos(eje, ev, opciones));
+  const deIdentidad = esAlta && ev.autor === yo && !delTipo.some((n) => porNombre.has(n)) ? nombresDel9(en(raiz, SITIO.identidad)) : [];
+  const nombres = [...delTipo, ...deIdentidad, ...nombresDel9(ev.payload)];
   for (const n of nombres) {
     if (porNombre.has(n)) {
       const paso = mio(n);

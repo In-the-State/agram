@@ -1,0 +1,107 @@
+[
+  ["change a connection's permissions"],
+  [
+    [
+      ["work"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [1],
+      [
+        "=first ev.6.0",
+        1,
+        "when the executor is to do it (by default, now) and how many minutes of its T it gives the node when it does it: the announced movement that its receipt fulfils"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [3],
+      ["=me", "who asks for it: the operator, owner of the connection"]
+    ],
+    [
+      ["executor"],
+      ["identity"],
+      ["=count it.6 > 0"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [4],
+      [
+        "=last (before.3 where \"agent\" in (payload(first it2.6)).5 and first (up (first it2.6)) = first ((path it) where \"node\" in (payload(it3)).5))",
+        "who does it outside: an agent of the node (by default, the last one registered); it checks the signatures, does it and leaves its receipt"
+      ]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [5],
+      ["change a connection's permissions", "the action"]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [6],
+      ["operation", "the type of the record: an operation on the node"]
+    ],
+    [
+      ["permissions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["6"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «change a connection's permissions»"],
+      ["required"],
+      [7],
+      ["the new permissions, one per occupant (they replace the old ones)"]
+    ]
+  ],
+  ["=first it.3 = me and \"connection\" in (payload(it)).5 and count ((down it) where \"remove a connection\" in (payload(it2)).4) = 0"],
+  [["me"], ["person"]],
+  ["=transfer last memo.1 T.1 from first memo.3.1 to first (payload(first ((path it) where \"node\" in (payload(it2)).5))).3.1 when first memo.1"],
+  ["4.1"],
+  [
+    "Cambiar los permisos de una conexión: una operación en el 4.1 de la conexión; los permisos vigentes son los de la última que llegó a ejecutada (o, si no hay, los del alta)",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [4, 20],
+  ["change a connection's permissions: {me} asks to change the permissions of {first it.0}"]
+]

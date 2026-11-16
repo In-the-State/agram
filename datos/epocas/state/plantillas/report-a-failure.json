@@ -1,0 +1,107 @@
+[
+  ["report a failure"],
+  [
+    [
+      ["cause"],
+      ["text"],
+      ["=it != \"\""],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["required"],
+      [1],
+      ["why it could not be done (for a change of core: the revalidation of the ledger failed)"]
+    ],
+    [
+      ["operation"],
+      ["ref"],
+      ["=count it.5 > 0"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["required"],
+      [2],
+      [
+        "=first ((first it.4).8 where count (moves it2 where \"anunciado\" in it3.2) = 0 and first it2.3.0 = me and not (E in (before.4.(first it2.0)).0.0) or count (moves it2 where \"anunciado\" in it3.2 and it3.3.0 = me and not (E in it3.0.0.0)) > 0)",
+        "the operation that failed (a pending announced movement of mine, in the 4.1 of X)"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["required"],
+      [3],
+      ["closed with error", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["required"],
+      [4],
+      ["=me", "who writes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["required"],
+      [5],
+      [
+        "report a failure",
+        "close with error",
+        "the action, and «close with error»: it closes the operation with an error (the closing template «closed with error» reads it)"
+      ]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["required"],
+      [6],
+      ["operation", "the type of the record: an operation on the node"]
+    ],
+    [
+      ["evidence"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["6"],
+      ["Core AGRAM 16-11 (#124; encargo «época del nodo»): parámetro de «report a failure»"],
+      ["optional"],
+      [7],
+      ["its evidence: a hash, the id of a log"]
+    ]
+  ],
+  ["=count ((first it.4).8 where count (moves it2 where \"anunciado\" in it3.2) = 0 and first it2.3.0 = me and not (E in (before.4.(first it2.0)).0.0) or count (moves it2 where \"anunciado\" in it3.2 and it3.3.0 = me and not (E in it3.0.0.0)) > 0) > 0"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["4", "=first memo.1"],
+  [
+    "El recibo de lo que falló: el ejecutor lo ancla en el 4 de la operación con «close with error» en su 4, así que la plantilla de cerrado «closed with error» de la época 0 la da por cerrada con error (la escribe una cosa del dueño de la operación), y no mueve lo anunciado: la operación no llega a ejecutada y no se cambia nada",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [4, 23],
+  ["report a failure: {me} could not do it: {first ev.0}"]
+]

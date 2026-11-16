@@ -1,0 +1,16 @@
+[
+  ["second factor"],
+  ["X.2.4", "second factor", "moves", "require authorization", "X.4"],
+  ["=(down ((before.3 each 6) where it2 = first (first it.3).6 or it2 in path it)) where last (first it2.6).5 = \"2400000000\" and count ((payload(it2)) where \"second factor\" in it3.4 and first (first it2.6).5 = first (first it.3).6 and count ((first it2.3) where it4 = first it.3 and count ((sum (((moves it) where it5.3.0 = it4 and not (\"anunciado\" in it5.2) and count ((first it5.0) where count (it3.1 where it6 in it7 or \"E\" in it7 and E in it5.0.0.0 or \"P\" in it7 and P in it5.0.0.0 or \"R\" in it7 and R in it5.0.0.0 or \"T\" in it7 and T in it5.0.0.0) > 0) > 0) each 1)) where it5 > 0 and it5 >= first it3.2) > 0) > 0 or \"require authorization\" in it3.4 and first (first it2.6).5 in path it and first it2.3 = first (payload(first (first it2.6).5)).3.2 and count (it3.1 where it4 in (payload(it)).4) > 0) > 0"],
+  ["X.6.8.7"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 16-11 (#124; encargo «época del nodo», punto 4): la lectura de la época 0 con el mismo nombre, que esta sustituye (una regla de la hija con el mismo 0 sustituye a la de la base), ampliada: además de los criterios «second factor» del autor (anclados por él en el 2.4 de su alta, iguales que en la 0), alcanza los criterios «require authorization» de un nodo del que X cuelga: los anclados en el 2.4 de un registro del hilo de X (path), escritos por su titular (el 3.2 de esa alta) y que nombran en su 1 la plantilla de X (una de las de su 4)",
+    "Con it = un registro X (o la candidata). Los candidatos son lo anclado en las altas que importan: la del autor de X y las del hilo de X (de las altas del libro, before.3 each 6, las que son la del autor o están en path X); el BQL mínimo no tiene unión de listas, así que se filtran las altas del libro",
+    "Lectura, no condición, como en la 0: solo lee y no rechaza nada (#62); la estación se queda en «autorizada» hasta que quien firma (el 3 del criterio) escribe y firma su autorización («authorized by the holder», X.6.8.8, que no cambia: lee el 3 de cada criterio)"
+  ],
+  ["state 0"],
+  ["after paid"],
+  ["second factor: {first ev.3} writes what a criterion protects: one of their own (a second factor in the 2.4 of their alta) or one of the node it hangs from (a template that requires authorization)"]
+]
