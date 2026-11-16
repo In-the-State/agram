@@ -605,7 +605,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "a4a7ee336d00e8f8ac80e00c3091581e00e2eb4427a13330256ab00c948d6f65"
     },
     {
-      "ref": "9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea"
+      "ref": "8ea6617c4b2c38dbfd21bb08d73942853d0b4ab49bf9c36e3ed95e7905ff6f83"
     },
     {
       "ref": "a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"
@@ -10575,16 +10575,17 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "the-bank-speaks-through-the-owner-s-thing.json",
-    "id": "9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea",
+    "id": "8ea6617c4b2c38dbfd21bb08d73942853d0b4ab49bf9c36e3ed95e7905ff6f83",
     "registro": [
       [
         "the bank speaks through the owner's thing"
       ],
       [
-        0
+        0,
+        "epoch.7.0.3.1"
       ],
       [
-        "=not (\"connect an account\" in (payload(first ev.6.5)).4) or not (\"grant the permission\" in ev.4 or \"renew the permission\" in ev.4 or \"update the balance\" in ev.4) or \"update the balance\" in ev.4 and (first (payload(ev)).1.3).0 <= first ev.6.0.0 or (\"grant the permission\" in ev.4 or \"renew the permission\" in ev.4) and first ev.3 != first (first ev.6.5).3 and first (first ev.3).6.3 = first (first ev.6.5).3 and (first (payload(ev)).1.1).0 <= first ev.6.0.0 + 86400 * first (payload(first ev.6.5)).1.1"
+        "=not (\"connect an account\" in (payload(first ev.6.5)).4) or not (\"grant the permission\" in ev.4 or \"renew the permission\" in ev.4 or \"update the balance\" in ev.4) or \"update the balance\" in ev.4 and (first (payload(ev)).1.3).0 <= first ev.6.0.0 or (\"grant the permission\" in ev.4 or \"renew the permission\" in ev.4) and first ev.3 != first (first ev.6.5).3 and first (first ev.3).6.3 = first (first ev.6.5).3 and (first (payload(ev)).1.1).0 <= first ev.6.0.0 + epoch.7.0.3.1 * first (payload(first ev.6.5)).1.1"
       ],
       [
         "ev.3"
@@ -10602,7 +10603,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "Revisión de seguridad de la cuenta del banco (Core AGRAM 16-11, encargo «cuenta del banco», ajuste): lo que dice el banco no puede mentir en sus fechas ni venir de cualquiera. En una cuenta (el registro que dice «connect an account» en su 4), anclado directamente en ella:",
         "un permiso o una renovación («grant the permission», «renew the permission») solo vale si lo escribe una cosa del DUEÑO de la cuenta (una identidad que no es el dueño y cuya alta escribió el autor de la cuenta, A.6.3: la conectora), y si su vencimiento (su 1.1) no pasa del t del registro más los días de la cuenta (su 1.1);",
-        "un saldo («update the balance») solo vale si su instante (su 1.3, cuándo lo dice el banco) no es posterior al t de su registro. Quién puede escribirlo lo dice «acting on an account needs P on it»; contrato.cuenta lo vuelve a comprobar todo al leer"
+        "un saldo («update the balance») solo vale si su instante (su 1.3, cuándo lo dice el banco) no es posterior al t de su registro. Quién puede escribirlo lo dice «acting on an account needs P on it»; contrato.cuenta lo vuelve a comprobar todo al leer",
+        "Core AGRAM 17-11 (#137, A3: ninguna regla lleva un número que la época tenga): los segundos del día son los del calendario de la época (epoch.7.0.3.1), no 86400 escrito en la regla; decide lo mismo"
       ],
       [
         "epoch 0"
@@ -21966,7 +21968,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "f5a219faca16a2df4250b9e20fe80bb1a6b9e61100a5ee10fded0cdefdf13a55";
+export const EPOCA_0_BTML_ID = "b7c2ac2432fd048a9712c53ec8e2d1ffc06bf72f37f2e9c7113443fe8f541857";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

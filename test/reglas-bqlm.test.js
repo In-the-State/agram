@@ -54,7 +54,17 @@ export const DEL_3B = Object.freeze([
 // Las condiciones de la época que traducen una condición JS retirada: las que el 3b no cambió.
 /** Las condiciones de #71.2 (12-11): caducar; solo lee el libro y no traduce ninguna condición JS (test/motor.test.js). */
 export const DE_71 = Object.freeze(['an expiry has expired']);
-const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]));
+/**
+ * Las condiciones que entraron en la beta (16-11) sin pasar por esta red (#137, encargo «recuentos»): nacen en BQL,
+ * solo leen el libro y no traducen ninguna condición JS. Cada una se comprueba en positivo y en negativo en su archivo:
+ * la cuenta del banco, las tres primeras (test/cuenta-banco.test.js; «an account lives in its owner's book» es
+ * provisional); padres y copias, A19 (test/padres.test.js); dar T a una cosa mía, V10 (test/dar-t.test.js).
+ */
+export const DE_LA_BETA = Object.freeze([
+  'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book",
+  'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote',
+]);
+const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]) && !DE_LA_BETA.includes(r[0][0]));
 const nombreDe = (r) => r[0][0];
 const DIVERGENCIAS = process.env.AGRAM_DIVERGENCIAS === '1';
 /** Las reglas de la clave y la firma (B4): se ejercitan en un eje con claves, no en el fuzz de demostración. */
@@ -184,9 +194,11 @@ async function repasar(eje, cuenta) {
 
 // ---------- la época ----------
 
-test('las reglas de economía: 31 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
-  assert.equal(EPOCA_0_BTML.condiciones.length, 31);
+test('las reglas de economía: 36 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
+  // #137 (encargo «recuentos»): 31 + las cinco de la beta del 16-11 (DE_LA_BETA: el banco, A19 y V10), sin condición JS.
+  assert.equal(EPOCA_0_BTML.condiciones.length, 36);
   assert.deepEqual(DE_71.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_71], 'la de #71.2 está en la época, sin condición JS');
+  assert.deepEqual(DE_LA_BETA.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_LA_BETA], 'las de la beta del 16-11 están en la época, sin condición JS');
   assert.deepEqual(DEL_3B.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_3B], 'las del 3b están todas en la época');
   assert.equal(REGLAS.length, 21);
   const js = await motivosJS(new Eje(), { autor: 'g', sobre: null, t: '2026-11-07T09:00:00Z', movimientos: [], payload: ['x'], contexto: { genesis: true } });
