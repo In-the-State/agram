@@ -120,3 +120,7 @@ Un libro sin cambios en vigor no paga nada medible: por registro, el núcleo mir
 - Fundir pide la época de partida entera en memoria: un cambio sobre un libro con muchas versiones se funde sobre la última, no sobre la cadena.
 - Un nombre de 7.9.5 que es una magnitud («nadie 0») pesa su número; cualquier otra hoja, la presión máxima. Una identidad con alta que se escriba como magnitud contaría distinto en la lectura «support», que mira si tiene vistas; el núcleo no tiene eje en el suelo.
 - Un cambio no puede renombrar la época ni cambiar su procedencia (su 0 y su 6 son del cambio).
+
+## Para la carta
+
+Hecho (tramo 2, paso 4): «Reglas del libro» enseña la versión vigente con `eje.versiones()`, y en un cambio en vigor cómo era antes y cómo quedó (`version.anterior`); los motivos de «núcleo:versiones» salen tal como llegan. `carta/reglas.js`, `docs/CONTRATO.md` §5 bis.2, `test/carta-reglas.test.js`.
