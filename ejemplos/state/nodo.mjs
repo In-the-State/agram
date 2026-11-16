@@ -15,8 +15,10 @@
 //   6. un cambio de núcleo autorizado cuya revalidación falla: el ejecutor lo cierra con error y el núcleo no cambia;
 //   7. un umbral (autorizado), una fecha de vencimiento con su renovación y medidas del vigía sobre las piezas;
 //   8. conexiones (VG 17-11: la conexión es un invitado): el operador, dueño del nodo, fija el precio del grupo de las
-//      conexiones («my R»: su R devuelta) e invita por nombre al nodo, con su R, a dos nodos; cada uno acepta (su alta),
-//      el vecino declara sus relés en su alta y pide un ancla devolviendo una unidad de R; el otro queda fuera con el veto;
+//      conexiones («my R»: su R devuelta) e invita por nombre al nodo, con su R, a dos nodos; cada uno acepta (su alta);
+//      el precio, cada invitación y el veto esperan la firma del llavero del titular, que firma; el vecino declara sus
+//      relés en su alta y pide dos anclas devolviendo una unidad de R cada vez: el dueño sirve la primera («anchor
+//      served») y la segunda queda pendiente; el otro queda fuera con el veto;
 //   9. una visita de fuera que intenta medir una pieza y no puede.
 //
 // Uso: node ejemplos/state/nodo.mjs   (imprime el resumen; `ejemploNodo()` da el eje a las pruebas y a la carta).
@@ -147,19 +149,29 @@ export async function ejemploNodo({ hasta = null } = {}) {
   // vecino declara sus relés en su alta y pide un ancla (devuelve una unidad de R y nombra el lote de su libro como
   // datos); el otro nodo queda fuera con el veto. Conexiones vigentes y pedidos: las lecturas «current connections» y
   // «anchors asked» de la época.
+  // Con el criterio del titular escrito (paso 4), conectar, poner el precio del grupo y vetar esperan la firma de su
+  // llavero (la lectura «second factor» de esta época): el llavero firma cada una. La conexión no está vigente hasta esa
+  // firma (encargo «la firma del titular en las conexiones», VG 17-11).
   const altaOperador = eje.alta(N.operador).id;
-  await hacer('set a group price', altaOperador, { token: 'my R', amount: 1, zone: 3 }, N.operador, { guarda: 'precioConexiones' });
+  const precio = await hacer('set a group price', altaOperador, { token: 'my R', amount: 1, zone: 3 }, N.operador, { guarda: 'precioConexiones' });
+  await autorizarCon(N.llavero, precio.id);
   const conectar = async (otro, cuanta, guarda) => {
     const inv = await eje.invitar({ autor: N.operador, invitado: otro, clave: K[otro].publica, da: [{ token: 'R', cantidad: cuanta }], grupo: 3, dominio: nodo.id, tema: 'conexión con el nodo ' + N.nodo, t: t(), privada: K.operador.privada });
     ids['invitacion' + guarda[0].toUpperCase() + guarda.slice(1)] = inv.id;
     ids[guarda] = (await eje.aceptar(inv, K[otro], { t: t() })).id;
+    ids['firma' + guarda[0].toUpperCase() + guarda.slice(1)] = (await autorizarCon(N.llavero, inv.id)).id;
   };
-  await conectar(N.vecino, 2, 'conexion');
+  await conectar(N.vecino, 3, 'conexion');
   await hacer('declare my relays', ids.conexion, { relays: ['wss://vecino.ejemplo.invalid', 'wss://vecino-2.ejemplo.invalid'] }, N.vecino, { guarda: 'relesVecino' });
+  // Dos pedidos de ancla del vecino: el primero lo sirve el dueño del nodo («anchor served», con la cabecera madre que
+  // incluye la pedida, su nivel y el camino); el segundo queda pendiente.
   await hacer('ask for an anchor', nodo.id, { ledger: 'ab'.repeat(32), key: K[N.vecino].publica, level: 2, header: 'cd'.repeat(32) }, N.vecino, { guarda: 'pedidoAncla' });
+  await hacer('anchor served', ids.pedidoAncla, { mother: '9a'.repeat(32), level: 3, path: 'sip' }, N.operador, { guarda: 'anclaServida' });
+  await hacer('ask for an anchor', nodo.id, { ledger: 'ab'.repeat(32), key: K[N.vecino].publica, level: 2, header: '5e'.repeat(32) }, N.vecino, { guarda: 'pedidoPendiente' });
   await conectar(N.dePaso, 1, 'otraConexion');
   await hacer('declare my relays', ids.otraConexion, { relays: ['wss://paso.ejemplo.invalid'] }, N.dePaso);
-  await hacer('veto someone', altaOperador, { whom: N.dePaso }, N.operador, { guarda: 'quitarConexion' });
+  const veto = await hacer('veto someone', altaOperador, { whom: N.dePaso }, N.operador, { guarda: 'quitarConexion' });
+  await autorizarCon(N.llavero, veto.id);
 
   // 9. Una visita de fuera (invitada por el operador) intenta medir una pieza: no puede (no es agente del nodo).
   const invV = await eje.invitar({ autor: N.operador, invitado: N.visita, clave: K.visita.publica, t: t(), privada: K.operador.privada });

@@ -15,7 +15,7 @@ import { ContextoEje } from '../src/contexto-eje.js';
 import { evaluar, leerRegla } from '../src/bqlm.js';
 import { firmar } from '../src/autoridad.js';
 import { sinTraducir } from '../docs/sin-traducir.mjs';
-import { ejemploNodo, N, CLAVES, hora } from '../ejemplos/state/nodo.mjs';
+import { ejemploNodo, N, CLAVES, hora, claveDePrueba } from '../ejemplos/state/nodo.mjs';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 
@@ -52,9 +52,9 @@ test('la época se genera desde su fuente, sin fallos, y los archivos están al 
   const g = generar();
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: npm run epoca:state`);
-  assert.equal(g.registros.length, 35, '4 reglas (2 de ellas lecturas con nombre) y 31 plantillas de transacción');
+  assert.equal(g.registros.length, 36, '4 reglas (2 de ellas lecturas con nombre) y 32 plantillas de transacción');
   const ids = JSON.parse(readFileSync('datos/epocas/state/state-0.ids.json', 'utf8'));
-  assert.equal(ids.registrosAlPublicar, 37, 'el génesis, la raíz y sus 35 registros');
+  assert.equal(ids.registrosAlPublicar, 38, 'el génesis, la raíz y sus 36 registros');
 });
 
 test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; src/ no la importa', () => {
@@ -66,7 +66,7 @@ test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; sr
   const e = cargarEpocaEscrita(epocaState());
   assert.equal(e.id, g.id);
   assert.equal(e.hereda, ID_DE_LA_0);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 31);
+  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 32);
   assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 2, 'dos reglas sustituyen a las de la 0 con el mismo nombre y se añaden dos lecturas con nombre');
   for (const n of ['anchors asked', 'current connections']) assert.ok(e.lecturas.some((r) => r[0][0] === n), n);
   for (const n of ['add a connection', "change a connection's permissions", 'remove a connection']) assert.ok(!e.transacciones.some((x) => x.plantilla[0][0] === n), 'fuera: ' + n);
@@ -241,7 +241,7 @@ test('pedir un ancla: con R del dueño del nodo pasa, la devuelve y la cobra «a
   assert.ok(!A.acciones(eje, ids.nodo, 3, N.vecino).some((a) => a.nombre === 'ask for an anchor'), 'sin R ya no se ofrece');
   const sinR = await A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, ledger: 'ab'.repeat(32), key: CLAVES[N.vecino].publica, level: 1, header: '12'.repeat(32) }, N.vecino, { t: t(), ...firmaDe(N.vecino) });
   assert.equal(sinR.ok, false, 'sin R no pasa');
-  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 2, 'el que no pasó no está');
+  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 3, 'los dos del ejemplo y este; el que no pasó no está');
 });
 
 test('un pedido de ancla con un hueco mal formado no vale: libro, clave y cabecera de 64 hexadecimales en minúsculas, nivel de epoch.7.6.1', async () => {
@@ -267,7 +267,7 @@ test('un pedido de ancla con un hueco mal formado no vale: libro, clave y cabece
 
 test('la lectura «anchors asked»: por pedido, quién, libro, clave, nivel, cabecera e instante, leído del libro del nodo', async () => {
   const { eje, ids } = await ejemplo();
-  assert.deepEqual(lectura(eje, 'anchors asked', ids.nodo).map(idDe), [ids.pedidoAncla]);
+  assert.deepEqual(lectura(eje, 'anchors asked', ids.nodo).map(idDe), [ids.pedidoAncla, ids.pedidoPendiente], 'todos, servidos o no');
   const p = ids.pedidoAncla;
   assert.deepEqual(leer(eje, 'first it.3', p).valor, [N.vecino], 'quién');
   assert.deepEqual(leer(eje, '(payload(it)).6.0', p).valor, ['ab'.repeat(32)], 'libro');
@@ -287,7 +287,7 @@ test('conexiones: el invitado al nodo con R del dueño está vigente, con su cla
   assert.deepEqual(de('reles'), ['wss://vecino.ejemplo.invalid', 'wss://vecino-2.ejemplo.invalid']);
   assert.deepEqual(de('grupo'), [3]);
   assert.deepEqual(de('precio').map((x) => x?.v ?? x), [[['my R'], [1]]]);
-  assert.deepEqual(de('r'), [1], 'le dieron 2 y devolvió 1 al pedir el ancla');
+  assert.deepEqual(de('r'), [1], 'le dieron 3 y devolvió 2 al pedir dos anclas');
   assert.equal(eje.obtener(ids.conexion).sobre, ids.invitacionConexion, 'su alta cuelga de la invitación');
   assert.deepEqual(eje.obtener(ids.invitacionConexion).payload[5], [{ ref: ids.nodo }], 'al dominio del nodo');
   assert.ok(eje.saldo(N.titular, 'R:' + N.operador) > 0 && eje.saldo(N.visita, 'R:' + N.operador) > 0, 'tienen R del dueño, pero no son conexiones del nodo');
@@ -305,7 +305,7 @@ test('conexiones: el veto la quita, y quedarse sin R también', async () => {
   assert.ok(r.ok, JSON.stringify(r.motivos));
   await eje.anadir(r.evento);
   assert.deepEqual(lectura(eje, 'current connections', ids.nodo), []);
-  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 2);
+  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 3);
 });
 
 test('los relés los declara el invitado en su propia alta; nadie los declara en el alta de otro', async () => {
@@ -323,6 +323,145 @@ test('los relés los declara el invitado en su propia alta; nadie los declara en
   assert.match(aMano, /attention has a price/);
   // Y la lectura solo cuenta las del dueño del alta: los del otro nodo son los suyos.
   assert.deepEqual(leer(eje, DE_LA_CONEXION.reles, ids.otraConexion).valor, ['wss://paso.ejemplo.invalid']);
+});
+
+// La firma del titular en las conexiones (VG 17-11, encargo «la firma del titular en las conexiones»): la tercera rama de
+// la lectura «second factor» de esta época. Y el ancla servida (encargo «ancla servida»).
+const SERVIDO = '(down it) where "anchor served" in (payload(it2)).4 and first it2.3 = first (first (payload(it)).2).3 and first (payload(it2)).6.0 = first (payload(it)).6.3';
+/** Invita por nombre al dominio del nodo (o a ninguno, `dominio: null`), con R, y el invitado acepta: { inv, alta }. */
+async function invitarAlNodo(eje, ids, otro, minuto, { dominio = ids.nodo, cuanta = 1 } = {}) {
+  const K = claveDePrueba(otro);
+  const inv = await eje.invitar({ autor: N.operador, invitado: otro, clave: K.publica, da: [{ token: 'R', cantidad: cuanta }], grupo: 3, ...(dominio ? { dominio } : {}), tema: 'conexión de prueba', t: hora(minuto), privada: CLAVES.operador.privada });
+  const alta = await eje.aceptar(inv, K, { t: hora(minuto + 1) });
+  return { inv, alta };
+}
+async function firmarCon(eje, quien, id, minuto) {
+  const r = await A.autorizar(eje, id, quien, { privada: CLAVES[quien].privada, t: hora(minuto) });
+  assert.ok(r.evento, JSON.stringify(r.motivos));
+  await eje.anadir(r.evento);
+  return r;
+}
+async function lanzar(eje, nombre, X, params, quien, minuto) {
+  const r = await A.transaccion(eje, nombre, { X, ...params }, quien, { t: hora(minuto), firmar: (ev) => firmar(ev, CLAVES[quien].privada) });
+  assert.ok(r.ok, nombre + ': ' + JSON.stringify(r.motivos));
+  await eje.anadir(r.evento);
+  return r.evento;
+}
+
+test('conectar sin criterio «require authorization» en el nodo no espera: la conexión está vigente en cuanto acepta', async () => {
+  const { eje, ids } = await ejemploNodo({ hasta: 'nodo' });
+  const { inv, alta } = await invitarAlNodo(eje, ids, 'nodo-sin-criterio', 1500);
+  const sf = A.segundoFactor(eje, inv.id);
+  assert.equal(sf.exige, false, JSON.stringify(sf.criterios));
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), ['nodo-sin-criterio']);
+  assert.equal(eje.obtener(alta.id).sobre, inv.id);
+});
+
+test('con criterio, conectar espera la firma del titular: no está vigente hasta que firma quien nombra el criterio; la firma de otro no vale', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const { inv } = await invitarAlNodo(eje, ids, 'nodo-nuevo', 1500);
+  let sf = A.segundoFactor(eje, inv.id);
+  assert.ok(sf.exige && sf.pendiente, 'la invitación al dominio del nodo espera');
+  assert.deepEqual(sf.titulares, [N.llavero], 'firma quien nombra el criterio (su 3)');
+  assert.deepEqual(sf.criterios.map((c) => c.id), [ids.criterio]);
+  assert.ok(A.porAutorizar(eje, N.titular).some((x) => x.id === inv.id && x.titular), 'por autorizar para el titular');
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino], 'no sale en las vigentes');
+  // La firma de otro (el operador, que la escribió) no vale.
+  await firmarCon(eje, N.operador, inv.id, 1510);
+  sf = A.segundoFactor(eje, inv.id);
+  assert.ok(sf.pendiente);
+  assert.match(sf.motivo, /operador/);
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino]);
+  // La del llavero sí: vigente.
+  const buena = await firmarCon(eje, N.llavero, inv.id, 1511);
+  assert.ok(buena.ok, JSON.stringify(buena.motivos));
+  assert.equal(A.segundoFactor(eje, inv.id).pendiente, false);
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino, 'nodo-nuevo']);
+  // En el ejemplo, las dos invitaciones del dueño al nodo esperaron y las firmó el llavero.
+  for (const k of ['invitacionConexion', 'invitacionOtraConexion']) {
+    const x = A.segundoFactor(eje, ids[k]);
+    assert.ok(x.exige && !x.pendiente, k);
+  }
+});
+
+test('con criterio, mover de grupo, poner el precio de un grupo y vetar a una conexión esperan la firma; el veto pendiente no la quita', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const altaOperador = eje.alta(N.operador).id;
+  const mover = await lanzar(eje, 'move to group', altaOperador, { whom: N.vecino, zone: 4 }, N.operador, 1600);
+  assert.equal(mover.en, '3430000000');
+  const precio = await lanzar(eje, 'set a group price', altaOperador, { token: 'my R', amount: 2, zone: 4 }, N.operador, 1601);
+  const veto = await lanzar(eje, 'veto someone', altaOperador, { whom: N.vecino }, N.operador, 1602);
+  for (const [que, ev] of [['mover', mover], ['precio', precio], ['vetar', veto]]) {
+    const sf = A.segundoFactor(eje, ev.id);
+    assert.ok(sf.exige && sf.pendiente, que);
+    assert.deepEqual(sf.titulares, [N.llavero], que);
+  }
+  // El veto pendiente no la quita de las vigentes (aunque el precio de la 0, X.6.2, ya diga «nothing»).
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.grupo, ids.conexion).valor, [5]);
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino]);
+  // Firmado, sí.
+  await firmarCon(eje, N.llavero, veto.id, 1603);
+  assert.equal(A.segundoFactor(eje, veto.id).pendiente, false);
+  assert.deepEqual(lectura(eje, 'current connections', ids.nodo), []);
+  // En el ejemplo, el precio de las conexiones y el veto al otro nodo esperaron y los firmó el llavero.
+  for (const k of ['precioConexiones', 'quitarConexion']) {
+    const x = A.segundoFactor(eje, ids[k]);
+    assert.ok(x.exige && !x.pendiente, k);
+  }
+});
+
+test('con criterio, lo que no es del dominio del nodo no espera: una invitación del dueño a otra cosa, mover a quien no es conexión, y lo que escribe otro', async () => {
+  const { eje, ids } = await ejemploNodo();
+  // Una invitación del dueño fuera del dominio del nodo (como la del titular o la de la visita).
+  const { inv } = await invitarAlNodo(eje, ids, 'invitado-a-otra-cosa', 1700, { dominio: null });
+  assert.equal(A.segundoFactor(eje, inv.id).exige, false);
+  assert.equal(A.segundoFactor(eje, eje.obtener(ids.altaTitular).sobre).exige, false, 'la invitación del titular');
+  assert.equal(A.segundoFactor(eje, eje.obtener(ids.altaVisita).sobre).exige, false, 'la invitación de la visita');
+  // Mover de grupo a quien no es una conexión (la visita).
+  const mover = await lanzar(eje, 'move to group', eje.alta(N.operador).id, { whom: N.visita, zone: 4 }, N.operador, 1702);
+  assert.equal(A.segundoFactor(eje, mover.id).exige, false);
+  // Lo que escribe otro en su alta: el vecino veta a la visita en la suya.
+  const ajeno = await lanzar(eje, 'veto someone', ids.conexion, { whom: N.visita }, N.vecino, 1703);
+  assert.equal(A.segundoFactor(eje, ajeno.id).exige, false);
+});
+
+test('ancla servida: un pedido sin servir sale pendiente; servido por el dueño del nodo sale servido, con la madre, su nivel y el camino', async () => {
+  const { eje, ids } = await ejemplo();
+  const servida = eje.obtener(ids.anclaServida);
+  assert.equal([servida.autor, servida.sobre, servida.en].join(' '), [N.operador, ids.pedidoAncla, '4000000000'].join(' '), 'la escribe el dueño del nodo, anclada en el 4 del pedido');
+  assert.deepEqual(servida.payload[6], [['cd'.repeat(32)], ['9a'.repeat(32)], [3], ['sip']], '6.0 la cabecera pedida, 6.1 la madre, 6.2 su nivel, 6.3 el camino');
+  assert.ok(!servida.movimientos.some((m) => m.token !== 'T'), 'solo el T de escribir');
+  assert.deepEqual(lectura(eje, 'anchors asked', ids.nodo).map(idDe), [ids.pedidoAncla, ids.pedidoPendiente]);
+  assert.deepEqual(leer(eje, `count (${SERVIDO}) > 0`, ids.pedidoAncla).valor, [true], 'servido');
+  assert.deepEqual(leer(eje, `count (${SERVIDO}) > 0`, ids.pedidoPendiente).valor, [false], 'pendiente');
+  const datos = (f) => leer(eje, `(payload(first (${SERVIDO}))).6.${f}`, ids.pedidoAncla).valor;
+  assert.deepEqual([datos(1), datos(2), datos(3)], [['9a'.repeat(32)], [3], ['sip']]);
+  // Se ofrece al dueño del nodo sobre el pedido, no a quien pidió.
+  assert.ok(A.acciones(eje, ids.pedidoPendiente, 3, N.operador).some((a) => a.nombre === 'anchor served'));
+  assert.ok(!A.acciones(eje, ids.pedidoPendiente, 3, N.vecino).some((a) => a.nombre === 'anchor served'));
+});
+
+test('ancla servida: escrita por otra identidad, o con el 6.0 distinto al 6.3 del pedido, no lo da por servido; la plantilla comprueba la cabecera', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const p = ids.pedidoPendiente;
+  // La plantilla: la cabecera ha de ser la del pedido y los hashes, 64 hexadecimales en minúsculas.
+  for (const [cambio, parametro] of [[{ header: 'cd'.repeat(32) }, 'header'], [{ mother: '9A'.repeat(32) }, 'mother'], [{ mother: '9a'.repeat(31) }, 'mother'], [{ level: 9 }, 'level']]) {
+    const r = await A.transaccion(eje, 'anchor served', { X: p, mother: '9a'.repeat(32), level: 3, ...cambio }, N.operador, { t: hora(1800) });
+    assert.equal(r.ok, false, JSON.stringify(cambio));
+    assert.ok(r.motivos.some((m) => m.parametro === parametro), JSON.stringify(cambio) + ': ' + JSON.stringify(r.motivos));
+  }
+  // Escrita por otro (el vecino, quien pidió): entra en el libro, pero no lo sirve.
+  const ajena = await lanzar(eje, 'anchor served', p, { mother: '9a'.repeat(32), level: 3 }, N.vecino, 1801);
+  assert.equal(ajena.autor, N.vecino);
+  assert.deepEqual(leer(eje, `count (${SERVIDO}) > 0`, p).valor, [false]);
+  // Escrita a mano por el dueño con otra cabecera en el 6.0: tampoco.
+  await escribirPagando(eje, { autor: N.operador, sobre: p, en: '4000000000', t: hora(1802), movimientos: [pagaElCoste(N.operador)], payload: ['servida a mano', { ref: p }, 'all announced movements happened', [N.operador, N.vecino], 'anchor served', 'served anchor', [['ef'.repeat(32)], ['9a'.repeat(32)], [3], ['sip']]] }, CLAVES.operador.privada);
+  assert.deepEqual(leer(eje, `count (${SERVIDO}) > 0`, p).valor, [false]);
+  // La buena, del dueño y con la cabecera del pedido: servido.
+  await lanzar(eje, 'anchor served', p, { mother: '7b'.repeat(32), level: 4, path: 'sip' }, N.operador, 1803);
+  assert.deepEqual(leer(eje, `count (${SERVIDO}) > 0`, p).valor, [true]);
+  assert.deepEqual(leer(eje, `(payload(first (${SERVIDO}))).6.1`, p).valor, ['7b'.repeat(32)]);
+  assert.equal(lectura(eje, 'anchors asked', ids.nodo).length, 2, 'la lectura sigue dando todos los pedidos');
 });
 
 test('un eje con la época 0 a secas da los mismos veredictos que antes: nada de esta época le afecta', async () => {

@@ -1,12 +1,12 @@
 {
-  "epoca": "ccd44221eda3f6b68624af300ffb4fb73ab0052ff7c90d02f7249a0ce4b11451",
+  "epoca": "157cdc5034a4ea98ec0cc8f1fed84eb6a0a84704c8c65c8087167d31983051b1",
   "hereda": "e9beede770b7a58000b409fa5b7aec69071da8c8230134076be0e2ac4cf5c572",
-  "registrosAlPublicar": 37,
+  "registrosAlPublicar": 38,
   "reglas": [
     {
       "nombre": "anchors asked",
       "archivo": "anchors-asked.json",
-      "id": "11667b21a2cafe3060345d2e7d3e93ae2fd121dffe8d37112283fe5a1bdec10a"
+      "id": "aa21962adfcf1a9112ad248932896089b0c8e4d3b4ccd7128acdb8ef7897f255"
     },
     {
       "nombre": "attention has a price",
@@ -16,12 +16,12 @@
     {
       "nombre": "current connections",
       "archivo": "current-connections.json",
-      "id": "2f4263da5f317ee61f603fa4370d7b550177c312b8dc95f04099c412bd213b42"
+      "id": "ed7d8649de8cbb2a3ec7ca708239a08aaba03054f7c4cd09d1fb4d9b3401b61f"
     },
     {
       "nombre": "second factor",
       "archivo": "second-factor.json",
-      "id": "1af6230598af77dc02ce3a2168fce1d4d8fc726dd825632d15e9fd4a70f1fe8b"
+      "id": "323c60eb15ec9ef25e8948e28feb3f274ed5272a8899a4ba5cee86422006cf63"
     }
   ],
   "plantillas": [
@@ -158,6 +158,15 @@
       "ocho": [
         3,
         11
+      ]
+    },
+    {
+      "nombre": "anchor served",
+      "archivo": "anchor-served.json",
+      "id": "37454f31bc37e05ab420e3b659fa311e6806eb51b7517bf252a0ed2aa8342c87",
+      "ocho": [
+        3,
+        12
       ]
     },
     {
