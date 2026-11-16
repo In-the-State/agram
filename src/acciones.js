@@ -598,7 +598,8 @@ function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, p
     // Nunca por debajo del minuto (VG 13-11, #78): si solo alcanzara en segundos, se propone el minuto igualmente.
     const buscada = escalaQueAlcanza(eje, yo, payload, t, { epoca });
     const otra = ESCALAS_REALES.indexOf(buscada) < ESCALAS_REALES.indexOf(ESCALA_MINIMA_PROPUESTA) ? ESCALA_MINIMA_PROPUESTA : buscada;
-    propuesta = { desde: otra, piezas: [tDelCoste(aPagar, otra)] };
+    // Si la que alcanza es más gruesa que la que cubre lo emitido, se quema de más: `subeDe` lo dice y la carta lo avisa antes de firmar.
+    propuesta = { desde: otra, piezas: [tDelCoste(aPagar, otra)], ...(ESCALAS_REALES.indexOf(otra) > ESCALAS_REALES.indexOf(escala) ? { subeDe: escala } : {}) };
   }
   const piezas = pedida === undefined || pedida === null ? propuesta.piezas : piezasPedidas(pedida, aPagar);
   const paga = piezas.reduce((s, p) => s + segundosDe(p.escala, p.cantidad), 0);
@@ -658,7 +659,7 @@ export function enlazaDe(eje, cual, params = {}, yo, opciones = {}) {
  * botón de ejecutar). `opciones.denominacion` la ajusta: la escala de la que parte («hora»: 5 h 30 min) o las piezas
  * ([{ escala, cantidad }]). → { ok, motivos, partes: [{ parte: 'coste', regla, posiciones, segundos }, { parte:
  * 'plantilla', plantilla, segundos, movimientos }], coste, exigido (la suma, en segundos), posiciones, propuesta: {
- * desde, piezas, segundos }, denominacion (las piezas que se quemarían), paga, cubre, alcanza, escalas, incompleto } o, si
+ * desde, piezas, segundos, subeDe (solo si el saldo de hoy obliga a una escala más gruesa: la que habría bastado) }, denominacion (las piezas que se quemarían), paga, cubre, alcanza, escalas, incompleto } o, si
  * la plantilla no escribe o algo falla, { ok: false, motivos }. Con parámetros por rellenar, `incompleto` y sus motivos: lo
  * exigido es el de lo que ya hay. Ejecutar es transaccion con la misma `denominacion`.
  */

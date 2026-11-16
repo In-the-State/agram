@@ -386,6 +386,7 @@ export const TEXTOS = Object.freeze({
     denominacionEscala: 'la escala de la que parte la T que se quema',
     denominacionNoCubre: 'no cubre lo exigido: las reglas no lo dejarán pasar',
     denominacionNoAlcanza: 'hoy no te queda tanta T en esa escala',
+    denominacionSube: 'hoy no te alcanza la T de {de}: se propone pagar con {a} y se quema {paga} en vez de {exigido}',
     escalaPropuesta: '(propuesta)',
     escala_segundo: 'segundos',
     escala_minuto: 'minutos',

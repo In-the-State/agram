@@ -364,3 +364,23 @@ test('#92 la configuración se abre separada por posición: el 2 = mis criterios
   assert.ok(!dos.some((x) => nueve.includes(x)) && !nueve.some((x) => dos.includes(x)), 'ningún campo en las dos partes');
   void contrato;
 });
+
+test('la propuesta que sube de escala porque hoy no alcanza la que bastaba lo dice antes de firmar; elegida a mano, no', async () => {
+  const { eje, menu } = await ejemploCompra();
+  const form = (escala) => arbol({ foco: { X: menu.id, pv: 4 }, formulario: { X: menu.id, accion: 'declare future T', valores: { what: 'servir', when: '2026-12-01T10:00:00Z' }, ejecutar: true, ...(escala ? { escala } : {}) } }, eje, 'huesped', MOVIL, ES);
+  // con minutos de sobra, la propuesta va en minutos y no avisa
+  const antes = await form();
+  assert.deepEqual([antes.formulario.ejecucion.propuesta.desde, antes.formulario.ejecucion.propuesta.subeDe], ['minuto', undefined]);
+  assert.doesNotMatch(html(antes), /data-sube-de/);
+  // la huésped agota hoy sus minutos y sus segundos
+  const quema = (escala) => ({ token: 'T', escala, cantidad: eje.saldoT('huesped', escala, T1), de: 'huesped', a: null });
+  await eje.escribir({ autor: 'huesped', sobre: menu.id, t: T1, payload: 'un día largo', movimientos: [quema('minuto'), quema('segundo')] });
+  assert.deepEqual([eje.saldoT('huesped', 'minuto', T1), eje.saldoT('huesped', 'segundo', T1)], [0, 0]);
+  const a = await form();
+  const e = a.formulario.ejecucion;
+  assert.deepEqual([e.propuesta.desde, e.propuesta.subeDe, e.denominacion, e.alcanza], ['hora', 'minuto', [{ escala: 'hora', cantidad: 1 }], true]);
+  assert.ok(e.coste < 3600, 'lo exigido es menos de una hora: se quema de más');
+  assert.match(anverso(html(a)), /<small class="aviso" data-sube-de="minuto">hoy no te alcanza la T de minutos: se propone pagar con horas y se quema 1 h en vez de \d+ min<\/small>/);
+  // elegida a mano, es su decisión: sin aviso
+  assert.doesNotMatch(html(await form('hora')), /data-sube-de/);
+});
