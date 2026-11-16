@@ -1,0 +1,115 @@
+[
+  ["add a parent"],
+  [
+    [
+      ["name"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["required"],
+      [1],
+      ["the name of the parent: the 0 of its record (what it is)"]
+    ],
+    [
+      ["does"],
+      ["text"],
+      ["=\"keeps\" in it or \"seals\" in it or \"keeps and seals\" in it"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["required"],
+      [2],
+      ["what the parent does: keeps (it keeps the encrypted copy), seals (it seals upwards) or keeps and seals"]
+    ],
+    [
+      ["key"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["2.0"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["required"],
+      [3],
+      ["the public key with which the parent signs its batch headers (x-only, 64 hexadecimal characters in lower case); never a private key"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["required"],
+      [4],
+      ["=me", "who sets the parent: the owner of the element (its author) or the identity of the genesis of the ledger"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["required"],
+      [5],
+      ["add a parent", "the action"]
+    ],
+    [
+      ["level"],
+      ["number"],
+      ["=it in epoch.7.6.1"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["optional"],
+      [6],
+      ["the level at which the parent seals: a level of the cascade (epoch.7.6.1); without it, not said"]
+    ],
+    [
+      ["grade"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2.1"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["optional"],
+      [7],
+      ["the grade the parent declares (who answers), opaque like the grade of a link of the seal: a number or a short text; without it, not said"]
+    ],
+    [
+      ["url"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"],
+      ["optional"],
+      [8],
+      ["where the parent is reached: an http or https address, without credentials; without it, not said"]
+    ]
+  ],
+  ["=first it.3 = me or first (first before.1).3 = me"],
+  [["me"], ["person"]],
+  ["write"],
+  ["9"],
+  [
+    "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 3, 4, 5 y 7): «copias y padres son lo mismo, y son configurables: ninguno, uno o varios». Un padre guarda la copia cifrada, sella hacia arriba o hace las dos cosas; varios padres, cada uno con su parte; los padres son testigos, no jueces, y la configuración la pone el dueño",
+    "Core State 16-11 (state/REPLANTEO_CASCADA.md, «Resuelto sin VG», N1 de AGRAM): la configuración de padres cuelga de un elemento (un registro cualquiera) y se hereda hacia abajo: la rama de un registro es la del elemento con configuración más cercano hacia arriba, él incluido. Esta plantilla se lanza sobre cualquier registro y ancla en su 9 (lo que le configura); un registro por padre",
+    "Sin huecos ni rellenos (VG 13-11, #77): lo opcional cierra su propia décupla, así que falte lo que falte no queda ningún hueco. 0 el nombre; 1.0 qué hace (keeps, seals, keeps and seals) y 1.1 el nivel en que sella (opcional, un nivel de epoch.7.6.1); 2.0 la clave x-only con que firma sus cabeceras de lote y 2.1 el grado que declara (opcional, opaco); 3.0 quién lo pone y 3.1 la dirección del padre (opcional, http o https); 4 la acción. Nada secreto: ni claves privadas, ni credenciales, ni direcciones con credenciales (contrato.custodia descarta una dirección que no sea http(s) o que lleve credenciales)",
+    "Quién puede: solo vale la configuración escrita por quien escribió el elemento o por la identidad del génesis del libro (la regla «only the owner sets who keeps it»); por eso solo se ofrece a ellos. Quitar un padre es «remove a parent»",
+    "Su 4 es «write»: no mueve nada más que el coste de escribir (la regla de la época «the cost of writing»). Fuera de esta plantilla, preguntas abiertas de VG: que quien te invita sea tu padre por defecto, la operación que enlaza dos elementos, con qué clave se cifra y la compensación al padre"
+  ],
+  ["epoch 0"],
+  [9, 5],
+  ["add a parent: {me} adds the parent {first ev.0} to {first it.0}"]
+]

@@ -522,6 +522,48 @@ function htmlFirmeza(f) {
   return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida !== null && f.exigida !== undefined ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;
 }
 
+/** Lo que hace un padre, en palabras: «guarda una copia», «sella» o «guarda y sella». */
+const textoHacePadre = (p) => t(p.guarda && p.sella ? 'custodiaGuardaYSella' : p.sella ? 'custodiaSella' : 'custodiaGuarda');
+/** La clase del dueño (epoch.7.5): clase_<valor> si la carta lo tiene; si no, el valor tal cual. */
+const textoClase = (k) => (t('clase_' + k) === 'clase_' + k ? String(k) : t('clase_' + k));
+
+/**
+ * «Quién guarda esto» en el reverso (encargo «padres y copias», A19; en la raíz del libro, «este libro»): cada padre con su
+ * nombre, lo que hace y, si los declara, su nivel y su grado; «heredado de …» cuando la configuración viene de arriba; el
+ * plazo por defecto y su clase; sin padres, «sin padres: nadie más lo guarda ni lo sella»; con nodo, que el nodo lo ve en
+ * claro. Todo sale de contrato.custodia y contrato.quienGuarda; aquí no se decide nada. '' sin custodia. Hermana de
+ * htmlFirmeza.
+ */
+function htmlCustodia(c) {
+  if (!c) return '';
+  const padres = c.padres?.length
+    ? `<ul class="custodia-padres">${c.padres.map((p) => {
+      const extra = [p.nivel !== null && p.nivel !== undefined ? textoCapa(p.nivel) : '', p.grado !== null && p.grado !== undefined ? textoGrado(p.grado) : ''].filter(Boolean).join(' · ');
+      return `<li class="custodia-padre" data-guarda="${p.guarda ? 1 : 0}" data-sella="${p.sella ? 1 : 0}"><b>${escapar(p.nombre)}</b> <span>${escapar(textoHacePadre(p))}</span>${extra ? ` <small>${escapar(extra)}</small>` : ''}</li>`;
+    }).join('')}</ul>`
+    : `<p class="custodia-sin">${escapar(t('custodiaSinPadres'))}</p>`;
+  const heredado = c.heredado ? `<small class="custodia-heredado">${escapar(t('custodiaHeredado', { de: c.deTexto ?? '' }))}</small>` : '';
+  const plazo = c.plazo ? `<small class="custodia-plazo">${escapar(t('custodiaPlazo', { plazo: c.plazoEscala ? t('custodiaUna', { escala: t('escalaUna_' + c.plazoEscala) }) : t('custodiaSegundos', { n: c.plazo.segundos }), clase: textoClase(c.clase) }))}</small>` : '';
+  const nodo = c.nodo ? `<small class="custodia-nodo">${escapar(t('custodiaNodo'))}</small>` : '';
+  return `<div class="custodia" data-padres="${c.padres?.length ?? 0}"${c.heredado ? ' data-heredado' : ''}><h4>${escapar(t(c.libro ? 'custodiaLibro' : 'custodiaTitulo'))}</h4>${padres}${heredado}${plazo}${nodo}</div>`;
+}
+
+/**
+ * La línea de antes de firmar (encargo «padres y copias», N2: «transparente no es invisible»), junto al botón: quién
+ * guardará lo que se escribe, de contrato.quienGuarda. «Lo guardarán: tú, el nodo <nombre> y <n> padres (<nombres>)», o
+ * «Solo lo guardas tú, en este dispositivo» sin nodo ni padres. Sin panel ni pasos. '' sin línea.
+ */
+function htmlQuienGuarda(q) {
+  if (!q) return '';
+  const n = q.padres?.length ?? 0;
+  if (!q.nodo && !n) return `<p class="quien-guarda" data-solo>${escapar(t('quienGuardaSolo'))}</p>`;
+  const partes = [t('quienGuardaTu')];
+  if (q.nodo) partes.push(t('quienGuardaNodo', { nombre: q.nodo }));
+  if (n) partes.push(t(n === 1 ? 'quienGuardaUnPadre' : 'quienGuardaPadres', { n, nombres: q.padres.map((p) => p.nombre).join(', ') }));
+  const quienes = partes.length > 1 ? partes.slice(0, -1).join(', ') + t('quienGuardaY') + partes[partes.length - 1] : partes[0];
+  return `<p class="quien-guarda">${escapar(t('quienGuarda', { quienes }))}</p>`;
+}
+
 /**
  * Lo de dentro de una celda de la matriz (encargo «datos2», issue #11: la celda es la lista de ejecuciones): cada una
  * con su estación si la tiene (su color y, si está ejecutada, su sello), las primeras y las demás contadas.
@@ -1060,7 +1102,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
-      ${ancla}${htmlFirmeza(c.firmeza)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
+      ${ancla}${htmlFirmeza(c.firmeza)}${htmlCustodia(c.custodia)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
       ${htmlBtml(c.btml)}
       ${pasosHtml}${validacion}
     </section>`;
@@ -1245,7 +1287,7 @@ function htmlFormulario(f) {
     <div class="cara cara-reverso"${reverso ? '' : ' hidden'}>
       <h3>${escapar(t('reversoTitulo'))}</h3><ul class="campos-reverso">${f.campos.map(campoReverso).join('')}</ul>${htmlEjecucionReverso(f.ejecucion)}
     </div>
-    <footer>${pie}</footer>
+    <footer>${reverso ? '' : htmlQuienGuarda(f.quienGuarda)}${pie}</footer>
   </form></div>`;
 }
 

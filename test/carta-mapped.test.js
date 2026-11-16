@@ -1012,14 +1012,14 @@ test('ejecutar desde el 4 (VG 12-11, decisión 7): la celda abierta enseña la s
   assert.match(hf, new RegExp(`<li data-parte="coste">[^<]*${e.posiciones} posiciones`));
   assert.match(hf, new RegExp(`<option value="${e.propuesta.desde}" selected>[^<]+ \\(propuesta\\)</option>`));
   assert.match(hf, /<select data-denominacion aria-label="[^"]+">/);
-  assert.match(hf, /<footer><button type="submit" class="ejecutar boton-apagado" data-boton="apagado" data-peldano="0" title="[^"]+">ejecutar<\/button><\/footer>/);
+  assert.match(hf, /<footer><p class="quien-guarda"[^>]*>[^<]*<\/p><button type="submit" class="ejecutar boton-apagado" data-boton="apagado" data-peldano="0" title="[^"]+">ejecutar<\/button><\/footer>/);
   // ajustada a una escala mayor: una hora
   const fh = (await conForm({ ejecutar: true, escala: 'hora' })).formulario;
   assert.deepEqual([fh.ejecucion.denominacion, fh.ejecucion.elegida, fh.ejecucion.cubre], [[{ escala: 'hora', cantidad: 1 }], true, true]);
   assert.match(html(await conForm({ ejecutar: true, escala: 'hora' })), /<b class="piezas" data-piezas="[^"]+">1 h<\/b>/);
   // sin modo ejecutar (el aro: interactuar), el formulario de siempre
   const sin = html(await conForm({}));
-  assert.ok(!sin.includes('ejecucion-t') && sin.includes('<footer><button type="submit">lanzar</button></footer>'));
+  assert.ok(!sin.includes('ejecucion-t') && /<footer><p class="quien-guarda"[^>]*>[^<]*<\/p><button type="submit">lanzar<\/button><\/footer>/.test(sin));
   // el botón en tres rangos: marcado al llegar al 3 (3.1), efectos al subir (4.2), y en animado la capa de efectos
   await cadenaDeEjecuciones(eje, compra.id, 4, { autor: 'huesped', en: '2000000000', mov: () => [minuto('huesped'), { token: 'R', emisor: 'huesped', cantidad: 1, de: null, a: 'huesped' }] });
   const marcado = await conForm({ ejecutar: true });

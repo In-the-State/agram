@@ -1,0 +1,65 @@
+[
+  ["remove a parent"],
+  [
+    [
+      ["parent"],
+      ["ref"],
+      ["=\"add a parent\" in it.4"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"],
+      ["required"],
+      [1],
+      ["=last ((it.9 where \"add a parent\" in it2.4) each 5)", "the parent that is removed: a record written with «add a parent» in the 9 of this element"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"],
+      ["required"],
+      [3],
+      ["=me", "who removes the parent: the owner of the element (its author) or the identity of the genesis of the ledger"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"],
+      ["required"],
+      [4],
+      ["remove a parent", "the action"]
+    ]
+  ],
+  ["=(first it.3 = me or first (first before.1).3 = me) and count (it.9 where \"add a parent\" in it2.4) > 0"],
+  [["me"], ["person"]],
+  ["write"],
+  ["9"],
+  [
+    "Core AGRAM 16-11 (encargo «padres y copias», A19): quitar un padre. Las plantillas de vencimiento que ya hay no sirven para retirar un registro propio: «expire something mine» quema E mía y «expire» cierra un proceso cuyo plazo declarado ha vencido. Esta refiere al padre (su 1, una referencia al registro escrito con «add a parent») y cuelga del 9 del mismo elemento; el padre retirado deja de salir en contrato.custodia",
+    "Quién puede: como al ponerlo, quien escribió el elemento o la identidad del génesis del libro (la regla «only the owner sets who keeps it»). Solo cuenta si el padre cuelga del mismo elemento que la retirada",
+    "0 el mensaje (la representación del registro), 1 el padre, 2 la plantilla de cerrado, 3 quién, 4 la acción: el molde de «close». Su 4 es «write»: no mueve nada más que el coste de escribir"
+  ],
+  ["epoch 0"],
+  [9, 6],
+  ["remove a parent: {me} removes the parent {first (first ev.1).0} from {first it.0}"]
+]

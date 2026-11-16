@@ -69,7 +69,7 @@ test('#89 el formulario de ejecutar enseña solo lo que se decide: sin tipos, f�
   assert.match(cara, /<section class="ejecucion-t"[^>]*><h3>lo que cuesta ejecutarlo<\/h3><p class="exigido-total"><b>lo exigido: 10 min<\/b><\/p>/);
   assert.match(cara, /<select data-denominacion/, 'la denominación propuesta, a la vista');
   assert.match(cara, /<p class="aviso-segundo-factor" role="note">/, 'el aviso del segundo factor');
-  assert.match(h, /<footer><button type="submit" class="ejecutar[^>]*>ejecutar<\/button><\/footer>/, 'y el botón');
+  assert.match(h, /<footer><p class="quien-guarda" data-solo>Solo lo guardas tú, en este dispositivo<\/p><button type="submit" class="ejecutar[^>]*>ejecutar<\/button><\/footer>/, 'y el botón, con la línea de quién lo guardará (padres y copias, N2)');
   // a la vista, nada técnico: ni el tipo de cada campo, ni su fórmula, ni «ver en BTML», ni el desglose con el nombre de la regla
   assert.doesNotMatch(cara, /class="tipo"|<code>|<details class="btml"|ver en BTML|data-parte=|the cost of writing/);
   const texto = cara.replace(/<[^>]+>/g, (x) => [...x.matchAll(/(?:title|aria-label)="([^"]*)"/g)].map((y) => ' ' + y[1] + ' ').join(''));

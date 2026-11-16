@@ -609,6 +609,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"
+    },
+    {
+      "ref": "c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617"
     }
   ],
   [
@@ -6464,7 +6467,48 @@ export const EPOCA_0_BTML_DATOS = [
           "template issue E tied to X param commitment label: compromiso",
           "template issue E tied to X param commitment help: cuánto de mi P sobre X (o sobre su mirada 1) se bloquea con la serie como salida: el compromiso que pide la cuota de un registro con capacidad (1 por defecto si X declara su capacidad en su 2; sin capacidad no se bloquea nada)",
           "the bank speaks through the owner's thing: {first ev.3} escribe un permiso que no es de una cosa del dueño de la cuenta, o un permiso o un saldo con una fecha que su registro no permite",
-          "an account lives in its owner's book: {first ev.3} conecta una cuenta en un libro que no es el suyo (su génesis lo escribió {first (first before.1).3})"
+          "an account lives in its owner's book: {first ev.3} conecta una cuenta en un libro que no es el suyo (su génesis lo escribió {first (first before.1).3})",
+          "template add a parent: añadir un padre",
+          "template add a parent param name label: nombre",
+          "template add a parent param name help: el nombre del padre: el 0 de su registro (lo que es)",
+          "template add a parent param does label: qué hace",
+          "template add a parent param does help: lo que hace el padre: keeps (guarda la copia cifrada), seals (sella hacia arriba) o keeps and seals (las dos cosas)",
+          "template add a parent param key label: clave",
+          "template add a parent param key help: la clave pública con la que el padre firma sus cabeceras de lote (x-only, 64 caracteres hexadecimales en minúsculas); nunca una clave privada",
+          "template add a parent param who label: quién",
+          "template add a parent param who help: quién pone el padre: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template add a parent param actions label: acción",
+          "template add a parent param actions help: la acción",
+          "template add a parent param level label: nivel",
+          "template add a parent param level help: el nivel en el que sella el padre: un nivel de la cascada (epoch.7.6.1); sin él, no se dice",
+          "template add a parent param grade label: grado",
+          "template add a parent param grade help: el grado que declara el padre (quién responde), opaco como el de un eslabón del sello: un número o un texto corto; sin él, no se dice",
+          "template add a parent param url label: dirección",
+          "template add a parent param url help: dónde se encuentra al padre: una dirección http o https, sin credenciales; sin ella, no se dice",
+          "template add a parent message: {me} añade el padre {first ev.0} a {first it.0}",
+          "template remove a parent: quitar un padre",
+          "template remove a parent param parent label: padre",
+          "template remove a parent param parent help: el padre que se quita: un registro escrito con «añadir un padre» en el 9 de este elemento",
+          "template remove a parent param criteria label: criterio",
+          "template remove a parent param criteria help: la plantilla de cerrado del registro",
+          "template remove a parent param who label: quién",
+          "template remove a parent param who help: quién quita el padre: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template remove a parent param actions label: acción",
+          "template remove a parent param actions help: la acción",
+          "template remove a parent message: {me} quita el padre {first (first ev.1).0} de {first it.0}",
+          "template set the kind of owner: decir de quién es",
+          "template set the kind of owner param kind label: clase",
+          "template set the kind of owner param kind help: la clase del dueño de este elemento y de lo que cuelga de él: una de las clases de la cadencia de anclaje (epoch.7.5.1); da el plazo de anclaje por defecto",
+          "template set the kind of owner param about label: sobre",
+          "template set the kind of owner param about help: de qué trata el registro: el elemento",
+          "template set the kind of owner param criteria label: criterio",
+          "template set the kind of owner param criteria help: la plantilla de cerrado del registro",
+          "template set the kind of owner param who label: quién",
+          "template set the kind of owner param who help: quién lo dice: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template set the kind of owner param actions label: acción",
+          "template set the kind of owner param actions help: la acción",
+          "template set the kind of owner message: {me} dice que el dueño de {first it.0} es de la clase {first ev.0}",
+          "only the owner sets who keeps it: {first ev.3} dice quién guarda {first (first ev.6.5).0}, que no escribió, en un libro cuyo génesis no escribió"
         ]
       ],
       [
@@ -6826,6 +6870,15 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "dee46772ef10d44f6ae9e35974ce1e19466fca47cf6088c372dac7209e18afd5"
+        },
+        {
+          "ref": "c86e8cf586f51031fb12c017c807ccd20e206a416f9e013fe7214a7f6f156a01"
+        },
+        {
+          "ref": "e32320e88634620543caf44460ee413ef266bd104371a216feeaa246bd8f7a8d"
+        },
+        {
+          "ref": "6855920bf1834b1f262bf338df52510bd88a941a152ff4dee6845505d4ed5ed0"
         }
       ]
     ],
@@ -9646,6 +9699,47 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "only persons mint: {first ev.3} is a thing (its alta was written by {first (first ev.3).6.3}), and only persons mint"
+      ]
+    ]
+  },
+  {
+    "archivo": "only-the-owner-sets-who-keeps-it.json",
+    "id": "c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617",
+    "registro": [
+      [
+        "only the owner sets who keeps it"
+      ],
+      [
+        0
+      ],
+      [
+        "=not (\"add a parent\" in ev.4 or \"remove a parent\" in ev.4 or \"set the kind of owner\" in ev.4) or first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first before.1).3"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 5 y 7): los padres son testigos, no jueces; los padres, las copias y los grados son propiedad de cada libro, y los pone su dueño. Core AGRAM 16-11 (encargo «padres y copias», A19): un registro que pone o quita un padre, o que dice la clase del dueño («add a parent», «remove a parent», «set the kind of owner» en su 4), solo vale si su autor escribió el elemento del que cuelga (first ev.6.5 y su 3) o es la identidad del génesis del libro (before.1 y su 3)",
+        "Solo se mira cuando la candidata dice una de las tres acciones (el or es perezoso): before.1 no se recorre para lo demás. contrato.custodia lo vuelve a comprobar al leer (un libro escrito antes de esta regla, o en otra época, no cuela la configuración de otro)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after an account lives in its owner's book"
+      ],
+      [
+        "only the owner sets who keeps it: {first ev.3} sets who keeps {first (first ev.6.5).0}, which it did not write, in a ledger whose genesis it did not write"
       ]
     ]
   },
@@ -20276,6 +20370,692 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "ask for a recommendation: the suggestions of the path of {first it.0}"
       ]
     ]
+  },
+  {
+    "archivo": "add-a-parent.json",
+    "id": "c86e8cf586f51031fb12c017c807ccd20e206a416f9e013fe7214a7f6f156a01",
+    "registro": [
+      [
+        "add a parent"
+      ],
+      [
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the name of the parent: the 0 of its record (what it is)"
+          ]
+        ],
+        [
+          [
+            "does"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=\"keeps\" in it or \"seals\" in it or \"keeps and seals\" in it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "what the parent does: keeps (it keeps the encrypted copy), seals (it seals upwards) or keeps and seals"
+          ]
+        ],
+        [
+          [
+            "key"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "the public key with which the parent signs its batch headers (x-only, 64 hexadecimal characters in lower case); never a private key"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who sets the parent: the owner of the element (its author) or the identity of the genesis of the ledger"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "add a parent",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "level"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it in epoch.7.6.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            6
+          ],
+          [
+            "the level at which the parent seals: a level of the cascade (epoch.7.6.1); without it, not said"
+          ]
+        ],
+        [
+          [
+            "grade"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "the grade the parent declares (who answers), opaque like the grade of a link of the seal: a number or a short text; without it, not said"
+          ]
+        ],
+        [
+          [
+            "url"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            8
+          ],
+          [
+            "where the parent is reached: an http or https address, without credentials; without it, not said"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 = me or first (first before.1).3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9"
+      ],
+      [
+        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 3, 4, 5 y 7): «copias y padres son lo mismo, y son configurables: ninguno, uno o varios». Un padre guarda la copia cifrada, sella hacia arriba o hace las dos cosas; varios padres, cada uno con su parte; los padres son testigos, no jueces, y la configuración la pone el dueño",
+        "Core State 16-11 (state/REPLANTEO_CASCADA.md, «Resuelto sin VG», N1 de AGRAM): la configuración de padres cuelga de un elemento (un registro cualquiera) y se hereda hacia abajo: la rama de un registro es la del elemento con configuración más cercano hacia arriba, él incluido. Esta plantilla se lanza sobre cualquier registro y ancla en su 9 (lo que le configura); un registro por padre",
+        "Sin huecos ni rellenos (VG 13-11, #77): lo opcional cierra su propia décupla, así que falte lo que falte no queda ningún hueco. 0 el nombre; 1.0 qué hace (keeps, seals, keeps and seals) y 1.1 el nivel en que sella (opcional, un nivel de epoch.7.6.1); 2.0 la clave x-only con que firma sus cabeceras de lote y 2.1 el grado que declara (opcional, opaco); 3.0 quién lo pone y 3.1 la dirección del padre (opcional, http o https); 4 la acción. Nada secreto: ni claves privadas, ni credenciales, ni direcciones con credenciales (contrato.custodia descarta una dirección que no sea http(s) o que lleve credenciales)",
+        "Quién puede: solo vale la configuración escrita por quien escribió el elemento o por la identidad del génesis del libro (la regla «only the owner sets who keeps it»); por eso solo se ofrece a ellos. Quitar un padre es «remove a parent»",
+        "Su 4 es «write»: no mueve nada más que el coste de escribir (la regla de la época «the cost of writing»). Fuera de esta plantilla, preguntas abiertas de VG: que quien te invita sea tu padre por defecto, la operación que enlaza dos elementos, con qué clave se cifra y la compensación al padre"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        9,
+        5
+      ],
+      [
+        "add a parent: {me} adds the parent {first ev.0} to {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "remove-a-parent.json",
+    "id": "e32320e88634620543caf44460ee413ef266bd104371a216feeaa246bd8f7a8d",
+    "registro": [
+      [
+        "remove a parent"
+      ],
+      [
+        [
+          [
+            "parent"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "=\"add a parent\" in it.4"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=last ((it.9 where \"add a parent\" in it2.4) each 5)",
+            "the parent that is removed: a record written with «add a parent» in the 9 of this element"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who removes the parent: the owner of the element (its author) or the identity of the genesis of the ledger"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «remove a parent»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "remove a parent",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=(first it.3 = me or first (first before.1).3 = me) and count (it.9 where \"add a parent\" in it2.4) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9"
+      ],
+      [
+        "Core AGRAM 16-11 (encargo «padres y copias», A19): quitar un padre. Las plantillas de vencimiento que ya hay no sirven para retirar un registro propio: «expire something mine» quema E mía y «expire» cierra un proceso cuyo plazo declarado ha vencido. Esta refiere al padre (su 1, una referencia al registro escrito con «add a parent») y cuelga del 9 del mismo elemento; el padre retirado deja de salir en contrato.custodia",
+        "Quién puede: como al ponerlo, quien escribió el elemento o la identidad del génesis del libro (la regla «only the owner sets who keeps it»). Solo cuenta si el padre cuelga del mismo elemento que la retirada",
+        "0 el mensaje (la representación del registro), 1 el padre, 2 la plantilla de cerrado, 3 quién, 4 la acción: el molde de «close». Su 4 es «write»: no mueve nada más que el coste de escribir"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        9,
+        6
+      ],
+      [
+        "remove a parent: {me} removes the parent {first (first ev.1).0} from {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "set-the-kind-of-owner.json",
+    "id": "6855920bf1834b1f262bf338df52510bd88a941a152ff4dee6845505d4ed5ed0",
+    "registro": [
+      [
+        "set the kind of owner"
+      ],
+      [
+        [
+          [
+            "kind"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.7.5.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «set the kind of owner»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=first epoch.7.5.1",
+            "the kind of owner of this element and of what hangs from it: one of the kinds of the anchoring cadence (epoch.7.5.1); it gives the default anchoring deadline"
+          ]
+        ],
+        [
+          [
+            "about"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «set the kind of owner»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first it.5",
+            "what the record is about: the element"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «set the kind of owner»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «set the kind of owner»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who says it: the owner of the element (its author) or the identity of the genesis of the ledger"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «set the kind of owner»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "set the kind of owner",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 = me or first (first before.1).3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9"
+      ],
+      [
+        "Core AGRAM 16-11 (encargo «padres y copias», A19, punto 2): epoch.7.5 trae un plazo de autoancla por clase de dueño (person, group, company, provider), pero nada en un libro decía de qué clase es. Este registro lo dice, anclado en el 9 de un elemento: 0 la clase (una de epoch.7.5.1), 1 el elemento, 2 la plantilla de cerrado, 3 quién, 4 la acción (el molde de «close»)",
+        "Se hereda como los padres: la clase de un registro es la del elemento más cercano hacia arriba, él incluido, que la diga; en él manda la última; sin ninguna, la clase del plazo más largo de 7.5 (contrato.custodia). Puede escribirla quien puede poner padres (la regla «only the owner sets who keeps it»)",
+        "Su 4 es «write»: no mueve nada más que el coste de escribir. El defecto del parámetro es la primera clase de 7.5 (la lista del desplegable sale de esa fórmula); se elige otra"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        9,
+        7
+      ],
+      [
+        "set the kind of owner: {me} says the owner of {first it.0} is of the kind {first ev.0}"
+      ]
+    ]
   }
 ];
 
@@ -20319,7 +21099,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "7280e1a693845008d4f9c99823eab038dc13685ca2d630fc177eb8500fd8bce0";
+export const EPOCA_0_BTML_ID = "ed93afae3fe714e183b655159672e0e7d274491fca429f3c92c8cb9915e988f6";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

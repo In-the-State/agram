@@ -1,0 +1,15 @@
+[
+  ["only the owner sets who keeps it"],
+  [0],
+  ["=not (\"add a parent\" in ev.4 or \"remove a parent\" in ev.4 or \"set the kind of owner\" in ev.4) or first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first before.1).3"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 5 y 7): los padres son testigos, no jueces; los padres, las copias y los grados son propiedad de cada libro, y los pone su dueño. Core AGRAM 16-11 (encargo «padres y copias», A19): un registro que pone o quita un padre, o que dice la clase del dueño («add a parent», «remove a parent», «set the kind of owner» en su 4), solo vale si su autor escribió el elemento del que cuelga (first ev.6.5 y su 3) o es la identidad del génesis del libro (before.1 y su 3)",
+    "Solo se mira cuando la candidata dice una de las tres acciones (el or es perezoso): before.1 no se recorre para lo demás. contrato.custodia lo vuelve a comprobar al leer (un libro escrito antes de esta regla, o en otra época, no cuela la configuración de otro)"
+  ],
+  ["epoch 0"],
+  ["after an account lives in its owner's book"],
+  ["only the owner sets who keeps it: {first ev.3} sets who keeps {first (first ev.6.5).0}, which it did not write, in a ledger whose genesis it did not write"]
+]

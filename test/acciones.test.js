@@ -94,7 +94,7 @@ test('acciones: lo que el aro ofrece a cada identidad en cada PV lo dicen las pl
   // Nada decidido en JS: cambiar el 2 de una plantilla en una copia de la época cambia lo que se ofrece.
   const sinAplicar = epocaCon((e, plantillas) => { plantillas.find((p) => p.registro[0][0] === 'apply a resource').registro[2] = ['=1 = 2']; });
   assert.ok(!nombres(A.acciones(eje, menu.id, 1, 'huesped', { epoca: sinAplicar })).includes('apply a resource'));
-  assert.equal(A.plantillasDeTransaccion().length, 50); // 44 + «second factor» (VG 12/13-11, #66, #70) + «close by decision» (VG 14-11, #80) + las cuatro de la cuenta del banco (VG 16-11)
+  assert.equal(A.plantillasDeTransaccion().length, 53); // + las tres de padres y copias (A19, 16-11) // 44 + «second factor» (VG 12/13-11, #66, #70) + «close by decision» (VG 14-11, #80) + las cuatro de la cuenta del banco (VG 16-11)
   // el 0: la configuración del sitio (encargo pv3, #37 y #38: no está en el aro; la abre el interrogante del sitio)
   assert.deepEqual([...new Set(A.plantillasDeTransaccion().map((p) => p.pv))].sort(), [0, 1, 2, 3, 4, 6, 7, 8, 9]);
   assert.deepEqual(A.plantillasDeTransaccion().filter((p) => p.pv === 0).map((p) => p.nombre), ['set a minimum', 'set a minimum rank', 'configure a place']);
@@ -802,7 +802,7 @@ test('modo de ejecución: cada plantilla lo declara en su 3.1 (person, agent o s
   // Las de agente son las que no escriben nada propio o componen sin decidir (cada una, razonada en DECISIONES_2026-11-12, #71.1): las
   // cuatro lecturas, las dos que lanzan el camino (cada paso mío pasa por su propio modo), proponer (②: el agente compone) y caducar.
   assert.deepEqual(todas.filter((p) => A.modoDeclarado(p.plantilla) === 'agent').map((p) => p.nombre).sort(), ['ask for a recommendation', 'auto-run to the end', 'compare with another record', 'expire', 'follow the path', 'grant the permission', 'propose', 'renew the permission', 'update the balance', 'view the whole tutorial', 'view thread']); // y las tres de la conectora del banco (VG 16-11): las escribe una cosa
-  assert.equal(todas.filter((p) => A.modoDeclarado(p.plantilla) === 'person').length, 39); // + «connect an account» // con «second factor» (escribe un criterio mío) y «close by decision» (cerrar es una decisión del dueño): lo decide una persona
+  assert.equal(todas.filter((p) => A.modoDeclarado(p.plantilla) === 'person').length, 42); // + las tres de padres y copias (A19) // + «connect an account» // con «second factor» (escribe un criterio mío) y «close by decision» (cerrar es una decisión del dueño): lo decide una persona
   // Una plantilla sin 3.1, o con un valor que no es uno de los tres, es person.
   assert.equal(A.modoDeclarado([['x'], [], ['=1 = 1'], ['me']]), 'person');
   assert.equal(A.modoDeclarado([['x'], [], ['=1 = 1'], [['me'], ['robot']]]), 'person');
