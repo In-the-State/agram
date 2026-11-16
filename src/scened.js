@@ -28,13 +28,13 @@
 // bajo demanda, con { medidas: true } o medidasDeEscena(); escena() sin la
 // opción no mide ningún registro, porque pide un mapa por cada foco.
 
-import { esReferencia, esDireccion } from './btml.js';
+import { esReferencia } from './btml.js';
 import { EPOCA_0, epocaDe } from './epocas.js';
 import { maximo as maximoDe, alcanceDe, contenido } from './modos.js';
 import { mapa, medidasDe, MAXIMO_REGISTROS } from './mapped.js';
 import { MEDIDAS } from './bases.js';
 import { ejeTemporal, comparables } from './tiempo.js';
-import { esFormula, analizar } from './bql.js';
+import { esFormula, registrosDeFormula } from './bqlm.js';
 
 /** Capacidad de Scened en posiciones con contenido: su máximo duro, maximo('scened') = 10000 (VG, 7-11 noche). La opción capacidad solo la baja. */
 export const CAPACIDAD = maximoDe('scened');
@@ -72,44 +72,11 @@ function hojas(nodo, camino = [], fuera = []) {
 }
 
 /**
- * Referencias que declara una fórmula BQL: cada REF de su árbol cuyo
- * resultado ya se sabe sin evaluar, con las mismas reglas que REF en
- * src/bql.js: el primer argumento, un texto literal (id o prefijo, con o sin
- * @, sin distinguir mayúsculas); el segundo, si está, un texto literal de
- * diez dígitos. Un REF con un argumento que es una expresión depende de
- * evaluar y no se lee aquí; uno con un literal de otro tipo es ERROR en BQL
- * y tampoco. Una fórmula que no se puede analizar no declara nada.
+ * Los registros que nombra una fórmula del payload (BQL mínimo): sus textos literales de 64 hex, cada uno con la
+ * dirección de los dígitos fijos que le siguen o la raíz (bqlm.registrosDeFormula, lo mismo que se mira antes de
+ * evaluarla). Una fórmula que no se puede analizar no nombra nada.
  */
-function refsDeFormula(texto) {
-  let arbol;
-  try {
-    arbol = analizar(texto.replace(/^=/, ''));
-  } catch {
-    return [];
-  }
-  const refs = [];
-  const literal = (a) => (a && a.tipo === 'str' && typeof a.v === 'string' ? a.v : undefined);
-  const visitar = (n) => {
-    if (!n || typeof n !== 'object') return;
-    if (Array.isArray(n)) return n.forEach(visitar);
-    if (n.tipo === 'fn' && n.nombre === 'REF' && Array.isArray(n.args)) {
-      const id = literal(n.args[0]);
-      const dir = n.args.length > 1 ? literal(n.args[1]) : RAIZ;
-      if (id !== undefined && dir !== undefined && esDireccion(dir)) refs.push({ prefijo: id, dir });
-    }
-    for (const v of Object.values(n)) if (v && typeof v === 'object') visitar(v);
-  };
-  visitar(arbol);
-  return refs;
-}
-
-/** Id de un prefijo como lo resuelve REF en BQL: sin @, en minúsculas, hexadecimal y único en el eje. Si no, undefined. */
-function resolverPrefijo(eje, prefijo) {
-  const p = prefijo.replace(/^@/, '').toLowerCase();
-  if (!/^[0-9a-f]+$/.test(p)) return undefined; // BQL: ERROR, referencia mal formada
-  const ids = typeof eje.conPrefijo === 'function' ? eje.conPrefijo(p) : eje.orden.filter((id) => id.startsWith(p)); // índice del eje, mismo resultado
-  return ids.length === 1 ? ids[0] : undefined; // ninguno: PENDIENTE; varios: ERROR (ambigua)
-}
+const refsDeFormula = (texto) => registrosDeFormula(texto);
 
 /** Compara dos claves de orden: lexicográfico, el prefijo (el antecesor) primero. */
 function compararClaves(a, b) {
@@ -267,8 +234,8 @@ export function escena(eje, focos, { camino = [], epoca = EPOCA_0, ahora = new D
         else referenciasFuera++;
       } else if (esFormula(h.contenido)) {
         for (const r of refsDeFormula(h.contenido)) {
-          const destino = resolverPrefijo(eje, r.prefijo);
-          if (destino === undefined) continue; // REF sin resolver: BQL da PENDIENTE o ERROR al evaluar
+          const destino = r.id;
+          if (!eje.obtener(destino)) continue; // un registro que no está: la fórmula queda PENDIENTE al leerla
           if (posicion.has(destino)) aristas.push({ tipo: 'formula', de, a: posicion.get(destino), deId: a.id, aId: destino, camino: h.camino, dir: r.dir });
           else referenciasFuera++;
         }

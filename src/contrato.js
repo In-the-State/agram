@@ -50,7 +50,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, esFormula } from './bqlm.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
 import { ocupantes as ocupantesDe } from './encaje.js';
 import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken } from './tokens.js';
@@ -363,7 +363,7 @@ export function validar(eje, X, opciones = {}) {
   for (let d = 0; d < ARIDAD; d++) {
     const desc = descripcion(p, [d]);
     const formula = texto(ultima(desc?.[2]));
-    if (!formula || !formula.startsWith('=') || formula.startsWith('==')) continue;
+    if (!esFormula(formula)) continue;
     const r = evaluar(formula, ctx, { sujeto });
     const propio = texto(hoja(desc[0]));
     const nombre = propio === undefined ? String(d) : t(CLAVE.parametro(nombrePlantilla, propio, 'label'), propio);
@@ -559,7 +559,7 @@ export function division(eje, ruta, { datos = 1, forma, modo, ...opciones } = {}
   const candidatas = filas.filter((f) => f.datos === n);
   let pvs = [];
   for (const f of candidatas) {
-    if (f.condicion && f.condicion.startsWith('=') && !f.condicion.startsWith('==')) {
+    if (esFormula(f.condicion)) {
       const ctx = ev ? contextoDe(eje, epocaDe(opciones, eje), ev) : null;
       const r = ev ? evaluar(f.condicion, ctx, { sujeto: sujetoDe(ctx, eje, ev) }) : { estado: 'PENDIENTE' };
       const cumple = r.estado === 'RESUELTO' && r.valor.length === 1 && r.valor[0] === true;

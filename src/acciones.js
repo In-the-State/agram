@@ -43,7 +43,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla, POR_LIMITE } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla, POR_LIMITE, esFormula } from './bqlm.js';
 import { crearEvento, canonico as canonicoDe, cuerpo as cuerpoDe } from './evento.js';
 import { partirClave, validarMovimiento, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, esAnunciado, claveToken } from './tokens.js';
 import { exigido as exigidoDe, tDelCoste, escalaQueAlcanza, REGLA_DEL_COSTE, quemaDelCoste } from './escritura.js';
@@ -82,7 +82,6 @@ const hoja = (x) => (Array.isArray(x) ? x[0] : x);
 const hojas = (x) => (x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]);
 const ultima = (x) => (Array.isArray(x) ? x[x.length - 1] : x);
 const texto = (x) => (typeof x === 'string' ? x : typeof x === 'number' ? String(x) : undefined);
-const esFormula = (x) => typeof x === 'string' && x.startsWith('=') && !x.startsWith('==');
 
 /** El evento de X (su id o el evento), o null. */
 function eventoDe(eje, X) {

@@ -9,10 +9,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Eje } from '../src/eje.js';
-import { consultar } from '../src/bql.js';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
 import {
-  confluir, situar, medir, esRecuento, esCantidad, cuotaDe, cajaDeCuota, porMasa, masaDe, ochoPorCantidades, MEDIDAS, INFORMATIVOS,
+  confluir, situar, medir, esRecuento, esCantidad, cuotaDe, cajaDeCuota, porMasa, masaDe, ochoPorCantidades, MEDIDAS, INFORMATIVOS, SIN_BASE_ESCRITA,
 } from '../src/bases.js';
 import { pagaElCoste } from './ayudas-coste.js';
 
@@ -107,8 +106,8 @@ test('lo que cambia al partir o al añadir hermanos vacíos son recuentos: se in
   assert.equal(esCantidad('E:g/EUR') && esCantidad('tiempo:minuto') && !esCantidad('escritos') && !esCantidad('tiempo:mes'), true);
   // Cuota: su suma ÷ la de la cohorte; sin nada en la cohorte, sin cuota.
   assert.deepEqual([cuotaDe(3, 12), cuotaDe(0, 0), cajaDeCuota(0.25), cajaDeCuota(1), cajaDeCuota(0), cajaDeCuota(null)], [0.25, null, 2, 9, 0, null]);
-  // En BQL, la cuota se pide como un campo más; los recuentos no se sitúan.
-  assert.equal(consultar(eje, foco.id, [], 'BASES("hermanos", "E:g/EUR", "cuota")').estado, 'PENDIENTE'); // sin base escrita: BQL no calcula al vuelo
+  // Sin base escrita, situar no calcula al vuelo: lo dice (la cuota la da confluir, el respaldo declarado).
+  assert.equal(situar(eje, foco.id, { alcance: 'hermanos' }).frescura, SIN_BASE_ESCRITA);
 });
 
 test('el T consumido sobre un registro es una cantidad del 8 (tiempo:<escala>), y la base no la cambia', async () => {

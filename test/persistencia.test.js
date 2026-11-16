@@ -5,7 +5,7 @@ import { serializar, restaurar, guardarLocal, cargarLocal, borrarLocal, apartarL
 import { Eje } from '../src/eje.js';
 import { crearEvento } from '../src/evento.js';
 import { generarClaves } from '../src/autoridad.js';
-import { evaluar } from '../src/bql.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
 
@@ -43,7 +43,8 @@ test('serializar y restaurar reconstruye el eje validando todo', async () => {
   assert.deepEqual(otro.orden, eje.orden);
   assert.equal(otro.saldo('cocina', 'E:casa/EUR'), 12);
   assert.deepEqual(otro.identidades(), eje.identidades());
-  assert.equal(evaluar(otro, otro.orden[7], [1]).texto, '14 EUR (12 EUR + 2 EUR)');
+  // La cuenta: su 1 es una magnitud desplegada (1.1 la fórmula del BQL mínimo, 1.2 la unidad), leída en el eje restaurado.
+  assert.deepEqual([leerPosicion(otro, otro.orden[7], [1, 1]).texto, leerPosicion(otro, otro.orden[7], [1, 2]).texto], ['14', 'EUR']);
 });
 
 test('un evento manipulado en el guardado se rechaza al restaurar', async () => {

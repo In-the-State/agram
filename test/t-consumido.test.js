@@ -23,7 +23,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Eje } from '../src/eje.js';
 import { direccion } from '../src/btml.js';
-import { evaluar } from '../src/bql.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import * as motor from '../src/motor.js';
 import { elegibles } from '../src/elegibles.js';
 import { ocupantes } from '../src/encaje.js';
@@ -292,11 +292,12 @@ test('pasado, futuro e inventado: ilimitados, se registran con sus dos fechas y 
   assert.deepEqual([(await validez(eje, deMemoria.id)).presente, (await validez(eje, alta.id)).presente], [true, true]);
   assert.doesNotMatch(leerEvento(eje, deMemoria.id), /no presente/);
   const X = await eje.escribir({ autor: 'ana', sobre: alta.id, t: T0, movimientos: [gasta('ana')],
-    payload: ['caducidad', 'lote', '=CONTAR(FILTRAR(BUSCAR("1000000000"), PRESENTE()))', '=CONTAR(BUSCAR("1000000000"))'] });
+    payload: ['caducidad', 'lote', '=count (down it where last it2.6.5 = "1000000000" and first it2.6.1)', '=count (down it where last it2.6.5 = "1000000000")'] });
   await eje.escribir({ autor: 'ana', sobre: X.id, en: '1000000000', t: T0, movimientos: [gasta('ana')], payload: 'abierto hoy' });
   await eje.escribir({ autor: 'ana', sobre: X.id, en: '1000000000', t: T0, movimientos: [gasta('ana'), pasado()], payload: 'abierto, de memoria' });
-  assert.deepEqual([evaluar(eje, X.id, [2]).texto, evaluar(eje, X.id, [3]).texto], ['3', '3'], 'todo registro es presente: la memoria también pagó T real');
-  assert.equal(evaluar(eje, X.id, [2]).estado, 'RESUELTO');
+  // Lo anclado en su 1, y de ello lo presente (la lectura «present», X.6.1), con el BQL mínimo (it = X).
+  assert.deepEqual([leerPosicion(eje, X.id, [2]).texto, leerPosicion(eje, X.id, [3]).texto], ['2', '2'], 'todo registro es presente: la memoria también pagó T real');
+  assert.equal(leerPosicion(eje, X.id, [2]).estado, 'RESUELTO');
   // Restaurar rehace lo registrado.
   const otro = await Eje.desde(eje.orden.map((id) => eje.obtener(id)));
   assert.deepEqual(otro.tiempoInformativo(alta.id), eje.tiempoInformativo(alta.id));
@@ -320,7 +321,7 @@ async function mercado(gastos) {
   await eje.escribir({ autor: 'g', sobre: alta.id, t: AYER, payload: 'alta de casa', movimientos: [gasta('g'), cedeE('g', 'casa', 10)] });
   // Revisión de seguridad (encargo 3b): escribir sobre el alta de otra identidad (el génesis es el alta de g) tiene el
   // precio de su atención; casa cuelga su mercado de su propia alta.
-  const X = await eje.escribir({ autor: 'casa', sobre: eje.alta('casa').id, t: T0, payload: ['mercado', 'ofertas', '=BUSCAR(1)', 'ana'], movimientos: [gasta('casa', g())] });
+  const X = await eje.escribir({ autor: 'casa', sobre: eje.alta('casa').id, t: T0, payload: ['mercado', 'ofertas', '=down it where last it2.6.5 = "1000000000" and (first it2.3 = first it.3 or first it2.3 in (payload(it)).3)', 'ana'], movimientos: [gasta('casa', g())] });
   for (const [autor, texto] of [['bea', 'ruido'], ['ana', 'oferta de ana'], ['robot', 'oferta del robot'], ['casa', 'oferta de casa']]) {
     await eje.escribir({ autor, sobre: X.id, en: direccion([1]), t: T0, payload: texto, movimientos: [gasta(autor, g())] });
   }
@@ -334,15 +335,16 @@ async function mercado(gastos) {
   const c = await motor.consolidar(eje, { autor: 'ana', foco: X.id, t: T0, elecciones: { 1: 'algo' } });
   await eje.escribir({ autor: 'ana', sobre: c.id, t: T0, payload: 'me comprometo', movimientos: [gasta('ana', g()), { token: 'P', ambito: c.id, cantidad: 5, de: 'ana', a: 'ana', estado: 'bloqueo', salida: c.id }] });
   const indice = (id) => eje.orden.indexOf(id);
-  const r = evaluar(eje, X.id, [2], { limites: { candidatos: 3 } });
+  // El criterio de casa (su 2): lo anclado en su 1 por ella o por quien nombra en su 3 (BQL mínimo, it = X).
+  const r = leerPosicion(eje, X.id, [2]);
   const rc = motor.recuento(eje, c.id);
   return {
     recuento: [rc.plantilla, rc.valor, rc.pasa],
     topes: eje.topes(H.id, T0).map((x) => [indice(x.registro), x.capacidad, x.franja, x.vivo, x.libre]),
     vivo: eje.vivo(clave, T0),
     elegibles: [...elegibles(eje, X.id).autores].sort(),
-    candidatos: [r.estado, ...(r.valor?.items ?? []).map((i) => [i.origen, i.autor ?? null, i.contenido ?? null]), r.valor?.noElegibles ?? 0],
-    propuesta: motor.proponer(eje, X.id, { posiciones: [2] }).elecciones[2]?.candidato?.autor ?? null,
+    candidatos: [r.estado, ...(r.valor ?? []).map((o) => [eje.obtener(o.id).autor, eje.obtener(o.id).payload])],
+    propuesta: eje.obtener(motor.proponer(eje, X.id, { posiciones: [2] }).elecciones[2]?.candidato?.evento)?.autor ?? null,
     tiempo: eje.tiempoBajo(eje.genesisId),
   };
 }
@@ -354,6 +356,8 @@ test('propiedad: cambiar el T gastado no cambia recuentos, topes de E, elegibles
   // compromiso), un peso de 0,25 (mapa §15 [D] (3): cada persona se lee como su 100 % por dominio).
   assert.deepEqual(base.recuento, ['weighted sum', 0.25, true]);
   assert.deepEqual(base.elegibles, ['ana', 'casa']);
+  assert.deepEqual(base.candidatos, ['RESUELTO', ['ana', 'oferta de ana'], ['casa', 'oferta de casa']]);
+  assert.equal(base.propuesta, 'ana');
   assert.equal(base.vivo, 2);
   for (let caso = 0; caso < 12; caso++) {
     const gastos = Array.from({ length: p.int(1, 7) }, () => p.pick([1, 2, 3, 5, 8, 13, 20]));

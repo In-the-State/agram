@@ -164,18 +164,19 @@ test('medir, la única medida: posiciones frente a terminales, tokens por clave,
   assert.equal(m.posiciones, 6); // 0–5 desarrolladas: la misma definición que las bases por posición
   assert.equal(m.escritos, 1);
   // Por serie, sin totales de familia; y el T que gastaron quienes escribieron encima (R7: una cantidad).
-  assert.deepEqual(m.tokens, { 'T:hora': 1, 'E:casa/EUR': 12, 'tiempo:minuto': 4 });
+  // La cuenta, anclada en la compra, paga 6 minutos (su 1 es una magnitud desplegada: retirada de BQL V0, #113).
+  assert.deepEqual(m.tokens, { 'T:hora': 1, 'E:casa/EUR': 12, 'tiempo:minuto': 6 });
   for (const familia of ['T', 'E', 'P', 'R']) assert.ok(!(familia in m.tokens));
   assert.equal(m.identidades, 2); // huesped y cocina
   assert.equal(m.profundidadHilo, 3);
   assert.equal(m.formulasResueltas, 0);
   assert.equal(m.procedencias.length, 10);
   const c = medir(eje, cuenta.id);
-  assert.equal(c.formulasResueltas, 2); // REF + 2 EUR y LOCAL(1) + 15 min
+  assert.equal(c.formulasResueltas, 1); // el precio de la compra + la propina, en 1.1 (su 2, «15 min», es un terminal: componer unidades no tiene equivalente)
   assert.equal(c.formulasPendientes, 0);
   assert.equal(c.profundidadHilo, 4);
-  assert.equal(medir(eje, vecinas[0].id).formulasPendientes, 1); // =LOCAL(5) sin posición 5
-  assert.equal(medir(eje, vecinas[1].id).formulasResueltas, 1); // =LOCAL(0) + 1 EUR dentro de recursos
+  assert.equal(medir(eje, vecinas[0].id).formulasPendientes, 1); // (payload(it)).5 + 0 sin posición 5
+  assert.equal(medir(eje, vecinas[1].id).formulasResueltas, 1); // la cantidad de la 1.0 + 1, desplegada en 1.1
   const nota = medir(eje, vecinas[6].id);
   assert.equal(nota.terminales, 1);
   assert.equal(nota.posiciones, 0); // un terminal no tiene posición 0
@@ -256,10 +257,11 @@ test('confluir: las bases del foco entre sus hermanos, sin nivel ni grado', asyn
   assert.equal(c.tokens['T:hora'].foco, 0);
   assert.equal(c.tokens['T:hora'].caja, 0);
   assert.equal(c.tokens['T:minuto'].etiqueta, 'T movido en minuto');
-  assert.equal(c.tokens['T:minuto'].suma, 40);
+  // La vecina de la fórmula resuelta paga 2 minutos más que antes: su 1.1 es una magnitud desplegada (retirada de BQL V0, #113).
+  assert.equal(c.tokens['T:minuto'].suma, 42);
   assert.equal(c.tokens['T:minuto'].foco, 4);
   assert.equal(c.tokens['T:minuto'].caja, 4);
-  assert.deepEqual(c.tokens['T:minuto'].cajas, [1, 1, 0, 1, 5, 2, 0, 0, 0, 0]);
+  assert.deepEqual(c.tokens['T:minuto'].cajas, [1, 1, 0, 1, 4, 3, 0, 0, 0, 0]);
   // Recursos: solo la compra y la rápida pagaron 12 EUR de la casa; quien no mueve EUR cuenta 0.
   assert.equal(c.tokens['E:casa/EUR'].foco, 12);
   assert.equal(c.tokens['E:casa/EUR'].minimo, 0);
@@ -368,7 +370,7 @@ test('las cohortes proyecto y general cambian las bases; el génesis solo se com
   assert.equal(general.n, eje.orden.length);
   assert.equal(general.medidas.profundidadHilo.minimo, 0); // el génesis
   assert.equal(general.medidas.profundidadHilo.maximo, 4); // la cuenta y el criterio de cocina
-  assert.equal(general.medidas.formulasResueltas.maximo, 2); // la cuenta
+  assert.equal(general.medidas.formulasResueltas.maximo, 1); // la cuenta (una fórmula: su 2 ya no compone unidades)
   // Encargo 3b: ya no hay P del génesis sobre el eje (mapa §15 [D]); la casa emite su R al empezar y la guarda para las
   // huéspedes en sus invitaciones (mapa §16 [D]).
   assert.deepEqual(Object.keys(general.tokens), ['E:casa/EUR', 'R:casa', 'T:hora', 'T:minuto', 'tiempo:hora', 'tiempo:minuto']);

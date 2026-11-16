@@ -7,7 +7,7 @@
 //     aceptan (su alta; encargo 3b);
 //   - la casa escribe las partidas del sábado;
 //   - la organizadora escribe la tarea «montar la carpa del sábado», una
-//     décupla con sus fórmulas BQL;
+//     décupla con sus fórmulas (BQL mínimo: cada una lee lo escrito);
 //   - el proveedor escribe presupuestos donde la tarea dice que busca (su 5):
 //     en sus recursos (1), donde colisionan con lo propio;
 //   - el motor: descubrir → proponer (la fórmula del 9 deja los presupuestos
@@ -42,7 +42,7 @@
 // (escriben su propia alta, aceptando la invitación), que aquí no emiten.
 
 import { Eje } from '../../src/eje.js';
-import { evaluar } from '../../src/bql.js';
+import { leerPosicion } from '../../src/contexto-eje.js';
 import { indicesDe } from '../../src/btml.js';
 import { claveToken } from '../../src/tokens.js';
 import { escribirDesde } from '../../src/escritura.js';
@@ -58,16 +58,17 @@ export const FECHA_LIMITE = '2026-11-14T09:00:00Z';
  * Dónde busca la tarea sus presupuestos: en sus recursos (1). La tarea lo
  * guarda en su 5, «dónde encaja lo que busco» (mapa §2.3), y el proveedor
  * escribe ahí, así que los presupuestos colisionan con lo propio.
- * La fórmula del 9 busca con BUSCAR(LOCAL(5)), por dirección (mapa §12:
- * BUSCAR por índice y por dirección, llegado con la #36): el texto de diez
- * dígitos del 5 nombra la colisión entera del 1.
+ * La fórmula del 9 busca, entre lo anclado sobre la tarea (down it), lo que
+ * está anclado en la dirección que dice su 5 (el 6.5 de cada registro lleva
+ * su sobre y su en): el texto de diez dígitos del 5 nombra la colisión del 1.
  *
  * Quién ocupa una posición ajena (mapa §12 [D], VG 7-11 noche; R8, src/elegibles.js):
  * el 1 es de la tarea (lo escribe la organizadora) y cualquiera con minutos
  * escribe en él, pero solo es ELEGIBLE lo de quien la tarea nombra en su 3
  * (la organizadora y el proveedor). Lo de los demás colisiona y queda en el
- * eje, y BUSCAR, proponer y descubrir solo lo cuentan (noElegibles). El pago
- * (movimientosDeEjecucion) lo vuelve a comprobar.
+ * eje; descubrir solo lo cuenta (noElegibles), y la fórmula del 9 lo deja
+ * fuera porque lee el 3 de la tarea. El pago (movimientosDeEjecucion) lo
+ * vuelve a comprobar.
  */
 export const EN_PRESUPUESTO = '1000000000';
 
@@ -78,8 +79,9 @@ export const EN_PRESUPUESTO = '1000000000';
  * como euros de capacidad (mapa §12: la plaza y su serie). Las tres primeras
  * son las de la carpa.
  * [X] decidir VG: que la denominación sea el concepto y que un token valga un
- * EUR es convención de este ejemplo. BQL ve «250 EUR» y el eje ve 250 tokens
- * de E:casa/alquiler de la carpa; la traducción va a mano (ver ESCALA_DE_UNIDAD).
+ * EUR es convención de este ejemplo. BQL lee 250 en el .1 de «250 EUR» y el
+ * eje ve 250 tokens de E:casa/alquiler de la carpa; la traducción va a mano
+ * (ver ESCALA_DE_UNIDAD).
  */
 export const PARTIDAS = Object.freeze([
   Object.freeze(['alquiler de la carpa', 250]),
@@ -90,8 +92,8 @@ export const PARTIDAS = Object.freeze([
 const DE_LA_CARPA = PARTIDAS.slice(0, 3);
 
 /**
- * Unidades de BQL → escala del token T. En BQL las unidades son etiquetas
- * («7 h» no sabe que es la escala hora); la traducción va a mano.
+ * Unidades escritas → escala del token T. Una unidad es un texto (el .2 de
+ * «7 h»: no sabe que es la escala hora); la traducción va a mano.
  * [X] decidir VG: si las unidades de tiempo de BQL deben ser las siete
  * escalas de T por definición, y cómo se liga una unidad de BQL («EUR») a
  * las series de E que la respaldan (aquí, las de las partidas).
@@ -108,31 +110,32 @@ export const ETAPAS = Object.freeze(['tarea', 'presupuestos', 'consolidada', 'an
 /** La plantilla de cerrado que la tarea nombra en su criterio (la de la época por defecto, dicha en voz alta). */
 export const CERRADO = 'all announced movements happened';
 
-/** Dónde vive el coste total en toda tarea: 1.1, la cantidad de los recursos. */
+/** Dónde vive el coste total en toda tarea: 1.1, la cantidad de los recursos, desplegada (1.1.1 cuánto, 1.1.2 la unidad). */
 export const DIR_COSTE = '1100000000';
-/** Dónde vive el tiempo previsto en toda tarea: 4.1, la cantidad de la fábrica. */
+/** Dónde vive el tiempo previsto en toda tarea: 4.1, la cantidad de la fábrica, desplegada (4.1.1 cuánto, 4.1.2 la unidad). */
 export const DIR_TIEMPO = '4100000000';
 
+/** El coste total de una tarea, leído de lo escrito: la suma de las cantidades de sus partidas (1.0; su 0, el nombre de la hilera, no es una cantidad). */
+const COSTE = 'sum (payload(it)).1.0.1';
+
 /**
- * La fórmula del 9: de los ocupantes del 1, los escritos (ORIGEN); de ellos,
- * los que caben: precio (su 1) dentro del coste total de la tarea (1.1) y
- * plazo (su 2) dentro del plazo de la tarea (2.1); y de esos, el primero en
- * el orden de BUSCAR. Todo escrito anclado en el 1 encaja exacto (diez
- * profundidades de acuerdo), así que ese orden es el de llegada (mapa §12:
- * los empates, por llegada). Los dos FILTRAR van anidados porque Y evalúa
- * todos sus argumentos: ACTUAL(1) sobre lo propio (un array) pararía la
- * consulta.
+ * La fórmula del 9 (BQL mínimo, it = la tarea): de lo anclado sobre la tarea
+ * (down it, por llegada), lo anclado en la dirección de su 5 (el en, último
+ * del 6.5) por su autor o por quien nombra en su 3 (los elegibles: R8); de
+ * ello, lo que cabe: precio (la cantidad de su 1) dentro del coste total de
+ * la tarea (la suma de sus partidas, COSTE) y plazo (la de su 2) dentro del
+ * plazo de la tarea (la del ocupante 1 de su 2); y de eso, el primero. Lee lo
+ * escrito: el coste total no se toma del 1.1 (otra fórmula, que se ve como
+ * texto: sin encadenar), se suma otra vez de las partidas. Compara números:
+ * las unidades no las mira (EUR y h son las de este ejemplo).
  *
  * Corregir es añadir un ocupante (mapa §12): un presupuesto corregido no
  * sustituye al original. Los dos quedan en el 1, y la fórmula elige entre
  * ellos por llegada sin borrar ninguno.
- * [X] decidir VG: preferir la corrección. Con ORIGEN y la llegada, la fórmula
- * solo puede quedarse con el PRIMERO que cabe: si el original también cabe,
- * sale el original. Preferir la corrección pide algo que BQL no expresa:
- * leer el autor y la llegada de cada candidato (los candidatos de BUSCAR los
- * llevan, pero ninguna función los expone) o tomar el ÚLTIMO de una colección
- * (ELEGIR toma desde el principio y ORDENAR no tiene clave de llegada). Aquí
- * no se inventa una función para eso.
+ * [X] decidir VG: preferir la corrección. La fórmula se queda con el PRIMERO
+ * que cabe: si el original también cabe, sale el original. Con el BQL mínimo
+ * se podría tomar el último (last) o leer el autor (it2.3); este ejemplo
+ * sigue eligiendo por llegada, como antes.
  *
  * [X] decidir VG: la elección vive en el 9 y no en el 1. La consolidación
  * tiene un solo hueco por PV: su 1 guarda o los recursos literales de la
@@ -142,21 +145,23 @@ export const DIR_TIEMPO = '4100000000';
  * mismo choque que en la tarea: `proponer` pone cada elección en la posición
  * de su fórmula, y el 1 de la tarea ya guarda los recursos.
  */
-export const FORMULA_ELECCION = '=ELEGIR(FILTRAR(FILTRAR(BUSCAR(LOCAL(5)), ORIGEN() = "escrito"), Y(ACTUAL(1) <= LOCAL(1, 1), ACTUAL(2) <= LOCAL(2, 1))))';
+export const FORMULA_ELECCION = '=first (down it where last it2.6.5 = first (payload(it)).5 and (first it2.3 = first it.3 or first it2.3 in (payload(it)).3)'
+  + ' and (payload(it2)).1.1 <= ' + COSTE + ' and (payload(it2)).2.1 <= (nth 1 (payload(it)).2).1)';
 
 /**
  * La décupla de una tarea. En la raíz cada posición es un PV (época 0):
  *   0 el título; 1 recursos; 2 criterios; 3 quién habla con quién;
  *   4 fábrica; 5 dónde encaja lo que busco (EN_PRESUPUESTO); 6 de dónde
- *   viene; 7 la fecha límite; 8 la composición «EUR + horas»; 9 la elección.
+ *   viene; 7 la fecha límite; 8 el coste y el tiempo; 9 la elección.
  * Debajo hay hileras: una lista con su nombre en .0 (la representación) y
  * sus ítems por orden en .1, .2… (partidas, materiales, criterios, quién y
  * pasos). Recursos (1) y fábrica (4) agrupan una hilera en x.0 y su cantidad
  * en x.1, en una dirección fija e igual en toda tarea: el coste total en 1.1
- * (DIR_COSTE) y el tiempo previsto en 4.1 (DIR_TIEMPO). Las fórmulas viven
- * donde alcanzan lo que leen, porque LOCAL solo mira dentro de su anfitrión:
- * el coste dentro de recursos, el tiempo dentro de la fábrica, y lo que cruza
- * PV en la raíz (la composición del 8 y la elección del 9).
+ * (DIR_COSTE) y el tiempo previsto en 4.1 (DIR_TIEMPO), cada uno una magnitud
+ * desplegada ([[nombre], [fórmula], [unidad]]: el BQL mínimo solo calcula
+ * números). Cada fórmula lee lo escrito desde la tarea (payload(it)), así que
+ * vive donde dice su PV: el coste en recursos, el tiempo en la fábrica, el
+ * coste y el tiempo juntos en el 8 y la elección en el 9.
  *
  *   partidas: referencias a los importes de las partidas (no copias), de una a nueve.
  *   materiales: textos, de uno a nueve.
@@ -168,10 +173,8 @@ export const FORMULA_ELECCION = '=ELEGIR(FILTRAR(FILTRAR(BUSCAR(LOCAL(5)), ORIGE
  * BTML no tiene huecos, así que del 5 al 8 hay que escribir algo. El mapa
  * (§12) dice «sin no aplicable; prefijo denso y anclaje»: lo lejano se ancla
  * en vez de rellenar. Anclar la elección en el 9 no funciona hoy: `proponer`
- * solo lee las fórmulas del payload del foco, y una fórmula anclada busca
- * candidatos en su propio registro (BUSCAR mira desde su anfitrión, también
- * por dirección), no en la colisión del 1 de la tarea. Qué queda en cada
- * posición:
+ * solo lee las fórmulas del payload del foco (una fórmula anclada tiene por it
+ * su propio registro, no la tarea). Qué queda en cada posición:
  *   - 5: lo que el corpus le da, dónde encaja lo que busco. Antes llevaba un
  *     recuento de presupuestos, que se quita: el mapa (§12) pone los
  *     recuentos en las bases del 8, registros escritos en el 8 (#19). Ahora
@@ -179,8 +182,10 @@ export const FORMULA_ELECCION = '=ELEGIR(FILTRAR(FILTRAR(BUSCAR(LOCAL(5)), ORIGE
  *   - 6 y 7 dicen lo de su PV (de dónde viene, la fecha límite), pero repiten
  *     lo que ya dicen el hilo (la tarea se escribe sobre las partidas) y la
  *     proyección anclada en el 7.
- *   - 8: la composición «EUR + horas», que comparan las tareas hermanas, es
- *     de este ejemplo. El 8 del mapa son las bases.
+ *   - 8: el coste y el tiempo juntos (8.1 y 8.2, desplegados), que comparan
+ *     las tareas hermanas, es de este ejemplo (antes, la composición «EUR +
+ *     horas»: componer unidades no tiene equivalente en el BQL mínimo). El 8
+ *     del mapa son las bases.
  *
  * [X] decidir VG: hileras ordinales. La época 0 dice que cada dígito es un PV
  * en todas las profundidades. Por debajo de la raíz lo cumplen el nombre de
@@ -199,32 +204,46 @@ export function decuplaTarea({ titulo, partidas, materiales, plazo, calidad, qui
   for (const [nombre, lista] of [['partidas', partidas], ['materiales', materiales], ['quien', quien], ['pasos', pasos]]) {
     if (!lista.length || lista.length > 9) throw new Error('de uno a nueve: ' + nombre);
   }
-  const coste = '=' + partidas.map((_, k) => 'LOCAL(0, ' + (k + 1) + ')').join(' + ');
-  const tiempo = '=' + pasos.map((_, k) => 'LOCAL(0, ' + (k + 1) + ', 1)').join(' + ');
+  // Lo que leen de la tarea (payload(it)): las cantidades de las partidas (1.0) y las horas de cada paso (el ocupante 1 de 4.0.k).
+  const coste = '=' + COSTE;
+  const tiempo = '=' + pasos.map((_, k) => '(nth 1 (payload(it)).4.0.' + (k + 1) + ').1').join(' + ');
   return [
     titulo, // 0 representación
     [
       ['Partidas', ...partidas], // 1.0 hilera de partidas: referencias a sus importes
-      coste, // 1.1 coste total = suma de las partidas
+      [['coste total'], [coste], ['EUR']], // 1.1 coste total = suma de las partidas (1.1.1), en EUR (1.1.2)
       ['Materiales', ...materiales], // 1.2 hilera de materiales
     ], // 1 recursos
     ['Criterios', plazo, calidad, CERRADO], // 2 criterios: 2.1 plazo de ejecución (horas), 2.2 calidad, 2.3 la plantilla de cerrado
     ['Quién habla con quién', ...quien], // 3 comunicación
     [
       ['Pasos', ...pasos], // 4.0 hilera de pasos
-      tiempo, // 4.1 tiempo previsto = suma de los pasos
+      [['tiempo previsto'], [tiempo], ['h']], // 4.1 tiempo previsto = suma de los pasos (4.1.1), en horas (4.1.2)
     ], // 4 fábrica
     EN_PRESUPUESTO, // 5 estructura: dónde encaja lo que busco (los presupuestos, en el 1)
     origen, // 6 pasado: de dónde viene ([X] relleno: repite el hilo)
     fechaLimite, // 7 futuro: la fecha límite ([X] relleno: repite la proyección anclada)
-    '=LOCAL(1, 1) + LOCAL(4, 1)', // 8 ([X] relleno): la composición «EUR + horas» de este ejemplo
+    [['coste y tiempo'], [['coste'], [coste], ['EUR']], [['tiempo'], [tiempo], ['h']]], // 8 ([X] relleno): el coste (8.1) y el tiempo (8.2) de este ejemplo
     FORMULA_ELECCION, // 9 la elección: el primer presupuesto que cabe
   ];
 }
 
-/** Tiempo previsto de una tarea (4.1). */
+/**
+ * Lee una magnitud de un registro con el BQL mínimo (contexto-eje.leerPosicion): la desplegada en `indices` (su .1 la
+ * cantidad, la fórmula; su .2 la unidad) o un terminal «12 EUR» (lo mismo). { cantidad, unidad, texto }: la cantidad,
+ * un número si se resuelve; si no, undefined y el texto dice por qué.
+ */
+export function magnitudEn(eje, id, indices) {
+  const c = leerPosicion(eje, id, [...indices, 1]);
+  const u = leerPosicion(eje, id, [...indices, 2]);
+  const cantidad = c.estado === 'RESUELTO' && c.valor.length === 1 && typeof c.valor[0] === 'number' ? c.valor[0] : undefined;
+  const unidad = u.estado === 'RESUELTO' && u.valor.length === 1 && typeof u.valor[0] === 'string' ? u.valor[0] : undefined;
+  return { cantidad, unidad, texto: cantidad === undefined ? c.texto : cantidad + (unidad ? ' ' + unidad : '') };
+}
+
+/** Tiempo previsto de una tarea (4.1): { cantidad, unidad, texto }. */
 export function tiempoPrevisto(eje, tareaId) {
-  return evaluar(eje, tareaId, indicesDe(DIR_TIEMPO));
+  return magnitudEn(eje, tareaId, indicesDe(DIR_TIEMPO));
 }
 
 /** El presupuesto que eligió la consolidación (su 9). */
@@ -258,25 +277,26 @@ export function movimientosDeEjecucion(eje, consolidacionId, tareaId) {
   if (!quien.includes(presupuesto.autor) || presupuesto.autor === c.autor) {
     throw new Error(presupuesto.autor + ' no cobra: no está en el 3 de la tarea o es quien paga');
   }
-  const precio = evaluar(eje, presupuesto.id, [1]);
-  if (precio.valor?.tipo !== 'magnitud') throw new Error('precio sin magnitud: ' + precio.texto);
-  let resta = precio.valor.cantidad;
+  const precio = magnitudEn(eje, presupuesto.id, [1]);
+  if (precio.cantidad === undefined || !precio.unidad) throw new Error('precio sin magnitud: ' + precio.texto);
+  let resta = precio.cantidad;
   const movimientos = [];
   for (const ref of tarea.payload[1][0].slice(1)) {
     const donde = indicesDe(ref.dir);
-    const importe = evaluar(eje, ref.ref, donde).valor; // 1.k.1 es [importe]: la lista de un ocupante se lee como su ocupante
-    if (importe?.tipo !== 'magnitud' || importe.unidad !== precio.valor.unidad) throw new Error('partida sin importe en ' + precio.valor.unidad);
-    // El concepto es el ocupante 0 de la 1.k.0 (una lista de uno): se lee por índice, que sí entra en una lista.
-    const concepto = evaluar(eje, ref.ref, [...donde.slice(0, -1), 0, 0]).valor;
-    if (concepto?.tipo !== 'texto') throw new Error('partida sin concepto');
+    const importe = magnitudEn(eje, ref.ref, donde); // 1.k.1 es [importe]: la lista de un ocupante se lee como su ocupante
+    if (importe.cantidad === undefined || importe.unidad !== precio.unidad) throw new Error('partida sin importe en ' + precio.unidad);
+    // El concepto es el ocupante de la 1.k.0 (una lista de uno).
+    const concepto = leerPosicion(eje, ref.ref, [...donde.slice(0, -1), 0]);
+    if (concepto.estado !== 'RESUELTO' || concepto.valor.length !== 1 || typeof concepto.valor[0] !== 'string') throw new Error('partida sin concepto');
+    const denominacion = concepto.valor[0];
     const emisor = eje.obtener(ref.ref).autor;
-    const serie = eje.serie(claveToken({ token: 'E', emisor, denominacion: concepto.valor }));
-    if (serie.emisor !== emisor || serie.emitido < importe.cantidad) throw new Error('partida sin respaldo: ' + emisor + ' no ha emitido ' + importe.cantidad + ' de ' + concepto.valor);
+    const serie = eje.serie(claveToken({ token: 'E', emisor, denominacion }));
+    if (serie.emisor !== emisor || serie.emitido < importe.cantidad) throw new Error('partida sin respaldo: ' + emisor + ' no ha emitido ' + importe.cantidad + ' de ' + denominacion);
     const parte = Math.min(resta, importe.cantidad);
-    if (parte > 0) movimientos.push({ token: 'E', emisor, denominacion: concepto.valor, cantidad: parte, de: c.autor, a: presupuesto.autor });
+    if (parte > 0) movimientos.push({ token: 'E', emisor, denominacion, cantidad: parte, de: c.autor, a: presupuesto.autor });
     resta -= parte;
   }
-  if (resta > 0) throw new Error('el precio pasa del coste de las partidas en ' + resta + ' ' + precio.valor.unidad);
+  if (resta > 0) throw new Error('el precio pasa del coste de las partidas en ' + resta + ' ' + precio.unidad);
   return movimientos;
 }
 
@@ -292,9 +312,9 @@ export function movimientosDeEjecucion(eje, consolidacionId, tareaId) {
  */
 export function horasDeEntrega(eje, consolidacionId) {
   const presupuesto = presupuestoElegido(eje, consolidacionId);
-  const horas = evaluar(eje, presupuesto.id, [2]);
-  if (horas.valor?.tipo !== 'magnitud' || !ESCALA_DE_UNIDAD[horas.valor.unidad]) throw new Error('tiempo sin escala: ' + horas.texto);
-  return { token: 'T', escala: ESCALA_DE_UNIDAD[horas.valor.unidad], cantidad: horas.valor.cantidad, de: presupuesto.autor, a: null };
+  const horas = magnitudEn(eje, presupuesto.id, [2]);
+  if (horas.cantidad === undefined || !ESCALA_DE_UNIDAD[horas.unidad]) throw new Error('tiempo sin escala: ' + horas.texto);
+  return { token: 'T', escala: ESCALA_DE_UNIDAD[horas.unidad], cantidad: horas.cantidad, de: presupuesto.autor, a: null };
 }
 
 /**
@@ -410,9 +430,9 @@ export async function ejemploTarea({ claves = {}, hasta = 'pagada' } = {}) {
   if (tope < 2) return r;
 
   // Motor: Q descubre, B propone desde las fórmulas del foco, C consolida (la
-  // fábrica registra la elección: un registro más, sin fases). El 8
-  // (composición) entra como terminal; el 9 (elección), como el presupuesto
-  // elegido; 1–4 por referencia a la tarea; 5–7 se heredan.
+  // fábrica registra la elección: un registro más, sin fases). El 9 (la
+  // elección) entra como el presupuesto elegido; 1–4 y 8 (lo escrito) por
+  // referencia a la tarea; 5–7 se heredan.
   r.descubierto = descubrir(eje, r.tarea.id);
   r.propuesta = proponer(eje, r.tarea.id, { posiciones: [1, 2, 3, 4, 8, 9] });
   r.consolidacion = await consolidar(eje, {

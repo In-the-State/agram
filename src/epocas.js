@@ -25,7 +25,7 @@
 import { ARIDAD, indicesDe, esLista, esReferencia, esTerminal, esDecupla, validarPayload } from './btml.js';
 import { canonico } from './evento.js';
 import { sha256, aHex } from './cripto.js';
-import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve } from './bqlm.js';
+import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve, esFormula } from './bqlm.js';
 import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 
 export const PV = Object.freeze([
@@ -304,13 +304,12 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id =
     if (!Array.isArray(r) || r.length !== ARIDAD || !r.every((x) => Array.isArray(x) && x.length > 0)) throw new TypeError(nombre + ': ' + donde + ' lleva las diez posiciones llenas');
     const efectiva = r.map((x) => [...x]);
     const c = efectiva[2][efectiva[2].length - 1];
-    const formula = (x) => typeof x === 'string' && x.startsWith('=') && !x.startsWith('==');
     // La lectura de un punto de vista (encargo «lecturas»): cada ocupante de su 2, una fórmula o «js <nombre>».
-    if (esLecturaDePv(efectiva) ? !efectiva[2].every((x) => formula(x) || /^js [a-z]+$/.test(x)) : !formula(c)) throw new TypeError(nombre + ': ' + donde + ' lleva su condición «=…» en el 2');
+    if (esLecturaDePv(efectiva) ? !efectiva[2].every((x) => esFormula(x) || /^js [a-z]+$/.test(x)) : !esFormula(c)) throw new TypeError(nombre + ': ' + donde + ' lleva su condición «=…» en el 2');
     // Invariante del núcleo (VG 12-11, decisión 6 del estudio BQL-transacciones): las reglas de la época solo leen.
     // Una regla con un verbo (mint transfer lock release burn) no se carga; un put, solo en una regla que escribe.
     for (const x of efectiva[2]) {
-      if (!formula(x)) continue;
+      if (!esFormula(x)) continue;
       let mueve;
       try {
         mueve = queMueve(analizar(x, { sujeto: true }));
@@ -358,7 +357,7 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id =
     const p = porIdPlantilla.get(ref);
     if (p.length !== ARIDAD || !p.every((x) => Array.isArray(x) && x.length > 0)) throw new TypeError(nombre + ': ' + donde + ' lleva las diez posiciones llenas');
     const c = p[2][p[2].length - 1];
-    if (typeof c !== 'string' || !c.startsWith('=') || c.startsWith('==')) throw new TypeError(nombre + ': ' + donde + ' lleva en su 2 cuándo se ofrece, una fórmula «=…»');
+    if (!esFormula(c)) throw new TypeError(nombre + ': ' + donde + ' lleva en su 2 cuándo se ofrece, una fórmula «=…»');
     const r = congelarCopia(p);
     registrosDeEpoca.set(ref, r);
     return Object.freeze({ id: ref, plantilla: r });

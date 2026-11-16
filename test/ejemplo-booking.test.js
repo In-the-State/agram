@@ -2,12 +2,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ejemploReserva, confirmarReserva, reservar, nochesDe, nochesEntre, plaza, precioDe, denominacionPlaza, seriePlaza, libres,
-  tokenPlaza, familiaPlaza, caducaNoche, ALOJAMIENTO, PLAZAS, PLAZAS_POR_NOCHE, HABITACION, TEMPORADA, CASA, EUR, CERRADO, RESPALDA_RECEPCION,
+  tokenPlaza, familiaPlaza, caducaNoche, ALOJAMIENTO, PLAZAS, PLAZAS_POR_NOCHE, HABITACION, TEMPORADA, CASA, EUR, CERRADO, RESPALDA_RECEPCION, totalDe,
 } from '../ejemplos/ikisai/reserva-booking.mjs';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
 import { decupla, render } from '../src/pointed.js';
 import { resolver, indicesDe } from '../src/btml.js';
-import { evaluar, consultar } from '../src/bql.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import { ocupantes, arbol, colisiones } from '../src/encaje.js';
 import { descubrir, registrar, cerrado, siguiente, ocupacion, tramoDe, registrosEn, ANUNCIO } from '../src/motor.js';
 import { ejeTemporal } from '../src/tiempo.js';
@@ -128,26 +128,28 @@ test('ejemplo Ikisai: una reserva de alojamiento recorre el eje entero (saldos, 
   assert.deepEqual([eje.saldo('recepcion', 'T:minuto'), eje.saldo('huesped', 'T:minuto')], [0, 0]);
   // Recepción: su alta (1, B1), «atiende» (1) y su respaldo (1). Ya no autoriza nada.
   assert.equal(consumido('recepcion'), 1 + 1 + 1);
-  // La huésped: su alta (1), la reserva (12 posiciones), sus noches (2), los dos anuncios (1 cada uno: su payload dice
+  // La huésped: su alta (1), la reserva (13 posiciones: su total 1.3 es una magnitud desplegada, y ya no hay 1.4), sus noches (2), los dos anuncios (1 cada uno: su payload dice
   // para qué; lo anunciado son movimientos) y el pago (1).
   const anuncios = eje.sobre(reserva.id, ANUNCIO);
   assert.equal(anuncios.length, 2);
   assert.equal(consumido('huesped'), 1 + reserva.movimientos[0].cantidad + 2 + anuncios.reduce((s, a) => s + a.movimientos[0].cantidad, 0) + pagada.movimientos[0].cantidad);
-  assert.equal(consumido('huesped'), 19); // encargo 3c-1: la reserva nombra su plantilla en su 5, una posición más
+  assert.equal(consumido('huesped'), 20); // encargo 3c-1: la reserva nombra su plantilla en su 5, una posición más; #113: el total desplegado, una más
   // El hilo es la evidencia: pago → su anuncio → reserva → habitación → alojamiento → génesis.
   assert.deepEqual(eje.hilo(pagada.id).map((x) => x.id), [pagada.id, anuncioPago.id, reserva.id, habitacion.id, alojamiento.id, eje.genesisId]);
   assert.deepEqual(eje.hilo(entrega.id).map((x) => x.autor), [CASA, 'huesped', 'huesped', CASA, CASA, CASA]);
   assert.deepEqual(eje.sobre(alojamiento.id).map((x) => x.id), [atiende.id, habitacion.id, respaldo.id]);
   assert.deepEqual(eje.sobre(habitacion.id).map((x) => x.id), [abierta.id, temporada.id, reserva.id]);
   const texto = render(decupla(reserva));
-  assert.match(texto, /^1 recursos\s+\[5 posiciones\]$/m);
+  assert.match(texto, /^1 recursos\s+\[4 posiciones\]$/m); // #113: sin el 1.4 (componer con el tiempo no tiene equivalente)
   // VG, 7-11 noche: por hojas, la 4 es [['pagar'], ['ocupar']]. Pointed corta duro en 10 (decisión 10.2): la reserva
-  // tiene 13 posiciones con contenido (el criterio es una lista de dos: los de la habitación y la plantilla de cerrado;
-  // y su 5 nombra su plantilla, encargo 3c-1), así que las dos de la 4 y la 5, las últimas por índice, quedan fuera y se avisa.
+  // tiene 14 posiciones con contenido (el criterio es una lista de dos: los de la habitación y la plantilla de cerrado;
+  // su 5 nombra su plantilla, encargo 3c-1; y su total 1.3 es una magnitud desplegada, #113), así que lo que pasa de diez
+  // por índice (un ocupante del 3, las dos de la 4 y la 5) queda fuera y se avisa.
   assert.match(texto, /^2 criterios\s+lista de 2: .* · all announced movements happened$/m);
+  assert.match(texto, /^3 comunicación\s+lista de 1: huesped \(cortada\)$/m);
   assert.match(texto, /^4 fábrica\s+— \(cortada\)$/m);
   assert.match(texto, /^5 estructura\s+— \(cortada\)$/m);
-  assert.match(texto, /^aviso: Pointed corta en su máximo \(10 posiciones\): .*quedan cortadas las 4, 5\. Trae 10 de 13 posiciones\.$/m);
+  assert.match(texto, /^aviso: Pointed corta en su máximo \(10 posiciones\): .*quedan cortadas las 3, 4, 5\. Trae 10 de 14 posiciones\.$/m);
   assert.deepEqual(reserva.payload[4], [['pagar'], ['ocupar']]); // leer no muta el registro
 });
 
@@ -197,7 +199,7 @@ test('la disponibilidad: sus plazas son posiciones 1.k con nombre, precio y capa
   await assert.rejects(eje.escribir({ autor: 'huesped', sobre: habitacion.id, t: T, movimientos: [minutos('huesped'), falsa], payload: 'plazas' }), /(E is minted by and to|R is minted by) its issuer/);
 });
 
-test('las referencias no copian: plaza y precio son un solo nodo, y las fórmulas BQL calculan el total y lo componen con el tiempo', async () => {
+test('las referencias no copian: plaza y precio son un solo nodo, y la fórmula (BQL mínimo) calcula el total', async () => {
   const { eje, habitacion, reserva, pago: pagada } = await ejemploReserva();
   const laPlaza = reserva.payload[1][0][0]; // VG, 7-11 noche: por hojas: la 1.0 es una lista de uno, la referencia
   const precio = reserva.payload[1][2][0]; // 1.2 entre corchetes: la lista de un ocupante, la referencia
@@ -206,19 +208,18 @@ test('las referencias no copian: plaza y precio son un solo nodo, y las fórmula
   assert.deepEqual(resolver(eje.obtener(precio.ref).payload, precio.dir), ['EUR 55']);
   assert.deepEqual(indicesDe(laPlaza.dir), [1, 1]);
   assert.deepEqual(indicesDe(precio.dir), [1, 1, 1]); // el precio cuelga de la plaza
-  // 1.3: precio por noche (por referencia) × noches; LOCAL lee la décupla anidada a su profundidad.
-  const total = evaluar(eje, reserva.id, [1, 3]);
-  assert.equal(total.estado, 'RESUELTO');
-  assert.equal(total.texto, '165 EUR');
-  assert.ok(total.dependencias.includes(habitacion.id + ':1110000000'));
-  // 1.4: el total compuesto con el tiempo que ocupa; composición heterogénea, operandos preservados.
-  const conTiempo = evaluar(eje, reserva.id, [1, 4]);
-  assert.equal(conTiempo.texto, '165 EUR + 3 dia');
-  assert.equal(conTiempo.valor.tipo, 'composicion');
+  // 1.3: precio por noche (por referencia: el .1 de lo que alcanza, «EUR 55») × noches, desplegado: la cantidad en
+  // 1.3.1 (la fórmula, it = la reserva) y la unidad en 1.3.2. Componer el total con el tiempo (el 1.4 de antes) no
+  // tiene equivalente en el BQL mínimo (retirada de BQL V0, #113): ya no está.
+  assert.deepEqual(leerPosicion(eje, reserva.id, [1, 2, 1]).valor, [55]); // lo que lee de la habitación, por la referencia
+  const total = totalDe(eje, reserva);
+  assert.deepEqual(total, { cantidad: 165, unidad: 'EUR', texto: '165 EUR' });
+  assert.equal(leerPosicion(eje, reserva.id, [1, 3, 1]).estado, 'RESUELTO');
+  assert.equal(reserva.payload[1].length, 4);
   // Lo que se paga lo anuncia la reserva en su 4.1 con la cantidad de su fórmula 1.3 (encargo 3b; antes lo copiaba la
   // consolidación como fórmula), y el pago mueve exactamente eso: un movimiento anunciado (VG 12-11, decisión 8).
   const [aPagar] = eje.sobre(reserva.id, ANUNCIO).filter((a) => a.payload === 'pagar');
-  assert.deepEqual(aPagar.movimientos.slice(1), [{ token: 'E', emisor: CASA, denominacion: 'EUR', cantidad: total.valor.cantidad, de: 'huesped', a: CASA, estado: 'anunciado' }]);
+  assert.deepEqual(aPagar.movimientos.slice(1), [{ token: 'E', emisor: CASA, denominacion: 'EUR', cantidad: total.cantidad, de: 'huesped', a: CASA, estado: 'anunciado' }]);
   assert.equal(pagada.movimientos[1].cantidad, aPagar.movimientos[1].cantidad);
   assert.equal(pagada.sobre, aPagar.id);
   // Prefijo denso, sin relleno: de 0 a 4 (4 es lo que prepara: pagar y ocupar); ni 5 ni 6.
@@ -267,10 +268,10 @@ test('encaje de la dirección 1 de la reserva: colisiones por ceros, lo alcanzad
   assert.equal(c.find((x) => x.dir === '1000000000').ocupantes.length, 3);
   assert.equal(c.find((x) => x.dir === '2000000000').ocupantes.length, 3); // el elemento, lo que alcanza y la plantilla
   assert.equal(c.find((x) => x.dir === ANUNCIO).ocupantes.length, 3); // 'ocupar' y los dos anuncios
-  // Integración 7-11: con #36 la colisión entera se pide por dirección; por índice, BUSCAR(1) es el camino exacto (solo [1]).
-  assert.equal(consultar(eje, reserva.id, [1], 'CONTAR(BUSCAR("1000000000"))').texto, '3');
-  assert.equal(consultar(eje, reserva.id, [1], 'CONTAR(FILTRAR(BUSCAR("1000000000"), SIGNO() = "exacto"))').texto, '2');
-  assert.equal(consultar(eje, reserva.id, [1], 'CONTAR(BUSCAR(1))').texto, '1');
+  // Integración 7-11: con #36 la colisión entera se pide por dirección; por índice, el camino exacto (solo [1]).
+  assert.equal(ocupantes(eje, reserva.id, [1]).length, 3);
+  assert.equal(ocupantes(eje, reserva.id, [1]).filter((o) => o.signo === 'exacto').length, 2);
+  assert.equal(ocupantes(eje, reserva.id, [1], { exacto: true }).length, 1);
   // Ya no hay consolidación que guarde el encaje de sus fuentes (retirada, mapa §15 [D]): lo que cada parte mueve lo
   // dicen los anuncios: su payload, para qué; sus movimientos anunciados, la serie, la cantidad y de quién a quién.
   assert.deepEqual(eje.sobre(reserva.id, ANUNCIO).map((a) => [a.payload, a.movimientos.slice(1).map((m) => [m.cantidad, m.de, m.a])]), [['ocupar', [[1, CASA, 'huesped'], [1, CASA, 'huesped'], [1, CASA, 'huesped']]], ['pagar', [[165, 'huesped', CASA]]]]);
@@ -459,9 +460,9 @@ test('antes de mover nada: la reserva ha de estar anclada en la plaza que refere
   const escribir = async ({ en = plaza(PLAZAS.individual), refPlaza = plaza(PLAZAS.individual), noches = 3, tramo = [['2026-11-20'], ['2026-11-23']] } = {}) => {
     const t = '2026-11-08T21:' + minuto++ + ':00Z'; // cada reserva a mano es un registro distinto
     const r = await eje.escribir({
-      autor: 'huesped', sobre: habitacion.id, en, t, movimientos: [minutos('huesped', 11)],
+      autor: 'huesped', sobre: habitacion.id, en, t, movimientos: [minutos('huesped', 12)],
       // Forma canónica (VG, 8-11): cada posición de la 1 (y de la 4) entre corchetes.
-      payload: ['Reserva a mano', [[{ ref: habitacion.id, dir: refPlaza }], [noches], [{ ref: habitacion.id, dir: precioDe(indicesDe(refPlaza)[1] ?? 0) }], ['=LOCAL(2) * LOCAL(1)']], ['con desayuno'], ['huesped', 'recepcion'], [['pagar'], ['ocupar']]],
+      payload: ['Reserva a mano', [[{ ref: habitacion.id, dir: refPlaza }], [noches], [{ ref: habitacion.id, dir: precioDe(indicesDe(refPlaza)[1] ?? 0) }], [['total'], ['=(payload(it)).1.2.1 * (payload(it)).1.1'], ['EUR']]], ['con desayuno'], ['huesped', 'recepcion'], [['pagar'], ['ocupar']]],
     });
     if (tramo) await eje.escribir({ autor: 'huesped', sobre: r.id, en: SIETE, t, movimientos: [minutos('huesped', 2)], payload: tramo });
     // Un movimiento anunciado en su 4.1 (el pago): sin ninguno, su criterio de cerrado se cumpliría de vacío y
@@ -500,8 +501,8 @@ test('EJEMPLO-1: confirmar una reserva sin anuncios comprueba sus noches antes d
   const { eje, habitacion } = await ejemploReserva({ confirmar: false });
   const t = '2026-11-08T21:00:00Z';
   const r = await eje.escribir({
-    autor: 'huesped', sobre: habitacion.id, en: plaza(PLAZAS.litera), t, movimientos: [minutos('huesped', 11)],
-    payload: ['Reserva a mano', [[{ ref: habitacion.id, dir: plaza(PLAZAS.individual) }], [3], [{ ref: habitacion.id, dir: precioDe(PLAZAS.individual) }], ['=LOCAL(2) * LOCAL(1)']], ['con desayuno'], ['huesped', 'recepcion'], [['pagar'], ['ocupar']]],
+    autor: 'huesped', sobre: habitacion.id, en: plaza(PLAZAS.litera), t, movimientos: [minutos('huesped', 12)],
+    payload: ['Reserva a mano', [[{ ref: habitacion.id, dir: plaza(PLAZAS.individual) }], [3], [{ ref: habitacion.id, dir: precioDe(PLAZAS.individual) }], [['total'], ['=(payload(it)).1.2.1 * (payload(it)).1.1'], ['EUR']]], ['con desayuno'], ['huesped', 'recepcion'], [['pagar'], ['ocupar']]],
   });
   await assert.rejects(confirmarReserva(eje, r), /no está anclada en la plaza que referencia/);
 });
@@ -594,7 +595,7 @@ test('con claves, cada identidad firma lo suyo y el eje se reconstruye verifican
   // El P de recepción sobre su registro «atiende», comprometido aún con las plazas (1 + 2).
   assert.equal(otro.bloqueado('recepcion', 'P:' + atiende.id + '/recepcion'), 3);
   assert.equal(cerrado(otro, reserva.id).cerrado, true);
-  assert.equal(evaluar(otro, reserva.id, [1, 3]).texto, '165 EUR');
+  assert.equal(totalDe(otro, reserva).texto, '165 EUR');
   assert.deepEqual(ocupacion(otro, reserva.id).map((o) => o.cabe), [true]);
 });
 

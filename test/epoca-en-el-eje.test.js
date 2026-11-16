@@ -164,7 +164,7 @@ test('el eje de ejemplo de StateArk (génesis con la SIP 0 viva, que hereda de l
   assert.ok(eje.epoca() === EPOCA_0_BTML || EPOCAS_POR_ID.get(eje.epoca().hereda) === EPOCA_0_BTML, 'es la 0 o una que hereda de ella');
 });
 
-test('la SIP 0 de StateArk (solo lectura): hereda de la 0, se resuelve, y sus 7 plantillas del 9.6 y sus 4 estaciones del 4.3 se suman a las de la 0', { skip: !existsSync('C:/Users/acer/Documents/InTheState/stateark/sip/sip-0.btml.json') && 'sin el repositorio de StateArk' }, () => {
+test('la SIP 0 de StateArk (solo lectura): hereda de la 0, se resuelve, y sus plantillas del 9.6 y sus 4 estaciones del 4.3 se suman a las de la 0', { skip: !existsSync('C:/Users/acer/Documents/InTheState/stateark/sip/sip-0.btml.json') && 'sin el repositorio de StateArk' }, () => {
   const D = 'C:/Users/acer/Documents/InTheState/stateark/sip/';
   const leer = (c) => readdirSync(D + c).filter((f) => f.endsWith('.json')).sort().map((f) => JSON.parse(readFileSync(D + c + '/' + f, 'utf8')));
   const raiz = JSON.parse(readFileSync(D + 'sip-0.btml.json', 'utf8'));
@@ -173,7 +173,8 @@ test('la SIP 0 de StateArk (solo lectura): hereda de la 0, se resuelve, y sus 7 
   assert.equal(sip.id, idDeRegistro(raiz));
   assert.equal(sip.nombre, 'SIP 0');
   assert.equal(EPOCAS_POR_ID.get(sip.hereda), EPOCA_0_BTML);
-  assert.equal(plantillas.length, 7);
+  // El repositorio de StateArk es de otro Core y crece (la orden de pago entró el 16-11): se pide un mínimo, no un número fijo.
+  assert.ok(plantillas.length >= 7);
   const propias = plantillas.map((p) => p[0][0]);
   assert.equal(sip.transacciones.length, EPOCA_0_BTML.transacciones.length + propias.filter((n) => !nombres(EPOCA_0_BTML).includes(n)).length);
   assert.ok(propias.every((n) => nombres(sip).includes(n)));

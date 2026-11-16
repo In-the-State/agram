@@ -105,7 +105,7 @@ test('sobre(id, en) por el índice de direcciones da lo mismo que filtrar los hi
   assert.deepEqual(escritos, eje.sobre(g).filter((h) => h.en === '1000000000').map((h) => h.id));
 });
 
-test('conPrefijo da lo mismo que filtrar eje.orden, y REF, «@id» y Scened resuelven igual', async () => {
+test('conPrefijo da lo mismo que filtrar eje.orden, y «@id» y Scened resuelven igual', async () => {
   const r = azar(23);
   const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: ['g', 1], t: T0 });
   for (let k = 0; k < 300; k++) {
@@ -119,26 +119,23 @@ test('conPrefijo da lo mismo que filtrar eje.orden, y REF, «@id» y Scened resu
   const uno = eje.orden[5].slice(0, 6);
   eje.conPrefijo(uno).pop();
   assert.deepEqual(eje.conPrefijo(uno), filtrar(uno));
-  // BQL REF: único → su valor; varios → ERROR ambigua; ninguno → PENDIENTE. Lo mismo que antes, sea cual sea el largo.
-  const { consultar } = await import('../src/bql.js');
+  // «@prefijo» al escribir (escritura.item): único → su referencia; varios → ambigua; ninguno → desconocida. (El REF
+  // por prefijo del BQL V0 se retiró con él, #113: una fórmula nombra un registro por su id entero.)
   const { item } = await import('../src/escritura.js');
   for (const p of prefijos.filter((x) => /^[0-9a-f]+$/.test(x))) {
     const ids = filtrar(p);
-    const res = consultar(eje, eje.genesisId, [1], 'REF("' + p + '")');
-    if (ids.length === 1) assert.equal(res.estado, 'RESUELTO', p);
-    else if (ids.length > 1) assert.equal(res.texto, 'ERROR: referencia ambigua: ' + p);
-    else assert.equal(res.texto, 'PENDIENTE: referencia ausente del eje: ' + p);
     if (p.length >= 4) {
       if (ids.length === 1) assert.deepEqual(item(eje, '@' + p), { ref: ids[0] });
       else assert.throws(() => item(eje, '@' + p), ids.length ? /ambigua/ : /desconocida/);
     }
   }
-  // Scened lee los REF de las fórmulas con el mismo índice: la escena es la misma que recorriendo eje.orden.
+  // Scened lee los registros que nombran las fórmulas (su id entero, bqlm.registrosDeFormula) sin el índice de
+  // prefijos: la escena es la misma con él y sin él. Uno de cada nueve nombra un id que no está.
   const { escena } = await import('../src/scened.js');
-  const hex = prefijos.filter((x) => /^[0-9a-f]+$/.test(x));
+  const nombrados = eje.orden.filter((_, i) => i % 3 === 0);
   const notas = [];
-  for (let i = 0; i < hex.length; i += 9) {
-    const formulas = hex.slice(i, i + 9).map((p, j) => '=REF("' + (j % 2 ? '@' + p.toUpperCase() : p) + '")');
+  for (let i = 0; i < nombrados.length; i += 9) {
+    const formulas = nombrados.slice(i, i + 9).map((id, j) => '=first (payload("' + (j === 8 ? 'f'.repeat(64) : id) + '")).0');
     notas.push((await eje.escribir({ autor: 'r', sobre: eje.genesisId, t: T0, movimientos: [gastaT('r')], payload: ['refs', ...formulas] })).id);
   }
   const sinIndice = new Proxy(eje, { get: (t, k) => (k === 'conPrefijo' ? undefined : typeof t[k] === 'function' ? t[k].bind(t) : t[k]) });

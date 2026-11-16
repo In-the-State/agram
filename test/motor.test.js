@@ -2,7 +2,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ejemploCompra, ejemploCuenta } from '../ejemplos/ikisai/compra-food.mjs';
 import { descubrir, consolidar, registrar, cerrado, siguiente, propuestas, FABRICA, ANUNCIO, capacidadDe, tramoDe, ocupacion, registrosEn, CRITERIO_CAPACIDAD } from '../src/motor.js';
-import { evaluar } from '../src/bql.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import { Eje } from '../src/eje.js';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
@@ -111,7 +111,7 @@ test('consolidar no ejecuta: no mueve E, solo el T de escribir', async () => {
   assert.equal(eje.saldo('huesped', 'E:casa/EUR'), antes);
   assert.equal(c.movimientos.length, 1);
   assert.equal(c.movimientos[0].token, 'T');
-  assert.equal(evaluar(eje, c.id, [1]).texto, 'dos menús');
+  assert.equal(leerPosicion(eje, c.id, [1]).texto, 'dos menús');
 });
 
 test('capacidad: una posición declara cuántos ocupantes pueden ser válidos a la vez; el contador solo informa y la fábrica no lo consulta', async () => {

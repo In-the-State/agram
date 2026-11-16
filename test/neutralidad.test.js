@@ -32,7 +32,7 @@ import * as motor from '../src/motor.js';
 import { ocupantes } from '../src/encaje.js';
 import * as tiempo from '../src/tiempo.js';
 import { confluir } from '../src/bases.js';
-import { evaluar } from '../src/bql.js';
+import { ocupantesElegibles } from '../src/elegibles.js';
 import { direccion } from '../src/btml.js';
 import { generarClaves } from '../src/autoridad.js';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
@@ -721,49 +721,50 @@ test('NEU-06: lo que el 8 compara de un pago no cambia al repartirlo entre más 
 });
 
 // NEU-07 ya no se salta: R8, elegibilidad antes que límites (src/elegibles.js; mapa §12 [D] «Quién ocupa una
-// posición ajena»: elegible por defecto = el autor y quien aparece en su posición 3). BUSCAR filtra los elegibles y
-// después aplica el límite; el ruido ajeno solo se cuenta (noElegibles).
-test('NEU-07: escritos ajenos que el dueño no considera elegibles no le bloquean su BUSCAR', async () => {
+// posición ajena»: elegible por defecto = el autor y quien aparece en su posición 3). elegibles.ocupantesElegibles filtra
+// los elegibles (lo que leen motor.descubrir y las vistas); el ruido ajeno solo se cuenta (noElegibles). Con el BQL
+// mínimo, el criterio del dueño que busca lee él mismo quién es elegible (it2.3 frente al 3 de X).
+test('NEU-07: escritos ajenos que el dueño no considera elegibles no le tapan los candidatos', async () => {
   const buscar = async (ruido) => {
     const ids = nombres('S', Math.max(ruido, 1));
     const m = await mundo(ids);
     // El mercado del dueño: su posición 2 (criterio) busca entre los candidatos de su posición 1.
-    const Z = await m.eje.escribir({ autor: 'C', sobre: m.X, t: T0, movimientos: [minuto('C')], payload: ['mercado', 'ofertas', '=BUSCAR(1)'] });
+    const Z = await m.eje.escribir({ autor: 'C', sobre: m.X, t: T0, movimientos: [minuto('C')], payload: ['mercado', 'ofertas', '=first (down it where last it2.6.5 = "1000000000" and first it2.3 = first it.3)'] });
     await m.eje.escribir({ autor: 'C', sobre: Z.id, en: direccion([1]), t: T0, movimientos: [minuto('C')], payload: 'oferta del dueño' });
     for (let i = 0; i < ruido; i++) await m.eje.escribir({ autor: ids[i], sobre: Z.id, en: direccion([1]), t: T0, movimientos: [minuto(ids[i])], payload: 'ruido ' + i });
-    const r = evaluar(m.eje, Z.id, [2], { limites: { candidatos: 3 } });
-    return { estado: r.estado, candidatos: r.valor?.items.map((i) => [i.origen, i.evento]), fuera: r.valor?.noElegibles ?? 0 };
+    const r = ocupantesElegibles(m.eje, Z.id, [1], { exacto: true });
+    const propuesta = motor.proponer(m.eje, Z.id, { posiciones: [2] }).elecciones[2]?.candidato?.evento;
+    return { candidatos: r.lista.map((o) => [o.origen, o.evento]), fuera: r.noElegibles, propuesta: m.eje.obtener(propuesta)?.payload };
   };
   const [con, sin] = [await buscar(4), await buscar(0)];
-  assert.deepEqual([con.estado, con.candidatos], [sin.estado, sin.candidatos]);
-  assert.equal(con.estado, 'RESUELTO');
+  assert.deepEqual(con.candidatos, sin.candidatos);
+  assert.deepEqual([con.propuesta, sin.propuesta], ['oferta del dueño', 'oferta del dueño']);
   assert.deepEqual([con.fuera, sin.fuera], [4, 0]); // el recuento informa y no puntúa
 });
 
-test('propiedad (R8): N identidades falsas con ruido en la posición del dueño no cambian lo que su BUSCAR devuelve ni su orden', async () => {
+test('propiedad (R8): N identidades falsas con ruido en la posición del dueño no cambian sus candidatos, su orden ni lo que propone', async () => {
   const g = prng(SEMILLA + 7);
   for (let caso = 0; caso < CASOS / 3; caso++) {
     const guion = Array.from({ length: g.int(1, 5) }, (_, i) => ({ autor: g.pick(['C', 'A']), texto: 'oferta ' + i, dir: g.pick([[1], [1], [1, 2]]) }));
     const falsas = nombres('F', g.int(1, 8));
     const ruido = Array.from({ length: g.int(1, 12) }, (_, i) => ({ autor: g.pick(falsas), texto: 'ruido ' + i, dir: g.pick([[1], [1, 2], [1, 0]]), antes: g.int(0, guion.length) }));
-    const limite = guion.length + 1; // cabe lo del dueño y lo de A; con el ruido delante, hoy no cabría
     const correr = async (conRuido) => {
       // A aparece en el 3 del mercado: es elegible. Las falsas solo existen en el mundo con ruido.
       const m = await mundo(conRuido ? ['A', ...falsas] : ['A']);
-      const Z = await m.eje.escribir({ autor: 'C', sobre: m.X, t: T0, movimientos: [minuto('C')], payload: ['mercado', 'ofertas', '=BUSCAR("1000000000")', 'A'] });
+      const Z = await m.eje.escribir({ autor: 'C', sobre: m.X, t: T0, movimientos: [minuto('C')], payload: ['mercado', 'ofertas', '=first (down it where first it2.3 = first it.3 or first it2.3 in (payload(it)).3)', 'A'] });
       for (let k = 0; k <= guion.length; k++) {
         if (conRuido) for (const x of ruido.filter((r) => r.antes === k)) await m.eje.escribir({ autor: x.autor, sobre: Z.id, en: direccion(x.dir), t: T0, movimientos: [minuto(x.autor)], payload: x.texto });
         const x = guion[k];
         if (x) await m.eje.escribir({ autor: x.autor, sobre: Z.id, en: direccion(x.dir), t: T0, movimientos: [minuto(x.autor)], payload: x.texto });
       }
-      const r = evaluar(m.eje, Z.id, [2], { limites: { candidatos: limite } });
+      const r = ocupantesElegibles(m.eje, Z.id, [1]);
       const propuesta = motor.proponer(m.eje, Z.id, { posiciones: [2] }).elecciones[2]?.candidato.evento;
-      return { estado: r.estado, orden: r.valor?.items.map((i) => [i.origen, i.evento, i.autor ?? null]), propuesta };
+      return { orden: r.lista.map((o) => [o.origen, o.evento, o.autor ?? null]), propuesta };
     };
     const [sin, con] = [await correr(false), await correr(true)];
     // El mercado, sus escritos y los de A tienen el mismo id en los dos mundos: cuelgan de X, que no depende de las altas.
     assert.deepEqual(con, sin, 'caso ' + caso);
-    assert.equal(sin.estado, 'RESUELTO', 'caso ' + caso);
+    assert.ok(sin.propuesta, 'caso ' + caso + ': propone lo primero del dueño o de A');
   }
 });
 

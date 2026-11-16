@@ -50,7 +50,8 @@ test('los cuatro pasos sobre los ejemplos: la compra, el menú, la cuenta, la re
   assert.equal(p.cuota.k, 9);
   assert.deepEqual(pasos(eje, menu.id).escala.k, 2, 'el menú quema horas');
   assert.deepEqual(pasos(eje, cuenta.id).escala, { pv: 7, k: 1, de: 10 }, 'la cuenta quema minutos');
-  assert.equal(pasos(eje, cuenta.id).madurez.k, 4);
+  // Su 1 es una magnitud desplegada (retirada de BQL V0, #113): más posiciones y una profundidad más, más madura.
+  assert.equal(pasos(eje, cuenta.id).madurez.k, 6);
   // La raíz: sin padre no hay cuota, y el génesis no quema T.
   const g = pasos(eje, eje.genesisId);
   assert.deepEqual([g.cuota.k, g.escala.k, g.ciclo], [null, null, { pv: 4, k: 0, de: 0 }]);

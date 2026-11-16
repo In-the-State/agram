@@ -111,8 +111,12 @@ export async function ejemploCompra({ claves = {} } = {}) {
 
 /**
  * La cuenta: cocina la escribe sobre la compra, en recursos (posición 1).
- * Primera fórmula BQL real en un slot: lee el precio de la compra por REF,
- * le suma la propina, y la posición siguiente compone euros con minutos.
+ * Una fórmula en el payload (BQL mínimo, docs/BQLM.md §14): lee lo escrito en
+ * la compra, su precio (1.2: «EUR 12», cuya cantidad es su .1), y le suma la
+ * propina. Solo números: la magnitud calculada va desplegada, la cantidad en
+ * 1.1 (la fórmula) y la unidad en 1.2 (escrita); su 0 la nombra. El tiempo de
+ * servicio (2) es un terminal: componer euros con minutos no tiene
+ * equivalente en el BQL mínimo.
  */
 export async function ejemploCuenta(eje, compra, privadaCocina) {
   return escribirPagando(eje, {
@@ -123,8 +127,8 @@ export async function ejemploCuenta(eje, compra, privadaCocina) {
     movimientos: [pagaElCoste('cocina')],
     payload: [
       'Cuenta del menú',
-      '=REF("' + compra.id.slice(0, 8) + '", "1200000000") + 2 EUR', // 1 recursos: precio de la compra + propina
-      '=LOCAL(1) + 15 min', // 2 criterios: lo que cuesta en euros y en tiempo de servicio
+      [['precio con propina'], ['=(payload("' + compra.id + '")).1.2.1 + 2'], ['EUR']], // 1 recursos: precio de la compra + propina, desplegado
+      '15 min', // 2 criterios: el tiempo de servicio
       '==no es fórmula', // 3 comunicación: texto escapado
     ],
   }, privadaCocina);
@@ -169,8 +173,8 @@ export async function ejemploComprasVecinas(eje, { menu }, privadas = {}) {
   }, priv('huesped2'));
   const vecinas = [];
   const payloads = [
-    ['Compra con fórmula pendiente', '=LOCAL(5)', criterios], // 1: fórmula que espera la posición 5 (estructura)
-    ['Compra con fórmula resuelta', [['EUR 10'], ['=LOCAL(0, 0) + 1 EUR']], criterios], // 1.1: 11 EUR, leyendo el ocupante 0 de la 1.0
+    ['Compra con fórmula pendiente', '=(payload(it)).5 + 0', criterios], // 1: fórmula que espera un valor en la posición 5 (estructura)
+    ['Compra con fórmula resuelta', [['EUR 10'], [['uno más'], ['=(payload(it)).1.0.1 + 1'], ['EUR']]], criterios], // 1.1: 11 EUR desplegado, leyendo la cantidad de la 1.0
     ['Compra de mediodía', recursos, { ref: menu.id, dir: '2000000000' }], // 2: solo por referencia, sin array propio
     ['Compra para llevar', recursos, criterios, ['huesped2', 'cocina']],
     ['Compra del grupo', recursos, criterios, ['huesped', 'cocina'], ['pagar']],

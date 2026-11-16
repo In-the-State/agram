@@ -23,7 +23,9 @@ import { Eje } from '../src/eje.js';
 import { crearEvento, validarForma, RAIZ } from '../src/evento.js';
 import { validarPayload, esDireccion, esTerminal, direccion, indicesDe, resolver, ARIDAD, esLista, esDecupla, dentroDeLista } from '../src/btml.js';
 import { ocupantes, seguir, arbol, colisiones, caminosDe, vector, acuerdo, signo, ordenarPorEncaje } from '../src/encaje.js';
-import { evaluar, consultar } from '../src/bql.js';
+// Las fórmulas son BQL mínimo (retirada de BQL V0, #113): it es el registro que la lleva; lee lo escrito.
+import { leerFormula, Presupuesto } from '../src/bqlm.js';
+import { leerPosicion, contextoDeLectura } from '../src/contexto-eje.js';
 // Encargo 3b (mapa §15 [D] «Una sola operación: registrar»): autorizar y estadoDe se retiraron; el estado de una
 // propuesta es la lectura motor.cerrado.
 import { descubrir, consolidar, cerrado, FABRICA } from '../src/motor.js';
@@ -74,6 +76,11 @@ async function conAusente(eje, sobre) {
   const vista = new Proxy(eje, { get: (t, p) => (p === 'obtener' ? (id) => (id === a.id ? undefined : t.obtener(id)) : typeof t[p] === 'function' ? t[p].bind(t) : t[p]) });
   return { vista, ausente: a.id };
 }
+
+/** Lee la posición `camino` del registro `id` (la fórmula, o lo escrito) con el BQL mínimo. */
+const lee = (eje, id, camino) => leerPosicion(eje, id, camino);
+/** Una fórmula del BQL mínimo con it = el registro `id`, leída sobre el eje. */
+const formula = (eje, id, f) => leerFormula(f, { k: 'reg', id }, contextoDeLectura(eje), { presupuesto: new Presupuesto() });
 
 /** Escribe un registro sobre otro, opcionalmente anclado en una dirección. */
 const escribe = (eje, sobre, payload, en, autor = 'raiz', t = T0) =>
@@ -159,9 +166,9 @@ test('BTML-03 el id del evento no es su dirección; una parte concreta se nombra
   // La misma dirección interna nombra partes distintas en cada evento: hacen falta los dos.
   assert.deepEqual(resolver(a.payload, '1100000000'), ['a uno']);
   assert.deepEqual(resolver(b.payload, '1100000000'), ['b uno']);
-  const lector = await escribe(eje, id, ['L', { ref: a.id }, { ref: a.id, dir: '1100000000' }, '=LOCAL(1)', '=LOCAL(2)']);
-  assert.equal(evaluar(eje, lector.id, [3]).valor.tipo, 'array'); // solo el id: el evento entero
-  assert.equal(evaluar(eje, lector.id, [4]).texto, 'a uno'); // id + dirección: la parte
+  const lector = await escribe(eje, id, ['L', { ref: a.id }, { ref: a.id, dir: '1100000000' }, '=(payload(it)).1', '=(payload(it)).2']);
+  assert.deepEqual(lee(eje, lector.id, [3]).valor.map((o) => [o.k, o.id]), [['reg', a.id]]); // solo el id: el evento entero
+  assert.equal(lee(eje, lector.id, [4]).texto, 'a uno'); // id + dirección: la parte
 });
 
 test('BTML-04 la época no es atributo del dato: el evento no la lleva y se interpreta bajo la época elegida desde fuera', async () => {
@@ -267,11 +274,11 @@ test('BTML-07 forma, interpretación, firma y autorización son comprobaciones d
   assert.deepEqual(validarForma(huerfano), []);
   await assert.rejects(eje.anadir(huerfano), /every record hangs on a record of the ledger/);
   // Firma no es veracidad: lo firmado entra tal cual; interpretarlo es otra comprobación.
-  const dicho = await eje.escribir({ autor: 'raiz', sobre: g, t: T0, movimientos: [gastaT('raiz')], payload: ['Afirmo', '2 + 2 = 5', '=2 + 2', '=LOCAL(9)'] }, raiz.privada);
+  const dicho = await eje.escribir({ autor: 'raiz', sobre: g, t: T0, movimientos: [gastaT('raiz')], payload: ['Afirmo', '2 + 2 = 5', '=2 + 2', '=(payload(it)).9 + 0'] }, raiz.privada);
   assert.equal(await verificar(dicho, raiz.publica), true);
-  assert.equal(evaluar(eje, dicho.id, [1]).texto, '2 + 2 = 5');
-  assert.equal(evaluar(eje, dicho.id, [2]).texto, '4');
-  assert.equal(evaluar(eje, dicho.id, [3]).estado, 'PENDIENTE'); // bien formado y firmado, interpretación insuficiente
+  assert.equal(lee(eje, dicho.id, [1]).texto, '2 + 2 = 5');
+  assert.equal(lee(eje, dicho.id, [2]).texto, '4');
+  assert.equal(lee(eje, dicho.id, [3]).estado, 'PENDIENTE'); // bien formado y firmado, interpretación insuficiente
   // Ni forma ni firma autorizan: una «autorización» firmada no cambia el estado. Encargo 3b (mapa §15 [D]): el estado
   // es la lectura de cerrado de la propuesta (motor.cerrado), que una fase escrita a mano no mueve.
   // Revisión de seguridad (encargo 3b): ana no escribe sobre el alta de la raíz (el génesis) sin pagar su atención;
@@ -431,12 +438,12 @@ test('BTML-18 las referencias no copian: lo referido se lee al resolver, nunca a
   // Se prepara A sin añadirlo: su id ya existe porque es el hash de su cuerpo.
   const a = await crearEvento({ autor: 'raiz', sobre: id, t: T0, movimientos: [gastaT('raiz', 2)], payload: ['A', 'contenido de A'] }); // dos posiciones, dos minutos (crearEvento no calcula el coste)
   // C1 (VG, 10-11): mientras A no está, B no entra (con red, se resolvería antes de aceptar).
-  await assert.rejects(escribe(eje, id, ['B', { ref: a.id, dir: '1000000000' }, '=LOCAL(1)']), /referencia a un evento que no está en el eje/);
+  await assert.rejects(escribe(eje, id, ['B', { ref: a.id, dir: '1000000000' }, '=(payload(it)).1']), /referencia a un evento que no está en el eje/);
   await eje.anadir(a);
-  const b = await escribe(eje, id, ['B', { ref: a.id, dir: '1000000000' }, '=LOCAL(1)']);
+  const b = await escribe(eje, id, ['B', { ref: a.id, dir: '1000000000' }, '=(payload(it)).1']);
   assert.deepEqual(b.payload[1], { ref: a.id, dir: '1000000000' }); // se guarda la referencia, no el contenido
   assert.equal(JSON.stringify(b).includes('contenido de A'), false);
-  assert.equal(evaluar(eje, b.id, [2]).texto, 'contenido de A'); // al resolver
+  assert.equal(lee(eje, b.id, [2]).texto, 'contenido de A'); // al resolver
   assert.equal(ocupantes(eje, b.id, [1]).find((o) => o.origen === 'referencia').contenido, 'contenido de A');
 });
 
@@ -450,32 +457,34 @@ test('BTML-19 navegar referencias no consume profundidad BTML: el límite de die
   assert.equal(r.contenido, 'tesoro');
   assert.equal(r.procedencia.length, 8);
   assert.ok(r.procedencia.every((p) => esDireccion(p.split(':')[1])));
-  const lector = await escribe(eje, id, ['Lector', '=REF("' + anterior.id + '", "1100000000")']);
-  assert.equal(evaluar(eje, lector.id, [1]).texto, 'tesoro');
+  const lector = await escribe(eje, id, ['Lector', '=(payload("' + anterior.id + '")).1.1']);
+  assert.equal(lee(eje, lector.id, [1]).texto, 'tesoro');
   // Un presupuesto (no la profundidad) limita el recorrido.
   for (let k = 0; k < 20; k++) anterior = await escribe(eje, id, ['Más ' + k, [['nivel'], [{ ref: anterior.id, dir: '1100000000' }]]]);
   assert.equal(seguir(eje, { ref: anterior.id, dir: '1100000000' }).rota, true);
 });
 
 test('BTML-19b los permisos de lectura limitan el recorrido de referencias',
-  { skip: 'BTML-19: en el encaje no hay permisos de lectura: seguir() recorre las referencias por todo el eje que tiene el observador (ver BTML-65b). Solo BQL limita el recorrido: desde la PR #36, integrada, pregunta al gancho opcional puedeLeer por cada salto de la cadena de REF y da PENDIENTE DE AUTORIZACIÓN (O-12b, O-12c); el gancho lo pasa quien llama y el modelo de permisos es de AARPIA (mapa §12)' },
+  { skip: 'BTML-19: en el encaje no hay permisos de lectura: seguir() recorre las referencias por todo el eje que tiene el observador (ver BTML-65b). Las fórmulas (BQL mínimo) leen sobre la vista que recibe quien las lee: lo que la vista no trae falta (PENDIENTE); el gancho puedeLeer se retiró con el BQL V0 (#113) y el modelo de permisos es de AARPIA (mapa §12)' },
   sinForma('BTML-19'));
 
-test('BTML-20 contexto ausente → PENDIENTE; tipo imposible → INCOMPATIBLE; ciclo irresoluble → ERROR', async () => {
-  const { eje, id } = await ejeCon(['Casa', 'texto', '=LOCAL(9)', '="a" + 1', '=LOCAL(4)', '=LOCAL(3)']);
-  assert.equal(evaluar(eje, id, [2]).estado, 'PENDIENTE');
-  assert.equal(evaluar(eje, id, [3]).estado, 'INCOMPATIBLE');
-  assert.equal(evaluar(eje, id, [4]).estado, 'ERROR');
-  assert.match(evaluar(eje, id, [4]).motivo, /ciclo/);
+// Retirada de BQL V0 (#113): tres estados; INCOMPATIBLE se fue con el V0 (un tipo que no opera es ERROR) y una fórmula
+// lee lo escrito, sin encadenar: la que lee otra fórmula, o a sí misma, ve su texto y no hay ciclo de valores.
+test('BTML-20 contexto ausente → PENDIENTE; tipo imposible → ERROR; sin encadenar no hay ciclo: se ve el texto', async () => {
+  const { eje, id } = await ejeCon(['Casa', 'texto', '=(payload(it)).9 + 0', '="a" + 1', '=(payload(it)).5', '=(payload(it)).4']);
+  assert.equal(lee(eje, id, [2]).estado, 'PENDIENTE');
+  assert.equal(lee(eje, id, [3]).estado, 'ERROR');
+  assert.equal(lee(eje, id, [4]).texto, '=(payload(it)).4');
+  assert.equal(lee(eje, id, [5]).texto, '=(payload(it)).5');
 });
 
 test('BTML-20b en el encaje, una referencia a un evento ausente es PENDIENTE (con su motivo), no ERROR', async () => {
   const { eje, id } = await ejeCon(['Casa']);
   // C1 (VG, 10-11): en un eje local, la referencia ausente se rechaza al entrar.
-  await assert.rejects(escribe(eje, id, ['B', { ref: ID_INEXISTENTE }, '=LOCAL(1)']), /referencia a un evento que no está en el eje: ffffffff \(mientras el eje es local; con red, se resuelve antes de aceptar\)/);
+  await assert.rejects(escribe(eje, id, ['B', { ref: ID_INEXISTENTE }, '=(payload(it)).1']), /referencia a un evento que no está en el eje: ffffffff \(mientras el eje es local; con red, se resuelve antes de aceptar\)/);
   // Leída en una réplica a la que el referido aún no ha llegado: PENDIENTE, con su motivo.
   const { vista, ausente } = await conAusente(eje, id);
-  const b = await escribe(eje, id, ['B', { ref: ausente }, '=LOCAL(1)']);
+  const b = await escribe(eje, id, ['B', { ref: ausente }, '=(payload(it)).1']);
   const rota = ocupantes(vista, b.id, [1]).find((o) => o.origen === 'referencia');
   assert.equal(rota.estado, 'PENDIENTE');
   assert.match(rota.motivo, /ausente/);
@@ -487,26 +496,29 @@ test('BTML-20b en el encaje, una referencia a un evento ausente es PENDIENTE (co
 
 test('BTML-20c en BQL, una referencia a un evento ausente es PENDIENTE, no ERROR', async () => {
   const { eje, id } = await ejeCon(['Casa']);
-  assert.equal(consultar(eje, id, [0], 'REF("' + ID_INEXISTENTE + '")').estado, 'PENDIENTE');
+  // El id de un registro que no está (64 hex) se mira antes de evaluar: PENDIENTE, con el texto de una referencia ausente.
+  const r = formula(eje, id, '=payload("' + ID_INEXISTENTE + '")');
+  assert.deepEqual([r.estado, r.motivo], ['PENDIENTE', 'referencia a un evento ausente del eje: ffffffff']);
   // Como fórmula (un texto) la referencia ausente sí entra (C1 mira las referencias del payload), y queda PENDIENTE.
-  const c = await escribe(eje, id, ['C', '=REF("' + ID_INEXISTENTE + '")']);
-  assert.equal(evaluar(eje, c.id, [1]).estado, 'PENDIENTE');
+  const c = await escribe(eje, id, ['C', '=(payload("' + ID_INEXISTENTE + '")).1']);
+  assert.equal(lee(eje, c.id, [1]).estado, 'PENDIENTE');
   const { vista, ausente } = await conAusente(eje, id);
-  const b = await escribe(eje, id, ['B', { ref: ausente }, '=LOCAL(1)']);
-  assert.equal(evaluar(vista, b.id, [2]).estado, 'PENDIENTE');
+  const b = await escribe(eje, id, ['B', { ref: ausente }, '=(payload(it)).1']);
+  assert.equal(lee(vista, b.id, [2]).estado, 'PENDIENTE');
 });
 
 test('BTML-23 la yuxtaposición de referencias no significa por sí sola suma, concatenación ni traducción', async () => {
   const { eje, id } = await ejeCon(['Casa']);
   const a = await escribe(eje, id, 23);
   const b = await escribe(eje, id, 'euros');
-  const c = await escribe(eje, id, ['C', { ref: a.id }, { ref: b.id }, '=LOCAL(1)', '=LOCAL(2)', '=LOCAL(1) + LOCAL(2)']);
-  assert.equal(evaluar(eje, c.id, [3]).texto, '23'); // cada una se lee por separado
-  assert.equal(evaluar(eje, c.id, [4]).texto, 'euros');
-  assert.equal(evaluar(eje, c.id, [5]).estado, 'INCOMPATIBLE'); // ni «23 euros» ni suma
-  const todo = consultar(eje, c.id, [0], 'REF("' + c.id + '")');
-  assert.equal(todo.valor.tipo, 'array'); // el registro sigue siendo dos referencias, no una lectura combinada
-  for (const r of [todo.texto, evaluar(eje, c.id, [5]).texto]) assert.equal(/23 ?euros/.test(r), false);
+  const c = await escribe(eje, id, ['C', { ref: a.id }, { ref: b.id }, '=payload((payload(it)).1)', '=payload((payload(it)).2)', '=payload((payload(it)).1) + payload((payload(it)).2)']);
+  // Una referencia sin dirección alcanza el registro entero; lo escrito en él se lee con payload(…).
+  assert.equal(lee(eje, c.id, [3]).texto, '23'); // cada una se lee por separado
+  assert.equal(lee(eje, c.id, [4]).texto, 'euros');
+  assert.equal(lee(eje, c.id, [5]).estado, 'ERROR'); // ni «23 euros» ni suma (solo números)
+  const todo = formula(eje, c.id, '=payload("' + c.id + '")');
+  assert.deepEqual(todo.valor.map((o) => o.k), ['dec']); // el registro sigue siendo dos referencias, no una lectura combinada
+  for (const r of [todo.texto, lee(eje, c.id, [5]).texto]) assert.equal(/23 ?euros/.test(r), false);
 });
 
 // =====================================================================
@@ -521,7 +533,7 @@ test('BTML-25 toda dirección explícita es una cadena de exactamente diez dígi
   await assert.rejects(eje.escribir({ autor: 'raiz', sobre: id, en: '4', t: T0, movimientos: [gastaT('raiz')], payload: 'x' }), /en debe ser una dirección de diez dígitos/);
   assert.equal(validarPayload(['x', { ref: id, dir: '12' }]).ok, false);
   assert.equal(validarPayload(['x', { ref: id, dir: 1200000000 }]).ok, false);
-  assert.equal(consultar(eje, id, [0], 'REF("' + id + '", "12")').estado, 'ERROR');
+  assert.equal(formula(eje, id, '=(payload("' + id + '")).12').estado, 'ERROR'); // una posición es un dígito: «12» no es una dirección
   assert.equal(direccion([8, 4, 1, 2, 3]), '8412300000');
 });
 
@@ -636,8 +648,10 @@ test('BTML-35 colisiones, no apaños: la dirección con ceros finales nombra a l
 });
 
 test('BTML-36 un terminal no tiene posición 0: pedirla da PENDIENTE', async () => {
-  const { eje, id } = await ejeCon(['Casa', 'terminal', '=LOCAL(1, 0)']);
-  assert.equal(evaluar(eje, id, [2]).estado, 'PENDIENTE');
+  // Leída sola, la posición que no hay es vacía (∅); leída como valor, PENDIENTE: falta un valor.
+  const { eje, id } = await ejeCon(['Casa', 'terminal', '=(payload(it)).1.0 + 0', '=(payload(it)).1.0']);
+  assert.equal(lee(eje, id, [2]).estado, 'PENDIENTE');
+  assert.deepEqual(lee(eje, id, [3]).valor, []);
   const t = await escribe(eje, id, 'solo un terminal');
   assert.deepEqual(caminosDe(t.payload, '0000000000').map((c) => c.indices), [[]]); // el terminal, sin un 0 debajo
   assert.deepEqual(ocupantes(eje, t.id, []).map((o) => o.camino), [[]]);
@@ -823,7 +837,7 @@ test('BTML-50 se ordena sin borrar alternativas: ningún candidato se descarta, 
   const lejos = await escribe(eje, id, ['L', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'nueve']);
   const x = await escribe(eje, id, ['X', { ref: lejos.id, dir: '9000000000' }]);
   await escribe(eje, x.id, 'escrito', '1000000000');
-  assert.equal(consultar(eje, x.id, [1], 'CONTAR(BUSCAR(1))').texto, '3'); // el propio, el lejano y el escrito
+  assert.equal(ocupantes(eje, x.id, [1]).length, 3); // el propio, el lejano y el escrito
 });
 
 test('BTML-51 se compara después de interpretar: con dígitos nominales (época 0) la distancia por dígito no ordena', () => {
@@ -1047,7 +1061,7 @@ test('BTML-65 lo disponible depende del descubrimiento: observadores con distint
 });
 
 test('BTML-65b los permisos de lectura limitan lo que cada observador reúne',
-  { skip: 'BTML-65: no hay permisos de lectura en el eje ni en el encaje: arbol() y ocupantes() reúnen todo el eje que tiene el observador. Solo BQL pregunta, desde la PR #36, integrada, al gancho opcional puedeLeer por cada lectura y por cada ocupante (O-12b, O-12c); el modelo de permisos es de AARPIA (mapa §12)' },
+  { skip: 'BTML-65: no hay permisos de lectura en el eje ni en el encaje: arbol() y ocupantes() reúnen todo el eje que tiene el observador. Las fórmulas (BQL mínimo) leen sobre la vista que recibe quien las lee: lo que la vista no trae falta; el gancho puedeLeer se retiró con el BQL V0 (#113) y el modelo de permisos es de AARPIA (mapa §12)' },
   sinForma('BTML-65'));
 
 // =====================================================================
@@ -1064,8 +1078,8 @@ test('BTML-69 las potencias 4^4, 5^5, 6^6, 7^7… no son magnitudes equivalentes
   assert.equal(ARIDAD, 10);
   assert.equal(esDireccion('4^4'), false);
   const { eje, id } = await ejeCon(['Casa', '4^4', '7^7']);
-  assert.equal(evaluar(eje, id, [1]).valor.tipo, 'texto'); // en un slot, un nombre más
-  assert.equal(consultar(eje, id, [0], '4^4').estado, 'ERROR'); // ninguna ecuación las convierte
+  assert.deepEqual(lee(eje, id, [1]).valor, ['4^4']); // en un slot, un nombre más
+  assert.equal(formula(eje, id, '=4^4').estado, 'ERROR'); // ninguna ecuación las convierte
 });
 
 // =====================================================================
@@ -1087,7 +1101,7 @@ test('B:MOT-01 un fallo no borra alternativas: la referencia rota sigue siendo o
 test('B:MOT-01b al descubrir, la referencia ausente es un candidato pendiente explicado, no un error', async () => {
   const { eje, id } = await ejeCon(['Casa']);
   const { vista, ausente } = await conAusente(eje, id); // C1: la referencia rota, en una réplica sin el referido
-  const x = await escribe(eje, id, ['X', { ref: ausente }, '=LOCAL(1)']);
+  const x = await escribe(eje, id, ['X', { ref: ausente }, '=(payload(it)).1']);
   const [p1] = descubrir(vista, x.id, { posiciones: [1] });
   const rota = p1.candidatos.find((o) => o.origen === 'referencia');
   assert.equal(rota.estado, 'PENDIENTE');
@@ -1099,8 +1113,8 @@ test('B:MOT-01b al descubrir, la referencia ausente es un candidato pendiente ex
 test('B:MOT-01c en BQL, la referencia ausente es un pendiente explicado', async () => {
   const { eje, id } = await ejeCon(['Casa']);
   const { vista, ausente } = await conAusente(eje, id); // C1: la referencia rota, en una réplica sin el referido
-  const x = await escribe(eje, id, ['X', { ref: ausente }, '=LOCAL(1)']);
-  const r = evaluar(vista, x.id, [2]);
+  const x = await escribe(eje, id, ['X', { ref: ausente }, '=(payload(it)).1']);
+  const r = lee(vista, x.id, [2]);
   assert.equal(r.estado, 'PENDIENTE');
   assert.ok(r.motivo);
 });
@@ -1195,7 +1209,7 @@ test('BTML por hojas: el id es estable y distingue el orden de una lista', async
 //   BTML-30 [abierto]   dos orientaciones ("1100000000" frente a "0000000011") como hipótesis de construcción/almacenamiento.
 //   BTML-37 [abierto]   reglas del tercer cero (orientativo/agregación), distinción nodo/hijo 0, anclaje y época.
 //   BTML-38 [propuesta] dos nodos con la misma cadena "8412000000" y rutas distintas exigen desambiguación en la
-//                       interfaz y en REF (hoy REF(id, dir) y {ref, dir} leen el camino base sin señalar la colisión).
+//                       interfaz y en las referencias (hoy {ref, dir} lee el camino base sin señalar la colisión).
 //   BTML-41 [abierto]   ENCAJAR V0 es contrato conceptual; fórmula total, desempate y composición de anclajes en V5.
 //   BTML-49 [abierto]   qué ordena a los no exactos y qué significa cada signo (opciones A–E). El MAPA §12 recoge que
 //                       VG eligió la opción B el 7-11 por la tarde; aquí sigue en el bloque porque la regla llegó como

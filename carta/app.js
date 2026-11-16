@@ -7,8 +7,7 @@
 // Al abrir: si hay una cuenta usada la última vez, se entra en ella; si lo último fue un ejemplo, en el ejemplo; si
 // nunca se eligió nada, la pantalla de arranque ofrece crear mi cuenta, restaurar una cuenta desde su copia o probar
 // con un ejemplo. Las cuentas viven en sus propias claves de localStorage (cuentas.js, CLAVES) y los ejemplos en las
-// de siempre (CLAVES_EJEMPLO: la fontanería de la web antigua, antigua/ui/ejemplos.js, antigua/ui/leido.js,
-// antigua/ui/comun.js; el mismo eje de ejemplo y las mismas claves sirven a las dos webs). Nada real en el
+// de siempre (CLAVES_EJEMPLO, con los ejemplos de carta/ejemplos.js y el conmutador de carta/leido.js). Nada real en el
 // repositorio: las identidades de ejemplo llevan claves generadas en este navegador; la de mi cuenta, también, y solo
 // sale de él cifrada con una frase (la copia de seguridad).
 //
@@ -30,9 +29,9 @@ import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
-import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from '../antigua/ui/ejemplos.js';
-import { alternarLeido, leidoAbierto } from '../antigua/ui/leido.js';
-import { leerLocal, guardarLocal } from '../antigua/ui/comun.js';
+import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
+import { alternarLeido, leidoAbierto } from './leido.js';
+import { leerLocal, guardarLocal } from './cuentas.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;

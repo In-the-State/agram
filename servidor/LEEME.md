@@ -174,7 +174,7 @@ Con el servidor de prueba (`servidor/prueba/servidor.mjs`), `/archivos` y `/arch
 
 ## Servir la carta desde el nodo (y el `sitio.json`)
 
-La carta es estática (`index.html` + `carta/` + `src/` + `datos/` + `antigua/` + `ejemplos/` + `arte/`, lo mismo que GitHub Pages sirve de la raíz del repositorio): un nodo propio (`https://aarpia.ikisai.com`) puede servirla junto a la API de `eventos`. Se sirve **lo que sirve la raíz salvo lo que no es la web**; es la misma lista de exclusión que usa `beta/publicar.mjs` (`EXCLUIR`): `.git`, `node_modules`, `test`, `bench`, `.github`, `servidor`, `beta`, `.playwright-mcp`, `.wrangler`. Con `servidor/` fuera, los secretos y las funciones no se publican.
+La carta es estática (`index.html` + `carta/` + `src/` + `datos/` + `ejemplos/` + `arte/`, lo mismo que GitHub Pages sirve de la raíz del repositorio): un nodo propio (`https://aarpia.ikisai.com`) puede servirla junto a la API de `eventos`. Se sirve **lo que sirve la raíz salvo lo que no es la web**; es la misma lista de exclusión que usa `beta/publicar.mjs` (`EXCLUIR`): `.git`, `node_modules`, `test`, `bench`, `.github`, `servidor`, `beta`, `.playwright-mcp`, `.wrangler`. Con `servidor/` fuera, los secretos y las funciones no se publican.
 
 **`sitio.json`** (opcional, `docs/CONTRATO.md` §16.2 ter): en la raíz de lo que se sirve, junto a `index.html`, con los defectos de esa casa:
 

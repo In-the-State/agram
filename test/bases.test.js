@@ -5,12 +5,13 @@ import { ocupantes } from '../src/encaje.js';
 import { validarPayload } from '../src/btml.js';
 import { EPOCA_0 } from '../src/epocas.js';
 import { serializar, restaurar } from '../src/persistencia.js';
-import { consultar, evaluar } from '../src/bql.js';
+import { leerFormula } from '../src/bqlm.js';
+import { contextoDeLectura } from '../src/contexto-eje.js';
 import * as tiempo from '../src/tiempo.js';
 import {
   CIELO, ETIQUETAS, HITOS, ALCANCES, SIN_BASE_ESCRITA, MEDIDAS, esRecuento, clavesDeMedidas, cortesDe, medir, estadisticaVacia, unitaria, fundir,
   bloqueDe, cajasEtiquetadas, calcularBase, identidadDe, escribirBase, leerBase, frescura, comprobar, situar, confluir,
-  comparables, proyectoDe, hijos, esBase, basesEn, empaquetar, payloadDeBase, baseDePayload, valorDeBases, puedeEscribirBase,
+  comparables, proyectoDe, hijos, esBase, basesEn, empaquetar, payloadDeBase, baseDePayload, puedeEscribirBase,
 } from '../src/bases.js';
 import * as agram from '../src/index.js';
 import { COSAS, ejemploComprasHermanas, escribirBaseDe, escribirBasesDelEjemplo } from '../ejemplos/ikisai/compras-hermanas.mjs';
@@ -91,7 +92,7 @@ test('medir: una sola medida (bases.medir); tiempo.js ya no mide', async () => {
   assert.throws(() => medir(eje, 'nadie'), /registro desconocido/);
   assert.deepEqual(
     clavesDeMedidas().map((k) => guisos[k]),
-    [5, 9, 0, 2, 2, 3, 1, 1], // posiciones 0–4, nueve terminales, una fórmula resuelta y otra pendiente
+    [5, 11, 0, 2, 2, 3, 1, 1], // posiciones 0–4, once terminales (el 1.2, una magnitud desplegada: nombre, fórmula y unidad), una fórmula resuelta y otra pendiente
   );
   assert.deepEqual(guisos.tokens, { 'T:hora': 1, 'E:casa/EUR': 12 });
   // Un terminal no tiene posición 0: un terminal, ninguna posición.
@@ -117,7 +118,7 @@ test('fundir: cada medida con tiempo.fundir; conmutativa, asociativa, con neutro
   const minutos = abc.tokens['T:minuto'];
   assert.deepEqual([minutos.cajas, minutos.suma, minutos.minimo, minutos.maximo], [[2, 0, 0, 0, 0, 0, 0, 0, 0, 1], 1403, 0, 1403]);
   assert.deepEqual(bloqueDe(a, 'T:minuto').cajas, [1, 0, 0, 0, 0, 0, 0, 0, 0, 0]);
-  assert.deepEqual([abc.medidas.terminales.suma, abc.medidas.terminales.minimo, abc.medidas.terminales.maximo], [9 + 1 + 3, 1, 9]);
+  assert.deepEqual([abc.medidas.terminales.suma, abc.medidas.terminales.minimo, abc.medidas.terminales.maximo], [11 + 1 + 3, 1, 11]);
   // Por posición: cuántos la tienen desarrollada y por qué procedencia; la raíz aparte.
   assert.deepEqual(abc.posiciones[1], { comparables: 2, propias: 2, referencias: 1, escritas: 0 });
   assert.equal(abc.raiz, 1); // el puesto está escrito en la raíz del mercado
@@ -433,17 +434,10 @@ test('la escribe la propia cosa o quien tiene P sobre el registro; nadie sin P e
   assert.equal(esBase(otro, aMano), false); // la de antes de tener poder sigue sin contar
 });
 
-test('«sin base escrita» se informa en situar, en BQL y en el respaldo', async () => {
+test('«sin base escrita» se informa en situar y en el respaldo', async () => {
   const ej = await nuevo();
   const { eje } = ej;
-  const q = (f) => consultar(eje, ej.guisos.id, [], f);
-  for (const f of ['BASES("hermanos")', 'BASES("proyecto", "T:hora")', 'CAJA("T:hora")', 'FRESCURA("general")']) {
-    const r = q(f);
-    assert.equal(r.estado, 'PENDIENTE', f);
-    assert.ok(r.motivo.startsWith(SIN_BASE_ESCRITA + ' en el 8 de '), f);
-  }
-  assert.equal(valorDeBases(eje, ej.menu.id).motivo, SIN_BASE_ESCRITA + ' en el 8 de ' + ej.menu.id.slice(0, 8));
-  assert.ok(consultar(eje, ej.menu.id, [], 'BASES()').motivo.startsWith(SIN_BASE_ESCRITA + ' en el 8 de ' + ej.menu.id.slice(0, 8) + ' (su propio 8)'));
+  assert.equal(leerBase(eje, ej.menu.id), null);
   for (const alcance of ALCANCES) {
     assert.equal(situar(eje, ej.guisos.id, { alcance }).frescura, SIN_BASE_ESCRITA, alcance);
     assert.equal(confluir(eje, ej.guisos.id, { alcance }).frescura, SIN_BASE_ESCRITA, alcance);
@@ -451,7 +445,7 @@ test('«sin base escrita» se informa en situar, en BQL y en el respaldo', async
   // Con la base escrita, ya no se dice.
   await escribirBasesDelEjemplo(ej);
   assert.equal(typeof situar(eje, ej.guisos.id).frescura, 'object');
-  assert.equal(q('BASES("hermanos")').texto, '4');
+  assert.equal(situar(eje, ej.guisos.id).n, 4);
 });
 
 test('las bases del 8 no son hermanas, escritos ni comparables de lo que miden', async () => {
@@ -474,44 +468,21 @@ test('las bases del 8 no son hermanas, escritos ni comparables de lo que miden',
   assert.equal(medir(eje, ej.menu.id).escritos, 5);
 });
 
-test('BASES() en BQL: n, la caja del anfitrión y los datos de la base, con su dependencia y su autorización', async () => {
+test('las bases del 8 se leen con su API (leerBase, situar); BASES, CAJA y FRESCURA ya no son fórmulas (retirada de BQL V0, #113)', async () => {
   const ej = await nuevo();
   const { eje } = ej;
-  const q = (id, f, opciones) => consultar(eje, id, [], f, opciones);
-  assert.equal(q(ej.guisos.id, 'BASES("hermanos")').estado, 'PENDIENTE');
-  assert.equal(q(ej.menu.id, 'BASES()').estado, 'PENDIENTE');
   const bases = await escribirBasesDelEjemplo(ej);
-  assert.equal(q(ej.menu.id, 'BASES()').texto, '4');
-  assert.deepEqual(ALCANCES.map((a) => q(ej.guisos.id, 'BASES("' + a + '")').texto), ['4', '9', '18']);
+  assert.equal(leerBase(eje, ej.menu.id).hijos.n, 4);
+  assert.deepEqual(ALCANCES.map((alcance) => situar(eje, ej.guisos.id, { alcance }).n), [4, 9, 18]);
   const s = situar(eje, ej.guisos.id, { alcance: 'proyecto' });
-  const r = q(ej.guisos.id, 'BASES("proyecto", "T:hora")');
-  assert.equal(r.valor.valor, s.tokens["T:hora"].caja);
-  // Como CAJA: el 8 leído, la base y el anfitrión medido (BASES hereda la lectura cobrada y autorizada del 8).
-  assert.deepEqual(r.dependencias.sort(), [ej.comedor.id + ':' + CIELO, bases.proyectos.comedor.id + ':0000000000', ej.guisos.id + ':0000000000'].sort());
-  assert.deepEqual(q(ej.guisos.id, 'BASES("proyecto", "T:hora", "suma")').dependencias.sort(), [ej.comedor.id + ':' + CIELO, bases.proyectos.comedor.id + ':0000000000'].sort());
-  assert.equal(q(ej.guisos.id, 'BASES("proyecto", "T:hora", ' + s.tokens["T:hora"].caja + ')').valor.valor, s.tokens["T:hora"].enCaja);
-  for (const campo of ['foco', 'cuota', 'cajaCuota', 'debajo', 'encima', 'enCaja', 'suma', 'minimo', 'maximo', 'media']) {
-    assert.equal(q(ej.guisos.id, 'BASES("proyecto", "T:hora", "' + campo + '")').valor.valor, s.tokens["T:hora"][campo], campo);
-  }
-  assert.equal(q(ej.guisos.id, 'BASES("hermanos", "E:casa/EUR", "suma") = 32').texto, 'verdadero'); // 12 + 6 + 12 + 2
-  assert.equal(q(ej.guisos.id, 'BASES("hermanos", "T:siglo", 0)').texto, '4'); // serie ausente: todos en cero
-  assert.match(q(eje.genesisId, 'BASES("hermanos")').motivo, /sin cohorte/);
-  for (const f of ['BASES("linaje")', 'BASES("hermanos", "inventada")', 'BASES("hermanos", "T:hora", "grado")', 'BASES("hermanos", "T:hora", 10)', 'BASES("hermanos", "T:hora", 1, 2)', 'BASES("hermanos", "terminales")', 'CAJA("identidades")']) { // los recuentos no se sitúan (R7)
-    assert.equal(q(ej.guisos.id, f).estado, 'ERROR', f);
-  }
-  assert.equal(valorDeBases(eje, ej.menu.id).valor, 4);
-  // El gancho de autorización de BQL decide: leer la base y, para situarlo, el anfitrión entero.
-  const sinBases = (id) => !esBase(eje, eje.obtener(id));
-  const negada = q(ej.guisos.id, 'BASES("proyecto", "T:hora", "suma")', { puedeLeer: sinBases });
-  assert.deepEqual([negada.estado, negada.motivo], ['PENDIENTE DE AUTORIZACIÓN', 'leer la base del 8 de ' + ej.comedor.id.slice(0, 8) + ' exige una autorización que no hay']);
-  assert.equal(q(ej.guisos.id, 'BASES("proyecto", "T:hora")', { puedeLeer: (id) => id !== ej.guisos.id }).estado, 'PENDIENTE DE AUTORIZACIÓN');
-  assert.equal(q(ej.guisos.id, 'BASES("proyecto", "T:hora", "suma")', { puedeLeer: (id) => id !== ej.guisos.id }).estado, 'RESUELTO');
-  // Dentro de un registro: lo que mide a su propio registro no se mide a sí mismo mientras se mide.
-  const nota = await eje.escribir({ autor: 'huesped', sobre: ej.menu.id, t: '2026-11-07T18:30:00Z', movimientos: [hora('huesped')], payload: ['Nota', '=BASES("hermanos", "T:hora")', '=BASES("hermanos")'] });
-  assert.deepEqual([medir(eje, nota.id).formulasResueltas, medir(eje, nota.id).formulasPendientes], [1, 1]);
-  const enNota = evaluar(eje, nota.id, [1]);
-  assert.equal(enNota.estado, 'RESUELTO');
-  assert.equal(enNota.valor.valor, situar(eje, nota.id).tokens["T:hora"].caja);
+  assert.equal(s.registro, ej.comedor.id);
+  assert.equal(s.base, bases.proyectos.comedor.id);
+  assert.equal(situar(eje, ej.guisos.id).tokens['E:casa/EUR'].suma, 32); // 12 + 6 + 12 + 2
+  // Una fórmula del payload con las palabras del 8 del V0 no es BQL mínimo: ERROR, y medir la cuenta entre las pendientes.
+  const nota = await eje.escribir({ autor: 'huesped', sobre: ej.menu.id, t: '2026-11-07T18:30:00Z', movimientos: [hora('huesped')], payload: ['Nota', '=BASES("hermanos", "T:hora")', '=CAJA("T:hora")'] });
+  assert.deepEqual([medir(eje, nota.id).formulasResueltas, medir(eje, nota.id).formulasPendientes], [0, 2]);
+  const r = leerFormula('=BASES("hermanos")', { k: 'reg', id: nota.id }, contextoDeLectura(eje));
+  assert.deepEqual([r.estado, r.motivo], ['ERROR', 'no es BQL mínimo: «BASES» (no hay funciones con nombre)']);
 });
 
 test('las bases son registros: se guardan y se reconstruyen con el eje', async () => {

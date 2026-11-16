@@ -29,7 +29,7 @@
 //     cada hijo, sin releer registros: el 8 del proyecto funde las bases de sus
 //     hijos; el del génesis, las de los proyectos). La escribe en el 8 de X la
 //     propia cosa X (su identidad, si la tiene) o quien tiene P sobre X,
-//     firmando y gastando su T (COSTE_BASE). Corregir = escribir otra; la
+//     firmando y pagando el coste de escribir (escribirBase). Corregir = escribir otra; la
 //     anterior queda como colisión en el 8.
 //   - Las tres cohortes (ALCANCES) se LEEN del 8 del padre (hermanos), del
 //     proyecto o del génesis (situar), nunca recorriendo el eje.
@@ -37,8 +37,8 @@
 //     mismas funciones (medir, unitaria, fundir), lo que leería el 8 si cada
 //     registro tuviera su base al día, y lo dice (frescura: «sin base escrita»).
 //     Se retira comparar() de tiempo.js y su puntuación con pesos.
-//   - BASES(), CAJA() y FRESCURA() en BQL leen esto (src/bql.js) con el gancho
-//     puedeLeer y el presupuesto de la fórmula.
+//   - Se lee con situar, leerBase y confluir; las fórmulas no lo leen (las palabras BASES, CAJA y FRESCURA
+//     del BQL V0 se retiraron con él, #113, sin sustituto).
 //
 // Lo que el mapa no decide va marcado «[X] decidir VG».
 
@@ -47,9 +47,8 @@ import { EPOCA_0, epocaDe } from './epocas.js';
 import { AMBITO_GENESIS, ESCALAS_T, claveToken, cantidadBase, partirClave, movimientosReales } from './tokens.js';
 import { ocupantes } from './encaje.js';
 import { quemaDelCoste, escalaQueAlcanza } from './escritura.js';
-// bql.js importa este módulo (BASES, CAJA, FRESCURA): la importación es
-// circular, así que de bql.js solo se usa dentro de funciones, nunca al cargar.
-import { esFormula, evaluar } from './bql.js';
+import { esFormula, leerFormula, Presupuesto } from './bqlm.js';
+import { contextoDeLectura } from './contexto-eje.js';
 
 /** La posición 8 (el cielo) en la raíz del registro: ahí se anclan sus bases. */
 export const CIELO = '8000000000';
@@ -62,13 +61,6 @@ export const SECCIONES = Object.freeze(['hijos', 'subarbol']);
 
 /** Lo que dice una lectura del 8 cuando no hay base escrita y se calcula al vuelo (respaldo). */
 export const SIN_BASE_ESCRITA = 'sin base escrita';
-
-/**
- * Coste de escribir una base: un minuto de T de quien la escribe, como la ejecución.
- * [X] decidir VG: el coste de una base (con la regla de escritura, un minuto
- * por posición, serían cientos de minutos: una base ocupa cientos de posiciones).
- */
-export const COSTE_BASE = Object.freeze({ token: 'T', escala: 'minuto', cantidad: 1 });
 
 /**
  * Las diez etiquetas de caja del 8 (índice → nivel.grado), literales del mapa
@@ -434,10 +426,6 @@ function tiempoMedido(eje, id) {
   return Object.fromEntries(Object.entries(porEscala).filter(([, n]) => n > 0).map(([e, n]) => [claveTiempo(e), n]));
 }
 
-// Registros que se están midiendo: BASES() dentro de uno de ellos no vuelve a
-// medirlo (sería un ciclo); queda PENDIENTE y cuenta como fórmula pendiente.
-const MIDIENDO = new Set();
-
 /**
  * La medida de un registro, la única (mapa §14.2 a): las posiciones
  * desarrolladas (posicionesDe, con sus procedencias por PV), los terminales
@@ -445,55 +433,55 @@ const MIDIENDO = new Set();
  * los tokens movidos por serie (clavesDe), las identidades distintas que tocan
  * sus movimientos, la profundidad del hilo y las fórmulas de su payload
  * resueltas frente a las no resueltas. Se funde con unitaria() y fundir().
- * [X] decidir VG: PENDIENTE, INCOMPATIBLE y ERROR cuentan juntas como
- * «pendientes»; el mapa no dice si una fórmula rota es lo mismo que una que
- * espera.
+ * Las fórmulas se leen con el BQL mínimo (bqlm.leerFormula, it = el
+ * registro, un presupuesto para todas). [X] decidir VG: PENDIENTE y ERROR
+ * cuentan juntas como «pendientes»; el mapa no dice si una fórmula rota es lo
+ * mismo que una que espera.
  */
 export function medir(eje, id) {
   const ev = eje.obtener(id);
   if (!ev) throw new Error('registro desconocido: ' + id);
-  const propio = !MIDIENDO.has(id);
-  if (propio) MIDIENDO.add(id);
-  try {
-    const contar = (p) => (Array.isArray(p) ? p.reduce((n, h) => n + contar(h), 0) : 1);
-    const p = posicionesDe(eje, id);
-    const identidades = new Set();
-    for (const mov of movimientosReales(ev)) {
-      if (mov.de) identidades.add(mov.de);
-      if (mov.a) identidades.add(mov.a);
-    }
-    const m = {
-      posiciones: p.desarrolladas,
-      terminales: contar(ev.payload),
-      escritos: hijos(eje, id).length,
-      movimientos: movimientosReales(ev).length,
-      identidades: identidades.size,
-      profundidadHilo: eje.hilo(id).length - 1,
-      formulasResueltas: 0,
-      formulasPendientes: 0,
-      // Las cantidades: los tokens que movió el evento, por serie, y el T consumido SOBRE el registro por quienes
-      // escriben encima, por escala (VG, 7-11 noche: el consumo se anota en el registro que soporta).
-      // Lo que cuestan sus propias bases del 8 no cuenta: no son hijos de lo que miden (escribir la base no la cambia).
-      tokens: { ...clavesDe(ev), ...tiempoMedido(eje, id) },
-      procedencias: p.posiciones,
-      raiz: p.raiz,
-    };
-    const recorrer = (nodo, indices) => {
-      // Forma canónica (VG, 8-11): la lista de un ocupante es la posición misma ([=f] = =f).
-      if (Array.isArray(nodo) && indices.length > 0 && nodo.length === 1 && !Array.isArray(nodo[0])) return recorrer(nodo[0], indices);
-      if (Array.isArray(nodo)) {
-        nodo.forEach((h, i) => recorrer(h, [...indices, i]));
-        return;
-      }
-      if (!esFormula(nodo)) return;
-      if (evaluar(eje, id, indices).estado === 'RESUELTO') m.formulasResueltas++;
-      else m.formulasPendientes++;
-    };
-    recorrer(ev.payload, []);
-    return m;
-  } finally {
-    if (propio) MIDIENDO.delete(id);
+  const contar = (p) => (Array.isArray(p) ? p.reduce((n, h) => n + contar(h), 0) : 1);
+  const p = posicionesDe(eje, id);
+  const identidades = new Set();
+  for (const mov of movimientosReales(ev)) {
+    if (mov.de) identidades.add(mov.de);
+    if (mov.a) identidades.add(mov.a);
   }
+  const m = {
+    posiciones: p.desarrolladas,
+    terminales: contar(ev.payload),
+    escritos: hijos(eje, id).length,
+    movimientos: movimientosReales(ev).length,
+    identidades: identidades.size,
+    profundidadHilo: eje.hilo(id).length - 1,
+    formulasResueltas: 0,
+    formulasPendientes: 0,
+    // Las cantidades: los tokens que movió el evento, por serie, y el T consumido SOBRE el registro por quienes
+    // escriben encima, por escala (VG, 7-11 noche: el consumo se anota en el registro que soporta).
+    // Lo que cuestan sus propias bases del 8 no cuenta: no son hijos de lo que miden (escribir la base no la cambia).
+    tokens: { ...clavesDe(ev), ...tiempoMedido(eje, id) },
+    procedencias: p.posiciones,
+    raiz: p.raiz,
+  };
+  const recorrer = (nodo, indices) => {
+    // Forma canónica (VG, 8-11): la lista de un ocupante es la posición misma ([=f] = =f).
+    if (Array.isArray(nodo) && indices.length > 0 && nodo.length === 1 && !Array.isArray(nodo[0])) return recorrer(nodo[0], indices);
+    if (Array.isArray(nodo)) {
+      nodo.forEach((h, i) => recorrer(h, [...indices, i]));
+      return;
+    }
+    if (!esFormula(nodo)) return;
+    // BQL mínimo (src/bqlm.js, leerFormula): it es este registro; un presupuesto para todas sus fórmulas.
+    if (leerFormula(nodo, sujeto, ctx(), { presupuesto }).estado === 'RESUELTO') m.formulasResueltas++;
+    else m.formulasPendientes++;
+  };
+  const sujeto = { k: 'reg', id };
+  const presupuesto = new Presupuesto();
+  let contexto;
+  const ctx = () => (contexto ??= contextoDeLectura(eje));
+  recorrer(ev.payload, []);
+  return m;
 }
 
 // --- Estadísticas en memoria ---------------------------------------------
@@ -1170,80 +1158,4 @@ export function ochoPorCantidades(eje, foco, { alcance = 'hermanos', epoca = EPO
   const cantidades = Object.entries(s.tokens).map(([clave, x]) => ({ clave, etiqueta: x.etiqueta, foco: x.foco, caja: x.caja, cuota: x.cuota, cajaCuota: x.cajaCuota, debajo: x.debajo, enCaja: x.enCaja, encima: x.encima }));
   const recuentos = MEDIDAS.map(({ clave, etiqueta }) => ({ clave, etiqueta, foco: s.medidas[clave].foco, recuento: true }));
   return { alcance, foco, estado: 'RESUELTO', escrita: s.escrita, base: s.escrita ? s.base : null, registro: s.registro, n: s.n, frescura: s.frescura, cantidades, recuentos };
-}
-
-// --- BASES() en BQL -----------------------------------------------------------
-
-/** Lo que BASES(alcance, medida, campo) puede pedir de la base, además de una caja 0–9. */
-export const CAMPOS_BASE = Object.freeze(['suma', 'minimo', 'maximo', 'media']);
-
-/** Lo que BASES(alcance, medida, campo) puede pedir del anfitrión situado en la cohorte. */
-export const CAMPOS_FOCO = Object.freeze(['foco', 'caja', 'cuota', 'cajaCuota', 'enCaja', 'debajo', 'encima']);
-
-/** Por qué unos argumentos de BASES() no valen, sin leer nada (null si valen). */
-export function erroresDeBases(args = []) {
-  if (args.length === 0) return null;
-  const [alcance, medida, campo] = args;
-  if (args.length > 3) return 'BASES: como mucho tres argumentos';
-  if (!ALCANCES.includes(alcance)) return 'BASES: el alcance es ' + ALCANCES.join(', ');
-  if (medida !== undefined && !esMedida(medida)) return 'BASES: medida desconocida: ' + medida;
-  if (medida !== undefined && esRecuento(medida)) return 'BASES: ' + medida + ' es un recuento informativo: el 8 solo sitúa y compara cantidades (R7)';
-  const esCaja = Number.isInteger(campo) && campo >= 0 && campo < ARIDAD;
-  if (campo !== undefined && !esCaja && !CAMPOS_BASE.includes(campo) && !CAMPOS_FOCO.includes(campo)) {
-    return 'BASES: pide una caja 0–9 o ' + [...CAMPOS_BASE, ...CAMPOS_FOCO].join(', ');
-  }
-  return null;
-}
-
-/**
- * Valor de BASES() en BQL para el registro anfitrión `id` (src/bql.js lo
- * llama con los argumentos ya evaluados, números o textos, después de cobrar
- * y autorizar la lectura del 8):
- *   BASES()                          n de la base vigente del 8 del anfitrión (sus hijos)
- *   BASES(alcance)                   n de la cohorte (hermanos, proyecto o general)
- *   BASES(alcance, medida)           la caja (0–9) del anfitrión en esa cohorte
- *   BASES(alcance, medida, k)        cuántos hay en la caja k (0–9)
- *   BASES(alcance, medida, campo)    suma, minimo, maximo, media (de la base) o
- *                                    foco, caja, enCaja, debajo, encima (del anfitrión)
- * La medida es una de MEDIDAS o una clave de serie de token ("T:hora").
- * Solo lee bases escritas: sin base, PENDIENTE (SIN_BASE_ESCRITA); nunca
- * calcula al vuelo. Devuelve { estado, valor?, motivo?, base?, registro?,
- * mideAnfitrion }: RESUELTO con un número; PENDIENTE sin cohorte o sin base;
- * ERROR con argumentos que no valen. `base` es el id de la base leída (la
- * dependencia de la fórmula) y `registro` el de su 8; mideAnfitrion, si hubo
- * que medir al anfitrión. Dentro de su propia medida queda PENDIENTE (no se
- * mide a sí mismo).
- * [X] decidir VG: la firma de BASES() (el mapa solo la nombra).
- */
-export function valorDeBases(eje, id, args = []) {
-  const error = (motivo) => ({ estado: 'ERROR', motivo, mideAnfitrion: false });
-  if (!eje.obtener(id)) return error('BASES: registro desconocido');
-  const mal = erroresDeBases(args);
-  if (mal) return error(mal);
-  const sinBase = (registro) => ({ estado: 'PENDIENTE', motivo: SIN_BASE_ESCRITA + ' en el 8 de ' + registro.slice(0, 8), mideAnfitrion: false });
-  if (args.length === 0) {
-    const b = leerBase(eje, id);
-    if (!b) return sinBase(id);
-    return { estado: 'RESUELTO', valor: b.hijos.n, base: b.id, registro: id, mideAnfitrion: false };
-  }
-  const [alcance, medida, campo] = args;
-  const esCaja = Number.isInteger(campo) && campo >= 0 && campo < ARIDAD;
-  const mideAnfitrion = medida !== undefined && !esCaja && !CAMPOS_BASE.includes(campo);
-  const { registro, seccion } = cohorteDe(eje, id, alcance);
-  if (registro === null) return { estado: 'PENDIENTE', motivo: 'sin cohorte: el génesis no tiene padre', mideAnfitrion: false };
-  const base = leerBase(eje, registro);
-  if (!base) return sinBase(registro);
-  const est = base[seccion];
-  const con = (r) => ({ ...r, base: base.id, registro, mideAnfitrion });
-  if (medida === undefined) return con({ estado: 'RESUELTO', valor: est.n });
-  const bloque = bloqueDe(est, medida);
-  if (esCaja) return con({ estado: 'RESUELTO', valor: bloque.cajas[campo] });
-  if (campo === 'media') return con({ estado: 'RESUELTO', valor: bloque.suma / bloque.n });
-  if (CAMPOS_BASE.includes(campo)) return con({ estado: 'RESUELTO', valor: bloque[campo] });
-  if (MIDIENDO.has(id)) return con({ estado: 'PENDIENTE', motivo: 'BASES no se evalúa mientras se mide su propio registro' });
-  const m = medir(eje, id);
-  const valor = esClaveToken(medida) ? m.tokens[medida] ?? 0 : m[medida];
-  const dato = situado(bloque, valor)[campo ?? 'caja'];
-  if (dato === null) return con({ estado: 'PENDIENTE', motivo: 'BASES: sin cuota: la cohorte no tiene nada de ' + medida });
-  return con({ estado: 'RESUELTO', valor: dato });
 }

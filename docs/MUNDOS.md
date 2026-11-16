@@ -1,5 +1,7 @@
 # Mundos animados: la cruz y la X
 
+> Retirada (#113, con el BQL V0): los `mundos/` de esta página eran de la web antigua (`antigua/mundos/`), que se borró; la carta pinta sus mundos con los modelos de visualización (`docs/CONTRATO.md` §11.6). Lo que sigue cuenta lo que hacían.
+
 Orden decidido por VG (mapa §12, [D] «Orden de los mundos animados»): primero la cruz entera, hilos 6 y 7, luego cielo 8 y camino 9, con el 5 en el centro (tetraedro B completo); después la X. Sobrio y animado son dos renders de la misma operación (mapa §10.3 [D]; `docs/FUNDAMENTOS.md`): cada mundo tiene una función de datos que solo lee el núcleo y dos renders que leen esos datos. Nada simulado (mapa §10.2 [D]): lo que se mueve es el efecto de un evento real del eje o un cambio de lectura que se dice como tal.
 
 | PV | Mundo | Código | Datos | Render animado | Render sobrio |

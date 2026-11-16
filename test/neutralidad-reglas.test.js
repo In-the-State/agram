@@ -8,7 +8,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Eje } from '../src/eje.js';
 import * as motor from '../src/motor.js';
-import { evaluar, consultar } from '../src/bql.js';
 import { direccion } from '../src/btml.js';
 import { elegibles, ocupantesElegibles } from '../src/elegibles.js';
 import { secuencia } from '../src/sequenced.js';
@@ -48,21 +47,28 @@ async function demo(ids, tipos = {}) {
   eje.plaza = (await eje.escribir({ autor: 'g', sobre: eje.genesisId, t: ALTA, payload: ['Plaza'], movimientos: [minuto('g')] })).id;
   return eje;
 }
+/**
+ * El criterio de la dueña en su 2 (BQL mínimo, it = su registro): lo anclado en su 1 por ella o por quien nombra en
+ * su 3, lo primero. Con el V0, «=BUSCAR(1)» aplicaba la elegibilidad por dentro; ahora la fórmula la lee, y
+ * elegibles.ocupantesElegibles (lo que leen descubrir y las vistas) es la elegibilidad misma.
+ */
+const CRITERIO = '=first (down it where last it2.6.5 = "1000000000" and (first it2.3 = first it.3 or first it2.3 in (payload(it)).3))';
 const escribe = (eje, autor, sobre, payload, indices) => eje.escribir({ autor, sobre, t: T0, ...(indices ? { en: direccion(indices) } : {}), movimientos: [minuto(autor)], payload });
 
 // ---------- R8 · elegibilidad antes que límites ----------
 
 test('R8 por defecto: el autor y quien aparece en su 3; lo demás colisiona, no es elegible y solo se cuenta', async () => {
   const eje = await demo(['dueña', 'ana', 'bea', 'ruido']);
-  const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', '=BUSCAR(1)', ['ana', 'texto que no es nadie']]);
+  const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', CRITERIO, ['ana', 'texto que no es nadie']]);
   assert.deepEqual([...elegibles(eje, r.id).autores].sort(), ['ana', 'dueña']);
   const propia = await escribe(eje, 'dueña', r.id, 'de la dueña', [1]);
   const deAna = await escribe(eje, 'ana', r.id, 'de ana', [1]);
   const deBea = await escribe(eje, 'bea', r.id, 'de bea', [1]);
-  const v = evaluar(eje, r.id, [2]);
-  assert.deepEqual(v.valor.items.map((i) => i.evento), [r.id, propia.id, deAna.id]);
-  assert.equal(v.valor.noElegibles, 1);
-  assert.equal(consultar(eje, r.id, [2], 'CONTAR(BUSCAR(1))').texto, '3'); // el recuento no puntúa
+  const v = ocupantesElegibles(eje, r.id, [1], { exacto: true });
+  assert.deepEqual(v.lista.map((o) => o.evento), [r.id, propia.id, deAna.id]);
+  assert.equal(v.noElegibles, 1); // el recuento no puntúa
+  // El criterio de la dueña (su 2) lee lo mismo: el primero de lo suyo y de ana, no lo de bea.
+  assert.equal(motor.proponer(eje, r.id, { posiciones: [2] }).elecciones[2].candidato.evento, propia.id);
   // Colisionar es libre: el escrito de bea sigue en el eje y en la lista de ocupantes del encaje.
   assert.ok(eje.sobre(r.id, direccion([1])).some((e) => e.id === deBea.id));
   // descubrir y proponer tampoco lo ven; descubrir lo cuenta.
@@ -83,7 +89,7 @@ test('R8 lista explícita en 2.3 (criterio · con quién): manda sobre el 3; el 
   // Un nombre suelto también es lista; una fórmula no (vuelve el defecto).
   const uno = await escribe(eje, 'dueña', eje.plaza, ['Otro', 'x', ['c', ['d'], 'e', 'bea']]);
   assert.deepEqual([...elegibles(eje, uno.id).autores].sort(), ['bea', 'dueña']);
-  const formula = await escribe(eje, 'dueña', eje.plaza, ['Otro más', 'x', ['c', ['d'], 'e', '=LOCAL(3)'], ['ana']]);
+  const formula = await escribe(eje, 'dueña', eje.plaza, ['Otro más', 'x', ['c', ['d'], 'e', '=(payload(it)).3'], ['ana']]);
   assert.deepEqual([elegibles(eje, formula.id).origen, [...elegibles(eje, formula.id).autores].sort()], ['defecto', ['ana', 'dueña']]);
 });
 
@@ -95,27 +101,25 @@ test('R8 una identidad nombrada en el 3 cuenta como UN ocupante: sus escritos, n
   const altaCocina = eje.alta('cocina').id;
   await eje.escribir({ autor: 'g', sobre: altaCocina, t: T0, payload: 'marta lleva la cocina', movimientos: [minuto('g'), { token: 'P', ambito: altaCocina, cantidad: 1, de: 'g', a: 'marta' }] });
   assert.ok(eje.poderSobre('marta', altaCocina) > 0);
-  const r = await escribe(eje, 'dueña', eje.plaza, ['Pedido', 'platos', '=BUSCAR(1)', ['cocina']]);
+  const r = await escribe(eje, 'dueña', eje.plaza, ['Pedido', 'platos', CRITERIO, ['cocina']]);
   const delGrupo = await escribe(eje, 'cocina', r.id, 'del grupo', [1]);
   await escribe(eje, 'marta', r.id, 'de marta', [1]);
-  const v = evaluar(eje, r.id, [2]).valor;
-  assert.deepEqual([v.items.filter((i) => i.origen === 'escrito').map((i) => i.evento), v.noElegibles], [[delGrupo.id], 1]);
+  const v = ocupantesElegibles(eje, r.id, [1], { exacto: true });
+  assert.deepEqual([v.lista.filter((o) => o.origen === 'escrito').map((o) => o.evento), v.noElegibles], [[delGrupo.id], 1]);
+  assert.equal(motor.proponer(eje, r.id, { posiciones: [2] }).elecciones[2].candidato.evento, delGrupo.id);
 });
 
-test('R8 el límite se aplica después, a los elegibles: el ruido no lo agota, pero lo elegible de más sí', async () => {
+// El límite de candidatos del V0 (limites.candidatos) se fue con él: lo que queda es que el ruido llegado antes no
+// tapa lo elegible, ni en la lista de elegibles ni en lo que propone el criterio de la dueña.
+test('R8 el ruido llegado antes no tapa lo elegible: ni en los elegibles ni en lo que propone el criterio', async () => {
   const eje = await demo(['dueña', 'ana', 'r1', 'r2', 'r3', 'r4', 'r5']);
-  const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', '=BUSCAR(1)', ['ana']]);
+  const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', CRITERIO, ['ana']]);
   for (const x of ['r1', 'r2', 'r3', 'r4', 'r5']) await escribe(eje, x, r.id, 'ruido de ' + x, [1]); // llega antes
   const deAna = await escribe(eje, 'ana', r.id, 'de ana', [1]);
-  // Con límite 2: lo propio y lo de ana caben; los cinco escritos ajenos no cuentan para el límite.
-  const bien = evaluar(eje, r.id, [2], { limites: { candidatos: 2 } });
-  assert.deepEqual([bien.estado, bien.valor.items.map((i) => i.evento), bien.valor.noElegibles], ['RESUELTO', [r.id, deAna.id], 5]);
+  const bien = ocupantesElegibles(eje, r.id, [1], { exacto: true });
+  assert.deepEqual([bien.lista.map((o) => o.evento), bien.noElegibles], [[r.id, deAna.id], 5]);
   // proponer elige el primer ELEGIBLE, no el primer ruido llegado.
-  assert.equal(motor.proponer(eje, r.id, { posiciones: [2] }).elecciones[2].candidato.evento, r.id);
-  // Negativo: si los elegibles pasan del límite, sigue PENDIENTE POR LÍMITE (y la parada cuenta solo elegibles).
-  await escribe(eje, 'dueña', r.id, 'otra de la dueña', [1]);
-  const corto = evaluar(eje, r.id, [2], { limites: { candidatos: 2 } });
-  assert.deepEqual([corto.estado, corto.parcial], ['PENDIENTE POR LÍMITE', { examinados: 2, de: 3 }]);
+  assert.equal(motor.proponer(eje, r.id, { posiciones: [2] }).elecciones[2].candidato.evento, deAna.id);
 });
 
 test('R8 en las vistas con tope: el ruido no tapa los hijos del dueño en Sequenced; solo ocupa el sitio que sobra, y se cuenta', async () => {
@@ -147,7 +151,7 @@ test('R8 «cualquiera» en el 2.3 abre la elegibilidad a todos: oferta pública,
 
 test('R8 las correcciones del dueño en su 2.3 y en su 3 cuentan (se añaden); las de otros no', async () => {
   const eje = await demo(['dueña', 'ana', 'bea', 'intrusa']);
-  const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', '=BUSCAR(1)', ['ana']]);
+  const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', CRITERIO, ['ana']]);
   // Alguien ajeno se nombra en el 3 y en el 2.3 de la dueña: no cuenta.
   await escribe(eje, 'intrusa', r.id, 'intrusa', [3]);
   await escribe(eje, 'intrusa', r.id, 'cualquiera', [2, 3]);
@@ -262,22 +266,23 @@ test('R9 firmarPosesion no cambia el id y la forma de posesion se comprueba', as
 // otros; solo decide quién emite.
 
 // Encargo 3b: «autorizar» sale de la comparación (se retira, mapa §15 [D]); lo que se obtiene de otros es ser elegible
-// y que el BUSCAR de la dueña lo encuentre.
+// y que la dueña lo encuentre entre lo elegible.
 test('R10 ser persona o cosa (por quién escribe el alta, B1) no cambia lo que se obtiene de otros (elegir)', async () => {
   const mundo = async (tipo) => {
     const eje = await demo(['dueña', 'b'], { b: tipo });
     // P sobre el génesis, del que g obtuvo al escribirlo (N1): no hay P del génesis sobre todo el eje.
     await eje.escribir({ autor: 'g', sobre: eje.genesisId, t: T0, payload: 'poder', movimientos: [minuto('g'), { token: 'P', ambito: eje.genesisId, cantidad: 1, de: 'g', a: 'b' }] });
-    const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', '=BUSCAR(1)', ['b']]);
+    const r = await escribe(eje, 'dueña', eje.plaza, ['Mercado', 'ofertas', CRITERIO, ['b']]);
     await escribe(eje, 'b', r.id, 'oferta de b', [1]);
     await motor.consolidar(eje, { autor: 'dueña', foco: r.id, t: T0, elecciones: { 1: 'algo' } });
-    const v = evaluar(eje, r.id, [2]).valor;
-    return { candidatos: v.items.map((i) => [i.origen, i.autor ?? null]), elegible: elegibles(eje, r.id).autores.has('b') };
+    const v = ocupantesElegibles(eje, r.id, [1], { exacto: true });
+    const propuesta = motor.proponer(eje, r.id, { posiciones: [2] }).elecciones[2]?.candidato?.evento;
+    return { candidatos: v.lista.map((o) => [o.origen, o.autor ?? null]), elegible: elegibles(eje, r.id).autores.has('b'), propone: eje.obtener(propuesta)?.autor ?? null };
   };
   const persona = await mundo('persona');
   // Un grupo no escribe (Core, 8-11: lo suyo lo escribe una persona con P sobre él), así que se compara la cosa.
   assert.deepEqual(await mundo('cosa'), persona);
-  assert.deepEqual(persona, { candidatos: [['propio', null], ['escrito', 'b']], elegible: true });
+  assert.deepEqual(persona, { candidatos: [['propio', null], ['escrito', 'b']], elegible: true, propone: 'b' });
   // Lo único que decide: quién emite (la regla «only persons mint»). Una cosa no emite.
   const eje = await demo(['b'], { b: 'cosa' });
   await assert.rejects(eje.escribir({ autor: 'b', sobre: eje.plaza, t: T0, payload: 'x', movimientos: [minuto('b'), { token: 'R', emisor: 'b', cantidad: 1, de: null, a: 'b' }] }), /only persons mint: b is a thing \(its alta was written by g\)/);

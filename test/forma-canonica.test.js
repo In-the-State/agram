@@ -12,7 +12,8 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Eje } from '../src/eje.js';
 import { esLista, esDecupla, validarPayload, resolver, direccion } from '../src/btml.js';
-import { consultar, evaluar } from '../src/bql.js';
+import { leerFormula } from '../src/bqlm.js';
+import { contextoDeLectura, leerPosicion } from '../src/contexto-eje.js';
 import { seguir } from '../src/encaje.js';
 import { capacidadDe } from '../src/motor.js';
 import { pagaElCoste } from './ayudas-coste.js';
@@ -30,6 +31,9 @@ async function ejeCon(payload) {
   });
   return { eje, id: eje.genesisId };
 }
+
+/** Una fórmula del BQL mínimo con it = el registro id (como una fórmula de su payload): lo que vale. */
+const lee = (eje, id, formula) => leerFormula(formula, { k: 'reg', id }, contextoDeLectura(eje)).valor;
 
 const escribe = (eje, sobre, payload) => eje.escribir({ autor: 'raiz', sobre, t: T0, movimientos: [gastaT('raiz')], payload });
 
@@ -57,15 +61,16 @@ test('las dos líneas de VG: la 1 de compra es una décupla y cada posición es 
 
 test('[x] se lee como x en las fórmulas: las posiciones de una décupla canónica operan igual que las sueltas', async () => {
   const { eje, id } = await ejeCon(['Casa']);
-  const canonica = await escribe(eje, id, ['Compra', [['EUR 10'], [3], ['=LOCAL(0, 0) + 1 EUR'], ['=LOCAL(1) * 2']]]);
-  const suelta = await escribe(eje, id, ['Compra', [['EUR 10'], 3, '=LOCAL(0, 0) + 1 EUR', '=LOCAL(1) * 2']]);
+  // Fórmulas del BQL mínimo (retirada de BQL V0, #113): leen lo escrito con payload(it).
+  const canonica = await escribe(eje, id, ['Compra', [['EUR 10'], [3], ['=(payload(it)).1.0.1 + 1'], ['=(payload(it)).1.1 * 2']]]);
+  const suelta = await escribe(eje, id, ['Compra', [['EUR 10'], 3, '=(payload(it)).1.0.1 + 1', '=(payload(it)).1.1 * 2']]);
   for (const c of [canonica, suelta]) {
-    const dosDeTres = evaluar(eje, c.id, [1, 3]);
+    const dosDeTres = leerPosicion(eje, c.id, [1, 3]);
     assert.equal(dosDeTres.estado, 'RESUELTO');
     assert.equal(dosDeTres.texto, '6');
-    assert.equal(evaluar(eje, c.id, [1, 2]).texto, '11 EUR (10 EUR + 1 EUR)');
-    assert.equal(consultar(eje, c.id, [1, 0], 'LOCAL(1) + 4').texto, '7');
-    assert.equal(consultar(eje, c.id, [1, 0], 'LOCAL(1) > 2').texto, 'verdadero');
+    assert.equal(leerPosicion(eje, c.id, [1, 2]).texto, '11');
+    assert.deepEqual(lee(eje, c.id, '=(payload(it)).1.1 + 4'), [7]);
+    assert.deepEqual(lee(eje, c.id, '=(payload(it)).1.1 > 2'), [true]);
   }
   // Lo que cambia es solo el id, porque cambia el payload.
   assert.notEqual(canonica.id, suelta.id);
@@ -80,8 +85,10 @@ test('[ref] se sigue como ref: una lista de un ocupante con una referencia llega
   const h = seguir(eje, { ref: compra.id, dir: direccion([1, 1]) });
   assert.equal(h.contenido, 2);
   assert.deepEqual(h.procedencia, [compra.id + ':1100000000', menu.id + ':2100000000']);
-  assert.equal(consultar(eje, compra.id, [1, 0], 'LOCAL(1)').texto, '2');
-  assert.equal(consultar(eje, compra.id, [1, 0], 'LOCAL(0, 0)').texto, '[2 posiciones]'); // 1.0 = [ref]: LOCAL la sigue hasta la 2 del menú
+  assert.deepEqual(lee(eje, compra.id, '=(payload(it)).1.1'), [2]);
+  // 1.0 = [ref]: se sigue hasta la 2 del menú, una décupla (un solo ocupante), cuya 1 es [2].
+  assert.deepEqual(lee(eje, compra.id, '=count (payload(it)).1.0'), [1]);
+  assert.deepEqual(lee(eje, compra.id, '=(payload(it)).1.0.1'), [2]);
 });
 
 test('la capacidad de una plaza canónica es la de su lista de un ocupante', () => {

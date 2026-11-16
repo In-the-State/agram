@@ -2,12 +2,14 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import {
   ejemploTarea, decuplaTarea, movimientosDeEjecucion, tiempoPrevisto,
-  FECHA_LIMITE, PARTIDAS, DIR_COSTE, DIR_TIEMPO, CERRADO,
+  FECHA_LIMITE, PARTIDAS, DIR_COSTE, DIR_TIEMPO, CERRADO, FORMULA_ELECCION, magnitudEn,
 } from '../ejemplos/ikisai/tarea-tasks.mjs';
 import { Eje } from '../src/eje.js';
 import { resolver, indicesDe, esReferencia } from '../src/btml.js';
-import { evaluar, consultar } from '../src/bql.js';
+import { leerFormula } from '../src/bqlm.js';
+import { contextoDeLectura, leerPosicion } from '../src/contexto-eje.js';
 import { ocupantes } from '../src/encaje.js';
+import { ocupantesElegibles } from '../src/elegibles.js';
 import { proponer, consolidar, registrar, cerrado, siguiente, FABRICA, ANUNCIO } from '../src/motor.js';
 import { escribirDesde } from '../src/escritura.js';
 import { ejeTemporal } from '../src/tiempo.js';
@@ -28,11 +30,14 @@ const serie = (concepto) => 'E:casa/' + concepto;
 const presupuesto = (eje, tarea, t, payload, autor = 'proveedor') =>
   escribirDesde(eje, { modo: 'sequenced', autor, sobre: tarea.id, en: tarea.payload[5], t, payload });
 
-/** Cuántos presupuestos (escritos) colisionan en los recursos: una consulta; no ocupa posición en la tarea. */
-const recibidos = (eje, tarea) => consultar(eje, tarea.id, [9], 'CONTAR(FILTRAR(BUSCAR(1), ORIGEN() = "escrito"))').texto;
+/** Una consulta del BQL mínimo con it = el registro `id` (como una fórmula de su payload). */
+const leer = (eje, id, formula) => leerFormula(formula, { k: 'reg', id }, contextoDeLectura(eje));
 
-/** Los presupuestos que caben en coste y en plazo: la fórmula del 9 sin su ELEGIR. */
-const CABEN = 'FILTRAR(FILTRAR(BUSCAR(1), ORIGEN() = "escrito"), Y(ACTUAL(1) <= LOCAL(1, 1), ACTUAL(2) <= LOCAL(2, 1)))';
+/** Cuántos presupuestos elegibles (escritos donde la tarea busca, por quien nombra) colisionan en los recursos: una consulta; no ocupa posición en la tarea. */
+const recibidos = (eje, tarea) => leer(eje, tarea.id, '=count (down it where last it2.6.5 = first (payload(it)).5 and (first it2.3 = first it.3 or first it2.3 in (payload(it)).3))').texto;
+
+/** Los presupuestos que caben en coste y en plazo: la fórmula del 9 sin su first. */
+const CABEN = '=' + FORMULA_ELECCION.slice('=first '.length);
 
 const minuto = (de, cantidad) => (cantidad === undefined ? pagaElCoste(de) : { token: 'T', escala: 'minuto', cantidad, de, a: null });
 
@@ -77,9 +82,10 @@ test('ejemplo Tasks: saldos por serie; escribir cuesta minutos y solo quien trab
   // (VG, 8-11: no hay T acumulable). Ya no libera P al acabar.
   assert.deepEqual([T('casa'), consumido('casa')], [[0, 0], [36, 0]]);
   assert.deepEqual(eje.recursos('proveedor').filter((r) => r.denominacion === 'hora'), [{ emisor: 'casa', denominacion: 'hora', cantidad: 20 }]);
-  // La organizadora: su alta (1), la tarea (33), la fecha límite (1), la consolidación (10), el anuncio (1: su payload
+  // La organizadora: su alta (1), la tarea (43: su 1.1 y su 4.1 son magnitudes desplegadas y su 8 el coste y el tiempo
+  // desplegados, retirada de BQL V0, #113), la fecha límite (1), la consolidación (10), el anuncio (1: su payload
   // dice para qué; lo anunciado son sus dos movimientos, VG 12-11, decisión 8) y el pago (1).
-  assert.deepEqual([T('organizadora'), consumido('organizadora')], [[0, 0], [1 + 33 + 1 + 10 + 1 + 1, 0]]);
+  assert.deepEqual([T('organizadora'), consumido('organizadora')], [[0, 0], [1 + 43 + 1 + 10 + 1 + 1, 0]]);
   // El proveedor: su alta (1), dos presupuestos (4 cada uno) y la entrega (2), y las 6 horas que trabaja.
   assert.deepEqual([T('proveedor'), consumido('proveedor')], [[0, 0], [1 + 2 * 4 + 2, 6]]);
   // Todo registro tras el génesis cuesta minutos a su autor; solo la entrega consume horas, y son del proveedor.
@@ -127,8 +133,8 @@ test('partidas: cada una es una posición con capacidad respaldada por una serie
   const { eje, partidas, tarea } = await ejemploTarea({ hasta: 'tarea' });
   PARTIDAS.forEach((_, k) => {
     // Del registro: el concepto (1.k.0) da la denominación y el importe (1.k.1), la capacidad.
-    const concepto = evaluar(eje, partidas.id, [1, k + 1, 0]).valor.valor;
-    const importe = evaluar(eje, partidas.id, [1, k + 1, 1]).valor;
+    const concepto = leerPosicion(eje, partidas.id, [1, k + 1, 0]).valor[0];
+    const importe = magnitudEn(eje, partidas.id, [1, k + 1, 1]); // el .1 y el .2 de «250 EUR»
     assert.equal(importe.unidad, 'EUR');
     // Del eje: la serie es de quien escribe las partidas, y lleva emitido tanto como la capacidad.
     assert.deepEqual(eje.serie('E:' + partidas.autor + '/' + concepto), { emisor: 'casa', emitido: importe.cantidad });
@@ -138,7 +144,7 @@ test('partidas: cada una es una posición con capacidad respaldada por una serie
     assert.deepEqual([s.registro, s.tope, s.nota], [eje.genesisId, null, 'sin capacidad declarada: deuda del emisor']);
   });
   // La organizadora tiene en E exactamente el coste total de su tarea: las series de sus partidas y nada más.
-  const coste = evaluar(eje, tarea.id, indicesDe(DIR_COSTE)).valor;
+  const coste = magnitudEn(eje, tarea.id, indicesDe(DIR_COSTE));
   const suyo = eje.recursos('organizadora');
   assert.ok(suyo.every((x) => x.emisor === 'casa'));
   assert.deepEqual([suyo.reduce((s, x) => s + x.cantidad, 0), coste.unidad], [coste.cantidad, 'EUR']);
@@ -152,21 +158,16 @@ test('hilo y fórmulas: las partidas se referencian, no se copian; coste, tiempo
   const refs = tarea.payload[1][0].slice(1);
   assert.ok(refs.every((x) => esReferencia(x) && x.ref === partidas.id));
   assert.deepEqual(refs.map((x) => resolver(eje.obtener(x.ref).payload, x.dir)), [['250 EUR'], ['60 EUR'], ['40 EUR']]);
-  // 1.1 coste total = suma de las partidas, con su desglose y sus dependencias.
-  const coste = evaluar(eje, tarea.id, indicesDe(DIR_COSTE));
-  assert.equal(coste.texto, '350 EUR (250 EUR + 60 EUR + 40 EUR)');
-  assert.ok(coste.dependencias.includes(partidas.id + ':1110000000'));
+  // 1.1 coste total = suma de las partidas, desplegado (1.1.1 la cantidad, 1.1.2 la unidad). La fórmula lee las
+  // cantidades de las partidas a través de sus referencias (lo escrito en la tarea, payload(it)): no las copia.
+  assert.deepEqual(magnitudEn(eje, tarea.id, indicesDe(DIR_COSTE)), { cantidad: 350, unidad: 'EUR', texto: '350 EUR' });
+  assert.deepEqual(leer(eje, tarea.id, '=(payload(it)).1.0').valor, ['Partidas', '250 EUR', '60 EUR', '40 EUR']);
   // 4.1 tiempo previsto = suma de los pasos en horas.
-  assert.equal(tiempoPrevisto(eje, tarea.id).texto, '7 h (1 h + 2 h + 3 h + 1 h)');
-  // 8 composición «EUR + horas»: dos partes que no se funden.
-  const comp = evaluar(eje, tarea.id, [8]);
-  assert.equal(comp.valor.tipo, 'composicion');
-  assert.deepEqual(comp.valor.partes.map((p) => [p.cantidad, p.unidad]), [[350, 'EUR'], [7, 'h']]);
-  assert.equal(comp.valor.partes[0].desglose.length, 3);
-  // El defecto de BQL que esta prueba fijaba (el operando derecho perdía su desglose) lo corrigió #36: cada valor sumado conserva el suyo.
-  assert.deepEqual(comp.valor.partes[1].desglose, [{ cantidad: 1, unidad: 'h' }, { cantidad: 2, unidad: 'h' }, { cantidad: 3, unidad: 'h' }, { cantidad: 1, unidad: 'h' }]);
-  assert.equal(comp.texto, '350 EUR (250 EUR + 60 EUR + 40 EUR) + 7 h (1 h + 2 h + 3 h + 1 h)');
-  assert.equal(consultar(eje, tarea.id, [8], '(1 EUR + 2 EUR) + (3 EUR + 4 EUR)').texto, '10 EUR (1 EUR + 2 EUR + 3 EUR + 4 EUR)');
+  assert.equal(tiempoPrevisto(eje, tarea.id).texto, '7 h');
+  // 8: el coste (8.1) y el tiempo (8.2), desplegados: la composición «EUR + horas» del V0 no tiene equivalente (#113).
+  assert.deepEqual([magnitudEn(eje, tarea.id, [8, 1]).texto, magnitudEn(eje, tarea.id, [8, 2]).texto], ['350 EUR', '7 h']);
+  // Sin encadenar: leer el 1.1 da su texto, no su resultado.
+  assert.deepEqual(leer(eje, tarea.id, '=first (payload(it)).1.1.1').valor, ['=sum (payload(it)).1.0.1']);
   // Su criterio (2) nombra la plantilla de cerrado de la época (encargo 3b), en 2.3.
   assert.deepEqual(tarea.payload[2], ['Criterios', '8 h', 'anclada, tensada y sin goteras', CERRADO]);
 });
@@ -187,9 +188,9 @@ test('encaje de la dirección 1: lo propio y los presupuestos colisionan; correg
   assert.ok(oc.slice(0, 7).every((o) => o.signo === 'exacto' && o.acuerdo === 10));
   assert.equal(recibidos(eje, tarea), '2');
   // El 9 se queda con el primero que cabe: el caro (420 EUR > 350 EUR) sigue ahí, pero no cabe.
-  assert.deepEqual(evaluar(eje, tarea.id, [9]).valor.items.map((i) => i.evento), [corregido.id]);
+  assert.deepEqual(leerPosicion(eje, tarea.id, [9]).valor.map((o) => o.id), [corregido.id]);
   // Sin el criterio de coste y plazo, decide la llegada: el caro primero.
-  assert.equal(consultar(eje, tarea.id, [9], 'ELEGIR(FILTRAR(BUSCAR(1), ORIGEN() = "escrito"))').valor.items[0].evento, caro.id);
+  assert.equal(leer(eje, tarea.id, '=first (down it where last it2.6.5 = "1000000000")').valor[0].id, caro.id);
 });
 
 test('proponer: sin presupuestos el 9 no propone; el caro no cabe en coste, el lento no cabe en plazo; el corregido sí', async () => {
@@ -203,26 +204,25 @@ test('proponer: sin presupuestos el 9 no propone; el caro no cabe en coste, el l
   assert.deepEqual(proponer(eje, tarea.id, { posiciones: [9] }).pendientes, [{ posicion: 9, motivo: 'sin candidatos' }]);
   // El plazo también decide: uno barato que tarda 9 h no cabe en las 8 h de la tarea.
   await presupuesto(eje, tarea, '2026-11-07T18:00:00Z', ['Presupuesto: sin prisa', '200 EUR', '9 h', 'proveedor']);
-  assert.deepEqual(evaluar(eje, tarea.id, [9]).valor.items, []);
+  assert.deepEqual(leerPosicion(eje, tarea.id, [9]).valor, []);
   assert.equal(recibidos(eje, tarea), '2');
 
   const r = await ejemploTarea({ hasta: 'consolidada' });
   const p = r.propuesta;
-  assert.deepEqual(p.origenes.map((o) => [o.posicion, o.desde]), [[1, 'foco'], [2, 'foco'], [3, 'foco'], [4, 'foco'], [8, 'formula'], [9, 'formula']]);
+  assert.deepEqual(p.origenes.map((o) => [o.posicion, o.desde]), [[1, 'foco'], [2, 'foco'], [3, 'foco'], [4, 'foco'], [8, 'foco'], [9, 'formula']]);
   assert.equal(p.elecciones[9].candidato.evento, r.presupuestos[1].id);
-  assert.equal(typeof p.elecciones[8], 'string'); // la composición entra como terminal
+  assert.deepEqual(p.elecciones[8], { ref: r.tarea.id, dir: '8000000000' }); // el 8 (coste y tiempo desplegados) es lo escrito: por referencia
   assert.deepEqual(p.pendientes, []);
 });
 
 test('[X] decidir VG: preferir la corrección; si el original también cabe, el 9 elige por llegada el original', async () => {
-  // Con ORIGEN y la llegada, la fórmula solo puede quedarse con el primero que cabe:
-  // BQL no lee ni el autor ni la llegada de un candidato, ni toma el último de una colección.
+  // La fórmula del 9 se queda con el primero que cabe, por llegada (con el BQL mínimo podría tomar el último: last).
   const { eje, tarea } = await ejemploTarea({ hasta: 'tarea' });
   const original = await presupuesto(eje, tarea, '2026-11-07T17:00:00Z', ['Presupuesto: carpa con suelo de madera', '340 EUR', '5 h', 'proveedor']);
   const corregido = await presupuesto(eje, tarea, '2026-11-08T09:30:00Z', ['Presupuesto corregido: carpa sin suelo', '310 EUR', '6 h', 'proveedor']);
   // Los dos caben en coste y en plazo, por orden de llegada, y el 9 elige el original.
-  assert.deepEqual(consultar(eje, tarea.id, [9], CABEN).valor.items.map((i) => i.evento), [original.id, corregido.id]);
-  assert.deepEqual(evaluar(eje, tarea.id, [9]).valor.items.map((i) => i.evento), [original.id]);
+  assert.deepEqual(leer(eje, tarea.id, CABEN).valor.map((o) => o.id), [original.id, corregido.id]);
+  assert.deepEqual(leerPosicion(eje, tarea.id, [9]).valor.map((o) => o.id), [original.id]);
 });
 
 test('quién ocupa una posición ajena (mapa §12 [D], R8): la casa escribe en los recursos de la tarea, colisiona y no es elegible; el 9 elige al proveedor', async () => {
@@ -232,8 +232,9 @@ test('quién ocupa una posición ajena (mapa §12 [D], R8): la casa escribe en l
   const ajeno = await presupuesto(eje, tarea, '2026-11-07T16:00:00Z', ['yo mismo', '349 EUR', '1 h', 'casa'], 'casa');
   const delProveedor = await presupuesto(eje, tarea, '2026-11-08T09:30:00Z', ['Presupuesto corregido: carpa sin suelo', '310 EUR', '6 h', 'proveedor']);
   assert.ok(ocupantes(eje, tarea.id, [1]).some((o) => o.evento === ajeno.id));
-  const buscados = consultar(eje, tarea.id, [9], 'BUSCAR(LOCAL(5))');
-  assert.deepEqual([buscados.valor.items.some((i) => i.evento === ajeno.id), buscados.valor.noElegibles], [false, 1]);
+  const buscados = ocupantesElegibles(eje, tarea.id, indicesDe(tarea.payload[5]));
+  assert.deepEqual([buscados.lista.some((o) => o.evento === ajeno.id), buscados.noElegibles], [false, 1]);
+  assert.equal(leer(eje, tarea.id, CABEN).valor.some((o) => o.id === ajeno.id), false); // la fórmula del 9 lee el 3 de la tarea
   const p = proponer(eje, tarea.id, { posiciones: [1, 2, 3, 4, 8, 9] });
   assert.equal(p.elecciones[9].candidato.evento, delProveedor.id);
   const c = await consolidar(eje, { autor: 'organizadora', foco: tarea.id, t: '2026-11-08T10:00:00Z', elecciones: p.elecciones });
@@ -245,12 +246,12 @@ test('quién ocupa una posición ajena (mapa §12 [D], R8): la casa escribe en l
 
 test('[X] decidir VG: una nota terminal en 1 deja la elección PENDIENTE', async () => {
   // Cualquiera con minutos puede escribir en los recursos de la tarea. Un
-  // terminal no tiene posición 1, ACTUAL(1) para la consulta entera y el 9
-  // deja de proponer: falta una política de candidatos pendientes.
+  // terminal no tiene posición 1: comparar su precio (vacío) deja PENDIENTE la
+  // consulta entera y el 9 deja de proponer: falta una política de candidatos pendientes.
   const { eje, tarea } = await ejemploTarea({ hasta: 'presupuestos' });
   await escribirDesde(eje, { modo: 'pointed', autor: 'proveedor', sobre: tarea.id, en: tarea.payload[5], t: '2026-11-08T09:40:00Z', payload: 'llamadme antes de las 9' });
   assert.equal(recibidos(eje, tarea), '3');
-  assert.equal(evaluar(eje, tarea.id, [9]).estado, 'PENDIENTE');
+  assert.equal(leerPosicion(eje, tarea.id, [9]).estado, 'PENDIENTE');
   assert.deepEqual(proponer(eje, tarea.id, { posiciones: [9] }).pendientes.map((x) => x.posicion), [9]);
 });
 
@@ -264,8 +265,8 @@ test('ciclo: consolidar → la organizadora anuncia el pago → lo paga con su p
   // [X] decidir VG: el encaje del 9 guarda el vector de la búsqueda (todo ceros) aunque el presupuesto viene del 1 y se coloca en el 9.
   const e9 = c.contexto.encaje.find((x) => x.posicion === 9);
   assert.deepEqual([e9.origen, e9.destino, e9.signo], ['1000000000', '9000000000', 'exacto']);
-  // [X] decidir VG: la composición consolidada es texto; BQL ya no la lee como composición.
-  assert.equal(evaluar(eje, c.id, [8]).valor.tipo, 'texto');
+  // El 8 de la tarea (el coste y el tiempo desplegados) es lo escrito: la consolidación lo lleva por referencia.
+  assert.deepEqual(c.payload[8], { ref: tarea.id, dir: '8000000000' });
 
   // El pago sale de BQL: el precio elegido (310 EUR), repartido por orden en las series de la casa de las partidas de la tarea.
   const mov = movimientosDeEjecucion(eje, c.id, tarea.id);
@@ -308,9 +309,9 @@ test('entrega: el proveedor consume las horas de su presupuesto; las previstas n
   const { eje, tarea, consolidacion: c, entrega } = await ejemploTarea({ hasta: 'entregada' });
   assert.deepEqual([entrega.sobre, entrega.en], [c.id, FABRICA]);
   // Lo que consume se lee a través de la referencia de su 1: las 6 h del presupuesto elegido, no las 7 h de la tarea.
-  assert.equal(consultar(eje, entrega.id, [0], 'LOCAL(1)').texto, '6 h');
+  assert.equal(leerPosicion(eje, entrega.id, [1]).texto, '6 h');
   assert.deepEqual(entrega.movimientos.filter((m) => m.escala === 'hora'), [{ token: 'T', escala: 'hora', cantidad: 6, de: 'proveedor', a: null }]);
-  assert.equal(tiempoPrevisto(eje, tarea.id).valor.cantidad, 7);
+  assert.equal(tiempoPrevisto(eje, tarea.id).cantidad, 7);
   // La entrega no cierra la tarea: lo anunciado es el pago, y aún falta (recibos de terceros, docs/MOTOR.md §12).
   assert.equal(cerrado(eje, tarea.id).cerrado, false);
   assert.equal(siguiente(eje, tarea.id, 'organizadora').faltaDeMi.length, 1); // los dos movimientos, en una transacción sobre su anuncio
@@ -379,8 +380,8 @@ test('comparar entre tareas hermanas: misma décupla, mismas direcciones', async
       fechaLimite: FECHA_LIMITE,
     }),
   });
-  assert.equal(evaluar(eje, escenario.id, indicesDe(DIR_COSTE)).texto, '120 EUR');
-  assert.equal(tiempoPrevisto(eje, escenario.id).texto, '3 h (2 h + 1 h)');
+  assert.equal(magnitudEn(eje, escenario.id, indicesDe(DIR_COSTE)).texto, '120 EUR');
+  assert.equal(tiempoPrevisto(eje, escenario.id).texto, '3 h');
   // VG, 7-11 noche: se retira comparar(); sin base escrita en el 8 de las partidas, el respaldo al vuelo lo dice.
   const c = situar(eje, tarea.id, { respaldo: true });
   assert.deepEqual([c.n, c.escrita, c.frescura], [2, false, 'sin base escrita']);
@@ -388,11 +389,12 @@ test('comparar entre tareas hermanas: misma décupla, mismas direcciones', async
   assert.ok(!('posicion' in c));
   // Misma estructura, mismas direcciones: el coste y el tiempo de una hermana se leen donde están los propios,
   // aunque una tenga cuatro pasos y la otra dos.
-  const id = escenario.id.slice(0, 12);
-  assert.equal(consultar(eje, tarea.id, [8], 'REF("' + id + '", "' + DIR_COSTE + '") < LOCAL(1, 1)').texto, 'verdadero');
-  assert.equal(consultar(eje, tarea.id, [8], 'REF("' + id + '", "' + DIR_TIEMPO + '") < LOCAL(4, 1)').texto, 'verdadero');
-  // [X] decidir VG: dos composiciones «EUR + horas» no se comparan; hay que ir parte a parte.
-  assert.equal(consultar(eje, tarea.id, [8], 'REF("' + id + '", "8000000000") < LOCAL(8)').estado, 'INCOMPATIBLE');
+  for (const camino of [indicesDe(DIR_COSTE), indicesDe(DIR_TIEMPO), [8, 1], [8, 2]]) {
+    assert.ok(magnitudEn(eje, escenario.id, camino).cantidad < magnitudEn(eje, tarea.id, camino).cantidad, camino.join('.'));
+  }
+  // Con el BQL mínimo, sin encadenar: se comparan las cantidades escritas (las de las partidas), no el resultado del 1.1.
+  assert.deepEqual(leer(eje, tarea.id, '=sum (payload("' + escenario.id + '")).1.0.1 < sum (payload(it)).1.0.1').valor, [true]);
+  assert.equal(leer(eje, tarea.id, '=(payload("' + escenario.id + '")).1.1.1 < 350').estado, 'ERROR'); // lee el texto de la fórmula
 });
 
 test('con claves: cada identidad firma lo suyo y el eje se reconstruye exigiendo firmas', async () => {

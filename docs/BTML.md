@@ -28,7 +28,7 @@ Antes de copiar un id de este documento: los ids cambian en cuanto cambia cualqu
 | `src/lectura.js` | Lectura humana de un payload y de un registro: un esquema de texto, una línea por posición (§3.5) | `leer`, `leerEvento` |
 | `src/persistencia.js` | Guardar y reconstruir el eje | `serializar`, `restaurar`, `guardarLocal`, `cargarLocal`, `borrarLocal` |
 
-`src/index.js` reexporta `btml.js`, `tokens.js`, `evento.js`, `eje.js`, `epocas.js`, `modos.js` y `lectura.js` en plano, y como espacios de nombres `pointed`, `sequenced`, `mapped`, `scened`, `salida` (= `src/escritura.js`), `bql`, `encaje`, `motor`, `autoridad`, `tiempo`, `persistencia`, `bases`, `efectos`, `validez`, `libro` y `condiciones`: `import { Eje, crearEvento, encaje, bql, motor } from './src/index.js'`. Cuidado también con `validez`: es el espacio de nombres de `src/validez.js`, y la función es `validez.validez`. Cuidado: `escritura` en plano **no** es el módulo `src/escritura.js` sino la función de `modos.js` que da la proporción de escritura de un modo; el módulo es `salida`. No hay espacios de nombres `btml`, `tokens`, `evento`, `eje`, `epocas` ni `modos`: lo suyo se importa en plano (`import { direccion, indicesDe, Eje } from './src/index.js'`; `import { btml } from …` falla con `does not provide an export named 'btml'`).
+`src/index.js` reexporta `btml.js`, `tokens.js`, `evento.js`, `eje.js`, `epocas.js`, `modos.js` y `lectura.js` en plano, y como espacios de nombres `pointed`, `sequenced`, `mapped`, `scened`, `salida` (= `src/escritura.js`), `bqlm`, `encaje`, `motor`, `autoridad`, `tiempo`, `persistencia`, `bases`, `efectos`, `validez`, `libro` y `condiciones`: `import { Eje, crearEvento, encaje, bqlm, motor } from './src/index.js'`. Cuidado también con `validez`: es el espacio de nombres de `src/validez.js`, y la función es `validez.validez`. Cuidado: `escritura` en plano **no** es el módulo `src/escritura.js` sino la función de `modos.js` que da la proporción de escritura de un modo; el módulo es `salida`. No hay espacios de nombres `btml`, `tokens`, `evento`, `eje`, `epocas` ni `modos`: lo suyo se importa en plano (`import { direccion, indicesDe, Eje } from './src/index.js'`; `import { btml } from …` falla con `does not provide an export named 'btml'`).
 
 ## 1. El evento
 
@@ -371,7 +371,7 @@ En Booking (`ejemplos/ikisai/reserva-booking.mjs`), la casa escribe el registro 
 | Terminal | Condición | Ejemplo |
 |---|---|---|
 | número | `typeof x === 'number'` y finito | `12`, `-0.5` |
-| cadena | `typeof x === 'string'` y no vacía | `'Menú del día'`, `'EUR 12'`, `'=LOCAL(1) + 15 min'` |
+| cadena | `typeof x === 'string'` y no vacía | `'Menú del día'`, `'EUR 12'`, `'=(payload(it)).1 + 15'` |
 | referencia | `esReferencia(x)` | `{ ref: '4598…ac91', dir: '1000000000' }` |
 
 No son terminales: `''`, `NaN`, `Infinity`, `true`/`false`, `null`, `undefined`, objetos sin `ref`. Una cadena que empieza por `=` es una fórmula BQL y por `==` un texto escapado: eso lo interpreta BQL, no BTML; para BTML son cadenas.
@@ -472,7 +472,7 @@ Regla general de BTML, en las tres casas (AGRAM, StateArk, Be): **ninguna posici
 
 - **No copian.** Lo que hay en el destino se lee al resolver (`encaje.seguir`, `encaje.ocupantes`, BQL `leerSlot`), nunca al escribir.
 - `esReferencia` solo comprueba la forma: **exactamente** las claves propias `ref` (cadena no vacía) y, si está, `dir` (dirección válida). Una clave de más (`{ ref, extra }`), un `ref` heredado por prototipo o un `dir` presente pero `undefined` no son referencia: nada más viaja dentro de una referencia. **No se comprueba al escribir que `ref` exista en el eje**: una referencia a un id desconocido se guarda y, al seguirla, sale con `rota: true`, `estado: 'PENDIENTE'` y su `motivo` (el evento puede llegar; no es un error, corpus V4). Tampoco que `dir` exista en ese evento: una referencia a una posición que no desarrolla se guarda y, al seguirla, alcanza `contenido: undefined` **sin** `rota` (BQL la lee PENDIENTE `posición sin desarrollar`).
-- `ref` debe ser el **id completo**. Los prefijos (`'21367950'`) solo los resuelven BQL (`REF("21367950")`) y la entrada de texto de `escritura.item` (`'@21367950:1200000000'`), que los convierten en id completo antes de guardar.
+- `ref` debe ser el **id completo**. Los prefijos (`'21367950'`) solo los resuelve la entrada de texto de `escritura.item` (`'@21367950:1200000000'`), que los convierte en id completo antes de guardar. Una fórmula del payload nombra otro registro por su id completo (`(payload("<id>")).1.2`, `docs/BQLM.md` §14).
 - Sin `dir`, la referencia apunta al payload entero (`'0000000000'`).
 - `btml.resolver` **no** sigue referencias; `encaje.seguir` sigue cadenas de referencias hasta 20 saltos.
 
@@ -786,7 +786,7 @@ Un evento declara dónde se anida: `sobre` es el id del registro en foco y `en` 
 eje.sobre(id, en?)  // → hijos directos de `id`, en orden de entrada; con `en`, solo los anclados en esa dirección
 eje.hilo(id)        // → [evento, su foco, el foco de su foco, …, génesis]
 eje.obtener(id)     // → evento o undefined
-eje.conPrefijo(p)   // → ids que empiezan por p, en orden de entrada (lo que resuelven «@id», REF("id") y las aristas de fórmula de Scened)
+eje.conPrefijo(p)   // → ids que empiezan por p, en orden de entrada (lo que resuelve «@id»)
 ```
 
 `sobre(id, en)` y `conPrefijo(p)` van por índices que el eje mantiene al añadir (por dirección de anclaje y por los cuatro primeros caracteres del id): devuelven lo mismo que filtrar los hijos o `eje.orden`, sin recorrerlos. Coste medido en `docs/notas/RENDIMIENTO.md`.
@@ -886,7 +886,7 @@ escrito [] cuenta 1000000000 [0,0,0,0,0,0,0,0,0,0] exacto 10 ["cuenta:0000000000
 0:huesped 1:cocina
 ```
 
-Los cuatro son encaje exacto (el elemento de la 1.0 lleva `enLista` e `indice: 0`, y la 3, `['huesped', 'cocina']`, da un ocupante por elemento): la cuenta está anclada justo en `1000000000`, así que su `origenDir` es esa dirección (§6.2). Como empatan en acuerdo, salen en orden de llegada. Contar los ocupantes de una dirección cuenta también la colisión por ceros: `[1]` y `[1, 0]` son dos ocupantes aunque el segundo sea la posición 0 del primero (decisión de VG, «colisiones, no apaños», mapa §12: la dirección nombra la colisión entera; buscar por índice, decidido como camino exacto, aún no existe: `docs/BQL.md` §11).
+Los cuatro son encaje exacto (el elemento de la 1.0 lleva `enLista` e `indice: 0`, y la 3, `['huesped', 'cocina']`, da un ocupante por elemento): la cuenta está anclada justo en `1000000000`, así que su `origenDir` es esa dirección (§6.2). Como empatan en acuerdo, salen en orden de llegada. Contar los ocupantes de una dirección cuenta también la colisión por ceros: `[1]` y `[1, 0]` son dos ocupantes aunque el segundo sea la posición 0 del primero (decisión de VG, «colisiones, no apaños», mapa §12: la dirección nombra la colisión entera; buscar por índice es el camino exacto: `encaje.ocupantes` con `exacto`).
 
 Un ocupante completo, tal como lo devuelve `ocupantes` (el tercero, la referencia seguida):
 
@@ -950,7 +950,7 @@ norma(v)                    // → suma de |d|; medida de consulta (BQL DESPLAZA
 ordenarPorEncaje(lista, { epoca } = {})  // → nueva lista ordenada por `.vector`, sin quitar nada
 ```
 
-Orden por encaje (`ordenarPorEncaje`, el orden por defecto de `ocupantes` y de BQL `BUSCAR`):
+Orden por encaje (`ordenarPorEncaje`, el orden por defecto de `ocupantes`, de `descubrir` y de los candidatos de `proponer`):
 
 1. más profundidades de acuerdo primero (el acuerdo de prefijo: los exactos, con acuerdo 10, van delante);
 2. a igual acuerdo, menor distancia **solo en las profundidades que la época declare ordinales** (`epoca.ordinal(profundidad)`), comparando profundidad a profundidad, sin sumar. La época 0 no declara ninguna (sus dígitos son nominales: cada uno es un PV), así que hoy este paso no hace nada; `BUSCAR` no pasa época;
@@ -1059,7 +1059,7 @@ lista(eje, id, indices)  // → [{ llegada, tipo: 'propio' | 'escrito', evento, 
 
 `llegada` es el orden del **evento** (0 lo propio, 1, 2… cada escrito): los elementos de una lista comparten llegada. `alcanza`, si el contenido es una referencia, es lo que alcanza (`seguir`), sin copiar.
 
-`ocupantes` (§6.1) sigue siendo el encaje de una **dirección**: la colisión entera, con la décupla de la posición como un ocupante, su camino 1.0 como otro (o sus elementos, si es una lista) y lo que alcanzan las referencias. `lista` es la lista de la **posición**, por llegada y sin encaje. En BQL (`docs/BQL.md` §7.4), `BUSCAR(1)` da la lista de la posición 1 con cada elemento aparte, `BUSCAR(1, k)` el ocupante k por llegada, y `LOCAL` (índices) sí entra en una lista; `REF` (dirección) no.
+`ocupantes` (§6.1) sigue siendo el encaje de una **dirección**: la colisión entera, con la décupla de la posición como un ocupante, su camino 1.0 como otro (o sus elementos, si es una lista) y lo que alcanzan las referencias. `lista` es la lista de la **posición**, por llegada y sin encaje. En el BQL mínimo (`docs/BQLM.md` §4), `X.1` da los ocupantes de la posición 1, con cada elemento de una lista aparte, y `nth k X.1` el ocupante k por llegada. (El BQL V0, retirado con #113, lo hacía con `BUSCAR(1)`, `BUSCAR(1, k)` y `LOCAL`.)
 
 ```sh
 node --input-type=module -e "
@@ -1077,7 +1077,7 @@ console.log(leerCamino([3, 1], 'época 0', { payload: compra.payload }).map((x) 
 
 ```text
 0 propio 1 [[{"ref":"<menú>","dir":"1000000000"}],[
-1 escrito raíz ["Cuenta del menú","=REF(\"<compra>\", \
+1 escrito raíz ["Cuenta del menú",[["precio con propina
 0 propio 0 ensalada
 0 propio 1 guiso
 0 propio 2 fruta
@@ -1375,11 +1375,11 @@ Pendiente: persistencia en base de datos y anclaje a una cadena. La forma de los
 | alta de cocina | casa | génesis | `0000000000` | `["cocina"]`: su nombre es su 0; la casa, su dueña, le da T (y euros a la huésped) |
 | menú | cocina | alta | `0000000000` | `["Menú del día", ["ensalada", "guiso", "fruta"], ["sin gluten", "vegetariano"]]` |
 | compra | huesped | menú | `0000000000` | `["Compra del menú del día", [[{ref: menú, dir: "1000000000"}], [1], ["EUR 12"]], [{ref: menú, dir: "2000000000"}, "all announced movements happened"], ["huesped", "cocina"], ["pagar", "servir"]]` |
-| cuenta | cocina | compra | `1000000000` | `["Cuenta del menú", "=REF(\"<compra>\", \"1200000000\") + 2 EUR", "=LOCAL(1) + 15 min", "==no es fórmula"]` |
+| cuenta | cocina | compra | `1000000000` | `["Cuenta del menú", [["precio con propina"], ["=(payload(\"<compra>\")).1.2.1 + 2"], ["EUR"]], "15 min", "==no es fórmula"]` |
 
 Series: la casa (una persona: escribe el génesis, que es su alta; B1) emite al empezar 10 `R:casa` y 500 `E:casa/EUR` (la serie es suya: la clave lleva al emisor); ningún T se emite, y P no se emite: cada registro da diez P a quien lo escribe, y quien recibe R o E de su emisor obtiene diez P por unidad en su registro, de origen él (§2.5; encargo 3b-bis). La huésped entra por la invitación de la casa (es una persona) y recoge la unidad de R que le guardaba; la casa da de alta a la cocina (una cosa) con horas y minutos de su T, que son tokens distintos, y da euros a la huésped. Las personas gastan de su asignación del día; la cocina, del T que le dio la casa. Saldos tras los ocho eventos: casa 440 EUR y 9 `R:casa`; cocina 18 h y 237 min de T, 12 EUR; huesped 48 EUR y 1 `R:casa`; y cada uno, diez P por registro propio, más los obtenidos sobre el génesis (la huésped, veinte: por la R y por los euros; la cocina, diez: por los euros).
 
-Qué ocupa cada dirección de la compra (con la cuenta escrita) está en §6.6. En particular, la posición 4 solo tiene sus dos propios (`[4]` y `[4, 0]`): nadie ha escrito en ella. Los escenarios con propinas escritas en `4000000000` que usa `docs/BQL.md` son de las pruebas (`test/bql-colecciones.test.js`), no de este eje.
+Qué ocupa cada dirección de la compra (con la cuenta escrita) está en §6.6. En particular, la posición 4 solo tiene sus dos propios (`[4]` y `[4, 0]`): nadie ha escrito en ella. Los escenarios con propinas escritas en `4000000000` que usaba el BQL V0 (retirado, #113) eran de sus pruebas, no de este eje.
 
 ```js
 import { ejemploCompra, ejemploCuenta } from './ejemplos/ikisai/compra-food.mjs';

@@ -49,7 +49,8 @@ import { ARIDAD, esReferencia, esLista, direccion, indicesDe, resolver } from '.
 import { ESCALAS_T, ESCALAS_REALES, SEGUNDOS, claveToken, partirClave, franjaDe, diaCivil, validarMovimiento, esAnunciado } from './tokens.js';
 import { esInstante, msUTC } from './instante.js';
 import { contenido } from './modos.js';
-import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla } from './bqlm.js';
+import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula } from './bqlm.js';
+import { epocaDelEje } from './epocas.js';
 
 /** Quien está al otro lado de una emisión o de un consumo: el símbolo de src/bqlm.js, nunca un texto (SEG-11). */
 export { NADIE };
@@ -70,7 +71,7 @@ const MAX_SALTOS = 20;
 
 const RE_ID = /^[0-9a-f]{64}$/;
 const RE_SERIE = /^([EPRT]):(.+)$/;
-// Como la magnitud de src/bql.js, pero con un espacio al menos entre la cifra y la unidad: «huesped2» no es «2 huesped».
+// Una magnitud escrita: la cifra y la unidad con un espacio al menos entre ellas («huesped2» no es «2 huesped»).
 const RE_MAGNITUD = /^(?:(-?\d+(?:\.\d+)?)\s+([\p{L}€$%][\p{L}\p{N}_€$%]*)|([\p{L}€$%][\p{L}\p{N}_€$%]*)\s+(-?\d+(?:\.\d+)?))$/u;
 
 const CANDIDATA = Object.freeze({ k: 'ev' });
@@ -1246,3 +1247,72 @@ export class ContextoEje {
     }
   }
 }
+
+// ---------- leer un registro: el contexto y las fórmulas del payload (retirada de BQL V0, #113) ----------
+
+/**
+ * El contexto con que el núcleo lee un registro de la vista: sin candidata, con la época del eje. Es el de una lectura
+ * de la época con sujeto (bqlm.leerRegla, la lente, el motor) y el de las fórmulas del payload (bqlm.leerFormula). Lo
+ * que la vista no trae, falta.
+ */
+export function contextoDeLectura(vista) {
+  return new ContextoEje(vista, { epoch: epocaDelEje(vista) });
+}
+
+/**
+ * El nodo de un payload en un camino de índices, como lo escribió su autor: una lista (fuera de la raíz, solo hojas) se
+ * recorre por su índice; una lista de un ocupante se lee como su ocupante (forma canónica). Devuelve { nodo, resto,
+ * enLista }: `resto`, los índices que quedan cuando el camino llega a una hoja antes de acabar (los de su despliegue,
+ * como el .1 de «EUR 12»); `enLista`, si el camino entra en una lista de más de un ocupante.
+ */
+function enCamino(payload, camino, { uno = true } = {}) {
+  let nodo = payload;
+  let enLista = false;
+  for (let k = 0; k < camino.length; k++) {
+    if (k > 0 && esLista(nodo) && nodo.length === 1) nodo = nodo[0];
+    if (!Array.isArray(nodo)) return { nodo, resto: camino.slice(k), enLista };
+    if (k > 0 && esLista(nodo)) enLista = true;
+    nodo = nodo[camino[k]];
+  }
+  if (uno && camino.length > 0 && esLista(nodo) && nodo.length === 1) nodo = nodo[0];
+  return { nodo, resto: [], enLista };
+}
+
+/** El texto de un literal en una fórmula: un texto entre comillas o un número. */
+const literal = (x) => (typeof x === 'number' ? String(x) : JSON.stringify(String(x)));
+
+/**
+ * Lee la posición `camino` (índices) del payload del registro `id` de la vista y, con `indice`, ese elemento de la
+ * lista que hay ahí. Si es una fórmula, con bqlm.leerFormula (it = el registro); si es lo escrito, con el mismo lector:
+ * (payload(it)).camino; si el camino entra en una lista (o se pide un elemento), el elemento por su lugar en ella, como
+ * lo escribió su autor: una referencia, lo que alcanza ((payload("id")).dir); una hoja, ella misma (y su despliegue, si
+ * el camino sigue: el .1 de «EUR 12»). Opciones: `presupuesto` (el del registro, compartido por todas sus fórmulas) y
+ * `contexto` (si ya se tiene uno de contextoDeLectura). Devuelve lo que leerFormula, más `formula` (el texto, si lo
+ * era) y `texto` siempre: lo leído o «ESTADO: motivo». Un registro que la vista no tiene da PENDIENTE.
+ */
+export function leerPosicion(vista, id, camino = [], { indice, presupuesto, contexto } = {}) {
+  const ev = vista?.obtener?.(id);
+  if (!ev) return conTexto({ estado: 'PENDIENTE', motivo: 'referencia a un evento ausente del eje: ' + String(id).slice(0, 8) });
+  const ctx = contexto ?? contextoDeLectura(vista);
+  const sujeto = { k: 'reg', id };
+  const pres = presupuesto ?? new Presupuesto();
+  const leer = (expr) => conTexto(leerFormula('=' + expr, sujeto, ctx, { presupuesto: pres }));
+  const dentro = indice !== undefined;
+  const { nodo, resto, enLista } = enCamino(ev.payload, camino, { uno: !dentro }); // un elemento se busca en su lista, también si es de uno
+  const contenido = dentro ? (esLista(nodo) ? nodo[indice] : undefined) : nodo;
+  if (!resto.length && esFormula(contenido)) return { ...conTexto(leerFormula(contenido, sujeto, ctx, { presupuesto: pres })), formula: contenido };
+  // Lo escrito por posiciones (sin listas de por medio): el lector, con lo que el contexto despliega.
+  if (!enLista && !dentro) return leer(camino.length ? '(payload(it)).' + camino.join('.') : 'payload(it)');
+  // Un elemento de una lista, por su lugar en ella.
+  if (contenido === undefined) return conTexto({ estado: 'PENDIENTE', motivo: 'posición sin desarrollar: ' + [...camino, ...(dentro ? [indice] : [])].join('.') });
+  const tras = resto.length ? '.' + resto.join('.') : '';
+  if (esReferencia(contenido)) {
+    const dir = contenido.dir ? indicesDe(contenido.dir) : [];
+    const pos = [...dir, ...resto];
+    return leer('(payload(' + literal(contenido.ref) + '))' + (pos.length ? '.' + pos.join('.') : ''));
+  }
+  if (resto.length) return leer('(' + literal(contenido) + ')' + tras);
+  return { estado: 'RESUELTO', valor: [contenido], texto: String(contenido) };
+}
+
+const conTexto = (r) => (r.estado === 'RESUELTO' ? r : { ...r, texto: (r.subtipo ?? r.estado) + ': ' + r.motivo });

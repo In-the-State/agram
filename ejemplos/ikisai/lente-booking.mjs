@@ -22,7 +22,6 @@
 import { ejemploReserva, CASA } from './reserva-booking.mjs';
 import { entrarPorInvitacion } from './altas.mjs';
 import { valor, detalleValor } from '../../src/lente.js';
-import { consultar } from '../../src/bql.js';
 import { pagaElCoste, escribirPagando } from './coste.mjs';
 
 /** Las dos asociaciones (registros) y la persona que escribe cada una y emite su R. */
@@ -88,14 +87,9 @@ export async function ejemploLente({ t = '2026-11-08T20:00:00Z' } = {}) {
   return { ...base, altas, asociaciones, lente };
 }
 
-/** El valor de cada identidad para la casa, y la fórmula BQL que lo lee. */
+/** El valor de cada identidad para la casa (src/lente.js). */
 export function valoresParaLaCasa(eje) {
   return Object.fromEntries(['huesped', RECIEN, CASA, 'secretaria-norte'].map((id) => [id, valor(eje, CASA, id)]));
-}
-
-/** La misma lectura en BQL, como la haría la casa (o quien se diga) desde la reserva: =VALOR_R("huesped"). */
-export function valorEnBql(eje, reserva, lector = CASA, titular = 'huesped') {
-  return consultar(eje, reserva.id, [], '=VALOR_R("' + titular + '")', { lector });
 }
 
 export { detalleValor };
