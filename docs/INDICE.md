@@ -52,6 +52,7 @@ Son notas de lectura y de resultados, con fecha y con su base (el commit de `mai
 | `RETIRADA_BQL_V0.md` | La retirada de BQL V0 (#113): la doble ejecución (cada fórmula vieja frente a la nueva sobre el mismo libro), las equivalencias, lo que no tiene equivalente y qué hacía `puedeLeer` | hecha: `src/bql.js`, `docs/BQL.md` y la web antigua borrados |
 | `CUENTA_BANCO.md` | La cuenta del banco (VG 16-11): una E única con el saldo como dato, el permiso, quién ordena; lo que pone StateArk y lo que queda | rama `beta-banco`, sin aceptar |
 | `PADRES.md` | Padres y copias (VG 16-11, A19) y quién puede leer (VG 17-11, V11 y V7): quién guarda cada elemento (add a parent, remove a parent, set the kind of owner, set a custody default), las bases de `epoch.7.7`, las ramas, custodia, ramasDelLibro y quienGuarda, la línea de antes de firmar; lo que leerán el nodo y StateArk y lo que queda | ramas `beta-padres` y `beta-leer`, sin aceptar |
+| `LIBRO_PRIVADO.md` | El libro privado (VG 17-11): el enlace entre un elemento del libro grande y el génesis de un libro pequeño, como dato en los dos lados (open a private book here, this book hangs from), librosPrivados, cuelgaDe y enlaceReciproco; qué se ve desde fuera y lo que falta | rama `beta-privado`, sin aceptar |
 
 ## Dónde está cada cosa en el código
 

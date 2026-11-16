@@ -519,6 +519,8 @@ export const TEXTOS = Object.freeze({
     custodiaSellaEn: 'sella en {ramas}',
     custodiaLeeEn: 'lee en {ramas}',
     custodiaNoLeeEnNinguna: 'no lee en ninguna',
+    // los libros privados que cuelgan del elemento (encargo «abrir aquí un libro privado», VG 17-11; contrato.librosPrivados): que existe y quién lo abrió, no su contenido
+    custodiaLibroPrivado: 'un libro privado ({libro}) cuelga de aquí; lo abrió {quien}',
     clase_person: 'persona',
     clase_group: 'grupo',
     clase_company: 'empresa',

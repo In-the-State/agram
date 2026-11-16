@@ -6642,6 +6642,28 @@ export const EPOCA_0_BTML_DATOS = [
           "template give T to a thing of mine param actions label: acción",
           "template give T to a thing of mine param actions help: la acción",
           "template give T to a thing of mine message: {me} da {first ev.1.1} de T de la escala {first ev.1.0} a {first it.0}",
+          "template open a private book here: abrir aquí un libro privado",
+          "template open a private book here param book label: libro",
+          "template open a private book here param book help: el libro privado: el id de su génesis (64 caracteres hexadecimales en minúsculas); un dato, no una referencia: este libro no lo lee",
+          "template open a private book here param line keys label: claves de línea",
+          "template open a private book here param line keys help: las claves de línea del libro privado, las que declara en sus ajustes: una lista de uno a cuatro pares [nivel, clave], el nivel uno de la cascada (epoch.7.6.1) y sin repetir, la clave x-only (64 caracteres hexadecimales en minúsculas); con ellas, quien sella este libro sabe qué cabeceras del privado anclar",
+          "template open a private book here param who label: quién",
+          "template open a private book here param who help: quién lo abre",
+          "template open a private book here param actions label: acción",
+          "template open a private book here param actions help: la acción",
+          "template open a private book here param headers url label: dirección de las cabeceras",
+          "template open a private book here param headers url help: dónde publica el libro privado sus cabeceras de lote: una dirección http o https, comprobada como las de «exterior settings»; sin ella, no se dice",
+          "template open a private book here message: {me} abre el libro privado {first memo.1.0} en {first it.0}",
+          "template this book hangs from: este libro cuelga de",
+          "template this book hangs from param book label: libro",
+          "template this book hangs from param book help: el libro del que cuelga este: el id de su génesis (64 caracteres hexadecimales en minúsculas); un dato, no una referencia: este libro no lo lee",
+          "template this book hangs from param element label: elemento",
+          "template this book hangs from param element help: el elemento de ese libro del que cuelga: su id (64 caracteres hexadecimales en minúsculas); un dato, no una referencia",
+          "template this book hangs from param who label: quién",
+          "template this book hangs from param who help: quién lo dice: el dueño de este libro (el autor de su génesis)",
+          "template this book hangs from param actions label: acción",
+          "template this book hangs from param actions help: la acción",
+          "template this book hangs from message: {me} dice que este libro cuelga de {first memo.2} del libro {first memo.1}",
           "a thing of mine is one whose alta I wrote: {first ev.3} da T con «dar T a una cosa mía» a {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, que no es una cosa cuya alta escribió",
           "template set a custody default: decidir cómo se guarda aquí",
           "template set a custody default param key label: qué se decide",
@@ -7052,6 +7074,12 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "fce6cac82d91c1aa26033459717f8d029c35237666592c03fd0e14bcb2048e2f"
+        },
+        {
+          "ref": "2fd279a267285dd9373fd8366a327b941fb94dbfae84640766f24f3c641ae43b"
+        },
+        {
+          "ref": "064a898ee182eb71eac02297b6b4ce782e71e7ad2fbc17e94adb850c698335d1"
         }
       ]
     ],
@@ -22344,6 +22372,387 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "set a custody default: {me} sets {first ev.0} to {first ev.1} on {first it.0}"
       ]
     ]
+  },
+  {
+    "archivo": "open-a-private-book-here.json",
+    "id": "2fd279a267285dd9373fd8366a327b941fb94dbfae84640766f24f3c641ae43b",
+    "registro": [
+      [
+        "open a private book here"
+      ],
+      [
+        [
+          [
+            "book"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «open a private book here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the private book: the id of its genesis (64 hexadecimal characters in lower case); a datum, not a reference: this ledger does not read it"
+          ]
+        ],
+        [
+          [
+            "line keys"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=count it.0 = 2 and count it.4 = 0 and (first it.0 in epoch.7.6.1 and hex(slice(bytes(last it.0), 0, 32)) = last it.0) and (count it.1 = 0 or count it.1 = 2 and first it.1 in epoch.7.6.1 and hex(slice(bytes(last it.1), 0, 32)) = last it.1) and (count it.2 = 0 or count it.2 = 2 and first it.2 in epoch.7.6.1 and hex(slice(bytes(last it.2), 0, 32)) = last it.2) and (count it.3 = 0 or count it.3 = 2 and first it.3 in epoch.7.6.1 and hex(slice(bytes(last it.3), 0, 32)) = last it.3) and (count it.1 = 0 or first it.0 != first it.1) and (count it.2 = 0 or first it.0 != first it.2) and (count it.3 = 0 or first it.0 != first it.3) and (count it.2 = 0 or first it.1 != first it.2) and (count it.3 = 0 or first it.1 != first it.3) and (count it.3 = 0 or first it.2 != first it.3)"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado», con el ajuste de Core StateArk: el nivel explícito): parámetro de «open a private book here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "the line keys of the private book, the ones it declares in its settings: a list of one to four pairs [level, key], the level one of the cascade (epoch.7.6.1) and not repeated, the key x-only (64 hexadecimal characters in lower case); whoever seals this ledger knows by them which batch headers of the private book to anchor"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «open a private book here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who opens it"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «open a private book here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "open a private book here",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "headers url"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado», con el ajuste de Core StateArk): parámetro de «open a private book here»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            5
+          ],
+          [
+            "where the private book publishes its batch headers: an http or https address, checked like the urls of «exterior settings»; without it, not said"
+          ]
+        ]
+      ],
+      [
+        "=not (first it.3 != me and count (first it.3).6 > 0 and first (first it.3).6 = first it.5)"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9.1"
+      ],
+      [
+        "VG 17-11 por Core State (agram-equipo/CONTRASTE_PRIVACIDAD_GOBIERNO.md, parte A): lo privado dentro de un espacio compartido es otro libro, más pequeño, que cuelga de un elemento. El grande guarda y sella, no lee; lee quien está invitado al pequeño. Quien no está invitado ve que existe y quién lo abrió, no su contenido. Los tokens no cruzan libros y los libros no se leen entre sí",
+        "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): solo el enlace, como dato, en el lado del grande. 0 el nombre de la acción; 1.0 el libro privado (el id de su génesis, 64 hex en minúsculas, tipado como la clave de «add a parent»: un dato y no una referencia, porque este libro no lo tiene ni lo lee) y 1.1 dónde publica sus cabeceras (opcional, cierra su décupla: una dirección, texto como las de «exterior settings»; el contrato la da como url http o https o null); 2 las claves de línea del pequeño, una lista de pares [nivel, clave], de uno a cuatro, el nivel uno de epoch.7.6.1 sin repetir y la clave x-only (ajuste de Core StateArk: el nivel explícito; cuatro huecos opcionales, uno por nivel, dejarían un hueco cuando falta uno de abajo); 3 quién lo abre; 4 la acción",
+        "Ancla en el 9.1 del elemento: el 9 es lo que le configura (allí anclan «add a parent», «remove a parent», «set the kind of owner» y «set a custody default») y el enlace no choca con ellos en su dirección; el 9.0 es el 9 por ceros, y en el génesis el 9.2, el 9.3 y el 9.6 ya los ocupan los ajustes, las preferencias y las revisiones. «this book hangs from» ancla en el 9.4 del génesis, así que en un génesis los dos no chocan",
+        "Quién puede: quien puede escribir sobre X con las reglas que ya hay; sin regla de validez nueva. Su 4 es «write»: no mueve nada más que el coste de escribir. Sobre el alta de otra identidad no se ofrece, como «anchor here»: allí pide el precio de la atención («attention has a price»), que esta plantilla no paga; se escribe a mano con el pago en la misma transacción",
+        "Vale el último: si sobre el mismo elemento hay más de un registro para el mismo libro (al rotar una clave), contrato.librosPrivados da el último por instante y, a igualdad, por id. La época no tiene una forma general de quitar el enlace"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        9,
+        9
+      ],
+      [
+        "open a private book here: {me} opens the private book {first memo.1.0} on {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "this-book-hangs-from.json",
+    "id": "064a898ee182eb71eac02297b6b4ce782e71e7ad2fbc17e94adb850c698335d1",
+    "registro": [
+      [
+        "this book hangs from"
+      ],
+      [
+        [
+          [
+            "book"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the book this one hangs from: the id of its genesis (64 hexadecimal characters in lower case); a datum, not a reference: this ledger does not read it"
+          ]
+        ],
+        [
+          [
+            "element"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "the element of that book it hangs from: its id (64 hexadecimal characters in lower case); a datum, not a reference"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who says it: the owner of this book (the author of its genesis)"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "this book hangs from",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.5 = first (first before.1).5 and first (first before.1).3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9.5"
+      ],
+      [
+        "VG 17-11 por Core State (agram-equipo/CONTRASTE_PRIVACIDAD_GOBIERNO.md, parte A): lo privado es otro libro que cuelga de un elemento del grande; el enlace es un dato en los dos lados. Este es el lado del pequeño: su génesis dice de qué libro y de qué elemento cuelga. Que el grande guarde y selle sin leer se declara aparte, con «add a parent»",
+        "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): 0 el nombre de la acción; 1 el libro del que cuelga (el id de su génesis, 64 hex en minúsculas); 2 el elemento (su id, 64 hex); 3 quién lo dice; 4 la acción. Los dos son datos y no referencias: este libro no tiene el grande ni lo lee",
+        "Se lanza sobre el génesis y solo se ofrece a su dueño (el autor del génesis): es de la oferta de la plantilla, sin regla de validez. Escrito a mano por otro, la época no lo rechaza; contrato.cuelgaDe solo cuenta los del autor del génesis. Ancla en el 9.5 del génesis: no choca con el 9 de la custodia, el 9.2, el 9.3 y el 9.6 de los ajustes, las preferencias y las revisiones, el 9.4 de los retoques de textos, ni con el 9.1 de «open a private book here»",
+        "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        9,
+        12
+      ],
+      [
+        "this book hangs from: {me} says this book hangs from {first memo.2} of the book {first memo.1}"
+      ]
+    ]
   }
 ];
 
@@ -22387,7 +22796,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "a1b5e0025d42075f488986399b1b9bd451478fb514d564007f117d8f73f95c3a";
+export const EPOCA_0_BTML_ID = "e9beede770b7a58000b409fa5b7aec69071da8c8230134076be0e2ac4cf5c572";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

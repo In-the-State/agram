@@ -47,6 +47,9 @@
 //   ramasDelLibro(eje)                     todas las ramas del libro: [{ de, padresDe, padres (con lee y leeDe) }], una por elemento con configuración propia
 //   quienGuarda(eje, yo, sobre, { enlaza }) la línea de antes de firmar: { nodo, padres: [{ nombre, guarda, sella, lee }], de, enlazadas, todos }
 //   enlacesDe(eje, payload, { sobre })     los registros del eje que un payload nombra por su id, menos aquel del que cuelga
+//   librosPrivados(eje, id)                los libros privados que cuelgan de un elemento: [{ id, libro, claves: [{ nivel, clave }], direccion, quien, t }]
+//   cuelgaDe(eje)                          de qué cuelga este libro: { libro, elemento, id, t } o null
+//   enlaceReciproco(grande, pequeno)       si el enlace entre dos libros lo dicen los dos lados (función pura sobre dos ejes)
 //   cuenta(eje, id)                        la cuenta del banco de un registro (o de la clave de su E): nombre, banco, su E única,
 //                                          el saldo que manda, el estado del permiso y quién ordena (con P sobre ella); o null
 //   configuracion(eje, yo)                 mis preferencias (el registro en el 9 de mi alta) o los defectos de la plantilla
@@ -80,7 +83,7 @@ import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, p
 import { esInstante, msUTC, msDeGuardado } from './instante.js';
 import { HITOS, cajaDeCuota, confluir, situar, SIN_BASE_ESCRITA } from './bases.js';
 import { pasoDe } from './pasos.js';
-import { ajustesDelEje } from './exterior.js';
+import { ajustesDelEje, url as urlDelExterior } from './exterior.js';
 import { recuento, miradasDe } from './motor.js';
 import { estadoDePaquete } from './lente.js';
 import { cajasDelTres, conversacionDelTres as conversacionTres } from './tres.js';
@@ -2803,6 +2806,111 @@ export function quienGuarda(eje, yo, sobre, opciones = {}) {
     enlazadas: ramas.filter((r) => r.de !== suya.de).length,
     todos: todos.map(({ nombre, guarda, sella, leeEn }) => ({ nombre, guarda, sella, lee: leeEn.length > 0 })),
   };
+}
+
+// ---------- el libro privado: el enlace entre dos libros (VG 17-11 por Core State; encargo «abrir aquí un libro privado»; docs/notas/LIBRO_PRIVADO.md) ----------
+
+/**
+ * Lo que hace de un registro un enlace entre dos libros, por lo que dice su 4, y dónde cuelga: «open a private book here» en
+ * el 9.1 de un elemento del libro grande; «this book hangs from» en el 9.5 del génesis del pequeño. Los dos son datos: un
+ * libro no lee al otro.
+ */
+export const LIBRO_PRIVADO = Object.freeze({ abrir: 'open a private book here', cuelga: 'this book hangs from', en: '9100000000', cuelgaEn: '9500000000' });
+
+/** ¿Va `a` después de `b`? Por instante y, a igualdad, por id: «vale el último». */
+const despuesDe = (a, b) => {
+  const ta = esInstante(a.t) ? msUTC(a.t) : -Infinity;
+  const tb = esInstante(b.t) ? msUTC(b.t) : -Infinity;
+  return ta !== tb ? ta > tb : a.id > b.id;
+};
+
+/**
+ * Un enlace leído de su registro «open a private book here»: 1.0 el libro (64 hex), 1.1 dónde publica sus cabeceras (la
+ * comprobación de las urls de «exterior settings»: http o https, sin la barra final, o null), 2 las claves de línea, pares
+ * [nivel, clave] (de uno a cuatro, el nivel de epoch.7.6.1 sin repetir, la clave x-only). Lo que no es eso (un registro
+ * escrito a mano), null.
+ */
+function enlaceDe(r, niveles) {
+  const p = Array.isArray(r?.payload) ? r.payload : [];
+  const libro = texto(hoja(Array.isArray(p[1]) ? p[1][0] : undefined));
+  if (!RE_ID.test(libro ?? '')) return null;
+  const pares = Array.isArray(p[2]) ? p[2] : [];
+  if (pares.length < 1 || pares.length > niveles.length) return null;
+  const claves = [];
+  for (const par of pares) {
+    if (!Array.isArray(par) || par.length !== 2) return null;
+    const [nivel, clave] = par;
+    if (!niveles.includes(nivel) || claves.some((c) => c.nivel === nivel) || !RE_CLAVE_XONLY.test(clave ?? '')) return null;
+    claves.push({ nivel, clave });
+  }
+  return { id: r.id, libro, claves, direccion: urlDelExterior(p[1]?.[1]), quien: r.autor, t: r.t };
+}
+
+/**
+ * Los libros privados que cuelgan de un elemento (VG 17-11: «lo privado dentro de un espacio compartido es otro libro, más
+ * pequeño, que cuelga de un elemento»; «quien no está invitado ve que existe y quién lo abrió, no su contenido»). Solo lee
+ * este libro: los registros «open a private book here» anclados en el 9.1 del elemento (lo escribe quien puede escribir
+ * sobre él). Por libro vale el último **de quien lo abrió** (el autor del primero que lo nombra), por instante y, a
+ * igualdad, por id (al rotar una clave): el registro de otro sobre el mismo libro no cambia sus claves. →
+ *   [{ id, libro, claves: [{ nivel, clave }], direccion, quien, t }], por instante; [] si el elemento no está.
+ * `libro`, el id del génesis del pequeño; `claves`, sus claves de línea con su nivel (las que declara en sus ajustes: quien
+ * sella este libro sabe por ellas qué cabeceras del pequeño anclar); `direccion`, dónde publica sus cabeceras o null;
+ * `quien` y `t`, quién lo abrió y cuándo (el autor y el instante del registro vigente); `id`, el del registro.
+ */
+export function librosPrivados(eje, id, opciones = {}) {
+  if (!eje || typeof id !== 'string' || !eje.obtener?.(id)) return [];
+  opciones = conEpoca(eje, opciones);
+  const niveles = cascadaDe(epocaDe(opciones, eje)).capas.map((c) => c.nivel);
+  const enlaces = [];
+  for (const r of eje.sobre(id, LIBRO_PRIVADO.en)) {
+    if (!accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir)) continue;
+    const l = enlaceDe(r, niveles);
+    if (l) enlaces.push(l);
+  }
+  // Quién abrió cada libro: el autor del primer registro que lo nombra. Solo los suyos cuentan después.
+  const abre = new Map();
+  for (const l of enlaces) {
+    const primero = abre.get(l.libro);
+    if (!primero || despuesDe(primero, l)) abre.set(l.libro, l);
+  }
+  const porLibro = new Map();
+  for (const l of enlaces) {
+    if (l.quien !== abre.get(l.libro).quien) continue;
+    const antes = porLibro.get(l.libro);
+    if (!antes || despuesDe(l, antes)) porLibro.set(l.libro, l);
+  }
+  return [...porLibro.values()].sort((a, b) => (despuesDe(a, b) ? 1 : -1));
+}
+
+/**
+ * De qué cuelga este libro: el registro «this book hangs from» del 9.5 de su génesis, escrito por el autor del génesis (la
+ * plantilla solo se ofrece a él; escrito a mano por otro, aquí no cuenta), el último por instante y, a igualdad, por id. →
+ * { libro, elemento, id, t } (los dos, ids de 64 hex del otro libro, que este no lee) o null.
+ */
+export function cuelgaDe(eje) {
+  const genesis = eje?.obtener?.(eje?.genesisId);
+  if (!genesis) return null;
+  let fuera = null;
+  for (const r of eje.sobre(genesis.id, LIBRO_PRIVADO.cuelgaEn)) {
+    if (r.autor !== genesis.autor || !accionesDelRegistro(r).includes(LIBRO_PRIVADO.cuelga)) continue;
+    const libro = texto(hoja(r.payload?.[1]));
+    const elemento = texto(hoja(r.payload?.[2]));
+    if (!RE_ID.test(libro ?? '') || !RE_ID.test(elemento ?? '')) continue;
+    const l = { libro, elemento, id: r.id, t: r.t };
+    if (!fuera || despuesDe(l, fuera)) fuera = l;
+  }
+  return fuera;
+}
+
+/**
+ * ¿Es recíproco el enlace entre dos libros? El pequeño dice que cuelga de un elemento del grande («this book hangs from»: el
+ * génesis del grande y ese elemento) y el grande dice, en ese elemento, el pequeño («open a private book here» vigente con el
+ * génesis del pequeño). Función pura sobre dos ejes ya cargados: no abre sincronía ni sesión, y cada uno se lee con su época.
+ */
+export function enlaceReciproco(grande, pequeno) {
+  const c = cuelgaDe(pequeno);
+  if (!c || !grande?.genesisId || c.libro !== grande.genesisId) return false;
+  return librosPrivados(grande, c.elemento).some((l) => l.libro === pequeno.genesisId);
 }
 
 /**

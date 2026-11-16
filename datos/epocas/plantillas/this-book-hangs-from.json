@@ -1,0 +1,66 @@
+[
+  ["this book hangs from"],
+  [
+    [
+      ["book"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"],
+      ["required"],
+      [1],
+      ["the book this one hangs from: the id of its genesis (64 hexadecimal characters in lower case); a datum, not a reference: this ledger does not read it"]
+    ],
+    [
+      ["element"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"],
+      ["required"],
+      [2],
+      ["the element of that book it hangs from: its id (64 hexadecimal characters in lower case); a datum, not a reference"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"],
+      ["required"],
+      [3],
+      ["=me", "who says it: the owner of this book (the author of its genesis)"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"],
+      ["required"],
+      [4],
+      ["this book hangs from", "the action"]
+    ]
+  ],
+  ["=first it.5 = first (first before.1).5 and first (first before.1).3 = me"],
+  [["me"], ["person"]],
+  ["write"],
+  ["9.5"],
+  [
+    "VG 17-11 por Core State (agram-equipo/CONTRASTE_PRIVACIDAD_GOBIERNO.md, parte A): lo privado es otro libro que cuelga de un elemento del grande; el enlace es un dato en los dos lados. Este es el lado del pequeño: su génesis dice de qué libro y de qué elemento cuelga. Que el grande guarde y selle sin leer se declara aparte, con «add a parent»",
+    "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): 0 el nombre de la acción; 1 el libro del que cuelga (el id de su génesis, 64 hex en minúsculas); 2 el elemento (su id, 64 hex); 3 quién lo dice; 4 la acción. Los dos son datos y no referencias: este libro no tiene el grande ni lo lee",
+    "Se lanza sobre el génesis y solo se ofrece a su dueño (el autor del génesis): es de la oferta de la plantilla, sin regla de validez. Escrito a mano por otro, la época no lo rechaza; contrato.cuelgaDe solo cuenta los del autor del génesis. Ancla en el 9.5 del génesis: no choca con el 9 de la custodia, el 9.2, el 9.3 y el 9.6 de los ajustes, las preferencias y las revisiones, el 9.4 de los retoques de textos, ni con el 9.1 de «open a private book here»",
+    "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir"
+  ],
+  ["epoch 0"],
+  [9, 12],
+  ["this book hangs from: {me} says this book hangs from {first memo.2} of the book {first memo.1}"]
+]

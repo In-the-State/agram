@@ -208,6 +208,8 @@ function custodiaDelRegistro(eje, X, ctx) {
     enlazadas: (c.ramas ?? []).filter((r) => r.de !== c.de).map((r) => ({ ...r, porTexto: legibleDe(eje, { ref: r.por }, null, ctx.opciones).texto })),
     // En «este libro», por padre, en qué ramas guarda, sella y lee (contrato.ramasDelLibro, Core 17-11); solo con más de una rama.
     porPadre: X === eje.genesisId ? padresPorRama(eje, ctx) : null,
+    // Los libros privados que cuelgan de X (encargo «abrir aquí un libro privado»): solo que existen y quién los abrió, de contrato.librosPrivados.
+    privados: contrato.librosPrivados(eje, X, ctx.opciones).map(({ libro, quien }) => ({ libro, quien })),
   };
 }
 
