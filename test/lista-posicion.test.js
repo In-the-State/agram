@@ -13,7 +13,8 @@ import assert from 'node:assert/strict';
 import { ejemploCompra, ejemploCuenta } from '../ejemplos/ikisai/compra-food.mjs';
 import { lista, ocupantes, ordenarPorEncaje } from '../src/encaje.js';
 import { EPOCA_0, PV, cargarEpoca, leerDireccion, leerCamino, nombreEnNodo } from '../src/epocas.js';
-import { consultar } from '../src/bql.js';
+import { leerFormula } from '../src/bqlm.js';
+import { contextoDeLectura } from '../src/contexto-eje.js';
 import { decupla, render } from '../src/pointed.js';
 import { mapa } from '../src/mapped.js';
 import { ARIDAD, esLista, esDecupla } from '../src/btml.js';
@@ -150,28 +151,21 @@ test('nombreEnNodo, décupla y mapa: la décupla lleva la regla corta; la lista 
   assert.equal(mapa(eje, compra.id, { camino: [1] }).lista, undefined);
 });
 
-// ---------- BQL: BUSCAR desplegado, BUSCAR(n, k) por llegada, REF por dirección = décupla ----------
+// ---------- BQL mínimo: la lista desplegada, nth por su lugar, la décupla un solo ocupante ----------
 
-test('BUSCAR(n) despliega la lista; BUSCAR(n, k) da el ocupante k por llegada; REF por dirección es la décupla', async () => {
+test('BQL mínimo: una lista son sus ocupantes (nth por su lugar, count); la décupla es uno; lo anclado se lee aparte', async () => {
   const { eje, compra, menu, cuenta } = await compraConCuenta();
-  const q = (f) => consultar(eje, compra.id, [0], f);
-  const tres = q('BUSCAR(3)').valor.items;
-  assert.deepEqual(tres.map((i) => [i.origen, i.indices, i.lista]), [['propio', [3], 0], ['propio', [3], 1]]); // no el array entero
-  assert.deepEqual(q('BUSCAR(3, 1)').valor.items.map((i) => i.lista), [1]);
-  assert.equal(q('BUSCAR(3, 2)').texto, '0 candidatos');
-  assert.equal(q('ACTUAL(3)').texto, 'huesped'); // el valor de un candidato de lista es su elemento
-  assert.equal(q('CONTAR(BUSCAR(3))').texto, '2');
-  // En la 1, la décupla es un ocupante y la cuenta, escrita encima, el siguiente por llegada.
-  assert.deepEqual(q('BUSCAR(1)').valor.items.map((i) => i.evento), [compra.id, cuenta.id]);
-  assert.deepEqual(q('BUSCAR(1, 1)').valor.items.map((i) => i.evento), [cuenta.id]);
-  // Por dirección, la décupla: la 1.2 es el precio. Dentro de una lista, una dirección no existe.
-  assert.equal(q('REF("' + compra.id.slice(0, 8) + '", "1200000000")').texto, '12 EUR');
-  const dentro = q('REF("' + menu.id.slice(0, 8) + '", "1100000000")');
-  assert.equal(dentro.estado, 'PENDIENTE');
-  assert.match(dentro.motivo, /cae dentro de la lista de la 1/);
-  // Por índice, LOCAL sí entra en la lista; la 1.1 de la décupla es cuánto.
-  assert.equal(q('LOCAL(3, 1)').texto, 'cocina');
-  assert.equal(q('LOCAL(1, 1)').texto, '1');
-  assert.equal(q('LOCAL(3)').texto, 'huesped · cocina'); // una lista se escribe con sus ocupantes
-  assert.equal(consultar(eje, menu.id, [0], 'BUSCAR(1, 2)').valor.items.length, 1);
+  const q = (f, id = compra.id) => leerFormula(f, { k: 'reg', id }, contextoDeLectura(eje)).valor;
+  assert.deepEqual(q('=(payload(it)).3'), ['huesped', 'cocina']); // no el array entero
+  assert.deepEqual(q('=nth 1 (payload(it)).3'), ['cocina']);
+  assert.deepEqual(q('=nth 2 (payload(it)).3'), []);
+  assert.deepEqual(q('=count (payload(it)).3'), [2]);
+  // En la 1, la décupla es un solo ocupante; su 1.1 es cuánto y la cantidad de su 1.2, el precio.
+  assert.deepEqual(q('=count (payload(it)).1'), [1]);
+  assert.deepEqual(q('=(payload(it)).1.1'), [1]);
+  assert.deepEqual(q('=(payload(it)).1.2.1'), [12]);
+  // La cuenta, escrita encima en la 1, no es lo escrito de la compra: es lo anclado ahí.
+  assert.deepEqual(q('=(down it where last it2.6.5 = "1000000000") each 5'), [cuenta.id]);
+  assert.deepEqual(q('=count (payload(it)).1', menu.id), [menu.payload[1].length]); // la lista del menú, desplegada
 });
+

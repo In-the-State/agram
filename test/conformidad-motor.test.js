@@ -27,7 +27,9 @@ import { validarPayload, esDireccion, direccion } from '../src/btml.js';
 import * as tokens from '../src/tokens.js';
 import { ESCALAS_T, SEGUNDOS, validarMovimiento } from '../src/tokens.js';
 import { ocupantes, seguir, caminosDe, vector, signo, ordenarPorEncaje, arbol } from '../src/encaje.js';
-import { evaluar, consultar, analizar } from '../src/bql.js';
+// Las fórmulas son BQL mínimo (retirada de BQL V0, #113): it es el registro que la lleva; lee lo escrito.
+import { analizar, leerFormula, registrosDeFormula, Presupuesto, POR_LIMITE } from '../src/bqlm.js';
+import { leerPosicion, contextoDeLectura } from '../src/contexto-eje.js';
 import * as motor from '../src/motor.js';
 import {
   descubrir, proponer, consolidar, registrar, cerrado, siguiente, recuento, propuestas, FABRICA, ANUNCIO, OPERADORES,
@@ -104,6 +106,11 @@ async function mundo(foco = ['Compra', 'yogur', 'sin lactosa', 'aviso a cocina',
   await eje.escribir({ autor: 'raiz', sobre: g, t: ALTA, movimientos: [gastaT('raiz'), daT('raiz', 'ana', 300), daT('raiz', 'bea', 120), daE('raiz', 'ana', 50)], payload: 'altas de ana y bea' });
   return { eje, g };
 }
+
+/** Lee la posición `camino` del registro `id` (la fórmula, o lo escrito) con el BQL mínimo. */
+const lee = (eje, id, camino) => leerPosicion(eje, id, camino);
+/** Una fórmula del BQL mínimo con it = el registro `id`, leída sobre el eje. */
+const formula = (eje, id, f) => leerFormula(f, { k: 'reg', id }, contextoDeLectura(eje), { presupuesto: new Presupuesto() });
 
 /** Escribe un registro sobre otro, opcionalmente anclado en una dirección. */
 const escribe = (eje, sobre, payload, en, autor = 'raiz', t = T0) =>
@@ -218,7 +225,7 @@ test('MOT-01 las seis capacidades existen como primitivas del motor: interpretar
   const { eje, g } = await mundo();
   // INTERPRETAR: forma, gramática y regla de la época.
   assert.equal(validarPayload(['x', ['y']]).ok, true);
-  assert.equal(analizar('LOCAL(1) + 2').tipo, 'bin');
+  assert.equal(analizar('(payload(it)).1 + 2', { sujeto: true }).n, 'bin');
   assert.equal(leerDireccion(FABRICA)[0].significado, 'fábrica');
   // RESOLVER: referencias con procedencia.
   const a = await escribe(eje, g, ['A', 'dato']);
@@ -230,8 +237,8 @@ test('MOT-01 las seis capacidades existen como primitivas del motor: interpretar
   // COMPARAR: vector y orden por encaje.
   assert.deepEqual(vector('4100000000', FABRICA).slice(0, 2), [0, 1]);
   assert.equal(ordenarPorEncaje([]).length, 0);
-  // CALCULAR: magnitudes.
-  assert.equal(consultar(eje, g, [0], '12 EUR + 2 EUR').texto, '14 EUR (12 EUR + 2 EUR)');
+  // CALCULAR: números (una magnitud va desplegada: la cantidad en su .1, la unidad en su .2).
+  assert.equal(formula(eje, g, '=("12 EUR").1 + 2').texto, '14');
   // COMPONER: propuesta y consolidación.
   assert.ok(Object.keys(proponer(eje, g).elecciones).length > 0);
   assert.equal(typeof consolidar, 'function');
@@ -246,16 +253,16 @@ test('MOT-01b las seis capacidades tienen nombre en el motor',
 test('MOT-02 las seis capacidades no son palabras reservadas de BQL', async () => {
   const { eje, g } = await mundo();
   for (const nombre of ['INTERPRETAR', 'RESOLVER', 'POSICIONAR', 'COMPARAR', 'CALCULAR', 'COMPONER']) {
-    const r = consultar(eje, g, [0], nombre + '(1)');
+    const r = formula(eje, g, '=' + nombre + '(1)');
     assert.equal(r.estado, 'ERROR', nombre);
-    assert.match(r.motivo, /función desconocida/);
+    assert.match(r.motivo, /no hay funciones con nombre/);
   }
 });
 
 test('MOT-03 INTERPRETAR lee tipo y forma, la gramática de la expresión y la regla corta de la época', async () => {
   assert.deepEqual(validarPayload(['a', []]).ok, false); // forma
-  assert.equal(analizar('REF("abc", "1000000000")').nombre, 'REF'); // gramática
-  assert.throws(() => analizar('1 +'), SyntaxError);
+  assert.equal(analizar('(payload("abc")).1').n, 'paso'); // gramática
+  assert.throws(() => analizar('1 +'), (e) => e.estado === 'ERROR');
   const otra = { nombre: 'otra', reglaCorta: (p, d) => 'd' + d + '@' + p };
   assert.equal(leerDireccion('8400000000', otra)[1].significado, 'd4@1'); // la regla de la época elegida
   assert.equal(leerDireccion('8400000000')[1].significado, 'qué se hace');
@@ -269,20 +276,21 @@ test('MOT-03b INTERPRETAR aplica también reglas largas y el significado del con
     assert.equal(leerDireccion('7412000000', conLarga)[1].significado, PV[4]);
   });
 
-test('MOT-04 RESOLVER sigue LOCAL, REF y ACTUAL, con procedencia y ciclos detectados', async () => {
+// Retirada de BQL V0 (#113): una fórmula lee lo escrito, en su registro (payload(it)) o en otro (payload(«id»)), y nombra
+// los registros que lee (registrosDeFormula, con su dirección); sin encadenar no hay ciclos: la que lee otra fórmula ve su texto.
+test('MOT-04 RESOLVER lee lo escrito propio y de otro registro, con los registros que nombra; sin encadenar no hay ciclos', async () => {
   const { eje, g } = await mundo();
   const a = await escribe(eje, g, ['A', 'dato']);
-  const x = await escribe(eje, g, ['X', 'propio', '=LOCAL(1)', '=REF("' + a.id + '", "1000000000")', '=ACTUAL(1)', '=LOCAL(6)', '=LOCAL(5)']);
-  assert.equal(evaluar(eje, x.id, [2]).texto, 'propio');
-  assert.equal(evaluar(eje, x.id, [3]).texto, 'dato');
-  assert.ok(evaluar(eje, x.id, [3]).dependencias.includes(a.id + ':1000000000'));
-  assert.equal(evaluar(eje, x.id, [4]).texto, 'propio');
-  assert.match(evaluar(eje, x.id, [5]).motivo, /ciclo/);
+  const x = await escribe(eje, g, ['X', 'propio', '=(payload(it)).1', '=(payload("' + a.id + '")).1', '=(payload(it)).5', '=(payload(it)).4']);
+  assert.equal(lee(eje, x.id, [2]).texto, 'propio');
+  assert.equal(lee(eje, x.id, [3]).texto, 'dato');
+  assert.deepEqual(registrosDeFormula(x.payload[3]), [{ id: a.id, dir: '1000000000' }]);
+  assert.equal(lee(eje, x.id, [4]).texto, '=(payload(it)).4');
   assert.deepEqual(seguir(eje, { ref: a.id, dir: '1000000000' }).procedencia, [a.id + ':1000000000']);
 });
 
 test('MOT-04b RESOLVER comprueba permisos de lectura',
-  { skip: 'MOT-04: el motor no comprueba permisos de lectura: descubrir() llama a evaluar() sin gancho y el eje y el encaje leen todo. BQL, desde la PR #36, integrada, pregunta al gancho opcional puedeLeer por cada lectura, ocupante y salto y da PENDIENTE DE AUTORIZACIÓN (O-12b, O-12c), pero el motor no lo pasa ni tiene modelo de permisos; ese modelo es de AARPIA (mapa §12)' },
+  { skip: 'MOT-04: el motor no comprueba permisos de lectura: el eje y el encaje leen todo, y las fórmulas (BQL mínimo) leen sobre la vista que se les da: lo que la vista no trae falta. El gancho puedeLeer se retiró con el BQL V0 (#113); el modelo de permisos es de AARPIA (mapa §12)' },
   sinForma('MOT-04'));
 
 test('MOT-05 POSICIONAR obtiene posiciones por rutas locales, anclajes y ceros, sin pasar de diez profundidades', async () => {
@@ -315,17 +323,20 @@ test('MOT-06b COMPARAR usa preferencias según el contexto, precedentes consolid
   { skip: 'MOT-06: no hay preferencias, precedentes consolidados ni compatibilidad demostrada como criterio; ordenan el acuerdo de prefijo y la llegada (opción B)' },
   sinForma('MOT-06'));
 
-test('MOT-07 CALCULAR opera magnitudes con tipo, sin dar por hecha un álgebra universal', async () => {
+// Retirada de BQL V0 (#113): solo números; la magnitud se lee desplegada y no opera entera (VG 12-11: «ninguna palabra más»).
+test('MOT-07 CALCULAR opera números; una magnitud se lee desplegada (cantidad y unidad) y no opera entera: sin álgebra universal', async () => {
   const { eje, g } = await mundo();
-  const c = (f) => consultar(eje, g, [0], f);
-  assert.equal(c('12 EUR + 2 EUR').texto, '14 EUR (12 EUR + 2 EUR)');
-  assert.equal(c('200 m + 5 EUR').valor.tipo, 'composicion'); // no se suman
-  assert.equal(c('12 EUR * 2 EUR').estado, 'INCOMPATIBLE'); // ni todo opera con todo
-  assert.equal(c('3 * 4 EUR').texto, '12 EUR');
+  const c = (f) => formula(eje, g, f);
+  assert.equal(c('=("12 EUR").1 + 2').texto, '14');
+  assert.equal(c('=("12 EUR").2').texto, 'EUR'); // la unidad, aparte
+  assert.equal(c('="200 m" + 5').estado, 'ERROR'); // una magnitud entera no se suma
+  assert.equal(c('="12 EUR" * 2').estado, 'ERROR'); // ni todo opera con todo
+  const x = await escribe(eje, g, ['X', [['total'], ['=3 * 4'], ['EUR']]]);
+  assert.deepEqual([lee(eje, x.id, [1, 1]).texto, lee(eje, x.id, [1, 2]).texto], ['12', 'EUR']);
 });
 
 test('MOT-07b CALCULAR opera estructuras y matrices tipadas, con versiones de implementación',
-  { skip: 'MOT-07: no hay matrices tipadas ni versiones de implementación en BQL. Terreno de src/bql.js (otro agente): no se toca aquí' },
+  { skip: 'MOT-07: no hay matrices tipadas ni versiones de implementación en BQL' },
   sinForma('MOT-07'));
 
 test('MOT-08 COMPONER construye una propuesta sin escribir, mantiene referencias y solo mueve recursos el registro que los mueve', async () => {
@@ -366,13 +377,13 @@ test('MOT-09 el motor no exige volver a escribir los datos: resuelve las referen
   const c = await consolidar(eje, { autor: 'ana', foco: g, t: T0, elecciones: { 1: { candidato: elegido }, 3: 'nuevo' } });
   assert.deepEqual(c.payload[2], { ref: g, dir: '2000000000' }); // el hueco se hereda por referencia
   assert.equal(JSON.stringify(c.payload).includes('dos por uno'), false);
-  assert.equal(consultar(eje, c.id, [0], 'LOCAL(1)').valor.tipo, 'array'); // y se lee siguiendo la referencia
-  assert.equal(consultar(eje, c.id, [0], 'LOCAL(2)').texto, 'sin lactosa');
+  assert.deepEqual(lee(eje, c.id, [1]).valor.map((o) => o.id), [oferta.id]); // y se lee siguiendo la referencia
+  assert.equal(lee(eje, c.id, [2]).texto, 'sin lactosa');
 });
 
 test('MOT-10 si falta información, el motor devuelve un pendiente explicado y no inventa el dato', async () => {
   const { eje, g } = await mundo();
-  const plan = await escribe(eje, g, ['Plan', '=LOCAL(9)', '=1 +', '=ELEGIR(BUSCAR(7))']);
+  const plan = await escribe(eje, g, ['Plan', '=(payload(it)).9 + 0', '=1 +', '=first (down it where last it2.6.5 = "7000000000")']);
   const p = proponer(eje, plan.id);
   assert.deepEqual(Object.keys(p.elecciones), []);
   assert.deepEqual(p.pendientes.map((x) => x.posicion), [1, 2, 3]);
@@ -412,7 +423,7 @@ test('MOT-13 antes de consolidar se ven las alternativas, lo que se registra, a 
   const alternativa = await escribe(eje, g, 'otro yogur', '1000000000');
   const [p1] = descubrir(eje, g, { posiciones: [1] }); // alternativas
   assert.deepEqual(p1.candidatos.map((c) => c.evento), [g, alternativa.id]);
-  const plan = await escribe(eje, g, ['Plan', '=LOCAL(9)']);
+  const plan = await escribe(eje, g, ['Plan', '=(payload(it)).9 + 0']);
   assert.equal(proponer(eje, plan.id).pendientes.length, 1); // lo que sigue pendiente
   const c = await consolidar(eje, { autor: 'ana', foco: g, t: T0, elecciones: { 1: { candidato: p1.candidatos[1] }, 3: 'nuevo aviso' } });
   assert.deepEqual(c.contexto.fuentes, [alternativa.id]); // a qué se refiere
@@ -484,7 +495,7 @@ test('MOT-17 elegir no escribe: es reversible hasta consolidar y deja mezclar ca
   const elecciones = { ...p.elecciones };
   elecciones[2] = 'cambiado a mano'; // modificar la candidatura
   delete elecciones[4]; // deshacer una elección
-  consultar(eje, g, [1], 'ELEGIR(BUSCAR(1))'); // ELEGIR no publica
+  formula(eje, g, '=first it.1'); // elegir no publica
   assert.equal(huella(eje), antes);
   const c = await consolidar(eje, { autor: 'ana', foco: g, t: T0, elecciones });
   assert.deepEqual(c.payload.slice(1), [{ ref: g, dir: '1000000000' }, 'cambiado a mano', { ref: g, dir: '3000000000' }]);
@@ -529,7 +540,7 @@ test('MOT-19 consolidar no es ejecutar: elegir un yogur no lo compra; no mueve r
 test('MOT-20 consultar, elegir, preparar, consolidar, firmar y ejecutar son actos distintos', async () => {
   const { eje, g } = await mundo();
   const antes = huella(eje);
-  consultar(eje, g, [1], 'ELEGIR(BUSCAR(1))'); // consultar y elegir: sin registro
+  formula(eje, g, '=first it.1'); // consultar y elegir: sin registro
   const p = proponer(eje, g); // preparar: sin registro
   assert.equal(huella(eje), antes);
   const c = await consolidar(eje, { autor: 'ana', foco: g, t: T0, elecciones: p.elecciones });
@@ -583,11 +594,11 @@ test('MOT-22b un registro respeta reglas, condiciones y límites de gasto, tiemp
 
 test('MOT-23 evaluar una fórmula «=» nunca ejecuta nada: leer no tiene efectos', async () => {
   const { eje, g } = await mundo();
-  const plan = await escribe(eje, g, ['Plan', 'a', 'b', 'c', 'd', 'e', 'f', '=ELEGIR(BUSCAR(1))', '=LOCAL(1)']);
+  const plan = await escribe(eje, g, ['Plan', 'a', 'b', 'c', 'd', 'e', 'f', '=first (payload(it)).1', '=(payload(it)).1']);
   const antes = huella(eje);
-  assert.equal(evaluar(eje, plan.id, [7]).estado, 'RESUELTO');
-  evaluar(eje, plan.id, [8]);
-  consultar(eje, plan.id, [7], 'CONTAR(BUSCAR(1))');
+  assert.equal(lee(eje, plan.id, [7]).estado, 'RESUELTO');
+  lee(eje, plan.id, [8]);
+  formula(eje, plan.id, '=count it.1');
   descubrir(eje, plan.id);
   proponer(eje, plan.id);
   assert.equal(huella(eje), antes);
@@ -798,10 +809,10 @@ test('MOT-38b lo anunciado y movido en el 4 de la propuesta la cierra',
   });
 
 test('MOT-39 papeles: BTML es la estructura, BQL la vista sin efectos y el motor la ejecución real', async () => {
-  const { eje, g } = await mundo(['Compra', 'yogur', '=LOCAL(1)']);
+  const { eje, g } = await mundo(['Compra', 'yogur', '=(payload(it)).1']);
   const antes = huella(eje);
-  evaluar(eje, g, [2]);
-  consultar(eje, g, [0], 'BUSCAR(1)');
+  lee(eje, g, [2]);
+  formula(eje, g, '=it.1');
   assert.equal(huella(eje), antes); // BQL no mueve nada
   const { c } = await anunciada(eje, g, undefined, 4);
   await cumplir(eje, c.id, 'ana'); // registrar lo anunciado (VG, 8-11, mapa §15 [D] «Una sola operación: registrar»)
@@ -849,7 +860,7 @@ test('MOT-46 Q interroga: aplicar un PV es volver a interrogar el resultado, y c
   const dentro = descubrir(eje, g, { camino: [1], posiciones: [1, 2] }); // el resultado de 1, interrogado otra vez
   assert.equal(fuera[0].dir, '1000000000');
   assert.deepEqual(dentro.map((x) => [x.dir, x.candidatos[0].texto]), [['1100000000', 'yogur'], ['1200000000', 'leche']]);
-  evaluar(eje, g, [1, 1]);
+  lee(eje, g, [1, 1]);
   assert.equal(huella(eje), antes);
 });
 
@@ -1018,9 +1029,9 @@ test('MOT-61 capas de validez distintas: forma, interpretación, criptografía y
   // 1 · forma
   assert.ok(validarForma({ autor: 'raiz', sobre: g, en: '4', t: T0, movimientos: [gastaT('raiz')], payload: 'x' }).length > 0);
   // 2 · interpretación
-  const p = await eje.escribir({ autor: 'raiz', sobre: g, t: T0, movimientos: [gastaT('raiz')], payload: ['P', '=LOCAL(9)', '=REF("' + ID_INEXISTENTE + '")'] }, raiz.privada);
-  assert.equal(evaluar(eje, p.id, [1]).estado, 'PENDIENTE');
-  assert.equal(evaluar(eje, p.id, [2]).estado, 'PENDIENTE');
+  const p = await eje.escribir({ autor: 'raiz', sobre: g, t: T0, movimientos: [gastaT('raiz')], payload: ['P', '=(payload(it)).9 + 0', '=payload("' + ID_INEXISTENTE + '")'] }, raiz.privada);
+  assert.equal(lee(eje, p.id, [1]).estado, 'PENDIENTE');
+  assert.equal(lee(eje, p.id, [2]).estado, 'PENDIENTE');
   // C1 (VG, 10-11): una referencia { ref } a un evento ausente no entra en un eje local.
   await assert.rejects(eje.escribir({ autor: 'raiz', sobre: g, t: T0, movimientos: [gastaT('raiz')], payload: ['P', { ref: ID_INEXISTENTE }] }, raiz.privada), /referencia a un evento que no está en el eje/);
   // 3 · criptografía y procedencia
@@ -1089,14 +1100,14 @@ test('MOT-63b una vista por registro de las señales de las capas 2, 4 y 5',
   { skip: 'MOT-63: app.js muestra «firmado/sin firma» y el JSON (capas 1 y 3); no hay vista por registro de las capas 2, 4 y 5. [!] Según §9, PV5 es el propio registro en foco y PV0 la lente' },
   sinForma('MOT-63'));
 
-test('MOT-64 un fallo no borra alternativas ni hace pasar un pendiente por incompatible', async () => {
+test('MOT-64 un fallo no borra alternativas ni hace pasar un pendiente por un error', async () => {
   const { eje, g } = await mundo();
   const roto = await escribe(eje, g, '=1 +', '1000000000');
   const [p1] = descubrir(eje, g, { posiciones: [1] });
   assert.deepEqual(p1.candidatos.map((c) => [c.evento, c.estado]), [[g, 'RESUELTO'], [roto.id, 'ERROR']]);
-  const plan = await escribe(eje, g, ['Plan', '=LOCAL(9)', '="a" + 1']);
-  assert.equal(evaluar(eje, plan.id, [1]).estado, 'PENDIENTE');
-  assert.equal(evaluar(eje, plan.id, [2]).estado, 'INCOMPATIBLE');
+  const plan = await escribe(eje, g, ['Plan', '=(payload(it)).9 + 0', '="a" + 1']);
+  assert.equal(lee(eje, plan.id, [1]).estado, 'PENDIENTE');
+  assert.equal(lee(eje, plan.id, [2]).estado, 'ERROR'); // INCOMPATIBLE se retiró con el V0: tres estados
   assert.match(proponer(eje, plan.id).pendientes[0].motivo, /^PENDIENTE/);
 });
 
@@ -1107,9 +1118,10 @@ test('MOT-65 la evaluación retiene procedencia y vectores para auditoría y tie
   const c = await consolidar(eje, { autor: 'ana', foco: g, t: T0, elecciones: { 1: { candidato: elegido } } });
   assert.equal(c.contexto.encaje[0].evento, fuente.id);
   assert.equal(c.contexto.encaje[0].vector.length, 10);
-  const enorme = '=' + Array.from({ length: 3000 }, () => '1').join(' + ');
+  const enorme = '=' + '('.repeat(150) + '1' + ')'.repeat(150); // más anidada que LIMITES.anidamiento
   const x = await escribe(eje, g, ['X', enorme]);
-  assert.notEqual(evaluar(eje, x.id, [1]).estado, 'RESUELTO');
+  const r = lee(eje, x.id, [1]);
+  assert.deepEqual([r.estado, r.subtipo], ['PENDIENTE', POR_LIMITE]);
 });
 
 test('MOT-65b la evaluación limita el número de candidatos, sin presentar el corte como completo', async () => {
@@ -1138,7 +1150,7 @@ test('MOT-67 el motor es genérico: sin funciones por sector, y una composición
   // La consolidación es foco y fuente de otra, sin código especial.
   const c2 = await consolidar(eje, { autor: 'ana', foco: c1.id, t: T0, elecciones: { 1: { ref: c1.id, dir: '1000000000' } } });
   assert.deepEqual(c2.contexto.fuentes, [c1.id]);
-  assert.equal(consultar(eje, c2.id, [0], 'LOCAL(1)').texto, 'primera composición');
+  assert.equal(lee(eje, c2.id, [1]).texto, 'primera composición');
   for (const nombre of Object.keys(motor)) assert.equal(/ikisai|reserva|booking|compra|yogur|menu|hotel/i.test(nombre), false, nombre);
 });
 
@@ -1891,7 +1903,7 @@ test('TOK-60b el motor también lee bajo la época elegida: descubrir la pasa al
 });
 
 test('TOK-60c BQL y el tiempo también leen bajo la época elegida',
-  { skip: 'TOK-60: evaluar/consultar (BQL) y ejeTemporal (tiempo) no aceptan época. Terreno de src/bql.js y src/tiempo.js (otros agentes): no se toca aquí' },
+  { skip: 'TOK-60: las fórmulas del payload (BQL mínimo) se leen con la época del eje (contexto-eje.contextoDeLectura), no con una elegida, y ejeTemporal (tiempo) no acepta época. Terreno de src/tiempo.js (otros agentes): no se toca aquí' },
   sinForma('TOK-60'));
 
 test('TOK-61 la época actual es la confluencia de las pasadas y fija cómo se calculará la siguiente',
@@ -1947,12 +1959,12 @@ test('TOK-66b diez épocas, con la 0 como respaldo, y bifurcaciones que converge
 test('TOK-68 una implementación referenciada por hash no da permiso para ejecutar código', async () => {
   const { eje, g } = await mundo();
   const hash = 'a'.repeat(64);
-  const x = await escribe(eje, g, ['Regla', '=IMPL("' + hash + '")', '=REF("' + hash + '")', 'sha256:' + hash]);
+  const x = await escribe(eje, g, ['Regla', '=IMPL("' + hash + '")', '=payload("' + hash + '")', 'sha256:' + hash]);
   const antes = huella(eje);
-  assert.equal(evaluar(eje, x.id, [1]).estado, 'ERROR');
-  assert.match(evaluar(eje, x.id, [1]).motivo, /función desconocida/);
-  assert.notEqual(evaluar(eje, x.id, [2]).estado, 'RESUELTO');
-  assert.equal(evaluar(eje, x.id, [3]).valor.tipo, 'texto');
+  assert.equal(lee(eje, x.id, [1]).estado, 'ERROR');
+  assert.match(lee(eje, x.id, [1]).motivo, /no hay funciones con nombre/);
+  assert.notEqual(lee(eje, x.id, [2]).estado, 'RESUELTO');
+  assert.deepEqual(lee(eje, x.id, [3]).valor, ['sha256:' + hash]);
   assert.equal(huella(eje), antes);
 });
 

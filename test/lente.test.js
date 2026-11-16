@@ -5,7 +5,7 @@
 // puede perdonarla quemándola. Su valor para un tercero solo existe con la lente del lector, que son sus grupos de
 // atención que cobran con la R de quien escribe («aceptar tu R como pago es darte peso»), y cada unidad cuenta una (se
 // retira la valoración por participación de la #75). Cada regla con su caso que pasa y el que no, las propiedades
-// (identidades falsas, ampliar no diluye), BQL y una prueba estática.
+// (identidades falsas, ampliar no diluye) y una prueba estática.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -13,11 +13,10 @@ import { readFileSync, readdirSync } from 'node:fs';
 import { Eje } from '../src/eje.js';
 import { crearEvento } from '../src/evento.js';
 import { validez } from '../src/validez.js';
-import { consultar } from '../src/bql.js';
 import { serializar, restaurar } from '../src/persistencia.js';
 import { PRECIO_LENTE, claveR, lenteDe, peso, valor, detalleValor, devoluciones, pendientes } from '../src/lente.js';
 import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
-import { ejemploLente, valoresParaLaCasa, valorEnBql, CERCANOS_DE_LA_CASA, RECIEN } from '../ejemplos/ikisai/lente-booking.mjs';
+import { ejemploLente, valoresParaLaCasa, CERCANOS_DE_LA_CASA, RECIEN } from '../ejemplos/ikisai/lente-booking.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
 
 const T0 = '2026-11-08T10:00:00Z';
@@ -192,33 +191,8 @@ test('devolver R es pedir atención; atender es un registro del emisor anclado s
 
 // ---------- 4 · BQL ----------
 
-test('BQL: VALOR_R y LENTE leen la lente del lector que consulta; sin lector o sin alta, PENDIENTE', async () => {
-  const { eje } = await demo(['casa', 'norte', 'ana']);
-  const reg = await emiteYDa(eje, 'norte', 100, { ana: 10 });
-  const q = (f, op) => consultar(eje, reg.id, [], f, op);
-  assert.equal(q('=VALOR_R("ana")').estado, 'PENDIENTE');
-  assert.match(q('=VALOR_R("ana")').motivo, /sin lector no hay lente, y sin lente R no vale nada/);
-  assert.equal(q('=VALOR_R("ana")', { lector: 'nadie' }).estado, 'PENDIENTE');
-  assert.match(q('=VALOR_R("ana")', { lector: 'nadie' }).motivo, /nadie no tiene alta/);
-  // Con alta y nadie en su lente, R no vale nada para ella: 0.
-  assert.deepEqual(q('=VALOR_R("ana")', { lector: 'casa' }).valor.valor, 0);
-  await cercanos(eje, 'casa', ['norte']);
-  const r = q('=VALOR_R("ana")', { lector: 'casa' });
-  assert.deepEqual([r.estado, r.valor.valor], ['RESUELTO', 10]);
-  assert.ok(r.dependencias.includes(eje.alta('casa').id + ':3000000000')); // un grupo nuevo lo cambia
-  assert.deepEqual(q('=LENTE("norte")', { lector: 'casa' }).valor.valor, 1);
-  assert.deepEqual(q('=LENTE("ana")', { lector: 'casa' }).valor.valor, 0);
-  assert.equal(q('=VALOR_R("ana") > 5', { lector: 'casa' }).valor.valor, true);
-  assert.equal(q('=VALOR_R(3)', { lector: 'casa' }).estado, 'ERROR');
-  assert.equal(q('=LENTE()', { lector: 'casa' }).estado, 'ERROR');
-  // El gancho decide la lectura de la lente (el alta del lector, de donde cuelgan sus grupos).
-  assert.equal(q('=VALOR_R("ana")', { lector: 'casa', puedeLeer: (id) => id !== eje.alta('casa').id }).estado, 'PENDIENTE DE AUTORIZACIÓN');
-  // Y cuesta presupuesto: los nodos de la fórmula, la lente y cada emisor que suma.
-  const corto = q('=VALOR_R("ana")', { lector: 'casa', limites: { presupuesto: 3 } });
-  assert.equal(corto.estado, 'PENDIENTE POR LÍMITE');
-  assert.match(corto.motivo, /VALOR_R \(la R de ana\) exige examinar 1 registros y quedan 0/);
-  assert.equal(q('=VALOR_R("ana")', { lector: 'casa', limites: { presupuesto: 4 } }).estado, 'RESUELTO');
-});
+// Las palabras VALOR_R y LENTE del BQL V0 se retiraron con él (#113) sin sustituto: la lente se lee con
+// src/lente.js (peso, valor, detalleValor), que prueban las secciones 1 a 3.
 
 // ---------- 5 · propiedades ----------
 
@@ -297,10 +271,9 @@ test('en Booking: la casa acepta como pago la R de las dos secretarias; quien se
   assert.equal(eje.bloqueado('secretaria-norte', 'R:secretaria-norte'), 0);
   assert.equal(eje.esPersona('vecinos-norte'), null); // un grupo es un registro, no una identidad: no tiene alta
   assert.equal(eje.saldo('secretaria-norte', 'P:' + asociaciones['vecinos-norte'].id + '/secretaria-norte'), 10);
-  const bql = valorEnBql(eje, reserva);
-  assert.deepEqual([bql.estado, bql.texto], ['RESUELTO', '30']);
+  assert.ok(reserva.id);
   // Recepción tiene alta y nadie en sus grupos que cobran con R: para ella, la R de la huésped vale 0.
-  assert.deepEqual([valorEnBql(eje, reserva, 'recepcion').estado, valorEnBql(eje, reserva, 'recepcion').texto], ['RESUELTO', '0']);
+  assert.deepEqual([valor(eje, 'casa', 'huesped'), valor(eje, 'recepcion', 'huesped')], [30, 0]);
 });
 
 // ---------- 7 · prueba estática ----------
@@ -329,7 +302,7 @@ test('prueba estática: fuera de src/lente.js ningún módulo suma R de emisores
     "const n = movs.filter((m) => m.token === 'R').length;",
     "const cuantos = new Set(lista.map((x) => x.emisor)).size;",
   ]) assert.ok(JUNTAN_R.some((re) => re.test(malo)), malo);
-  const archivos = [...fuentes('src'), ...fuentes('antigua/ui'), ...fuentes('antigua/mundos'), ...fuentes('ejemplos'), 'antigua/app.js'].filter((a) => a !== 'src/lente.js');
+  const archivos = [...fuentes('src'), ...fuentes('carta'), ...fuentes('ejemplos')].filter((a) => a !== 'src/lente.js');
   assert.ok(archivos.length > 20);
   const fuera = archivos.filter((a) => JUNTAN_R.some((re) => re.test(sinComentarios(readFileSync(a, 'utf8')))));
   assert.deepEqual(fuera, []);

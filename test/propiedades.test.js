@@ -12,7 +12,8 @@ import { crearEvento, canonico, cuerpo, verificarId, validarForma } from '../src
 import { claveToken, cantidadBase } from '../src/tokens.js';
 import { Eje } from '../src/eje.js';
 import * as E from '../src/encaje.js';
-import * as B from '../src/bql.js';
+import { ESTADOS } from '../src/bqlm.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import * as motor from '../src/motor.js';
 import { serializar, restaurar } from '../src/persistencia.js';
 import { escribirDesde, costeT } from '../src/escritura.js';
@@ -520,37 +521,37 @@ test('propiedad: referencias cíclicas y cadenas largas terminan (seguir, ocupan
   }
 });
 
-// ---------- BQL ----------
+// ---------- fórmulas del payload (BQL mínimo) ----------
 
+/**
+ * Una fórmula del BQL mínimo generada por una gramática pequeña, con trozos mal escritos y palabras del V0 retirado:
+ * posiciones de lo escrito (payload(it)) y de lo implícito (it.d), otros registros por su id entero (o uno que no
+ * está), listas, where, aritmética, comparaciones y lógica.
+ */
 function formula(g, ids, prof = 0) {
-  const indices = () => Array.from({ length: g.si(0.1) ? g.int(9, 12) : g.int(1, 3) }, () => (g.si(0.95) ? g.int(0, 9) : g.pick([10, -1, 1.5]))).join(', ');
+  const camino = () => Array.from({ length: g.si(0.1) ? g.int(9, 12) : g.int(1, 3) }, () => g.int(0, 9)).join('.');
+  const registro = () => JSON.stringify(ids.length && g.si(0.8) ? g.pick(ids) : 'f'.repeat(64));
   const hoja = () => g.pick([
     () => String(g.pick([0, 1, 2, 12, 0.5])),
-    () => g.pick(['12 EUR', '2 EUR', '5 min']),
-    () => JSON.stringify(g.pick(['desc', 'propio', 'hola', ''])),
-    () => 'LOCAL(' + indices() + ')',
-    () => g.pick(['ORIGEN()', 'ACUERDO()', 'DESPLAZAMIENTO()', 'SIGNO()', 'FALTAS()', 'EXCEDENTES()', 'ACTUAL()', 'ACTUAL(1)']),
-    () => 'REF(' + JSON.stringify(ids.length && g.si(0.8) ? g.pick(ids).slice(0, g.pick([8, 64, 1])) : 'zzzz') + (g.si() ? ', "' + direccion([g.int(0, 3)]) + '"' : '') + ')',
+    () => JSON.stringify(g.pick(['12 EUR', 'hola', ''])),
+    () => '(payload(it)).' + camino(),
+    () => 'it.' + camino(),
+    () => '(payload(' + registro() + ')).' + camino(),
+    () => '(' + registro() + ').' + camino(),
+    () => g.pick(['count down it', 'first up it', 'count path it', 'last it.6.5']),
   ])();
   if (prof > 3 || g.r() < 0.3) return hoja();
   const sub = () => formula(g, ids, prof + 1);
-  const col = () => g.pick([
-    () => 'BUSCAR(' + indices() + ')',
-    () => 'FILTRAR(BUSCAR(' + indices() + '), ' + sub() + ')',
-    () => 'ORDENAR(BUSCAR(' + indices() + '), ' + sub() + ', "desc")',
-    () => 'ELEGIR(BUSCAR(' + indices() + '), ' + g.int(0, 3) + ')',
-    () => 'ACTUAL(' + g.int(0, 9) + ', ' + g.int(1, 3) + ')',
-  ])();
   return g.pick([
     () => sub() + ' ' + g.pick(['+', '-', '*', '/']) + ' ' + sub(),
-    () => sub() + ' ' + g.pick(['=', '<>', '<', '>=']) + ' ' + sub(),
+    () => sub() + ' ' + g.pick(['=', '!=', '<', '>=']) + ' ' + sub(),
     () => '-' + sub(),
     () => '(' + sub() + ')',
-    col,
-    () => g.pick(['CONTAR', 'SUMAR']) + '(' + col() + ')',
-    () => g.pick(['Y', 'O']) + '(' + sub() + ', ' + sub() + ')',
-    () => 'NO(' + sub() + ')',
-    () => g.pick(['FOO()', 'LOCAL()', '1 +', '((1)', '"sin cerrar', 'ñ', 'NO()', 'CONTAR()', 'SUMAR()', 'FILTRAR()', 'ORDENAR()', 'ELEGIR()']),
+    () => g.pick(['count', 'sum', 'first', 'last', 'max']) + ' (' + sub() + ')',
+    () => '(down it where ' + sub() + ')',
+    () => sub() + ' ' + g.pick(['and', 'or']) + ' ' + sub(),
+    () => 'not ' + sub(),
+    () => g.pick(['LOCAL(1)', 'REF("abc")', '1 +', '((1)', '"sin cerrar', 'ñ', 'burn 1 T.1 from me', 'put 1 at me.2.1.(it)']),
   ])();
 }
 
@@ -561,76 +562,23 @@ function slots(p, camino = [], out = []) {
   return out;
 }
 
-test('propiedad: BQL con fórmulas generadas por gramática nunca lanza, nunca escribe y es determinista', async () => {
+test('propiedad: las fórmulas del payload (BQL mínimo, generadas por gramática) nunca lanzan, nunca escriben y son deterministas', async () => {
   const vistos = new Set();
   for (let s = 0; s < 10; s++) {
-    const { eje, ids, g } = await ejeAleatorio(SEMILLA + 200 + s, { formula });
+    const { eje, ids } = await ejeAleatorio(SEMILLA + 200 + s, { formula });
     const antes = JSON.stringify(ida(eje));
     for (const id of ids) {
       for (const camino of slots(eje.obtener(id).payload)) {
-        const a = B.evaluar(eje, id, camino);
-        assert.ok(B.ESTADOS.includes(a.estado));
+        const a = leerPosicion(eje, id, camino);
+        assert.ok(ESTADOS.includes(a.estado), a.estado);
         assert.equal(typeof a.texto, 'string');
-        assert.deepEqual(B.evaluar(eje, id, camino), a);
-        vistos.add(a.estado);
-      }
-      for (let k = 0; k < 4; k++) {
-        const f = formula(g, ids);
-        const camino = Array.from({ length: g.int(1, g.si(0.15) ? 10 : 3) }, () => g.int(0, 9));
-        const a = B.consultar(eje, id, camino, f);
-        assert.ok(B.ESTADOS.includes(a.estado), f);
-        assert.deepEqual(B.consultar(eje, id, camino, f), a);
+        assert.deepEqual(leerPosicion(eje, id, camino), a);
+        if (a.formula !== undefined) vistos.add(a.estado);
       }
     }
-    assert.equal(JSON.stringify(ida(eje)), antes, 'BQL no escribe');
+    assert.equal(JSON.stringify(ida(eje)), antes, 'leer no escribe');
   }
-  assert.deepEqual([...vistos].sort(), ['ERROR', 'INCOMPATIBLE', 'PENDIENTE', 'RESUELTO']);
-});
-
-// Integración 7-11: con BQL según el corpus (#36, O-33/E-09) agotar un límite es PENDIENTE POR LÍMITE, no ERROR.
-test('propiedad: los ciclos acaban en ERROR y el presupuesto en PENDIENTE POR LÍMITE', async () => {
-  const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: ['=LOCAL(1)', '=LOCAL(0)', '=LOCAL(2)', ...Array.from({ length: 7 }, (_, i) => (i < 6 ? '=LOCAL(' + (i + 4) + ') + LOCAL(' + (i + 4) + ')' : 1))], t: T0 });
-  assert.match(B.evaluar(eje, eje.genesisId, [0]).texto, /^ERROR: ciclo/);
-  assert.match(B.evaluar(eje, eje.genesisId, [2]).texto, /^ERROR: ciclo/);
-  assert.equal(B.evaluar(eje, eje.genesisId, [3]).texto, '64');
-  assert.match(B.consultar(eje, eje.genesisId, [0], Array(3000).fill('1').join('+')).texto, /^PENDIENTE POR LÍMITE: presupuesto/);
-});
-
-// Integración 7-11: #43 pedía ERROR; BQL según el corpus (#36) da PENDIENTE «posición sin desarrollar: más de diez profundidades» (docs/BQL.md §8). Lo que se vigila sigue igual: un estado, no RangeError.
-// [X] decidir VG: PENDIENTE (lo de hoy, #36) o ERROR (lo que pedía #43). Se decidió en la integración y está sin revisar; si VG prefiere ERROR, cambian los tres `throw new Parada('PENDIENTE', '… más de diez profundidades')` de src/bql.js y estas pruebas.
-test('regresión: BUSCAR, ACTUAL o una fórmula más allá de diez profundidades dan PENDIENTE, no RangeError', async () => {
-  let p = '=BUSCAR(1, 1, 0)'; // VG, 7-11 noche: el último número es el índice en la lista; el camino, 1.1 más hondo
-  for (let i = 0; i < 10; i++) p = [p];
-  const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: p, t: T0 });
-  const fondo = Array(10).fill(0);
-  const PROFUNDO = 'PENDIENTE: posición sin desarrollar: más de diez profundidades';
-  assert.equal(B.evaluar(eje, eje.genesisId, fondo).texto, PROFUNDO);
-  // Once dígitos de camino y el índice en la lista (VG, 7-11 noche: el último número de BUSCAR es ese índice).
-  assert.equal(B.consultar(eje, eje.genesisId, [0], 'BUSCAR(' + Array(12).fill(1).join(',') + ')').texto, PROFUNDO);
-  assert.equal(B.consultar(eje, eje.genesisId, [...fondo, 0], 'ACTUAL(1, 2)').texto, PROFUNDO);
-  let q = '=1+1';
-  for (let i = 0; i < 11; i++) q = [q];
-  const hondo = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: q, t: T0 });
-  assert.equal(B.evaluar(hondo, hondo.genesisId, Array(11).fill(0)).texto, PROFUNDO);
-  assert.equal(B.consultar(hondo, hondo.genesisId, [0], 'LOCAL(' + Array(11).fill(0).join(',') + ')').texto, PROFUNDO);
-});
-
-// Integración 7-11: con #36 la anidación tiene límite propio (limites.profundidad): PENDIENTE POR LÍMITE, no ERROR.
-test('regresión: una fórmula anidada miles de veces da PENDIENTE POR LÍMITE, no desborda la pila', async () => {
-  const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: 'g', t: T0 });
-  for (const f of ['('.repeat(20000) + '1' + ')'.repeat(20000), 'NO('.repeat(20000) + '1=1' + ')'.repeat(20000), '-'.repeat(50000) + '1']) {
-    const r = B.consultar(eje, eje.genesisId, [0], f);
-    assert.equal(r.estado, 'PENDIENTE POR LÍMITE');
-  }
-});
-
-test('regresión: una función sin el argumento que espera da ERROR, no TypeError', async () => {
-  const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: ['g', 'a'], t: T0 });
-  // Integración 7-11: con #36, las funciones de colección dicen qué esperan (docs/BQL.md §8).
-  assert.equal(B.consultar(eje, eje.genesisId, [0], 'NO()').texto, 'ERROR: NO espera un argumento');
-  for (const f of ['CONTAR()', 'SUMAR()', 'FILTRAR()', 'ORDENAR()', 'ELEGIR()']) {
-    assert.equal(B.consultar(eje, eje.genesisId, [0], f).texto, 'ERROR: ' + f.slice(0, -2) + ' espera una colección');
-  }
+  assert.deepEqual([...vistos].sort(), ['ERROR', 'PENDIENTE', 'RESUELTO']);
 });
 
 // ---------- persistencia ----------

@@ -59,8 +59,9 @@ test('todos los registros del ejemplo, cuenta incluida, en ok; las fórmulas de 
   const cuenta = await ejemploCuenta(eje, compra);
   for (const id of eje.orden) assert.deepEqual(estados(await validez(eje, id)), TODO_OK, id.slice(0, 8));
   const v = await validez(eje, cuenta.id);
-  assert.deepEqual(v.interpretacion.formulas.map((f) => [f.dir, f.estado]), [['1000000000', 'RESUELTO'], ['2000000000', 'RESUELTO']]);
-  assert.equal(v.interpretacion.formulas[0].texto, '14 EUR (12 EUR + 2 EUR)');
+  // Una fórmula (BQL mínimo, it = la cuenta): la cantidad de la magnitud desplegada de su 1, en 1.1; su 2 ya no compone unidades.
+  assert.deepEqual(v.interpretacion.formulas.map((f) => [f.dir, f.estado]), [['1100000000', 'RESUELTO']]);
+  assert.equal(v.interpretacion.formulas[0].texto, '14');
 });
 
 test('el génesis del ejemplo, en ok: la época 0, no mueve nada', async () => {
@@ -225,24 +226,24 @@ test('P delegado: el libro se rehace en el lugar del registro; quien recibe P lo
 
 test('fórmula pendiente: la interpretación queda pendiente y las otras capas no se enteran', async () => {
   const { eje, compra } = await ejemploCompra();
-  const cuenta = await eje.escribir({ autor: 'cocina', sobre: compra.id, en: '1000000000', t: T, movimientos: [gastaT('cocina')], payload: ['Cuenta a medias', '=LOCAL(5) + 2 EUR'] });
+  const cuenta = await eje.escribir({ autor: 'cocina', sobre: compra.id, en: '1000000000', t: T, movimientos: [gastaT('cocina')], payload: ['Cuenta a medias', '=(payload(it)).5 + 2'] });
   const v = await validez(eje, cuenta.id);
   assert.equal(v.interpretacion.estado, 'pendiente');
   assert.equal(v.interpretacion.formulas[0].estado, 'PENDIENTE');
-  assert.match(v.interpretacion.motivos[0], /^1: PENDIENTE: posición sin desarrollar/);
+  assert.match(v.interpretacion.motivos[0], /^1: PENDIENTE: \+: la posición está vacía, falta un valor/);
   assert.deepEqual(salvo(v, 2), ['ok', 'ok', 'ok', 'ok']);
 });
 
-test('una referencia ausente da lo mismo escrita como { ref } o como =REF: pendiente, en la capa 2', async () => {
+test('una referencia ausente da lo mismo escrita como { ref } o como el id en una fórmula: pendiente, en la capa 2', async () => {
   const { eje, compra } = await ejemploCompra();
   // C1 (VG, 10-11): las dos, como candidatas (la de { ref } el eje local no la acepta).
   const escribir = (payload) => crearEvento({ autor: 'cocina', sobre: compra.id, en: '1000000000', t: T, movimientos: [gastaT('cocina', 2)], payload }); // dos posiciones, dos minutos (crearEvento no calcula el coste)
-  const comoFormula = await validez(eje, await escribir(['Cuenta', '=REF("ffffffff", "1200000000") + 2 EUR']));
+  const comoFormula = await validez(eje, await escribir(['Cuenta', '=(payload("' + 'f'.repeat(64) + '")).1.2.1 + 2']));
   const comoRef = await validez(eje, await escribir(['Cuenta', { ref: 'f'.repeat(64), dir: '1200000000' }]));
   const [f] = comoFormula.interpretacion.formulas;
-  assert.equal(f.estado, 'PENDIENTE'); // BQL: «referencia ausente del eje» (lo ausente no es falso)
+  assert.equal(f.estado, 'PENDIENTE'); // lo ausente no es falso: no se evalúa, y dice lo mismo que una { ref } ausente
   assert.equal(f.capa, 'pendiente');
-  assert.match(comoFormula.interpretacion.motivos[0], /^1: PENDIENTE: referencia ausente del eje: ffffffff/);
+  assert.match(comoFormula.interpretacion.motivos[0], /^1: PENDIENTE: referencia a un evento ausente del eje: ffffffff/);
   assert.match(comoRef.interpretacion.motivos[0], /^1: referencia a un evento ausente del eje: ffffffff/);
   assert.deepEqual(estados(comoFormula), ['ok', 'pendiente', 'ok', 'ok', 'ok']);
   assert.deepEqual(estados(comoRef), estados(comoFormula));
@@ -252,15 +253,15 @@ test('fórmula imposible: la interpretación falla y las otras capas no se enter
   const { eje, compra } = await ejemploCompra();
   const cuenta = await eje.escribir({
     autor: 'cocina', sobre: compra.id, en: '1000000000', t: T, movimientos: [gastaT('cocina')],
-    payload: ['Cuenta rota', '="propina" + 2 EUR'],
+    payload: ['Cuenta rota', '="propina" + 2'],
   });
   const v = await validez(eje, cuenta.id);
   const [tipos] = v.interpretacion.formulas;
-  assert.equal(tipos.estado, 'INCOMPATIBLE');
+  assert.equal(tipos.estado, 'ERROR'); // tres estados: lo que no opera (texto + número) es ERROR
   assert.equal(tipos.capa, 'falla');
   assert.deepEqual(estados(v), ['ok', 'falla', 'ok', 'ok', 'ok']);
   assert.deepEqual(estadoDeBql('PENDIENTE POR LÍMITE'), 'pendiente');
-  assert.deepEqual(estadoDeBql('PENDIENTE DE AUTORIZACIÓN'), 'pendiente');
+  assert.deepEqual(estadoDeBql('PENDIENTE'), 'pendiente');
   assert.deepEqual(estadoDeBql('ERROR'), 'falla');
 });
 
@@ -345,7 +346,7 @@ test('la época está fuera del dato: el mismo registro, legible bajo la época 
   await assert.rejects(validez(eje, compra.id, { epoca: {} }), /regla corta/);
 });
 
-test('más de diez profundidades: no es fallo de forma; la capa 2 da lo mismo que BQL en main', async () => {
+test('más de diez profundidades: no es fallo de forma; la capa 2 da lo mismo que el BQL mínimo', async () => {
   const { eje, compra } = await ejemploCompra();
   let hondo = 'hoja';
   // VG, 7-11 noche: por hojas. El array más hondo, ['hoja'], es una lista y no añade profundidad: hacen falta doce.
@@ -358,8 +359,8 @@ test('más de diez profundidades: no es fallo de forma; la capa 2 da lo mismo qu
   assert.equal(v.interpretacion.estado, 'pendiente');
   assert.match(v.interpretacion.motivos[0], /más de diez profundidades en .*posición sin desarrollar/);
   assert.deepEqual(estados(v), ['ok', 'pendiente', 'ok', 'ok', 'ok']);
-  // BQL en main: el mismo estado para un camino de más de diez índices (sin una tercera respuesta).
-  const bql = await validez(eje, (await eje.escribir({ autor: 'cocina', sobre: compra.id, t: T, movimientos: [gastaT('cocina')], payload: ['x', '=LOCAL(1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1)'] })).id);
+  // El BQL mínimo: el mismo estado para un camino de más de diez dígitos (sin una tercera respuesta).
+  const bql = await validez(eje, (await eje.escribir({ autor: 'cocina', sobre: compra.id, t: T, movimientos: [gastaT('cocina')], payload: ['x', '=(payload(it)).1.1.1.1.1.1.1.1.1.1.1'] })).id);
   assert.equal(bql.interpretacion.formulas[0].estado, 'PENDIENTE');
   assert.match(bql.interpretacion.formulas[0].texto, /más de diez profundidades/);
 });

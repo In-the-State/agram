@@ -14,7 +14,7 @@ import { Eje } from '../src/eje.js';
 import { claveToken, partirClave, raizDeAmbito } from '../src/tokens.js';
 import { serializar, restaurar, VERSION } from '../src/persistencia.js';
 import { direccion, indicesDe, esReferencia, ARIDAD } from '../src/btml.js';
-import * as B from '../src/bql.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import * as E from '../src/encaje.js';
 import { cargarEpoca, leerDireccion, EPOCA_0, PV } from '../src/epocas.js';
 import { cerrado } from '../src/motor.js';
@@ -22,9 +22,6 @@ import { entrarPorInvitacion } from '../ejemplos/ikisai/altas.mjs';
 import { escribirDesde } from '../src/escritura.js';
 import * as BK from '../ejemplos/ikisai/reserva-booking.mjs';
 import * as TK from '../ejemplos/ikisai/tarea-tasks.mjs';
-import { ejemploComprasHermanas, escribirBasesDelEjemplo } from '../ejemplos/ikisai/compras-hermanas.mjs';
-import { clavesDeMedidas } from '../src/bases.js';
-import { ALCANCES } from '../src/tiempo.js';
 import { pagaElCoste, conCoste } from './ayudas-coste.js';
 
 const SEMILLA = 20261108;
@@ -497,261 +494,8 @@ test('cantidades no enteras de E y P: 0,3 − 0,1 no alcanza para 0,2',
     assert.equal(eje.saldo('r', 'E:r/EUR'), 0);
   });
 
-// ---------- BQL: estados, BUSCAR por dirección y por índice, autorización ----------
-
+/** Una dirección al azar, de hasta cuatro dígitos (casi siempre 0-3). */
 const dirAl = (g) => direccion(Array.from({ length: g.int(0, 4) }, () => g.int(0, g.si(0.8) ? 3 : 9)));
-const idx = (g) => Array.from({ length: g.int(1, 3) }, () => g.int(0, g.si(0.8) ? 3 : 9)).join(', ');
-
-function formula(g, ids, prof = 0) {
-  const hoja = () => g.pick([
-    () => String(g.int(0, 20)),
-    () => g.int(1, 9) + ' ' + g.pick(['EUR', 'min', 'h']),
-    () => '"' + g.pick(['a', 'escrito', '1000000000']) + '"',
-    () => 'LOCAL(' + idx(g) + ')',
-    () => 'REF("' + g.pick(ids).slice(0, g.pick([8, 64])) + '"' + (g.si() ? ', "' + dirAl(g) + '"' : '') + ')',
-    () => 'CONTAR(BUSCAR("' + dirAl(g) + '"))',
-    () => 'CONTAR(BUSCAR(' + idx(g) + '))',
-  ])();
-  if (prof > 3 || g.r() < 0.3) return hoja();
-  const sub = () => formula(g, ids, prof + 1);
-  const busca = () => g.pick(['BUSCAR(' + idx(g) + ')', 'BUSCAR("' + dirAl(g) + '")', 'BUSCAR(LOCAL(' + idx(g) + '))']);
-  const dentro = () => g.pick(['ORIGEN() = "escrito"', 'ACUERDO() >= ' + g.int(0, 10), 'SIGNO() = "exacto"', 'ACTUAL(' + g.int(0, 3) + ') = ' + g.int(0, 3), sub()]);
-  const col = () => g.pick([
-    busca,
-    () => 'FILTRAR(' + busca() + ', ' + dentro() + ')',
-    () => 'ORDENAR(' + busca() + ', ' + g.pick(['ACUERDO()', 'ORIGEN()', sub()]) + ')',
-    () => 'ELEGIR(' + busca() + ', ' + g.int(0, 3) + ')',
-    () => 'ACTUAL(' + g.int(0, 9) + ', ' + g.int(1, 3) + ')',
-  ])();
-  return g.pick([
-    () => sub() + ' ' + g.pick(['+', '-', '*', '/']) + ' ' + sub(),
-    () => sub() + ' ' + g.pick(['=', '<>', '<', '>=']) + ' ' + sub(),
-    col,
-    () => g.pick(['CONTAR', 'SUMAR']) + '(' + col() + ')',
-    () => g.pick(['Y', 'O']) + '(' + sub() + ', ' + sub() + ')',
-    () => g.pick(['FOO()', '1 +', 'BUSCAR("12")', 'BUSCAR("1000000000", 1)', 'BUSCAR(10)', 'ORIGEN()']),
-  ])();
-}
-
-function payloadAl(g, ids, prof = 0) {
-  if (prof >= 3 || g.r() < 0.35) {
-    const k = g.r();
-    if (k < 0.25) return g.pick([0, 1, 2, 3, 12]);
-    if (k < 0.4) return g.pick(['5 EUR', '3 EUR', '2 min', 'x', '==t', '1000000000', '2000000000']);
-    if (k < 0.6 && ids.length) return g.si(0.3) ? { ref: g.pick(ids) } : { ref: g.pick(ids), dir: dirAl(g) };
-    // C1 (VG, 10-11): una referencia a un evento ausente no entra en el eje; la lectura de una rota la prueban los
-    // ejes falsos (propiedades.test.js, «referencias cíclicas y cadenas largas»).
-    if (k < 0.65) { hex(g); return ids.length ? { ref: ids[ids.length - 1] } : 'y'; } // el mismo azar de antes
-    if (k < 0.9 && ids.length) return '=' + formula(g, ids);
-    return 'y';
-  }
-  return Array.from({ length: g.int(1, g.si(0.1) ? 10 : 4) }, () => payloadAl(g, ids, prof + 1));
-}
-
-async function ejeAl(g) {
-  const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: payloadAl(g, []), t: T0 });
-  const ids = [eje.genesisId];
-  for (let i = 0; i < g.int(2, 6); i++) {
-    const ev = await eje.escribir({ autor: 'r', sobre: g.pick(ids), en: g.si(0.7) ? dirAl(g) : '0000000000', t: T0, movimientos: [gastaT('r')], payload: payloadAl(g, ids), contexto: { i } });
-    ids.push(ev.id);
-  }
-  return { eje, ids };
-}
-
-function huecos(p, camino = [], out = []) {
-  if (camino.length > ARIDAD) return out;
-  out.push(camino);
-  if (Array.isArray(p)) p.forEach((h, i) => huecos(h, [...camino, i], out));
-  return out;
-}
-
-const ESTADOS = [...B.ESTADOS, ...B.SUBTIPOS_PENDIENTE];
-const llave = (it) => JSON.stringify([it.origen, it.evento, it.indices]);
-const itemsDe = (r) => (r.estado === 'RESUELTO' && r.valor.tipo === 'coleccion' ? r.valor.items.map(llave) : null);
-const SIN_TOPE = { limites: { candidatos: 1e9 } };
-
-/**
- * Mapa §12 [D] «BUSCAR por dirección y por índice»: «un número es índice
- * (camino exacto, relativo al anfitrión); un texto de diez dígitos es
- * dirección (absoluta en el registro, nombra la colisión entera)».
- */
-test('propiedad: BUSCAR por dirección es absoluta y da la colisión entera; por índice, relativo al anfitrión, exacto y dentro de la dirección', async () => {
-  let comparados = 0;
-  for (let s = 0; s < 14; s++) {
-    const g = prng(SEMILLA + 100 + s);
-    const { eje, ids } = await ejeAl(g);
-    for (const id of ids) {
-      const hs = huecos(eje.obtener(id).payload);
-      for (let k = 0; k < 4; k++) {
-        const d = dirAl(g);
-        const h1 = g.pick(hs);
-        const h2 = Array.from({ length: g.int(1, 5) }, () => g.int(0, 9));
-        const r1 = B.consultar(eje, id, h1.length ? h1 : [0], 'BUSCAR("' + d + '")', SIN_TOPE);
-        const r2 = B.consultar(eje, id, h2, 'BUSCAR("' + d + '")', SIN_TOPE);
-        assert.equal(r1.estado, r2.estado);
-        assert.deepEqual(itemsDe(r1), itemsDe(r2), 'la dirección no depende del anfitrión');
-        if (r1.estado === 'RESUELTO') assert.equal(r1.valor.items.length, E.ocupantes(eje, id, indicesDe(d)).length, 'la colisión entera');
-        const h = Array.from({ length: g.int(0, 3) }, () => g.int(0, 3));
-        // VG, 7-11 noche: por hojas. Con dos o más números, el último de BUSCAR es el índice en la lista de la
-        // posición (por llegada: cada elemento de una lista propia y cada escrito) y los demás, el camino; con uno
-        // solo, el camino.
-        const conK = g.si(0.5);
-        const i = Array.from({ length: g.int(1, 3) }, () => g.int(0, 3));
-        const k = conK ? [g.int(0, 3)] : [];
-        const ra = B.consultar(eje, id, [...h, g.int(0, 9)], 'BUSCAR(' + [...i, ...k].join(', ') + ')', SIN_TOPE);
-        // Desde la raíz, el mismo camino; sin índice en la lista solo es lo mismo si el anfitrión no añade nada.
-        if (conK || h.length === 0) {
-          const rb = B.consultar(eje, id, [g.int(0, 9)], 'BUSCAR(' + [...h, ...i, ...k].join(', ') + ')', SIN_TOPE);
-          assert.deepEqual(itemsDe(ra), itemsDe(rb), 'el índice es relativo al anfitrión');
-        }
-        const camino = [...h, ...i];
-        const rd = B.consultar(eje, id, [0], 'BUSCAR("' + direccion(camino) + '")', SIN_TOPE);
-        if (ra.estado === 'RESUELTO' && rd.estado === 'RESUELTO') {
-          const todos = new Set(itemsDe(rd));
-          for (const it of itemsDe(ra)) assert.ok(todos.has(it), 'el índice no da nada que la dirección no tenga');
-          for (const it of ra.valor.items.filter((x) => x.origen === 'propio')) assert.deepEqual(it.indices, camino, 'índice = camino exacto');
-          if (conK) assert.ok(ra.valor.items.filter((x) => x.origen !== 'referencia').length <= 1, 'el índice en la lista da un ocupante');
-          comparados++;
-        }
-      }
-    }
-  }
-  assert.ok(comparados > 100, String(comparados));
-});
-
-/**
- * Estados (corpus 03 l.46): siempre uno de los cuatro o un subtipo de
- * PENDIENTE; el gancho que todo lo permite no cambia nada; si el gancho
- * niega una lectura que la evaluación hace, el resultado es PENDIENTE DE
- * AUTORIZACIÓN (ninguna parada se captura dentro: la primera lectura negada
- * manda). Determinista y sin escribir.
- */
-test('propiedad: BQL — estados, gancho de autorización (todo permitido = sin gancho; una lectura negada = PENDIENTE DE AUTORIZACIÓN), determinista', async () => {
-  const vistos = new Set();
-  let negadas = 0;
-  for (let s = 0; s < 12; s++) {
-    const g = prng(SEMILLA + 200 + s);
-    const { eje, ids } = await ejeAl(g);
-    const antes = JSON.stringify(ida(eje));
-    for (const id of ids) {
-      for (const camino of huecos(eje.obtener(id).payload)) {
-        const lecturas = [];
-        const a = B.evaluar(eje, id, camino);
-        const todo = B.evaluar(eje, id, camino, { puedeLeer: (e, d, ind) => { lecturas.push(JSON.stringify([e, d, ind])); return true; } });
-        assert.ok(ESTADOS.includes(a.estado), a.estado);
-        assert.notEqual(a.estado, 'PENDIENTE DE AUTORIZACIÓN');
-        if (a.estado !== 'RESUELTO') assert.ok(a.texto.startsWith(a.estado + ': '), a.texto);
-        for (const dep of a.dependencias) assert.match(dep, /^[0-9a-f]{64}:[0-9]{10}$/);
-        assert.deepEqual(todo, a);
-        assert.deepEqual(B.evaluar(eje, id, camino), a, 'determinista');
-        vistos.add(a.estado);
-        if (lecturas.length) {
-          const negada = g.pick(lecturas);
-          const r = B.evaluar(eje, id, camino, { puedeLeer: (e, d, ind) => JSON.stringify([e, d, ind]) !== negada });
-          assert.equal(r.estado, 'PENDIENTE DE AUTORIZACIÓN', negada + ' → ' + r.texto);
-          negadas++;
-        }
-      }
-      for (let k = 0; k < 3; k++) {
-        const f = formula(g, ids);
-        const c = Array.from({ length: g.int(1, 3) }, () => g.int(0, 9));
-        const x = B.consultar(eje, id, c, f);
-        assert.ok(ESTADOS.includes(x.estado), f);
-        assert.deepEqual(B.consultar(eje, id, c, f), x);
-        vistos.add(x.estado);
-      }
-    }
-    assert.equal(JSON.stringify(ida(eje)), antes, 'BQL no escribe');
-  }
-  assert.deepEqual([...vistos].sort(), ['ERROR', 'INCOMPATIBLE', 'PENDIENTE', 'RESUELTO']);
-  assert.ok(negadas > 100, String(negadas));
-});
-
-test('regresión: un dato que falta en FILTRAR no se vuelve «falso» (corpus 03 l.46)', async () => {
-  const eje = await Eje.genesis({ demostracion: true, identidad: 'r', emision: [], foco: ['g', 'propio'], t: T0 });
-  for (const p of [['a', 5], ['b']]) await eje.escribir({ autor: 'r', sobre: eje.genesisId, en: '1000000000', t: T0, movimientos: [gastaT('r')], payload: p });
-  // El segundo escrito no tiene posición 1: la condición queda PENDIENTE para él y no se descarta en silencio.
-  const r = B.consultar(eje, eje.genesisId, [0], 'CONTAR(FILTRAR(FILTRAR(BUSCAR("1000000000"), ORIGEN() = "escrito"), ACTUAL(1) > 1))');
-  assert.equal(r.estado, 'PENDIENTE');
-  assert.equal(B.consultar(eje, eje.genesisId, [0], 'CONTAR(FILTRAR(BUSCAR("1000000000"), ORIGEN() = "escrito"))').texto, '2');
-});
-
-// ---------- BASES, CAJA y FRESCURA (leen el 8) ----------
-
-/**
- * Sobre el eje de las compras hermanas con sus bases escritas: estados,
- * determinismo, sin escribir; CAJA(medida, alcance) = BASES(alcance,
- * medida), con gancho o sin él; el gancho que todo lo permite no cambia nada
- * salvo las dos medidas de fórmulas (docs/BQL.md §7.14: con gancho no se
- * cuentan); una lectura negada da PENDIENTE DE AUTORIZACIÓN.
- */
-test('propiedad: BASES, CAJA y FRESCURA — estados, CAJA = BASES con y sin gancho, autorización', async () => {
-  const ej = await ejemploComprasHermanas();
-  await escribirBasesDelEjemplo(ej);
-  const { eje } = ej;
-  const ids = [...eje.orden];
-  const antes = JSON.stringify(ida(eje));
-  const g = prng(SEMILLA + 700);
-  const MEDIDAS = [...clavesDeMedidas(), 'T:minuto', 'E:casa/EUR', 'P:genesis', 'R:casa', 'T:mes', 'inventada'];
-  const FORMULAS = ['formulasResueltas', 'formulasPendientes'];
-  const vistos = new Set();
-  let negadas = 0;
-  for (let k = 0; k < 300; k++) {
-    const id = g.pick(ids);
-    const medida = g.pick(MEDIDAS);
-    const alcance = g.pick([...ALCANCES, 'otro']);
-    const f = g.pick([
-      'CAJA("' + medida + '")', 'CAJA("' + medida + '", "' + alcance + '")', 'FRESCURA("' + alcance + '")', 'FRESCURA()',
-      'BASES("' + alcance + '", "' + medida + '")', 'BASES("' + alcance + '", "' + medida + '", ' + g.pick(['0', '9', '"media"', '"minimo"', '"foco"', '"caja"']) + ')',
-    ]);
-    const lecturas = [];
-    const a = B.consultar(eje, id, [0], f);
-    const todo = B.consultar(eje, id, [0], f, { puedeLeer: (e, d, ind) => { lecturas.push(JSON.stringify([e, d, ind])); return true; } });
-    assert.ok(ESTADOS.includes(a.estado), f);
-    assert.deepEqual(B.consultar(eje, id, [0], f), a, 'determinista');
-    if (a.estado === 'RESUELTO') assert.ok(Number.isFinite(a.valor.valor), f + ' → ' + a.texto);
-    vistos.add(a.estado);
-    if (!FORMULAS.includes(medida)) assert.deepEqual(todo, a, f);
-    if (lecturas.length) {
-      const negada = g.pick(lecturas);
-      assert.equal(B.consultar(eje, id, [0], f, { puedeLeer: (e, d, ind) => JSON.stringify([e, d, ind]) !== negada }).estado, 'PENDIENTE DE AUTORIZACIÓN', f + ' sin ' + negada);
-      negadas++;
-    }
-    if (ALCANCES.includes(alcance) && clavesDeMedidas().includes(medida)) {
-      const vetado = g.pick(ids);
-      for (const opciones of [undefined, { puedeLeer: () => true }, { puedeLeer: (e) => e !== vetado }]) {
-        const c = B.consultar(eje, id, [0], 'CAJA("' + medida + '", "' + alcance + '")', opciones);
-        const b = B.consultar(eje, id, [0], 'BASES("' + alcance + '", "' + medida + '")', opciones);
-        assert.equal(c.estado, b.estado, medida + ' ' + alcance + ': ' + c.texto + ' / ' + b.texto);
-        if (c.estado === 'RESUELTO') assert.equal(c.texto, b.texto);
-      }
-    }
-  }
-  assert.equal(JSON.stringify(ida(eje)), antes, 'leer el 8 no escribe');
-  assert.deepEqual([...vistos].sort(), ['ERROR', 'PENDIENTE', 'RESUELTO']);
-  assert.ok(negadas > 100, String(negadas));
-});
-
-// Fuzz 2 (fuzz-caja, semilla 19000) sobre main 1215dd8: CAJA con gancho no daba las medidas de fórmulas y
-// BASES sí, y su recuento dejaba ver si se resolvía una fórmula que lee lo que el gancho niega. Arreglado en src/bql.js.
-test('regresión: con gancho, BASES no cuenta las fórmulas del anfitrión (como CAJA): no deja ver lo que el gancho niega', async () => {
-  const ej = await ejemploComprasHermanas();
-  await escribirBasesDelEjemplo(ej);
-  const { eje } = ej;
-  const secreto = ej.menu.id;
-  const hijo = await eje.escribir({ autor: 'casa', sobre: ej.comedor.id, t: '2026-11-07T19:00:00Z', movimientos: [gastaT('casa', 3)], payload: ['=REF("' + secreto + '", "0000000000") + 1', 'x'] }, ej.claves.casa.privada);
-  const gancho = { puedeLeer: (id) => id !== secreto };
-  assert.equal(B.consultar(eje, hijo.id, [1], 'REF("' + secreto + '")', gancho).estado, 'PENDIENTE DE AUTORIZACIÓN');
-  // R7 (VG, 7-11 noche): las fórmulas son un recuento y el 8 no los sitúa: ni con gancho ni sin él se leen, así que no
-  // dejan ver nada de lo que el gancho niega.
-  for (const f of ['CAJA("formulasPendientes")', 'BASES("hermanos", "formulasPendientes", "foco")', 'BASES("hermanos", "formulasResueltas")', 'BASES("proyecto", "formulasPendientes", "caja")', 'BASES("hermanos", "formulasPendientes", 0)']) {
-    for (const opciones of [gancho, undefined]) assert.equal(B.consultar(eje, hijo.id, [1], f, opciones).estado, 'ERROR', f);
-  }
-  // Lo que solo lee la base sigue respondiendo con gancho.
-  for (const f of ['BASES("hermanos", "T:minuto", 0)', 'BASES("hermanos", "T:minuto", "suma")', 'BASES("hermanos")']) {
-    assert.equal(B.consultar(eje, hijo.id, [1], f, gancho).estado, 'RESUELTO', f);
-  }
-});
 
 // ---------- épocas desde datos ----------
 
@@ -989,7 +733,7 @@ test('propiedad: Booking — series de plaza conservadas y acotadas por la capac
         const pagada = parte(eje, r, r.autor, 'Pagada');
         assert.equal(entregada, pagada, 'entregada ⇔ pagada en ' + r.id.slice(0, 8));
         assert.equal(cerrado(eje, r.id).cerrado, pagada, 'cerrada ⇔ entregada y pagada en ' + r.id.slice(0, 8));
-        if (pagada && pagado.has(r.id)) assert.equal(pagado.get(r.id), B.evaluar(eje, r.id, [1, 3]).valor.cantidad);
+        if (pagada && pagado.has(r.id)) assert.equal(pagado.get(r.id), BK.totalDe(eje, r).cantidad);
       }
     }
     assert.deepEqual(ida(await restaurar(ida(eje))), ida(eje));
@@ -1020,19 +764,21 @@ test('regresión Booking: reservar sin minutos para las noches no deja una reser
 // ---------- caso Tasks ----------
 
 /**
- * La fórmula del 9 (FORMULA_ELECCION) contra un oráculo: de los escritos
- * anclados en el 1 de la tarea, el primero en llegar cuyo precio (su 1) cabe
- * en el coste total (1.1) y cuyo plazo (su 2) cabe en el plazo (2.1); si
- * alguno trae otra unidad, INCOMPATIBLE (antes de operar se validan tipos y
- * dimensiones, corpus 03 l.44); si ninguno cabe, la colección vacía.
+ * La fórmula del 9 (FORMULA_ELECCION, BQL mínimo) contra un oráculo: de los
+ * escritos anclados en el 1 de la tarea, el primero en llegar cuyo precio (la
+ * cantidad de su 1) cabe en el coste total (la suma de las partidas, 1.1.1) y
+ * cuyo plazo (la de su 2) cabe en el plazo (el ocupante 1 de su 2); si ninguno
+ * cabe, nada. Solo números (retirada de BQL V0, #113): la unidad no se mira,
+ * así que un precio en USD se compara por su cantidad (el V0 daba INCOMPATIBLE).
  */
 test('propiedad: Tasks — la fórmula del 9 elige el primer presupuesto que cabe en coste y plazo', async () => {
-  const vistos = { elige: 0, ninguno: 0, incompatible: 0 };
+  const vistos = { elige: 0, ninguno: 0, otraUnidad: 0 };
   for (let s = 0; s < 14; s++) {
     const g = prng(SEMILLA + 600 + s);
     const { eje, tarea } = await TK.ejemploTarea({ hasta: 'tarea' });
-    const coste = B.evaluar(eje, tarea.id, [1, 1]).valor;
-    const plazo = B.evaluar(eje, tarea.id, [2, 1]).valor;
+    const coste = TK.magnitudEn(eje, tarea.id, [1, 1]);
+    assert.deepEqual([coste.cantidad, coste.unidad], [350, 'EUR']);
+    const plazo = Number.parseFloat(tarea.payload[2][1]); // '8 h'
     const escritos = [];
     for (let i = 0; i < g.int(1, 4); i++) {
       const precio = g.pick([200, 310, 350, 420, 1000]);
@@ -1042,15 +788,11 @@ test('propiedad: Tasks — la fórmula del 9 elige el primer presupuesto que cab
       const ev = await escribirDesde(eje, { modo: 'sequenced', autor: 'proveedor', sobre: tarea.id, en: tarea.payload[5], t: '2026-11-08T0' + i + ':00:00Z', payload: ['Presupuesto ' + i, precio + ' ' + unidad, horas + ' ' + uh, 'proveedor'] });
       escritos.push({ id: ev.id, precio, unidad, horas, uh });
     }
-    const r = B.evaluar(eje, tarea.id, [9]);
-    if (escritos.some((x) => x.unidad !== coste.unidad || x.uh !== plazo.unidad)) {
-      assert.equal(r.estado, 'INCOMPATIBLE', r.texto);
-      vistos.incompatible++;
-      continue;
-    }
-    const cabe = escritos.filter((x) => x.precio <= coste.cantidad && x.horas <= plazo.cantidad);
+    const r = leerPosicion(eje, tarea.id, [9]);
+    const cabe = escritos.filter((x) => x.precio <= coste.cantidad && x.horas <= plazo);
     assert.equal(r.estado, 'RESUELTO', r.texto);
-    assert.deepEqual(r.valor.items.map((x) => x.evento), cabe.slice(0, 1).map((x) => x.id));
+    assert.deepEqual(r.valor.map((x) => x.id), cabe.slice(0, 1).map((x) => x.id));
+    if (escritos.some((x) => x.unidad !== 'EUR' || x.uh !== 'h')) vistos.otraUnidad++;
     vistos[cabe.length ? 'elige' : 'ninguno']++;
   }
   assert.ok(Object.values(vistos).every((n) => n > 0), JSON.stringify(vistos));
@@ -1062,7 +804,7 @@ test('regresión Tasks: por defecto solo cuentan los ocupantes del autor y de qu
   async () => {
     const { eje, tarea } = await TK.ejemploTarea({ hasta: 'tarea' });
     const ajeno = await escribirDesde(eje, { modo: 'sequenced', autor: 'casa', sobre: tarea.id, en: tarea.payload[5], t: '2026-11-07T12:00:00Z', payload: ['Presupuesto de la casa', '300 EUR', '5 h', 'casa'] });
-    const r = B.evaluar(eje, tarea.id, [9]);
+    const r = leerPosicion(eje, tarea.id, [9]);
     assert.equal(r.estado, 'RESUELTO', r.texto);
-    assert.ok(!r.valor.items.some((x) => x.evento === ajeno.id), 'la casa no está en el 3 de la tarea');
+    assert.ok(!r.valor.some((x) => x.id === ajeno.id), 'la casa no está en el 3 de la tarea');
   });

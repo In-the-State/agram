@@ -2,7 +2,6 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { ejemploCompra, ejemploCuenta } from '../ejemplos/ikisai/compra-food.mjs';
 import { vector, acuerdo, norma, signo, faltas, excedentes, distancia, ordenarPorEncaje, ocupantes } from '../src/encaje.js';
-import { consultar } from '../src/bql.js';
 import { consolidar, descubrir } from '../src/motor.js';
 import { pagaElCoste } from './ayudas-coste.js';
 
@@ -68,18 +67,20 @@ test('los ocupantes llevan su vector y salen por encaje; la llegada sigue dispon
   assert.ok(oc.filter((o) => o.origen === 'propio').every((o) => o.signo === 'exacto'));
 });
 
-test('BQL: BUSCAR sale por encaje y SIGNO/FALTAS/ACUERDO/DESPLAZAMIENTO son consultables', async () => {
+// Las palabras SIGNO, FALTAS, ACUERDO y DESPLAZAMIENTO del BQL V0 se retiraron sin sustituto (#113): el encaje de
+// cada ocupante lo da src/encaje.js (ocupantes), que es lo que leían.
+test('encaje de la colisión entera y del camino exacto: signo, faltas, acuerdo y distancia de cada ocupante', async () => {
   const { eje, compra } = await ejemploCompra();
   await ejemploCuenta(eje, compra);
-  const c = (f) => consultar(eje, compra.id, [1], f);
-  assert.equal(c('CONTAR(FILTRAR(BUSCAR("1000000000"), SIGNO() = "exacto"))').texto, '4'); // la dirección nombra la colisión entera: [1], [1.0], la referencia al menú:1 y la cuenta anclada en 1
-  assert.equal(c('CONTAR(FILTRAR(BUSCAR("1000000000"), SIGNO() = "completar"))').texto, '0');
-  assert.equal(c('CONTAR(FILTRAR(BUSCAR("1000000000"), FALTAS() = 0))').texto, '4');
-  assert.equal(c('CONTAR(FILTRAR(BUSCAR("1000000000"), DESPLAZAMIENTO() > 0))').texto, '0');
-  assert.equal(c('CONTAR(FILTRAR(BUSCAR("1000000000"), ACUERDO() = 10))').texto, '4');
-  // El índice es camino exacto: [1] y la cuenta anclada en 1; ni [1.0] ni lo que alcanza su referencia.
-  assert.equal(c('CONTAR(FILTRAR(BUSCAR(1), SIGNO() = "exacto"))').texto, '2');
-  assert.equal(c('SIGNO()').estado, 'ERROR');
+  const colision = ocupantes(eje, compra.id, [1]); // la dirección nombra la colisión entera
+  const cuantos = (lista, cond) => lista.filter(cond).length;
+  assert.equal(cuantos(colision, (o) => o.signo === 'exacto'), 4); // [1], [1.0], la referencia al menú:1 y la cuenta anclada en 1
+  assert.equal(cuantos(colision, (o) => o.signo === 'completar'), 0);
+  assert.equal(cuantos(colision, (o) => faltas(o.vector) === 0), 4);
+  assert.equal(cuantos(colision, (o) => distancia(o.vector) > 0), 0);
+  assert.equal(cuantos(colision, (o) => o.acuerdo === 10), 4);
+  // El camino exacto: [1] y la cuenta anclada en 1; ni [1.0] ni lo que alcanza su referencia.
+  assert.equal(cuantos(ocupantes(eje, compra.id, [1], { exacto: true }), (o) => o.signo === 'exacto'), 2);
 });
 
 test('la consolidación guarda el encaje de cada fuente elegida', async () => {

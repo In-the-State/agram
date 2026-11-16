@@ -4,7 +4,8 @@ import assert from 'node:assert/strict';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { descubrir, consolidar, propuestas, cerrado } from '../src/motor.js';
 import { Eje } from '../src/eje.js';
-import { evaluar, consultar } from '../src/bql.js';
+import { leerFormula } from '../src/bqlm.js';
+import { contextoDeLectura, leerPosicion } from '../src/contexto-eje.js';
 import { item, desdePointed, desdeSequenced } from '../src/escritura.js';
 import { cargarEpoca, EPOCA_0 } from '../src/epocas.js';
 import { confluir } from '../src/tiempo.js';
@@ -45,7 +46,7 @@ test('A2-03: [1] y [1, 0] se distinguen, y una fórmula pendiente en la 0 no vue
   const escrito = await eje.escribir({
     autor: 'cocina', sobre: compra.id, en: '1000000000', t: T,
     movimientos: [{ token: 'T', escala: 'minuto', cantidad: 3, de: 'cocina', a: null }],
-    payload: ['=REF("ffffffff")', 'ensalada', 'nota'],
+    payload: ['=(payload("' + 'f'.repeat(64) + '")).1', 'ensalada', 'nota'], // un registro que no está: PENDIENTE
   });
   const [p1] = descubrir(eje, compra.id, { posiciones: [1] });
   const propio1 = p1.candidatos.find((c) => c.origen === 'propio' && c.camino.length === 1);
@@ -83,11 +84,15 @@ test('A2-01: «0034» y «120» escritos como texto se leen como texto, sin perd
     foco: ['Registro', 'x', '0034', '120', 'Mesa 4', '12 EUR', 120],
   });
   const g = eje.genesisId;
-  assert.deepEqual(evaluar(eje, g, [2]).valor, { tipo: 'texto', valor: '0034' });
-  assert.equal(consultar(eje, g, [0], 'LOCAL(2) = "0034"').valor.valor, true);
-  assert.equal(consultar(eje, g, [0], 'LOCAL(3) = "120"').valor.valor, true);
-  assert.deepEqual(evaluar(eje, g, [6]).valor, { tipo: 'numero', valor: 120 }); // número JSON
-  assert.equal(evaluar(eje, g, [5]).valor.tipo, 'magnitud'); // «12 EUR»: [X] decidir VG la forma de la magnitud
+  // Con el BQL mínimo (retirada de BQL V0, #113): lo escrito se lee con payload(it).
+  const f = (formula) => leerFormula(formula, { k: 'reg', id: g }, contextoDeLectura(eje)).valor;
+  assert.deepEqual(leerPosicion(eje, g, [2]).valor, ['0034']);
+  assert.deepEqual(f('=first (payload(it)).2 = "0034"'), [true]);
+  assert.deepEqual(f('=first (payload(it)).3 = "120"'), [true]);
+  assert.deepEqual(f('=first (payload(it)).3 = 120'), [false]); // un texto no es el número
+  assert.deepEqual(leerPosicion(eje, g, [6]).valor, [120]); // número JSON
+  assert.deepEqual(f('=(payload(it)).5.1'), [12]); // «12 EUR»: su .1 es la cantidad (D-VALOR)
+  assert.deepEqual(f('=(payload(it)).2.1'), []); // «0034» no es una magnitud
 });
 
 // A2-04 · item() conserva como texto una dirección de diez dígitos.
@@ -104,9 +109,10 @@ test('A2-04: una dirección escrita desde un modo sigue siendo dirección para B
     movimientos: [pagaElCoste('huesped')],
     payload: hilera,
   });
-  assert.equal(consultar(eje, r.id, [0], 'BUSCAR(LOCAL(5))').estado, 'RESUELTO');
-  assert.equal(
-    consultar(eje, r.id, [0], 'CONTAR(BUSCAR(LOCAL(5)))').valor.valor,
-    consultar(eje, r.id, [0], 'CONTAR(BUSCAR("1000000000"))').valor.valor,
-  );
+  // Con el BQL mínimo: el 5 es el texto de la dirección y sirve para buscar lo anclado ahí (el en de cada registro).
+  const f = (formula) => leerFormula(formula, { k: 'reg', id: r.id }, contextoDeLectura(eje));
+  assert.deepEqual(f('=first (payload(it)).5 = "1000000000"').valor, [true]);
+  await eje.escribir({ autor: 'huesped', sobre: r.id, en: '1000000000', t: T, movimientos: [pagaElCoste('huesped')], payload: 'una' });
+  assert.deepEqual(f('=count (down it where last it2.6.5 = first (payload(it)).5)').valor, f('=count (down it where last it2.6.5 = "1000000000")').valor);
+  assert.deepEqual(f('=count (down it where last it2.6.5 = first (payload(it)).5)').valor, [1]);
 });

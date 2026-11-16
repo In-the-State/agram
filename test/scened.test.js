@@ -5,7 +5,7 @@ import { escena, escenaDe, render, CAPACIDAD, ALCANCES } from '../src/scened.js'
 import { mapa } from '../src/mapped.js';
 import { ejeTemporal, comparables } from '../src/tiempo.js';
 import { lectura, maximo, minimo } from '../src/modos.js';
-import { consultar } from '../src/bql.js';
+import { leerPosicion } from '../src/contexto-eje.js';
 import { EPOCA_0 } from '../src/epocas.js';
 import { Eje } from '../src/eje.js';
 import * as agram from '../src/index.js';
@@ -157,50 +157,48 @@ test('escenaDe: las cohortes de tiempo.comparables o el hilo, con el foco como c
   assert.throws(() => escenaDe(eje, 'nada'), /foco desconocido/);
 });
 
-test('la cuenta enlaza con la compra por una fórmula BQL, y lo que sale de la escena se cuenta', async () => {
+test('la cuenta enlaza con la compra por una fórmula (BQL mínimo), y lo que sale de la escena se cuenta', async () => {
   const { eje, compra } = await ejemploCompra();
   const cuenta = await ejemploCuenta(eje, compra);
   const e = escena(eje, [cuenta.id, compra.id], { ahora: AHORA });
   assert.deepEqual(e.focos.map((f) => f.id), [compra.id, cuenta.id]);
   const deLaCuenta = e.focos[1].salen;
   assert.deepEqual(deLaCuenta[0], { tipo: 'hilo', de: 1, a: 0, deId: cuenta.id, aId: compra.id, saltos: 1, en: '1000000000' });
-  assert.deepEqual(deLaCuenta[1], { tipo: 'formula', de: 1, a: 0, deId: cuenta.id, aId: compra.id, camino: [1], dir: '1200000000' });
-  assert.equal(deLaCuenta.length, 2); // «=LOCAL(1) + 15 min» y el texto escapado no son referencias
+  // La fórmula vive en 1.1 (la cantidad de la magnitud desplegada, una lista de uno: su hoja va en 1.1.0) y lee (payload(«compra»)).1.2.1.
+  assert.deepEqual(deLaCuenta[1], { tipo: 'formula', de: 1, a: 0, deId: cuenta.id, aId: compra.id, camino: [1, 1, 0], dir: '1210000000' });
+  assert.equal(deLaCuenta.length, 2); // «15 min» y el texto escapado no son referencias
   assert.equal(e.recuentos.referenciasFuera, 2); // las de la compra al menú, que no está en escena
   const texto = render(e);
-  assert.match(texto, /hilo→0 en 1000000000 · fórmula 1→0:1200000000/);
+  assert.match(texto, /hilo→0 en 1000000000 · fórmula 1\.1\.0→0:1210000000/);
   assert.equal(escena(eje, [cuenta.id], { ahora: AHORA }).recuentos.referenciasFuera, 1);
 });
 
-test('lectura estática de REF: las mismas reglas que REF en BQL, sin evaluar', async () => {
+test('lectura estática de los registros que nombra una fórmula: su id entero y los dígitos que le siguen, sin evaluar', async () => {
   const { eje, compra } = await ejemploCompra();
-  const c = corto(compra.id);
+  const c = compra.id;
   const formulas = [
-    '=REF("ffffffff")', // 1 · ausente del eje: PENDIENTE
-    '=((', // 2 · no se analiza
-    '=REF("' + c + '", "12")', // 3 · dirección corta: ERROR
-    '=SUMAR(FILTRAR(BUSCAR(1), REF("' + c + '", "1200000000") > 3))', // 4 · anidado: cuenta
-    '=REF("' + c.toUpperCase() + '", "1200000000")', // 5 · en mayúsculas: BQL lo resuelve
-    '=REF("' + c + '", 1200000000)', // 6 · dirección numérica: ERROR
-    '=REF("@' + c + '", "1100000000")', // 7 · con @: BQL lo resuelve
-    '=REF("' + c + '", BUSCAR(1))', // 8 · dirección calculada: depende de evaluar
-    '=REF("zz")', // 9 · mal formada: ERROR
+    '=first (payload("' + 'f'.repeat(64) + '")).0', // 1 · ausente del eje: PENDIENTE, sin arista
+    '=((', // 2 · no se analiza: sin arista
+    '=(payload("' + c + '")).1.2.1 + 2', // 3 · lo escrito en 1.2.1 de la compra
+    '=count (down it where (payload(it2)).1 = (payload("' + c + '")).1.2.1)', // 4 · anidado: cuenta
+    '=first ("' + c + '").1.1', // 5 · el registro, en 1.1
+    '=count ("' + c + '")', // 6 · sin dígitos detrás: la raíz
+    '=first (payload("' + c.toUpperCase() + '")).0', // 7 · en mayúsculas no es un id: ERROR, sin arista
+    '=first ("' + corto(c) + '").1', // 8 · un prefijo de 8 no es un id: sin arista
   ];
   const notas = await eje.escribir({ autor: 'cocina', sobre: compra.id, t: '2026-11-07T14:20:00Z', movimientos: [gastaT('cocina')], payload: ['Notas', ...formulas] });
   const n = escena(eje, [compra.id, notas.id], { ahora: AHORA });
   assert.deepEqual(n.focos[1].salen.map((x) => [x.tipo, x.camino, x.dir ?? x.en]), [
     ['hilo', undefined, '0000000000'],
-    ['formula', [4], '1200000000'],
-    ['formula', [5], '1200000000'],
-    ['formula', [7], '1100000000'],
+    ['formula', [3], '1210000000'],
+    ['formula', [4], '1210000000'],
+    ['formula', [5], '1100000000'],
+    ['formula', [6], '0000000000'],
   ]);
-  // Cada REF suelto, contrastado con BQL: hay arista si y solo si BQL lo resuelve, y apunta a lo que BQL lee.
-  for (const i of [1, 3, 5, 6, 7, 8, 9]) {
-    const r = consultar(eje, notas.id, [i], formulas[i - 1]);
-    const arista = n.focos[1].salen.find((x) => x.tipo === 'formula' && x.camino[0] === i);
-    if (r.estado === 'RESUELTO') assert.deepEqual(r.dependencias, [arista.aId + ':' + arista.dir], 'posición ' + i);
-    else assert.equal(arista, undefined, 'posición ' + i + ': ' + r.estado + ' ' + r.motivo);
-  }
+  // Leídas con el BQL mínimo (it = las notas): las de arista se resuelven; la del id ausente queda PENDIENTE.
+  const estado = (i) => leerPosicion(eje, notas.id, [i]).estado;
+  assert.deepEqual([1, 3, 4, 5, 6, 7].map(estado), ['PENDIENTE', 'RESUELTO', 'RESUELTO', 'RESUELTO', 'RESUELTO', 'ERROR']);
+  assert.deepEqual(leerPosicion(eje, notas.id, [3]).valor, [14]);
 });
 
 // VG, 7-11 noche: la capacidad se puede bajar, pero no subir por encima del máximo ni quitar (antes se podía).

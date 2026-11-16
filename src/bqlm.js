@@ -1570,7 +1570,8 @@ export function registrosDeFormula(formula) {
     if (n.n === 'paso' && !n.each) {
       const lit = literalDe(n.base);
       if (lit) {
-        anotar(lit.v, direccion(n.digitos));
+        // Más de diez dígitos no es una dirección (la lectura queda PENDIENTE al evaluar): se anota la raíz.
+        anotar(lit.v, n.digitos.length <= 10 ? direccion(n.digitos) : RAIZ);
         conDireccion.add(lit);
       }
     }

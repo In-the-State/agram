@@ -15,29 +15,26 @@ test('operadores Q, B, C', () => {
 test('proponer: las fórmulas del foco construyen las elecciones; lo literal se propone por referencia', async () => {
   const { eje, compra } = await ejemploCompra();
   const cuenta = await ejemploCuenta(eje, compra);
-  // Un plan escrito sobre la compra: en 1 elige el mejor candidato de los recursos de la compra que sea un escrito,
-  // en 2 calcula un terminal, en 4 un texto literal; 3 sin desarrollar.
-  const plan = await eje.escribir({ autor: 'huesped', sobre: compra.id, t: T, movimientos: [gastaT('huesped')],
-    payload: ['Plan', '=ELEGIR(FILTRAR(REF("' + compra.id.slice(0, 8) + '", "1000000000"), ORIGEN() = "propio"))', '=2 * 7 EUR', 'avisar a cocina', 'pagar'] });
-  void plan;
-  // La fórmula de la posición 1 lee la compra:1 por REF y no es una colección (REF devuelve el valor), así que
-  // probamos BUSCAR sobre el propio plan: escribimos un registro con BUSCAR del anfitrión.
+  // Un plan escrito sobre la compra (fórmulas del BQL mínimo, it = el plan): en 1 un literal, en 2 calcula un terminal,
+  // en 3 un texto literal, y en 4 elige lo primero anclado en su 1 (registros: el primero es el candidato).
   const plan2 = await eje.escribir({ autor: 'huesped', sobre: compra.id, t: T, movimientos: [gastaT('huesped')],
-    payload: ['Plan 2', ['menú', 1], '=2 * 7 EUR', 'avisar a cocina', '=ELEGIR(FILTRAR(BUSCAR(1), ORIGEN() = "propio"))'] });
+    payload: ['Plan 2', ['menú', 1], '=2 * 7', 'avisar a cocina', '=first (down it where last it2.6.5 = "1000000000")'] });
+  const nota = await eje.escribir({ autor: 'huesped', sobre: plan2.id, en: '1000000000', t: T, movimientos: [gastaT('huesped')], payload: 'un menú más' });
   const p = proponer(eje, plan2.id);
   assert.deepEqual(Object.keys(p.elecciones).map(Number), [1, 2, 3, 4]);
   assert.deepEqual(p.elecciones[1], { ref: plan2.id, dir: '1000000000' }); // literal: por referencia al foco
-  assert.equal(p.elecciones[2], '14 EUR'); // fórmula con valor: terminal nuevo
+  assert.equal(p.elecciones[2], 14); // fórmula con valor: terminal nuevo (un número: el BQL mínimo no lleva unidades)
   assert.deepEqual(p.elecciones[3], { ref: plan2.id, dir: '3000000000' });
-  assert.equal(p.elecciones[4].candidato.evento, plan2.id); // fórmula con colección: el primer candidato
-  assert.equal(p.elecciones[4].candidato.tipo, 'propio');
+  // Fórmula que da registros: el primero, con su encaje calculado por encaje.ocupantes (un escrito en el 1, exacto).
+  assert.deepEqual(p.elecciones[4].candidato, { evento: nota.id, dir: '0000000000', tipo: 'escrito', origenDir: '1000000000', vector: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0], signo: 'exacto' });
   assert.deepEqual(p.origenes.map((o) => o.desde), ['foco', 'formula', 'foco', 'formula']);
   assert.deepEqual(p.pendientes, []);
   // Q → B → C: la propuesta se consolida tal cual.
   const d = descubrir(eje, plan2.id);
   assert.ok(d.length);
   const c = await consolidar(eje, { autor: 'huesped', foco: plan2.id, t: T, elecciones: p.elecciones, titulo: 'Propuesto por fórmulas' });
-  assert.equal(c.payload[2], '14 EUR');
+  assert.equal(c.payload[2], 14);
+  assert.deepEqual(c.payload[4], { ref: nota.id, dir: '0000000000' });
   assert.deepEqual(c.payload[1], { ref: plan2.id, dir: '1000000000' });
   assert.equal(c.contexto.encaje.length, 3); // dos referencias al foco y un candidato llevan encaje; el terminal no
   void cuenta;
@@ -46,7 +43,7 @@ test('proponer: las fórmulas del foco construyen las elecciones; lo literal se 
 test('proponer: lo pendiente o erróneo no entra en la propuesta y se informa', async () => {
   const { eje, compra } = await ejemploCompra();
   const plan = await eje.escribir({ autor: 'huesped', sobre: compra.id, t: T, movimientos: [gastaT('huesped')],
-    payload: ['Plan', '=LOCAL(9)', '=1 +', '=ELEGIR(BUSCAR(7))'] });
+    payload: ['Plan', '=(payload(it)).9 + 0', '=1 +', '=first (down it where last it2.6.5 = "7000000000")'] });
   const p = proponer(eje, plan.id);
   assert.deepEqual(Object.keys(p.elecciones), []);
   assert.deepEqual(p.pendientes.map((x) => x.posicion), [1, 2, 3]);

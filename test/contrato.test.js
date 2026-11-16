@@ -178,8 +178,8 @@ test('division: la tabla del espacio de bloque de epoch.8.3 (datos que caben →
 // ---------- 5. la madurez ----------
 
 test('madurez: la lectura «maturity» (X.8.1) con su medida (X.8.6), y el nombre entre los niveles de la época o los de la plantilla del tipo', async () => {
-  assert.deepEqual(C.madurez(eje, compra), { nivel: 11, de: 15, nombre: 'list', clave: 'list', medida: { posiciones: 15, profundidad: 1, cantidad: 17 } });
-  assert.deepEqual(C.madurez(eje, cuenta), { nivel: 4, de: 15, nombre: 'stem', clave: 'stem', medida: { posiciones: 4, profundidad: 0, cantidad: 4 } });
+  assert.deepEqual(C.madurez(eje, compra), { nivel: 11, de: 15, nombre: 'list', clave: 'list', medida: { posiciones: 17, profundidad: 1, cantidad: 19 } });
+  assert.deepEqual(C.madurez(eje, cuenta), { nivel: 6, de: 15, nombre: 'leaf', clave: 'leaf', medida: { posiciones: 6, profundidad: 0, cantidad: 6 } }); // la cuenta lleva su 1 desplegado ([[nombre], [fórmula], [unidad]]: retirada de BQL V0, #113): dos posiciones más
   const T = '2026-11-07T18:00:00Z';
   const semilla = await eje.escribir({ autor: 'huesped', sobre: menu.id, t: T, movimientos: [minuto('huesped')], payload: ['x'] });
   assert.deepEqual(C.madurez(eje, semilla), { nivel: 1, de: 15, nombre: 'seed', clave: 'seed', medida: { posiciones: 1, profundidad: 0, cantidad: 1 } });
@@ -193,14 +193,14 @@ test('madurez: la lectura «maturity» (X.8.1) con su medida (X.8.6), y el nombr
   const { eje: b, reserva, habitacion } = await ejemploReserva();
   // VG 12-11 (decisión 8): sus dos anuncios son movimientos anunciados (no cuentan como movidos) y lo que los cumple
   // cuelga de ellos (profundidad 2).
-  assert.deepEqual(C.madurez(b, reserva), { nivel: 4, de: 5, nombre: 'settled', clave: 'settled', medida: { posiciones: 19, profundidad: 2, cantidad: 187 } });
+  assert.deepEqual(C.madurez(b, reserva), { nivel: 4, de: 5, nombre: 'settled', clave: 'settled', medida: { posiciones: 20, profundidad: 2, cantidad: 188 } });
   assert.equal(C.madurez(b, habitacion).nombre, 'list');
   // La lectura es una regla de la época como las demás: en el 2, con read en su 4, después de «weight», y se lee en X.8.1.
   const regla = EPOCA_0_BTML.lecturas.find((r) => r[0][0] === 'maturity');
   assert.deepEqual([regla[3], regla[4], regla[8]], [['X.8.1'], ['read'], ['after weight']]);
   const ctx = new ContextoEje(eje, { epoch: EPOCA_0_BTML });
   assert.deepEqual(evaluar('first ("' + compra.id + '").8.1', ctx).valor, [11]);
-  assert.deepEqual(evaluar('("' + compra.id + '").8.6.1', ctx).valor, [15]);
+  assert.deepEqual(evaluar('("' + compra.id + '").8.6.1', ctx).valor, [17]);
   // La candidata también: su propio payload, sin subárbol.
   const candidata = await crearEvento({ autor: 'huesped', sobre: menu.id, t: T, movimientos: [minuto('huesped')], payload: ['x', 'y'] });
   assert.deepEqual(C.madurez(eje, candidata).medida, { posiciones: 2, profundidad: 0, cantidad: 1 });
