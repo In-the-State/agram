@@ -1170,6 +1170,8 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
 /**
  * La cuenta del banco de un registro (carta.js cuentaDe; encargo «cuenta del banco»): el saldo con su unidad, la fecha y
  * «confirmado por el banco» cuando la fuente lo dice, y el estado del permiso. Sin saldo, lo dice; sin permiso, también.
+ * Debajo del permiso (VG 17-11, V6): quién puede proponer pagos, que cada pago lo aprueba el titular en su banco y quién ve
+ * el saldo.
  */
 function htmlCuentaDelBanco(c) {
   if (!c) return '';
@@ -1179,7 +1181,12 @@ function htmlCuentaDelBanco(c) {
     ? `<p class="cuenta-saldo"><span class="cuenta-etiqueta">${escapar(t('cuentaSaldo'))}</span> <b class="cuenta-cuanto">${escapar(s.cuanto)}</b> <span class="cuenta-unidad">${escapar(s.unidad ?? '')}</span> <time datetime="${attr(s.t)}">${escapar(s.fecha ?? s.t)}</time> ${fuente}</p>`
     : `<p class="cuenta-saldo vacio">${escapar(t('cuentaSinSaldo'))}</p>`;
   const permiso = `<p class="cuenta-permiso" data-permiso="${attr(c.permiso.estado)}">${escapar(t('cuentaPermiso_' + c.permiso.estado, { vence: c.permiso.vence ?? '' }))}</p>`;
-  return `<div class="cuenta-del-banco" data-cuenta="${attr(c.X)}" title="${attr(t('cuentaTitulo'))}">${c.banco ? `<p class="cuenta-banco">${escapar(c.banco)}</p>` : ''}${saldo}${permiso}</div>`;
+  const p = c.proponen;
+  const quienes = p?.nombres?.length ? (p.mas ? t('cuentaProponenMas', { quienes: p.nombres.join(', '), n: p.mas }) : p.nombres.join(', ')) : '';
+  const proponen = quienes ? `<p class="cuenta-proponen">${escapar(t('cuentaProponen', { quienes }))}</p>` : '';
+  const aprueba = c.titular ? `<p class="cuenta-aprueba">${escapar(t('cuentaAprueba', { titular: c.titular }))}</p>` : '';
+  const ven = `<p class="cuenta-ven">${escapar(t('cuentaVenSaldo'))}</p>`;
+  return `<div class="cuenta-del-banco" data-cuenta="${attr(c.X)}" title="${attr(t('cuentaTitulo'))}">${c.banco ? `<p class="cuenta-banco">${escapar(c.banco)}</p>` : ''}${saldo}${permiso}${proponen}${aprueba}${ven}</div>`;
 }
 
 /** Mis E en el rosetón del 1 (carta.js carteraDe): cada serie con lo que tengo; la de una cuenta, su nombre y su saldo. */

@@ -1,0 +1,16 @@
+[
+  ["the E of an account stays with its owner"],
+  [0],
+  ["=count (ev.1 where E in it.0.0.0) = 0 or count (ev.1 where E in it.0.0.0 and not (burn in it.4) and count it.5 > 0 and first it.5 in (first it.5).5 and \"connect an account\" in (payload(first it.5)).4 and it.3.1 != first (first it.5).3) = 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 (V6, por Core State; encargo «V6»): «la E de una cuenta no se puede pasar a otra persona». Toda E cuya serie está atada a un registro escrito con «connect an account» (lo dice el 4 de su payload; la serie lo nombra en su 5) solo puede tener un destino: quien escribió esa cuenta (su 3). Un movimiento de esa E con destino (acuñar, transferir, bloquear, liberar) solo vale si el destino es el autor de la cuenta; quemarla sigue valiendo. Lo anunciado no se ha movido y no está en ev.1: no se mira; pagarlo es una transferencia, y esa sí",
+    "Dentro del libro, quién propone pagos lo sigue diciendo el P sobre la cuenta («acting on an account needs P on it»); cada pago lo aprueba el titular en su banco. Que la E no cambie de manos cierra el camino de ganar P sobre la mirada 1 de la cuenta recibiendo su E («getting E gives ten P on its record»)",
+    "Solo se mira cuando la candidata mueve E (el or es perezoso): sin E no se recorre nada; con E, solo las series atadas a un registro que existe (first it.5 in (first it.5).5, como «E is tied to a record that exists»)"
+  ],
+  ["epoch 0"],
+  ["after an account lives in its owner's book"],
+  ["the E of an account stays with its owner: {first ev.3} passes the E of an account to {(ev.1 where E in it.0.0.0 and not (burn in it.4) and count it.5 > 0 and first it.5 in (first it.5).5 and \"connect an account\" in (payload(first it.5)).4 and it.3.1 != first (first it.5).3) each 3.1}, who did not write it"]
+]

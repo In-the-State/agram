@@ -2,8 +2,8 @@
 // docs/notas/CUENTA_BANCO.md). «La cuenta del banco es una E única, como una mesa. El saldo es un dato de su registro,
 // que se actualiza con lo que dice el banco. No hay unidades de euro fungibles en el libro.» Construye su propio eje:
 //   - génesis de ana (una persona, la primera identidad del eje), que emite al empezar su R (emitir E exige R propia
-//     emitida: la regla «minting E needs own R issued»). Es su libro propio: provisionalmente, la cuenta solo se conecta
-//     en el libro de quien escribió el génesis (la regla «an account lives in its owner's book»);
+//     emitida: la regla «minting E needs own R issued»). Es su libro propio: la cuenta solo se conecta
+//     en el libro de quien escribió el génesis (la regla «an account lives in its owner's book», firme desde VG 17-11, V6);
 //   - ana invita a bea, que acepta (su alta);
 //   - ana conecta una cuenta («connect an account», en el 1.1 de su alta): el nombre que le pone, el banco y los días
 //     que dura el permiso (180); capacidad 1 en su 2;

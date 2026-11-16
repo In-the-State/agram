@@ -244,9 +244,14 @@ function pagoDelRegistro(eje, X, ctx) {
 /**
  * La cuenta del banco de X (contrato.cuenta; encargo «cuenta del banco», VG 16-11), lista para pintar, o null si X no es
  * una cuenta (ni la clave de su E): { X, nombre, banco, saldo: { cuanto, unidad, fecha, t, confirmado, fuente } | null,
- * permiso: { estado, vence, t }, ordenan }. La carta no decide nada: el saldo que manda, el estado del permiso y quién
- * ordena los da el núcleo; aquí solo se ponen en texto el número y las fechas.
+ * permiso: { estado, vence, t }, ordenan, proponen: { nombres, mas }, titular }. La carta no decide nada: el saldo que manda,
+ * el estado del permiso y quién ordena los da el núcleo; aquí solo se ponen en texto el número, las fechas y los nombres.
+ * VG 17-11 (V6): quién puede proponer pagos (contrato.cuenta, su `ordenan`: los primeros CUENTA_PROPONEN_A_LA_VISTA por
+ * su identidad, como la carta pinta a un autor, y cuántos más) y el titular que aprueba cada pago en su banco (el autor del
+ * registro de la cuenta).
  */
+const CUENTA_PROPONEN_A_LA_VISTA = 3;
+
 function cuentaDe(eje, X, ctx) {
   const c = contrato.cuenta(eje, X, { t: ctx.opciones.t });
   if (!c) return null;
@@ -257,6 +262,8 @@ function cuentaDe(eje, X, ctx) {
     saldo: s ? { cuanto: contrato.legible(eje, s.cuanto, 'number', ctx.opciones).texto, unidad: s.unidad, fecha: fecha(s.t), t: s.t, confirmado: s.confirmado, fuente: s.fuente } : null,
     permiso: { estado: c.permiso.estado, vence: fecha(c.permiso.vence), t: c.permiso.vence },
     ordenan: c.ordenan,
+    proponen: { nombres: c.ordenan.slice(0, CUENTA_PROPONEN_A_LA_VISTA), mas: Math.max(0, c.ordenan.length - CUENTA_PROPONEN_A_LA_VISTA) },
+    titular: eje.obtener(c.id)?.autor ?? null,
   };
 }
 

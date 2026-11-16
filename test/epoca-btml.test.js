@@ -114,8 +114,9 @@ test('2: la lista de referencias a los registros de las reglas, en el orden de s
   // encargo «taproot» (Core AGRAM 13-11): «paid». #137 (encargo «recuentos»): cinco condiciones de la beta del 16-11 (la cuenta
   // del banco: «acting on an account needs P on it», «the bank speaks through the owner's thing» y «an account lives in its
   // owner's book»; A19: «only the owner sets who keeps it»; V10: «a thing of mine is one whose alta I wrote») y tres lecturas
-  // («firm», encargo «firmeza»; «asked» y «on time», A18).
-  assert.deepEqual([EPOCA_0_BTML.condiciones.length, EPOCA_0_BTML.escrituras.length, EPOCA_0_BTML.lecturas.length, EPOCA_0_BTML.lecturasDePv.length], [36, 3, 22, 10]);
+  // («firm», encargo «firmeza»; «asked» y «on time», A18). VG 17-11 (V6): una condición más, «the E of an account stays with
+  // its owner», detrás de «an account lives in its owner's book».
+  assert.deepEqual([EPOCA_0_BTML.condiciones.length, EPOCA_0_BTML.escrituras.length, EPOCA_0_BTML.lecturas.length, EPOCA_0_BTML.lecturasDePv.length], [37, 3, 22, 10]);
   assert.equal(JSON_EN_DISCO[2].length, reglas.length);
   assert.ok(JSON_EN_DISCO[2].every((x) => Object.keys(x).join() === 'ref' && /^[0-9a-f]{64}$/.test(x.ref)), 'el 2 son referencias { ref }');
   assert.deepEqual(EPOCA_0_BTML.reglasConId.map((x) => x.id), JSON_EN_DISCO[2].map((x) => x.ref));
@@ -130,7 +131,7 @@ test('2: la lista de referencias a los registros de las reglas, en el orden de s
     assert.deepEqual(r[7], ['epoch 0']);
   }
   // Con el BQL mínimo, el 2 da las reglas (cada referencia lleva a su registro): first, nth k.
-  assert.equal(uno('count epoch.2'), 71);
+  assert.equal(uno('count epoch.2'), 72);
   assert.equal(evaluar('first epoch.2', ctx).texto, JSON_EN_DISCO[2][0].ref, 'una regla se lee por su id');
   assert.equal(uno('first epoch.2 = "' + JSON_EN_DISCO[2][0].ref + '"'), true, 'y vale su id');
   assert.equal(uno('(first epoch.2).0'), "writing burns today's T");
@@ -149,7 +150,7 @@ test('2: la lista de referencias a los registros de las reglas, en el orden de s
   assert.equal(uno('(nth 30 epoch.2).0'), 'an expiry has expired', 'y la de caducar (#71.2), la última del primer tramo de condiciones');
   assert.equal(uno('(nth 31 epoch.2).0'), 'writing a record gives ten P on it', 'y detrás, las que escriben');
   // #137 (encargo «recuentos»): lo que entró en la beta del 16-11 se encadenó en el 8 detrás de «how», en el orden en que entró.
-  assert.deepEqual(val('epoch.2.0').slice(63), ['firm', 'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book", 'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote', 'asked', 'on time'], 'al final, lo que entró en la beta del 16-11');
+  assert.deepEqual(val('epoch.2.0').slice(63), ['firm', 'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book", 'the E of an account stays with its owner', 'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote', 'asked', 'on time'], 'al final, lo que entró en la beta del 16-11 (y V6, el 17-11)');
   assert.deepEqual(val('epoch.2.0'), reglas.map((r) => r[0][0]), 'el 0 de cada una');
 });
 
@@ -158,7 +159,7 @@ test('reglas como registros: un archivo por regla (su 0 en kebab), id = hash del
   const { REGLAS_DE_EPOCA_DATOS } = await import('../datos/epocas/epocas.js');
   const { hash, canonico } = await import('../src/evento.js');
   const enDisco = reglasDe();
-  assert.equal(enDisco.length, 71, '36 condiciones, 3 que escriben, 22 lecturas (con «firm», «asked» y «on time», #137) y las 10 de los puntos de vista');
+  assert.equal(enDisco.length, 72, '37 condiciones, 3 que escriben, 22 lecturas (con «firm», «asked» y «on time», #137) y las 10 de los puntos de vista');
   for (const { archivo, id, registro } of enDisco) {
     assert.equal(archivo, kebab(registro[0][0]) + '.json');
     assert.equal(id, await hash(canonico(registro)), archivo + ': el id es el hash de su cuerpo canónico, como el de un evento');
