@@ -13,7 +13,6 @@
         "Core AGRAM 16-11 (#124; encargo «época del nodo»): una operación del nodo es un anuncio (su dueño, el operador, anuncia en el 4.1 de la pieza lo que dará el ejecutor) y puede requerir autorización: su PROPIO segundo factor (X.6.8.7 frente a X.6.8.8 del anuncio, no solo el de lo que lo cumple) la deja en «autorizada» hasta que firma quien firma, y ejecutada y verificada lo exigen además. Se repiten las filas «autorizada» de la 0 (una colección sustituye por nombre: la primera de la hija ocupa el sitio de la primera de la base y las demás de ese nombre salen) y se añaden dos: autorizada pendiente (su segundo factor sin firmar) y autorizada firmada (ya firmada, a la espera del recibo)"
       ],
       [["autorizada"], ["epoch.9.0.0"]],
-      [["autorizada"], ["=not (it in (first (first (up it)).4).8) and count before.8.3 > 0"]],
       [
         ["autorizada"],
         ["=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) > 0"]
@@ -25,11 +24,11 @@
       [["autorizada"], ["=count (first it.6).8.7 != count (first it.6).8.8"]],
       [
         ["ejecutada"],
-        ["=not (it in (first (first (up it)).4).8) and (count before.8.3 = 0 or count ((down it) where not first (first it2.6).8.5) = 0) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0 and count (first it.6).8.7 = count (first it.6).8.8"]
+        ["=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0 and count (first it.6).8.7 = count (first it.6).8.8"]
       ],
       [
         ["verificada"],
-        ["=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.5) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0 and count (first it.6).8.7 = count (first it.6).8.8"]
+        ["=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0 and count (first it.6).8.7 = count (first it.6).8.8"]
       ]
     ]
   ],

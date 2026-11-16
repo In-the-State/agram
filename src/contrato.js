@@ -1978,7 +1978,7 @@ function comprobar(expr, ctx, id) {
  *   pendiente  [{ lectura: 'sello' | 'recibo' | 'pago', motivo }]: lo que no se pudo comprobar porque falta un dato (el motivo de
  *            la regla, que dice cuál), nunca verdadero;
  *   pendienteDeSello  true si el eje tiene sello configurado (la «seal url» de la cuenta raíz, before.8.3) y la regla del
- *            sello queda pendiente: «sin verificar no se ejecuta» (#50), lo que la carta enseña como «pendiente de sello».
+ *            sello queda pendiente (#50). Desde el 16-11 (VG, encargo «firmeza») ninguna estación espera al sello y la carta no lo pinta: lo dicen las estaciones de firmeza (firmeza()).
  * Sin sello verificado nunca es ok: sin Bitcoin no hay «verificado».
  */
 export function verificado(eje, id, opciones = {}) {

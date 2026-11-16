@@ -797,9 +797,10 @@ export const EPOCA_0_BTML_DATOS = [
       [
         "stations of an announced movement",
         "VG 12-11 (decisión 8 del estudio BQL-transacciones; #48, #50): el anuncio es un movimiento anunciado del libro (estado «anunciado»: no toca saldos) que el registro que se ancla sobre él cumple moviendo lo mismo; las estaciones por las que pasa son datos de la época y el motor solo comprueba. Una fila por estación, en su orden: [[nombre], [lo que la comprueba: una fórmula del BQL mínimo con it = el anuncio, o epoch.9.0.0, el recuento del anuncio con el criterio de su dueño (motor.recuento)]]; la estación de un anuncio es la última que se cumple (acciones.estacionDeAnuncio). Los nombres son los de la fábrica (la carta los pinta con su color)",
-        "propuesta: lo anunciado; autorizada: su recuento pasa el umbral (sigue pendiente); ejecutada: ya no está en la lectura «stage» de su registro (X.4.8): un registro anclado sobre él lo movió; verificada: además, todo lo que lo cumplió (lo anclado sobre el anuncio) está «sealed» (X.6.8.5, la regla de la época que comprueba el sello de tiempo copiado en X.6.8.2). Core, pendiente de revisar VG",
-        "«Sin verificar no se ejecuta», por grados (VG 12-11, #50, #64 d y #67; encargo «verificado-regla»; sprint 1 = solo leer): ejecutada exige, además de que se movió, que todo lo que lo cumple esté «sealed» o que el eje NO tenga sello configurado (sin «seal url» en los ajustes del exterior de la cuenta raíz, before.8.3, no hay verificación posible y la estación se comporta como antes; esa condición es decisión de Core AGRAM). Con sello configurado y lo que cumple sin sellar, se cumple la segunda «autorizada» (movido y con sello configurado) y no «ejecutada»: el anuncio se queda en autorizada y la carta lo pinta con «pendiente de sello». Nada se rechaza (#62): el libro asienta lo movido igual; la estación solo lee",
-        "El segundo factor (VG 12/13-11, #66, #70): ejecutada y verificada exigen además que nada de lo que lo cumple espere su segundo factor: que cada criterio «second factor» de su autor que alcanza (X.6.8.7, la lectura «second factor») tenga su autorización del titular (X.6.8.8, «authorized by the holder»). Si falta, se cumple la tercera «autorizada» (movido y con un segundo factor pendiente): el anuncio se queda en autorizada y la carta lo pinta con «pendiente de segundo factor». Nada se rechaza: lo movido está movido"
+        "propuesta: lo anunciado; autorizada: su recuento pasa el umbral (sigue pendiente); ejecutada: ya no está en la lectura «stage» de su registro (X.4.8): un registro anclado sobre él lo movió; verificada: además, todo lo que lo cumplió (lo anclado sobre el anuncio) está «firm» (X.6.8.9: su sello ha llegado a la capa de lo que mueve). Core, pendiente de revisar VG",
+        "VG 16-11 (encargo «firmeza»; ANCLAJE_EN_CASCADA.md §3): cada token necesita el sello de su capa para estar en firme, pero se puede usar antes; la espera solo se nota al pagar fuera de casa. Así que «ejecutada» deja de esperar al sello: se cumple cuando lo anunciado se movió y nada de lo que lo cumple espera su segundo factor; la segunda «autorizada» (movido y con sello configurado, la de «pendiente de sello») desaparece; y «verificada» exige que todo lo que lo cumple sea «firm» (X.6.8.9) en vez de «sealed» (X.6.8.5). Hasta qué capa ha llegado cada registro lo dicen las estaciones de firmeza de su reverso",
+        "Lo de antes, sustituido el 16-11: «Sin verificar no se ejecuta», por grados (VG 12-11, #50, #64 d y #67; encargo «verificado-regla»; sprint 1 = solo leer): ejecutada exige, además de que se movió, que todo lo que lo cumple esté «sealed» o que el eje NO tenga sello configurado (sin «seal url» en los ajustes del exterior de la cuenta raíz, before.8.3, no hay verificación posible y la estación se comporta como antes; esa condición es decisión de Core AGRAM). Con sello configurado y lo que cumple sin sellar, se cumple la segunda «autorizada» (movido y con sello configurado) y no «ejecutada»: el anuncio se queda en autorizada y la carta lo pinta con «pendiente de sello». Nada se rechaza (#62): el libro asienta lo movido igual; la estación solo lee",
+        "El segundo factor (VG 12/13-11, #66, #70): ejecutada y verificada exigen además que nada de lo que lo cumple espere su segundo factor: que cada criterio «second factor» de su autor que alcanza (X.6.8.7, la lectura «second factor») tenga su autorización del titular (X.6.8.8, «authorized by the holder»). Si falta, se cumple la segunda «autorizada» (movido y con un segundo factor pendiente; la tercera hasta el 16-11): el anuncio se queda en autorizada y la carta lo pinta con «pendiente de segundo factor». Nada se rechaza: lo movido está movido"
       ],
       [
         [
@@ -822,14 +823,6 @@ export const EPOCA_0_BTML_DATOS = [
           "autorizada"
         ],
         [
-          "=not (it in (first (first (up it)).4).8) and count before.8.3 > 0"
-        ]
-      ],
-      [
-        [
-          "autorizada"
-        ],
-        [
           "=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) > 0"
         ]
       ],
@@ -838,7 +831,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ejecutada"
         ],
         [
-          "=not (it in (first (first (up it)).4).8) and (count before.8.3 = 0 or count ((down it) where not first (first it2.6).8.5) = 0) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"
+          "=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"
         ]
       ],
       [
@@ -846,7 +839,7 @@ export const EPOCA_0_BTML_DATOS = [
           "verificada"
         ],
         [
-          "=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.5) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"
+          "=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"
         ]
       ]
     ]
@@ -18752,7 +18745,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "3b2f134c070c5daf82f3fed138989599a8c582a8ca24a97a5b16e13b96a4a5f5";
+export const EPOCA_0_BTML_ID = "fb69cd01327bb1a0e8872a4d17cff98b442df6f382549b322f2891365066efdb";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

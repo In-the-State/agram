@@ -468,8 +468,8 @@ function htmlFlotante(f) {
 /** Las ejecuciones que se ven en una celda de la matriz; las demás, contadas («+n»). */
 const EJECUCIONES_EN_CELDA = 3;
 
-/** El nombre de una estación de la fábrica (propuesta, autorizada, ejecutada), en el idioma de la interfaz. */
-const textoEstacion = (estado) => t({ ejecutada: 'estadoEjecutada', autorizada: 'estadoAutorizada' }[estado] ?? 'estadoPropuesta');
+/** El nombre de una estación de la fábrica (propuesta, autorizada, ejecutada, verificada: «en firme»), en el idioma de la interfaz. */
+const textoEstacion = (estado) => t({ verificada: 'estadoVerificada', ejecutada: 'estadoEjecutada', autorizada: 'estadoAutorizada' }[estado] ?? 'estadoPropuesta');
 
 /** El texto de la marca de verificado: «verificado», «verificado · N confirmaciones» si se conoce la profundidad, «en firme» si ya las tiene todas. */
 const textoVerificado = (o) => (o.enFirme ? t('enFirme') : o.confirmaciones === 1 ? t('verificadoUnaConfirmacion') : o.confirmaciones > 1 ? t('verificadoConfirmaciones', { n: o.confirmaciones }) : t('verificado'));
@@ -487,11 +487,10 @@ function htmlPago(p, X) {
   const boton = p.buscar && p.estado !== 'pagado' ? `<button type="button" class="enlace buscar-pago" data-buscar-pago data-x="${attr(X)}" title="${attr(t('buscarPagoTitulo'))}">${escapar(t('buscarPago'))}</button>` : '';
   return `<p class="verificado-linea pago-linea">${[marca, boton].filter(Boolean).join(' ')}</p>`;
 }
-/** «pendiente de sello» (encargo «verificado-regla», #50 y #67): movido, pero el eje tiene sello y aún no está «sealed». */
-const htmlPendienteDeSello = () => `<small class="pendiente-sello" title="${attr(t('pendienteDeSelloTitulo'))}">${escapar(t('pendienteDeSello'))}</small>`;
+
 /** «pendiente de segundo factor» (VG 12/13-11, #66, #70): movido, pero espera la autorización del titular; su title, el motivo del núcleo si lo hay. */
 const htmlPendienteDeSegundoFactor = (o) => `<small class="pendiente-segundo-factor" title="${attr(o?.motivoSegundoFactor || t('pendienteDeSegundoFactorTitulo'))}">${escapar(t('pendienteDeSegundoFactor'))}</small>`;
-const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : o?.pendienteDeSello ? htmlPendienteDeSello() : '') + (o?.pendienteDeSegundoFactor ? htmlPendienteDeSegundoFactor(o) : '');
+const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : '') + (o?.pendienteDeSegundoFactor ? htmlPendienteDeSegundoFactor(o) : '');
 
 /** El nombre de una capa del sello en cascada en el idioma de la interfaz (capa_<nombre>); si no lo hay, el de la época. */
 const textoCapa = (capa) => (t('capa_' + capa) === 'capa_' + capa ? capa : t('capa_' + capa));

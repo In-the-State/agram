@@ -138,6 +138,8 @@ export const TEXTOS = Object.freeze({
     matrizEjesTitulo: 'columnas: el tipo de interacción (los diez puntos de vista); filas: la posición del registro que se modifica',
     estadoPropuesta: 'propuesta',
     estadoEjecutada: 'ejecutada',
+    // la última estación del anuncio: todo lo que lo cumple está «firm» (VG 16-11, encargo «firmeza»)
+    estadoVerificada: 'en firme',
     // la estación intermedia y la fila aparte de la matriz (encargo «datos2», issue #11)
     estadoAutorizada: 'autorizada',
     matrizSinPosicion: 'sin posición',
@@ -468,8 +470,6 @@ export const TEXTOS = Object.freeze({
     enFirme: 'en firme',
     enFirmeTitulo: 'en firme: está verificado y su bloque ya tiene las confirmaciones que pide el eje ({n} de {minimas}; los ajustes del exterior de la cuenta raíz)',
     verificadoTitulo: 'verificado: su sello de tiempo está en un bloque comprobado, el transporte dio su recibo de llegada y los tres relojes van en orden',
-    pendienteDeSello: 'pendiente de sello',
-    pendienteDeSelloTitulo: 'movido, pero sin verificar: el eje tiene sello de tiempo y a lo que lo cumple aún le falta su sello comprobado; se queda en autorizado hasta que lo tenga (no se rechaza nada)',
     // las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por capa de la época (epoch.7.6)
     firmezaTitulo: 'hasta qué capa ha llegado su sello',
     capa_casa: 'casa',

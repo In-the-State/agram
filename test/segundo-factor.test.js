@@ -116,7 +116,7 @@ test('umbral alcanzado: el registro se escribe, el anuncio queda en «autorizada
   assert.equal(m.eje.saldo('huesped', 'E:casa/EUR'), saldo - 7, 'nada se rechaza: lo movido está movido');
   assert.equal(A.estacionDeAnuncio(m.eje, m.anuncio.id), 'autorizada');
   assert.deepEqual(deE(m).pendientesDeSegundoFactor, [m.anuncio.id]);
-  assert.deepEqual(deE(m).pendientesDeSello, [], 'sin sello configurado, no es «pendiente de sello»');
+  assert.equal(deE(m).pendientesDeSello, undefined, 'desde el 16-11 (encargo «firmeza») no hay «pendientes de sello»');
   const ej = A.ejecuciones(m.eje, m.encargo.id).find((x) => x.ocupante?.ref === m.anuncio.id);
   assert.deepEqual([ej.estacion, ej.pendienteDeSegundoFactor, ej.pendienteDeSello], ['autorizada', true, undefined]);
   const sf = A.segundoFactor(m.eje, r.evento.id);

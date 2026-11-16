@@ -10,6 +10,7 @@ Core AGRAM, 16-11. Origen: decisión de VG del 16-11 (la trae Core State), `stat
 - **`contrato.firmeza(eje, id)`**: por capa, `alcanzada`, `pendiente` o `saltada`; la alcanzada y la exigida; `firme` (lo que da «firm»); `enDuda`; las confirmaciones de Bitcoin. Aplica el mismo criterio de familias que la regla.
 - **«En duda»**: la equivocación «dos cabeceras con el mismo número» se comprueba sin libro (`sello.bifurcacion`) y se anota en el eje (`eje.marcarBifurcacion`, una vista del libro, como el sello). Una cadena que pasa por una cabecera de la clave acusada con número igual o mayor queda en duda. «sealed» y «firm» no cambian.
 - **La carta**: en el reverso, una estación por capa, la exigida señalada, la de Bitcoin con sus confirmaciones, y «en firme», «se puede usar, aún no en firme» o «en duda». Sustituye a la marca de verificado del reverso; la marca corta de la celda sigue como estaba.
+- **Las estaciones del anuncio** (`epoch.4.3`, VG 16-11, confirmado): «ejecutada» ya no espera al sello (se mueve y nada espera su segundo factor), la «autorizada» de «pendiente de sello» desaparece y «verificada» exige «firm» en vez de «sealed»; la carta la pinta «en firme». La época state, que repite esas filas, se ajusta igual. Ningún cierre de proceso (plantilla de cerrado, `cerrado`, `siguiente`) espera a «verificada».
 
 ## Qué queda
 

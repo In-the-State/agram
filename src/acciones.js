@@ -935,12 +935,12 @@ export function estacionDeAnuncioConMotivos(eje, id, opciones = {}) {
  * plantilla, autoriza, anunciados, hechos, pendientes, autorizados }], cada lista con los ids de los anuncios. La
  * familia de un anuncio se lee buscando su serie por su valor en las del libro (before.4). `autorizados` (encargo
  * «datos2», issue #11) son los pendientes que la estación da por autorizados (su `autoriza`): siguen pendientes.
- * `pendientesDeSello` (encargo «verificado-regla», #50 y #67: «sin verificar no se ejecuta») son los hechos (ya
- * movidos) que epoch.4.3 no da por ejecutados: el eje tiene sello configurado y lo que los cumple aún no está «sealed».
+ * `verificados` son los que epoch.4.3 da por verificados (lo que los cumple está «firm», X.6.8.9). Desde el 16-11 (VG,
+ * encargo «firmeza») «ejecutada» ya no espera al sello y no hay «pendientes de sello»: hasta qué capa ha llegado cada
+ * registro lo dicen sus estaciones de firmeza (contrato.firmeza).
  * `pendientesDeSegundoFactor` (VG 12/13-11, #66, #70) son los hechos que epoch.4.3 deja en autorizada porque algo de lo
- * que los cumple espera su segundo factor (segundoFactor: la lectura «second factor» sin su «authorized by the holder»);
- * un hecho que solo espera el segundo factor no está en `pendientesDeSello` (lo que lo cumple está sellado o el eje no
- * tiene sello configurado). `desbordados` (#70) son los anuncios cuya estación no se ha podido comprobar del todo (una
+ * que los cumple espera su segundo factor (segundoFactor: la lectura «second factor» sin su «authorized by the holder»).
+ * `desbordados` (#70) son los anuncios cuya estación no se ha podido comprobar del todo (una
  * fórmula de epoch.4.3 queda PENDIENTE por un límite de cálculo de BQL, como la lectura «second factor» con muchos
  * criterios del mismo autor) y `motivosDe` sus motivos por id (estacionDeAnuncioConMotivos): no se calla.
  */
@@ -973,7 +973,6 @@ export function estaciones(eje, X, opciones = {}) {
       ...e, anunciados, pendientes, hechos: anunciados.filter((id) => !pendientes.includes(id)),
       autorizados: pendientes.filter((id) => estacion.get(id) === 'autorizada'),
       verificados: anunciados.filter((id) => estacion.get(id) === 'verificada'),
-      pendientesDeSello: sinEjecutar.filter((id) => !conSegundoFactor.has(id) || sinSellar(eje, id, ctx)),
       pendientesDeSegundoFactor: [...conSegundoFactor],
       estacionDe: Object.fromEntries(estacion),
       desbordados,
@@ -994,12 +993,6 @@ function movimientoLegible(eje, m, idioma, opciones) {
 /** ¿Espera este registro su segundo factor? (segundoFactor) */
 function esperaSegundoFactor(eje, h, opciones) {
   return segundoFactor(eje, h.id, opciones)?.pendiente === true;
-}
-
-/** ¿Le falta el sello a algo de lo que cumple el anuncio? (el eje tiene «seal url» y la lectura «sealed», X.6.8.5, no da verdadero). */
-function sinSellar(eje, id, ctx) {
-  if ((valores('count before.8.3', ctx).valores ?? [0])[0] === 0) return false;
-  return eje.sobre(id).some((h) => { const r = valores('first (first it.6).8.5', ctx, h.id); return !(r.estado === 'RESUELTO' && r.valores[0] === true); });
 }
 
 /**
@@ -1025,12 +1018,10 @@ export function ejecuciones(eje, X, opciones = {}) {
   const porNombre = new Map(plantillas.map((p) => [p.nombre, p]));
   const estacionDe = new Map();
   const plantillaDe = new Map();
-  const sinSello = new Set();
   const sinSegundoFactor = new Set();
   const motivosDe = new Map();
   for (const e of estaciones(eje, ev.id, opciones)) {
     for (const [id, m] of Object.entries(e.motivosDe ?? {})) motivosDe.set(id, m);
-    for (const id of e.pendientesDeSello ?? []) sinSello.add(id);
     for (const id of e.pendientesDeSegundoFactor ?? []) sinSegundoFactor.add(id);
     for (const id of e.anunciados) plantillaDe.set(id, e.plantilla);
     // La estación de cada anuncio la dice la época (epoch.4.3; VG 12-11, decisión 8): el motor solo comprueba.
@@ -1054,8 +1045,7 @@ export function ejecuciones(eje, X, opciones = {}) {
     return {
       ocupante: { ref: h.id }, pv: accion && porNombre.has(accion) ? porNombre.get(accion).pv : null, posicion: Number.isInteger(posicion) ? posicion : null, accion, estacion,
       oficio: celda?.oficio ?? null, ejecucion: celda?.ejecucion ?? null, por: celda?.por ?? null,
-      // «sin verificar no se ejecuta» (#50, #67): movido, pero el eje tiene sello y lo que lo cumple aún no está «sealed».
-      ...(sinSello.has(h.id) ? { pendienteDeSello: true } : {}),
+
       // el segundo factor (#66, #70): movido, pero espera la autorización del titular (una cosa del autor).
       ...(sinSegundoFactor.has(h.id) ? { pendienteDeSegundoFactor: true } : {}),
       // #70: lo que no se ha podido comprobar (un límite de cálculo de BQL) no se calla: `desbordado` y sus motivos.
