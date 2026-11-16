@@ -428,6 +428,10 @@ export class Eje {
    * comprueba la regla «sealed» de la época (X.6.8.5): esa regla, no `verificado`, dice si el registro está sellado.
    * Una décupla que no es BTML, no es de un sello de tiempo, no lleva este id o no es de esta altura y este
    * hash, no se guarda (el sello sí).
+   *
+   * Cuál se queda (encargo A18, «una prueba mejor sustituye a la anterior»): el que alcanza más niveles del sello en cascada
+   * (nivelesDeSello: los niveles distintos de su cadena; uno por la vía «taproot»; ninguno sin décupla); a igual alcance, el
+   * más antiguo. Uno peor nunca sustituye a uno mejor.
    */
   marcarSello(id, sello) {
     if (!this.eventos.has(id) || !sello || typeof sello !== 'object') return false;
@@ -437,7 +441,10 @@ export class Eje {
     // La altura del último sello conocido sube aunque este sello no sea el más antiguo del registro, pero solo con sellos que `verificar` dio por buenos: una altura sin comprobar no alarga la profundidad de nadie.
     if (verificado === true && (this.#cota.altura === null || altura > this.#cota.altura)) this.#cota.altura = altura;
     const antes = this.#sellos.get(id);
-    if (antes && msUTC(antes.instante) <= msUTC(instante)) {
+    // Una prueba mejor sustituye a la anterior (encargo A18): la que alcanza más niveles pasa a ser la que leen las reglas,
+    // aunque sea más reciente; una peor nunca sustituye a una mejor. A igual alcance, la más antigua, como antes.
+    const mejor = antes ? Math.sign(nivelesDeSello(decupla) - nivelesDeSello(antes.decupla)) : 1;
+    if (antes && ((antes.altura === altura && antes.hash === hash) || mejor < 0 || (mejor === 0 && msUTC(antes.instante) <= msUTC(instante)))) {
       if (antes.altura === altura && antes.hash === hash && (verificado !== undefined || (decupla && !antes.decupla))) {
         this.#sellos.set(id, Object.freeze({ ...antes, ...(verificado !== undefined ? { verificado: verificado === true } : {}), ...(decupla && !antes.decupla ? { decupla } : {}) }));
       }
@@ -1634,4 +1641,17 @@ function copiaGuardable(ev) {
   } catch (e) {
     throw new Error('evento rechazado: no cabe en JSON (' + e.message + ')');
   }
+}
+
+/**
+ * Cuántos niveles del sello en cascada alcanza una prueba copiada (encargo A18: una prueba mejor sustituye a la anterior en
+ * eje.marcarSello): los niveles distintos de su cadena (el primer ocupante de cada 9.k.1) por la vía «cascada»; 1 (Bitcoin) por
+ * la vía «taproot»; 0 sin décupla. Solo cuenta la forma: si vale lo dicen «sealed» y «firm».
+ */
+export function nivelesDeSello(decupla) {
+  if (!Array.isArray(decupla)) return 0;
+  if (decupla[6] !== 'cascada') return 1;
+  const cadena = Array.isArray(decupla[9]) ? decupla[9].filter(Array.isArray) : [];
+  const niveles = new Set(cadena.map((e) => (Array.isArray(e[1]) ? e[1][0] : e[1])).filter(Number.isSafeInteger));
+  return Math.max(1, niveles.size);
 }

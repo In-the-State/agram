@@ -1,4 +1,4 @@
-// Los ejemplos de la carta: comida (compra del menú), reserva (Booking), tarea (Tasks) o cuenta (la cuenta del banco), dominios con datos
+// Los ejemplos de la carta: comida (compra del menú), reserva (Booking), tarea (Tasks), cuenta (la cuenta del banco) o firmeza (lo pedido y las estaciones de firmeza), dominios con datos
 // inventados sobre el mismo núcleo (mudado de la web antigua, antigua/ui/ejemplos.js, al retirarla: #113). Cada ejemplo
 // vive en su módulo de ejemplos/ikisai y se carga al elegirlo, con import() dinámico: si el módulo no está en el
 // repositorio (o un ejemplo nuevo lleva `pr`: llega con esa PR), se avisa y se sigue con la comida; nada se rompe. Cada
@@ -62,6 +62,19 @@ export const EJEMPLOS = Object.freeze([
     async crear(m, claves) {
       const { eje, cuenta } = await m.ejemploCuentaBanco({ claves });
       return { eje, foco: cuenta.id };
+    },
+  },
+  {
+    // La firmeza y lo pedido (encargo A18, «T, el sistema de las anclas», VG 16-11): un registro en cada estado de las
+    // estaciones de firmeza del reverso, con sellos y recibos inventados que el propio ejemplo fabrica y firma.
+    id: 'firmeza',
+    etiqueta: 'firmeza',
+    modulo: '../ejemplos/ikisai/firmeza.mjs',
+    identidades: ['ana', 'bea'],
+    identidad: 'ana',
+    async crear(m, claves) {
+      const { eje, foco } = await m.ejemploFirmeza({ claves });
+      return { eje, foco };
     },
   },
 ]);

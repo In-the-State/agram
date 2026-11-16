@@ -261,7 +261,9 @@ test('la capa exigida es la de la familia más alta de sus propias sentencias: e
   assert.equal(contrato.firmeza(eje, r.id).exigida, 2, 'acuña R');
   assert.equal(contrato.firmeza(eje, e.id).exigida, 4, 'transfiere E');
   // Sin sello ni recibo: nada alcanzado, no está en firme (falso, no pendiente).
-  const f = contrato.firmeza(eje, coste.id);
+  // Lo de antes no cambia; detrás van lo pedido y su plazo (encargo A18, test/t-anclas.test.js).
+  const { pedidos, plazo, ...f } = contrato.firmeza(eje, coste.id);
+  assert.ok(Array.isArray(pedidos) && typeof plazo === 'string');
   assert.deepEqual(f, { capas: [{ nivel: 1, estado: 'pendiente' }, { nivel: 2, estado: 'pendiente' }, { nivel: 3, estado: 'pendiente' }, { nivel: 4, estado: 'pendiente' }], alcanzada: null, exigida: 1, firme: false, enDuda: false, confirmaciones: null, enFirme: false });
   assert.deepEqual(leer(eje, coste.id, 9).valor, [false]);
 });

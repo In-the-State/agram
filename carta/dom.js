@@ -501,6 +501,22 @@ const textoRed = (r) => (t('red_' + r) === 'red_' + r ? t('redSinTexto', { r }) 
 const resumenFirmeza = (f) => (f.enDuda ? 'enDuda' : f.firme ? 'firme' : 'usable');
 const TEXTO_RESUMEN = Object.freeze({ enDuda: 'firmezaEnDuda', firme: 'firmezaFirme', usable: 'firmezaUsable' });
 const TEXTO_ESTADO_CAPA = Object.freeze({ alcanzada: 'capaAlcanzada', pendiente: 'capaPendiente', saltada: 'capaSaltada' });
+const TEXTO_ESTADO_PEDIDO = Object.freeze({ 'a tiempo': 'pedidoATiempo', pendiente: 'pedidoPendiente', 'fuera de plazo': 'pedidoFueraDePlazo' });
+
+/**
+ * Lo pedido que apunta a un nivel (encargo A18, T el sistema de las anclas): una fila sobria por pedido en su estación, con
+ * «pedido», la fecha límite y el estado (a tiempo, pendiente, fuera de plazo) y, si es colgado o el suelo, de quién viene.
+ * Todo sale de contrato.firmeza (pedidos); aquí no se decide nada. '' si no hay ninguno.
+ */
+function htmlPedidosDeNivel(f, nivel) {
+  return (f?.pedidos ?? []).filter((p) => p.nivel === nivel).map((p) => {
+    const de = p.origen === 'colgado' ? t('pedidoColgado', { por: p.por }) : p.origen === 'suelo' ? t('pedidoSuelo', { clase: textoClase(p.por) }) : '';
+    const fila = [t('pedido'), t('pedidoHasta', { fecha: fecha(p.plazo) }), t(TEXTO_ESTADO_PEDIDO[p.estado] ?? p.estado), de].filter(Boolean).join(' · ');
+    const titulo = t('pedidoTitulo', { escala: t('escala_' + p.escala), desde: fecha(p.desde) }) + (p.llegada ? ' · ' + t('pedidoLlegada', { fecha: fecha(p.llegada) }) : '');
+    return ` <small class="estacion-firmeza-pedido" data-origen="${attr(p.origen)}" data-plazo="${attr(String(p.estado).replace(/ /g, '-'))}" title="${attr(titulo)}">${escapar(fila)}</small>`;
+  }).join('');
+}
+
 /**
  * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por nivel de la época (data-nivel), en su orden,
  * con su estado (data-estado: alcanzada, pendiente, saltada), su grado y su red cuando el eslabón los dice («grado X · red Y», sin comparar),
@@ -516,7 +532,7 @@ function htmlFirmeza(f) {
     const grado = c.grado !== undefined && c.grado !== null ? textoGrado(c.grado) + (c.red !== undefined && c.red !== null ? ' · ' + textoRed(c.red) : '') : '';
     const titulo = textoCapa(c.nivel) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (grado ? ' · ' + grado : '') + (exigida ? ' · ' + t('capaExigida') : '');
     const bitcoin = k === ultima && c.estado === 'alcanzada' && f.confirmaciones ? ' ' + htmlVerificado({ confirmaciones: f.confirmaciones, enFirme: f.enFirme, minimas: f.minimas }) : '';
-    return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.nivel))}</span>${grado ? ` <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}</li>`;
+    return `<li class="estacion-firmeza" data-nivel="${attr(c.nivel)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.nivel))}</span>${grado ? ` <small class="estacion-firmeza-grado">${escapar(grado)}</small>` : ''}${bitcoin}${htmlPedidosDeNivel(f, c.nivel)}</li>`;
   }).join('');
   const r = resumenFirmeza(f);
   return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida !== null && f.exigida !== undefined ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;
@@ -637,6 +653,9 @@ function htmlEjecutarEnCelda(a) {
   return `<div class="celda-ejecutar"><small>${escapar(t('celdaEjecutar'))}</small>${botones}</div>`;
 }
 
+/** Lo que pide la escala con que se paga (encargo A18): «con minutos pides el nivel 2 en un minuto», con las palabras de los niveles (nivel_<n>). */
+const htmlPideLaEscala = (p) => (p ? `<p class="pide-la-escala" data-nivel="${attr(p.nivel)}"><small>${escapar(t('pideLaEscala', { escala: t('escala_' + p.escala), nivel: textoCapa(p.nivel), plazo: t('plazoEscala_' + p.escala) }))}</small></p>` : '');
+
 /**
  * Ejecutar en el formulario, la cara que ve quien decide (VG 12-11, decisión 7; VG 14-11, #89 y #70): lo exigido en total, la
  * denominación propuesta o la que sale de la escala elegida (el desplegable: las escalas del calendario), una línea por cosa
@@ -653,7 +672,7 @@ function htmlEjecucion(e) {
   const delNucleo = (e.motivos ?? []).map((m) => `<small class="aviso${m.estado === 'PENDIENTE' ? ' desbordado' : ''}" role="note"${m.estado === 'PENDIENTE' ? ' data-desbordado' : ''}>${escapar(m.mensaje)}</small>`).join('');
   const avisos = (e.incompleto ? `<small class="aviso">${escapar(t('exigidoIncompleto'))}</small>` : '') + (e.cubre ? '' : `<small class="aviso">${escapar(t('denominacionNoCubre'))}</small>`) + (e.alcanza ? '' : `<small class="aviso">${escapar(t('denominacionNoAlcanza'))}</small>`);
   return `<section class="ejecucion-t" aria-label="${attr(t('ejecucionTitulo'))}"><h3>${escapar(t('ejecucionTitulo'))}</h3><p class="exigido-total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></p>
-      <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${autoriza}${segundo}${delNucleo}</section>`;
+      <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${htmlPideLaEscala(e.pide)}${autoriza}${segundo}${delNucleo}</section>`;
 }
 
 /** Con el botón de ejecutar apagado, una línea arriba dice qué le falta al registro: el rango en que está y el que lo marca (contrato.botonDeEjecutar). */

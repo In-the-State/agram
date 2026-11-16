@@ -12,6 +12,15 @@ Core AGRAM, 16-11. Origen: decisión de VG del 16-11 (la trae Core State), `stat
 - **La carta**: en el reverso, una estación por nivel (`nivel_1` casa, `nivel_2` y `nivel_3` «nivel N», `nivel_4` Bitcoin) con su grado si lo hay («grado X», sin comparar), la exigida señalada, la de Bitcoin con sus confirmaciones, y «en firme», «se puede usar, aún no en firme» o «en duda». Sustituye a la marca de verificado del reverso; la marca corta de la celda sigue como estaba.
 - **Las estaciones del anuncio** (`epoch.4.3`, VG 16-11, confirmado): «ejecutada» ya no espera al sello (se mueve y nada espera su segundo factor), la «autorizada» de «pendiente de sello» desaparece y «verificada» exige «firm» en vez de «sealed»; la carta la pinta «en firme». La época state, que repite esas filas, se ajusta igual. Ningún cierre de proceso (plantilla de cerrado, `cerrado`, `siguiente`) espera a «verificada».
 
+## T, el sistema de las anclas (encargo A18, VG 16-11)
+
+- **Lo pedido** (`state/ANCLAJE_EN_CASCADA.md` §7.8; `agram-equipo/T_Y_CASCADA_2026-11-16.md`): la escala del T real que quema el autor al escribir. Segundo, minuto, hora y día piden los niveles 1 a 4 (por posición) en un periodo de su escala; semana, ciclo y año, el último en 7 días, 28 días o un año. De varias escalas, el nivel más alto y, a igual nivel, el plazo más corto.
+- **En la época**: las lecturas «asked» y «on time» (`src/anclas.js`), que no se materializan (su 3 es `X`). **En el contrato**, lo que no cabe en el BQL mínimo: el ahora, lo colgado con «ask for more firmness» (el plazo desde su instante) y el suelo (`plazoDeSuelo`: el plazo más largo de 7.5, porque nada dice aún la clase de un libro). `firmeza()` añade `pedidos` y `plazo`; `pedidoDeLote(eje, ids)` da `{ nivel, plazo }` para StateArk.
+- **El instante de llegada** de un nivel: el más temprano de los que lo cubren, ese nivel o uno de encima (el recibo de llegada o la hora de la cabecera de un eslabón de nivel 1; la hora de la cabecera de un eslabón de ese nivel; la hora del bloque, la de la cabecera de Bitcoin copiada en el 7.0 del sello, para el último). En una cadena normal las horas suben y es el del primero por encima.
+- **Una prueba mejor sustituye a la anterior** (`eje.marcarSello`, `nivelesDeSello`): la que alcanza más niveles; a igual alcance, la más antigua.
+- **La carta**: una fila por pedido en la estación a la que apunta, y en el formulario que propone el coste, lo que pide esa escala. El ejemplo «firmeza» (`ejemplos/ikisai/firmeza.mjs`) tiene un registro en cada estado, con sellos inventados que fabrica `ejemplos/ikisai/sellos.mjs`.
+- **Queda**: la clase del dueño de cada libro (el suelo es hoy el plazo de una persona); cómo se compensa al padre (aparcado por VG hasta que haya dinero real).
+
 ## Qué queda
 
 - **La lista de grados y su orden** (pendiente de VG). Hasta entonces el grado es opaco, y la red también: se copian, se dan y se pintan, y nada los compara ni los ordena. Van detrás del nivel, en el 9.k.1, así que también los lleva un eslabón sin camino «sip» (un lote de un solo id).

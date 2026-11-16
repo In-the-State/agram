@@ -182,7 +182,9 @@ function marcaDeVerificado(eje, X, opciones) {
  * La carta no decide nada: solo lo pinta. null si el registro no está.
  */
 function firmezaDelRegistro(eje, X, opciones) {
-  const f = contrato.firmeza(eje, X, opciones);
+  // Lo pedido y su estado (encargo A18) se dicen a la hora de quien mira (el reloj de la carta o el de ahora): un pedido sin
+  // alcanzar está pendiente hasta su plazo y fuera de plazo después.
+  const f = contrato.firmeza(eje, X, { ...opciones, ahora: opciones?.ahora ?? opciones?.t ?? new Date().toISOString() });
   return f ? { ...f, minimas: exterior.ajustesDelEje(eje, opciones).confirmaciones } : null;
 }
 
@@ -993,6 +995,8 @@ function ejecucionDe(eje, X, accion, yo, valores, o) {
   return {
     partes: e.partes, coste: e.coste, exigido: e.exigido, posiciones: e.posiciones, propuesta: e.propuesta, denominacion: e.denominacion,
     escala: escala ?? e.propuesta.desde, elegida: Boolean(escala), cubre: e.cubre, alcanza: e.alcanza, escalas: e.escalas,
+    // Lo que pide pagar con esas escalas (encargo A18): el nivel y su plazo, la línea «con minutos pides el nivel 2 en un minuto».
+    pide: contrato.pedidoDeEscala((e.denominacion ?? []).map((p) => p.escala), o),
     incompleto: Boolean(e.incompleto), // faltan parámetros: lo exigido es el de lo que ya hay
     boton: contrato.botonDeEjecutar(eje, X, o),
     // Los motivos que el núcleo da sin bloquear (lo que falta al registro, la lectura de segundo factor desbordada: `estado`

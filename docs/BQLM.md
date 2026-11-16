@@ -170,6 +170,8 @@ No hay tipo de identidad (VG, 10-11, B1): persona o cosa se lee del 3 de su alta
 | for when | `X.7.7` (futuro, para cuándo) | la fecha a la que se refiere el registro, en segundos: la de su movimiento con fecha (`(first X.7).9`: su 7.0.0, 7.1.0 o 7.2.0) o, si no tiene 7 (la quema de E propia), su instante; nada si no tiene. La leen «by when» (el 7, por esa fecha) y el paso «cuando» de `epoch.9.8` | la fecha de `estadoDeEntrada` |
 | clocks out of order | `X.6.9` (de dónde viene, cómo; la que proponía el estudio, Core, pendiente de revisar VG) | si los tres relojes de `X.6.8` no van en orden (libro ≤ Nostr ≤ Bitcoin) más allá de sus márgenes (`epoch.7.3`): la única cuenta rara (VG 12-11, #42). Hoy, siempre falso | — |
 | sealed | `X.6.8.5` (junto al reloj que comprueba; Core 12-11) | si la prueba del sello de tiempo copiada en `X.6.8.2` cuadra y la firmó un observador declarado por la cuenta raíz (§12; VG 12-11, #64 d y #67); PENDIENTE si falta el dato | `contrato.verificado` (`sello`), que ya solo la evalúa |
+| asked | ninguna (su 3 es `X`: no se materializa; encargo A18) | el nivel de `epoch.7.6` que pide el registro por la escala del T real que quema su autor: la escala k pide el nivel k; semana, ciclo y año, el último; de varias, el más alto | `contrato.firmeza` (`pedidos`, origen «propio») |
+| on time | ninguna (su 3 es `X`; encargo A18) | si un nivel a la altura del pedido o por encima está alcanzado (como «firm») con un instante no posterior al plazo (el instante del registro más un periodo de la escala elegida) | `contrato.firmeza` (`pedidos[].estado`) |
 | received | `X.6.8.4` | si la firma del relé vale sobre el id del recibo copiado en `X.6.8.1`; PENDIENTE si falta el dato | `contrato.verificado` (`recibo`) |
 
 Para leerlas, el contexto da dos posiciones más: `before.1`, los registros del libro por llegada, y `X.6.4`, lo que un registro atiende (los ids de su `contexto.atiende`; «attended» ya no lo usa desde el 3b: atender es anclarse sobre la petición). Por ejemplo, los registros no presentes del libro son `before.1 where not first it.6.1`. `test/lecturas-bqlm.test.js` comprueba cada lectura contra su función JS en los registros de los ejemplos.
@@ -382,7 +384,7 @@ for (const r of escrituras) {
 ```
 
 ```text
-35 condiciones, 3 reglas que escriben y 20 lecturas
+35 condiciones, 3 reglas que escriben y 22 lecturas
 no pasa: E is minted by and to its issuer: huesped mints E of casa, or to someone else
 no pasa: P is repositioned one step at a time: huesped mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin
 no pasa: minting E needs own R issued: huesped mints E and has never issued R of its own
