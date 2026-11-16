@@ -533,7 +533,10 @@ export function denominacion(segundos, desde) {
 /** ¿Alcanza el saldo de T de `yo` el día de `t` para cada pieza de una denominación (eje.saldoT, por escala)? */
 function alcanzaPara(eje, yo, piezas, t) {
   if (typeof eje?.saldoT !== 'function') return true;
-  return piezas.every((p) => eje.saldoT(yo, p.escala, t) >= p.cantidad);
+  // Las piezas de la misma escala salen del mismo saldo (la quema del coste y las transferencias de la autorización): se suman.
+  const porEscala = new Map();
+  for (const p of piezas) porEscala.set(p.escala, (porEscala.get(p.escala) ?? 0) + p.cantidad);
+  return [...porEscala].every(([escala, cantidad]) => eje.saldoT(yo, escala, t) >= cantidad);
 }
 
 /** Una denominación pedida: la escala de la que parte (un texto) o las piezas tal cual ([{ escala, cantidad }]). */
@@ -554,8 +557,12 @@ function piezasPedidas(pedida, segundos) {
  * de las posiciones, #65; nunca por debajo del minuto, #78) y baja a las menores (1 h 11 min); si el saldo del día no la alcanza, la de una sola escala que
  * sí (escritura.escalaQueAlcanza). `pedida` (opciones.denominacion) la ajusta: la escala de la que parte o las piezas.
  */
-function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida, coste: costeDado, autorizacion = 0, elementos = 0 }) {
+function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida, coste: costeDado, aut = null }) {
   const coste = costeDado ?? exigidoDe(payload, { epoca, eje });
+  // La autorización (VG 14-11, #70 (3) bis): lo que se transfiere a cada cosa titular (autorizacionDe), no se quema.
+  const transferencias = aut?.transferencias ?? [];
+  const autorizacion = transferencias.reduce((s, x) => s + x.transfiere, 0);
+  const elementos = aut?.elementos ?? 0;
   const posiciones = contarPosiciones(payload);
   const reales = movimientos.filter((m) => m.token === 'T' && ESCALAS_REALES.includes(m.escala) && m.de === yo && m.estado !== ANUNCIADO && m.estado !== 'liberacion');
   const dePlantilla = reales.reduce((s, m) => s + segundosDe(m.escala, m.cantidad), 0);
@@ -564,16 +571,18 @@ function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, p
   const partes = [
     { parte: 'coste', regla: REGLA_DEL_COSTE, posiciones, segundos: coste },
     { parte: 'plantilla', plantilla: nombre, segundos: dePlantilla, movimientos: reales.map((m) => ({ escala: m.escala, cantidad: m.cantidad })), anunciado },
-    // La autorización (VG 14-11, #70 (3)): un segundo por elemento que requiere segundo factor (cada criterio alcanzado), con un minuto de mínimo; se quema de antemano, en esta propuesta.
-    ...(autorizacion > 0 ? [{ parte: 'autorizacion', segundos: autorizacion, elementos }] : []),
+    // La autorización (VG 14-11, #70 (3) bis): por cada cosa titular, una TRANSFERENCIA de T de quien propone a la cosa por
+    // max(tarifa, coste de escribir su autorización); la tarifa, un segundo por elemento que requiere segundo factor (cada
+    // criterio alcanzado de esa cosa), con un minuto de mínimo. La cosa escribe su autorización con esa T.
+    ...(transferencias.length ? [{ parte: 'autorizacion', segundos: autorizacion, elementos, transferencias: transferencias.map(({ cosa, segundos, tarifa, escribir, elementos: n, escala: e, cantidad }) => ({ cosa, segundos, tarifa, escribir, elementos: n, escala: e, cantidad })) }] : []),
   ];
-  // Lo que se quema en la propuesta: el coste de escribir y, si lo que mueve requiere segundo factor, la autorización prepagada.
-  const aPagar = coste + autorizacion;
+  // Lo que se quema en la propuesta: el coste de escribir (lo de la autorización se transfiere, no se quema).
+  const aPagar = coste;
   const escala = escalaQueCubre(posiciones);
   let propuesta = { desde: escala, piezas: denominacion(aPagar, escala) };
   if (aPagar > 0 && !alcanzaPara(eje, yo, propuesta.piezas, t)) {
     // Nunca por debajo del minuto (VG 13-11, #78): si solo alcanzara en segundos, se propone el minuto igualmente.
-    const buscada = escalaQueAlcanza(eje, yo, payload, t, { epoca }, autorizacion);
+    const buscada = escalaQueAlcanza(eje, yo, payload, t, { epoca });
     const otra = ESCALAS_REALES.indexOf(buscada) < ESCALAS_REALES.indexOf(ESCALA_MINIMA_PROPUESTA) ? ESCALA_MINIMA_PROPUESTA : buscada;
     propuesta = { desde: otra, piezas: [tDelCoste(aPagar, otra)] };
   }
@@ -582,7 +591,7 @@ function resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, p
   return {
     partes, coste, autorizacion, elementos, exigido: coste + autorizacion + dePlantilla, posiciones,
     propuesta: { ...propuesta, segundos: propuesta.piezas.reduce((s, p) => s + segundosDe(p.escala, p.cantidad), 0) },
-    denominacion: piezas, paga, cubre: paga >= aPagar - 1e-9, alcanza: alcanzaPara(eje, yo, piezas, t),
+    denominacion: piezas, paga, cubre: paga >= aPagar - 1e-9, alcanza: alcanzaPara(eje, yo, [...piezas, ...transferencias], t),
     escalas: [...ESCALAS_REALES],
   };
 }
@@ -619,15 +628,19 @@ export function ejecucion(eje, cual, params = {}, yo, opciones = {}) {
     if (!prep.parametros.some((p) => p.posicion === '0' && prep.valores[p.nombre] !== undefined)) payload[0] = mensajeDe(eje, epoca, plantilla, prep.candidata, yo, X);
     const movimientos = hecha.motivos.length || incompleto ? [] : hecha.movimientos;
     const coste = exigidoDe(payload, { epoca, eje });
-    const resumenCon = (autorizacion, elementos) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida: opciones.denominacion, coste, autorizacion, elementos });
-    const quemaDe = (autorizacion) => resumenCon(autorizacion, 0).denominacion.map((p) => ({ token: 'T', escala: p.escala, cantidad: p.cantidad, de: yo, a: null }));
-    // La autorización (VG 14-11, #70 (3)): lo que pagaría el segundo factor, precalculado desde el 4 y sumado a lo exigido.
-    const aut = autorizacionDe(eje, epoca, { ...prep.candidata, payload }, movimientos, quemaDe);
-    const resumen = resumenCon(aut.segundos, aut.elementos);
-    // El segundo factor (VG 12/13-11, #66, #70): si lo que movería (el coste en la denominación, la autorización y lo de la
-    // plantilla) alcanza un criterio «second factor» de quien la lanza, se avisa antes de ejecutar.
-    const segundo = segundoFactorDeCandidata(eje, epoca, { ...prep.candidata, payload, movimientos: [...quemaDe(aut.segundos), ...movimientos] });
-    return { ok: true, incompleto, motivos: prep.motivos, ...resumen, segundoFactor: segundo };
+    const resumenCon = (aut) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida: opciones.denominacion, coste, aut });
+    const quema = resumenCon(null).denominacion.map((p) => ({ token: 'T', escala: p.escala, cantidad: p.cantidad, de: yo, a: null }));
+    // La autorización (VG 14-11, #70 (3) bis): lo que se transferirá a cada cosa titular, precalculado desde el 4 y sumado a lo exigido.
+    const aut = autorizacionDe(eje, epoca, { ...prep.candidata, payload }, [...quema, ...movimientos], { yo, t, idioma });
+    const resumen = resumenCon(aut);
+    // El segundo factor (VG 12/13-11, #66, #70): si lo que movería (el coste en la denominación, las transferencias de la
+    // autorización y lo de la plantilla) alcanza un criterio «second factor» de quien la lanza, se avisa antes de ejecutar.
+    const segundo = segundoFactorDeCandidata(eje, epoca, { ...prep.candidata, payload, movimientos: [...quema, ...comoTransferencias(aut.transferencias, yo), ...movimientos] }, { idioma });
+    // Lo que el 4 avisa sin bloquear (ok sigue siendo lo que era): una lectura del segundo factor que pasa del presupuesto
+    // de cálculo y lo transferido que no cubriera el coste de escribir la autorización (con el max no debería ocurrir).
+    const avisos = [...aut.motivos, ...segundo.motivos, ...transferenciasCortas(aut.transferencias, { idioma, epoca })]
+      .filter((m, i, todos) => todos.findIndex((x) => x.regla === m.regla && x.mensaje === m.mensaje) === i);
+    return { ok: true, incompleto, motivos: [...prep.motivos, ...avisos], ...resumen, segundoFactor: segundo };
   } catch (e) {
     return { ok: false, motivos: [{ regla: nombre, mensaje: nombre + ': ' + e.message }] };
   }
@@ -721,8 +734,9 @@ async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) 
   // donde iba el minuto copiado. La escala, la pedida (opciones.escala) o la menor que lo cubre.
   // Ejecutar desde el 4 (VG 12-11, decisión 7): con `opciones.denominacion` (la escala de la que parte o las piezas, lo
   // que el 4 propone y el usuario ajusta), la T del coste se quema en esas piezas; el resumen va en el resultado.
-  // La autorización (VG 14-11, #70 (3)): si lo que mueve requiere segundo factor, su tarifa (un segundo por elemento, mínimo
-  // un minuto) se quema aquí, en la propuesta, junto al coste: la autorización del titular llega pagada.
+  // La autorización (VG 14-11, #70 (3) bis): si lo que mueve requiere segundo factor, la propuesta TRANSFIERE a cada cosa
+  // titular max(tarifa, coste de escribir su autorización) (la tarifa, un segundo por elemento, mínimo un minuto): la cosa
+  // escribe la autorización con esa T y no gasta la suya. Lo que se quema aquí es solo el coste de escribir la propuesta.
   let coste;
   let resumen;
   let aut;
@@ -730,15 +744,12 @@ async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) 
   try {
     coste = costeDe(payload, yo, { epoca, escala: opciones.escala, eje });
     const conDenominacion = opciones.denominacion !== undefined && opciones.denominacion !== null;
-    const resumenCon = (autorizacion, elementos) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida: opciones.denominacion, coste: coste.exigido, autorizacion, elementos });
+    const resumenCon = (a) => resumenDeEjecucion(eje, { payload, movimientos, yo, t, epoca, nombre, pedida: opciones.denominacion, coste: coste.exigido, aut: a });
     const comoQuema = (piezas) => piezas.filter(Boolean).map((p) => ({ token: 'T', escala: p.escala, cantidad: p.cantidad, de: yo, a: null }));
-    // Sin denominación pedida, la T sube a la escala que lo cubre entero: con autorización, al minuto (nunca por debajo, #78).
-    const quemaDe = (autorizacion) => (conDenominacion ? comoQuema(resumenCon(autorizacion, 0).denominacion)
-      : autorizacion > 0 ? comoQuema([tDelCoste(Math.ceil((coste.exigido + autorizacion) / SEGUNDOS.minuto - 1e-9) * SEGUNDOS.minuto, opciones.escala)])
-      : coste.movimiento ? [coste.movimiento] : []);
-    aut = autorizacionDe(eje, epoca, { autor: yo, sobre: prep.sobre, en: prep.en, t, payload }, movimientos, quemaDe);
-    resumen = resumenCon(aut.segundos, aut.elementos);
-    quema = quemaDe(aut.segundos);
+    const delCoste = conDenominacion ? comoQuema(resumenCon(null).denominacion) : coste.movimiento ? [coste.movimiento] : [];
+    aut = autorizacionDe(eje, epoca, { autor: yo, sobre: prep.sobre, en: prep.en, t, payload }, [...delCoste, ...movimientos], { yo, t, idioma });
+    resumen = resumenCon(aut);
+    quema = [...delCoste, ...comoTransferencias(aut.transferencias, yo)];
   } catch (e) {
     return { ok: false, evento: null, motivos: [{ regla: nombre, mensaje: nombre + ': ' + e.message }] };
   }
@@ -769,7 +780,11 @@ async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) 
   const delEje = motivosDelEje(eje, textos, evento, idioma, opciones);
   // El segundo factor (VG 12/13-11): si la candidata alcanza un criterio de quien la lanza, el registro se escribe igual y
   // su estación espera la autorización del titular; aquí solo se dice, para avisar.
-  return { ok: delEje.length === 0, evento, motivos: delEje, exigido: coste.exigido, autorizacion: aut.segundos, ejecucion: resumen, segundoFactor: segundoFactorDeCandidata(eje, epoca, evento) };
+  // Una lectura del segundo factor que pasa del presupuesto (al calcular la autorización o sobre la candidata) se dice en
+  // segundoFactor.motivos: no bloquea (lo que valida es el eje), pero no se calla.
+  const segundo = segundoFactorDeCandidata(eje, epoca, evento, { idioma });
+  const avisos = [...aut.motivos, ...segundo.motivos].filter((m, i, todos) => todos.findIndex((x) => x.regla === m.regla && x.mensaje === m.mensaje) === i);
+  return { ok: delEje.length === 0, evento, motivos: delEje, exigido: coste.exigido, autorizacion: aut.segundos, transferencias: resumen.partes.find((p) => p.parte === 'autorizacion')?.transferencias ?? [], ejecucion: resumen, segundoFactor: { ...segundo, motivos: avisos } };
 }
 
 // ---------- 3b. las opiniones como registros ----------
@@ -1003,6 +1018,8 @@ export function ejecuciones(eje, X, opciones = {}) {
  */
 export const SEGUNDO_FACTOR = Object.freeze({
   criterio: 'second factor', // la acción en el 4 del criterio (la plantilla PV2 «second factor»)
+  lectura: 'second factor', // la lectura de la época en X.6.8.7 (datos/epocas/reglas/second-factor.json)
+  autorizadas: 'authorized by the holder', // la lectura de la época en X.6.8.8 (authorized-by-the-holder.json)
   en: '2400000000', // el 2.4 del alta: criterios sobre lo que se hace (el 4)
   exige: '(first it.6).8.7', // «second factor»: los criterios del autor que el registro alcanza
   autorizan: '(first it.6).8.8', // «authorized by the holder»: los que ya tienen su autorización
@@ -1010,6 +1027,9 @@ export const SEGUNDO_FACTOR = Object.freeze({
   uso: 'StateArk/SecondFactor/v1',
   ancla: '4000000000', // la autorización se ancla en el 4 de lo autorizado
 });
+
+/** La condición de la época que exige que todo registro pague su escritura (la que rechazaría una autorización sin T). */
+const REGLA_DE_ESCRIBIR = "writing burns today's T";
 
 /** Un criterio «second factor» (un registro del 2.4 de un alta) leído: { id, nombre, familias, cantidad, titular }. */
 function criterioDe(eje, id) {
@@ -1037,7 +1057,9 @@ function autorizacionesSobre(eje, id) {
  * «second factor» (X.6.8.7: los criterios de su autor que X alcanza) y «authorized by the holder» (X.6.8.8: los que ya
  * tienen la autorización escrita y firmada por su titular). → { exige, pendiente, criterios: [{ id, nombre, familias,
  * cantidad, titular, autorizado }], titulares (los que faltan), autorizaciones (las ancladas sobre X, valgan o no),
- * motivo (por qué sigue pendiente, en el idioma), estado } o null si X no está en el eje. Sin criterio alcanzado, nada
+ * motivo (por qué sigue pendiente, en el idioma), estado, motivos } o null si X no está en el eje. Si una lectura no se
+ * resuelve (el presupuesto de cálculo de BQL, con muchos criterios del mismo autor), `motivos` lo dice ({ regla, mensaje,
+ * estado }): no exige nada, pero no se calla. Sin criterio alcanzado, nada
  * cambia (`exige: false`). Una lectura que no se resuelve (PENDIENTE: un límite) deja `estado` y no exige nada.
  */
 export function segundoFactor(eje, X, opciones = {}) {
@@ -1046,19 +1068,22 @@ export function segundoFactor(eje, X, opciones = {}) {
   if (!ev || !eje?.obtener(ev.id)) return null;
   const epoca = epocaDe(opciones, eje);
   // Atajo: sin criterios «second factor» de su autor (el 2.4 de su alta, lo que lee la regla) no hay nada que leer.
-  if (!criteriosDeSegundoFactor(eje, ev.autor).length) return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: 'RESUELTO' };
+  if (!criteriosDeSegundoFactor(eje, ev.autor).length) return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: 'RESUELTO', motivos: [] };
+  const idioma = opciones.idioma ?? 'es';
   const ctx = contextoDe(eje, epoca, {});
   const exigen = valores(SEGUNDO_FACTOR.exige, ctx, ev.id);
-  if (exigen.estado !== 'RESUELTO') return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: exigen.estado };
+  // Una lectura que no se resuelve (el presupuesto de cálculo: con muchos criterios del mismo autor) no se calla: no exige
+  // nada, pero `motivos` dice que no se ha podido leer, y por qué.
+  if (exigen.estado !== 'RESUELTO') return { exige: false, pendiente: false, criterios: [], titulares: [], autorizaciones: [], motivo: null, estado: exigen.estado, motivos: [motivoDeLectura(eje, SEGUNDO_FACTOR.lectura, exigen, ev.autor, { idioma, epoca })] };
   const ids = [...new Set(exigen.valores.filter((x) => typeof x === 'string'))];
   const autorizan = ids.length ? valores(SEGUNDO_FACTOR.autorizan, ctx, ev.id) : { valores: [], estado: 'RESUELTO' };
+  const motivos = autorizan.estado === 'RESUELTO' ? [] : [motivoDeLectura(eje, SEGUNDO_FACTOR.autorizadas, autorizan, ev.autor, { idioma, epoca })];
   const hechos = new Set((autorizan.valores ?? []).filter((x) => typeof x === 'string'));
   const criterios = ids.map((id) => ({ ...criterioDe(eje, id), autorizado: hechos.has(id) }));
   const faltan = criterios.filter((c) => !c.autorizado);
   const autorizaciones = autorizacionesSobre(eje, ev.id);
   let motivo = null;
   if (faltan.length) {
-    const idioma = opciones.idioma ?? 'es';
     const c = faltan[0];
     // Una autorización que no vale (la escribe o la firma otro que el titular): se dice quién; si no hay ninguna, falta.
     const otra = autorizaciones.find((a) => a.autor !== c.titular || a.firmante !== c.titular);
@@ -1066,61 +1091,178 @@ export function segundoFactor(eje, X, opciones = {}) {
       ? motivoDe('second factor not by the holder', { holder: c.titular, author: otra.autor, signer: otra.firmante ?? 'nadie' }, { idioma, epoca })
       : motivoDe('second factor missing', { holder: c.titular, family: c.familias.join(' '), amount: c.cantidad }, { idioma, epoca });
   }
-  return { exige: criterios.length > 0, pendiente: faltan.length > 0, criterios, titulares: [...new Set(faltan.map((c) => c.titular))], autorizaciones, motivo, estado: autorizan.estado };
+  return { exige: criterios.length > 0, pendiente: faltan.length > 0, criterios, titulares: [...new Set(faltan.map((c) => c.titular))], autorizaciones, motivo, estado: autorizan.estado, motivos };
+}
+
+/**
+ * Los motivos propios del segundo factor que la época aún no traduce (epoch.9.4, «reason <qué>»): si la época trae la
+ * clave, manda la época; si no, este texto, en el idioma (español o inglés). Los huecos {…} se rellenan con `partes`.
+ */
+const MOTIVOS_DEL_SEGUNDO_FACTOR = Object.freeze({
+  'second factor unreadable': Object.freeze({
+    en: 'the reading «{rule}» could not be done ({why}): {author} has {n} second factor criteria and the reading goes over the computation budget; it is unknown whether this awaits the authorization of its holder',
+    es: 'la lectura «{rule}» no se ha podido hacer ({why}): {author} tiene {n} criterios de segundo factor y la lectura pasa del presupuesto de cálculo; no se sabe si esto espera la autorización de su titular',
+  }),
+  'authorization without T': Object.freeze({
+    en: '{thing} has no T to write the authorization: the proposal transferred {transferred} and it takes {needed}',
+    es: 'la cosa {thing} no tiene T para escribir la autorización: la propuesta transfirió {transferred} y hace falta {needed}',
+  }),
+  'authorization transfer short': Object.freeze({
+    en: 'the proposal transfers {transferred} to {thing}, less than writing its authorization costs ({needed})',
+    es: 'la propuesta transfiere {transferred} a {thing}, menos de lo que cuesta escribir su autorización ({needed})',
+  }),
+});
+
+function motivoDelSegundoFactor(que, partes, { idioma = 'es', epoca } = {}) {
+  const propio = MOTIVOS_DEL_SEGUNDO_FACTOR[que];
+  const formato = textoDe(null, claves.motivo(que), idioma, { original: propio?.[idioma] ?? propio?.en ?? que, epoca });
+  return String(formato).replace(/\{([^{}]+)\}/g, (_, k) => (partes[k] === undefined || partes[k] === null ? '' : String(partes[k])));
+}
+
+/** Unos segundos del calendario en texto corto («5 min», «1 h 1 min 5 s», «0 s»): igual en español y en inglés. */
+function segundosEnTexto(s) {
+  const n = Math.max(0, Math.round(s));
+  const partes = [[Math.floor(n / 3600), 'h'], [Math.floor((n % 3600) / 60), 'min'], [n % 60, 's']].filter(([k]) => k > 0).map(([k, u]) => k + ' ' + u);
+  return partes.length ? partes.join(' ') : '0 s';
+}
+
+/**
+ * Una lectura del segundo factor que no se resuelve (PENDIENTE por el límite de cálculo de BQL: con muchos criterios
+ * del mismo autor, unos 69, la lectura «second factor» pasa del presupuesto) como motivo visible: { regla (la lectura),
+ * mensaje (en el idioma), estado }. Antes se apagaba en silencio (no exigía nada); ahora se dice.
+ */
+function motivoDeLectura(eje, regla, r, autor, { idioma = 'es', epoca } = {}) {
+  const n = criteriosDeSegundoFactor(eje, autor).length;
+  return { regla, mensaje: motivoDelSegundoFactor('second factor unreadable', { rule: regla, why: r.motivo ?? r.estado, author: autor ?? '', n }, { idioma, epoca }), estado: r.estado };
 }
 
 /**
  * Lo que pedirá el segundo factor una candidata aún sin asentar (el aviso del botón de ejecutar, VG 12/13-11): la misma
- * lectura «second factor» con it = la candidata (lo que declara mover: el coste de escribir y lo que mueve la
- * plantilla). → { exige, criterios, titulares }.
+ * lectura «second factor» con it = la candidata (lo que declara mover: el coste de escribir, las transferencias de la
+ * autorización y lo que mueve la plantilla). → { exige, criterios, titulares, estado, motivos }; si la lectura no se
+ * resuelve (el presupuesto de cálculo), `motivos` lo dice y no exige nada.
  */
-function segundoFactorDeCandidata(eje, epoca, candidata) {
+function segundoFactorDeCandidata(eje, epoca, candidata, { idioma } = {}) {
   const ctx = contextoDe(eje, epoca, { ev: candidata });
   const r = valores('(first ev.6).8.7', ctx);
+  if (r.estado !== 'RESUELTO') return { exige: false, criterios: [], titulares: [], estado: r.estado, motivos: [motivoDeLectura(eje, SEGUNDO_FACTOR.lectura, r, candidata.autor, { idioma, epoca })] };
   const criterios = (r.valores ?? []).filter((x) => typeof x === 'string' && eje.obtener(x)).map((id) => criterioDe(eje, id));
-  return { exige: criterios.length > 0, criterios, titulares: [...new Set(criterios.map((c) => c.titular))] };
+  return { exige: criterios.length > 0, criterios, titulares: [...new Set(criterios.map((c) => c.titular))], estado: 'RESUELTO', motivos: [] };
 }
 
 /**
  * Lo que cuesta autorizar (VG 14-11, #70 (3): «autorizar también quema T»): un segundo por cada ELEMENTO que requiere
  * segundo factor, con un mínimo de un minuto cuando hay al menos uno. El elemento es cada criterio «second factor» que lo
  * movido alcanza (cada criterio alcanzado: la lectura «second factor» de la época da uno por criterio, no por
- * movimiento ni por serie). → segundos (0 si ninguno).
+ * movimiento ni por serie). → segundos (0 si ninguno). Es la TARIFA de cada cosa titular (con sus criterios alcanzados).
  */
 export const COSTE_DE_AUTORIZAR = Object.freeze({ porElemento: 1, minimo: SEGUNDOS.minuto });
 export const segundosDeAutorizar = (elementos) => (elementos > 0 ? Math.max(elementos * COSTE_DE_AUTORIZAR.porElemento, COSTE_DE_AUTORIZAR.minimo) : 0);
 
+/** El payload de la autorización de `cosa` sobre la propuesta `idPropuesta` (el objeto «autorización» del SIP 0 en modo segundo factor). */
+const payloadDeAutorizacion = (idPropuesta, cosa) => [[...SEGUNDO_FACTOR.objeto], [{ ref: idPropuesta }], [SEGUNDO_FACTOR.uso], [cosa]];
+
 /**
- * La autorización de una candidata aún sin asentar: cuántos elementos requieren segundo factor y los segundos que cuesta
- * autorizarlos. La T que se quema por ella cuenta como T movida (un criterio sobre T la alcanza también), así que se busca
- * el punto fijo: se parte de cero, se lee el segundo factor con la quema que da cada paso (quemaDe(segundos): los
- * movimientos de T de quien escribe) y se repite hasta que no cambia (solo crece: termina). Sin criterios de quien
- * escribe, no se lee nada. → { segundos, elementos }.
+ * Lo que cuesta ESCRIBIR la autorización de `cosa` («the cost of writing», por posición, como todo registro), en segundos.
+ * La propuesta aún no existe cuando se calcula: su id va como uno de la misma longitud (el coste es por posición, no por
+ * contenido). Es lo que la cosa quemará al autorizar (acciones.autorizar).
  */
-function autorizacionDe(eje, epoca, candidata, base, quemaDe) {
-  if (!criteriosDeSegundoFactor(eje, candidata.autor).length) return { segundos: 0, elementos: 0 };
-  let segundos = 0;
-  let elementos = 0;
-  for (let i = 0; i < 16; i++) {
-    elementos = segundoFactorDeCandidata(eje, epoca, { ...candidata, movimientos: [...quemaDe(segundos), ...base] }).criterios.length;
-    const nuevo = segundosDeAutorizar(elementos);
-    if (nuevo === segundos) break;
-    segundos = nuevo;
+export function costeDeEscribirAutorizacion(cosa, opciones = {}) {
+  const eje = opciones.eje ?? null;
+  return exigidoDe(payloadDeAutorizacion('0'.repeat(64), cosa), { eje, epoca: epocaDe(opciones, eje) });
+}
+
+/**
+ * Lo que la propuesta TRANSFIERE a una cosa titular (VG 14-11, #70 (3) bis): max(tarifa, coste de escribir su
+ * autorización); 0 si ningún criterio de esa cosa se alcanza. La tarifa, segundosDeAutorizar(elementos).
+ */
+export const segundosDeTransferir = (elementos, escribir) => (elementos > 0 ? Math.max(segundosDeAutorizar(elementos), escribir) : 0);
+
+/** Las escalas en que se busca la transferencia de la autorización: el minuto si alcanza, si no la hora o el día (nunca por debajo del minuto, #78). */
+const ESCALAS_DE_LA_TRANSFERENCIA = Object.freeze(['minuto', 'hora', 'dia']);
+
+/** La T real de `yo` que ya comprometen unos movimientos (lo que quema o transfiere, sin lo anunciado), por escala. */
+function usoDeT(movimientos, yo) {
+  const uso = new Map();
+  for (const m of movimientos) {
+    if (m.token !== 'T' || m.de !== yo || !ESCALAS_REALES.includes(m.escala) || m.estado === ANUNCIADO || m.estado === 'liberacion') continue;
+    uso.set(m.escala, (uso.get(m.escala) ?? 0) + m.cantidad);
   }
-  return { segundos, elementos };
+  return uso;
+}
+
+/**
+ * Las transferencias de la autorización para unos criterios alcanzados: una por cosa titular (en el orden en que aparece),
+ * { cosa, elementos, tarifa, escribir, segundos: max(tarifa, escribir), escala, cantidad, transfiere }. La escala, la
+ * misma lógica de denominación que el coste: el minuto si el saldo del día de `yo` lo alcanza junto con lo que ya
+ * compromete (`uso`), si no la hora o el día; si ninguna, el minuto (y `alcanza` lo dirá). Unidades enteras (T is whole).
+ */
+function transferenciasDe(eje, epoca, criterios, { yo, t, uso: usoDado }) {
+  const porCosa = new Map();
+  for (const c of criterios) if (typeof c.titular === 'string' && c.titular) porCosa.set(c.titular, (porCosa.get(c.titular) ?? 0) + 1);
+  const uso = new Map(usoDado);
+  return [...porCosa].map(([cosa, elementos]) => {
+    const tarifa = segundosDeAutorizar(elementos);
+    const escribir = costeDeEscribirAutorizacion(cosa, { eje, epoca });
+    const segundos = segundosDeTransferir(elementos, escribir);
+    const pieza = (escala) => {
+      const cantidad = Math.ceil(segundos / SEGUNDOS[escala] - 1e-9);
+      return { escala, cantidad, cabe: typeof eje?.saldoT !== 'function' || eje.saldoT(yo, escala, t) >= (uso.get(escala) ?? 0) + cantidad };
+    };
+    const { escala, cantidad } = ESCALAS_DE_LA_TRANSFERENCIA.map(pieza).find((p) => p.cabe) ?? pieza('minuto');
+    uso.set(escala, (uso.get(escala) ?? 0) + cantidad);
+    return { cosa, elementos, tarifa, escribir, segundos, escala, cantidad, transfiere: cantidad * SEGUNDOS[escala] };
+  });
+}
+
+/** Las transferencias de la autorización como movimientos: T de `yo` a cada cosa titular. */
+const comoTransferencias = (transferencias, yo) => transferencias.map((x) => ({ token: 'T', escala: x.escala, cantidad: x.cantidad, de: yo, a: x.cosa }));
+
+/** Lo transferido que no cubriera el coste de escribir la autorización (con el max no debería ocurrir; se comprueba igual). */
+const transferenciasCortas = (transferencias, opciones) => transferencias.filter((x) => x.transfiere < x.escribir).map((x) => ({
+  regla: SEGUNDO_FACTOR.lectura,
+  mensaje: motivoDelSegundoFactor('authorization transfer short', { thing: x.cosa, transferred: segundosEnTexto(x.transfiere), needed: segundosEnTexto(x.escribir) }, opciones),
+}));
+
+/**
+ * La autorización de una candidata aún sin asentar (VG 14-11, #70 (3) bis): cuántos elementos requieren segundo factor
+ * y lo que la propuesta transfiere a cada cosa titular para que escriba su autorización. La T transferida cuenta como T
+ * movida (un criterio sobre T la alcanza también), así que se busca el punto fijo: se parte sin transferencias, se lee el
+ * segundo factor con las que da cada paso y se repite hasta que no cambian (solo crecen: termina). `base`: los demás
+ * movimientos de la candidata (la quema del coste y lo de la plantilla). Sin criterios de quien escribe, no se lee nada.
+ * Si la lectura pasa del presupuesto de cálculo, se queda con lo de la vuelta anterior y lo dice en `motivos`.
+ * → { segundos (lo que transfiere en total), elementos, transferencias, motivos }.
+ */
+function autorizacionDe(eje, epoca, candidata, base, { yo, t, idioma }) {
+  const motivos = [];
+  if (!criteriosDeSegundoFactor(eje, candidata.autor).length) return { segundos: 0, elementos: 0, transferencias: [], motivos };
+  const uso = usoDeT(base, yo);
+  let transferencias = [];
+  let elementos = 0;
+  const firma = (xs) => xs.map((x) => x.cosa + ':' + x.escala + ':' + x.cantidad).join('|');
+  for (let i = 0; i < 16; i++) {
+    const sf = segundoFactorDeCandidata(eje, epoca, { ...candidata, movimientos: [...base, ...comoTransferencias(transferencias, yo)] }, { idioma });
+    if (sf.motivos.length) { motivos.push(...sf.motivos); break; }
+    elementos = sf.criterios.length;
+    const nuevas = transferenciasDe(eje, epoca, sf.criterios, { yo, t, uso });
+    const igual = firma(nuevas) === firma(transferencias);
+    transferencias = nuevas; // con los elementos y la tarifa de esta vuelta, aunque lo transferido no cambie
+    if (igual) break;
+  }
+  return { segundos: transferencias.reduce((s, x) => s + x.transfiere, 0), elementos, transferencias, motivos };
 }
 
 /**
  * La autorización de segundo factor (VG 12/13-11, #70; el objeto «autorización» del SIP 0 en modo segundo factor): un
  * registro anclado en el 4 de la propuesta (lo ejecutado que espera), escrito por la cosa titular y firmado con su clave;
  * esa firma de registro es el segundo factor. Es lo que hace la app de StateArk, cuyo GUARDIÁN es el firmante (#112, F1
- * paso 5): la clave de la cosa no sale de su custodia, así que la firma se pide fuera. Llega pagada en lo que es suyo (VG
- * 14-11, #70 (3)): la tarifa de autorizar (un segundo por elemento, mínimo un minuto) la quemó de antemano la propuesta
- * (ejecucion, transaccion), así que el titular solo firma; pero la regla de la época «writing burns today's T» no tiene
- * excepciones: el registro de autorización, como todo registro, quema lo que exige escribirlo («the cost of writing», por
- * posición) y lo quema su autor, la cosa, de la T que le dio su dueño. No se cobra dos veces la tarifa: lo prepagado y lo
- * que la cosa gasta al escribir son cosas distintas (la tarifa de autorizar, y el escribir). Construye, firma y valida en
- * seco (no asienta): → { ok, evento, motivos }.
+ * paso 5): la clave de la cosa no sale de su custodia, así que la firma se pide fuera. Llega pagada (VG 14-11, #70 (3) y
+ * (3) bis): la propuesta (ejecucion, transaccion) le TRANSFIRIÓ a la cosa max(tarifa, coste de escribir esta
+ * autorización), y la regla «writing burns today's T» no tiene excepciones: el registro de autorización, como todo
+ * registro, quema lo que exige escribirlo («the cost of writing», por posición), y lo quema la cosa con esa T (en la escala
+ * en que la recibió), así que su saldo propio no baja; no hay tarifa aparte de lo transferido. Antes de construir comprueba
+ * que la cosa tiene saldo para escribirla (eje.saldoT); si no, { ok: false, motivos } con lo transferido y lo que hace
+ * falta. Construye, firma y valida en seco (no asienta): → { ok, evento, motivos, transferido, exigido } (en segundos).
  *
  * Opciones (cuarto argumento): `t`, el instante (por defecto, el reloj del libro); `idioma`;
  * `firmar({ canonico, id }) → firma`, el FIRMANTE INYECTABLE: recibe el cuerpo canónico del registro (el texto que se hashea)
@@ -1138,10 +1280,28 @@ export async function autorizar(eje, idPropuesta, cosa, privadaOOpciones, opcion
   const epoca = epocaDe(opciones, eje);
   const idioma = opciones.idioma ?? 'es';
   if (!eje?.obtener(idPropuesta)) return { ok: false, evento: null, motivos: [{ regla: SEGUNDO_FACTOR.criterio, mensaje: motivoDe('anchor not in ledger', { name: 'autorizar', formula: String(idPropuesta) }, { idioma, epoca }) }] };
-  const payload = [[...SEGUNDO_FACTOR.objeto], [{ ref: idPropuesta }], [SEGUNDO_FACTOR.uso], [cosa]];
+  const payload = payloadDeAutorizacion(idPropuesta, cosa);
+  const t = relojDe(eje, opciones);
+  // Lo que la propuesta le transfirió (VG 14-11, #70 (3) bis): la T de quien propone a la cosa. La cosa escribe con esa T:
+  // quema en la escala en que la recibió (si no recibió nada, en la primera en que su saldo alcance, como todo registro).
+  const propuesta = eje.obtener(idPropuesta);
+  const recibidas = (Array.isArray(propuesta.movimientos) ? propuesta.movimientos : [])
+    .filter((m) => m.token === 'T' && m.de === propuesta.autor && m.a === cosa && ESCALAS_REALES.includes(m.escala) && !esAnunciado(m));
+  const transferido = recibidas.reduce((s, m) => s + segundosDe(m.escala, m.cantidad), 0);
+  let quema;
+  try {
+    quema = quemaDelCoste(cosa, payload, recibidas[0]?.escala ?? escalaQueAlcanza(eje, cosa, payload, t, { epoca }), { eje, epoca });
+  } catch (e) {
+    return { ok: false, evento: null, motivos: [{ regla: SEGUNDO_FACTOR.criterio, mensaje: String(e.message ?? e) }] };
+  }
+  const necesita = quema ? exigidoDe(payload, { eje, epoca }) : 0;
+  // Antes de construir: ¿tiene la cosa saldo para escribirla? Si no, se dice por qué (lo transferido y lo que hace falta).
+  if (quema && typeof eje.saldoT === 'function' && eje.saldoT(cosa, quema.escala, t) < quema.cantidad) {
+    return { ok: false, evento: null, transferido, exigido: necesita, motivos: [{ regla: REGLA_DE_ESCRIBIR, mensaje: motivoDelSegundoFactor('authorization without T', { thing: cosa, transferred: segundosEnTexto(transferido), needed: segundosEnTexto(necesita) }, { idioma, epoca }) }] };
+  }
   let evento;
   try {
-    evento = await crearEvento({ autor: cosa, sobre: idPropuesta, en: SEGUNDO_FACTOR.ancla, t: relojDe(eje, opciones), movimientos: [quemaDelCoste(cosa, payload, undefined, { eje, epoca })], payload });
+    evento = await crearEvento({ autor: cosa, sobre: idPropuesta, en: SEGUNDO_FACTOR.ancla, t, movimientos: quema ? [quema] : [], payload });
     if (firmante) {
       // El firmante de fuera (el guardián): recibe el cuerpo canónico y el id, y devuelve la firma del id. Aquí no hay privada.
       const dada = await firmante({ canonico: canonicoDe(cuerpoDe(evento)), id: evento.id });
@@ -1154,7 +1314,7 @@ export async function autorizar(eje, idPropuesta, cosa, privadaOOpciones, opcion
     return { ok: false, evento: null, motivos: [{ regla: SEGUNDO_FACTOR.criterio, mensaje: String(e.message ?? e) }] };
   }
   const motivos = motivosDelEje(eje, await eje.validar(evento), evento, idioma, opciones);
-  return { ok: motivos.length === 0, evento, motivos };
+  return { ok: motivos.length === 0, evento, motivos, transferido, exigido: necesita };
 }
 
 /**
@@ -1164,7 +1324,8 @@ export async function autorizar(eje, idPropuesta, cosa, privadaOOpciones, opcion
  * cosa titular) o de otro cuyo criterio me nombra a mí (o a una cosa mía) como titular, así que me toca autorizar. Del más
  * reciente al más antiguo. Cada uno: { id, autor, que (su 0), propio (lo escribí yo), titular (me toca autorizar a mí o a una
  * cosa mía), titulares (los que faltan), faltan: [{ id, nombre, familias, cantidad, titular }], falta (qué falta, en el
- * idioma) }. Cuando la autorización llega, deja de estar aquí y su estación pasa a «ejecutada» (ya es así). `opciones.cuantos`
+ * idioma), motivos }. Un registro cuya lectura «second factor» pasa del presupuesto de cálculo sale también, con
+ * `desbordado: true` y el motivo en `falta` (no se sabe si espera: no se calla). Cuando la autorización llega, deja de estar aquí y su estación pasa a «ejecutada» (ya es así). `opciones.cuantos`
  * limita la lista (por defecto, 50).
  */
 export function porAutorizar(eje, yo, opciones = {}) {
@@ -1183,12 +1344,21 @@ export function porAutorizar(eje, yo, opciones = {}) {
     const ev = eje.obtener(eje.orden[i]);
     if (!ev || !autores.has(ev.autor) || eje.esDeLaEpoca?.(ev.id)) continue;
     const sf = segundoFactor(eje, ev.id, opciones);
+    const que = texto(hoja(ev.payload?.[0])) ?? ev.id.slice(0, 8);
+    if (sf && !sf.pendiente && sf.motivos?.length) {
+      // La lectura no se ha podido hacer (el presupuesto de cálculo): no se sabe si espera, así que se lista con su motivo
+      // (`desbordado`), no se calla. Me concierne si es mío o si su autor tiene un criterio que nombra a una cosa mía.
+      const propio = ev.autor === yo;
+      const titular = criteriosDeSegundoFactor(eje, ev.autor).some((c) => mios.has(c.titular));
+      if (propio || titular) lista.push({ id: ev.id, autor: ev.autor, que, propio, titular, titulares: [], faltan: [], falta: sf.motivos[0].mensaje, motivos: sf.motivos, desbordado: true });
+      continue;
+    }
     if (!sf?.pendiente) continue;
     const faltan = sf.criterios.filter((c) => !c.autorizado);
     const propio = ev.autor === yo;
     const titular = faltan.some((c) => mios.has(c.titular));
     if (!propio && !titular) continue;
-    lista.push({ id: ev.id, autor: ev.autor, que: texto(hoja(ev.payload?.[0])) ?? ev.id.slice(0, 8), propio, titular, titulares: sf.titulares, faltan: faltan.map(({ id, nombre, familias, cantidad, titular: t }) => ({ id, nombre, familias, cantidad, titular: t })), falta: sf.motivo });
+    lista.push({ id: ev.id, autor: ev.autor, que, propio, titular, titulares: sf.titulares, faltan: faltan.map(({ id, nombre, familias, cantidad, titular: t }) => ({ id, nombre, familias, cantidad, titular: t })), falta: sf.motivo, motivos: sf.motivos ?? [] });
   }
   return lista;
 }
