@@ -36,6 +36,7 @@ const UMBRAL_ARRASTRE = 24;
  *   nivel(pv, delta, X)      un paso de tamaño en un PV lateral (toque, Enter, rueda con Ctrl, pellizco)
  *   foco(X, pv)              entrar en un registro (o en un PV como foco)
  *   voltear()                dar la vuelta al centro (0 ↔ 5)
+ *   voltearFormulario(form)  abrir o cerrar el reverso del formulario de una acción (guarda lo escrito)
  *   aro(X, pv | null, { desplegar, ancla })  abrir el aro sobre X (y desplegar el sitio pv); `ancla` es la caja del elemento pulsado
  *                            en la ventana ({ x, y, ancho, alto }, getBoundingClientRect al abrirlo): la app lo ancla ahí en Mapped
  *   aroTecla(pv)             con el aro abierto, las teclas 1-4 y 6-9 lanzan la acción por defecto de ese sitio
@@ -119,6 +120,9 @@ export function instalar(raiz, m) {
       if (t.closest('[data-aro-centro]') && !t.closest('input')) { ultimoMantener = Date.now(); m.editarAro?.(); return true; }
       return false;
     }
+    // Un paso del camino del 9 (VG 14-11, #90): mantenerlo pulsado enseña lo que haría, una frase, sin escribir nada.
+    const paso = t.closest?.('[data-paso][data-previsualizar]');
+    if (paso) { ultimoMantener = Date.now(); m.previsualizar?.(paso.dataset.x || xDe(paso), paso.dataset.accion, Number(paso.dataset.previsualizar)); return true; }
     if (t.closest?.('.formulario, .guia, textarea, select, pre')) return false;
     // un campo: su input, su etiqueta (la .campo del anverso) o la cabeza de su fila (Sequenced); lo de dentro de una fila abierta no es el campo
     const campo = t.closest?.('[data-campo]') ?? t.closest?.('.campo, .fila-cabeza')?.closest?.('.campo, .fila')?.querySelector?.('[data-campo]');
@@ -202,7 +206,6 @@ export function instalar(raiz, m) {
     if ((el = b('[data-lanzar]'))) { e.preventDefault(); m.lanzar?.(el.dataset.x ?? xDe(el), el.dataset.lanzar, el.dataset.paso !== undefined ? Number(el.dataset.paso) : null, ...(el.dataset.ejecutar !== undefined ? [{ ejecutar: true }] : [])); return; }
     if ((el = b('[data-cargar-mas]'))) { e.preventDefault(); m.cargarMas?.(Number(el.dataset.cargarMas)); return; }
     if ((el = b('[data-seguir]'))) { e.preventDefault(); m.seguir?.(); return; }
-    if ((el = b('[data-previsualizar]'))) { e.preventDefault(); m.previsualizar?.(el.dataset.x ?? xDe(el), el.dataset.accion, Number(el.dataset.previsualizar)); return; }
     if ((el = b('[data-cohorte]'))) { e.preventDefault(); m.cohorte?.(el.dataset.cohorte); return; }
     if ((el = b('[data-englobar]'))) { e.preventDefault(); m.englobar?.(); return; }
     if ((el = b('[data-config]'))) { e.preventDefault(); m.configurar?.(null, el.dataset.config === '9' ? '9' : '2'); return; }
@@ -222,6 +225,16 @@ export function instalar(raiz, m) {
       return;
     }
     if ((el = b('[data-voltear]'))) { e.preventDefault(); m.voltear?.(); return; }
+    // El reverso del formulario (VG 14-11, #89): se abre a propósito; guarda lo escrito y repinta.
+    if ((el = b('[data-voltear-formulario]'))) { e.preventDefault(); m.voltearFormulario?.(el.closest('form') ?? null); return; }
+    // El reverso de un paso del camino (#90): solo cosa de la pantalla, como la cara 5 de la tarjeta flotante.
+    if ((el = b('[data-voltear-paso]'))) {
+      e.preventDefault();
+      const paso = el.closest('.paso');
+      const atras = paso?.querySelector?.('.paso-reverso');
+      if (atras) { atras.hidden = !atras.hidden; el.setAttribute('aria-pressed', String(!atras.hidden)); }
+      return;
+    }
     // La matriz del 4 (encargo «el4»): pulsar una celda la abre (su lista de movimientos); ✕ o pulsarla otra vez la cierra.
     if ((el = b('[data-celda-matriz-cerrar]'))) { e.preventDefault(); m.celdaMatriz?.(el.closest('[data-rejilla]')?.dataset.huecoX ?? null, null); return; }
     if (!b('.matriz-abierta') && (el = b('[data-celda-matriz]'))) { e.preventDefault(); m.celdaMatriz?.(el.closest('[data-rejilla]')?.dataset.huecoX ?? null, el.dataset.celdaMatriz); return; }

@@ -344,14 +344,14 @@ function motivoDe(estado, via, detalle) {
  *   direct  necesita `claveIa` (guardada en este navegador); sin ella no llama.
  * → { ok: true, texto, uso } o { ok: false, motivo, estado? }. `fetch` y `urlDirecta` se pueden cambiar (pruebas).
  */
-export async function preguntar({ via, url, ejeCompartido, claveLectura, claveIa: clave, modelo, instrucciones: texto, contexto: ctx, historial, pregunta, maximo, fetch = globalThis.fetch?.bind(globalThis), urlDirecta = API_DIRECTA }) {
+export async function preguntar({ via, ejemplo = false, url, ejeCompartido, claveLectura, claveIa: clave, modelo, instrucciones: texto, contexto: ctx, historial, pregunta, maximo, fetch = globalThis.fetch?.bind(globalThis), urlDirecta = API_DIRECTA }) {
   if (!pregunta || !String(pregunta).trim()) return { ok: false, motivo: '' };
   let peticion;
   if (via === 'direct') {
     if (!clave) return { ok: false, motivo: t('guiaSinClave') };
     peticion = { url: urlDirecta, cabeceras: { 'content-type': 'application/json', 'x-api-key': clave, 'anthropic-version': VERSION_API, 'anthropic-dangerous-direct-browser-access': 'true' } };
   } else {
-    if (!url || !ejeCompartido || !claveLectura) return { ok: false, motivo: t('guiaSinServidor') };
+    if (!url || !ejeCompartido || !claveLectura) return { ok: false, motivo: t(ejemplo ? 'guiaSinServidorEjemplo' : 'guiaSinServidor') };
     peticion = { url: url.replace(/\/+$/, '') + '/guia', cabeceras: { 'content-type': 'application/json', 'x-clave-lectura': claveLectura } };
   }
   const cuerpo = cuerpoDe({ via, eje: ejeCompartido, modelo, instrucciones: texto, contexto: ctx, historial, pregunta, maximo });

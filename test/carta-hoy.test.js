@@ -148,7 +148,7 @@ test('#95 «guardar este rato»: la celda «qué es» enseña el 0 del registro 
   assert.ok(ev);
   const a = await arbol({ foco: { X: compra.id, pv: 0 }, local: libro, sitio: { X: alta, lugar: '0', general: true } }, eje, 'huesped', GRANDE, { t: T1 });
   const cero = a.sitio.posiciones[0];
-  assert.match(cero.valor, /^un rato en la carta · 2 min · (hoy \d\d:\d\d|\d\d\/\d\d \d\d:\d\d)$/);
+  assert.match(cero.valor, /^un rato en la carta, 2 minutos, (hoy a las \d\d:\d\d|\d\d\/\d\d a las \d\d:\d\d)$/);
   assert.doesNotMatch(cero.valor, /[0-9a-f]{16}|T\d\d:\d\d:\d\dZ|huesped/, 'sin el hash, las fechas ISO ni los autores del volcado');
   const h = html(a, { cuenta: { nombre: 'yo', alta, identidad: 'huesped' }, cuentas: [] });
   assert.ok(posicionDe(h, 0).includes(cero.valor));

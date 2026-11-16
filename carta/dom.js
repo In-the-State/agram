@@ -560,25 +560,44 @@ function htmlEjecutarEnCelda(a) {
 }
 
 /**
- * Ejecutar en el formulario (VG 12-11, decisión 7): lo que cada parte exige en T (el coste por posición, lo que mueve la
- * plantilla) y la suma; la denominación propuesta o la que sale de la escala elegida (el desplegable: las escalas del
- * calendario, menores o mayores), si cubre lo exigido y si el saldo de hoy la alcanza.
+ * Ejecutar en el formulario, la cara que ve quien decide (VG 12-11, decisión 7; VG 14-11, #89 y #70): lo exigido en total, la
+ * denominación propuesta o la que sale de la escala elegida (el desplegable: las escalas del calendario), una línea por cosa
+ * que autoriza («5 min a cartera, que autoriza»), el aviso del segundo factor y los avisos que el núcleo da sin bloquear. El
+ * desglose por partes, con el nombre de la regla, va al reverso (htmlEjecucionReverso).
  */
 function htmlEjecucion(e) {
   if (!e) return '';
-  const [coste, plantilla] = e.partes;
-  const autorizacion = e.partes.find((p) => p.parte === 'autorizacion');
-  const partes = [`<li data-parte="coste">${escapar(t('exigidoCoste', { n: coste.posiciones, t: textoDeSegundos(coste.segundos) }))}</li>`]
-    .concat(autorizacion ? [`<li data-parte="autorizacion">${escapar(t('exigidoAutorizacion', { n: autorizacion.elementos, t: textoDeSegundos(autorizacion.segundos) }))}</li>`] : [])
-    .concat(plantilla?.segundos > 0 ? [`<li data-parte="plantilla">${escapar(t('exigidoPlantilla', { t: textoDeSegundos(plantilla.segundos) }))}</li>`] : [])
-    .concat(plantilla?.anunciado > 0 ? [`<li data-parte="anunciado">${escapar(t('exigidoAnunciado', { t: textoDeSegundos(plantilla.anunciado) }))}</li>`] : [])
-    .concat([`<li data-parte="total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></li>`]);
   const opciones = e.escalas.map((x) => `<option value="${attr(x)}"${x === e.escala ? ' selected' : ''}>${escapar(t('escala_' + x))}${x === e.propuesta.desde ? ' ' + escapar(t('escalaPropuesta')) : ''}</option>`).join('');
+  const autoriza = e.autorizacion?.length
+    ? `<ul class="autoriza">${e.autorizacion.map((x) => `<li data-autoriza="${attr(x.cosa)}">${escapar(t('autorizaLinea', { t: textoDeSegundos(x.segundos), cosa: x.cosaTexto }))}</li>`).join('')}</ul>` : '';
   // El segundo factor (VG 12/13-11, #66, #70): lo que movería alcanza un criterio de quien ejecuta; se avisa antes de ejecutar.
   const segundo = e.segundoFactor ? `<p class="aviso-segundo-factor" role="note">${escapar(t('avisoSegundoFactor', { titulares: e.segundoFactor.titulares.join(', ') }))}</p>` : '';
+  const delNucleo = (e.motivos ?? []).map((m) => `<small class="aviso${m.estado === 'PENDIENTE' ? ' desbordado' : ''}" role="note"${m.estado === 'PENDIENTE' ? ' data-desbordado' : ''}>${escapar(m.mensaje)}</small>`).join('');
   const avisos = (e.incompleto ? `<small class="aviso">${escapar(t('exigidoIncompleto'))}</small>` : '') + (e.cubre ? '' : `<small class="aviso">${escapar(t('denominacionNoCubre'))}</small>`) + (e.alcanza ? '' : `<small class="aviso">${escapar(t('denominacionNoAlcanza'))}</small>`);
-  return `<section class="ejecucion-t" aria-label="${attr(t('ejecucionTitulo'))}"><h3>${escapar(t('ejecucionTitulo'))}</h3><ul class="exigido">${partes.join('')}</ul>
-      <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${segundo}</section>`;
+  return `<section class="ejecucion-t" aria-label="${attr(t('ejecucionTitulo'))}"><h3>${escapar(t('ejecucionTitulo'))}</h3><p class="exigido-total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></p>
+      <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${autoriza}${segundo}${delNucleo}</section>`;
+}
+
+/** Con el botón de ejecutar apagado, una línea arriba dice qué le falta al registro: el rango en que está y el que lo marca (contrato.botonDeEjecutar). */
+function htmlBotonApagado(e) {
+  const b = e?.boton;
+  if (!b || b.estado !== 'apagado' || !b.marca) return '';
+  const marca = `${b.marca.nivel}.${b.marca.grado}`;
+  const texto = b.nombre ? t('ejecutarApagado', { nombre: b.nombre, rango: `${b.nivel}.${b.grado}`, marca }) : t('ejecutarApagadoSinRango', { marca });
+  return `<p class="boton-apagado-motivo" role="status">${escapar(texto)}</p>`;
+}
+
+/** Lo exigido en T por partes, con el nombre de la regla y de la plantilla: el reverso del formulario de ejecutar. */
+function htmlEjecucionReverso(e) {
+  if (!e) return '';
+  const [coste, plantilla] = e.partes;
+  const autorizacion = e.partes.find((p) => p.parte === 'autorizacion');
+  const partes = [`<li data-parte="coste">${escapar(t('exigidoCoste', { n: coste.posiciones, t: textoDeSegundos(coste.segundos) }))} <code>${escapar(coste.regla ?? '')}</code></li>`]
+    .concat(autorizacion ? [`<li data-parte="autorizacion">${escapar(t('exigidoAutorizacion', { n: autorizacion.elementos, t: textoDeSegundos(autorizacion.segundos) }))}</li>`] : [])
+    .concat(plantilla?.segundos > 0 ? [`<li data-parte="plantilla">${escapar(t('exigidoPlantilla', { t: textoDeSegundos(plantilla.segundos) }))} <code>${escapar(plantilla.plantilla ?? '')}</code></li>`] : [])
+    .concat(plantilla?.anunciado > 0 ? [`<li data-parte="anunciado">${escapar(t('exigidoAnunciado', { t: textoDeSegundos(plantilla.anunciado) }))}</li>`] : [])
+    .concat([`<li data-parte="total"><b>${escapar(t('exigidoTotal', { t: textoDeSegundos(e.exigido) }))}</b></li>`]);
+  return `<h4>${escapar(t('reversoDesglose'))}</h4><ul class="exigido">${partes.join('')}</ul>`;
 }
 
 /** La matriz del 4: la esquina, la ejecución arriba (o los diez tipos de interacción), y cada fila con su oficio (o su posición) delante; la diagonal (la escalera) marcada con su peldaño; cada celda con ocupante, una estación con su estado (y su sello si está ejecutada, solo CSS), que se abre al pulsarla; encima, la abierta; debajo, lo que no tiene celda. */
@@ -770,7 +789,7 @@ function htmlPropuesta(p) {
 
 /** Lo que daría un paso previsualizado (carta.previsualizar): si pasaría y con qué movimientos, o por qué no. */
 function htmlPrevia(v) {
-  const texto = v.ok ? (v.movimientos?.length ? t('previaPasa', { movimientos: v.movimientos.join(' · ') }) : t('previaPasaSinMovimientos')) : t('previaNoPasa', { motivos: (v.motivos ?? []).map((m) => m.mensaje).join('; ') });
+  const texto = v.ok ? (v.frase || t('previaPasaSinMovimientos')) : t('previaNoPasa', { motivos: (v.motivos ?? []).map((m) => m.mensaje).join('; ') });
   return `<small class="previa${v.ok ? ' pasa' : ' no-pasa'}" role="status">${escapar(texto)}</small>`;
 }
 
@@ -798,14 +817,16 @@ export function htmlCamino(c, { X } = {}) {
     if (p.propuesta !== null && p.propuesta !== undefined) return htmlPropuesta(p);
     const clase = p.hecho ? 'hecho' : p.espera ? 'espera' : p.mio ? 'mio' : 'otro';
     const falta = comun && typeof p.falta === 'string' && p.falta.startsWith(comun + ' · ') ? p.falta.slice(comun.length + 3) : (p.falta ?? '');
-    const cuerpo = `<span class="fuente">${escapar(p.fuente)}</span> <span class="falta">${escapar(falta)}</span>`;
     const marca = p.hecho ? `<span class="marca">${t('hecho')}</span>` : p.espera ? `<span class="marca">${escapar(t('esperaA', { quien: p.espera }))}</span>` : '';
-    // Previsualizar (encargo «datos3»): construye y valida el paso sin escribir; lo que daría, debajo.
+    // Un paso mío tiene una sola acción visible, la del paso, con el nombre de su plantilla en llano (VG 14-11, #90). Mantenerlo
+    // pulsado enseña lo que haría (una frase, sin escribir nada: gestos.js → previsualizar); la fuente y la regla, al reverso.
     const previa = c.previa?.paso === i ? htmlPrevia(c.previa) : '';
-    const ver = p.hacer && !p.hacer.lectura ? ` <button type="button" class="previsualizar"${nodo('control')} data-previsualizar="${i}" data-x="${attr(p.hacer?.X ?? X ?? '')}" data-accion="${attr(p.hacer.id)}" title="${attr(t('previsualizarTitulo'))}">${t('previsualizar')}</button>` : '';
+    const reverso = `<span class="paso-reverso" hidden><small>${escapar(t('pasoDeDonde'))}: <code>${escapar(p.fuente ?? '')}</code></small>${p.regla ? ` <small>${escapar(t('pasoRegla'))}: <code>${escapar(p.regla)}</code></small>` : ''}${p.porque ? ` <small>${escapar(t('pasoPorque'))}: ${escapar(p.porque)}</small>` : ''}</span>`;
+    const voltear = `<button type="button" class="voltear-paso"${nodo('control')} data-voltear-paso aria-pressed="false" aria-label="${attr(t('pasoVoltear'))}" title="${attr(t('pasoVoltear'))}">↻</button>`;
+    const accion = p.hacer && !p.hacer.lectura ? ` data-previsualizar="${i}"` : '';
     return p.mio
-      ? `<li class="paso ${clase}"${nodo('paso')}><button type="button" data-paso="${i}" data-x="${attr(p.hacer?.X ?? X ?? '')}" data-lanzar="${attr(p.hacer.id)}">${escapar(p.hacer.nombre)}</button>${ver} ${cuerpo}${previa}</li>`
-      : `<li class="paso ${clase}"${nodo('paso')}>${cuerpo} ${marca}</li>`;
+      ? `<li class="paso ${clase}"${nodo('paso')}><button type="button" data-paso="${i}" data-x="${attr(p.hacer?.X ?? X ?? '')}" data-lanzar="${attr(p.hacer.id)}" data-accion="${attr(p.hacer.id)}"${accion} title="${attr(t('pasoTitulo', { nombre: p.hacer.nombre }))}">${escapar(p.hacer.nombre)}</button> <span class="falta">${escapar(falta)}</span> ${voltear}${reverso}${previa}</li>`
+      : `<li class="paso ${clase}"${nodo('paso')}><span class="falta">${escapar(falta)}</span> ${marca} ${voltear}${reverso}</li>`;
   }).join('');
   const niveles = c.niveles ? `<p class="niveles">${t('paraUbicarse')} ${c.niveles.map((n) => `<span>${escapar(n)}</span>`).join(' → ')}</p>` : '';
   const seguir = c.pasos.some((p) => p.mio && !p.hacer?.lectura && (p.propuesta === null || p.propuesta === undefined)) ? `<button type="button" class="seguir" data-seguir>${t('seguir')}</button>` : '';
@@ -828,7 +849,7 @@ function htmlPropuestasFuera(p) {
 /** Lo por autorizar de mi alta (VG 14-11, #70): una línea por registro, «por autorizar: <su 0> · <qué falta>». */
 function htmlPorAutorizar(l) {
   if (!l?.length) return '';
-  const filas = l.map((x) => `<li class="por-autorizar-linea" data-por-autorizar="${attr(x.id)}"><button type="button" class="enlace" data-abrir="${attr(x.id)}">${escapar(t('porAutorizar'))}: ${escapar(x.que)}</button> · <small>${escapar(x.falta ?? '')}</small></li>`).join('');
+  const filas = l.map((x) => `<li class="por-autorizar-linea${x.desbordado ? ' desbordado' : ''}" data-por-autorizar="${attr(x.id)}"${x.desbordado ? ' data-desbordado' : ''}><button type="button" class="enlace" data-abrir="${attr(x.id)}">${escapar(t('porAutorizar'))}: ${escapar(x.que)}</button> · ${x.desbordado ? `<b class="marca-desbordado">${escapar(t('porAutorizarDesbordado'))}</b> · ` : ''}<small>${escapar(x.falta ?? '')}</small></li>`).join('');
   return `<section class="por-autorizar"${nodo('por-autorizar')} title="${attr(t('porAutorizarTitulo'))}"><ul>${filas}</ul></section>`;
 }
 
@@ -850,7 +871,7 @@ export function htmlGuia(g) {
     + (g.pensando ? `<li class="guia-yo"><b>${t('guiaYo')}</b> ${escapar(g.pendiente ?? '')}</li><li class="guia-pensando" role="status">${t('guiaPensando')}</li>` : '');
   const rapidas = g.preguntas.map((q, i) => `<button type="button"${nodo('control')} data-guia-rapida="${i}"${g.pensando ? ' disabled' : ''}>${escapar(q)}</button>`).join('');
   return `<section class="guia"${nodo('guia')} data-guia aria-label="${attr(t('guia'))}">
-    <header class="guia-cabeza"><h4>${t('guia')}</h4><small class="ayuda">${escapar(t(g.via === 'direct' ? 'guiaViaDirecta' : 'guiaViaServidor'))}</small>${g.historial.length ? `<button type="button"${nodo('control')} data-guia-vaciar title="${attr(t('guiaVaciarTitulo'))}">${t('guiaVaciar')}</button>` : ''}</header>
+    <header class="guia-cabeza"><h4>${t('guia')}</h4><small class="ayuda">${escapar(t(g.via === 'direct' ? 'guiaViaDirecta' : g.ejemplo ? 'guiaViaEjemplo' : 'guiaViaServidor'))}</small>${g.historial.length ? `<button type="button"${nodo('control')} data-guia-vaciar title="${attr(t('guiaVaciarTitulo'))}">${t('guiaVaciar')}</button>` : ''}</header>
     <ol class="guia-historial" aria-live="polite">${turnos || `<li class="nada">${t('guiaVacia')}</li>`}</ol>
     ${g.error ? `<p class="aviso" role="alert">${escapar(g.error)}</p>` : ''}
     <div class="guia-rapidas">${rapidas}</div>
@@ -1092,12 +1113,13 @@ function valorDeInput(c) {
  */
 function htmlFormulario(f) {
   if (!f) return '';
+  // La cara de quien decide: la etiqueta, el desplegable de valores posibles y el input; el tipo, la fórmula de validación y el
+  // BTML en crudo van al reverso (VG 14-11, #89), que se abre a propósito.
   const campo = (c) => {
     const id = 'param-' + c.nombre.replace(/\W+/g, '-');
     const tipoInput = c.tipo === 'number' ? 'number' : c.tipo === 'instant' ? 'datetime-local' : 'text';
     const valor = valorDeInput(c);
     const crudo = c.valor === null || c.valor === undefined ? '' : JSON.stringify(c.valor);
-    const btml = crudo ? `<details class="btml"><summary>${t('verEnBtml')}</summary><code>${escapar(crudo)}</code></details>` : '';
     // Con valores posibles (contrato.opciones), un desplegable; «otro…» destapa el input (que es el que se envía).
     const opciones = c.opciones ?? [];
     const crudoTexto = c.valor === null || c.valor === undefined || typeof c.valor === 'object' ? null : String(c.valor);
@@ -1108,21 +1130,37 @@ function htmlFormulario(f) {
       ? `<select class="param-opciones" data-otro-de="${id}" aria-label="${attr(c.etiqueta)}"${c.requerido ? ' required' : ''}>${elegida || otro ? '' : '<option value="" selected></option>'}${opciones.map((o) => `<option value="${attr(o.valor)}"${o === elegida ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}<option value="${attr(t('otro'))}" data-otro${otro ? ' selected' : ''}>${escapar(t('otro'))}</option></select>`
       : '';
     const valorDelInput = valor; // el legible, como siempre (el crudo en data-crudo); elegir otra opción pone su valor
-    return `<div class="campo ${c.falta ? 'falta' : ''}"><label for="${id}">${escapar(c.etiqueta)}${c.requerido ? ` <abbr title="${attr(t('requerido'))}">*</abbr>` : ''} <small class="tipo">${escapar(c.tipo)}</small></label>
+    return `<div class="campo ${c.falta ? 'falta' : ''}"><label for="${id}">${escapar(c.etiqueta)}${c.requerido ? ` <abbr title="${attr(t('requerido'))}">*</abbr>` : ''}</label>
       ${select}<input id="${id}" name="${attr(c.nombre)}" type="${tipoInput}" ${tipoInput === 'number' ? 'step="any"' : ''} value="${attr(valorDelInput)}" ${c.requerido && !opciones.length ? 'required' : ''} data-tipo="${attr(c.tipo)}" data-etiqueta="${attr(c.etiqueta)}" data-simple="${c.simple ? 1 : 0}" data-crudo="${attr(crudo)}" data-legible="${attr(valorDelInput)}" data-validacion="${attr(c.validacion ?? '')}" title="${attr(c.ayuda)}" autocomplete="off"${opciones.length && !otro ? ' hidden' : ''}>
-      <small class="ayuda">${escapar(c.ayuda)}${c.validacion ? ` <code>${escapar(c.validacion)}</code>` : ''}</small>${btml}</div>`;
+      <small class="ayuda">${escapar(c.ayuda)}</small></div>`;
+  };
+  // El reverso de un campo: su tipo, su fórmula de validación y el valor en BTML.
+  const campoReverso = (c) => {
+    const crudo = c.valor === null || c.valor === undefined ? '' : JSON.stringify(c.valor);
+    return `<li class="campo-reverso"><b>${escapar(c.etiqueta)}</b> <small>${escapar(t('reversoTipo'))} <code>${escapar(c.tipo)}</code></small>${c.validacion ? ` <small>${escapar(t('reversoFormula'))} <code>${escapar(c.validacion)}</code></small>` : ''}${crudo ? `<details class="btml"><summary>${t('verEnBtml')}</summary><code>${escapar(crudo)}</code></details>` : ''}</li>`;
   };
   // A la vista, solo lo obligatorio; lo opcional, tras «más».
-  const opcionales = f.campos.filter((c) => !c.requerido);
-  const campos = f.campos.filter((c) => c.requerido).map(campo).join('')
-    + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t('masParametrosTitulo'))}">${t('masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
+  // Al ejecutar (#89), solo lo que falta por decidir: lo que ya viene dado queda recogido tras «ya resuelto» (sus inputs siguen, para enviarse).
+  const aparte = f.ejecucion ? (c) => !(c.requerido && c.falta) : (c) => !c.requerido;
+  const opcionales = f.campos.filter(aparte);
+  const campos = f.campos.filter((c) => !aparte(c)).map(campo).join('')
+    + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t(f.ejecucion ? 'yaResueltoTitulo' : 'masParametrosTitulo'))}">${t(f.ejecucion ? 'yaResuelto' : 'masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
   const motivos = f.motivos?.length ? `<ul class="motivos" role="alert">${f.motivos.map((m) => `<li>${escapar(m.mensaje)}</li>`).join('')}</ul>` : '';
   const resultado = f.resultado ? `<p class="exito" role="status">${escapar(f.resultado)}</p>` : '';
-  return `<div class="formulario-fondo" data-cerrar><form class="formulario" data-formulario${nodo('formulario')} data-x="${f.X}" data-accion="${attr(f.accion)}" aria-label="${attr(f.nombre)}">
-    <header><h2>${escapar(f.nombre)}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+  const reverso = Boolean(f.reverso);
+  const pie = reverso
+    ? `<button type="button"${nodo('control')} data-voltear-formulario title="${attr(t('formularioVolverTitulo'))}">${t('formularioVolver')}</button>`
+    : f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${t('ejecutar')}</button>` : `<button type="submit">${t(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`;
+  return `<div class="formulario-fondo" data-cerrar><form class="formulario" data-formulario${nodo('formulario')} data-x="${f.X}" data-accion="${attr(f.accion)}"${reverso ? ' data-reverso' : ''} aria-label="${attr(f.nombre)}">
+    <header><h2>${escapar(f.nombre)}</h2><button type="button" class="voltear-formulario" data-voltear-formulario aria-pressed="${reverso}" aria-label="${attr(t('formularioVoltear'))}" title="${attr(t('formularioVoltear'))}">↻</button><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <div class="cara cara-anverso"${reverso ? ' hidden' : ''}>
     ${f.ofrecida ? '' : `<p class="aviso">${t('noSeOfrece')}</p>`}
-    ${campos}${htmlEjecucion(f.ejecucion)}${motivos}${resultado}
-    <footer>${f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${t('ejecutar')}</button>` : `<button type="submit">${t(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`}</footer>
+    ${htmlBotonApagado(f.ejecucion)}${campos}${htmlEjecucion(f.ejecucion)}${motivos}${resultado}
+    </div>
+    <div class="cara cara-reverso"${reverso ? '' : ' hidden'}>
+      <h3>${escapar(t('reversoTitulo'))}</h3><ul class="campos-reverso">${f.campos.map(campoReverso).join('')}</ul>${htmlEjecucionReverso(f.ejecucion)}
+    </div>
+    <footer>${pie}</footer>
   </form></div>`;
 }
 
