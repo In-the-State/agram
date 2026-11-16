@@ -57,16 +57,19 @@ El anfitrión añade al objeto `__AGRAM_ANFITRION__`:
 ```
 crearCuenta({ nombre }) → { publica }                       abre la sesión en el mismo diálogo
 cuentas() → [{ nombre, publica }]                           en las importadas, `nombre` es la identidad del alta: se casa por `publica`
-firmar({ publica, canonico, id, segundoFactor }) → { id, firma }   la prueba de posesión de un alta es esa misma firma
+firmar({ publica, libro, canonico, id, segundoFactor }) → { id, firma }   la prueba de posesión de un alta es esa misma firma
 firmarServicio({ publica, evento }) → firma                 evento NIP-98 sin firmar; el guardián recalcula su id
 sesion(publica) → { abierta, caduca }
-criterios({ publica, registros }) → { aceptados }           opcional; registros = [{ canonico, id, firma }]; sin sesión
+criterios({ publica, libro, registros }) → { aceptados }    opcional; registros = [{ canonico, id, firma }]; sin sesión
+clavesDeLinea({ publica, libro }) → [{ nivel, clave }]       opcional (A24); las claves de línea de un libro
 pedirSesion({ publica }) → { abierta, caduca }              opcional; abre la sesión sin escribir ningún registro
 ```
 
 `pedirSesion` (opcional, no entra en la detección del camino B): la página pide y el guardián enseña su diálogo nativo (8 h, 1 h o cancelar) y devuelve el estado. Si la sesión ya está abierta, devuelve su estado sin diálogo. Si el titular cancela, durante 60 s cualquier `pedirSesion` devuelve `{ abierta: false }` sin diálogo. Nunca hay dos diálogos de sesión a la vez: mientras hay uno a la vista, devuelve `{ abierta: false }`. `crearCuenta` sin sesión entra en la misma protección: durante la pausa rechaza con `cancelled_by_holder`, y con otro diálogo de sesión a la vista, con `dialog_busy`.
 
 Los errores, como rechazo con `code`: `session_closed`, `cancelled_by_holder`, `dialog_busy`, `id_mismatch`, `unknown_account`. Dentro de una sesión abierta el guardián firma los registros corrientes sin diálogo; con `segundoFactor` verdadero abre siempre su diálogo.
+
+**Varios libros (A24, acordado con Core StateArk el 17-11).** La misma clave firma en varios libros. `libro` es el id del génesis del libro abierto (al firmar el génesis de un libro que nace, su propio id): va en `firmar` y en `criterios`, y el guardián guarda los criterios por clave y libro y dice en su diálogo en qué libro se firma. La sesión sigue siendo por clave. Un anfitrión que no mira `libro` sigue valiendo. `clavesDeLinea({ publica, libro })` (opcional) da las claves de línea con que se sellan las cabeceras de ese libro, `[{ nivel, clave }]` (nivel de la cascada de la época, clave x-only); la carta las escribe en el anuncio «open a private book here». Sin el verbo, o con la clave en el navegador, no hay ninguna. La carta las limpia (`anfitrion.clavesDeLinea`: pares bien formados, sin nivel repetido, cuatro como mucho). Abrir un libro privado con el guardián pide siempre diálogo (`segundoFactor: true`). Pruebas: `test/carta-libros.test.js`.
 
 Pruebas del núcleo: `test/firmante.test.js`.
 

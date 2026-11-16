@@ -20,7 +20,8 @@
 //                             servidor, lo rechazado; sin la clave de lectura): carta/sincronia.js
 // Los ejemplos siguen en agram.eje, agram.claves, agram.foco, agram.yo, agram.ejemplo y agram.local.<yo>.
 //
-// La COPIA DE SEGURIDAD es un archivo agram-cuenta-<nombre>.json con la clave privada (y, si la hay, la clave de
+// La COPIA DE SEGURIDAD es un archivo agram-<nombre>-<8 del libro>.json (A24: antes agram-cuenta-<nombre>.json; el formato
+// no cambia) con la clave privada (y, si la hay, la clave de
 // lectura del libro compartido) cifrada con una frase (PBKDF2 con sal aleatoria y muchas iteraciones → AES-GCM, con
 // el id del alta como dato asociado), la clave pública, el nombre, el id del alta y el eje serializado: una FOTO del
 // eje; con el libro compartido configurado, el otro dispositivo baja el resto del servidor al restaurar
@@ -29,6 +30,14 @@
 //
 // Una cuenta del GUARDIÁN (camino B, VG 17-11; carta/anfitrion.js) nace en el guardián del anfitrión y firma con él: en
 // la lista va con `guardian: true`, no tiene agram.clave.<alta>, y su copia no lleva clave privada.
+//
+// VARIOS LIBROS (A24, agram-equipo/DISENO_CARTA_VARIOS_LIBROS.md §4.1 y §4.2): una persona es una clave y esa clave tiene
+// varios libros. Cada entrada de la lista es «mi sitio en un libro» y gana `libro` (el id del génesis de su eje) y, si el
+// libro cuelga de otro, `cuelga: { libro, elemento }` (contrato.cuelgaDe; la carta añade, si lo sabe, `nombre`, el del
+// elemento, y `anunciado`). Dos entradas con la misma `publica` son la misma persona en dos libros. Las entradas de antes
+// se completan solas al abrirse (completarEntrada). Todo sigue guardado por alta: olvidar un libro no toca los demás.
+// `crearCuenta({ conClave })` abre un libro nuevo con una clave que ya tengo (la privada de la entrada abierta o, con el
+// guardián, la misma pública: el guardián firma el génesis). Sin `conClave`, «persona nueva»: una clave nueva.
 //
 // Sin DOM: lo prueba test/cuentas.test.js con el WebCrypto de Node. carta/app.js lo engancha a la pantalla.
 
@@ -91,10 +100,17 @@ export function identidadDe(nombre, publica) {
   return limpio || (publica ? autoridad.huella(publica) : '');
 }
 
-/** El nombre del archivo de copia de una cuenta. */
+/**
+ * El nombre del archivo de copia de un libro: agram-<nombre>-<8 del libro>.json (dos libros con el mismo nombre no
+ * chocan). Sin el id del libro (una entrada de antes sin completar), el del alta.
+ */
 export function nombreDeArchivo(cuenta) {
-  return FORMATO + '-' + (identidadDe(cuenta?.nombre) || cuenta?.identidad || 'cuenta') + '.json';
+  const libro = String(cuenta?.libro ?? cuenta?.alta ?? '').slice(0, 8);
+  return 'agram-' + (identidadDe(cuenta?.nombre) || cuenta?.identidad || 'libro') + (libro ? '-' + libro : '') + '.json';
 }
+
+/** El nombre del archivo de la copia de todos mis libros: agram-<identidad>-libros.json. */
+export const nombreDeArchivoDeTodos = (cuenta) => 'agram-' + (identidadDe(cuenta?.identidad) || 'mis') + '-libros.json';
 
 // ---------- los campos del alta (lo que pide la pantalla de crear) ----------
 
@@ -149,20 +165,39 @@ export function camposDelAlta({ idioma, epoca } = {}) {
  * firma con su firmante (firmanteDeCuenta): en el navegador no se genera ninguna clave privada. La cuenta lleva
  * `guardian: true`. → { cuenta, eje, firmante, publica }. Si el guardián rechaza una firma, lanza con su `code` y no
  * devuelve ningún eje (nada se guarda).
+ *
+ * Con `conClave` ({ publica, privada } de la entrada abierta; con `guardian`, { publica }), un libro nuevo con una clave
+ * que ya tengo (§4.2): no se genera clave ni se pide cuenta nueva al guardián; el génesis lo firma esa clave. `identidad`:
+ * la mía en el libro de donde vengo (la misma persona en los dos libros); sin ella, la que sale del nombre. `dialogo`
+ * (con guardián): su diálogo se abre en cada firma. La cuenta lleva `libro`, el id de su génesis.
  */
-export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false, guardian = null } = {}) {
+export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false, guardian = null, conClave = null, identidad = null, dialogo = false } = {}) {
   const limpio = String(nombre ?? '').trim();
   if (!limpio) throw new Error('la cuenta necesita un nombre: el 0 de tu alta');
-  if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, guardian });
+  const propia = typeof identidad === 'string' && identidad ? identidad : null;
+  // Un libro nuevo con una clave que ya tengo (§4.2): con el guardián, la misma pública (él firma el génesis); en el
+  // navegador, la privada de la entrada abierta, que ha de ser la pareja de la pública.
+  if (conClave) {
+    if (!autoridad.clavePublicaValida(conClave.publica)) throw new Error('la clave que ya tienes no es una clave pública válida');
+    if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, guardian, publica: conClave.publica, identidad: propia, dialogo });
+    const privada = conClave.privada;
+    if (typeof privada !== 'string' || !mismaClave(autoridad.publicaDe(privada), conClave.publica)) throw new Error('la clave privada no es la pareja de la pública de este libro');
+    return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica: conClave.publica, privada, firmar: firmarCon(privada), identidad: propia });
+  }
+  if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, guardian, identidad: propia, dialogo });
   const { publica, privada } = await autoridad.generarClaves();
-  return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar: firmarCon(privada) });
+  return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar: firmarCon(privada), identidad: propia });
 }
 
-/** Camino B: la clave pública, del guardián; las firmas, de su firmante (el eje que mira es el que se está creando). */
-async function crearEnGuardian({ guardian, nombre, ...resto }) {
-  const publica = await crearEnElGuardian(guardian, nombre);
+/**
+ * Camino B: la clave pública, del guardián (o, con `publica`, la que ya tengo: no se le pide una cuenta nueva); las firmas,
+ * de su firmante (el eje que mira es el que se está creando, y el libro, el suyo). `dialogo`: el guardián abre siempre su
+ * diálogo (abrir un libro privado, §4.8).
+ */
+async function crearEnGuardian({ guardian, nombre, publica: yaTengo = null, dialogo = false, ...resto }) {
+  const publica = yaTengo ?? await crearEnElGuardian(guardian, nombre);
   let creado = null;
-  const firmante = firmanteDeCuenta(guardian, publica, { eje: () => creado });
+  const firmante = firmanteDeCuenta(guardian, publica, { eje: () => creado, dialogo });
   const r = await crearCon({ nombre, ...resto, publica, privada: firmante, firmar: autoridad.firmanteDeEventos(firmante, { publica }), alNacer: (eje) => { creado = eje; } });
   // El HTML inicial no lanza (adjuntarHtmlInicial): si su firma la rechazó el guardián, la cuenta no nace a medias.
   if (firmante.error) throw firmante.error;
@@ -170,8 +205,8 @@ async function crearEnGuardian({ guardian, nombre, ...resto }) {
 }
 
 /** Lo común a los dos caminos: el génesis y lo que nace con él, firmado con `privada` (una clave o un firmante) y `firmar`. */
-async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar, alNacer = () => {} }) {
-  const identidad = identidadDe(limpio, publica);
+async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar, alNacer = () => {}, identidad: propia = null }) {
+  const identidad = propia ?? identidadDe(limpio, publica);
   const eje = await Eje.genesis({ identidad, foco: limpio, t, clave: publica, privada });
   alNacer(eje);
   const alta = eje.alta(identidad).id;
@@ -189,7 +224,7 @@ async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial
     const x = ajustesEditablesDe(exterior.AJUSTES.plantilla, eje, identidad, fuera, o);
     if (x?.cambiado) await salida.escribirDesde(eje, { modo: 'sequenced', autor: identidad, sobre: x.sobre, en: x.en, payload: x.payload, t }, privada);
   }
-  const cuenta = { nombre: limpio, idioma: idioma ?? contrato.configuracion(eje, identidad, o)[claveIdioma(o)], identidad, alta, publica };
+  const cuenta = { nombre: limpio, idioma: idioma ?? contrato.configuracion(eje, identidad, o)[claveIdioma(o)], identidad, alta, publica, libro: eje.genesisId };
   // Toda alta nace con su HTML básico en el PV0 (VG 14-11, #84): «hola» en medio, en el idioma de la cuenta.
   if (htmlInicial) await adjuntarHtmlInicial(eje, alta, identidad, firmar, cuenta.idioma, o);
   return { cuenta, eje, privada, publica };
@@ -227,25 +262,86 @@ export function recordarUltima(alta) {
 }
 
 /**
- * Guarda una cuenta en este navegador: la lista, su eje, su clave privada (hex, como las de ejemplo) y, si viene
- * (una copia restaurada que la llevaba), su clave de lectura. Devuelve false si no hay almacenamiento.
+ * La entrada de la lista de una cuenta con su eje (§4.1): lo de siempre más `libro` (el id del génesis de su eje) y, si el
+ * libro cuelga de otro (contrato.cuelgaDe: «this book hangs from» escrito por el autor del génesis), `cuelga: { libro,
+ * elemento }`, con el `nombre` del elemento y `anunciado` que ya supiera la entrada si es el mismo enlace. Sin eje, lo que
+ * ya tenía. Nunca lanza.
  */
-export async function guardarCuenta({ cuenta, eje, privada, claveLectura }) {
+export function entradaDe(cuenta, eje) {
+  const e = { nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica };
+  if (cuenta.guardian === true) e.guardian = true;
+  let libro = typeof cuenta.libro === 'string' ? cuenta.libro : undefined;
+  let cuelga = cuenta.cuelga && typeof cuenta.cuelga === 'object' ? cuenta.cuelga : undefined;
+  try {
+    if (eje?.genesisId) {
+      libro = eje.genesisId;
+      const c = contrato.cuelgaDe(eje);
+      const antes = cuenta.cuelga;
+      cuelga = c ? { libro: c.libro, elemento: c.elemento, ...(antes?.libro === c.libro && antes?.elemento === c.elemento ? soloDatos(antes) : {}) } : undefined;
+    }
+  } catch { /* lo que ya tenía */ }
+  if (libro) e.libro = libro;
+  if (cuelga) e.cuelga = cuelga;
+  return e;
+}
+
+/** Lo que la carta añade a un `cuelga` (el nombre del elemento y si ya se anunció), solo si tiene la forma que toca. */
+const soloDatos = (c) => ({ ...(typeof c.nombre === 'string' && c.nombre ? { nombre: c.nombre } : {}), ...(c.anunciado === true ? { anunciado: true } : {}) });
+
+/** ¿Dicen lo mismo dos entradas? (para no reescribir la lista si nada cambió) */
+const mismaEntrada = (a, b) => JSON.stringify(a) === JSON.stringify(b);
+
+/**
+ * Completa la entrada guardada de una cuenta con lo que dice su eje (`libro`, `cuelga`): las entradas de antes ganan su
+ * libro la primera vez que se abren. Solo reescribe la lista si cambia algo. → la cuenta completada (o la misma).
+ */
+export function completarEntrada(cuenta, eje) {
+  const e = entradaDe(cuenta, eje);
+  const lista = cuentas();
+  const k = lista.findIndex((c) => c.alta === cuenta.alta);
+  if (k >= 0 && !mismaEntrada(lista[k], e)) {
+    lista[k] = e;
+    escribir(CLAVES.cuentas, JSON.stringify(lista));
+  }
+  const completa = { ...cuenta, ...e };
+  if (!e.cuelga) delete completa.cuelga;
+  return completa;
+}
+
+/**
+ * Marca en la entrada guardada de un libro pequeño lo que la carta sabe de su enlace: el nombre del elemento del que
+ * cuelga y si ya se anunció en el libro grande. No toca nada más. → true si la entrada estaba.
+ */
+export function marcarCuelga(alta, { nombre, anunciado } = {}) {
+  const lista = cuentas();
+  const k = lista.findIndex((c) => c.alta === alta);
+  if (k < 0 || !lista[k].cuelga) return false;
+  lista[k] = { ...lista[k], cuelga: { ...lista[k].cuelga, ...soloDatos({ nombre, anunciado }) } };
+  return escribir(CLAVES.cuentas, JSON.stringify(lista));
+}
+
+/**
+ * Guarda una cuenta en este navegador: la lista (su entrada, con `libro` y `cuelga`: entradaDe), su eje, su clave privada
+ * (hex, como las de ejemplo; repetida por alta: olvidar un libro no toca los demás) y, si viene (una copia restaurada que
+ * la llevaba), su clave de lectura. Con `recordar` (por defecto), es la última usada. Devuelve false si no hay almacenamiento.
+ */
+export async function guardarCuenta({ cuenta, eje, privada, claveLectura }, { recordar = true } = {}) {
+  const entrada = entradaDe(cuenta, eje);
   // Una cuenta del guardián (camino B): su clave vive en el guardián; aquí, la lista (con la marca), el eje y la de lectura.
   if (cuenta.guardian === true) {
     const otras = cuentas().filter((c) => c.alta !== cuenta.alta);
-    otras.push({ nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica, guardian: true });
+    otras.push(entrada);
     const bien = escribir(CLAVES.cuentas, JSON.stringify(otras)) && persistencia.guardarLocal(eje, CLAVES.eje(cuenta.alta))
       && (!claveLectura || guardarClaveLectura(cuenta.alta, claveLectura));
-    if (bien) recordarUltima(cuenta.alta);
+    if (bien && recordar) recordarUltima(cuenta.alta);
     return bien;
   }
   const guardable = await autoridad.exportarPrivada(privada);
   const lista = cuentas().filter((c) => c.alta !== cuenta.alta);
-  lista.push({ nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica });
+  lista.push(entrada);
   const ok = escribir(CLAVES.cuentas, JSON.stringify(lista)) && escribir(CLAVES.clave(cuenta.alta), guardable) && persistencia.guardarLocal(eje, CLAVES.eje(cuenta.alta))
     && (!claveLectura || guardarClaveLectura(cuenta.alta, claveLectura));
-  if (ok) recordarUltima(cuenta.alta);
+  if (ok && recordar) recordarUltima(cuenta.alta);
   return ok;
 }
 
@@ -306,7 +402,7 @@ export async function abrirCuenta(alta, { guardian = null } = {}) {
     const eje = await persistencia.cargarLocal(CLAVES.eje(alta));
     if (!eje) return { cuenta, privada, publica: cuenta.publica, motivo: 'el eje de la cuenta no está o no se ha podido abrir' };
     if (!mismaClave(eje.clave(cuenta.identidad), cuenta.publica) || eje.alta(cuenta.identidad)?.id !== alta) return { cuenta, motivo: 'el eje guardado no declara la clave de la cuenta' };
-    return { cuenta, eje, privada, publica: cuenta.publica };
+    return { cuenta: completarEntrada(cuenta, eje), eje, privada, publica: cuenta.publica };
   } catch (e) {
     return { cuenta, motivo: String(e?.message ?? e) };
   }
@@ -319,7 +415,7 @@ async function abrirDelGuardian(cuenta, guardian) {
     const eje = await persistencia.cargarLocal(CLAVES.eje(cuenta.alta));
     if (!eje) return { cuenta, publica: cuenta.publica, ...lectura, motivo: 'el eje de la cuenta no está o no se ha podido abrir' };
     if (!mismaClave(eje.clave(cuenta.identidad), cuenta.publica) || eje.alta(cuenta.identidad)?.id !== cuenta.alta) return { cuenta, motivo: 'el eje guardado no declara la clave de la cuenta' };
-    return { cuenta, eje, publica: cuenta.publica, ...lectura };
+    return { cuenta: completarEntrada(cuenta, eje), eje, publica: cuenta.publica, ...lectura };
   } catch (e) {
     return { cuenta, motivo: String(e?.message ?? e) };
   }
@@ -333,7 +429,8 @@ export async function conGuardian(r, guardian) {
 
 /**
  * Olvida una cuenta en este navegador: su eje, su clave privada, sus libros locales, su clave de lectura, el estado de
- * su sincronía y su entrada en la lista. Sin copia, no se recupera.
+ * su sincronía y su entrada en la lista. Sin copia, no se recupera. Todo va por alta: los demás libros de la misma clave
+ * (su privada está repetida en su propia entrada) no se tocan.
  */
 export function olvidarCuenta(alta, identidades = []) {
   const lista = cuentas().filter((c) => c.alta !== alta);
@@ -457,7 +554,8 @@ export async function restaurarCuenta(archivo, frase) {
   if (!privada || !mismaClave(autoridad.publicaDe(privada), a.publica)) throw new Error('la clave privada de la copia no es la pareja de la pública');
   const eje = await persistencia.restaurar(a.eje);
   if (!mismaClave(eje.clave(a.identidad), a.publica) || eje.alta(a.identidad)?.id !== a.alta) throw new Error('el eje de la copia no declara esa clave para ' + a.identidad + ' en su alta');
-  const cuenta = { nombre: String(a.nombre ?? a.identidad), idioma: typeof a.idioma === 'string' ? a.idioma : undefined, identidad: a.identidad, alta: a.alta, publica: a.publica };
+  // La copia no cambia de formato: el libro (y de qué cuelga) se lee del eje restaurado (entradaDe).
+  const cuenta = entradaDe({ nombre: String(a.nombre ?? a.identidad), idioma: typeof a.idioma === 'string' ? a.idioma : undefined, identidad: a.identidad, alta: a.alta, publica: a.publica }, eje);
   return { cuenta, eje, privada, publica: cuenta.publica, claveLectura };
 }
 
@@ -487,6 +585,64 @@ async function restaurarDelGuardian(a, frase) {
   }
   const eje = await persistencia.restaurar(a.eje);
   if (!mismaClave(eje.clave(a.identidad), a.publica) || eje.alta(a.identidad)?.id !== a.alta) throw new Error('el eje de la copia no declara esa clave para ' + a.identidad + ' en su alta');
-  const cuenta = { nombre: String(a.nombre ?? a.identidad), idioma: typeof a.idioma === 'string' ? a.idioma : undefined, identidad: a.identidad, alta: a.alta, publica: a.publica, guardian: true };
+  const cuenta = entradaDe({ nombre: String(a.nombre ?? a.identidad), idioma: typeof a.idioma === 'string' ? a.idioma : undefined, identidad: a.identidad, alta: a.alta, publica: a.publica, guardian: true }, eje);
   return { cuenta, eje, publica: cuenta.publica, claveLectura };
+}
+
+// ---------- la copia de todos mis libros (§4.7) ----------
+
+/** El formato del archivo con la copia de todos mis libros: la lista de las copias de cada libro, tal cual. */
+export const FORMATO_DE_TODOS = 'agram-libros';
+export const VERSION_DE_TODOS = 1;
+
+/**
+ * La copia de todos mis libros: un archivo que es la lista de las copias de cada libro tal cual (exportarCuenta, con la
+ * misma frase; la de un libro del guardián, sin privada, como siempre). `libros`: [{ cuenta, eje, privada, claveLectura }].
+ * → { formato, version, exportado, copias: [archivo de cada libro] }.
+ */
+export async function exportarTodos(libros, frase, { iteraciones = CIFRADO.iteraciones, t = new Date().toISOString() } = {}) {
+  if (typeof frase !== 'string' || !frase) throw new Error('la copia necesita una frase');
+  const copias = [];
+  for (const l of libros ?? []) copias.push(await exportarCuenta(l, frase, { iteraciones, t }));
+  return { formato: FORMATO_DE_TODOS, version: VERSION_DE_TODOS, exportado: t, copias };
+}
+
+/** ¿Es este archivo (o su texto) la copia de todos mis libros? Nunca lanza. */
+export function esCopiaDeTodos(archivo) {
+  try {
+    const a = typeof archivo === 'string' ? JSON.parse(archivo) : archivo;
+    return Boolean(a) && a.formato === FORMATO_DE_TODOS;
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Restaura la copia de todos mis libros con la frase: cada copia de la lista por restaurarCuenta, una a una. Una entrada
+ * mala no estropea las demás: se dice cuál falló (su posición, su nombre si lo lleva y el motivo). → { restaurados: [lo que
+ * da restaurarCuenta], fallidos: [{ posicion, nombre, libro, motivo }] }. Lanza solo si el archivo no es una copia de todos.
+ */
+export async function restaurarTodos(archivo, frase) {
+  let a;
+  try {
+    a = typeof archivo === 'string' ? JSON.parse(archivo) : archivo;
+  } catch {
+    a = null;
+  }
+  if (!a || a.formato !== FORMATO_DE_TODOS || !Number.isInteger(a.version)) throw new Error('el archivo no es una copia de todos tus libros');
+  if (a.version !== VERSION_DE_TODOS) throw new Error('copia de todos tus libros de la versión ' + a.version + '; esta carta lee la ' + VERSION_DE_TODOS);
+  if (!Array.isArray(a.copias)) throw new Error('el archivo no lleva la lista de las copias');
+  const restaurados = [];
+  const fallidos = [];
+  for (let k = 0; k < a.copias.length; k++) {
+    const c = a.copias[k];
+    const nombre = typeof c?.nombre === 'string' ? c.nombre : null;
+    const libro = typeof c?.alta === 'string' ? c.alta.slice(0, 8) : null;
+    try {
+      restaurados.push(await restaurarCuenta(c, frase));
+    } catch (e) {
+      fallidos.push({ posicion: k + 1, nombre, libro, motivo: String(e?.message ?? e) });
+    }
+  }
+  return { restaurados, fallidos };
 }

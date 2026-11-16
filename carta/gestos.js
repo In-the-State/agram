@@ -50,6 +50,10 @@ const UMBRAL_ARRASTRE = 24;
  *   reglas() · reglasCambio(id) · reglasVolver() · reglasProponer() · reglasActuar(que, id) · reglasPosicion(posicion, form) · reglasPropuesta(form)
  *                            «Reglas del libro» (A21; carta/reglas.js): abrirla, un cambio, volver a la lista, proponer, sus acciones
  *   ajustesElemento(X)       «Ajustes de este elemento» (A21): lo fijado y lo heredado del libro
+ *   libro(alta) · libroOtro() · libroEntrar(alta, foco) · libroVolver(alta, foco) · libroAnunciar(alta, foco)
+ *   libroPrivado(X) · libroPrivadoCrear(form) · libroPrivadoAnunciar() · copiaTodos()
+ *                            varios libros (A24; carta/libros.js): «Tus libros», entrar y volver con un foco de llegada,
+ *                            «abrir aquí un libro privado» y su anuncio, y la copia de todos mis libros
  *   configurar(form | null, parte)  abrir la configuración de una parte (null, '2' mis criterios y preferencias | '9' guía y exterior) o guardarla (el formulario)
  *   retocarTexto(clave, idioma)  el modo «retocar textos» (A20): tocar un texto marcado (data-retocar) abre su retoque y no hace lo suyo
  *   retoqueIdioma(idioma) · guardarRetoque(form) · retoqueOriginal(clave, idioma) · modoRetocar(encendido)  la hoja del retoque, la lista y el interruptor
@@ -135,7 +139,7 @@ export function instalar(raiz, m) {
     // Un paso del camino del 9 (VG 14-11, #90): mantenerlo pulsado enseña lo que haría, una frase, sin escribir nada.
     const paso = t.closest?.('[data-paso][data-previsualizar]');
     if (paso) { ultimoMantener = Date.now(); m.previsualizar?.(paso.dataset.x || xDe(paso), paso.dataset.accion, Number(paso.dataset.previsualizar)); return true; }
-    if (t.closest?.('.formulario, .guia, textarea, select, pre')) return false;
+    if (t.closest?.('.formulario, .guia, .tus-libros, textarea, select, pre')) return false;
     // un campo: su input, su etiqueta (la .campo del anverso) o la cabeza de su fila (Sequenced); lo de dentro de una fila abierta no es el campo
     const campo = t.closest?.('[data-campo]') ?? t.closest?.('.campo, .fila-cabeza')?.closest?.('.campo, .fila')?.querySelector?.('[data-campo]');
     if (campo && campo.dataset.x) { ultimoMantener = Date.now(); m.aro?.(campo.dataset.x, Number(campo.dataset.campo), { desplegar: true, ancla: anclaDe(t, x, y) }); return true; }
@@ -219,6 +223,15 @@ export function instalar(raiz, m) {
     if ((el = b('[data-reglas-proponer]'))) { e.preventDefault(); m.reglasProponer?.(); return; }
     if ((el = b('[data-reglas-actuar]'))) { e.preventDefault(); m.reglasActuar?.(el.dataset.reglasActuar, el.dataset.id); return; }
     if ((el = b('[data-ajustes-elemento]'))) { e.preventDefault(); m.ajustesElemento?.(el.dataset.ajustesElemento); return; }
+    // Varios libros (A24; carta/libros.js): «Tus libros», entrar y volver, el libro privado y la copia de todos.
+    if ((el = b('[data-libro]'))) { e.preventDefault(); if (!el.disabled) m.libro?.(el.dataset.libro); return; }
+    if ((el = b('[data-libro-otro]'))) { e.preventDefault(); m.libroOtro?.(); return; }
+    if ((el = b('[data-libro-entrar]'))) { e.preventDefault(); m.libroEntrar?.(el.dataset.libroEntrar, el.dataset.foco || null); return; }
+    if ((el = b('[data-libro-volver]'))) { e.preventDefault(); m.libroVolver?.(el.dataset.libroVolver, el.dataset.foco || null); return; }
+    if ((el = b('[data-libro-anunciar]'))) { e.preventDefault(); m.libroAnunciar?.(el.dataset.libroAnunciar, el.dataset.foco || null); return; }
+    if ((el = b('[data-libro-privado-anunciar]'))) { e.preventDefault(); if (!el.disabled) m.libroPrivadoAnunciar?.(); return; }
+    if ((el = b('[data-libro-privado]'))) { e.preventDefault(); m.libroPrivado?.(el.dataset.libroPrivado); return; }
+    if ((el = b('[data-copia-todos]'))) { e.preventDefault(); m.copiaTodos?.(); return; }
     if ((el = b('[data-sitio-lanzar]'))) {
       e.preventDefault();
       let valores = {};
@@ -336,7 +349,7 @@ export function instalar(raiz, m) {
   const empezarMantener = (e) => {
     const t = e.target;
     if (e.button !== undefined && e.button !== 0) return; // el clic derecho va por contextmenu
-    if (t.closest('textarea, select, .formulario, .guia') || (t.closest('input') && !t.closest('[data-campo]'))) return;
+    if (t.closest('textarea, select, .formulario, .guia, .tus-libros') || (t.closest('input') && !t.closest('[data-campo]'))) return;
     if (!t.closest('.aro') && !t.closest('[data-x], [data-hueco-x]')) return;
     cancelarMantener();
     mantener = { timer: setTimeout(() => { mantener = null; mantenido(t, e.clientX, e.clientY); }, MANTENER_MS), x: e.clientX, y: e.clientY };
@@ -509,6 +522,7 @@ export function instalar(raiz, m) {
     else if (f.matches('[data-crear]')) m.crear?.(f);
     else if (f.matches('[data-restaurar]')) m.restaurar?.(f);
     else if (f.matches('[data-copia-form]')) m.copia?.(f);
+    else if (f.matches('[data-libro-privado-form]')) m.libroPrivadoCrear?.(f);
     else if (f.matches('[data-guia-form]')) m.guiaPreguntar?.(f.querySelector('[data-guia-pregunta]')?.value ?? '');
   });
   on('change', (e) => {

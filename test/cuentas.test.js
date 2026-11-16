@@ -86,7 +86,8 @@ test('exportar y restaurar con la frase correcta devuelve el mismo eje y la mism
   const texto = Q.textoDeArchivo(archivo);
   assert.ok(!texto.includes(mia.privada), 'la clave privada no está en claro');
   assert.ok(!texto.includes(FRASE), 'la frase no se guarda');
-  assert.equal(Q.nombreDeArchivo(mia.cuenta), 'agram-cuenta-victor.json');
+  // A24 (varios libros, §4.1): agram-<nombre>-<8 del libro>.json, para que dos libros con el mismo nombre no choquen.
+  assert.equal(Q.nombreDeArchivo(mia.cuenta), 'agram-victor-' + mia.cuenta.libro.slice(0, 8) + '.json');
   // Restaurar en «otro dispositivo»: desde el texto del archivo.
   const r = await Q.restaurarCuenta(texto, FRASE);
   assert.deepEqual(r.cuenta, mia.cuenta);
@@ -136,7 +137,8 @@ test('guardar, listar, abrir y olvidar cuentas en un localStorage simulado; las 
     const mia = await Q.crearCuenta({ nombre: 'Víctor', idioma: 'en', t: T1 });
     assert.deepEqual([Q.cuentas(), Q.ultima()], [[], null]);
     assert.equal(await Q.guardarCuenta(mia), true);
-    assert.deepEqual(Q.cuentas(), [{ nombre: 'Víctor', idioma: 'en', identidad: 'victor', alta: mia.cuenta.alta, publica: mia.publica }]);
+    // A24 (varios libros, §4.1): la entrada gana `libro`, el id del génesis de su eje (aquí, el alta).
+    assert.deepEqual(Q.cuentas(), [{ nombre: 'Víctor', idioma: 'en', identidad: 'victor', alta: mia.cuenta.alta, publica: mia.publica, libro: mia.cuenta.alta }]);
     assert.equal(Q.ultima(), mia.cuenta.alta);
     // La clave privada se guarda tal cual, en hex (como las de ejemplo en agram.claves), nunca en texto plano fuera del navegador.
     assert.equal(almacen.get(Q.CLAVES.clave(mia.cuenta.alta)), mia.privada);
