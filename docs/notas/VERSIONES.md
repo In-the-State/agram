@@ -32,7 +32,7 @@ console.log(eje.epocaDe(enVigor.id).registro[7][3][0], eje.epoca().registro[7][3
 ```
 
 ```text
-[ [ 0, null, '40add9d6' ], [ 1, '71b98920', 'e5f3d528' ] ]
+[ [ 0, null, '5e1ccb74' ], [ 1, '14b978b9', '31724765' ] ]
 [ 600 ] [ 900 ] true
 ```
 
@@ -90,7 +90,7 @@ Lo de «una sola vez» y «retirada» también lo dicen las reglas de la época 
 
 `erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o plantillas: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Además mira la fila 7.9 del resultado (`erroresDeLaFila`: umbrales, niveles y presiones, `docs/notas/GOBIERNO.md` §2). Las piezas de gobierno son las de 7.9.7 de la base y del resultado **y lo que leen, calculado** (`piezasDeGobiernoDe`, GOBIERNO.md §6). Con una clase que no es «governance», además, ninguna condición ni lectura que se guarda nueva o sustituida (`reglasConId` del resultado que la base no tiene, por id). Sin `clase` no se mira la clase.
 
-El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar.
+El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar. En la 0, el suelo son las 17 reglas de VG, las 9 reglas y lecturas del mecanismo del gobierno (anexo de los arreglos, I: «approved», «support», «support of», las cuatro reglas de §5 de GOBIERNO.md y las dos del apoyo) y tres posiciones; `sueloDe` le añade, calculado, toda lectura que una de sus reglas o lecturas nombra en su 1 (hoy, ninguna).
 
 **Al cargar una época hija de nacimiento** (`cargarEpocaEscrita`, `src/epocas.js`) se comprueba el mismo suelo, sin la clase: una hija puede ampliarlo, no encogerlo, ni sustituir ni quitar una regla de la lista, ni cambiar una posición de la lista; si lo hace, la carga lanza con «no respeta el suelo de la época de la que hereda: …». Comprobado contra la 7.9.6 real antes de activarlo: la época state (sustituye «second factor» y «attention has a price») y la SIP 0 de StateArk (sustituye «sealed», «paid», «second factor» y «authorized by the holder») no tocan el suelo.
 

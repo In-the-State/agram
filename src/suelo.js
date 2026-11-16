@@ -81,9 +81,13 @@ export function presionDeLosNombres(epoca) {
   }, 0);
 }
 
-/** La lista del suelo de una época (su 7.9.6): nombres y posiciones, en su orden; [] si no la tiene. */
+/**
+ * El suelo de una época: la lista de su 7.9.6 (nombres y posiciones, en su orden) y, calculado, toda lectura que una
+ * regla o lectura del suelo nombra en su 1, hasta cerrar (anexo de los arreglos, I: el mismo cálculo que las piezas de
+ * gobierno, solo con nombres; las posiciones del suelo son las escritas). [] si no la tiene.
+ */
 export function sueloDe(epoca) {
-  return textos(en(raizDe(epoca), SUELO));
+  return cerrarPiezas(epoca, textos(en(raizDe(epoca), SUELO)), { posiciones: false });
 }
 
 /** Las piezas de gobierno escritas en una época (su 7.9.7, tal cual); [] si no las tiene. */
@@ -93,6 +97,9 @@ export function piezasEscritasDe(epoca) {
 
 /** Una posición de la época dentro de una fórmula: «epoch.9.0.0.4» (no «epoch.(x)» ni «epoch» suelto). */
 const RE_POSICION_EN_FORMULA = /(?<![A-Za-z0-9_])epoch((?:\.[0-9])+)(?![0-9])/g;
+
+/** Una lectura que se guarda en una posición de un elemento: su 3 es «X.2.4.7», «A.8.1»… (no «X», «A» ni «ev»). */
+const RE_MATERIALIZADA = /^[A-Za-z]+(\.[0-9])+$/;
 
 /**
  * Cierra una lista de piezas con lo que leen (arreglos de la revisión, H3; Core AGRAM 17-11): de cada regla o lectura
@@ -108,6 +115,8 @@ export function cerrarPiezas(epoca, iniciales, { posiciones = true } = {}) {
   for (const r of reglas) {
     if (!esLectura(r)) continue;
     const p = posicionDeLectura(r);
+    // Solo las que se materializan en una posición de un elemento: «X» en un 1 es el registro, no la lectura «asked».
+    if (typeof p !== 'string' || !RE_MATERIALIZADA.test(p)) continue;
     if (!lecturasEn.has(p)) lecturasEn.set(p, []);
     lecturasEn.get(p).push(nombreDeRegla(r));
   }
@@ -158,7 +167,7 @@ function queGuarda(regla) {
   if (esLecturaDePv(regla)) return null;
   if (esLectura(regla)) {
     const p = posicionDeLectura(regla);
-    return typeof p === 'string' && /^[A-Za-z]+(\.[0-9])+$/.test(p) ? 'la lectura «' + n + '», que se guarda en ' + p : null;
+    return typeof p === 'string' && RE_MATERIALIZADA.test(p) ? 'la lectura «' + n + '», que se guarda en ' + p : null;
   }
   if (esEscritura(regla)) return 'la regla que escribe «' + n + '»';
   return 'la condición «' + n + '»';

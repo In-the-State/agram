@@ -75,7 +75,7 @@ test('gobierno: la fila 7.9 «governance», el suelo y las piezas por su nombre 
   const [suelo, piezas] = [siete9[6], siete9[7]];
   for (const n of suelo) assert.ok(nombres.has(n) || /^epoch(\.\d)+$/.test(n), 'el suelo nombra una regla que existe: ' + n);
   assert.deepEqual(suelo.filter((n) => n.startsWith('epoch.')), ['epoch.7.0', 'epoch.1.3.1', 'epoch.7.2']);
-  assert.equal(suelo.length, 20);
+  assert.equal(suelo.length, 29, '17 reglas de VG, 9 del mecanismo del gobierno (arreglos, anexo I) y 3 posiciones');
   for (const n of piezas) assert.ok(nombres.has(n) || plantillas.has(n) || n === 'epoch.7.9', 'pieza de gobierno: ' + n);
   for (const n of ['epoch.7.9', 'approved', ...Object.values(P)]) assert.ok(piezas.includes(n), n);
   // Las seis plantillas: dónde anclan y su sitio en el aro.

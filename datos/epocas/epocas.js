@@ -476,7 +476,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "74b23f3705ffa44dd59fa213c14638ac912c07fdf59ae040f1715f56f8ccecf9"
     },
     {
-      "ref": "b46fb0ae16e8d317471a5fe93c911e3152c38739c7a9e3a27c99f2fe5bb343f5"
+      "ref": "fa86f970c3193930517d8aab763c4ab662dcfb29b32c593be64d3442e9e894b2"
     },
     {
       "ref": "48d6ec72345c79d4b5d6ffd89df8ebd8966480798c862c7152d845f2306540b0"
@@ -497,7 +497,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "58d93d3b5ed904abf3c21bf9e53fc15c99410b7a5de545768903aeb09ed530dc"
     },
     {
-      "ref": "ddea3421dba32e9ce6e3d8b8b3437cffae54f13dc82e5208d89f1832ee15cf32"
+      "ref": "8712ca9c31673b84d1e72cc3f9d25307e8a8bf7901470b408650f595f595ff4a"
     },
     {
       "ref": "57eb7dddf25b2c5c342d124144e6b176fb53167ff1fbff22f7fec24eaa82ca7c"
@@ -2340,6 +2340,15 @@ export const EPOCA_0_BTML_DATOS = [
         "not before the writer joined",
         "a thing of mine is one whose alta I wrote",
         "T only goes to things",
+        "approved",
+        "support",
+        "support of",
+        "a change names its class and brings a change",
+        "only who proposed withdraws a change",
+        "a change is enacted once it is approved",
+        "a change comes into force with its proof",
+        "a support is true at its point",
+        "support is released by withdrawing it",
         "epoch.7.0",
         "epoch.1.3.1",
         "epoch.7.2"
@@ -8700,7 +8709,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-person-joins-by-an-invitation.json",
-    "id": "ddea3421dba32e9ce6e3d8b8b3437cffae54f13dc82e5208d89f1832ee15cf32",
+    "id": "8712ca9c31673b84d1e72cc3f9d25307e8a8bf7901470b408650f595f595ff4a",
     "registro": [
       [
         "a person joins by an invitation"
@@ -8711,7 +8720,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "ev.5"
       ],
       [
-        "=count (first ev.3).6 > 0 or (\"invitation\" in (first (first ev.6).5).0 and first ev.3 in (first (first ev.6).5).3.1 and count (first (first (first ev.6).5).3).6 > 0 and (count before.6.0 = 0 or (first ev.6).0.0 >= first before.6.0.0) and (count ((first (first ev.6).5).7 where count it.0 > 0) = 0 or (first ev.6).0.0 <= last (((first (first ev.6).5).7 where count it.0 > 0) each 0) or (count before.6.3 > 0 and first before.6.3.0 <= last (((first (first ev.6).5).7 where count it.0 > 0) each 0))) and (count (first (first ev.6).5).3.5 = 0 or count (ev.5 where count it.2 > 0 and it.3 = first ev.3 and it.2 in (first (first ev.6).5).3.5) > 0))"
+        "=count (first ev.3).6 > 0 or (\"invitation\" in (payload(first (first ev.6).5)).0 and first ev.3 in (payload(first (first ev.6).5)).3.1 and count (first (first (first ev.6).5).3).6 > 0 and (count before.6.0 = 0 or (first ev.6).0.0 >= first before.6.0.0) and (count ((payload(first (first ev.6).5)).7 where count it.0 > 0) = 0 or (first ev.6).0.0 <= last (((payload(first (first ev.6).5)).7 where count it.0 > 0) each 0) or (count before.6.3 > 0 and first before.6.3.0 <= last (((payload(first (first ev.6).5)).7 where count it.0 > 0) each 0))) and (count (payload(first (first ev.6).5)).3.5 = 0 or count (ev.5 where count it.2 > 0 and it.3 = first ev.3 and it.2 in (payload(first (first ev.6).5)).3.5) > 0))"
       ],
       [
         "ev.3"
@@ -8730,7 +8739,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "VG, 9-11 (mapa §16 [D] «El árbol mínimo es la invitación»): «4 aceptar = tu primera transacción firmada = tu alta»; «el génesis de cada persona = su aceptación anclada sobre la invitación»",
         "Diseño Core aceptado: la invitación es una décupla: 0 «invitación», 1 lo que te doy, 2 la época, 3 yo, tú (tu clave) y el grupo común, 4 aceptar, 5 el dominio, 6 mi hilo, 7 hasta cuándo vale, 8 el grupo de mi atención que te asigno, 9 el tema y el tutorial; mínima = 2 y 3",
         "Quien aún no tiene alta y escribe (una persona: escribe la suya) lo hace sobre una invitación de una identidad con alta que la nombra en su 3.1, dentro de su 7 y, si nombra una clave en su 3.5, con esa clave. El alta sin invitación es solo la de la primera identidad del eje: el génesis (src/eje.js, Eje.genesis)",
-        "Revisión de seguridad (encargo 3b): el 7 se compara con el mismo reloj que la caducidad de E, min(t de la aceptación, el reloj de los demás: before.6.3), y la aceptación no se fecha antes del último t del libro (before.6.0); así no se acepta una invitación caducada fechando atrás"
+        "Revisión de seguridad (encargo 3b): el 7 se compara con el mismo reloj que la caducidad de E, min(t de la aceptación, el reloj de los demás: before.6.3), y la aceptación no se fecha antes del último t del libro (before.6.0); así no se acepta una invitación caducada fechando atrás",
+        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige"
       ],
       [
         "epoch 0"
@@ -10289,7 +10299,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "nobody-moves-tokens-of-others.json",
-    "id": "b46fb0ae16e8d317471a5fe93c911e3152c38739c7a9e3a27c99f2fe5bb343f5",
+    "id": "fa86f970c3193930517d8aab763c4ab662dcfb29b32c593be64d3442e9e894b2",
     "registro": [
       [
         "nobody moves tokens of others"
@@ -10299,7 +10309,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "\"invitation\""
       ],
       [
-        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (first (first ev.6).5).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (first (first ev.6).5).3.1)) = 0"
+        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1)) = 0"
       ],
       [
         "ev.3"
@@ -10318,7 +10328,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "VG, 8-11: «solo existe la delegación»; nadie mueve por cuenta de un grupo",
         "VG, 8-11 (mapa §15): cada uno solo mueve lo suyo, sin paso de autorizar",
         "VG, 9-11 (mapa §16 [D] «El árbol mínimo es la invitación»): «1 lo que te doy para empezar (mínimo mi propia R, que te permite escribirme)»: quien invita lo bloquea con la salida = quien invita, y la aceptación lo recoge con una transferencia con esa salida (encargo 3b); no es mover lo ajeno: la salida nombra a quien lo recibe",
-        "Revisión de seguridad (encargo 3b): la excepción es exactamente «aceptar mi invitación»: quien escribe aún no tiene alta, ancla sobre la invitación, que lo nombra como invitado en su 3.1, y transfiere desde quien la escribió hacia sí mismo con la salida = él (el libro solo deja sacar lo bloqueado con esa salida: lo que la invitación le guarda); src/validez.js lo repite en el suelo"
+        "Revisión de seguridad (encargo 3b): la excepción es exactamente «aceptar mi invitación»: quien escribe aún no tiene alta, ancla sobre la invitación, que lo nombra como invitado en su 3.1, y transfiere desde quien la escribió hacia sí mismo con la salida = él (el libro solo deja sacar lo bloqueado con esa salida: lo que la invitación le guarda); src/validez.js lo repite en el suelo",
+        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige"
       ],
       [
         "epoch 0"
@@ -24799,7 +24810,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e";
+export const EPOCA_0_BTML_ID = "84c9901701a74dcbe7bcbe32e996f0ef319360995baeadb614e2376cdf5f38f4";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

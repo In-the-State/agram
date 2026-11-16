@@ -1,7 +1,8 @@
 // Revisión de seguridad, segunda pasada: solo el SUELO (VG 17-11: cada uno solo mueve lo suyo; todo registro paga su
 // T; se entra por invitación y el invitado queda protegido; la regla de las reglas pide un umbral más alto). Encargo de
 // Core AGRAM tras test/revision-gobierno.test.js. Un caso por hallazgo; los que fallan hoy, con `todo` y su motivo.
-// Ejes de demostración en memoria, identidades inventadas.
+// Ejes de demostración en memoria, identidades inventadas. S2, S4 y S5 los arregla encargo-arreglos-gobierno-anexo.md
+// (Core AGRAM 17-11; su motivo queda en un comentario); S6 sigue como pregunta.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -64,7 +65,7 @@ const textos = (r) => JSON.stringify((r?.motivos ?? []).map((x) => x.mensaje ?? 
 
 // ---------- Aguanta (S1 intentado): una lectura nueva en X.3.1 no abre la puerta ----------
 
-test('aguanta: un cambio «ordinary» que añade una lectura en X.3.1 (=first ev.3) entra en vigor, pero no deja entrar a nadie sin invitación', async () => {
+test('aguanta: un cambio que añade una lectura en X.3.1 (=first ev.3) entra en vigor (como «governance»: como «ordinary» ya no), pero no deja entrar a nadie sin invitación', async () => {
   // El 3 de un registro es [autor, firmante] y su payload: el contexto no le suma lecturas (src/contexto-eje.js, #meta,
   // d === 3 vuelve antes de mirar las lecturas), así que «a person joins by an invitation» no ve la lectura nueva.
   const m = await mundo();
@@ -72,17 +73,19 @@ test('aguanta: un cambio «ordinary» que añade una lectura en X.3.1 (=first ev
   const alta = () => m.eje.escribir({ autor: 'zed', sobre: invitacion, t: m.reloj(), movimientos: [quemaDelCoste('zed', ['Alta de zed'], 'minuto', { eje: m.eje })], payload: ['Alta de zed'] }).then(() => 'entra', (e) => e.message);
   assert.match(await alta(), /a person joins by an invitation/, 'control');
   const puerta = [['open door'], ['ev.3'], ['=first ev.3'], ['X.3.1'], ['read'], ['*'], ['revisión de seguridad: una lectura en X.3.1'], ['epoch 0'], ['after changes'], ['open door: the writer']];
-  const r = await m.recorrer('una lectura más', { 2: [{ ref: idDeRegistro(puerta) }] }, { clase: 'ordinary', registros: [puerta] });
-  assert.ok(r.puesta?.ev, 'la lectura entra en vigor como «ordinary»');
+  // Una lectura que se guarda (en X.3.1) es de clase «governance» desde los arreglos (A, H1): como «ordinary» no entra.
+  const corriente = await m.recorrer('una lectura más', { 2: [{ ref: idDeRegistro(puerta) }] }, { clase: 'ordinary', registros: [puerta] });
+  assert.ok(!corriente.propuesta.ev, 'como «ordinary», no');
+  const r = await m.recorrer('una lectura más', { 2: [{ ref: idDeRegistro(puerta) }] }, { clase: 'governance', registros: [puerta] });
+  assert.ok(r.puesta?.ev, 'la lectura entra en vigor como «governance»');
   assert.match(await alta(), /a person joins by an invitation/);
   assert.equal(m.eje.alta('zed'), null);
 });
 
 // ---------- S2 (alto, hoy, sin gobierno): un tercero bloquea una invitación anclando algo en su 7 ----------
 
-test('S2: cris ancla una nota en el 7 de una invitación de ana a zed, y zed ya no puede entrar a tiempo', {
-  todo: 'HALLAZGO S2: «a person joins by an invitation» lee (invitación).7 (y .0, .3.1, .3.5), y ahí se suma lo que otros anclan en esa posición de la invitación; una nota con un texto hace que el plazo dé ERROR («<= espera un número») y la regla rechaza. Cualquiera con alta deja sin entrada al invitado de otro. En el 3 pasa algo parecido: lo anclado añade su id al 3.5 y un nombre al 3.1',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno-anexo.md): HALLAZGO S2: «a person joins by an invitation» lee (invitación).7 (y .0, .3.1, .3.5), y ahí se suma lo que otros anclan en esa posición de la invitación; una nota con un texto hace que el plazo dé ERROR («<= espera un número») y la regla rechaza. Cualquiera con alta deja sin entrada al invitado de otro. En el 3 pasa algo parecido: lo anclado añade su id al 3.5 y un nombre al 3.1
+test('S2: cris ancla una nota en el 7 de una invitación de ana a zed, y zed ya no puede entrar a tiempo', async () => {
   const m = await mundo();
   const inv = await m.eje.invitar({ autor: 'ana', invitado: 'zed', t: m.reloj() });
   assert.equal(await m.aMano({ autor: 'cris', sobre: inv.id, en: '7000000000', movimientos: [pagaElCoste('cris')], payload: [['basura']] }), 'entra', 'cris puede anclar en el 7 de la invitación');
@@ -109,9 +112,8 @@ test('aguanta: un cambio de gobierno sustituye «R is minted by its issuer» y �
 
 // ---------- S4 (alto): un cambio de gobierno sustituye «approved» y la regla de las reglas deja de pedir más ----------
 
-test('S4: un cambio de gobierno que sustituye «approved» por una lectura que siempre pasa entra (el suelo no guarda «la regla de las reglas pide más»)', {
-  todo: 'HALLAZGO S4: el punto 4 del suelo solo se hace cumplir comparando 7.9.2 con 7.9.1; «approved», «support», «support of» y las cuatro reglas del gobierno son piezas de gobierno pero no suelo, así que un cambio de gobierno las sustituye por lo que quiera (aquí, «approved» siempre verdadero: cualquier cambio, corriente o de gobierno, se aprueba sin apoyo)',
-}, () => {
+// Arreglado (encargo-arreglos-gobierno-anexo.md): HALLAZGO S4: el punto 4 del suelo solo se hace cumplir comparando 7.9.2 con 7.9.1; «approved», «support», «support of» y las cuatro reglas del gobierno son piezas de gobierno pero no suelo, así que un cambio de gobierno las sustituye por lo que quiera (aquí, «approved» siempre verdadero: cualquier cambio, corriente o de gobierno, se aprueba sin apoyo)
+test('S4: un cambio de gobierno que sustituye «approved» por una lectura que siempre pasa entra (el suelo no guarda «la regla de las reglas pide más»)', () => {
   const aprobado = copia(regla0('approved'));
   aprobado[2] = ['=true'];
   aprobado[6] = ['revisión de seguridad: aprobado siempre'];
@@ -122,9 +124,8 @@ test('S4: un cambio de gobierno que sustituye «approved» por una lectura que s
 
 // ---------- S5 (medio): umbrales iguales ----------
 
-test('S5: un cambio de gobierno que iguala los dos umbrales (0.6 y 0.6) entra: la regla de las reglas ya no pide más', {
-  todo: 'HALLAZGO S5: erroresDelSuelo solo rechaza 7.9.2 < 7.9.1; igualarlos pasa, y VG pidió «un umbral más alto». (Bajar los dos a la vez, por ejemplo -1 y 0, también pasa)',
-}, () => {
+// Arreglado (encargo-arreglos-gobierno-anexo.md): HALLAZGO S5: erroresDelSuelo solo rechaza 7.9.2 < 7.9.1; igualarlos pasa, y VG pidió «un umbral más alto». (Bajar los dos a la vez, por ejemplo -1 y 0, también pasa)
+test('S5: un cambio de gobierno que iguala los dos umbrales (0.6 y 0.6) entra: la regla de las reglas ya no pide más', () => {
   const raiz = [['umbrales iguales'], M0, M0, M0, M0, M0, [['x'], ['hereda'], [ID0]], [M0, M0, M0, M0, M0, M0, M0, M0, M0, [M0, [0.6], [0.6]]]];
   const r = V.comprobarCambio(EPOCA_0_BTML, { raiz, registros: [] }, 'governance');
   assert.ok(r.motivos.some((x) => /umbral/.test(x)), 'el umbral de gobierno ha de quedar por encima del corriente');
@@ -133,7 +134,7 @@ test('S5: un cambio de gobierno que iguala los dos umbrales (0.6 y 0.6) entra: l
 // ---------- S6 (pregunta, no necesariamente fallo): una condición de gobierno que nombra a alguien ----------
 
 test('S6: un cambio de gobierno añade «=first ev.3 != "bea"» y bea ya no escribe nada (ni retira su P): ninguna regla del suelo lo impide', {
-  todo: 'PREGUNTA S6 (no necesariamente un fallo): se puede. Ninguna regla de 7.9.6 protege que una persona pueda seguir escribiendo; «el invitado queda protegido» no tiene regla que lo diga. Si VG quiere que sea suelo, falta una regla o una comprobación del núcleo',
+  todo: 'PREGUNTA S6, sin arreglar (anexo de los arreglos, K): un cambio de gobierno puede añadir una condición que nombre a una persona; no hay comprobación general; la protección es el aviso antes de regir y la salida a un libro hijo',
 }, async () => {
   const m = await mundo();
   const nota = () => m.aMano({ autor: 'bea', sobre: m.eje.alta('bea').id, movimientos: [pagaElCoste('bea')], payload: [['nota de bea']] });
@@ -158,4 +159,40 @@ test('aguanta: sustituir «the cost of writing» o cambiar una posición del sue
   assert.ok(!r2.propuesta.ev);
   assert.match(textos(r2.propuesta), /epoch\.1\.3\.1/);
   assert.equal(m.eje.versiones().length, 1);
+});
+
+// ---------- Lo que añade el anexo de los arreglos (encargo-arreglos-gobierno-anexo.md) ----------
+
+test('anexo H: una invitación con notas ajenas ancladas en su 7, en su 0 y en su 3 se acepta', async () => {
+  const m = await mundo();
+  const inv = await m.eje.invitar({ autor: 'ana', invitado: 'zed', t: m.reloj() });
+  for (const en of ['7000000000', '0000000000', '3000000000', '3100000000', '3500000000']) {
+    assert.equal(await m.aMano({ autor: 'cris', sobre: inv.id, en, movimientos: [pagaElCoste('cris')], payload: [['basura'], ['cris'], ['x'], ['cris']] }), 'entra', 'cris ancla en ' + en);
+  }
+  const r = await m.eje.aceptar(inv, {}, { t: m.reloj() }).then(() => 'entra', (e) => e.message);
+  assert.equal(r, 'entra');
+  assert.ok(m.eje.alta('zed'));
+});
+
+test('anexo I: un cambio «governance» que sustituye «approved» se rechaza por el suelo', async () => {
+  const m = await mundo();
+  const aprobado = copia(regla0('approved'));
+  aprobado[2] = ['=true'];
+  aprobado[6] = ['revisión de seguridad: aprobado siempre'];
+  const r = await m.recorrer('aprobado siempre', { 2: [{ ref: idDeRegistro(aprobado) }] }, { registros: [aprobado] });
+  assert.ok(!r.propuesta.ev);
+  assert.match(textos(r.propuesta), /sustituye «approved», que es del suelo/);
+  assert.equal(m.eje.versiones().length, 1);
+});
+
+test('anexo J: un cambio que mueve 7.9.2 dentro del rango entra con los dos tercios; fuera de rango, no', async () => {
+  const m = await mundo();
+  const k = { ref: m.eje.epoca().id };
+  const fila = (dos) => [k, k, k, k, k, k, k, k, k, [k, k, [dos]]];
+  const fuera = await m.recorrer('umbral alto 1', { 7: fila(1) });
+  assert.ok(!fuera.propuesta.ev);
+  assert.match(textos(fuera.propuesta), /un umbral es un número mayor que 0 y menor que 1/);
+  const r = await m.recorrer('umbral alto 0.75', { 7: fila(0.75) });
+  assert.ok(r.puesta?.ev, textos(r.aprobacion ?? r.propuesta));
+  assert.deepEqual(m.eje.epoca().registro[7][9][2], [0.75]);
 });
