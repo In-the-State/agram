@@ -455,6 +455,23 @@ condicionesDe(epoca)                 // → las condiciones de un eje con esa é
 
 **Lo que no cambia de fuente.** Las escalas de T y el calendario de `src/tokens.js` (`SEGUNDOS`, la asignación diaria) siguen saliendo de la época 0 (son del suelo, al cargar el módulo); las lecturas por profundidad del formato de siempre (`EPOCA_0`, `datos/epocas/epoca-0.json`: `pointed`, `sequenced`, `mapped`, `scened`, `bases`, `lectura`) siguen con la 0 si no se les pasa otra. Una época hija que cambie el calendario o las escalas de T no lo cambia ahí.
 
+### 5 bis.1 La regla de parada: el límite de cálculo con causa (#100, VG 17-11 por Core State)
+
+Una regla de la época que se para por un límite de cálculo del BQL mínimo (PENDIENTE POR LÍMITE, #70) no pasa y el registro se rechaza, como siempre; ahora se sabe por qué, con una causa que una máquina lee. El tope es dato de la época: su fila **8.8** «calculation limits» (`[["calculation limits", ayuda], [pasos], [ocupantes], [anidamiento], [hilo], [bytes]]`), y el núcleo usa el menor entre ella y su constante `LIMITES`, que es el techo (`docs/BQLM.md`, límites). Una época hija que reescribe su 8.8 baja los límites de los ejes que la usan.
+
+<!-- comprobar: fragmento -->
+```js
+await eje.validar(ev)   // → ['texto', …]: igual que siempre, byte a byte
+await eje.motivos(ev)   // → [{ texto, regla, estado, causa }]: lo mismo, con forma y en el mismo orden
+```
+
+- `texto`: el de `validar`, idéntico. `regla`: el nombre de la regla de la época o de la condición del suelo que lo dice (`'not before its focus'`, `'suelo:id'`…), o `null` (la aritmética del libro, la forma de un evento que no se lee, un registro de la época). `estado`: `'pendiente'` si una regla de la época no se resolvió, `'falla'` si no. `causa`: `'limit_exhausted'` (`CAUSA_LIMITE`, exportada por `src/bqlm.js` junto a `POR_LIMITE`) si se paró por un límite de cálculo, `null` si no.
+- **El orden de siempre manda**: si alguna regla falla con veredicto (RESUELTO), solo cuentan esas y la parada por límite **no sale** (ni su texto ni su causa); si no, sale la primera PENDIENTE en el orden del 8 (`src/condiciones/reglas.js`). Un registro con un motivo `limit_exhausted` es, pues, uno al que ninguna regla le dice que no: solo no se ha podido terminar de comprobar.
+- **El error de `eje.escribir`** (y de `eje.anadir`, por el que pasa) al rechazar: el mensaje de siempre (`evento rechazado: …`, `registro de la época rechazado: …`), y además `error.motivos` (esa lista) y, si alguno es por límite, `error.code === 'limit_exhausted'`. Nada se escribe.
+- `motivosDeReglas` (lo que lee `src/validez.js`) añade `causa` a cada motivo; `evaluarRegla` da `{ pasa, estado, subtipo?, motivo }`.
+
+Cómo lo usa la puerta de AARPIA: `docs/notas/LIMITE_DE_CALCULO.md`. Prueba: `test/limite-de-calculo.test.js`.
+
 ## 6. El diario: `diario(eje, X, desde, cuantos)`
 
 Las transacciones del subárbol de X (X y lo anclado bajo él, a cualquier profundidad) **por llegada**, cada una con sus **asientos del libro** (lo que de verdad se movió: los movimientos, la asignación del día y la obtención de P, con su primitiva, serie, de, a, cantidad y, si los tiene, salida, clase y etiqueta) y su ancla. Paginado desde un índice o desde un id; `cuantos` por defecto, el paso. Con `opciones.orden` (un orden de `epoch.8.5`; la lista vertical del 6 pide el suyo, `latest`), en ese orden: `instante` por el t de cada transacción, `reverse` al revés; el encaje no ordena transacciones. Sobrio y animado leen las mismas vistas; el animado además este diario, listo para reproducirlo en orden. Cada entrada trae además el PV de X del que cuelga (`pv`, `pvDeEntrada`) y el estado de su futuro (`estado`, `estadoDeEntrada`, o null) (encargo «datos3», §4.2). **En BQL desde el 12-11** (VG, estudio BQL-transacciones): el subárbol es `under it` (por llegada) o `under it by (first it2.6.0).0` (por instante), y los asientos de cada transacción, `moves it`; es una lectura del núcleo, sin el presupuesto de una fórmula (lo pagina quien la pinta). `test/lecturas.test.js` comprueba que da lo mismo que el JavaScript de antes en todos los registros de los ejemplos.
