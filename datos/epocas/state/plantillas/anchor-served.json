@@ -1,0 +1,125 @@
+[
+  ["anchor served"],
+  [
+    [
+      ["request"],
+      ["ref"],
+      ["=count it.5 > 0"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [1],
+      ["=it", "the request that is served: X"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [3],
+      ["=me", "=first it.3", "who serves (the owner of the node) and who asked"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [4],
+      ["anchor served", "the action"]
+    ],
+    [
+      ["type"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [5],
+      ["served anchor", "the type of the record: an anchor served"]
+    ],
+    [
+      ["header"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it and it = first (payload(first ev.6.5)).6.3"],
+      ["me"],
+      ["payload"],
+      ["6.0"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [6],
+      ["=first (payload(it)).6.3", "the batch header asked: its hash (64 hexadecimal characters in lower case), the same as the 6.3 of the request"]
+    ],
+    [
+      ["mother"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["6.1"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [7],
+      ["the mother header that includes the one asked: its hash (64 hexadecimal characters in lower case); a datum, not a reference"]
+    ],
+    [
+      ["level"],
+      ["number"],
+      ["=it in epoch.7.6.1"],
+      ["me"],
+      ["payload"],
+      ["6.2"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [8],
+      ["the level of the mother header: a level of the cascade (epoch.7.6.1)"]
+    ],
+    [
+      ["path"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["6.3"],
+      ["Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"],
+      ["required"],
+      [9],
+      ["sip", "the path from the header asked to the mother: a short free text (today, «sip»)"]
+    ]
+  ],
+  ["=\"ask for an anchor\" in (payload(it)).4 and first (first (payload(it)).2).3 = me"],
+  [["me"], ["person"]],
+  ["write"],
+  ["4"],
+  [
+    "VG 17-11 (por Core State; encargo «ancla servida»): un pedido de ancla («ask for an anchor») tiene que poder leerse como servido. Lo escribe quien sirve, la identidad de servicio del nodo: el dueño del nodo (quien escribió su alta, el operador; su R es la llave del servicio y su clave es la del nodo). Hoy la época no tiene otra identidad que sirva: el nodo es una cosa sin clave y el sellador no tiene identidad en este libro. Se lanza sobre el pedido y ancla en su 4 (lo que se hace con él); escrito por otro no cuenta para la lectura «anchors asked»",
+    "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). No mueve tokens más allá del T de escribir",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [3, 12],
+  ["anchor served: {me} anchored the batch header asked by {last ev.3} in a mother header of level {last ev.6.2}"]
+]

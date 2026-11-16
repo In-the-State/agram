@@ -1,5 +1,5 @@
 {
-  "id": "acbfd9e2f612f6a99d20c25f2816c7e3bb7a1bda3013d6da6a54705b9848e64f",
+  "id": "d1ce6961db0384ab2564faf6994f8861e33bdca34f5a2f8fe6b921202e235fd4",
   "hereda": "f7031e9643dfe71443260298c61023ac605d46d9494eddf72e2f963508b03eb7",
   "raiz": [
     [
@@ -11,16 +11,16 @@
     },
     [
       {
-        "ref": "11667b21a2cafe3060345d2e7d3e93ae2fd121dffe8d37112283fe5a1bdec10a"
+        "ref": "aa21962adfcf1a9112ad248932896089b0c8e4d3b4ccd7128acdb8ef7897f255"
       },
       {
         "ref": "1212087c43e35da7016105afc409338d1d6107f10c38e1a6ba0956458389326a"
       },
       {
-        "ref": "2f4263da5f317ee61f603fa4370d7b550177c312b8dc95f04099c412bd213b42"
+        "ref": "ed7d8649de8cbb2a3ec7ca708239a08aaba03054f7c4cd09d1fb4d9b3401b61f"
       },
       {
-        "ref": "1af6230598af77dc02ce3a2168fce1d4d8fc726dd825632d15e9fd4a70f1fe8b"
+        "ref": "323c60eb15ec9ef25e8948e28feb3f274ed5272a8899a4ba5cee86422006cf63"
       }
     ],
     {
@@ -1501,6 +1501,26 @@
             "template ask for an anchor param header label: cabecera",
             "template ask for an anchor param header help: la cabecera de lote que se quiere anclar: su hash (64 caracteres hexadecimales en minúsculas)",
             "template ask for an anchor message: pedir un ancla: {me} devuelve {first ev.1} R a {first it.3} y le pide anclar una cabecera de lote",
+            "template anchor served: ancla servida",
+            "template anchor served param request label: pedido",
+            "template anchor served param request help: el pedido que se sirve: X",
+            "template anchor served param criteria label: criterio de cierre",
+            "template anchor served param criteria help: la plantilla de cerrado del registro",
+            "template anchor served param who label: quién",
+            "template anchor served param who help: quién sirve (el dueño del nodo) y quién lo pidió",
+            "template anchor served param actions label: acción",
+            "template anchor served param actions help: la acción",
+            "template anchor served param type label: tipo",
+            "template anchor served param type help: el tipo del registro: un ancla servida",
+            "template anchor served param header label: cabecera",
+            "template anchor served param header help: la cabecera de lote pedida: su hash (64 caracteres hexadecimales en minúsculas), el mismo que el 6.3 del pedido",
+            "template anchor served param mother label: cabecera madre",
+            "template anchor served param mother help: la cabecera madre que incluye la pedida: su hash (64 caracteres hexadecimales en minúsculas); un dato, no una referencia",
+            "template anchor served param level label: nivel",
+            "template anchor served param level help: el nivel de la cabecera madre: un nivel de la cascada (epoch.7.6.1)",
+            "template anchor served param path label: camino",
+            "template anchor served param path help: el camino de la cabecera pedida a la madre: un texto corto (hoy, «sip»)",
+            "template anchor served message: ancla servida: {me} ancló la cabecera de lote que pidió {last ev.3} en una cabecera madre de nivel {last ev.6.2}",
             "template declare my relays: declarar mis relés",
             "template declare my relays param relays label: relés",
             "template declare my relays param relays help: mis relés: una url por ocupante (sustituyen a los que declaré antes)",
@@ -1511,9 +1531,9 @@
             "template declare my relays param actions label: acción",
             "template declare my relays param actions help: la acción",
             "template declare my relays message: declarar mis relés: {me} declara sus relés",
-            "anchors asked: los pedidos de ancla que el nodo tiene que servir: cada uno devuelve R de su dueño y nombra un libro, la clave de una línea, un nivel y una cabecera de lote",
-            "current connections: las identidades que el dueño invitó al nodo, que aún tienen su R y no están vetadas",
-            "second factor: {first ev.3} escribe lo que protege un criterio: uno suyo (un segundo factor en el 2.4 de su alta) o uno del nodo del que cuelga (una plantilla que requiere autorización)",
+            "anchors asked: los pedidos de ancla del nodo, servidos o pendientes: cada uno devuelve R de su dueño y nombra un libro, la clave de una línea, un nivel y una cabecera de lote; está servido cuando su dueño ancla en él un «ancla servida» con esa cabecera",
+            "current connections: las identidades que el dueño invitó al nodo, con esa invitación firmada cuando el nodo lo requiere, que aún tienen su R y no están vetadas por un veto firmado",
+            "second factor: {first ev.3} escribe lo que protege un criterio: uno suyo (un segundo factor en el 2.4 de su alta), uno del nodo del que cuelga (una plantilla que requiere autorización) o, como dueño de un nodo, uno de ese nodo sobre sus conexiones (invitar, mover de grupo, poner el precio de un grupo, vetar)",
             "attention has a price: {first ev.3} escribe a {first (first (first ev.6).5).3} sin el precio de su grupo en la misma transacción, o está vetado; sobre una pieza de un nodo solo escriben sin pagar su dueño y los agentes del nodo (una medida en su 8)",
             "reason second factor missing: falta la autorización de {holder}: lo protege un criterio de segundo factor (uno del autor o uno del nodo); hasta que {holder} lo autorice desde StateArk, se queda en autorizado (pendiente de segundo factor)",
             "template node: nodo",
@@ -1652,6 +1672,9 @@
             "ref": "08624002dfb78be271f7ec20ce9479d90df726e8b6e1bcae6173fe269d28acf8"
           },
           {
+            "ref": "37454f31bc37e05ab420e3b659fa311e6806eb51b7517bf252a0ed2aa8342c87"
+          },
+          {
             "ref": "f9f14103ab8bd1d04b39bdc61b7f9db9da1cb35eed79c816b5a30f446e0efb5c"
           },
           {
@@ -1713,7 +1736,8 @@
         "A.6",
         "X.2",
         "X.4",
-        "X.6"
+        "X.6",
+        "anchor served"
       ],
       [
         "=(down (first (first it.3).6)) where \"ask for an anchor\" in (payload(it2)).4 and first (payload(it2)).2 = it and count (it2.1 where transfer in it3.4 and R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.3.1 = first it.3) > 0"
@@ -1728,9 +1752,10 @@
         "*"
       ],
       [
-        "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 2): lo que el nodo tiene pendiente de servir, leído de su propio libro. Con it = el alta del nodo: los registros «ask for an anchor» anclados en el 3 del alta de su dueño (quien escribió el alta del nodo) que lo nombran en su 2 y devuelven R del dueño (la llave del servicio: un registro con ese nombre que no la devuelve no cuenta, sea cual sea el precio del grupo), por llegada",
+        "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 2): lo que el nodo tiene pedido, leído de su propio libro. Con it = el alta del nodo: los registros «ask for an anchor» anclados en el 3 del alta de su dueño (quien escribió el alta del nodo) que lo nombran en su 2 y devuelven R del dueño (la llave del servicio: un registro con ese nombre que no la devuelve no cuenta, sea cual sea el precio del grupo), por llegada; todos, servidos o no",
         "De cada pedido (it = el pedido): quién lo pide, first it.3; el libro, la clave de la línea, el nivel y la cabecera, (payload(it)).6 (6.0 a 6.3, datos del otro libro, no referencias); el instante, first it.6.0; lo que devolvió, (payload(it)).1",
-        "Pendiente es todo lo pedido: hoy nada en este libro dice que un pedido está servido (ni la compensación si no se sirve a tiempo, que sería otra plantilla de esta época)",
+        "VG 17-11 (por Core State; encargo «ancla servida»): su estado. Lo que lo sirve: (down it) where \"anchor served\" in (payload(it2)).4 and first it2.3 = first (first (payload(it)).2).3 and first (payload(it2)).6.0 = first (payload(it)).6.3, un «anchor served» anclado en el pedido, escrito por el dueño del nodo que nombra el pedido en su 2 (quien sirve) y cuyo 6.0 es la cabecera pedida (el 6.3 del pedido); escrito por otro, o con otra cabecera, no cuenta. SERVIDO si hay al menos uno (count (…) > 0) y PENDIENTE si no. Del primero que lo sirve, (payload(first (…))).6: 6.1 la cabecera madre que incluye la pedida, 6.2 su nivel y 6.3 el camino («sip»)",
+        "Nada compensa todavía un pedido que no se sirve a tiempo (sería otra plantilla de esta época)",
         "Lectura, no condición: no se materializa (su 3 es X, como «asked» y «on time» de la 0) y no rechaza nada"
       ],
       [
@@ -1740,7 +1765,7 @@
         "after on time"
       ],
       [
-        "anchors asked: the requests for an anchor the node has to serve: each one returns R of its owner and names a ledger, the key of a line, a level and a batch header"
+        "anchors asked: the requests for an anchor of the node, served or pending: each one returns R of its owner and names a ledger, the key of a line, a level and a batch header; it is served when its owner anchors on it an «anchor served» with that header"
       ]
     ],
     [
@@ -1802,10 +1827,12 @@
         "A.6",
         "A.1",
         "X.6.2",
-        "invitation"
+        "invitation",
+        "X.6.8.7",
+        "X.6.8.8"
       ],
       [
-        "=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and first (first it2.6).6.2.0 != \"nothing\""
+        "=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (first (first (up (first it2.6))).6).8.7 = count (first (first (up (first it2.6))).6).8.8 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and (first (first it2.6).6.2.0 != \"nothing\" or count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2) > 0 and count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2 and count (first it3.6).8.7 = count (first it3.6).8.8) = 0)"
       ],
       [
         "X"
@@ -1819,6 +1846,7 @@
       [
         "VG 17-11 (por Core State; encargo «pedir el ancla y la conexión como invitado», punto 3): la conexión es un invitado. Conectar es la invitación de la época 0 tal cual: el dueño del nodo (quien escribió su alta) invita por nombre a la identidad del otro nodo, con su clave, al dominio del nodo (el 5 de la invitación = el alta del nodo) y le da R suya; al aceptar, el otro nodo tiene alta en este libro",
         "Con it = el alta del nodo: las identidades con alta que cuelga de una invitación del dueño al nodo, que tienen R del dueño sin gastar y no están vetadas (el precio de su grupo en la atención del dueño, X.6.2 de su alta, no es «nothing»). Por llegada al libro",
+        "VG 17-11 (por Core State; encargo «la firma del titular en las conexiones»): si el nodo tiene un criterio «require authorization», la invitación espera la firma de quien nombra el criterio (la lectura «second factor» de esta época): mientras espera (X.6.8.7 de la invitación sin su X.6.8.8), la conexión no está vigente. Y un veto que espera la firma no la quita: el precio «nothing» solo cuenta si hay un veto ya firmado (o si no viene de ningún veto: un grupo cuyo precio es «nothing»). Un veto es lo que el dueño ancla en el 3.5.3 de su alta nombrando a la conexión en su 0 («veto someone», o «move to group» al grupo 5)",
         "De cada conexión (it = su alta): la identidad, first it.3; la clave, la que nombra la invitación, (payload(first (up it))).3.5; los relés, el 1 de su último «declare my relays», que solo escribe ella en el 1.3 de su alta; el grupo, it.6.3; el precio, it.6.2; la R que le queda, sum (((first it.3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (up it)).3) each 1)",
         "Permisos = el grupo de atención y su precio («move to group», «set a group price»); quitar = el veto («veto someone»); quedarse sin R (devolverla toda pidiendo anclas) también la saca",
         "Lectura, no condición: no se materializa (su 3 es X) y no rechaza nada"
@@ -1830,7 +1858,7 @@
         "after anchors asked"
       ],
       [
-        "current connections: the identities invited by the owner to the node that still hold its R and are not vetoed"
+        "current connections: the identities invited by the owner to the node, with that invitation signed when the node requires it, that still hold its R and are not vetoed by a signed veto"
       ]
     ],
     [
@@ -1842,10 +1870,13 @@
         "second factor",
         "moves",
         "require authorization",
-        "X.4"
+        "X.4",
+        "invitation",
+        "X.6.5",
+        "A.3"
       ],
       [
-        "=(down ((before.3 each 6) where it2 = first (first it.3).6 or it2 in path it)) where last (first it2.6).5 = \"2400000000\" and count ((payload(it2)) where \"second factor\" in it3.4 and first (first it2.6).5 = first (first it.3).6 and count ((first it2.3) where it4 = first it.3 and count ((sum (((moves it) where it5.3.0 = it4 and not (\"anunciado\" in it5.2) and count ((first it5.0) where count (it3.1 where it6 in it7 or \"E\" in it7 and E in it5.0.0.0 or \"P\" in it7 and P in it5.0.0.0 or \"R\" in it7 and R in it5.0.0.0 or \"T\" in it7 and T in it5.0.0.0) > 0) > 0) each 1)) where it5 > 0 and it5 >= first it3.2) > 0) > 0 or \"require authorization\" in it3.4 and first (first it2.6).5 in path it and first it2.3 = first (payload(first (first it2.6).5)).3.2 and count (it3.1 where it4 in (payload(it)).4) > 0) > 0"
+        "=(down ((before.3 each 6) where it2 = first (first it.3).6 or it2 in path it or \"node\" in (payload(it2)).5 and first it2.3 = first it.3)) where last (first it2.6).5 = \"2400000000\" and count ((payload(it2)) where \"second factor\" in it3.4 and first (first it2.6).5 = first (first it.3).6 and count ((first it2.3) where it4 = first it.3 and count ((sum (((moves it) where it5.3.0 = it4 and not (\"anunciado\" in it5.2) and count ((first it5.0) where count (it3.1 where it6 in it7 or \"E\" in it7 and E in it5.0.0.0 or \"P\" in it7 and P in it5.0.0.0 or \"R\" in it7 and R in it5.0.0.0 or \"T\" in it7 and T in it5.0.0.0) > 0) > 0) each 1)) where it5 > 0 and it5 >= first it3.2) > 0) > 0 or \"require authorization\" in it3.4 and first (first it2.6).5 in path it and first it2.3 = first (payload(first (first it2.6).5)).3.2 and count (it3.1 where it4 in (payload(it)).4) > 0 or \"require authorization\" in it3.4 and first it2.3 = first (payload(first (first it2.6).5)).3.2 and first it.3 = first (first (first it2.6).5).3 and (\"invitation\" in (payload(it)).0 and first (payload(it)).5 = first (first it2.6).5 or first (first it.6).5 = first (first it.3).6 and (le(bytes(last (first it.6).5)) >= 8240 and le(bytes(last (first it.6).5)) <= 8249 or le(bytes(last (first it.6).5)) >= 12336 and le(bytes(last (first it.6).5)) <= 12345 and count (first (payload(it)).0).6 > 0 and count (up (first (first (payload(it)).0).6)) > 0 and \"invitation\" in (payload(first (up (first (first (payload(it)).0).6)))).0 and first (payload(first (up (first (first (payload(it)).0).6)))).5 = first (first it2.6).5))) > 0"
       ],
       [
         "X.6.8.7"
@@ -1858,7 +1889,9 @@
       ],
       [
         "Core AGRAM 16-11 (#124; encargo «época del nodo», punto 4): la lectura de la época 0 con el mismo nombre, que esta sustituye (una regla de la hija con el mismo 0 sustituye a la de la base), ampliada: además de los criterios «second factor» del autor (anclados por él en el 2.4 de su alta, iguales que en la 0), alcanza los criterios «require authorization» de un nodo del que X cuelga: los anclados en el 2.4 de un registro del hilo de X (path), escritos por su titular (el 3.2 de esa alta) y que nombran en su 1 la plantilla de X (una de las de su 4)",
-        "Con it = un registro X (o la candidata). Los candidatos son lo anclado en las altas que importan: la del autor de X y las del hilo de X (de las altas del libro, before.3 each 6, las que son la del autor o están en path X); el BQL mínimo no tiene unión de listas, así que se filtran las altas del libro",
+        "VG 17-11 (por Core State; encargo «la firma del titular en las conexiones»): una tercera rama. Las conexiones son invitados y se escriben en el alta del dueño del nodo (quien escribió su alta), no cuelgan del nodo; aun así, un criterio «require authorization» del nodo (cualquiera: no mira su lista) alcanza estas escrituras de su dueño: la invitación al dominio del nodo (una invitación de la 0 cuyo 5 es el alta del nodo: conectar), lo que ancla en el 3.k.2 de su propia alta (set a group price: el precio de un grupo) y lo que ancla en el 3.k.3 de su propia alta (move to group, y veto someone, que es el 3.5.3) cuando la identidad movida (su 0) tiene un alta que cuelga de una invitación al dominio del nodo (una conexión, vigente o no). Las demás invitaciones del dueño y lo que escriben otros no esperan; sin criterio, todo sigue como antes",
+        "La posición del ancla se lee de sus diez dígitos (last X.6.5, como en la 0) como cinco bytes, con le(bytes(…)): el 3.k.2 de un alta da entre 8240 y 8249 (k de 0 a 9) y el 3.k.3, entre 12336 y 12345. Para que el nodo entre en los candidatos, las altas del libro que se filtran incluyen también las de un nodo (\"node\" en su 5) escritas por el autor de X",
+        "Con it = un registro X (o la candidata). Los candidatos son lo anclado en las altas que importan: la del autor de X, las del hilo de X y las de los nodos del autor de X (de las altas del libro, before.3 each 6); el BQL mínimo no tiene unión de listas, así que se filtran las altas del libro",
         "Lectura, no condición, como en la 0: solo lee y no rechaza nada (#62); la estación se queda en «autorizada» hasta que quien firma (el 3 del criterio) escribe y firma su autorización («authorized by the holder», X.6.8.8, que no cambia: lee el 3 de cada criterio)"
       ],
       [
@@ -1868,7 +1901,7 @@
         "after paid"
       ],
       [
-        "second factor: {first ev.3} writes what a criterion protects: one of their own (a second factor in the 2.4 of their alta) or one of the node it hangs from (a template that requires authorization)"
+        "second factor: {first ev.3} writes what a criterion protects: one of their own (a second factor in the 2.4 of their alta), one of the node it hangs from (a template that requires authorization) or, as owner of a node, one of that node for its connections (invite, move to a group, set a group price, veto)"
       ]
     ],
     [
@@ -6049,6 +6082,341 @@
       ],
       [
         "ask for an anchor: {me} returns {first ev.1} R to {first it.3} and asks it to anchor a batch header"
+      ]
+    ],
+    [
+      [
+        "anchor served"
+      ],
+      [
+        [
+          [
+            "request"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "=count it.5 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=it",
+            "the request that is served: X"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "=first it.3",
+            "who serves (the owner of the node) and who asked"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "anchor served",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "served anchor",
+            "the type of the record: an anchor served"
+          ]
+        ],
+        [
+          [
+            "header"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it and it = first (payload(first ev.6.5)).6.3"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.0"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "=first (payload(it)).6.3",
+            "the batch header asked: its hash (64 hexadecimal characters in lower case), the same as the 6.3 of the request"
+          ]
+        ],
+        [
+          [
+            "mother"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.1"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "the mother header that includes the one asked: its hash (64 hexadecimal characters in lower case); a datum, not a reference"
+          ]
+        ],
+        [
+          [
+            "level"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it in epoch.7.6.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.2"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            8
+          ],
+          [
+            "the level of the mother header: a level of the cascade (epoch.7.6.1)"
+          ]
+        ],
+        [
+          [
+            "path"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.3"
+          ],
+          [
+            "Core AGRAM 17-11 (VG 17-11 por Core State; encargo «ancla servida»): parámetro de «anchor served»"
+          ],
+          [
+            "required"
+          ],
+          [
+            9
+          ],
+          [
+            "sip",
+            "the path from the header asked to the mother: a short free text (today, «sip»)"
+          ]
+        ]
+      ],
+      [
+        "=\"ask for an anchor\" in (payload(it)).4 and first (first (payload(it)).2).3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "4"
+      ],
+      [
+        "VG 17-11 (por Core State; encargo «ancla servida»): un pedido de ancla («ask for an anchor») tiene que poder leerse como servido. Lo escribe quien sirve, la identidad de servicio del nodo: el dueño del nodo (quien escribió su alta, el operador; su R es la llave del servicio y su clave es la del nodo). Hoy la época no tiene otra identidad que sirva: el nodo es una cosa sin clave y el sellador no tiene identidad en este libro. Se lanza sobre el pedido y ancla en su 4 (lo que se hace con él); escrito por otro no cuenta para la lectura «anchors asked»",
+        "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). No mueve tokens más allá del T de escribir",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        3,
+        12
+      ],
+      [
+        "anchor served: {me} anchored the batch header asked by {last ev.3} in a mother header of level {last ev.6.2}"
       ]
     ],
     [
