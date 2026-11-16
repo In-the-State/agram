@@ -1,10 +1,14 @@
 name: CI
+# Las pruebas corren solo al subir a main, una vez, y una subida nueva cancela la anterior (PROTOCOLO_CORE §8).
 on:
   push:
     branches: [main]
-  pull_request:
+  workflow_dispatch:
 permissions:
   contents: read
+concurrency:
+  group: ci-main
+  cancel-in-progress: true
 jobs:
   test:
     runs-on: ubuntu-latest
@@ -13,4 +17,4 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-      - run: npm test
+      - run: node --test --test-timeout=180000
