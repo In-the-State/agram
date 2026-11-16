@@ -470,7 +470,7 @@ Fuente: `stateark/sip/HUECOS_BQL.md` H13; #67 («pendiente capa 3»).
 
 ## 11. La época 0 final (16-11)
 
-**Por qué junto** (VG 16-11): la aceptación se hace sobre lo terminado, y la época 0 es un dato fijado por hash: todo lo pendiente de la 0 cambia su id una sola vez. El de ayer (`9cd5a949…`) queda en `IDS_ANTERIORES_DE_LA_0` para los ejes del nodo y la SIP de StateArk.
+**Por qué junto** (VG 16-11): la aceptación se hace sobre lo terminado, y la época 0 es un dato fijado por hash: todo lo pendiente de la 0 cambia su id una sola vez. El id nuevo es `f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8`; el de ayer (`9cd5a949…`) queda en `IDS_ANTERIORES_DE_LA_0` para los ejes del nodo y la SIP de StateArk.
 
 - **#70, «second factor» en un recorrido.** La regla liga el payload del criterio, el autor y la suma con `where` de un elemento y recorre los movimientos una vez por criterio: 49 ocupantes por criterio en vez de 194, 200 criterios caben (9 808 de 10 000). *Por qué:* con 55 criterios ya quedaba PENDIENTE; el resultado es el mismo que el de antes (prueba de paridad) y pasar de ~260 exige cambiar el lenguaje.
 - **#70, el desbordamiento en las estaciones.** `estacionDeAnuncioConMotivos`, `estaciones` (`desbordados`, `motivosDe`) y `ejecuciones` (`desbordado`, `motivos`). *Por qué:* el anuncio se quedaba en «propuesta» sin decir que no se había podido comprobar; ahora se distingue con su motivo, como en `ejecucion`, `segundoFactor` y `porAutorizar`.
