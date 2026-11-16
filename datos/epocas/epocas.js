@@ -539,7 +539,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "c18f55cc90fe2a94590a0dfedf5d92e35621c8f3c9dfbe818a897b00285fcfa8"
     },
     {
-      "ref": "3391bd026c160cb3a4ed261ca4a61366c72777b17616a9f2393a6852af1132b0"
+      "ref": "87ffc19382e02362267f331c8a041449fde75b36f2be134f718270c595865641"
     },
     {
       "ref": "3252f748943f49747d491709009569d8258e87ccb0baf49743d427e3d16c68f4"
@@ -10205,7 +10205,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "stage.json",
-    "id": "3391bd026c160cb3a4ed261ca4a61366c72777b17616a9f2393a6852af1132b0",
+    "id": "87ffc19382e02362267f331c8a041449fde75b36f2be134f718270c595865641",
     "registro": [
       [
         "stage"
@@ -10218,7 +10218,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "=((down it) where last (first it2.6).5 = \"4100000000\" and first it2.3 = first it.3) where not (count (it.1 where transfer in it3.4 and it3.0 = first it2.0 and it3.3.0 = last it2.3.0 and it3.3.1 = last it2.3.1 and it3.1 >= last it2.1) + count ((down it) each 1 where transfer in it3.4 and it3.0 = first it2.0 and it3.3.0 = last it2.3.0 and it3.3.1 = last it2.3.1 and it3.1 >= last it2.1) > 0)",
-        "=((down it) where last (first it2.6).5 = \"4100000000\" and first it2.3 = first it.3) where not (count (moves it2 where \"anunciado\" in it3.2) > 0 and count ((moves it2) where \"anunciado\" in it3.2 and count ((down it2) where count ((moves it4) where not \"anunciado\" in it5.2 and it5.0 = it3.0 and it5.3.0 = it3.3.0 and it5.3.1 = it3.3.1 and it5.4 = it3.4 and it5.1 >= it3.1) > 0) = 0) = 0 or count (moves it2 where \"anunciado\" in it3.2) = 0 and count ((down it2) where count ((moves it3) where not \"anunciado\" in it4.2 and transfer in it4.4 and it4.0 = first it2.0 and it4.3.0 = last it2.3.0 and it4.3.1 = last it2.3.1 and it4.1 >= last it2.1) > 0) > 0)"
+        "=((down it) where last (first it2.6).5 = \"4100000000\" and first it2.3 = first it.3) where not (count (moves it2 where \"anunciado\" in it3.2) > 0 and count ((moves it2) where \"anunciado\" in it3.2 and count ((down it2) where count ((moves it4) where not \"anunciado\" in it5.2 and it5.0 = it3.0 and it5.3.0 = it3.3.0 and it5.3.1 = it3.3.1 and it5.4 = it3.4 and it5.1 >= it3.1) > 0 and (not (T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it4.3) or sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.0.1) each 1) * epoch.7.0.0.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.1.1) each 1) * epoch.7.0.1.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.2.1) each 1) * epoch.7.0.2.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.3.1) each 1) * epoch.7.0.3.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.4.1) each 1) * epoch.7.0.4.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.5.1) each 1) * epoch.7.0.5.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.6.1) each 1) * epoch.7.0.6.1 - (first (first it4.8).6.1 - sum ((down it4) each 8.6.1)) * first epoch.7.0.1.1 >= it3.1 * first epoch.7.0.(it3.0.0.1).1)) = 0) = 0 or count (moves it2 where \"anunciado\" in it3.2) = 0 and count ((down it2) where count ((moves it3) where not \"anunciado\" in it4.2 and transfer in it4.4 and it4.0 = first it2.0 and it4.3.0 = last it2.3.0 and it4.3.1 = last it2.3.1 and it4.1 >= last it2.1) > 0) > 0)"
       ],
       [
         "X.4.8"
@@ -10234,7 +10234,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "Lo que el dueño de X anunció en su 4.1 (un registro por movimiento: [[serie], [cuánto], [qué], [[de], [a]]]) y aún no ha pasado: la misma lectura que la plantilla de cerrado «all announced movements happened» (epoch.9.0.1) y que «what is missing» (epoch.9.0.3), como lectura de la época. Lo hecho es lo anunciado (X.4.1) que no está aquí",
         "La familia de un anuncio se lee buscando su serie por su valor en las series del libro, before.4.(first it.0): un texto no fabrica una serie (SEG-09); así X.4.8 where E in (before.4.(first it.0)).0.0 es la estación de pagar",
         "Se materializa en X.4.8: fábrica, frente a otros: lo ocurrido frente a lo previsto (la regla corta del 8 en la profundidad 1), que es exactamente la estación de un proceso",
-        "VG 12-11 (estudio BQL-transacciones, decisión 8; #48): el anuncio es un movimiento anunciado del libro (estado «anunciado», sin tocar saldos; lo lee moves con la clase «anuncio») y lo cumple lo que se ancla sobre él moviendo lo mismo: un anuncio puede llevar varios movimientos anunciados (las noches de una reserva) y se cumple cuando cada uno lo mueve un registro anclado sobre él, con la misma serie, de quién, a quién y la primitiva, y al menos lo anunciado (sus asientos del libro, moves). Así cada pago cumple un solo anuncio: antes lo anunciado se casaba por existencia con cualquier pago de X o de lo anclado en X, y un pago de 20 cerraba dos anuncios iguales de 20 (#48). Mientras los ejemplos escriban el anuncio como antes (un payload que imita un movimiento: [[serie], [cuánto], [para qué], [[de], [a]]]), la misma fórmula lo lee así, también cumplido solo por lo que se ancla sobre él. Es la única fórmula de lo anunciado: la plantilla de cerrado (epoch.9.0.1), «what is missing» (epoch.9.0.3), el paso «ciclo» (epoch.9.8) y las estaciones (epoch.4.3) leen esta lectura"
+        "VG 12-11 (estudio BQL-transacciones, decisión 8; #48): el anuncio es un movimiento anunciado del libro (estado «anunciado», sin tocar saldos; lo lee moves con la clase «anuncio») y lo cumple lo que se ancla sobre él moviendo lo mismo: un anuncio puede llevar varios movimientos anunciados (las noches de una reserva) y se cumple cuando cada uno lo mueve un registro anclado sobre él, con la misma serie, de quién, a quién y la primitiva, y al menos lo anunciado (sus asientos del libro, moves). Así cada pago cumple un solo anuncio: antes lo anunciado se casaba por existencia con cualquier pago de X o de lo anclado en X, y un pago de 20 cerraba dos anuncios iguales de 20 (#48). Mientras los ejemplos escriban el anuncio como antes (un payload que imita un movimiento: [[serie], [cuánto], [para qué], [[de], [a]]]), la misma fórmula lo lee así, también cumplido solo por lo que se ancla sobre él. Es la única fórmula de lo anunciado: la plantilla de cerrado (epoch.9.0.1), «what is missing» (epoch.9.0.3), el paso «ciclo» (epoch.9.8) y las estaciones (epoch.4.3) leen esta lectura",
+        "Core AGRAM 16-11 (#134, encargo «dar T a una cosa mía»): el coste de escribir un registro no cumple un anuncio. Antes, un registro anclado sobre un anuncio de T que solo pagaba su coste (commit P, seis minutos) lo daba por cumplido si el coste llegaba a lo anunciado. El libro no distingue la quema del coste de la quema deliberada (las dos son quemas de T real de su autor, sin estado ni clase), así que, cuando lo anunciado es una quema de T real de quien escribe el registro, se pide además que lo que ese registro quema de T real de su autor, en segundos y en todas las escalas (como «writing burns today's T»), menos su coste de escribir, llegue a lo anunciado en segundos. El coste es el de «the cost of writing» (un minuto del calendario por posición), con las posiciones del propio registro: la medida del 8 (X.8.6.1) lleva todo lo que cuelga de él, así que se le resta la de cada registro anclado sobre él (su down). Lo demás (pagar E, comprometer P, atender R, dar T a otro) no lo toca: el coste de escribir no es nunca ese movimiento"
       ],
       [
         "epoch 0"
@@ -21099,7 +21100,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "ed93afae3fe714e183b655159672e0e7d274491fca429f3c92c8cb9915e988f6";
+export const EPOCA_0_BTML_ID = "7ffa2a3d630286dd00eff13face54972bd95e2c3caf2eb88b5a94d6fb7fdb321";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

@@ -137,8 +137,9 @@ test('volcar: la correspondencia del roadmap se lee y una fase que lleva a otro 
   assert.throws(() => correspondenciaDe({ columnas: { id: 'ref' } }), /falta la columna/);
 });
 
-test('volcar: si lo anunciado no pasa de lo que cuesta escribir «commit P», el motor da la tarea por ejecutada al autorizarla, y se avisa', async () => {
+test('volcar: con lo anunciado por debajo de lo que cuesta escribir «commit P» (1 minuto), la tarea autorizada sigue autorizada (#134: el coste de escribir no cumple un anuncio)', async () => {
   const { eje, claves } = await preparar();
   const inf = await volcar(eje, [fila('a2', 'Alfa', 'Uno', 'Revisar los textos', 'abierta')], { claves, correspondencia: { ...CORR, minutosAnunciados: 1 }, t: DIA(1) });
-  assert.deepEqual(inf.avisos, ['fila a2: tras «commit P» el motor la lee en ejecutada y no en autorizada']);
+  assert.deepEqual(inf.avisos, []);
+  assert.equal(estacionDe(eje, leerLibro(eje, 'duena', correspondenciaDe(CORR)).tareas.get('a2').id), 'autorizada');
 });
