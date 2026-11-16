@@ -50,6 +50,7 @@ Son notas de lectura y de resultados, con fecha y con su base (el commit de `mai
 | `CAPA_CERO.md` | La capa cero: el libro de transacciones, la correspondencia evento ↔ transacción y las condiciones envueltas con su fila del inventario | paso 1 del mapa §16 (VG, 9-11); en `src/libro.js` y `src/condiciones/` |
 | `DECISIONES_2026-11-12.md` | Lo decidido con VG el 11 y el 12-11 (issues 29 a 50 del catálogo de Core, diseño 8.7 por modo, estudio BQL con transacciones §6), una nota por decisión y agrupadas por temas: lecturas y profundidad, el 3, el 4 y la escalera, BQL con transacciones, tiempo y tres relojes, pantalla; con lo que sigue abierto y lo que las fuentes dicen distinto | registro de decisiones (12-11); el código y los datos que las aplican van en las ramas de la beta (`beta-pv3`, `beta-el4`, `beta-bqllee`) |
 | `RETIRADA_BQL_V0.md` | La retirada de BQL V0 (#113): la doble ejecución (cada fórmula vieja frente a la nueva sobre el mismo libro), las equivalencias, lo que no tiene equivalente y qué hacía `puedeLeer` | hecha: `src/bql.js`, `docs/BQL.md` y la web antigua borrados |
+| `CUENTA_BANCO.md` | La cuenta del banco (VG 16-11): una E única con el saldo como dato, el permiso, quién ordena; lo que pone StateArk y lo que queda | rama `beta-banco`, sin aceptar |
 
 ## Dónde está cada cosa en el código
 

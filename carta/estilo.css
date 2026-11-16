@@ -1103,3 +1103,19 @@ html.mapped body{padding:0}
 .sitio-posicion .valor.sin-configurar{font-style:italic;opacity:.75}
 .configuracion h2 .numero{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:color-mix(in oklab,var(--rule) 50%,transparent);vertical-align:middle}
 @media (max-width:520px){.sitio-posiciones{grid-template-columns:1fr}.sitio-celda{grid-row:auto;grid-column:auto}}
+/* La cuenta del banco (encargo «cuenta del banco», VG 16-11): el saldo y el permiso en el anverso de la cuenta; la cartera en el rosetón del 1. Sobrio y fácil de retocar */
+.cuenta-del-banco{margin:6px auto;padding:6px 10px;max-width:32em;border:1px solid var(--rule);border-radius:6px;background:var(--panel);text-align:left;font-size:14px}
+.cuenta-del-banco p{margin:2px 0}
+.cuenta-banco{font-size:12px;color:var(--muted)}
+.cuenta-saldo{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 6px}
+.cuenta-saldo .cuenta-etiqueta{font-size:12px;color:var(--muted)}
+.cuenta-saldo .cuenta-cuanto{font-size:20px;font-variant-numeric:tabular-nums}
+.cuenta-saldo time{font-size:12px;color:var(--muted)}
+.cuenta-saldo.vacio{color:var(--muted);font-style:italic}
+.cuenta-fuente{font-size:11px;color:var(--muted)}
+.cuenta-fuente.confirmado{color:var(--ok)}
+.cuenta-permiso{font-size:12px;color:var(--ok)}
+.cuenta-permiso[data-permiso="falta"],.cuenta-permiso[data-permiso="caducado"]{color:var(--warn)}
+.cartera-etiqueta{margin:4px 0 0;font-size:11px;color:var(--muted)}
+.cartera{margin:0;padding-left:14px;font-size:12px}
+.cartera b{font-variant-numeric:tabular-nums}

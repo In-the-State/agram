@@ -1044,6 +1044,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}">${htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
+      ${htmlCuentaDelBanco(c.cuenta)}
       ${arbol.secuencia ? htmlFilas(arbol, c) : `<label class="campo campo-0 campo-unico"${nodo('campo', { d: 0 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(t('nuevoAquiMarcador', { que: c.textoDelFoco ?? c.representacion?.texto ?? '' }))}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>`}
       ${leido}
     </section>`;
@@ -1075,6 +1076,30 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
 }
 
 /**
+ * La cuenta del banco de un registro (carta.js cuentaDe; encargo «cuenta del banco»): el saldo con su unidad, la fecha y
+ * «confirmado por el banco» cuando la fuente lo dice, y el estado del permiso. Sin saldo, lo dice; sin permiso, también.
+ */
+function htmlCuentaDelBanco(c) {
+  if (!c) return '';
+  const s = c.saldo;
+  const fuente = s ? (s.confirmado ? `<small class="cuenta-fuente confirmado">${escapar(t('cuentaConfirmado'))}</small>` : s.fuente ? `<small class="cuenta-fuente">${escapar(t('cuentaFuente', { fuente: s.fuente }))}</small>` : '') : '';
+  const saldo = s
+    ? `<p class="cuenta-saldo"><span class="cuenta-etiqueta">${escapar(t('cuentaSaldo'))}</span> <b class="cuenta-cuanto">${escapar(s.cuanto)}</b> <span class="cuenta-unidad">${escapar(s.unidad ?? '')}</span> <time datetime="${attr(s.t)}">${escapar(s.fecha ?? s.t)}</time> ${fuente}</p>`
+    : `<p class="cuenta-saldo vacio">${escapar(t('cuentaSinSaldo'))}</p>`;
+  const permiso = `<p class="cuenta-permiso" data-permiso="${attr(c.permiso.estado)}">${escapar(t('cuentaPermiso_' + c.permiso.estado, { vence: c.permiso.vence ?? '' }))}</p>`;
+  return `<div class="cuenta-del-banco" data-cuenta="${attr(c.X)}" title="${attr(t('cuentaTitulo'))}">${c.banco ? `<p class="cuenta-banco">${escapar(c.banco)}</p>` : ''}${saldo}${permiso}</div>`;
+}
+
+/** Mis E en el rosetón del 1 (carta.js carteraDe): cada serie con lo que tengo; la de una cuenta, su nombre y su saldo. */
+function htmlCartera(cartera) {
+  if (!cartera?.length) return '';
+  const linea = (x) => (x.cuenta
+    ? `<li class="cartera-cuenta" data-cuenta="${attr(x.cuenta.X)}"><span class="cartera-nombre">${escapar(x.cuenta.nombre ?? x.texto)}</span> <b>${escapar(x.cuenta.saldo ? x.cuenta.saldo.cuanto + ' ' + (x.cuenta.saldo.unidad ?? '') : t('cuentaSinSaldo'))}</b></li>`
+    : `<li><span class="cartera-nombre">${escapar(x.texto)}</span> <b>${escapar(x.cantidad)}</b></li>`);
+  return `<p class="cartera-etiqueta">${escapar(t('cartera'))}</p><ul class="cartera">${cartera.map(linea).join('')}</ul>`;
+}
+
+/**
  * Los rosetones de identidad: diez mosaicos muy comprimidos de mi foco, uno por PV (el 0 y el 5 incluidos). En la
  * matriz, una barra fija abajo; apilada (el móvil), dos tiras: arriba el tetraedro de la X con su centro, abajo la cruz
  * con el suyo (las que traza la geometría: la X son los PV 1-4, la cruz 6-9, y el 0 y el 5 el centro de cada una).
@@ -1087,7 +1112,7 @@ function htmlRoseton(r, { enSuSitio = false } = {}) {
   // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
   return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
     <span class="numero">${r.pv}</span>${r.comprimido.dato ? `<span class="dato">${escapar(r.comprimido.dato)}</span>` : ''}
-    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>` : ''}
+    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>${htmlCartera(r.cartera)}` : ''}
   </button>`;
 }
 /** El doble toque: la misma vista del rosetón ampliado a pantalla completa, con lo que el núcleo da de esa posición de mi alta. */
@@ -1097,7 +1122,7 @@ function htmlRosetonPantalla(lista) {
   const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
   return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
     <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span>${r.ocupantes.total ? `<small>${escapar(r.ocupantes.total)}</small>` : ''}<button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
-    <ul>${filas}</ul>
+    <ul>${filas}</ul>${htmlCartera(r.cartera)}
   </section>`;
 }
 const nav = (lista, clase, enSuSitio = false) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio })).join('')}</nav>`;

@@ -37,6 +37,8 @@
 //   cascadaDe(epoca)                       { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] }: el 7.5 y el 7.6
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
 //   yo(eje, identidad)                     mi alta y sus posiciones: cartera, criterio, atención, tiempo
+//   cuenta(eje, id)                        la cuenta del banco de un registro (o de la clave de su E): nombre, banco, su E única,
+//                                          el saldo que manda, el estado del permiso y quién ordena (con P sobre ella); o null
 //   configuracion(eje, yo)                 mis preferencias (el registro en el 9 de mi alta) o los defectos de la plantilla
 //   mensaje(eje, regla, idioma, { ev })    el 9 de una regla en un idioma (epoch.9.4), con los huecos resueltos
 //   texto(eje, clave, idioma, { original }) un texto de la época por su clave («template <nombre>», «level <nombre>»…)
@@ -2163,6 +2165,117 @@ export function yo(eje, identidad, { t, ...opciones } = {}) {
     if (typeof v === 'number') tiempo[nombre] = v;
   });
   return { identidad, alta: alta.id, cartera, criterio: { posicionado, adopta: planos(A + '.2.3', ctx) }, atencion, tiempo };
+}
+
+// ---------- la cuenta del banco (VG 16-11, encargo «cuenta del banco»; docs/notas/CUENTA_BANCO.md) ----------
+
+/**
+ * Lo que hace de un registro una cuenta del banco y lo que cuelga de ella, por lo que dice el 4 de cada registro (la
+ * acción con que se escribió: el nombre canónico de su plantilla de la época): la cuenta («connect an account»), sus
+ * permisos («grant the permission», «renew the permission», en su 7) y sus saldos («update the balance», en su 1); y la
+ * fuente que el recibo enseña como «confirmado por el banco».
+ */
+export const CUENTA = Object.freeze({
+  conectar: 'connect an account',
+  permisos: Object.freeze(['grant the permission', 'renew the permission']),
+  saldo: 'update the balance',
+  banco: 'confirmed by the bank',
+});
+
+/** Las acciones (el 4) de un registro, como textos. */
+const accionesDelRegistro = (ev) => hojas(Array.isArray(ev?.payload) ? ev.payload[4] : undefined).filter((x) => typeof x === 'string');
+
+/** Las direcciones de la cuenta donde cuelgan sus permisos: el 7 (dar el permiso) y el 7.2 (renovarlo). */
+const EN_PERMISO = Object.freeze(['7000000000', '7200000000']);
+
+/**
+ * ¿Cuenta lo que escribe `autor` sobre la cuenta `id`? Si tiene P sobre ella (el registro entero o su mirada 1, mayor
+ * que cero: la condición de la regla «acting on an account needs P on it»), o es una cosa cuyo dueño (el autor de su
+ * alta) lo tiene. Revisión de seguridad (16-11): sin esto, cualquiera que anclase un registro en la cuenta escribiría un
+ * saldo o un permiso; la regla lo rechaza al escribir y esto lo vuelve a comprobar al leer (con el P de ahora).
+ */
+function conPSobre(eje, autor, id) {
+  if (eje.poderSobre(autor, id, undefined, 1) > 0) return true;
+  if (eje.esPersona(autor) !== false) return false;
+  const dueno = eje.obtener(eje.alta(autor)?.id)?.autor;
+  return typeof dueno === 'string' && dueno !== autor && eje.poderSobre(dueno, id, undefined, 1) > 0;
+}
+
+/**
+ * La cuenta del banco de un registro (VG 16-11: «La cuenta del banco es una E única, como una mesa. El saldo es un
+ * dato de su registro, que se actualiza con lo que dice el banco»). `id` es el registro de la cuenta (el escrito con
+ * «connect an account») o la clave de su E. Solo lee, y solo cuenta los registros de permiso y de saldo de quien tiene
+ * P sobre la cuenta o de una cosa cuyo dueño lo tiene (conPSobre):
+ *   { id, nombre, banco, dias,
+ *     unica: { serie, quien: [identidades que la tienen] } | null (la serie de su E única, si ya está acuñada),
+ *     saldo: { cuanto, unidad, t, fuente, confirmado, registro } | null (el del registro de saldo con el instante más
+ *            reciente de los escritos con el permiso vigente; los demás quedan en el libro como historia; `confirmado`,
+ *            si su fuente es «confirmed by the bank» y lo escribió la conectora: la cosa que dio el permiso vigente),
+ *     permiso: { estado: 'falta' | 'vigente' | 'caducado', vence, registro } (el último permiso que llegó al 7 o al 7.2
+ *            de la cuenta escrito por una cosa del dueño y bien fechado, al reloj `t` o el del libro),
+ *     ordenan: [identidades con P sobre la cuenta: sobre el registro entero o su mirada 1, mayor que cero] }
+ * o null si el registro no es una cuenta.
+ */
+export function cuenta(eje, id, { t } = {}) {
+  if (!eje || typeof id !== 'string') return null;
+  const registro = RE_SERIE.test(id) ? eje.registroDe?.(id) : id;
+  const ev = typeof registro === 'string' ? eje.obtener(registro) : null;
+  if (!ev || !accionesDelRegistro(ev).includes(CUENTA.conectar)) return null;
+  const p = ev.payload;
+  const reloj = esInstante(t) ? msUTC(t) : eje.tMaximo();
+  const llegada = new Map((eje.orden ?? []).map((x, i) => [x, i]));
+  const porLlegada = (a, b) => (llegada.get(a.id) ?? 0) - (llegada.get(b.id) ?? 0);
+  const valido = (r, accion) => accionesDelRegistro(r).includes(accion) && conPSobre(eje, r.autor, ev.id);
+  // El permiso: el último registro de permiso que llegó al 7 o al 7.2 de la cuenta; su 1.1, cuándo vence.
+  const venceDe = (r) => texto(hoja(r.payload?.[1]?.[1]));
+  // Un permiso solo vale si lo escribió una cosa del DUEÑO de la cuenta (la que tiene al autor de la cuenta como autor de
+  // su alta: la conectora) y su vencimiento no pasa de su t más los días de la cuenta (revisión de seguridad, 16-11; la
+  // regla «the bank speaks through the owner's thing» lo rechaza al escribir).
+  const dias = typeof hoja(p?.[1]?.[1]) === 'number' ? hoja(p[1][1]) : null;
+  const cosaDelDueno = (x) => x !== ev.autor && eje.esPersona(x) === false && eje.obtener(eje.alta(x)?.id)?.autor === ev.autor;
+  const bienFechado = (r) => {
+    const v = venceDe(r);
+    return dias !== null && esInstante(v) && esInstante(r.t) && msUTC(v) <= msUTC(r.t) + dias * 86400e3;
+  };
+  const permisos = EN_PERMISO.flatMap((en) => eje.sobre(ev.id, en)).filter((r) => CUENTA.permisos.some((a) => valido(r, a)) && cosaDelDueno(r.autor) && bienFechado(r)).sort(porLlegada);
+  const ultimo = permisos[permisos.length - 1] ?? null;
+  const vence = ultimo ? venceDe(ultimo) ?? null : null;
+  const estado = !ultimo ? 'falta' : esInstante(vence) && msUTC(vence) > reloj ? 'vigente' : 'caducado';
+  // El saldo: los registros «update the balance» en el 1 de la cuenta escritos con el permiso vigente (el último permiso
+  // llegado antes que él no había vencido a su t); manda el de instante (su 1.3) más reciente y, a igual instante, el último.
+  const vigenteAl = (r) => {
+    const antes = permisos.filter((x) => porLlegada(x, r) < 0);
+    const v = antes.length ? antes[antes.length - 1] : null;
+    return v && esInstante(venceDe(v)) && esInstante(r.t) && msUTC(venceDe(v)) > msUTC(r.t) ? v : null;
+  };
+  let saldo = null;
+  for (const r of eje.sobre(ev.id, '1000000000').filter((x) => valido(x, CUENTA.saldo)).sort(porLlegada)) {
+    const permiso = vigenteAl(r);
+    if (!permiso) continue;
+    const m = r.payload?.[1];
+    const cuando = texto(hoja(m?.[3]));
+    const cuanto = hoja(m?.[1]);
+    // Un saldo que dice un instante posterior a su propio registro no puede ser lo que dijo el banco: se ignora.
+    if (typeof cuanto !== 'number' || !esInstante(cuando) || !esInstante(r.t) || msUTC(cuando) > msUTC(r.t)) continue;
+    if (saldo && msUTC(cuando) < msUTC(saldo.t)) continue;
+    const fuente = texto(hoja(r.payload?.[3]?.[1])) ?? null;
+    // «Confirmado por el banco»: lo dice la fuente y lo escribió la conectora (la cosa que dio el permiso vigente), no el texto solo.
+    const confirmado = fuente === CUENTA.banco && r.autor === permiso.autor && cosaDelDueno(r.autor);
+    saldo = { cuanto, unidad: texto(hoja(m?.[2])) ?? null, t: cuando, fuente, confirmado, registro: r.id };
+  }
+  // La E única: la primera serie de E atada al registro de la cuenta, y quién la tiene.
+  const serie = (typeof eje.series === 'function' ? eje.series() : []).find((s) => s.token === 'E' && s.registro === ev.id) ?? null;
+  const unica = serie ? { serie: serie.clave, quien: eje.identidades().filter((x) => eje.saldo(x, serie.clave) > 0) } : null;
+  return {
+    id: ev.id,
+    nombre: texto(hoja(p?.[0])) ?? null,
+    banco: texto(hoja(p?.[1]?.[0])) ?? null,
+    dias,
+    unica,
+    saldo,
+    permiso: { estado, vence, registro: ultimo?.id ?? null },
+    ordenan: eje.identidades().filter((x) => eje.poderSobre(x, ev.id, undefined, 1) > 0),
+  };
 }
 
 /**
