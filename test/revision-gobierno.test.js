@@ -1,7 +1,8 @@
 // Revisión de seguridad del gobierno y del motor de versiones (A21 y A23, tramo 2, paso 5; encargo
-// agram-equipo/encargos/encargo-revision-gobierno.md). Un caso por hallazgo. Los que demuestran un fallo de hoy van con
-// `todo` y su motivo: afirman lo que debería pasar, fallan hoy y no rompen la batería. Los que no llevan `todo` son lo
-// que el encargo pedía comprobar por el eje y aguantó. Ejes de demostración en memoria, identidades inventadas.
+// agram-equipo/encargos/encargo-revision-gobierno.md). Un caso por hallazgo. Los ocho hallazgos iban con `todo`; los
+// arregla agram-equipo/encargos/encargo-arreglos-gobierno.md (Core AGRAM 17-11) y cada caso afirma lo mismo que antes,
+// ya sin `todo` (su motivo queda en un comentario). Los «aguanta» son lo que el encargo pedía comprobar por el eje y
+// aguantó; al final, los que añaden los arreglos. Ejes de demostración en memoria, identidades inventadas.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -10,6 +11,8 @@ import * as A from '../src/acciones.js';
 import { EPOCA_0_BTML, cargarEpocaEscrita, epocaEscritaDe, idDeRegistro } from '../src/epocas.js';
 import * as V from '../src/versiones.js';
 import { generarClaves } from '../src/autoridad.js';
+import { evaluar } from '../src/bqlm.js';
+import { ContextoEje } from '../src/contexto-eje.js';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 import { ejemploNodo, N, CLAVES, hora } from '../ejemplos/state/nodo.mjs';
 
@@ -75,9 +78,8 @@ const quienCuenta = (eje) => eje.epoca().registro[7][9][5];
 
 // ---------- H1 (crítico): una lectura nueva en X.2.4.7 (o X.2.6, X.2.8) entra como cambio corriente ----------
 
-test('H1: un cambio «ordinary» que añade una lectura en X.2.4.7 infla el apoyo y deja que una mayoría corriente pase cambios de gobierno', {
-  todo: 'HALLAZGO H1: la clase se mira por el NOMBRE de las piezas de 7.9.7; una lectura nueva con otro nombre que se materializa donde leen «support»/«approved» (X.2.4.7, X.2.6, X.2.8) no cuenta como pieza de gobierno, y «support» suma todo lo que hay en X.2.4.7',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H1: la clase se mira por el NOMBRE de las piezas de 7.9.7; una lectura nueva con otro nombre que se materializa donde leen «support»/«approved» (X.2.4.7, X.2.6, X.2.8) no cuenta como pieza de gobierno, y «support» suma todo lo que hay en X.2.4.7
+test('H1: un cambio «ordinary» que añade una lectura en X.2.4.7 infla el apoyo y deja que una mayoría corriente pase cambios de gobierno', async () => {
   // ana pesa 9 de 14: pasa un cambio corriente (más de la mitad) y no uno de gobierno (dos tercios).
   const m = await mundo({ nombres: ['ana', 'bea 5'] });
   const fuera = () => m.recorrer('fuera bea', { 7: m.fila79({ 5: ['ana'] }) }, { clase: 'governance' });
@@ -98,9 +100,8 @@ test('H1: un cambio «ordinary» que añade una lectura en X.2.4.7 infla el apoy
 
 // ---------- H2 (alto): una regla nueva corriente congela el gobierno para siempre ----------
 
-test('H2: un cambio «ordinary» que añade una condición contra «put a change in force» deja el libro sin poder cambiar nunca más', {
-  todo: 'HALLAZGO H2: una condición nueva con otro nombre puede rechazar cualquier plantilla de gobierno (proponer, apoyar, retirar el apoyo, aprobar, poner en vigor); no es pieza de 7.9.7 por nombre y entra por mayoría corriente. Y como el registro que la quitaría tampoco entra en vigor, es irreversible',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H2: una condición nueva con otro nombre puede rechazar cualquier plantilla de gobierno (proponer, apoyar, retirar el apoyo, aprobar, poner en vigor); no es pieza de 7.9.7 por nombre y entra por mayoría corriente. Y como el registro que la quitaría tampoco entra en vigor, es irreversible
+test('H2: un cambio «ordinary» que añade una condición contra «put a change in force» deja el libro sin poder cambiar nunca más', async () => {
   const m = await mundo();
   const congela = [['nothing comes into force'], [0], ['=not ("put a change in force" in ev.4)'], ['ev.3'], ['mint', 'transfer', 'lock', 'release', 'burn'], ['*'], ['revisión de seguridad'], ['epoch 0'], ['after at most a year ahead'], ['nothing comes into force: no change comes into force any more']];
   const r1 = await m.recorrer('nada más entra en vigor', { 2: [{ ref: idDeRegistro(congela) }] }, { registros: [congela] });
@@ -113,9 +114,8 @@ test('H2: un cambio «ordinary» que añade una condición contra «put a change
 
 // ---------- H3 (alto): la presión máxima, 9.0.0.4, la cambia un cambio corriente ----------
 
-test('H3: un cambio «ordinary» que sube epoch.9.0.0.4 (la presión de un nombre suelto) da a ana sola los dos tercios', {
-  todo: 'HALLAZGO H3: «support of» y «support» leen epoch.9.0.0.4 y no está en 7.9.7; con nombres mixtos (identidad y «nombre k») cambia el reparto sin pasar por el umbral alto. Lo mismo vale para epoch.7.6 (niveles y grados), que lee «a change comes into force with its proof»',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H3: «support of» y «support» leen epoch.9.0.0.4 y no está en 7.9.7; con nombres mixtos (identidad y «nombre k») cambia el reparto sin pasar por el umbral alto. Lo mismo vale para epoch.7.6 (niveles y grados), que lee «a change comes into force with its proof»
+test('H3: un cambio «ordinary» que sube epoch.9.0.0.4 (la presión de un nombre suelto) da a ana sola los dos tercios', async () => {
   const m = await mundo({ nombres: ['ana', 'bea 5'] });
   const fuera = () => m.recorrer('fuera bea', { 7: m.fila79({ 5: ['ana'] }) }, { clase: 'governance' });
   assert.ok(!(await fuera()).aprobacion.ev, 'control: 9 de 14 no llega a dos tercios');
@@ -128,9 +128,8 @@ test('H3: un cambio «ordinary» que sube epoch.9.0.0.4 (la presión de un nombr
 
 // ---------- H4 (medio): una época completa, sin «hereda», no pasa por el suelo ----------
 
-test('H4: una época de nacimiento escrita entera (sin «hereda») encoge el suelo y quita una regla del suelo, y carga', {
-  todo: 'HALLAZGO H4: cargarEpocaEscrita solo mira el suelo cuando la época hereda; una completa se carga tal cual, con el suelo que quiera (o ninguno). Basta copiar la 0 sin el 6.1 «hereda»',
-}, () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H4: cargarEpocaEscrita solo mira el suelo cuando la época hereda; una completa se carga tal cual, con el suelo que quiera (o ninguno). Basta copiar la 0 sin el 6.1 «hereda»
+test('H4: una época de nacimiento escrita entera (sin «hereda») encoge el suelo y quita una regla del suelo, y carga', () => {
   const { raiz, registros } = epocaEscritaDe(EPOCA_0_BTML);
   const sin = copia(raiz);
   sin[0] = ['sin suelo'];
@@ -142,9 +141,8 @@ test('H4: una época de nacimiento escrita entera (sin «hereda») encoge el sue
 
 // ---------- H5 (bajo): nombres con presión negativa ----------
 
-test('H5: una lista de nombres con una presión negativa («nadie -9») hace que cada nombre solo tenga el cien por cien', {
-  todo: 'HALLAZGO H5: el núcleo solo pide que la suma de presiones sea mayor que 0 (presionDeLosNombres); una magnitud negativa baja el divisor de «support» y el apoyo pasa de 1. Hace falta un cambio de gobierno (o el nacimiento) para escribirla, pero la lista engaña: parecen dos nombres y decide uno',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H5: el núcleo solo pide que la suma de presiones sea mayor que 0 (presionDeLosNombres); una magnitud negativa baja el divisor de «support» y el apoyo pasa de 1. Hace falta un cambio de gobierno (o el nacimiento) para escribirla, pero la lista engaña: parecen dos nombres y decide uno
+test('H5: una lista de nombres con una presión negativa («nadie -9») hace que cada nombre solo tenga el cien por cien', async () => {
   let m;
   try {
     m = await mundo({ nombres: ['ana', 'bea', 'nadie -9'] });
@@ -157,9 +155,8 @@ test('H5: una lista de nombres con una presión negativa («nadie -9») hace que
 
 // ---------- H6 (bajo): el umbral corriente escrito como texto se salta la comparación de umbrales ----------
 
-test('H6: un cambio de gobierno que escribe 7.9.1 como texto («0.9») deja el umbral corriente por encima del de gobierno', {
-  todo: 'HALLAZGO H6: erroresDelSuelo solo compara si 7.9.1 es un número (Number.isFinite); un texto pasa sin comparar. Tampoco mira que 7.9.4 (nivel de gobierno) no quede por debajo de 7.9.3',
-}, () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H6: erroresDelSuelo solo compara si 7.9.1 es un número (Number.isFinite); un texto pasa sin comparar. Tampoco mira que 7.9.4 (nivel de gobierno) no quede por debajo de 7.9.3
+test('H6: un cambio de gobierno que escribe 7.9.1 como texto («0.9») deja el umbral corriente por encima del de gobierno', () => {
   const M = { ref: ID0 };
   const raiz = [['umbral de texto'], M, M, M, M, M, [['x'], ['hereda'], [ID0]], [M, M, M, M, M, M, M, M, M, [M, ['0.9'], [0.6]]]];
   const r = V.comprobarCambio(EPOCA_0_BTML, { raiz, registros: [] }, 'governance');
@@ -168,9 +165,8 @@ test('H6: un cambio de gobierno que escribe 7.9.1 como texto («0.9») deja el u
 
 // ---------- H7 (medio): el alta de un interlocutor escrita a mano puede declarar una clave ----------
 
-test('H7: la época state: un alta de interlocutor escrita a mano que declara una clave entra, y el interlocutor queda con clave', {
-  todo: 'HALLAZGO H7: «an interlocutor is registered once» no mira que el alta no declare clave; la plantilla dice «sin clave no actúa», pero a mano el servicio le da una clave suya y puede firmar en nombre de alguien de fuera',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H7: «an interlocutor is registered once» no mira que el alta no declare clave; la plantilla dice «sin clave no actúa», pero a mano el servicio le da una clave suya y puede firmar en nombre de alguien de fuera
+test('H7: la época state: un alta de interlocutor escrita a mano que declara una clave entra, y el interlocutor queda con clave', async () => {
   const { eje, ids } = await ejemploNodo();
   const claves = await generarClaves();
   const nombre = 'interlocutor-con-clave';
@@ -185,9 +181,8 @@ test('H7: la época state: un alta de interlocutor escrita a mano que declara un
 
 // ---------- H8 (medio): cualquiera diluye el apoyo de los nombres regalándoles R ----------
 
-test('H8: quien no está en la lista tumba un apoyo unánime dándoles R a los nombres (el P que nace al recibir R entra en su total)', {
-  todo: 'HALLAZGO H8: «support of» divide por TODO el P del titular, también el que nace cuando otro le da R («receiving R gives ten P on the root of its issuer»); recibir no pide consentimiento, así que cris (sin nombre) baja de 1 a 0,33 el apoyo de ana y bea y bloquea la aprobación. Pueden volver a apoyar, y cris volver a dar: una carrera que gana quien gasta',
-}, async () => {
+// Arreglado (encargo-arreglos-gobierno.md): HALLAZGO H8: «support of» divide por TODO el P del titular, también el que nace cuando otro le da R («receiving R gives ten P on the root of its issuer»); recibir no pide consentimiento, así que cris (sin nombre) baja de 1 a 0,33 el apoyo de ana y bea y bloquea la aprobación. Pueden volver a apoyar, y cris volver a dar: una carrera que gana quien gasta
+test('H8: quien no está en la lista tumba un apoyo unánime dándoles R a los nombres (el P que nace al recibir R entra en su total)', async () => {
   const m = await mundo({ nombres: ['ana', 'bea'], invitados: ['bea', 'cris'] });
   const p = await m.proponer('más margen', { 7: [m.marca(), m.marca(), m.marca(), [[900], [7200]]] }, { clase: 'governance' });
   assert.ok((await m.intenta('support a change', { X: p.ev.id }, 'ana')).ev);
@@ -222,7 +217,8 @@ test('aguanta: reordenar en otro orden (un registro de antes del cambio pasa det
   const prohibe = [['no forbidden notes'], [0], ['=not ("forbidden note" in ev.4)'], ['ev.3'], ['mint', 'transfer', 'lock', 'release', 'burn'], ['*'], ['revisión'], ['epoch 0'], ['after at most a year ahead'], ['no forbidden notes: no']];
   const antes = await nota('antes');
   assert.ok(antes.ev, antes.error);
-  const r = await m.recorrer('prohibir las notas', { 2: [{ ref: idDeRegistro(prohibe) }] }, { registros: [prohibe] });
+  // Una condición nueva es de clase «governance» (arreglos, H2): el dueño solo, con los dos tercios.
+  const r = await m.recorrer('prohibir las notas', { 2: [{ ref: idDeRegistro(prohibe) }] }, { registros: [prohibe], clase: 'governance' });
   assert.ok(r.puesta.ev, JSON.stringify(r.puesta.motivos));
   assert.match((await nota('después')).error, /no forbidden notes/, 'después del cambio, la nota no entra');
   // Otra copia, sincronizada en otro orden: la nota de antes llega detrás de la entrada en vigor (escrita sin red).
@@ -239,4 +235,94 @@ test('aguanta: reordenar en otro orden (un registro de antes del cambio pasa det
   const k = otro.orden.indexOf(r.puesta.ev.id);
   assert.equal(otro.antes(k).versiones().length, 1);
   assert.equal(otro.antes(k + 1).versiones().length, 2);
+});
+
+// ---------- Lo que añaden los arreglos (encargo-arreglos-gobierno.md) ----------
+
+/** El apoyo de una propuesta (X.2.6) y lo que cuenta un titular en ella (la suma de sus X.2.4.7). */
+const apoyo = (eje, p) => evaluar('=first (first it.2).6', new ContextoEje(eje, { epoch: eje.epoca() }), { sujeto: p.id }).valor[0];
+const cuentaDe = (eje, p, q) => evaluar('=sum (((first it.2).4 where first it2.3 = "' + q + '") each 7)', new ContextoEje(eje, { epoch: eje.epoca() }), { sujeto: p.id }).valor[0];
+const casi = (a, b) => assert.ok(Math.abs(a - b) < 1e-9, a + ' ≠ ' + b);
+
+test('arreglos A: un cambio «ordinary» que solo mueve una posición libre entra por mayoría corriente', async () => {
+  const m = await mundo({ nombres: ['ana', 'bea 5'] });
+  const k = m.marca();
+  const r = await m.recorrer('más margen', { 7: [k, k, k, [[900], [7200]]] });
+  assert.ok(r.puesta?.ev, JSON.stringify(r.propuesta.motivos ?? r.aprobacion?.motivos ?? r.puesta?.motivos));
+  assert.deepEqual(m.eje.epoca().registro[7][3][0], [900], 'ana sola (9 de 14) pasa la mitad');
+});
+
+test('arreglos A: un cambio que añade una regla se rechaza como «ordinary» y como «governance» entra con los dos tercios', async () => {
+  const m = await mundo({ nombres: ['ana', 'bea'] });
+  const regla = [['no forbidden notes'], [0], ['=not ("forbidden note" in ev.4)'], ['ev.3'], ['mint', 'transfer', 'lock', 'release', 'burn'], ['*'], ['revisión'], ['epoch 0'], ['after at most a year ahead'], ['no forbidden notes: no']];
+  const corriente = await m.proponer('prohibir las notas', { 2: [{ ref: idDeRegistro(regla) }] }, { registros: [regla] });
+  assert.ok(!corriente.ev);
+  assert.match(corriente.motivos.map((x) => x.mensaje ?? x.texto).join(' '), /el cambio añade la condición «no forbidden notes», y se declara «ordinary»: una condición o una lectura que se guarda, nueva o sustituida, se llame como se llame, es de clase «governance»/);
+  const sola = await m.recorrer('prohibir las notas', { 2: [{ ref: idDeRegistro(regla) }] }, { registros: [regla], clase: 'governance' });
+  assert.ok(sola.propuesta.ev && !sola.aprobacion.ev, 'ana sola, la mitad, no llega a los dos tercios');
+  const dos = await m.recorrer('prohibir las notas, con bea', { 2: [{ ref: idDeRegistro(regla) }] }, { registros: [regla], clase: 'governance' }, ['ana', 'bea']);
+  assert.ok(dos.puesta?.ev, JSON.stringify(dos.aprobacion?.motivos ?? dos.puesta?.motivos));
+  assert.ok(m.eje.epoca().condiciones.some((r) => r[0][0] === 'no forbidden notes'));
+});
+
+test('arreglos G: apoyar, recibir R de un tercero y aprobar; el apoyo no baja', async () => {
+  const m = await mundo({ nombres: ['ana', 'bea'], invitados: ['bea', 'cris'] });
+  const p = await m.proponer('más margen', { 7: [m.marca(), m.marca(), m.marca(), [[900], [7200]]] }, { clase: 'governance' });
+  const a = await m.intenta('support a change', { X: p.ev.id }, 'ana');
+  assert.ok(a.ev, JSON.stringify(a.motivos));
+  assert.equal(a.ev.payload[1][3][0], 1, 'ana compromete todo su P');
+  assert.equal(a.ev.payload[1][2][0], 0, 'sin retiradas');
+  casi(apoyo(m.eje, p.ev), 0.5);
+  assert.ok((await m.intenta('give own R', { X: m.eje.genesisId, amount: 5 }, 'cris')).ev);
+  casi(apoyo(m.eje, p.ev), 0.5);
+  casi(cuentaDe(m.eje, p.ev, 'ana'), 9);
+  assert.ok((await m.intenta('support a change', { X: p.ev.id }, 'bea')).ev);
+  casi(apoyo(m.eje, p.ev), 1);
+  assert.ok((await m.intenta('enact a change', { X: p.ev.id })).ev);
+});
+
+test('arreglos G: apoyar dos veces no pasa de 1; el P que llega después se compromete con otro apoyo', async () => {
+  const m = await mundo({ nombres: ['ana', 'bea'], invitados: ['bea', 'cris'] });
+  const p = await m.proponer('más margen', { 7: [m.marca(), m.marca(), m.marca(), [[900], [7200]]] });
+  // La mitad, y otra vez la mitad de lo que queda: 0.5 + 0.25.
+  assert.ok((await m.intenta('support a change', { X: p.ev.id, part: 0.5 }, 'bea')).ev);
+  casi(cuentaDe(m.eje, p.ev, 'bea'), 9 * 0.5);
+  const otra = await m.intenta('support a change', { X: p.ev.id, part: 0.5 }, 'bea');
+  assert.ok(otra.ev, JSON.stringify(otra.motivos));
+  casi(otra.ev.payload[1][3][0], 0.75);
+  casi(cuentaDe(m.eje, p.ev, 'bea'), 9 * 0.75);
+  // Todo, y luego el P que le llega de cris: lo comprometido pasa de 1 en el dato y la lectura se queda en su presión.
+  assert.ok((await m.intenta('support a change', { X: p.ev.id }, 'bea')).ev);
+  casi(cuentaDe(m.eje, p.ev, 'bea'), 9);
+  assert.ok((await m.intenta('give own R', { X: m.eje.alta('bea').id, amount: 5 }, 'cris')).ev);
+  casi(cuentaDe(m.eje, p.ev, 'bea'), 9);
+  const mas = await m.intenta('support a change', { X: p.ev.id }, 'bea');
+  assert.ok(mas.ev, JSON.stringify(mas.motivos));
+  assert.ok(mas.ev.payload[1][3][0] > 1, 'el dato acumula');
+  casi(cuentaDe(m.eje, p.ev, 'bea'), 9);
+  casi(apoyo(m.eje, p.ev), 0.5);
+  // Un apoyo que declara más de lo que compromete no entra.
+  const mentira = await m.intenta('support a change', { X: p.ev.id, part: 0.5, committed: 5 }, 'ana');
+  assert.ok(!mentira.ev);
+  assert.match(JSON.stringify(mentira.motivos), /a support is true at its point/);
+});
+
+test('arreglos G: retirar el apoyo tras recibir R lo quita entero; vuelto a apoyar, cuenta con el total de ese punto; no se libera a mano', async () => {
+  const m = await mundo({ nombres: ['ana', 'bea'], invitados: ['bea', 'cris'] });
+  const p = await m.proponer('más margen', { 7: [m.marca(), m.marca(), m.marca(), [[900], [7200]]] });
+  assert.ok((await m.intenta('support a change', { X: p.ev.id, part: 0.5 }, 'ana')).ev);
+  assert.ok((await m.intenta('give own R', { X: m.eje.genesisId, amount: 5 }, 'cris')).ev);
+  casi(cuentaDe(m.eje, p.ev, 'ana'), 4.5);
+  assert.ok((await m.intenta('withdraw support', { X: p.ev.id }, 'ana')).ev);
+  assert.equal(apoyo(m.eje, p.ev), 0);
+  const otra = await m.intenta('support a change', { X: p.ev.id, part: 0.5 }, 'ana');
+  assert.ok(otra.ev, JSON.stringify(otra.motivos));
+  assert.equal(otra.ev.payload[1][2][0], 1, 'una retirada antes');
+  casi(otra.ev.payload[1][3][0], 0.5);
+  casi(cuentaDe(m.eje, p.ev, 'ana'), 4.5);
+  // Lo bloqueado con la propuesta no se libera a mano sin retirar el apoyo.
+  const bloqueado = m.eje.bloqueos('ana').find((b) => b.salida === p.ev.id && b.token === 'P' && b.ambito !== p.ev.id);
+  assert.ok(bloqueado);
+  const suelta = await escribirPagando(m.eje, { autor: 'ana', sobre: m.eje.genesisId, t: m.reloj(), movimientos: [pagaElCoste('ana'), { token: 'P', ambito: bloqueado.ambito, origen: bloqueado.origen, cantidad: bloqueado.cantidad, de: 'ana', a: 'ana', estado: 'liberacion', salida: p.ev.id }], payload: [['a mano'], ['x'], ['x'], ['ana'], ['a note']] }).then(() => 'entra', (e) => e.message);
+  assert.match(suelta, /support is released by withdrawing it/);
 });

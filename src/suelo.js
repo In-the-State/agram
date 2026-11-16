@@ -6,17 +6,20 @@
 //   7.9.1  el umbral de un cambio corriente        7.9.2  el umbral de un cambio de gobierno (nunca por debajo del 7.9.1)
 //   7.9.6  el suelo: nombres de reglas y posiciones de la época («epoch.7.0»), una hoja cada una
 //   7.9.7  las piezas de gobierno: lo que solo cambia un cambio de clase «governance» (posiciones y nombres de reglas,
-//          lecturas o plantillas)
+//          lecturas o plantillas); el núcleo les añade, calculado, lo que leen (piezasDeGobiernoDe)
 // Una época sin esa fila (la 0 de antes del gobierno) no tiene suelo que guardar: no se rechaza nada.
 //
-// Lo que se comprueba (diseño §5, «cómo se hace cumplir»):
+// Lo que se comprueba (diseño §5, «cómo se hace cumplir»; arreglos de la revisión, Core AGRAM 17-11):
 //   - no se quita ni se sustituye una regla (o lectura, o plantilla) cuyo nombre está en el suelo;
 //   - no cambia ninguna posición de la época que esté en el suelo;
 //   - no se quita nada de la lista del suelo: se amplía, nunca se encoge;
-//   - el umbral de un cambio de gobierno no queda por debajo del de un cambio corriente;
-//   - con una clase dada (un cambio, no una época de nacimiento): si toca una pieza de gobierno, la clase es «governance».
+//   - la fila 7.9 vale (erroresDeLaFila): los umbrales (7.9.1 y 7.9.2) son números mayores que 0 y menores que 1, y el
+//     de gobierno queda estrictamente por encima del corriente; los niveles (7.9.3 y 7.9.4) son niveles de la época y el
+//     de gobierno no queda por debajo; cada nombre de quién cuenta (7.9.5) pesa más que 0 y no más que la presión máxima;
+//   - con una clase dada (un cambio, no una época de nacimiento): si toca una pieza de gobierno, o añade o sustituye
+//     una condición o una lectura que se guarda (se llame como se llame), la clase es «governance».
 
-import { nombreDeRegla } from './bqlm.js';
+import { nombreDeRegla, esLectura, esEscritura, esLecturaDePv, posicionDeLectura, esFormula } from './bqlm.js';
 
 /** La fila de gobierno de la época y sus posiciones (diseño §4.1). */
 export const GOBIERNO = Object.freeze([7, 9]);
@@ -53,6 +56,10 @@ export function caminoDePosicion(s) {
 /** Quién cuenta (diseño §4.1; docs/notas/GOBIERNO.md §2): la lista de nombres de 7.9.5, la presión máxima en 9.0.0.4. */
 export const NOMBRES = Object.freeze([7, 9, 5]);
 export const PRESION_MAXIMA = Object.freeze([9, 0, 0, 4]);
+/** Los niveles de firmeza que pide cada clase (diseño §4.1) y los de la época, en su orden (epoch.7.6.1). */
+export const NIVEL_CORRIENTE = Object.freeze([7, 9, 3]);
+export const NIVEL_DE_GOBIERNO = Object.freeze([7, 9, 4]);
+export const NIVELES = Object.freeze([7, 6, 1]);
 // Un nombre «nombre k» es una magnitud (D-VALOR): la misma forma que src/contexto-eje.js (RE_MAGNITUD), copiada aquí
 // porque este módulo no puede importar el contexto (lo importa src/epocas.js).
 const RE_MAGNITUD = /^(?:(-?\d+(?:\.\d+)?)\s+([\p{L}€$%][\p{L}\p{N}_€$%]*)|([\p{L}€$%][\p{L}\p{N}_€$%]*)\s+(-?\d+(?:\.\d+)?))$/u;
@@ -74,15 +81,101 @@ export function presionDeLosNombres(epoca) {
   }, 0);
 }
 
-/** La lista del suelo de una época (su 7.9.6): nombres y posiciones, en su orden; [] si no la tiene. */
+/**
+ * El suelo de una época: la lista de su 7.9.6 (nombres y posiciones, en su orden) y, calculado, toda lectura que una
+ * regla o lectura del suelo nombra en su 1, hasta cerrar (anexo de los arreglos, I: el mismo cálculo que las piezas de
+ * gobierno, solo con nombres; las posiciones del suelo son las escritas). [] si no la tiene.
+ */
 export function sueloDe(epoca) {
-  return textos(en(raizDe(epoca), SUELO));
+  return cerrarPiezas(epoca, textos(en(raizDe(epoca), SUELO)), { posiciones: false });
 }
 
-/** Las piezas de gobierno de una época (su 7.9.7); [] si no las tiene. */
-export function piezasDeGobiernoDe(epoca) {
+/** Las piezas de gobierno escritas en una época (su 7.9.7, tal cual); [] si no las tiene. */
+export function piezasEscritasDe(epoca) {
   return textos(en(raizDe(epoca), PIEZAS_DE_GOBIERNO));
 }
+
+/** Una posición de la época dentro de una fórmula: «epoch.9.0.0.4» (no «epoch.(x)» ni «epoch» suelto). */
+const RE_POSICION_EN_FORMULA = /(?<![A-Za-z0-9_])epoch((?:\.[0-9])+)(?![0-9])/g;
+
+/** Una lectura que se guarda en una posición de un elemento: su 3 es «X.2.4.7», «A.8.1»… (no «X», «A» ni «ev»). */
+const RE_MATERIALIZADA = /^[A-Za-z]+(\.[0-9])+$/;
+
+/**
+ * Cierra una lista de piezas con lo que leen (arreglos de la revisión, H3; Core AGRAM 17-11): de cada regla o lectura
+ * de la época que se llama como una pieza, toda posición «epoch.…» que lee su fórmula (su 2) o que declara leer (su 1),
+ * y toda lectura que se materializa justo en una posición que declara leer (su 1: «X.2.6» trae «support»), y así hasta
+ * cerrar. Las plantillas no añaden nada: lo que leen sus fórmulas prepara una candidata que juzgan las reglas. Con
+ * `posiciones: false`, solo los nombres (las reglas y lecturas). Una posición que ya cubre otra de la lista
+ * («epoch.7.9.5» bajo «epoch.7.9») no se repite.
+ */
+export function cerrarPiezas(epoca, iniciales, { posiciones = true } = {}) {
+  const reglas = Array.isArray(epoca?.reglasConId) ? epoca.reglasConId.map((x) => x.regla) : [];
+  const lecturasEn = new Map();
+  for (const r of reglas) {
+    if (!esLectura(r)) continue;
+    const p = posicionDeLectura(r);
+    // Solo las que se materializan en una posición de un elemento: «X» en un 1 es el registro, no la lectura «asked».
+    if (typeof p !== 'string' || !RE_MATERIALIZADA.test(p)) continue;
+    if (!lecturasEn.has(p)) lecturasEn.set(p, []);
+    lecturasEn.get(p).push(nombreDeRegla(r));
+  }
+  const piezas = [...iniciales];
+  const vistas = new Set(piezas);
+  const anade = (p) => {
+    if (typeof p === 'string' && p && !vistas.has(p)) {
+      vistas.add(p);
+      piezas.push(p);
+    }
+  };
+  for (let k = 0; k < piezas.length; k++) {
+    if (caminoDePosicion(piezas[k])) continue;
+    for (const r of reglas) {
+      if (nombreDeRegla(r) !== piezas[k]) continue;
+      if (posiciones) for (const f of hojasDe(r[2]).filter(esFormula)) for (const m of f.matchAll(RE_POSICION_EN_FORMULA)) anade(PREFIJO_DE_POSICION + m[1].slice(1));
+      for (const h of textos(r[1])) {
+        if (caminoDePosicion(h)) {
+          if (posiciones) anade(h);
+        } else for (const l of lecturasEn.get(h) ?? []) anade(l);
+      }
+    }
+  }
+  const cubre = (a, b) => a.length < b.length && a.every((d, i) => d === b[i]);
+  return piezas.filter((p) => {
+    const c = caminoDePosicion(p);
+    if (!c) return true;
+    if (!posiciones && !iniciales.includes(p)) return false;
+    return !piezas.some((q) => q !== p && caminoDePosicion(q) && cubre(caminoDePosicion(q), c));
+  });
+}
+
+/**
+ * Las piezas de gobierno de una época: las de su 7.9.7 y, calculado y no escrito a mano, lo que leen, hasta cerrar
+ * (cerrarPiezas). Sin las reglas cargadas (una raíz suelta), solo las del 7.9.7.
+ */
+export function piezasDeGobiernoDe(epoca) {
+  return cerrarPiezas(epoca, piezasEscritasDe(epoca));
+}
+
+/**
+ * Lo que una regla de la época guarda o decide (arreglos de la revisión, H1 y H2): «la condición «…»», «la regla que
+ * escribe «…»» o «la lectura «…», que se guarda en X.2.4.7» (las que se materializan en una posición de un elemento); null
+ * si solo informa (una lectura que no se materializa, como «changes» en X, o la de un punto de vista).
+ */
+function queGuarda(regla) {
+  const n = nombreDeRegla(regla);
+  if (esLecturaDePv(regla)) return null;
+  if (esLectura(regla)) {
+    const p = posicionDeLectura(regla);
+    return typeof p === 'string' && RE_MATERIALIZADA.test(p) ? 'la lectura «' + n + '», que se guarda en ' + p : null;
+  }
+  if (esEscritura(regla)) return 'la regla que escribe «' + n + '»';
+  return 'la condición «' + n + '»';
+}
+
+/** El número de una posición si es un número de verdad (un texto que parece un número no lo es), o undefined. */
+const numero = (x) => (typeof x === 'number' && Number.isFinite(x) ? x : undefined);
+const comoTexto = (x) => (x === undefined ? 'nada' : typeof x === 'string' ? '«' + x + '»' : String(x));
 
 /** Los ids de los registros de la época que se llaman `nombre`: reglas y lecturas del 2 y plantillas del 9.6, ordenados. */
 function idsDe(epoca, nombre) {
@@ -122,19 +215,71 @@ export function erroresDelSuelo(base, resultado, { clase } = {}) {
   const nuevo = new Set(sueloDe(resultado));
   const quitados = suelo.filter((s) => !nuevo.has(s));
   if (quitados.length) motivos.push('quita del suelo (epoch.7.9.6) ' + quitados.map((s) => '«' + s + '»').join(', ') + ': el suelo se amplía, nunca se encoge');
-  const alto = primera(en(raizDe(base), UMBRAL_DE_GOBIERNO));
-  if (Number.isFinite(alto)) {
-    const corriente = primera(en(raizDe(resultado), UMBRAL_CORRIENTE));
-    const nuevoAlto = primera(en(raizDe(resultado), UMBRAL_DE_GOBIERNO));
-    if (!Number.isFinite(nuevoAlto)) motivos.push('deja el umbral de un cambio de gobierno (epoch.7.9.2) sin un número');
-    else if (Number.isFinite(corriente) && nuevoAlto < corriente) motivos.push('deja el umbral de un cambio de gobierno (epoch.7.9.2, ' + nuevoAlto + ') por debajo del de un cambio corriente (epoch.7.9.1, ' + corriente + ')');
-  }
+  motivos.push(...erroresDeLaFila(resultado));
   const presion = presionDeLosNombres(resultado);
   if (presion !== null && !(presion > 0)) motivos.push('deja en quién cuenta (epoch.7.9.5) nombres cuyas presiones suman ' + presion + ': el apoyo de un cambio se divide por esa suma, y ha de ser más que 0');
   if (clase !== undefined && clase !== CLASE_DE_GOBIERNO) {
+    const declarada = '«' + String(clase ?? 'sin clase') + '»';
     const piezas = [...new Set([...piezasDeGobiernoDe(base), ...piezasDeGobiernoDe(resultado)])];
     const tocadas = piezas.filter((p) => toca(base, resultado, p));
-    if (tocadas.length) motivos.push('toca ' + tocadas.map((p) => '«' + p + '»').join(', ') + ', que ' + (tocadas.length > 1 ? 'son piezas' : 'es una pieza') + ' de gobierno (epoch.7.9.7), y se declara «' + String(clase ?? 'sin clase') + '»: un cambio así es de clase «' + CLASE_DE_GOBIERNO + '»');
+    if (tocadas.length) motivos.push('toca ' + tocadas.map((p) => '«' + p + '»').join(', ') + ', que ' + (tocadas.length > 1 ? 'son piezas' : 'es una pieza') + ' de gobierno (epoch.7.9.7), y se declara ' + declarada + ': un cambio así es de clase «' + CLASE_DE_GOBIERNO + '»');
+    // H1 y H2: la clase por lo que hace, no por cómo se llama. Una condición, o una lectura que se guarda, nueva o sustituida.
+    const antes = new Set((base?.reglasConId ?? []).map((x) => x.id));
+    const nombresAntes = new Set((base?.reglasConId ?? []).map((x) => nombreDeRegla(x.regla)));
+    for (const { id, regla } of resultado?.reglasConId ?? []) {
+      if (antes.has(id) || tocadas.includes(nombreDeRegla(regla))) continue;
+      const q = queGuarda(regla);
+      if (!q) continue;
+      motivos.push((nombresAntes.has(nombreDeRegla(regla)) ? 'sustituye ' : 'añade ') + q + ', y se declara ' + declarada + ': una condición o una lectura que se guarda, nueva o sustituida, se llame como se llame, es de clase «' + CLASE_DE_GOBIERNO + '»');
+    }
+  }
+  return motivos;
+}
+
+/**
+ * Lo que no vale de la fila 7.9 de una época (arreglos de la revisión, H5 y H6, y S5 de la segunda pasada), en llano;
+ * [] si vale o si no tiene la fila. Los umbrales (7.9.1 y 7.9.2) son números mayores que 0 y menores que 1 («approved»
+ * pasa si el apoyo, que no pasa de 1, supera el umbral: con 1 no se aprobaría nada), y el de gobierno queda
+ * estrictamente por encima del corriente; los niveles (7.9.3 y 7.9.4) son niveles de la época (0, sin prueba, o uno de
+ * epoch.7.6.1) y el de gobierno no queda por debajo del corriente (por su rango en epoch.7.6.1); cada nombre de quién
+ * cuenta (7.9.5) pesa más que 0 y no más que la presión máxima (epoch.9.0.0.4): un nombre suelto, la máxima; «nombre k»,
+ * k. Un texto que parece un número no vale.
+ */
+export function erroresDeLaFila(epoca) {
+  const raiz = raizDe(epoca);
+  if (!Array.isArray(en(raiz, GOBIERNO))) return [];
+  const motivos = [];
+  const umbral = (camino, que) => {
+    const x = primera(en(raiz, camino));
+    const v = numero(x);
+    const vale = v !== undefined && v > 0 && v < 1;
+    if (!vale) motivos.push('deja el umbral de ' + que + ' (epoch.' + camino.join('.') + ') en ' + comoTexto(x) + ': un umbral es un número mayor que 0 y menor que 1 (se aprueba al superarlo, y el apoyo no pasa de 1)');
+    return vale ? v : undefined;
+  };
+  const corriente = umbral(UMBRAL_CORRIENTE, 'un cambio corriente');
+  const alto = umbral(UMBRAL_DE_GOBIERNO, 'un cambio de gobierno');
+  if (corriente !== undefined && alto !== undefined && !(alto > corriente)) motivos.push('deja el umbral de un cambio de gobierno (epoch.7.9.2, ' + alto + ') ' + (alto < corriente ? 'por debajo del' : 'igual que el') + ' de un cambio corriente (epoch.7.9.1, ' + corriente + '): ha de quedar por encima');
+  const niveles = hojasDe(en(raiz, NIVELES)).filter((h) => numero(h) !== undefined);
+  const nivel = (camino, que) => {
+    const x = primera(en(raiz, camino));
+    const v = numero(x);
+    const rango = v === 0 ? -1 : v === undefined ? -2 : niveles.indexOf(v);
+    if (rango < -1) {
+      motivos.push('deja el nivel de firmeza de ' + que + ' (epoch.' + camino.join('.') + ') en ' + comoTexto(x) + ': un nivel es 0 (sin prueba) o uno de los de la época (epoch.7.6.1: ' + niveles.join(', ') + ')');
+      return undefined;
+    }
+    return { v, rango };
+  };
+  const n3 = nivel(NIVEL_CORRIENTE, 'un cambio corriente');
+  const n4 = nivel(NIVEL_DE_GOBIERNO, 'un cambio de gobierno');
+  if (n3 && n4 && n4.rango < n3.rango) motivos.push('deja el nivel de firmeza de un cambio de gobierno (epoch.7.9.4, ' + n4.v + ') por debajo del de un cambio corriente (epoch.7.9.3, ' + n3.v + ')');
+  const maxima = numero(primera(en(raiz, PRESION_MAXIMA)));
+  const nombres = hojasDe(en(raiz, NOMBRES)).filter((h) => h !== 0 && h !== '0');
+  if (!nombres.length && !(maxima > 0)) motivos.push('deja la presión máxima (epoch.9.0.0.4) ' + (maxima === undefined ? 'sin un número' : 'en ' + maxima) + ', y sin nombres cuenta el dueño con ella: una presión es un número mayor que 0');
+  for (const h of nombres) {
+    const m = typeof h === 'string' ? RE_MAGNITUD.exec(h.trim()) : null;
+    const presion = m ? Number(m[1] ?? m[4]) : maxima;
+    if (!(presion > 0 && maxima !== undefined && presion <= maxima)) motivos.push('deja en quién cuenta (epoch.7.9.5) ' + comoTexto(h) + ' con la presión ' + (presion === undefined ? 'sin un número' : presion) + ': una presión es un número mayor que 0 y no mayor que la máxima de la época (epoch.9.0.0.4, ' + (maxima === undefined ? 'sin un número' : maxima) + ')');
   }
   return motivos;
 }

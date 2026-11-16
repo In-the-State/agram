@@ -9,7 +9,7 @@ import { fusionarRaices, cargarEpocaBtml, erroresDeEpocaEscrita, heredaDe, idDeR
 import { erroresDelSuelo } from './suelo.js';
 import { RAIZ } from './evento.js';
 
-export { GOBIERNO, UMBRAL_CORRIENTE, UMBRAL_DE_GOBIERNO, NOMBRES, PRESION_MAXIMA, SUELO, PIEZAS_DE_GOBIERNO, CLASE_CORRIENTE, CLASE_DE_GOBIERNO, PREFIJO_DE_POSICION, erroresDelSuelo, presionDeLosNombres, sueloDe, piezasDeGobiernoDe } from './suelo.js';
+export { GOBIERNO, UMBRAL_CORRIENTE, UMBRAL_DE_GOBIERNO, NOMBRES, PRESION_MAXIMA, SUELO, PIEZAS_DE_GOBIERNO, CLASE_CORRIENTE, CLASE_DE_GOBIERNO, PREFIJO_DE_POSICION, NIVEL_CORRIENTE, NIVEL_DE_GOBIERNO, NIVELES, erroresDelSuelo, erroresDeLaFila, presionDeLosNombres, sueloDe, piezasDeGobiernoDe, piezasEscritasDe, cerrarPiezas } from './suelo.js';
 
 // ---------- Constantes: las posiciones de las plantillas del gobierno de la época 0 (docs/notas/GOBIERNO.md §3; una
 // prueba, test/versiones.test.js, vigila que casan con la época 0 real). Las del 7.9 (umbrales, nombres, suelo, piezas de
@@ -20,6 +20,9 @@ export const PROPONER = 'propose a change';
 export const APROBAR = 'enact a change';
 export const PONER_EN_VIGOR = 'put a change in force';
 export const RETIRAR = 'withdraw a change';
+/** Las dos plantillas del apoyo (las que la carta nombraba por su cuenta). */
+export const APOYAR = 'support a change';
+export const RETIRAR_APOYO = 'withdraw support';
 /** Dónde dice un registro su acción: su payload 4, el parámetro «actions» de toda plantilla de la época. */
 export const ACCION_EN = 4;
 /** Dónde lleva «propose a change» la raíz de la época hija del cambio: su payload 1.1 (el 1.0, la explicación). */

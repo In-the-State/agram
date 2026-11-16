@@ -476,7 +476,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "74b23f3705ffa44dd59fa213c14638ac912c07fdf59ae040f1715f56f8ccecf9"
     },
     {
-      "ref": "b46fb0ae16e8d317471a5fe93c911e3152c38739c7a9e3a27c99f2fe5bb343f5"
+      "ref": "fa86f970c3193930517d8aab763c4ab662dcfb29b32c593be64d3442e9e894b2"
     },
     {
       "ref": "48d6ec72345c79d4b5d6ffd89df8ebd8966480798c862c7152d845f2306540b0"
@@ -497,7 +497,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "58d93d3b5ed904abf3c21bf9e53fc15c99410b7a5de545768903aeb09ed530dc"
     },
     {
-      "ref": "ddea3421dba32e9ce6e3d8b8b3437cffae54f13dc82e5208d89f1832ee15cf32"
+      "ref": "8712ca9c31673b84d1e72cc3f9d25307e8a8bf7901470b408650f595f595ff4a"
     },
     {
       "ref": "57eb7dddf25b2c5c342d124144e6b176fb53167ff1fbff22f7fec24eaa82ca7c"
@@ -629,7 +629,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "7a15d2ae9ae031dc090dd6b27bd674e67df7836143e82ec3ee2a658daf3d2c25"
     },
     {
-      "ref": "d41f0bf6610aca0d5e21fcc1335fc43e9c306044873840384bccd61300d94d45"
+      "ref": "2148422487e80a66cc3a5d6ebefc254641993503a0f78bc6d2b9318e072bc50e"
     },
     {
       "ref": "236a72e0950f1ed84fd148d941221c60eb10006585d6e600efec47f6ce851da3"
@@ -647,7 +647,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "fc83fbdfbd4d0596192f8290eef0fc3783c2bda4e8043f31fb958cb154feb568"
     },
     {
-      "ref": "32db1ef88eef41cd844945f9803d64f9874a6b47ddb44af10519bda61ce8e9e7"
+      "ref": "706c2b221357cfecf1da17e7950946aa07500b3ea1781f333dd83d48ef6a5fcb"
     },
     {
       "ref": "5f9154481910e70d57910d731c34c88fb307908e6dbf0ecffc1176b533334b4f"
@@ -657,6 +657,12 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "8114171631a40f71fd2d6cd8e49da31e41366ea1c511da7b0d27ea48950bf559"
+    },
+    {
+      "ref": "63fde500a64adb766c107af75bca662aa4a58301dec5aed3f7c1b09afdeadc36"
+    },
+    {
+      "ref": "02fb7e952496cfe9afc8913b907a890f2731aee278d4aeddaeaaf8ec2728c7bb"
     }
   ],
   [
@@ -2334,6 +2340,15 @@ export const EPOCA_0_BTML_DATOS = [
         "not before the writer joined",
         "a thing of mine is one whose alta I wrote",
         "T only goes to things",
+        "approved",
+        "support",
+        "support of",
+        "a change names its class and brings a change",
+        "only who proposed withdraws a change",
+        "a change is enacted once it is approved",
+        "a change comes into force with its proof",
+        "a support is true at its point",
+        "support is released by withdrawing it",
         "epoch.7.0",
         "epoch.1.3.1",
         "epoch.7.2"
@@ -2352,7 +2367,9 @@ export const EPOCA_0_BTML_DATOS = [
         "withdraw support",
         "enact a change",
         "put a change in force",
-        "withdraw a change"
+        "withdraw a change",
+        "a support is true at its point",
+        "support is released by withdrawing it"
       ]
     ]
   ],
@@ -6793,16 +6810,18 @@ export const EPOCA_0_BTML_DATOS = [
           "template retouch a text param actions help: la acción",
           "template retouch a text message: {me} retoca el texto {first ev.1.1} en {first ev.1.0}",
           "only the owner of the book retouches a text: {first ev.3} retoca un texto de un libro cuyo génesis no escribió",
-          "support of: lo que cuenta un compromiso de P con un cambio propuesto: la presión de su titular entre los nombres de epoch.7.9.5 × lo que bloquea ÷ todo su P en el libro",
+          "support of: lo que cuenta un compromiso de P con un cambio propuesto: la presión de su titular entre los nombres de epoch.7.9.5 × lo que el titular comprometió (lo que bloqueó cada apoyo ÷ todo su P en ese punto, como mucho 1), repartido entre su P bloqueado",
           "support: la parte de la presión de los nombres de epoch.7.9.5 que respalda un cambio propuesto con su P bloqueado",
           "missing support: cuánto apoyo le falta todavía a un cambio propuesto para llegar al umbral de su clase",
           "approved: un cambio propuesto tiene más apoyo que el umbral de su clase (epoch.7.9.1 o epoch.7.9.2)",
           "change state: el último registro que decidió un cambio propuesto: la propia propuesta, su aprobación, su entrada en vigor o su retirada",
           "changes: los cambios propuestos del libro, colgados de su génesis",
-          "a change names its class and brings a change: {first ev.3} propone un cambio que no cuelga del 9.7 del génesis, no dice «ordinary» ni «governance» en su 2 o no trae ninguna época en su 1.1",
+          "a change names its class and brings a change: {first ev.3} propone un cambio que no cuelga del 9.7 del génesis, no dice «ordinary» ni «governance» en su 2, no trae ninguna época en su 1.1 o trae algo en su 1.3",
           "only who proposed withdraws a change: {first ev.3} retira {first ev.6.5}, que no es un cambio propuesto abierto suyo",
           "a change is enacted once it is approved: {first ev.3} aprueba {first ev.6.5}, que no es un cambio propuesto abierto con el apoyo que pide su clase",
           "a change comes into force with its proof: {first ev.3} pone en vigor {first ev.6.5}, que no es un cambio aprobado que aún no esté en vigor, o sin una prueba de sello que lo cubra al nivel que pide su clase",
+          "a support is true at its point: {first ev.3} apoya {first ev.6.5} declarando un P total, unas retiradas o una parte comprometida que no son las de este punto",
+          "support is released by withdrawing it: {first ev.3} libera lo bloqueado con un cambio propuesto sin retirar su apoyo de él ni retirar el cambio",
           "template propose a change: proponer un cambio",
           "template propose a change param title label: título",
           "template propose a change param title help: un título corto del cambio",
@@ -6822,6 +6841,12 @@ export const EPOCA_0_BTML_DATOS = [
           "template support a change: apoyar un cambio",
           "template support a change param part label: parte",
           "template support a change param part help: la parte de cada serie de P mía, esté donde esté en este libro, que bloqueo con esta propuesta como salida (1: toda)",
+          "template support a change param total label: total",
+          "template support a change param total help: todo mi P en este libro en este punto, sin el situado sobre esta propuesta ni sobre lo anclado en ella: lo que comprometo se divide por él, ahora y después",
+          "template support a change param withdrawals label: retiradas",
+          "template support a change param withdrawals help: cuántas veces he retirado ya mi apoyo de esta propuesta",
+          "template support a change param committed label: comprometido",
+          "template support a change param committed help: lo que tengo comprometido con esta propuesta con mis apoyos vivos: lo del último más lo que bloquea este entre mi total (la regla lo comprueba en este punto)",
           "template support a change param criteria label: criterio",
           "template support a change param criteria help: la plantilla de cerrado del registro",
           "template support a change param who label: quién",
@@ -7144,7 +7169,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "f75da136da35d13e0cda76d5cde3daa342b32248f85af6f0c4dc29b4e47650d3"
         },
         {
-          "ref": "7feece0bd637fcbf0dbfc22af44fdfefceeee57120cb0d3d58081c285ca4f826"
+          "ref": "69313071c8b24b8cb60f51c4cd53374a9ab75b96459038f5a44f410c0ab92212"
         },
         {
           "ref": "23c680184635442c34ecda01a0400852be6a3e697891b19487455f0bfcef4b54"
@@ -8553,7 +8578,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-change-names-its-class-and-brings-a-change.json",
-    "id": "32db1ef88eef41cd844945f9803d64f9874a6b47ddb44af10519bda61ce8e9e7",
+    "id": "706c2b221357cfecf1da17e7950946aa07500b3ea1781f333dd83d48ef6a5fcb",
     "registro": [
       [
         "a change names its class and brings a change"
@@ -8565,7 +8590,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "\"governance\""
       ],
       [
-        "=not (\"propose a change\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9700000000\" and (first (payload(ev)).2 = \"ordinary\" or first (payload(ev)).2 = \"governance\") and count (payload(ev)).1.1.0 > 0"
+        "=not (\"propose a change\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9700000000\" and (first (payload(ev)).2 = \"ordinary\" or first (payload(ev)).2 = \"governance\") and count (payload(ev)).1.1.0 > 0 and count (payload(ev)).1.3 = 0"
       ],
       [
         "ev.3"
@@ -8582,7 +8607,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
-        "Diseño §3.1: un registro que dice «propose a change» en su 4 cuelga del 9.7 del génesis («changes»), declara su clase en su 2 («ordinary» o «governance») y trae un cambio: una raíz de época con nombre en su 1.1 (y sus registros, si los hay, en su 1.2). Es solo la forma que alcanza el BQL; que el cambio sea una época hija que carga, que no toque el suelo (epoch.7.9.6) y que su clase no se quede corta (lo que toca epoch.7.9.7 es «governance») lo comprueba el núcleo (encargo siguiente, el motor). Solo se mira con esa acción (el or es perezoso)"
+        "Diseño §3.1: un registro que dice «propose a change» en su 4 cuelga del 9.7 del génesis («changes»), declara su clase en su 2 («ordinary» o «governance») y trae un cambio: una raíz de época con nombre en su 1.1 (y sus registros, si los hay, en su 1.2). Es solo la forma que alcanza el BQL; que el cambio sea una época hija que carga, que no toque el suelo (epoch.7.9.6) y que su clase no se quede corta (lo que toca epoch.7.9.7 es «governance») lo comprueba el núcleo (encargo siguiente, el motor). Solo se mira con esa acción (el or es perezoso)",
+        "Core AGRAM 17-11 (arreglos de la revisión, H8): y no lleva nada en su 1.3. «support of» y «a support is true at its point» leen lo comprometido en el 1.3 del último apoyo vivo y, sin ninguno, en el de la propia propuesta (la lista nunca queda vacía): ha de dar 0"
       ],
       [
         "epoch 0"
@@ -8591,7 +8617,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after changes"
       ],
       [
-        "a change names its class and brings a change: {first ev.3} proposes a change that does not hang from the 9.7 of the genesis, does not say «ordinary» or «governance» in its 2 or brings no epoch in its 1.1"
+        "a change names its class and brings a change: {first ev.3} proposes a change that does not hang from the 9.7 of the genesis, does not say «ordinary» or «governance» in its 2, brings no epoch in its 1.1 or brings something in its 1.3"
       ]
     ]
   },
@@ -8683,7 +8709,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-person-joins-by-an-invitation.json",
-    "id": "ddea3421dba32e9ce6e3d8b8b3437cffae54f13dc82e5208d89f1832ee15cf32",
+    "id": "8712ca9c31673b84d1e72cc3f9d25307e8a8bf7901470b408650f595f595ff4a",
     "registro": [
       [
         "a person joins by an invitation"
@@ -8694,7 +8720,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "ev.5"
       ],
       [
-        "=count (first ev.3).6 > 0 or (\"invitation\" in (first (first ev.6).5).0 and first ev.3 in (first (first ev.6).5).3.1 and count (first (first (first ev.6).5).3).6 > 0 and (count before.6.0 = 0 or (first ev.6).0.0 >= first before.6.0.0) and (count ((first (first ev.6).5).7 where count it.0 > 0) = 0 or (first ev.6).0.0 <= last (((first (first ev.6).5).7 where count it.0 > 0) each 0) or (count before.6.3 > 0 and first before.6.3.0 <= last (((first (first ev.6).5).7 where count it.0 > 0) each 0))) and (count (first (first ev.6).5).3.5 = 0 or count (ev.5 where count it.2 > 0 and it.3 = first ev.3 and it.2 in (first (first ev.6).5).3.5) > 0))"
+        "=count (first ev.3).6 > 0 or (\"invitation\" in (payload(first (first ev.6).5)).0 and first ev.3 in (payload(first (first ev.6).5)).3.1 and count (first (first (first ev.6).5).3).6 > 0 and (count before.6.0 = 0 or (first ev.6).0.0 >= first before.6.0.0) and (count ((payload(first (first ev.6).5)).7 where count it.0 > 0) = 0 or (first ev.6).0.0 <= last (((payload(first (first ev.6).5)).7 where count it.0 > 0) each 0) or (count before.6.3 > 0 and first before.6.3.0 <= last (((payload(first (first ev.6).5)).7 where count it.0 > 0) each 0))) and (count (payload(first (first ev.6).5)).3.5 = 0 or count (ev.5 where count it.2 > 0 and it.3 = first ev.3 and it.2 in (payload(first (first ev.6).5)).3.5) > 0))"
       ],
       [
         "ev.3"
@@ -8713,7 +8739,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "VG, 9-11 (mapa §16 [D] «El árbol mínimo es la invitación»): «4 aceptar = tu primera transacción firmada = tu alta»; «el génesis de cada persona = su aceptación anclada sobre la invitación»",
         "Diseño Core aceptado: la invitación es una décupla: 0 «invitación», 1 lo que te doy, 2 la época, 3 yo, tú (tu clave) y el grupo común, 4 aceptar, 5 el dominio, 6 mi hilo, 7 hasta cuándo vale, 8 el grupo de mi atención que te asigno, 9 el tema y el tutorial; mínima = 2 y 3",
         "Quien aún no tiene alta y escribe (una persona: escribe la suya) lo hace sobre una invitación de una identidad con alta que la nombra en su 3.1, dentro de su 7 y, si nombra una clave en su 3.5, con esa clave. El alta sin invitación es solo la de la primera identidad del eje: el génesis (src/eje.js, Eje.genesis)",
-        "Revisión de seguridad (encargo 3b): el 7 se compara con el mismo reloj que la caducidad de E, min(t de la aceptación, el reloj de los demás: before.6.3), y la aceptación no se fecha antes del último t del libro (before.6.0); así no se acepta una invitación caducada fechando atrás"
+        "Revisión de seguridad (encargo 3b): el 7 se compara con el mismo reloj que la caducidad de E, min(t de la aceptación, el reloj de los demás: before.6.3), y la aceptación no se fecha antes del último t del libro (before.6.0); así no se acepta una invitación caducada fechando atrás",
+        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige"
       ],
       [
         "epoch 0"
@@ -8723,6 +8750,52 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "a person joins by an invitation: {first ev.3} has no alta and does not accept an invitation that names it (in time, with its key)"
+      ]
+    ]
+  },
+  {
+    "archivo": "a-support-is-true-at-its-point.json",
+    "id": "63fde500a64adb766c107af75bca662aa4a58301dec5aed3f7c1b09afdeadc36",
+    "registro": [
+      [
+        "a support is true at its point"
+      ],
+      [
+        "ev.4",
+        "A.2.1",
+        "ev.1",
+        "ev.6.5",
+        "before.5"
+      ],
+      [
+        "=not (\"support a change\" in ev.4) or first (payload(ev)).1.1 = sum ((first ev.3).2.1 each 1) - sum (((first ev.3).2.1 where first it.0 = first ev.6.5 or first ev.6.5 in up (first it.0)) each 1) and first (payload(ev)).1.1 > 0 and first (payload(ev)).1.2 = count (down first ev.6.5 where \"withdraw support\" in (payload(it)).4 and first it.3 = first ev.3) and first (payload(ev)).1.3 - (sum ((payload(last (under first ev.6.5 where it = first ev.6.5 or \"support a change\" in (payload(it)).4 and first it.3 = first ev.3 and first it.6.5 = first ev.6.5 and first (payload(it)).1.2 = count (down first ev.6.5 where \"withdraw support\" in (payload(it2)).4 and first it2.3 = first ev.3)))).1.3) + sum ((ev.1 where P in it.0.0.0 and lock in it.4 and first ev.6.5 in it.2 and not (first it.0.0.1 = first ev.6.5 or first ev.6.5 in up (first it.0.0.1))) each 1) / first (payload(ev)).1.1) <= 0.000001 and (sum ((payload(last (under first ev.6.5 where it = first ev.6.5 or \"support a change\" in (payload(it)).4 and first it.3 = first ev.3 and first it.6.5 = first ev.6.5 and first (payload(it)).1.2 = count (down first ev.6.5 where \"withdraw support\" in (payload(it2)).4 and first it2.3 = first ev.3)))).1.3) + sum ((ev.1 where P in it.0.0.0 and lock in it.4 and first ev.6.5 in it.2 and not (first it.0.0.1 = first ev.6.5 or first ev.6.5 in up (first it.0.0.1))) each 1) / first (payload(ev)).1.1) - first (payload(ev)).1.3 <= 0.000001"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, arreglos de la revisión de seguridad del gobierno (agram-equipo/encargos/encargo-arreglos-gobierno.md, punto G; hallazgo H8 de test/revision-gobierno.test.js): la parte que un titular compromete con una propuesta queda fijada cuando la compromete. docs/notas/GOBIERNO.md",
+        "Un registro que dice «support a change» en su 4 declara en su 1.1 el P total de quien lo escribe en ese punto (todo su P en el libro, A.2.1, sin el situado sobre la propuesta ni sobre lo anclado directamente en ella), mayor que 0; en su 1.2, cuántas veces ha retirado ya su apoyo de esa propuesta («withdraw support» suyos anclados en ella); y en su 1.3, lo que tiene comprometido con ella: el 1.3 de su último apoyo vivo (el último suyo anclado en ella con el mismo 1.2; sin él, 0) más lo que bloquea este (P con la salida en la propuesta, sin ese P situado) entre su total. Solo vale si es verdad en ese punto, como «declare a balance» en el diseño del puente. Lo comprometido se compara con una tolerancia de 0.000001: la plantilla redondea lo que bloquea a la milmillonésima",
+        "El 1.3 es acumulado porque el BQL mínimo no deja dividir cada apoyo por su propio total al sumarlos: «support of» lee solo el del último apoyo vivo de cada titular. Restaurar y reordenar vuelven a pasar esta regla en el orden nuevo"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after a change comes into force with its proof"
+      ],
+      [
+        "a support is true at its point: {first ev.3} supports {first ev.6.5} declaring a total of P, a number of withdrawals or a committed part that are not those of this point"
       ]
     ]
   },
@@ -10226,7 +10299,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "nobody-moves-tokens-of-others.json",
-    "id": "b46fb0ae16e8d317471a5fe93c911e3152c38739c7a9e3a27c99f2fe5bb343f5",
+    "id": "fa86f970c3193930517d8aab763c4ab662dcfb29b32c593be64d3442e9e894b2",
     "registro": [
       [
         "nobody moves tokens of others"
@@ -10236,7 +10309,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "\"invitation\""
       ],
       [
-        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (first (first ev.6).5).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (first (first ev.6).5).3.1)) = 0"
+        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1)) = 0"
       ],
       [
         "ev.3"
@@ -10255,7 +10328,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "VG, 8-11: «solo existe la delegación»; nadie mueve por cuenta de un grupo",
         "VG, 8-11 (mapa §15): cada uno solo mueve lo suyo, sin paso de autorizar",
         "VG, 9-11 (mapa §16 [D] «El árbol mínimo es la invitación»): «1 lo que te doy para empezar (mínimo mi propia R, que te permite escribirme)»: quien invita lo bloquea con la salida = quien invita, y la aceptación lo recoge con una transferencia con esa salida (encargo 3b); no es mover lo ajeno: la salida nombra a quien lo recibe",
-        "Revisión de seguridad (encargo 3b): la excepción es exactamente «aceptar mi invitación»: quien escribe aún no tiene alta, ancla sobre la invitación, que lo nombra como invitado en su 3.1, y transfiere desde quien la escribió hacia sí mismo con la salida = él (el libro solo deja sacar lo bloqueado con esa salida: lo que la invitación le guarda); src/validez.js lo repite en el suelo"
+        "Revisión de seguridad (encargo 3b): la excepción es exactamente «aceptar mi invitación»: quien escribe aún no tiene alta, ancla sobre la invitación, que lo nombra como invitado en su 3.1, y transfiere desde quien la escribió hacia sí mismo con la salida = él (el libro solo deja sacar lo bloqueado con esa salida: lo que la invitación le guarda); src/validez.js lo repite en el suelo",
+        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige"
       ],
       [
         "epoch 0"
@@ -11144,21 +11218,65 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "support-is-released-by-withdrawing-it.json",
+    "id": "02fb7e952496cfe9afc8913b907a890f2731aee278d4aeddaeaaf8ec2728c7bb",
+    "registro": [
+      [
+        "support is released by withdrawing it"
+      ],
+      [
+        "ev.1",
+        "ev.4",
+        "ev.6.5",
+        "before.5"
+      ],
+      [
+        "=count (ev.1 where release in it.4 and not ((\"withdraw support\" in ev.4 or \"withdraw a change\" in ev.4) and first ev.6.5 in it.2) and count (it.2 where it2 in (down (first before.5) where \"propose a change\" in (payload(it3)).4)) > 0) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, arreglos de la revisión de seguridad del gobierno (agram-equipo/encargos/encargo-arreglos-gobierno.md, punto G; hallazgo H8 de test/revision-gobierno.test.js): la parte que un titular compromete con una propuesta queda fijada cuando la compromete. docs/notas/GOBIERNO.md",
+        "Lo bloqueado con un cambio propuesto (la salida es una propuesta colgada del génesis) solo se libera en un registro que dice «withdraw support» o «withdraw a change» en su 4 y se ancla en esa propuesta. Así toda liberación cuenta como una retirada (el 1.2 de los apoyos siguientes sube y los anteriores dejan de contar) y el P liberado no sigue contando en una propuesta mientras apoya otra"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after a support is true at its point"
+      ],
+      [
+        "support is released by withdrawing it: {first ev.3} releases what is locked with a proposed change without withdrawing its support from it or withdrawing the change"
+      ]
+    ]
+  },
+  {
     "archivo": "support-of.json",
-    "id": "d41f0bf6610aca0d5e21fcc1335fc43e9c306044873840384bccd61300d94d45",
+    "id": "2148422487e80a66cc3a5d6ebefc254641993503a0f78bc6d2b9318e072bc50e",
     "registro": [
       [
         "support of"
       ],
       [
         "X.2.4",
-        "A.2.1",
+        "X.6.5",
         "epoch.7.9.5",
         "epoch.9.0.0.4",
         "before.5"
       ],
       [
-        "=count (epoch where P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1))) * ((first epoch.9.0.0.4) * count (epoch.7.9.5 where it2 = first it.3) + sum ((epoch.7.9.5 where it2 != first it.3 and it2 != 0 and count it2.6 = 0 and count it2.2 > 0 and first it2.2 = first it.3) each 1) + (first epoch.9.0.0.4) * count (epoch where count (epoch.7.9.5 where it3 != 0) = 0 and first it.3 = first (first before.5).3)) * it.1 / ((sum ((first it.3).2.1 each 1) - sum (((first it.3).2.1 where first it2.0 = first it.5 or first it.5 in up (first it2.0)) each 1)) + count (epoch where not (P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1)))))"
+        "=count (epoch where P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1))) * ((first epoch.9.0.0.4) * count (epoch.7.9.5 where it2 = first it.3) + sum ((epoch.7.9.5 where it2 != first it.3 and it2 != 0 and count it2.6 = 0 and count it2.2 > 0 and first it2.2 = first it.3) each 1) + (first epoch.9.0.0.4) * count (epoch where count (epoch.7.9.5 where it3 != 0) = 0 and first it.3 = first (first before.5).3)) * (sum ((payload(last (under first it.5 where it2 = first it.5 or \"support a change\" in (payload(it2)).4 and first it2.3 = first it.3 and first it2.6.5 = first it.5 and first (payload(it2)).1.2 = count (down first it.5 where \"withdraw support\" in (payload(it3)).4 and first it3.3 = first it.3)))).1.3) - count (epoch where sum ((payload(last (under first it.5 where it3 = first it.5 or \"support a change\" in (payload(it3)).4 and first it3.3 = first it.3 and first it3.6.5 = first it.5 and first (payload(it3)).1.2 = count (down first it.5 where \"withdraw support\" in (payload(it4)).4 and first it4.3 = first it.3)))).1.3) > 1) * (sum ((payload(last (under first it.5 where it2 = first it.5 or \"support a change\" in (payload(it2)).4 and first it2.3 = first it.3 and first it2.6.5 = first it.5 and first (payload(it2)).1.2 = count (down first it.5 where \"withdraw support\" in (payload(it3)).4 and first it3.3 = first it.3)))).1.3) - 1)) * it.1 / (sum (((first it.5).2.4 where first it2.3 = first it.3 and P in it2.0.0.0 and not (first it2.0.0.1 = first it.5 or first it.5 in up (first it2.0.0.1))) each 1) + count (epoch where sum (((first it.5).2.4 where first it3.3 = first it.3 and P in it3.0.0.0 and not (first it3.0.0.1 = first it.5 or first it.5 in up (first it3.0.0.1))) each 1) = 0))"
       ],
       [
         "X.2.4.7"
@@ -11171,7 +11289,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
-        "En cada compromiso con X (X.2.4: lo bloqueado con la salida = X, por titular y serie): lo que cuenta para X. Solo P, y no el situado sobre la propia propuesta o sobre lo anclado en ella: lo demás da 0. La presión de su titular entre los nombres de epoch.7.9.5 (un nombre suelto, la presión máxima epoch.9.0.0.4; «nombre k», una magnitud, k; el 0, ningún nombre: cuenta el dueño del libro, el autor del génesis, con la presión máxima) × lo que bloquea ÷ todo su P en el libro, esté donde esté (A.2.1, su P posicionado: lo disponible y lo bloqueado de cada registro o mirada, de cualquier origen, también el P que le dio recibir R en la raíz de su emisor). Quien no está en la lista da 0. Sumado sobre las series de un titular da su presión × la parte de su P que tiene bloqueada con X: como mucho su presión entera, porque lo bloqueado con X es parte de su P",
+        "En cada compromiso con X (X.2.4: lo bloqueado con la salida = X, por titular y serie): lo que cuenta para X. Solo P, y no el situado sobre la propia propuesta o sobre lo anclado en ella: lo demás da 0. La presión de su titular entre los nombres de epoch.7.9.5 (un nombre suelto, la presión máxima epoch.9.0.0.4; «nombre k», una magnitud, k; el 0, ningún nombre: cuenta el dueño del libro, el autor del génesis, con la presión máxima) × lo que tiene comprometido con X, con tope 1 × la parte de este compromiso entre todo su P bloqueado con X que cuenta. Lo comprometido es el 1.3 de su último apoyo vivo («support a change» suyo anclado en X con su 1.2 igual a las veces que ha retirado su apoyo): por cada compromiso suyo, lo que bloqueó entre su P total en el punto de ese compromiso, sumado (H8, Core AGRAM 17-11: el P que le llegue después, también el que nace al recibir R, no lo baja). Sumado sobre las series de un titular da su presión × lo comprometido. Quien no está en la lista da 0",
         "Core AGRAM 17-11 (decisión del agente de la época): el P situado sobre la propia propuesta o sobre un registro anclado en ella no cuenta, ni bloqueado ni en el total: es el que dan escribirla, apoyarla o retirar el apoyo («writing a record gives ten P on it»). Si contara, apoyar diluiría al que apoya, escribir más antes de apoyar daría más peso y quien propone pesaría distinto que los demás (el resultado dependería de quién propuso)",
         "Se materializa en X.2.4.7, al lado del peso de «weight» (X.2.4.8): «quién apoya una propuesta y con cuánto» es la lista X.2.4 con su titular (3), lo bloqueado (1) y lo que cuenta (7)"
       ],
@@ -11182,7 +11300,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after only the owner of the book retouches a text"
       ],
       [
-        "support of: what a commitment of P with a proposed change counts for it: the pressure of its holder among the names of epoch.7.9.5 × what it locks ÷ all its P in the book"
+        "support of: what a commitment of P with a proposed change counts for it: the pressure of its holder among the names of epoch.7.9.5 × what the holder committed (what each support locked ÷ all its P at that point, at most 1), shared among its locked P"
       ]
     ]
   },
@@ -16206,7 +16324,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "support-a-change.json",
-    "id": "7feece0bd637fcbf0dbfc22af44fdfefceeee57120cb0d3d58081c285ca4f826",
+    "id": "69313071c8b24b8cb60f51c4cd53374a9ab75b96459038f5a44f410c0ab92212",
     "registro": [
       [
         "support a change"
@@ -16229,7 +16347,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "payload"
           ],
           [
-            "1"
+            "1.0"
           ],
           [
             "encargo A21 (gobierno): parámetro de «support a change»"
@@ -16243,6 +16361,105 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           [
             1,
             "the part of each of my P series, wherever it is in this book, that I lock with this proposal as the exit (1: all of it)"
+          ]
+        ],
+        [
+          [
+            "total"
+          ],
+          [
+            "number"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "encargo arreglos del gobierno (H8): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=sum (me.2.1 each 1) - sum ((me.2.1 where first it2.0 = it or it in up (first it2.0)) each 1)",
+            "all my P in this book at this point, without the P on this proposal or on what is anchored on it: what I commit is divided by it, now and later"
+          ]
+        ],
+        [
+          [
+            "withdrawals"
+          ],
+          [
+            "number"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.2"
+          ],
+          [
+            "encargo arreglos del gobierno (H8): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=count (down it where \"withdraw support\" in (payload(it2)).4 and first it2.3 = me)",
+            "how many times I have withdrawn my support from this proposal so far"
+          ]
+        ],
+        [
+          [
+            "committed"
+          ],
+          [
+            "number"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.3"
+          ],
+          [
+            "encargo arreglos del gobierno (H8): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=sum ((payload(last (under it where it2 = it or \"support a change\" in (payload(it2)).4 and first it2.3 = me and first it2.6.5 = it and first (payload(it2)).1.2 = count (down it where \"withdraw support\" in (payload(it3)).4 and first it3.3 = me)))).1.3) + sum ((me.1 where P in it2.0.0.0 and it2.1 > 0 and not (first it2.0.0.1 = it or it in up (first it2.0.0.1))) each 1) * first memo.1.0 / first memo.1.1",
+            "what I have committed to this proposal with my live supports: what the last one committed plus what this one locks divided by my total (the rule checks it at this point)"
           ]
         ],
         [
@@ -16271,7 +16488,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            2
+            5
           ],
           [
             "=first epoch.9.0.1.2",
@@ -16304,7 +16521,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            3
+            6
           ],
           [
             "=me",
@@ -16337,7 +16554,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            4
+            7
           ],
           [
             "support a change",
@@ -16357,7 +16574,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=me.1 where P in it2.0.0.0 and it2.1 > 0 and lock (it2.1 * first memo.1) it2.0 from me exit it"
+        "=me.1 where P in it2.0.0.0 and it2.1 > 0 and lock (it2.1 * first memo.1.0) it2.0 from me exit it"
       ],
       [
         "2.1"
@@ -16367,7 +16584,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Diseño §3.2: se lanza sobre una propuesta abierta (ni aprobada ni retirada) y bloquea, con la salida en la propuesta, la parte que diga de cada serie de P suya disponible, esté donde esté en el libro (me.1: cualquier registro, cualquier mirada, cualquier origen). No reutiliza «commit P», que solo admite P en el dominio de quien escribió el objetivo: el recuento dependería de quién propone. Ninguna regla de bloqueos cambia: «locks keep their holder and name an exit» (mismo titular a los dos lados, con salida), «nobody moves tokens of others», «P moves within a known scope» y «locked P backing live E is not released» (solo mira liberaciones con salida en una E) dejan bloquear P situado fuera del hilo de la propuesta",
         "Bloquea todas sus series en una transacción para que el P que da escribir el apoyo («writing a record gives ten P on it») no obligue a otra; ese P nuevo no cuenta en su total («support of»). El mismo P no apoya dos propuestas a la vez: lo bloqueado ya no está disponible. Ancla en el 2.1 de la propuesta, como «commit P»",
-        "[2, 7]: el criterio (PV 2), detrás de las de la 0 y antes de las de la época state ([2, 10], [2, 11])"
+        "[2, 7]: el criterio (PV 2), detrás de las de la 0 y antes de las de la época state ([2, 10], [2, 11])",
+        "Core AGRAM 17-11 (arreglos de la revisión, H8): su 1 lleva 1.0 la parte, 1.1 mi P total en este punto (sin el situado sobre la propuesta ni lo anclado en ella), 1.2 las veces que ya retiré mi apoyo de ella y 1.3 lo comprometido (lo del último apoyo vivo más lo que bloquea este entre el total); los tres por defecto salen del libro (datos/epocas/gobierno.mjs) y la regla «a support is true at its point» los comprueba. El P que llegue después no baja lo comprometido y se puede comprometer con otro apoyo"
       ],
       [
         "epoch 0"
@@ -24592,7 +24810,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a";
+export const EPOCA_0_BTML_ID = "84c9901701a74dcbe7bcbe32e996f0ef319360995baeadb614e2376cdf5f38f4";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

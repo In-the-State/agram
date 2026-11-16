@@ -697,6 +697,6 @@
   "template interlocutor of param channel help: el canal: uno de la época que no sea de la casa",
   "template interlocutor of param fingerprint label: huella",
   "template interlocutor of param fingerprint help: la huella del identificador de fuera: 64 caracteres hexadecimales en minúsculas",
-  "an interlocutor is registered once: {first ev.3} da de alta un interlocutor fuera del 1.4 de su propia alta, en el canal de la casa o en uno que no está en la lista, con una huella mal formada, sin R en un nodo, o con un canal y una huella que ya dio de alta",
+  "an interlocutor is registered once: {first ev.3} da de alta un interlocutor fuera del 1.4 de su propia alta, en el canal de la casa o en uno que no está en la lista, con una huella mal formada, sin R en un nodo, con un canal y una huella que ya dio de alta, o declarando una clave (un interlocutor no tiene)",
   "template interlocutor of message: {first ((payload(first (((under it) where it2 = it or first (payload(it2)).6.1 = first (payload(ev)).1 and first (payload(it2)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it2)).4 and first it2.3 = first it.3) by count (epoch where it2 = it)))).3.1 where first (((under it) where it3 = it or first (payload(it3)).6.1 = first (payload(ev)).1 and first (payload(it3)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it3)).4 and first it3.3 = first it.3) by count (epoch where it3 = it)) != it)}"
 ]

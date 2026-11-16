@@ -1,15 +1,16 @@
 [
   ["a change names its class and brings a change"],
   ["before.5", "9700000000", "\"ordinary\"", "\"governance\""],
-  ["=not (\"propose a change\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9700000000\" and (first (payload(ev)).2 = \"ordinary\" or first (payload(ev)).2 = \"governance\") and count (payload(ev)).1.1.0 > 0"],
+  ["=not (\"propose a change\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9700000000\" and (first (payload(ev)).2 = \"ordinary\" or first (payload(ev)).2 = \"governance\") and count (payload(ev)).1.1.0 > 0 and count (payload(ev)).1.3 = 0"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],
   [
     "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
-    "Diseño §3.1: un registro que dice «propose a change» en su 4 cuelga del 9.7 del génesis («changes»), declara su clase en su 2 («ordinary» o «governance») y trae un cambio: una raíz de época con nombre en su 1.1 (y sus registros, si los hay, en su 1.2). Es solo la forma que alcanza el BQL; que el cambio sea una época hija que carga, que no toque el suelo (epoch.7.9.6) y que su clase no se quede corta (lo que toca epoch.7.9.7 es «governance») lo comprueba el núcleo (encargo siguiente, el motor). Solo se mira con esa acción (el or es perezoso)"
+    "Diseño §3.1: un registro que dice «propose a change» en su 4 cuelga del 9.7 del génesis («changes»), declara su clase en su 2 («ordinary» o «governance») y trae un cambio: una raíz de época con nombre en su 1.1 (y sus registros, si los hay, en su 1.2). Es solo la forma que alcanza el BQL; que el cambio sea una época hija que carga, que no toque el suelo (epoch.7.9.6) y que su clase no se quede corta (lo que toca epoch.7.9.7 es «governance») lo comprueba el núcleo (encargo siguiente, el motor). Solo se mira con esa acción (el or es perezoso)",
+    "Core AGRAM 17-11 (arreglos de la revisión, H8): y no lleva nada en su 1.3. «support of» y «a support is true at its point» leen lo comprometido en el 1.3 del último apoyo vivo y, sin ninguno, en el de la propia propuesta (la lista nunca queda vacía): ha de dar 0"
   ],
   ["epoch 0"],
   ["after changes"],
-  ["a change names its class and brings a change: {first ev.3} proposes a change that does not hang from the 9.7 of the genesis, does not say «ordinary» or «governance» in its 2 or brings no epoch in its 1.1"]
+  ["a change names its class and brings a change: {first ev.3} proposes a change that does not hang from the 9.7 of the genesis, does not say «ordinary» or «governance» in its 2, brings no epoch in its 1.1 or brings something in its 1.3"]
 ]

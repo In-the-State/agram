@@ -32,7 +32,7 @@ console.log(eje.epocaDe(enVigor.id).registro[7][3][0], eje.epoca().registro[7][3
 ```
 
 ```text
-[ [ 0, null, '40add9d6' ], [ 1, '71b98920', 'e5f3d528' ] ]
+[ [ 0, null, '5e1ccb74' ], [ 1, '14b978b9', '31724765' ] ]
 [ 600 ] [ 900 ] true
 ```
 
@@ -63,9 +63,14 @@ Los motivos salen por la vía de siempre: `eje.motivos(ev)` (con `regla: 'núcle
 | sustituye una regla del suelo | «el cambio sustituye «…», que es del suelo (epoch.7.9.6): no se sustituye» |
 | cambia una posición del suelo | «el cambio cambia la posición epoch.7.2 de la época, que es del suelo (epoch.7.9.6): no se cambia» |
 | encoge la lista del suelo | «el cambio quita del suelo (epoch.7.9.6) «…»: el suelo se amplía, nunca se encoge» |
-| umbral alto por debajo del corriente | «el cambio deja el umbral de un cambio de gobierno (epoch.7.9.2, x) por debajo del de un cambio corriente (epoch.7.9.1, y)» (o «… sin un número») |
+| un umbral que no es un número mayor que 0 y menor que 1 (también un texto que parece un número) | «el cambio deja el umbral de un cambio corriente (epoch.7.9.1) en «0.9»: un umbral es un número mayor que 0 y menor que 1 (se aprueba al superarlo, y el apoyo no pasa de 1)» |
+| umbral alto que no queda por encima del corriente | «el cambio deja el umbral de un cambio de gobierno (epoch.7.9.2, x) por debajo del (o igual que el) de un cambio corriente (epoch.7.9.1, y): ha de quedar por encima» |
+| un nivel que no es de la época | «el cambio deja el nivel de firmeza de un cambio de gobierno (epoch.7.9.4) en 7: un nivel es 0 (sin prueba) o uno de los de la época (epoch.7.6.1: 1, 2, 3, 4)» |
+| nivel de gobierno por debajo del corriente | «el cambio deja el nivel de firmeza de un cambio de gobierno (epoch.7.9.4, x) por debajo del de un cambio corriente (epoch.7.9.3, y)» |
+| una presión fuera de rango | «el cambio deja en quién cuenta (epoch.7.9.5) «nadie -9» con la presión -9: una presión es un número mayor que 0 y no mayor que la máxima de la época (epoch.9.0.0.4, 9)» |
 | nombres sin presión | «el cambio deja en quién cuenta (epoch.7.9.5) nombres cuyas presiones suman 0: …» (la lectura «support» dividiría por cero) |
-| la clase se queda corta | «el cambio toca «…», que es una pieza de gobierno (epoch.7.9.7), y se declara «ordinary»: un cambio así es de clase «governance»» |
+| la clase se queda corta | «el cambio toca «…», que es una pieza de gobierno (epoch.7.9.7), y se declara «ordinary»: un cambio así es de clase «governance»» (también las piezas calculadas: `epoch.9.0.0.4`, `epoch.7.6`) |
+| añade o sustituye una condición o una lectura que se guarda, y es «ordinary» | «el cambio añade la condición «…», y se declara «ordinary»: una condición o una lectura que se guarda, nueva o sustituida, se llame como se llame, es de clase «governance»» (o «sustituye la regla que escribe «…»», o «añade la lectura «…», que se guarda en X.2.4.7») |
 
 **Solo al poner en vigor**, siguiendo el sobre:
 
@@ -83,11 +88,13 @@ Lo de «una sola vez» y «retirada» también lo dicen las reglas de la época 
 
 ## 5. El suelo
 
-`erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o plantillas: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Las piezas de gobierno son las de 7.9.7 de la base y del resultado. Sin `clase` no se mira la clase.
+`erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o plantillas: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Además mira la fila 7.9 del resultado (`erroresDeLaFila`: umbrales, niveles y presiones, `docs/notas/GOBIERNO.md` §2). Las piezas de gobierno son las de 7.9.7 de la base y del resultado **y lo que leen, calculado** (`piezasDeGobiernoDe`, GOBIERNO.md §6). Con una clase que no es «governance», además, ninguna condición ni lectura que se guarda nueva o sustituida (`reglasConId` del resultado que la base no tiene, por id). Sin `clase` no se mira la clase.
 
-El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar.
+El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar. En la 0, el suelo son las 17 reglas de VG, las 9 reglas y lecturas del mecanismo del gobierno (anexo de los arreglos, I: «approved», «support», «support of», las cuatro reglas de §5 de GOBIERNO.md y las dos del apoyo) y tres posiciones; `sueloDe` le añade, calculado, toda lectura que una de sus reglas o lecturas nombra en su 1 (hoy, ninguna).
 
 **Al cargar una época hija de nacimiento** (`cargarEpocaEscrita`, `src/epocas.js`) se comprueba el mismo suelo, sin la clase: una hija puede ampliarlo, no encogerlo, ni sustituir ni quitar una regla de la lista, ni cambiar una posición de la lista; si lo hace, la carga lanza con «no respeta el suelo de la época de la que hereda: …». Comprobado contra la 7.9.6 real antes de activarlo: la época state (sustituye «second factor» y «attention has a price») y la SIP 0 de StateArk (sustituye «sealed», «paid», «second factor» y «authorized by the holder») no tocan el suelo.
+
+**Una época completa** (que no hereda: su 6 no dice «hereda») pasa por lo mismo contra el suelo de **la 0 que trae el código** (arreglos de la revisión, H4): si no lo respeta, la carga lanza con «no respeta el suelo de la época 0: …». La 0 misma y las épocas completas de las pruebas siguen cargando.
 
 ## 6. Lo escrito sin red (diseño §6.2)
 

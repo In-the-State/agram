@@ -2,7 +2,7 @@
 
 Para quien monta el eje de un nodo (Core AARPIA). VG 16-11, #124: el nodo, visto desde dentro, es un eje, y su época es esta. Fuente y generador en `datos/epocas/state/` (`LEEME.md`); eje de ejemplo en `ejemplos/state/nodo.mjs`; pruebas en `test/epoca-state.test.js`. Las conexiones son invitados, piden anclas con R, y su invitación, su grupo y su veto esperan la firma del titular; el dueño del nodo sirve los pedidos (VG 17-11, §4 bis).
 
-- **Id**: el de `datos/epocas/state/state-0.ids.json` (`epoca`). Hereda de la época 0 definitiva (`239f4849…`) y no la cambia.
+- **Id**: el de `datos/epocas/state/state-0.ids.json` (`epoca`). Hereda de la época 0 definitiva (`84c99017…`) y no la cambia.
 - **Genérica**: vale para cualquier nodo de la clase `state`. Nada real va en la época: dominios, claves y máquinas van en el libro del nodo, como datos de sus altas.
 
 ## 1. Quién es quién
@@ -195,7 +195,7 @@ Lo que piden las plantillas lo exigen también a lo escrito a mano siete reglas 
 - **an archived conversation takes no messages**: con un «archive a conversation» en su 4 (de quien la abrió o del dueño del agente), ni uno más.
 - **a delivery result comes from whoever delivers**: en el 4 de un «message out» de fuera, de quien dio de alta a su interlocutor, `sent` o `failed` con causa.
 - **who opens, renames and archives a conversation**: lo de la tabla para abrir, renombrar y archivar.
-- **an interlocutor is registered once**: el alta de un interlocutor va en el 1.4 de la propia alta, con el tipo «interlocutor», un canal de fuera y una huella bien formada, la escribe quien tiene R en el nodo, y **una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor** (mira lo que cuelga de su alta, la huella primero).
+- **an interlocutor is registered once**: el alta de un interlocutor va en el 1.4 de la propia alta, con el tipo «interlocutor», un canal de fuera y una huella bien formada, la escribe quien tiene R en el nodo, y **una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor** (mira lo que cuelga de su alta, la huella primero). Y **no declara ninguna clave** (arreglos de la revisión del gobierno, H7: su 5 es solo su id, `count ev.5 = 1`): un interlocutor no actúa, y un alta escrita a mano que le diera una clave dejaría al servicio firmar en su nombre. Rechazo en español: «… o declarando una clave (un interlocutor no tiene)».
 
 Un interlocutor de un canal de fuera (en «who opens, renames and archives a conversation», el 3.1 que no es quien abre; en «who writes a message», el 1.1 de un «message in» de fuera) ha de ser además **de tipo «interlocutor»** (el 5 de su alta): una lectura del alta que la regla ya mira, sin coste apreciable (de 10 a 16 pasos siguen siendo los de «who writes a message»).
 

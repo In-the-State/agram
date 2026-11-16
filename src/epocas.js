@@ -730,6 +730,9 @@ export function cargarEpocaEscrita(escrita, { conocidas = EPOCAS_POR_ID } = {}) 
   if (!baseId) {
     if (raiz.length !== ARIDAD) throw new TypeError(nombre + ': una época que no hereda es completa: la raíz lleva las diez posiciones (o declara «hereda» en su 6)');
     e = cargarEpocaBtml(raiz, { registros: propios, plantillas: propios, id });
+    // Una época completa también pasa por el suelo (arreglos de la revisión, H4): el de la 0 que trae el código.
+    const suelo = erroresDelSuelo(EPOCA_0_BTML, e);
+    if (suelo.length) throw new TypeError(nombre + ': no respeta el suelo de la época 0: ' + suelo.join('; '));
   } else {
     base = conocidas.get(baseId) ?? null;
     if (!base) throw new TypeError(nombre + ': hereda de una época que no se conoce: ' + baseId.slice(0, 8));
