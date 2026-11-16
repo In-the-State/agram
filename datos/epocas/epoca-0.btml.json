@@ -179,7 +179,7 @@
     {"ref":"a4a7ee336d00e8f8ac80e00c3091581e00e2eb4427a13330256ab00c948d6f65"},
     {"ref":"9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea"},
     {"ref":"a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"},
-    {"ref":"c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617"}
+    {"ref":"e62ec99522bdf3349620586b4e40605594e9680571a27ce0c03019db213cceae"}
   ],
   [
     [
@@ -855,6 +855,15 @@
       [1, 2, 3, 4],
       [0, 1, 2, 3],
       ["T", "R", "P", "E"]
+    ],
+    [
+      [
+        "custody defaults",
+        "the base resolutions of custody (VG 17-11 through Core State, the group «who can read what»: V11 and V7, defined by the epoch, configurable and with base resolutions, not fixed rules in code): 1 the keys, 2 the base value of each key, 3 the values allowed for each key (one list per key, in the order of 1). «parent reads»: whether a parent reads its branch when its record does not say (yes or no): a parent can keep and seal without receiving the envelope. «linked operation»: to whom a record that links other elements goes: both, to the parents of the branch of each element it links as well; own, only to those of the element it hangs from. The owner of an element changes them for it and what hangs from it with «set a custody default»; the reading is contrato.custodia"
+      ],
+      ["parent reads", "linked operation"],
+      ["yes", "both"],
+      [["yes", "no"], ["both", "own"]]
     ]
   ],
   [
@@ -3149,6 +3158,8 @@
           "template add a parent param grade help: el grado que declara el padre (quién responde), opaco como el de un eslabón del sello: un número o un texto corto; sin él, no se dice",
           "template add a parent param url label: dirección",
           "template add a parent param url help: dónde se encuentra al padre: una dirección http o https, sin credenciales; sin ella, no se dice",
+          "template add a parent param can read label: puede leer",
+          "template add a parent param can read help: si el padre lee lo que guarda: reads (la clave del sobre se envuelve también para él) o does not read (guarda y sella sin recibir el sobre); sin él, el defecto «parent reads» del elemento más cercano hacia arriba que lo diga, o el de base de la época (epoch.7.7)",
           "template add a parent message: {me} añade el padre {first ev.0} a {first it.0}",
           "template remove a parent: quitar un padre",
           "template remove a parent param parent label: padre",
@@ -3172,7 +3183,19 @@
           "template set the kind of owner param actions label: acción",
           "template set the kind of owner param actions help: la acción",
           "template set the kind of owner message: {me} dice que el dueño de {first it.0} es de la clase {first ev.0}",
-          "only the owner sets who keeps it: {first ev.3} dice quién guarda {first (first ev.6.5).0}, que no escribió, en un libro cuyo génesis no escribió"
+          "only the owner sets who keeps it: {first ev.3} dice quién guarda {first (first ev.6.5).0}, que no escribió, en un libro cuyo génesis no escribió",
+          "template set a custody default: decidir cómo se guarda aquí",
+          "template set a custody default param key label: qué se decide",
+          "template set a custody default param key help: una de las claves de los defectos de custodia de la época (epoch.7.7.1): «parent reads» (si un padre lee lo que guarda cuando su registro no lo dice) o «linked operation» (a quién va un registro que enlaza otros elementos)",
+          "template set a custody default param value label: valor",
+          "template set a custody default param value help: el valor para este elemento y lo que cuelga de él: uno de los que la época permite para esa clave (epoch.7.7.3); por defecto, el de base de la época (epoch.7.7.2)",
+          "template set a custody default param criteria label: criterio",
+          "template set a custody default param criteria help: la plantilla de cerrado del registro",
+          "template set a custody default param who label: quién",
+          "template set a custody default param who help: quién lo decide: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template set a custody default param actions label: acción",
+          "template set a custody default param actions help: la acción",
+          "template set a custody default message: {me} pone {first ev.0} a {first ev.1} en {first it.0}"
         ]
       ],
       [
@@ -3317,9 +3340,10 @@
         {"ref":"9e2c94486ab65a40f0bef6a3401432a861d1ecc5d6dd33111ab79ceb03e9824f"},
         {"ref":"f420028e91ea856f84b9f01d1a641aaa3fcb699af8368dc63bc9843186172e76"},
         {"ref":"dee46772ef10d44f6ae9e35974ce1e19466fca47cf6088c372dac7209e18afd5"},
-        {"ref":"c86e8cf586f51031fb12c017c807ccd20e206a416f9e013fe7214a7f6f156a01"},
+        {"ref":"0e07a0558cb06099a25ab102c05f414ed21984e115787797a0d04a8f5f6f7bd5"},
         {"ref":"e32320e88634620543caf44460ee413ef266bd104371a216feeaa246bd8f7a8d"},
-        {"ref":"6855920bf1834b1f262bf338df52510bd88a941a152ff4dee6845505d4ed5ed0"}
+        {"ref":"6855920bf1834b1f262bf338df52510bd88a941a152ff4dee6845505d4ed5ed0"},
+        {"ref":"fce6cac82d91c1aa26033459717f8d029c35237666592c03fd0e14bcb2048e2f"}
       ]
     ],
     [

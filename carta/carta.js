@@ -202,7 +202,33 @@ function custodiaDelRegistro(eje, X, ctx) {
     plazoEscala: c.plazo && Number.isInteger(c.plazo.escala) ? ESCALAS_REALES[c.plazo.escala] ?? null : null,
     deTexto: c.heredado ? legibleDe(eje, { ref: c.de }, null, ctx.opciones).texto : null,
     nodo: contrato.quienGuarda(eje, ctx.yo, X, ctx.opciones).nodo,
+    // Las ramas de los enlazados (encargo «puede leer», V7): las que no son la propia, con el nombre del elemento por el que van.
+    enlazadas: (c.ramas ?? []).filter((r) => r.de !== c.de).map((r) => ({ ...r, porTexto: legibleDe(eje, { ref: r.por }, null, ctx.opciones).texto })),
+    // En «este libro», por padre, en qué ramas guarda, sella y lee (contrato.ramasDelLibro, Core 17-11); solo con más de una rama.
+    porPadre: X === eje.genesisId ? padresPorRama(eje, ctx) : null,
   };
+}
+
+/**
+ * Los padres del libro y sus ramas, para el bloque «este libro»: de contrato.ramasDelLibro, cada padre (por su clave) con los
+ * nombres de los elementos de las ramas en que guarda, en las que sella y en las que lee. La carta solo los pone en texto.
+ * null si el libro tiene una rama o ninguna.
+ */
+function padresPorRama(eje, ctx) {
+  const ramas = contrato.ramasDelLibro(eje, ctx.opciones);
+  if (ramas.length < 2) return null;
+  const porClave = new Map();
+  for (const r of ramas) {
+    const nombre = legibleDe(eje, { ref: r.de }, null, ctx.opciones).texto;
+    for (const p of r.padres) {
+      const t = porClave.get(p.clave) ?? { nombre: p.nombre, guarda: [], sella: [], lee: [] };
+      if (p.guarda) t.guarda.push(nombre);
+      if (p.sella) t.sella.push(nombre);
+      if (p.lee) t.lee.push(nombre);
+      porClave.set(p.clave, t);
+    }
+  }
+  return [...porClave.values()];
 }
 
 function pagoDelRegistro(eje, X, ctx) {
@@ -972,9 +998,10 @@ export function formulario(eje, X, accion, yo, valores = {}, opciones = {}) {
   const { id, nombre } = accionDe(canonico, o);
   const lectura = acciones.esLectura(plantilla);
   const camino = acciones.esCamino(plantilla);
-  // La línea de antes de firmar (encargo «padres y copias», N2): quién guardará lo que se escribe, colgado de donde colgará.
+  // La línea de antes de firmar (encargo «padres y copias», N2): quién guardará lo que se escribe, colgado de donde colgará;
+  // y, desde «puede leer» (V7), también los padres de lo que enlazará.
   const sobre = lectura || camino ? null : acciones.sobreDe(eje, canonico, { ...valores, X }, yo, o);
-  const quienGuarda = sobre ? contrato.quienGuarda(eje, yo, sobre, o) : null;
+  const quienGuarda = sobre ? contrato.quienGuarda(eje, yo, sobre, { ...o, enlaza: acciones.enlazaDe(eje, canonico, { ...valores, X }, yo, o) }) : null;
   return { X, accion: id, nombre, pv, campos, lectura, camino, ofrecida: Boolean(ofrecida), ...(quienGuarda ? { quienGuarda } : {}), ...(opciones.ejecutar && !lectura && !camino ? { ejecucion: ejecucionDe(eje, X, canonico, yo, valores, o) } : {}) };
 }
 
