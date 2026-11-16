@@ -1,0 +1,59 @@
+{
+  "_": "Vector compartido de la firma NIP-98 del titular (S54). Claves de PRUEBA, nada real. Lo usan sim/test/nip98.test.js y, si Core StateArk quiere, un test del backend.",
+  "id_de_nip98_rs": {
+    "descripcion": "El evento de la prueba el_id_es_el_de_nip01 de app/crates/stateark-servidor/src/nip98.rs (sin firma): solo el id NIP-01.",
+    "evento": {
+      "pubkey": "1111111111111111111111111111111111111111111111111111111111111111",
+      "created_at": 1763300000,
+      "kind": 27235,
+      "tags": [
+        [
+          "u",
+          "https://stateark.ikisai.com/pagos/cartera"
+        ],
+        [
+          "method",
+          "POST"
+        ],
+        [
+          "payload",
+          "abababababababababababababababababababababababababababababababab"
+        ]
+      ],
+      "content": "línea\n\"dos\""
+    },
+    "id": "31097d566304cca4ac7afd38aa08b07c10f5ab38b5d5d416cfe9d16c08236fcb"
+  },
+  "peticion": {
+    "clave_privada_de_prueba": "d57676a630c0328eb8e82cac0cff2ae3ad04d4d48c385526555ba2337c5e766a",
+    "semilla": "titular de PRUEBA «vg»",
+    "metodo": "POST",
+    "url": "https://stateark.ikisai.com/pagos/cartera",
+    "cuerpo": "{\"nombre\":\"vg\",\"titular\":\"3a645b6bae2880d23db46eab18978743a9dc0d1b1ced12ad224bd465a07d3a28\"}",
+    "payload": "44118f83c30d02f56b0f55ae6fae6012e2a03ec913fd7bc05e805c3f483e4dd0",
+    "ahora": 1763300000
+  },
+  "evento": {
+    "id": "11e451f07101c6976546f4f45d56f2a6db2db6179c8b9e5d964bd12a416e12f5",
+    "pubkey": "3a645b6bae2880d23db46eab18978743a9dc0d1b1ced12ad224bd465a07d3a28",
+    "created_at": 1763300000,
+    "kind": 27235,
+    "tags": [
+      [
+        "u",
+        "https://stateark.ikisai.com/pagos/cartera"
+      ],
+      [
+        "method",
+        "POST"
+      ],
+      [
+        "payload",
+        "44118f83c30d02f56b0f55ae6fae6012e2a03ec913fd7bc05e805c3f483e4dd0"
+      ]
+    ],
+    "content": "",
+    "sig": "31efbcae6a28a481367077bbb49d41d591d08ca12c97ed5a0c3fbd674157afbd336ab3c02d68987ee76a8acdb76e423099e0fc435a2257632871055ecf49946f"
+  },
+  "cabecera": "Nostr eyJpZCI6IjExZTQ1MWYwNzEwMWM2OTc2NTQ2ZjRmNDVkNTZmMmE2ZGIyZGI2MTc5YzhiOWU1ZDk2NGJkMTJhNDE2ZTEyZjUiLCJwdWJrZXkiOiIzYTY0NWI2YmFlMjg4MGQyM2RiNDZlYWIxODk3ODc0M2E5ZGMwZDFiMWNlZDEyYWQyMjRiZDQ2NWEwN2QzYTI4IiwiY3JlYXRlZF9hdCI6MTc2MzMwMDAwMCwia2luZCI6MjcyMzUsInRhZ3MiOltbInUiLCJodHRwczovL3N0YXRlYXJrLmlraXNhaS5jb20vcGFnb3MvY2FydGVyYSJdLFsibWV0aG9kIiwiUE9TVCJdLFsicGF5bG9hZCIsIjQ0MTE4ZjgzYzMwZDAyZjU2YjBmNTVhZTZmYWU2MDEyZTJhMDNlYzkxM2ZkN2JjMDVlODA1YzNmNDgzZTRkZDAiXV0sImNvbnRlbnQiOiIiLCJzaWciOiIzMWVmYmNhZTZhMjhhNDgxMzY3MDc3YmJiNDlkNDFkNTkxZDA4Y2ExMmM5N2VkNWEwYzNmYmQ2NzQxNTdhZmJkMzM2YWIzYzAyZDY4OTg3ZWU3NmE4YWNkYjc2ZTQyMzA5OWUwZmM0MzVhMjI1NzYzMjg3MTA1NWVjZjQ5OTQ2ZiJ9"
+}
