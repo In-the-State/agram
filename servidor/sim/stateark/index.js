@@ -23,7 +23,7 @@ export { politicaCandado, salidaTaproot, NUMS, numero, pk, vpk, sha256Frag, hash
 export { ESQUEMA_RECIBO_COMUN, CLASES_DE_RECIBO, ErrorRecibo, decuplaDeRecibo, camposDeRecibo, idDeRecibo, sobreDeRecibo, verificarReciboComun } from './recibo.js';
 export { ESQUEMA_EQUIVOCACION, CLASES_DE_EQUIVOCACION, ErrorEquivocacion, claseDe, construirEquivocacion, verificarEquivocacion } from './equivocacion.js';
 export { verificarObservacion, USO_OBSERVADOR } from './custodia.js';
-export { Custodia, RechazoCustodia, esquemaSimulado, esquemaNoble, verificarVinculo, mensajeVinculo, verificarSesion, firmaDeWebhook, comprobarSegundoFactor, DOMINIOS, USO_VINCULO, USO_SESION, USO_SEGUNDO_FACTOR, TIPOS_DE_CANAL } from './custodia.js';
+export { Custodia, RechazoCustodia, esquemaSimulado, esquemaNoble, verificarVinculo, mensajeVinculo, verificarPruebaVinculo, mensajePruebaVinculo, verificarSesion, firmaDeWebhook, comprobarSegundoFactor, DOMINIOS, USO_VINCULO, USO_SESION, USO_SEGUNDO_FACTOR, TIPOS_DE_CANAL } from './custodia.js';
 // La custodia del guardián real (solo Node): `import { CustodiaRemota } from './src/custodia-remota.js'`.
 
 export const SIMULADO = true;

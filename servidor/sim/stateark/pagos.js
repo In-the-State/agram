@@ -90,7 +90,17 @@ async function etiquetaDeSerie(serie) {
   return `fondos/${await sha256Texto(`stateark-sim/serie:${serie}`)}`;
 }
 
-const pesoVirtual = (entradas, salidas) => 11 + 58 * entradas + 43 * salidas;
+/**
+ * El peso virtual de una transacción del carril, calculado como Bitcoin (S37), por exceso: nunca se queda corto.
+ * En unidades de peso (WU): cabecera 10 B × 4 + marcador y bandera de testigo 2 = 42; cada entrada P2TR por la
+ * ruta de la clave: 41 B sin testigo × 4 + testigo (1 + 1 + 64) = 230; cada salida P2TR (la más grande de las
+ * habituales: la P2WPKH son 31 B) 43 B × 4 = 172; el puntero OP_RETURN de 70 bytes: 8 + 1 + (2 + 70) = 81 B × 4 = 324.
+ * vsize = ⌈WU / 4⌉. Con dos entradas, vuelta, destino y puntero: ⌈1170 / 4⌉ = 293 vB (antes 256).
+ * `salidas` son las de dinero (destino y vuelta); el puntero se pide aparte. El modelo anterior, 11 + 58 e + 43 s,
+ * contaba el puntero como una salida de 43 B cuando son 81.
+ */
+export const pesoVirtual = (entradas, salidas, { puntero = false } = {}) =>
+  Math.ceil((42 + 230 * entradas + 172 * salidas + (puntero ? 324 : 0)) / 4);
 
 export class Carril {
   /**
@@ -250,13 +260,14 @@ export class Carril {
 
     const entradas = [];
     let entra = 0;
-    const nSalidas = 2 + (instruccion.puntero ? 1 : 0);
+    const nSalidas = 2; // destino y vuelta; el puntero (OP_RETURN) pesa distinto y se cuenta aparte
+    const conPuntero = Boolean(instruccion.puntero);
     for (const [, m] of disponibles) {
       entradas.push({ txid: m.txid, vout: m.vout, sat: m.sat, altura: this.txs.get(m.txid).altura });
       entra += m.sat;
-      if (entra >= importe + TASA_SAT_VB * pesoVirtual(entradas.length, nSalidas)) break;
+      if (entra >= importe + TASA_SAT_VB * pesoVirtual(entradas.length, nSalidas, { puntero: conPuntero })) break;
     }
-    const peso = pesoVirtual(entradas.length, nSalidas);
+    const peso = pesoVirtual(entradas.length, nSalidas, { puntero: conPuntero });
     let comision = TASA_SAT_VB * peso;
     if (entra < importe + comision) throw rechazo('insufficient_funds', `hacen falta ${importe + comision} sat y hay ${entra}`);
     let cambio = entra - importe - comision;
@@ -294,7 +305,7 @@ export class Carril {
     if (!esId(titular)) throw rechazo('authorization_invalid', 'el titular es una clave x-only');
     const huellaPlan = await huella(plan);
     const mensaje = await mensajeAutorizacion(huellaPlan);
-    if (!(await this.verificarFirma(firma, mensaje, titular))) throw rechazo('signature_invalid', 'la firma de la autorización no verifica');
+    if (!(await this.verificarFirma(firma, mensaje, titular))) throw rechazo('authorization_invalid', 'la firma de la autorización no verifica con su titular');
     return { schema: ESQUEMA_AUTORIZACION, plan: huellaPlan, instruccion: plan.instruccion, correlacion: plan.correlacion, titular, uso: USO, firma };
   }
 
@@ -310,7 +321,7 @@ export class Carril {
     if (autorizacion.instruccion !== huellaIns) throw rechazo('authorization_mismatch', 'la autorización es de otra orden');
     if (autorizacion.titular !== c.titular) throw rechazo('authorization_not_holder', 'no la firma el titular de esta cartera');
     if (!(await this.verificarFirma(autorizacion.firma, await mensajeAutorizacion(huellaPlan), c.titular))) {
-      throw rechazo('signature_invalid', 'la firma de la autorización no verifica');
+      throw rechazo('authorization_invalid', 'la firma de la autorización no verifica con su titular');
     }
     this.#caducada(instruccion);
     // Las cuentas tienen que cuadrar y cada entrada ha de ser de esta cartera y estar libre.

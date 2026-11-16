@@ -1,7 +1,7 @@
 // El recibo de pago en la carta (encargo «carta: pagos», 16-11): en el reverso de un registro, la acción «buscar su recibo
 // de pago» solo si mi configuración dice «pay url», y lo verificado enseña el pago cuando lo hay: «pagado» si «paid» es
 // verdadera, «pago pendiente de bloque» si la sincronía de la cuenta lo espera, «el recibo de pago no vale» si es falsa;
-// sin recibo ni espera, nada. Ninguna pantalla de pagar. El recibo, de la simulación de StateArk (abc5e84) en proceso,
+// sin recibo ni espera, nada. Ninguna pantalla de pagar. El recibo, de la simulación de StateArk (108f888) en proceso,
 // con un observador BIP-340 real; claves de PRUEBA.
 
 import { test } from 'node:test';
@@ -38,7 +38,7 @@ async function reciboDeLaSim(sim, id) {
   await sim.minar();
   const custodia = sim.sellador.observador.custodia;
   try { await custodia.crearClave('nostr', 'carril'); } catch (e) { if (e?.codigo !== 'key_exists') throw e; }
-  return custodia.firmarRecibo('carril', await c.reciboPago(posicion.txid), { t: T(30) });
+  return custodia.firmarRecibo('carril', await c.reciboPago(posicion.txid), { t: T(30), dominio: 'nostr' });
 }
 
 test('el reverso: «buscar su recibo de pago» solo con «pay url»; «pagado», «pago pendiente de bloque» y «el recibo de pago no vale»; sin nada, nada', async () => {

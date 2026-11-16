@@ -1,5 +1,5 @@
 // El recibo de pago, de punta a punta (encargo «carta: pagos», 16-11), con la SIMULACIÓN de StateArk en proceso
-// (servidor/sim/stateark/ abc5e84, su servidor HTTP en un puerto libre de 127.0.0.1, con la firma del titular exigida) y
+// (servidor/sim/stateark/ 108f888, su servidor HTTP en un puerto libre de 127.0.0.1, con la firma del titular exigida) y
 // el libro compartido de prueba (servidor/prueba/). `node ejemplos/pagos/recibo.mjs`.
 //
 //   1. vg escribe un movimiento del libro (un registro que paga su coste) y declara en sus ajustes del exterior la «pay
