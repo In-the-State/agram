@@ -28,7 +28,7 @@ import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
-import { anfitrion, autorizarCon } from './anfitrion.js';
+import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios } from './anfitrion.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
@@ -59,6 +59,10 @@ const estado = {
   // El 3 por tema (encargo pv3): el botón de cada caja ({ [caja]: 'todos' | 'doy' | 'recibo' }) y el sitio abierto
   // ({ X, lugar }: la cruceta del propio nodo, el personaje del sitio) o null.
   filtrosDelTres: {}, sitio: null,
+  // La cuenta del guardián (camino B, carta/anfitrion.js): si su sesión está cerrada (el aviso persistente), lo automático
+  // que se paró por ella (lo que rehace el botón «abrir la sesión»), si el botón está firmando, y los criterios de segundo
+  // factor ya pasados al guardián (sus ids).
+  guardian: { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null },
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -82,9 +86,40 @@ const archivos = new Archivos({ destino: destinoDeArchivos, alCambiar: () => pin
 // de lectura: un <img> no puede mandarla); mientras no ha llegado, null (no se pinta) y, al llegar, se repinta.
 resolverArchivos((id) => archivos.contenido(id).url ?? null);
 
-/** La clave privada con que firma una identidad: la de mi cuenta si soy yo, si no la de ejemplo guardada en este navegador. */
-const privadaDe = (id) => (estado.cuenta && id === estado.cuenta.identidad ? estado.cuenta.privada : estado.claves[id]?.privada);
-const firmarCon = (id) => (privadaDe(id) ? (ev) => autoridad.firmar(ev, privadaDe(id)) : undefined);
+/** El firmante del guardián con que firma mi cuenta (camino B), o null (camino A, un ejemplo, otra identidad o solo para leer). */
+const firmanteGuardian = (id) => (estado.cuenta?.firmante && id === estado.cuenta.identidad ? estado.cuenta.firmante : null);
+/**
+ * La clave privada con que firma una identidad: la de mi cuenta si soy yo, si no la de ejemplo guardada en este navegador.
+ * Con una cuenta del guardián, su firmante, que el núcleo acepta donde iba la clave (docs/ANFITRION.md).
+ */
+const privadaDe = (id) => firmanteGuardian(id) ?? (estado.cuenta && id === estado.cuenta.identidad ? estado.cuenta.privada : estado.claves[id]?.privada);
+/** (evento) → evento firmado (transaccion, autoejecutar, englobar): con el guardián, autoridad.firmanteDeEventos de su firmante. */
+const firmarCon = (id) => (firmanteGuardian(id)
+  ? autoridad.firmanteDeEventos(firmanteGuardian(id), { publica: estado.cuenta.publica })
+  : privadaDe(id) ? (ev) => autoridad.firmar(ev, privadaDe(id)) : undefined);
+/** Lo que se firma solo para ver (el camino del árbol, previsualizar un paso): no se escribe, así que al guardián no se le pide. */
+const firmarParaVer = (id) => (estado.cuenta?.guardian === true ? undefined : firmarCon(id));
+
+/**
+ * Camino B: el error de la última firma del guardián (el que guarda su firmante o, si no, el `code` de `e`), en llano;
+ * cualquier otro que los conocidos, el aviso de fallo, con el detalle en la consola. Con la sesión cerrada, además el
+ * aviso persistente. null si no lo hay (o en el camino A). Lo consume.
+ */
+function errorDelGuardian(e) {
+  if (estado.cuenta?.guardian !== true) return null;
+  const f = estado.cuenta.firmante;
+  const delGuardian = f?.error ?? (codigoDe(e) ? e : null);
+  if (!delGuardian) return null;
+  if (f) f.error = null;
+  const clave = claveDelError(delGuardian);
+  if (clave === 'guardianFallo') console.error('guardián:', String(delGuardian?.message ?? delGuardian));
+  if (clave === 'guardianSesionCerrada') estado.guardian.sesionCerrada = true;
+  return t(clave);
+}
+/** El texto de un fallo: el del guardián en llano si lo fue, si no el que ya se daba. */
+const enLlano = (texto, e) => errorDelGuardian(e) ?? texto;
+/** Los motivos de un formulario que no pasó: si lo paró el guardián, solo su texto llano. */
+const motivosConGuardian = (motivos) => { const g = errorDelGuardian(); return g ? [{ mensaje: g }] : motivos; };
 /**
  * La pantalla que mide la carta: la ventana entera (sin barra superior desde el #38: el personaje del 0 está en el centro; en
  * Mapped la escena es todo, sin scroll). Las medidas por tamaño de pantalla (el móvil apaisado, más bajo) las calcula
@@ -148,6 +183,29 @@ function guardar() {
 function trasEscribir() {
   guardar();
   if (estado.sincronia) void sincronizar();
+  void criteriosAlGuardian();
+}
+
+/** Camino B: la sesión del guardián de mi cuenta, para lo automático (sinc.pasar, seguir); sin firmante, nada que consultar. */
+const sesionDelGuardian = () => (estado.cuenta?.firmante ? () => sesionAbierta(guardian, estado.cuenta.publica) : undefined);
+
+/**
+ * Camino B, el verbo opcional `criterios` del guardián: al abrir la cuenta y cada vez que cambian, le pasa los registros
+ * de mis criterios de segundo factor (carta/anfitrion.js pasarCriterios). Si el guardián no lo ofrece, nada; si los
+ * rechaza, un aviso y el detalle en la consola.
+ */
+async function criteriosAlGuardian() {
+  const c = estado.cuenta;
+  if (!c?.firmante || !estado.eje || typeof guardian?.criterios !== 'function') return;
+  const ids = acciones.criteriosDeSegundoFactor(estado.eje, c.identidad).map((x) => x.id).join(' ');
+  if (ids === estado.guardian.criterios) return;
+  estado.guardian.criterios = ids;
+  const r = await pasarCriterios(guardian, estado.eje, c.identidad, c.publica);
+  if (r?.error && estado.cuenta === c) {
+    console.error('guardián (criterios):', String(r.error?.message ?? r.error));
+    estado.aviso = t('guardianCriteriosNo');
+    pintar();
+  }
 }
 
 /**
@@ -160,11 +218,15 @@ const sincronizar = sinc.enSerie(async () => {
   const cuenta = estado.cuenta;
   const eje = estado.eje;
   if (!S || !cuenta || !eje) return;
-  const informe = await sinc.pasar(S, eje, cuenta.alta);
+  const sesion = sesionDelGuardian();
+  const informe = await sinc.pasar(S, eje, cuenta.alta, sesion ? { sesion } : {});
   if (archivos.pendientes.size && !informe.sinRed) await archivos.subirPendientes(); // lo adjuntado sin red, como la cola de eventos
   if (estado.sincronia !== S || estado.eje !== eje) return; // otra cuenta en pantalla: lo de esta ya quedó guardado
   estado.lineaSincronia = sinc.lineaDeEstado(S, informe);
-  if (informe.reordenado || informe.anadidos.length || informe.pagos?.anotados.length) {
+  // Camino B: la sincronía es automática; con la sesión del guardián cerrada no firma y queda el aviso persistente.
+  const cambiaSesion = Boolean(sesion) && estado.guardian.sesionCerrada !== (informe.sesionCerrada === true);
+  if (cambiaSesion) estado.guardian.sesionCerrada = informe.sesionCerrada === true;
+  if (cambiaSesion || informe.reordenado || informe.anadidos.length || informe.pagos?.anotados.length) {
     guardar();
     marcarNuevos();
     await pintar();
@@ -186,6 +248,8 @@ function pintarSincronia() {
  * cuenta, el mismo material con el que firma sus registros (autoridad.firmar); la privada no sale de aquí.
  */
 function firmanteDeLaCuenta() {
+  // Camino B: firma el guardián (firmarServicio, con el evento NIP-98 entero); solo para leer, nadie.
+  if (estado.cuenta?.guardian === true) return estado.cuenta.firmante ? firmanteDeServicio(guardian, estado.cuenta.publica) : {};
   const privada = estado.cuenta?.privada;
   if (!privada) return {};
   return { pubkey: autoridad.publicaDe(privada), firmar: async (id) => (await autoridad.firmar({ id }, privada)).firma };
@@ -193,7 +257,8 @@ function firmanteDeLaCuenta() {
 
 /** Abre la sincronía de la cuenta en pantalla (con servidor, eje compartido y clave de lectura) y sincroniza sin esperar. */
 function abrirSincronia() {
-  estado.sincronia = estado.cuenta && estado.eje ? sinc.abrir({ alta: estado.cuenta.alta, eje: estado.eje, yo: estado.cuenta.identidad, firmante: firmanteDeLaCuenta() }) : null;
+  const sesion = sesionDelGuardian();
+  estado.sincronia = estado.cuenta && estado.eje ? sinc.abrir({ alta: estado.cuenta.alta, eje: estado.eje, yo: estado.cuenta.identidad, firmante: firmanteDeLaCuenta(), ...(sesion ? { sesion } : {}) }) : null;
   estado.lineaSincronia = null;
   if (estado.sincronia) void sincronizar();
 }
@@ -239,6 +304,8 @@ function extraDe() {
   return {
     ejemplos: EJEMPLOS.map((e) => ({ id: e.id, etiqueta: e.etiqueta })), ejemplo: ejemploElegido(), guardado: estado.guardado, aviso: estado.aviso, exito: estado.exito, nuevos: estado.nuevos,
     anfitrion: Boolean(anfitrion), autorizando,
+    // Camino B: el aviso persistente de la cuenta del guardián (solo para leer, o la sesión cerrada con su botón).
+    guardian: estado.cuenta?.guardian === true ? { soloLeer: Boolean(estado.cuenta.soloLeer), sinGuardian: !guardian, sesionCerrada: estado.guardian.sesionCerrada, abriendo: estado.guardian.abriendo } : undefined,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
@@ -355,7 +422,7 @@ async function pintar() {
     estado.formato = formatoDe(); // los criterios de formato del BTML del reverso
     if (estado.eje) {
       try {
-        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarCon(estado.identidad) });
+        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarParaVer(estado.identidad) });
       } catch (e) {
         a = { vacio: true, avisos: [t('noSePinta', { motivo: e.message ?? e })] };
         console.error(e);
@@ -456,6 +523,7 @@ function cargarLottie() {
 function limpiarMensajes() {
   estado.aviso = '';
   estado.exito = '';
+  if (estado.cuenta?.firmante) estado.cuenta.firmante.error = null; // un rechazo del guardián de antes no se dice en lo siguiente
 }
 
 /** Enfocar un registro (o un PV de un registro como foco). */
@@ -510,8 +578,9 @@ function descargar(texto, nombre) {
 
 /** Entra en una cuenta guardada en este navegador: su eje, su clave, mi alta como foco. false (y el motivo en el aviso) si no se abre. */
 async function entrarEnCuenta(alta) {
-  let r = await cuentas.abrirCuenta(alta);
-  if (!r.eje && r.privada) r = await ejeDesdeElLibro(r);
+  let r = await cuentas.abrirCuenta(alta, { guardian });
+  // Sin eje aquí: el del libro compartido, si la clave cuadra (la privada, o la pública de una cuenta del guardián).
+  if (!r.eje && (r.privada || (r.cuenta?.guardian === true && r.publica))) r = await ejeDesdeElLibro(r);
   if (!r.eje) {
     const nombre = r.cuenta?.nombre ?? alta.slice(0, 8);
     estado.aviso = r.antigua ? t('cuentaDeFirmasAntiguas', { nombre }) : t('cuentaNoAbre', { nombre, motivo: r.motivo });
@@ -546,13 +615,23 @@ async function ejeDesdeElLibro(r) {
   return { ...r, eje: d.eje };
 }
 
-/** Deja como eje en pantalla el de una cuenta abierta, creada o restaurada ({ cuenta, eje, privada }), con su sincronía. */
-function entrarCon({ cuenta, eje, privada }) {
+/**
+ * Deja como eje en pantalla el de una cuenta abierta, creada o restaurada ({ cuenta, eje, privada }), con su sincronía.
+ * Una cuenta del guardián (camino B) lleva su firmante, el único con que firma (sobre el eje en pantalla), o, si el
+ * guardián de este equipo no la tiene (`soloLeer`), ninguno: solo se lee, y lo dice el aviso persistente.
+ */
+function entrarCon({ cuenta, eje, privada, soloLeer }) {
   cambiarDeEje(eje, cuenta.identidad);
   estado.cuenta = { ...cuenta, privada };
+  estado.guardian = { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null };
+  if (cuenta.guardian === true) {
+    estado.cuenta.soloLeer = Boolean(soloLeer) || !guardian;
+    estado.cuenta.firmante = estado.cuenta.soloLeer ? null : firmanteDeCuenta(guardian, cuenta.publica, { eje: () => estado.eje });
+  }
   cuentas.recordarUltima(cuenta.alta);
   abrirLibroLocal();
   abrirSincronia();
+  void criteriosAlGuardian();
 }
 
 /** Entra en el ejemplo: el eje guardado en este navegador (si sus claves son las de esta sesión) o uno nuevo. */
@@ -620,9 +699,9 @@ async function adjuntarArchivo(X, accion, campos, elegido) {
       estado.exito = t(a.sinRed ? 'archivoPendiente' : 'archivoAdjuntado', { id: a.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
       tocar(X, 'hecho ' + canonicoDe(accion));
       marcarNuevos();
-    } else estado.aviso = motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje).join(' · ');
+    } else estado.aviso = enLlano(motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje).join(' · '));
   } catch (e) {
-    estado.aviso = String(e.message ?? e);
+    estado.aviso = enLlano(String(e.message ?? e), e);
   }
   pintar();
 }
@@ -744,7 +823,7 @@ const manejadores = {
       guardar();
       estado.aviso = '';
     } catch (e) {
-      estado.aviso = String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, '');
+      estado.aviso = enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e);
     }
     abrirSincronia();
     pintar();
@@ -930,7 +1009,7 @@ const manejadores = {
       tocar(estado.foco.X, 'reclasificar ' + persona + ' 3.' + caja);
       marcarNuevos();
     } else {
-      estado.formulario = { X: alta, accion: 'move to group', valores, motivos: motivosEnLlano(r.motivos, estado.eje), resultado: null };
+      estado.formulario = { X: alta, accion: 'move to group', valores, motivos: motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)), resultado: null };
     }
     pintar();
   },
@@ -995,7 +1074,7 @@ const manejadores = {
       f.resultado = r.pasos ? t('pasosMios', { cuantos: r.pasos.length }) : r.paso ? t('elPaso', { que: r.paso.hacer ? nombreDeAccion(r.paso.hacer.plantilla) : r.paso.falta }) : t('nadaQueHacer');
       f.motivos = [];
     } else {
-      f.motivos = motivosEnLlano(r.motivos, estado.eje);
+      f.motivos = motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)); // lo escrito sigue en el formulario (f.valores)
       f.resultado = null;
     }
     pintar();
@@ -1040,7 +1119,7 @@ const manejadores = {
       estado.motivosPreferencias = [];
       estado.exito = t('configuracionGuardada');
     } catch (e) {
-      estado.motivosPreferencias = [{ mensaje: String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, '') }];
+      estado.motivosPreferencias = [{ mensaje: enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e) }];
     }
     // El servidor, el eje compartido o la clave pueden haber cambiado: la sincronía se vuelve a abrir (y sube la configuración).
     abrirSincronia();
@@ -1060,7 +1139,7 @@ const manejadores = {
       tocar(X, 'escribir ' + pv);
       marcarNuevos();
     } catch (e) {
-      estado.aviso = String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, '');
+      estado.aviso = enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e);
     }
     pintar();
   },
@@ -1159,7 +1238,7 @@ const manejadores = {
       guardar();
       estado.aviso = '';
     } catch (e) {
-      estado.aviso = String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, '');
+      estado.aviso = enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e);
     }
     abrirSincronia();
     pintar();
@@ -1178,7 +1257,7 @@ const manejadores = {
       estado.aviso = '';
       marcarNuevos();
     } catch (e) {
-      estado.aviso = String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, '');
+      estado.aviso = enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e);
     }
     pintar();
   },
@@ -1207,27 +1286,65 @@ const manejadores = {
     await reiniciar();
   },
   reiniciar,
-  async seguir() {
-    const X = estado.foco.X;
+  /**
+   * Seguir el camino (autoejecutar). Camino B: firma varios pasos seguidos sin que se pida cada uno, así que es una firma
+   * automática: con la sesión del guardián cerrada no se intenta (aviso persistente; el botón «abrir la sesión» lo
+   * rehace con `gesto`, y entonces sí se intenta).
+   */
+  async seguir({ gesto = false, X: dado } = {}) {
+    const X = dado ?? estado.foco.X;
+    if (estado.cuenta?.firmante && !gesto && !(await sesionAbierta(guardian, estado.cuenta.publica))) {
+      estado.guardian.sesionCerrada = true;
+      estado.guardian.pendiente = { que: 'seguir', X };
+      pintar();
+      return;
+    }
     try {
       const r = await acciones.autoejecutar(estado.eje, X, estado.identidad, firmarCon(estado.identidad));
       trasEscribir();
       const hechos = r.hechos.map((h) => nombreDeAccion(h.paso.hacer.plantilla)).join(', ');
-      estado.exito = (r.hechos.length ? t('hechos', { cuales: hechos }) : t('ningunPasoDado')) + (r.parado ? ' ' + t('paradoEn', { que: r.parado.paso.hacer ? nombreDeAccion(r.parado.paso.hacer.plantilla) : r.parado.paso.falta, motivos: r.parado.motivos.map((m) => m.mensaje).join('; ') }) : '');
-      estado.aviso = '';
+      const delGuardian = r.parado ? errorDelGuardian() : null; // parado porque el guardián no firmó: dicho en llano
+      estado.exito = (r.hechos.length ? t('hechos', { cuales: hechos }) : t('ningunPasoDado')) + (r.parado && !delGuardian ? ' ' + t('paradoEn', { que: r.parado.paso.hacer ? nombreDeAccion(r.parado.paso.hacer.plantilla) : r.parado.paso.falta, motivos: r.parado.motivos.map((m) => m.mensaje).join('; ') }) : '');
+      estado.aviso = delGuardian ?? '';
       tocar(X, 'seguir');
       marcarNuevos();
     } catch (e) {
-      estado.aviso = String(e.message ?? e);
+      estado.aviso = enLlano(String(e.message ?? e), e);
     }
     pintar();
+  },
+  /**
+   * El botón del aviso «la sesión del guardián está cerrada» (camino B): una firma pedida por el usuario, que es lo que
+   * abre el diálogo del guardián: rehace lo automático que se paró (seguir) o, si no hay nada parado, guarda este rato
+   * (englobar, un registro de verdad). Después vuelve a mirar la sesión: abierta, el aviso se va.
+   */
+  async abrirGuardian() {
+    const g = estado.guardian;
+    if (!estado.cuenta?.firmante || g.abriendo) return;
+    const cuenta = estado.cuenta;
+    g.abriendo = true;
+    limpiarMensajes();
+    await pintar();
+    const pendiente = g.pendiente;
+    g.pendiente = null;
+    try {
+      if (pendiente?.que === 'seguir') await manejadores.seguir({ gesto: true, X: pendiente.X });
+      else {
+        tocar(estado.foco.X, 'abrir la sesión del guardián'); // lo que englobar escribe: este gesto, al menos
+        await manejadores.englobar();
+      }
+    } finally {
+      g.abriendo = false;
+      if (estado.cuenta === cuenta) g.sesionCerrada = !(await sesionAbierta(guardian, cuenta.publica));
+      pintar();
+    }
   },
   /** Previsualizar un paso del camino (encargo «datos3»): construirlo y validarlo sin escribir; lo que daría, bajo el paso. */
   async previsualizar(X, accion, paso) {
     const p = ultimo?.camino?.pasos?.[paso];
     if (!accion || !p?.hacer) return;
     try {
-      const r = await previsualizar(estado.eje, X ?? estado.foco.X, accion, p.hacer.parametros ?? {}, estado.identidad, firmarCon(estado.identidad));
+      const r = await previsualizar(estado.eje, X ?? estado.foco.X, accion, p.hacer.parametros ?? {}, estado.identidad, firmarParaVer(estado.identidad));
       estado.previa = { foco: estado.foco.X, paso, ...r, motivos: motivosEnLlano(r.motivos, estado.eje), ...(r.lectura ? { lectura: { ...r.lectura, mensaje: sinNombreInterno(r.lectura.mensaje, estado.eje) } } : {}) };
     } catch (e) {
       estado.previa = { foco: estado.foco.X, paso, ok: false, motivos: [{ regla: null, mensaje: String(e.message ?? e) }], movimientos: [] };
@@ -1363,7 +1480,7 @@ const manejadores = {
         pintar();
         return;
       }
-      motivos = motivosEnLlano(r.motivos, estado.eje); // lo que no pasa se enseña en el formulario, para cambiarlo
+      motivos = motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)); // lo que no pasa se enseña en el formulario, para cambiarlo
     }
     estado.formulario = { X: e.sobre, accion: e.accion, valores: e.parametros, motivos, resultado: null, propuesta: id };
     estado.aro = null;
@@ -1419,7 +1536,8 @@ const manejadores = {
     ar.ocupado = true;
     await pintar();
     try {
-      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes: ajustesDelSitio.defectos(), htmlInicial: true });
+      // Camino B: la cuenta nace en el guardián (su clave nunca llega aquí) y todo lo de su alta lo firma él.
+      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes: ajustesDelSitio.defectos(), htmlInicial: true, ...(guardian ? { guardian } : {}) });
       const guardada = await cuentas.guardarCuenta(r);
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');
@@ -1431,7 +1549,10 @@ const manejadores = {
       await pintar();
     } catch (e) {
       ar.ocupado = false;
-      ar.motivos = [{ mensaje: String(e?.message ?? e) }];
+      // Camino B: lo que rechaza el guardián, en llano (lo escrito sigue en el formulario: ar.valores); lo demás, tal cual.
+      const delGuardian = guardian && codigoDe(e) ? claveDelError(e) : null;
+      if (delGuardian === 'guardianFallo') console.error('guardián:', String(e?.message ?? e));
+      ar.motivos = [{ mensaje: delGuardian ? t(delGuardian) : String(e?.message ?? e) }];
       await pintar();
     }
   },
@@ -1455,7 +1576,8 @@ const manejadores = {
       return;
     }
     try {
-      const r = await cuentas.restaurarCuenta(texto, frase);
+      // La copia de una cuenta del guardián: para leer hasta que el guardián de este equipo tenga la cuenta (conGuardian).
+      const r = await cuentas.conGuardian(await cuentas.restaurarCuenta(texto, frase), guardian);
       // Con el libro compartido (la copia lleva la clave de lectura y su eje, el servidor y el eje compartido), el eje
       // nace del génesis del servidor (sincronizar(null)) y lo de la foto que falte va detrás; si no se puede, se sigue
       // con la foto, como hoy, y se dice.

@@ -1448,6 +1448,17 @@ export function htmlSincronia(s) {
   return `<small class="sincronia" data-sincronia role="status" title="${attr(t('sincroniaTitulo'))}">${(s.partes ?? []).map(escapar).join(' · ')}${errores}${rechazados}</small>`;
 }
 
+/**
+ * El aviso persistente de una cuenta del guardián (camino B; carta/anfitrion.js): abierta solo para leer (`soloLeer`: el
+ * texto que toca) o con la sesión del guardián cerrada (`sesionCerrada`: el aviso y el botón que la abre con una firma
+ * pedida por el usuario, data-guardian-abrir). Sin nada de eso (y siempre en el camino A), nada.
+ */
+export function htmlGuardian(g) {
+  if (!g || (!g.soloLeer && !g.sesionCerrada)) return '';
+  if (g.soloLeer) return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(g.sinGuardian ? 'guardianSoloLeerSinGuardian' : 'guardianSoloLeer'))}</p>`;
+  return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t('guardianSesionCerrada'))} <button type="button" class="enlace" data-guardian-abrir title="${attr(t('guardianAbrirTitulo'))}"${g.abriendo ? ' disabled aria-busy="true"' : ''}>${escapar(t('guardianAbrir'))}</button></p>`;
+}
+
 /** Los controles de «opinar» (carta/opinar.js): el conmutador con su contador y, si hay opiniones, exportar, copiar y borrar la última. */
 export function htmlOpinar(o) {
   if (!o) return '';
@@ -1600,7 +1611,7 @@ export function html(arbol, extra = {}) {
   return `<div class="${clase}"${nodo('carta', { modo: a.apilada ? 'apilada' : 'matriz', render: a.animado ? 'animado' : 'sobrio', ancho: a.medidas?.ancho, alto: a.medidas?.alto, x0: a.centro?.representacion?.texto ?? '' })} data-x="${a.X}" data-disposicion="${attr(a.disposicion)}" data-animaciones="${Number(a.limite) || 0}">
     ${estilos}
     ${a.apilada ? htmlCeroColumna(a.centro?.sitio) : ''}
-    ${avisos.length ? `<p class="aviso" role="alert">${avisos.map(escapar).join(' · ')}</p>` : ''}
+    ${avisos.length ? `<p class="aviso" role="alert">${avisos.map(escapar).join(' · ')}</p>` : ''}${htmlGuardian(extra.guardian)}
     ${extra.exito ? `<p class="exito" role="status">${escapar(extra.exito)}</p>` : ''}
     ${htmlRosetones(a.rosetones, { apilada: a.apilada, parte: 'arriba' })}
     <div class="escena">${escena}</div>

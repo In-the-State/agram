@@ -17,8 +17,18 @@
 import { sincronia, sello as selloDeTiempo, pago as pagos } from '../src/index.js';
 import * as cuentas from './cuentas.js';
 import { t } from './textos.js';
+import { errorDeSesionCerrada } from './anfitrion.js';
 
 const { Sincronia } = sincronia;
+
+/**
+ * Camino B: lo que la sincronía firma es automático (nadie lo acaba de pedir con un gesto). Con `sesion` (async () →
+ * ¿abierta?, carta/anfitrion.js sesionAbierta), antes de cada firma se consulta y, cerrada, no se intenta: lanza
+ * session_closed sin llamar al guardián. Sin `sesion` (camino A), el `firmar` tal cual.
+ */
+const conSesion = (firmar, sesion) => (typeof firmar === 'function' && typeof sesion === 'function'
+  ? async (...args) => { if (!(await sesion())) throw errorDeSesionCerrada(); return firmar(...args); }
+  : firmar);
 
 /** Cada cuánto se sincroniza con la pestaña visible (además de tras escribir y al volver la red), en milisegundos. */
 export const CADA = 30 * 1000;
@@ -33,9 +43,10 @@ const mismoDestino = (datos, d) => datos && datos.url === d.url && datos.eje ===
  * o sin clave de lectura en este navegador). Restaura la guardada en agram.sync.estado.<alta> si es del mismo
  * destino; si no, una nueva. Marca en el eje el reloj de los demás, los sellos de tiempo y los recibos de pago con lo ya
  * recibido. `firmante` ({ pubkey, firmar(idHex) → firmaHex }): el de la cuenta, con el que el cliente de pagos firma
- * como el titular (la clave privada no sale de él).
+ * como el titular (la clave privada no sale de él). `sesion` (camino B): con la sesión del guardián cerrada, el
+ * servicio de pagos no intenta firmar (conSesion).
  */
-export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora, firmante = {} } = {}) {
+export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora, firmante = {}, sesion } = {}) {
   if (!alta || !eje) return null;
   const d = sincronia.destino(eje, yo);
   if (!d) return null;
@@ -44,7 +55,7 @@ export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora, fir
   // El sello de tiempo (X.6.8.2, src/sello.js): solo si la configuración dice «seal url» (exterior settings); sin ella, nada se sella.
   // (`sincronia.destino` ya trae el transporte por «relay url» si lo hay, y si no por «sync url»; docs/CONTRATO.md §16.2 bis.)
   // Los recibos de pago (X.6.8.3, src/pago.js): solo si la configuración dice «pay url»; firma el titular, la cuenta.
-  const pago = pagos.deConfiguracion(eje, yo, { fetch, firmar: firmante.firmar, pubkey: firmante.pubkey });
+  const pago = pagos.deConfiguracion(eje, yo, { fetch, firmar: conSesion(firmante.firmar, sesion), pubkey: firmante.pubkey });
   const opciones = { claveLectura, fetch, sello: selloDeTiempo.deConfiguracion(eje, yo, { fetch }), pago, ...(ahora ? { ahora } : {}) };
   let S = null;
   const datos = cuentas.estadoSincronia(alta);
@@ -69,9 +80,15 @@ const sigue = (alta) => cuentas.cuentas().some((c) => c.alta === alta);
  * Sincroniza una vez: S.sincronizar(eje) (baja, valida, reordena si hace falta, sube lo pendiente; nunca lanza por
  * la red) y guarda el estado de la sincronía y, si el eje cambió (reordenado o con algo añadido), el eje de la
  * cuenta. → el informe de src/sincronia.js.
+ *
+ * Con `sesion` (camino B: async () → ¿abierta?), la sincronía es una firma automática: antes de pasar se consulta la
+ * sesión del guardián y, cerrada, el informe lleva `sesionCerrada: true` (lo que firma la pasada no se intenta:
+ * conSesion; bajar y subir lo ya firmado sigue igual).
  */
-export async function pasar(S, eje, alta) {
+export async function pasar(S, eje, alta, { sesion } = {}) {
+  const cerrada = typeof sesion === 'function' ? !(await sesion()) : false;
   const informe = await S.sincronizar(eje);
+  if (cerrada) informe.sesionCerrada = true;
   if (sigue(alta)) {
     cuentas.guardarEstadoSincronia(alta, S.serializar());
     if (informe.reordenado || informe.anadidos.length) cuentas.guardarEje({ alta }, eje);

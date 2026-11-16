@@ -27,6 +27,9 @@
 // (carta/sincronia.js). La frase no se guarda en ningún sitio; el archivo no lleva nada en claro salvo el nombre, el
 // idioma, la identidad, el id y la clave pública (y el eje, que es público por naturaleza).
 //
+// Una cuenta del GUARDIÁN (camino B, VG 17-11; carta/anfitrion.js) nace en el guardián del anfitrión y firma con él: en
+// la lista va con `guardian: true`, no tiene agram.clave.<alta>, y su copia no lleva clave privada.
+//
 // Sin DOM: lo prueba test/cuentas.test.js con el WebCrypto de Node. carta/app.js lo engancha a la pantalla.
 
 import { Eje, autoridad, persistencia, contrato, salida, exterior } from '../src/index.js';
@@ -34,6 +37,7 @@ import { plantillaDePreferencias, preferencias } from './carta.js';
 import { adjuntarHtmlInicial } from './archivos.js';
 import { CLAVES as GUIA, ajustesEditablesDe } from './guia.js';
 import { esDePreferencias } from './sitio.js';
+import { crearEnElGuardian, firmanteDeCuenta, tieneLaCuenta } from './anfitrion.js';
 
 /** Las claves de localStorage de las cuentas. Las de los ejemplos, aparte (CLAVES_EJEMPLO), y no se cruzan. */
 export const CLAVES = Object.freeze({
@@ -140,13 +144,36 @@ export function camposDelAlta({ idioma, epoca } = {}) {
  * Con `htmlInicial` (la app lo pide, VG 14-11, #84), la alta nace además con su HTML básico en el PV0 (adjuntarHtmlInicial): un
  * registro más, anclado en la alta; sin él, la cuenta es solo su alta (y lo que se pide: idioma, ajustes).
  * → { cuenta, eje, privada, publica } (las dos claves en hexadecimal)
+ *
+ * Con `guardian` (camino B, carta/anfitrion.js): la clave pública la da el guardián (crearCuenta({ nombre })) y todo se
+ * firma con su firmante (firmanteDeCuenta): en el navegador no se genera ninguna clave privada. La cuenta lleva
+ * `guardian: true`. → { cuenta, eje, firmante, publica }. Si el guardián rechaza una firma, lanza con su `code` y no
+ * devuelve ningún eje (nada se guarda).
  */
-export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false } = {}) {
+export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false, guardian = null } = {}) {
   const limpio = String(nombre ?? '').trim();
   if (!limpio) throw new Error('la cuenta necesita un nombre: el 0 de tu alta');
+  if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, guardian });
   const { publica, privada } = await autoridad.generarClaves();
+  return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar: firmarCon(privada) });
+}
+
+/** Camino B: la clave pública, del guardián; las firmas, de su firmante (el eje que mira es el que se está creando). */
+async function crearEnGuardian({ guardian, nombre, ...resto }) {
+  const publica = await crearEnElGuardian(guardian, nombre);
+  let creado = null;
+  const firmante = firmanteDeCuenta(guardian, publica, { eje: () => creado });
+  const r = await crearCon({ nombre, ...resto, publica, privada: firmante, firmar: autoridad.firmanteDeEventos(firmante, { publica }), alNacer: (eje) => { creado = eje; } });
+  // El HTML inicial no lanza (adjuntarHtmlInicial): si su firma la rechazó el guardián, la cuenta no nace a medias.
+  if (firmante.error) throw firmante.error;
+  return { cuenta: { ...r.cuenta, guardian: true }, eje: r.eje, firmante, publica };
+}
+
+/** Lo común a los dos caminos: el génesis y lo que nace con él, firmado con `privada` (una clave o un firmante) y `firmar`. */
+async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar, alNacer = () => {} }) {
   const identidad = identidadDe(limpio, publica);
   const eje = await Eje.genesis({ identidad, foco: limpio, t, clave: publica, privada });
+  alNacer(eje);
   const alta = eje.alta(identidad).id;
   const o = epoca ? { epoca } : {};
   // Los defectos del sitio (carta/sitio.js, `ajustes`: { <clave del ajuste>: valor }) nacen con la cuenta, en los mismos
@@ -164,7 +191,7 @@ export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toIS
   }
   const cuenta = { nombre: limpio, idioma: idioma ?? contrato.configuracion(eje, identidad, o)[claveIdioma(o)], identidad, alta, publica };
   // Toda alta nace con su HTML básico en el PV0 (VG 14-11, #84): «hola» en medio, en el idioma de la cuenta.
-  if (htmlInicial) await adjuntarHtmlInicial(eje, alta, identidad, firmarCon(privada), cuenta.idioma, o);
+  if (htmlInicial) await adjuntarHtmlInicial(eje, alta, identidad, firmar, cuenta.idioma, o);
   return { cuenta, eje, privada, publica };
 }
 
@@ -204,6 +231,15 @@ export function recordarUltima(alta) {
  * (una copia restaurada que la llevaba), su clave de lectura. Devuelve false si no hay almacenamiento.
  */
 export async function guardarCuenta({ cuenta, eje, privada, claveLectura }) {
+  // Una cuenta del guardián (camino B): su clave vive en el guardián; aquí, la lista (con la marca), el eje y la de lectura.
+  if (cuenta.guardian === true) {
+    const otras = cuentas().filter((c) => c.alta !== cuenta.alta);
+    otras.push({ nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica, guardian: true });
+    const bien = escribir(CLAVES.cuentas, JSON.stringify(otras)) && persistencia.guardarLocal(eje, CLAVES.eje(cuenta.alta))
+      && (!claveLectura || guardarClaveLectura(cuenta.alta, claveLectura));
+    if (bien) recordarUltima(cuenta.alta);
+    return bien;
+  }
   const guardable = await autoridad.exportarPrivada(privada);
   const lista = cuentas().filter((c) => c.alta !== cuenta.alta);
   lista.push({ nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica });
@@ -252,10 +288,15 @@ export function guardarEje(cuenta, eje) {
  * algo o no cuadra, sin `eje` y con el motivo en `motivo` (si lo que falta es solo el eje, con `privada`: la carta
  * puede bajarlo del libro compartido, carta/sincronia.js). Una cuenta de antes de las firmas BIP-340 (su clave
  * privada guardada no es hexadecimal: era un JWK P-256) no se abre: va con `antigua: true`.
+ *
+ * Una cuenta del guardián (`guardian: true`, camino B) no tiene clave aquí: se abre con su eje y, si el guardián de este
+ * equipo (`guardian`, carta/anfitrion.js) no tiene su clave pública en cuentas() (o no hay guardián), con `soloLeer:
+ * true`. → { cuenta, eje, publica, soloLeer? } o, sin eje, { cuenta, publica, soloLeer?, motivo }.
  */
-export async function abrirCuenta(alta) {
+export async function abrirCuenta(alta, { guardian = null } = {}) {
   const cuenta = cuentas().find((c) => c.alta === alta);
   if (!cuenta) return { motivo: 'no hay ninguna cuenta con ese alta en este navegador' };
+  if (cuenta.guardian === true) return abrirDelGuardian(cuenta, guardian);
   try {
     const guardada = leer(CLAVES.clave(alta));
     if (!guardada) return { cuenta, motivo: 'la clave privada de la cuenta no está en este navegador' };
@@ -269,6 +310,25 @@ export async function abrirCuenta(alta) {
   } catch (e) {
     return { cuenta, motivo: String(e?.message ?? e) };
   }
+}
+
+/** Abre una cuenta del guardián: su eje (revalidado) y si este guardián tiene su clave (casando por la pública, nunca por el nombre). */
+async function abrirDelGuardian(cuenta, guardian) {
+  const lectura = (await tieneLaCuenta(guardian, cuenta.publica)) ? {} : { soloLeer: true };
+  try {
+    const eje = await persistencia.cargarLocal(CLAVES.eje(cuenta.alta));
+    if (!eje) return { cuenta, publica: cuenta.publica, ...lectura, motivo: 'el eje de la cuenta no está o no se ha podido abrir' };
+    if (!mismaClave(eje.clave(cuenta.identidad), cuenta.publica) || eje.alta(cuenta.identidad)?.id !== cuenta.alta) return { cuenta, motivo: 'el eje guardado no declara la clave de la cuenta' };
+    return { cuenta, eje, publica: cuenta.publica, ...lectura };
+  } catch (e) {
+    return { cuenta, motivo: String(e?.message ?? e) };
+  }
+}
+
+/** ¿Está la cuenta (de la copia restaurada, por ejemplo) en este guardián? Si no, `soloLeer: true`. Una del camino A, tal cual. */
+export async function conGuardian(r, guardian) {
+  if (r?.cuenta?.guardian !== true) return r;
+  return (await tieneLaCuenta(guardian, r.cuenta.publica)) ? r : { ...r, soloLeer: true };
 }
 
 /**
@@ -312,9 +372,26 @@ async function claveDeFrase(frase, sal, iteraciones) {
  * serializado (una foto). La frase no se guarda. → el objeto del archivo (JSON).
  *
  * Lo cifrado es { privada } o, con clave de lectura, { privada, claveLectura } (la privada en hexadecimal).
+ *
+ * La de una cuenta del guardián (camino B) no lleva clave privada: la cuenta, el eje y la marca `guardian: true`; si hay
+ * clave de lectura, cifrada con la frase como hoy ({ claveLectura }); si no, sin `clave`.
  */
 export async function exportarCuenta({ cuenta, eje, privada, claveLectura }, frase, { iteraciones = CIFRADO.iteraciones, t = new Date().toISOString() } = {}) {
   if (typeof frase !== 'string' || !frase) throw new Error('la copia necesita una frase');
+  if (cuenta.guardian === true) {
+    const deLectura = typeof claveLectura === 'string' ? claveLectura.trim() : '';
+    let cifrada = null;
+    if (deLectura) {
+      const sal = aleatorio(CIFRADO.sal);
+      const iv = aleatorio(CIFRADO.iv);
+      const datos = await subtle().encrypt({ name: CIFRADO.cifrado, iv, additionalData: utf8(cuenta.alta) }, await claveDeFrase(frase, sal, iteraciones), utf8(JSON.stringify({ claveLectura: deLectura })));
+      cifrada = { kdf: CIFRADO.kdf, hash: CIFRADO.hash, iteraciones, sal: aBase64(sal), cifrado: CIFRADO.cifrado, iv: aBase64(iv), datos: aBase64(datos) };
+    }
+    return {
+      formato: FORMATO, version: VERSION, exportado: t, nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica,
+      guardian: true, ...(cifrada ? { clave: cifrada } : {}), eje: persistencia.serializar(eje),
+    };
+  }
   const guardable = await autoridad.exportarPrivada(privada);
   const sal = aleatorio(CIFRADO.sal);
   const iv = aleatorio(CIFRADO.iv);
@@ -353,6 +430,7 @@ export async function restaurarCuenta(archivo, frase) {
   if (!a || a.formato !== FORMATO || !Number.isInteger(a.version)) throw new Error('el archivo no es una copia de una cuenta de AGRAM');
   // `antigua`: una copia de antes de las firmas BIP-340 (la 1, claves P-256): la carta lo dice con su texto.
   if (a.version !== VERSION) throw Object.assign(new Error('copia de la versión ' + a.version + '; esta carta lee la ' + VERSION), { antigua: a.version < VERSION });
+  if (a.guardian === true) return restaurarDelGuardian(a, frase);
   const c = a.clave;
   if (!c || c.kdf !== CIFRADO.kdf || c.cifrado !== CIFRADO.cifrado || typeof c.sal !== 'string' || typeof c.iv !== 'string' || typeof c.datos !== 'string' || !Number.isSafeInteger(c.iteraciones) || c.iteraciones < 1) {
     throw new Error('el archivo no lleva la clave cifrada como esta carta la escribe');
@@ -381,4 +459,34 @@ export async function restaurarCuenta(archivo, frase) {
   if (!mismaClave(eje.clave(a.identidad), a.publica) || eje.alta(a.identidad)?.id !== a.alta) throw new Error('el eje de la copia no declara esa clave para ' + a.identidad + ' en su alta');
   const cuenta = { nombre: String(a.nombre ?? a.identidad), idioma: typeof a.idioma === 'string' ? a.idioma : undefined, identidad: a.identidad, alta: a.alta, publica: a.publica };
   return { cuenta, eje, privada, publica: cuenta.publica, claveLectura };
+}
+
+/**
+ * La copia de una cuenta del guardián (camino B): sin clave privada. Si lleva la clave de lectura, la frase la descifra;
+ * el eje se restaura (revalidado) y ha de declarar la clave pública para la identidad en su alta. → { cuenta (con
+ * `guardian: true`), eje, publica, claveLectura }: se abre para leer hasta que el guardián de este equipo tenga la cuenta
+ * (conGuardian).
+ */
+async function restaurarDelGuardian(a, frase) {
+  if (typeof a.alta !== 'string' || typeof a.identidad !== 'string' || !autoridad.clavePublicaValida(a.publica)) throw new Error('el archivo no lleva la identidad, el alta y la clave pública');
+  let claveLectura;
+  const c = a.clave;
+  if (c !== undefined) {
+    if (!c || c.kdf !== CIFRADO.kdf || c.cifrado !== CIFRADO.cifrado || typeof c.sal !== 'string' || typeof c.iv !== 'string' || typeof c.datos !== 'string' || !Number.isSafeInteger(c.iteraciones) || c.iteraciones < 1) {
+      throw new Error('el archivo no lleva la clave cifrada como esta carta la escribe');
+    }
+    if (typeof frase !== 'string' || !frase) throw new Error(FRASE_INCORRECTA);
+    try {
+      const clave = await claveDeFrase(frase, deBase64(c.sal), c.iteraciones);
+      const claro = await subtle().decrypt({ name: CIFRADO.cifrado, iv: deBase64(c.iv), additionalData: utf8(a.alta) }, clave, deBase64(c.datos));
+      const secreto = JSON.parse(new TextDecoder().decode(claro));
+      if (secreto && typeof secreto.claveLectura === 'string' && secreto.claveLectura) claveLectura = secreto.claveLectura;
+    } catch {
+      throw new Error(FRASE_INCORRECTA);
+    }
+  }
+  const eje = await persistencia.restaurar(a.eje);
+  if (!mismaClave(eje.clave(a.identidad), a.publica) || eje.alta(a.identidad)?.id !== a.alta) throw new Error('el eje de la copia no declara esa clave para ' + a.identidad + ' en su alta');
+  const cuenta = { nombre: String(a.nombre ?? a.identidad), idioma: typeof a.idioma === 'string' ? a.idioma : undefined, identidad: a.identidad, alta: a.alta, publica: a.publica, guardian: true };
+  return { cuenta, eje, publica: cuenta.publica, claveLectura };
 }

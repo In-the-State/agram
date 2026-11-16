@@ -578,6 +578,16 @@ export const TEXTOS = Object.freeze({
     autorizando: 'autorizando…',
     autorizarSinClave: 'la app no tiene la clave de {cosa}',
     autorizadoPor: 'autorizado: lo firma {cosas}',
+    // la cuenta en el guardián (camino B, VG 17-11): la cuenta nace en el guardián y la carta firma con él
+    guardianSesionCerrada: 'La sesión del guardián está cerrada. Ábrela para firmar.',
+    guardianNoFirmado: 'No has firmado. No se ha escrito nada.',
+    guardianSinCuenta: 'El guardián no tiene esta cuenta.',
+    guardianFallo: 'El guardián no ha podido firmar. No se ha escrito nada.',
+    guardianAbrir: 'abrir la sesión',
+    guardianAbrirTitulo: 'pide al guardián una firma (la de lo que estaba parado o, si no, guardar este rato) y su diálogo abre la sesión',
+    guardianSoloLeer: 'Esta cuenta se ha abierto solo para leer: su clave está en el guardián y el guardián de este equipo no la tiene.',
+    guardianSoloLeerSinGuardian: 'Esta cuenta se ha abierto solo para leer: su clave está en el guardián y aquí no hay guardián.',
+    guardianCriteriosNo: 'El guardián no ha recibido tus criterios de segundo factor.',
     // el formulario de ejecutar y su reverso (VG 14-11, #89)
     ejecutarApagado: 'el botón sigue apagado: este registro está en «{nombre}» ({rango}) y se marca al llegar al {marca}',
     ejecutarApagadoSinRango: 'el botón sigue apagado: este registro aún no tiene rango y se marca al llegar al {marca}',
