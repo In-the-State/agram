@@ -1,14 +1,15 @@
 [
   ["minting E needs own R issued"],
   [0],
-  ["=count (ev.1 where mint in it.4 and E in it.0.0.0) = 0 or count ((first ev.3).1 where R in it.0.0.0 and first ev.3 in it.0.0.1) > 0 or sum (first ev.3).8.1 > 0 or count (ev.1 where mint in it.4 and R in it.0.0.0 and first ev.3 in it.0.0.1) > 0"],
+  ["=count (ev.1 where mint in it.4 and E in it.0.0.0 and not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\")) = 0 or count ((first ev.3).1 where R in it.0.0.0 and first ev.3 in it.0.0.1) > 0 or sum (first ev.3).8.1 > 0 or count (ev.1 where mint in it.4 and R in it.0.0.0 and first ev.3 in it.0.0.1) > 0"],
   ["ev.3"],
   ["mint"],
   ["*"],
   [
     "VG, 8-11 tarde (mapa §15 [D] N3): la exigencia encadena E → P → R → T",
     "VG, 9-11, D1/D2 (mapa §15 [D]): «R en juego» es tener R propia emitida, sin colateral (se retira el colateral de la #75)",
-    "Emitida: la tiene en su cartera, la tienen otros (su obligación, A.8.1) o la acuña en esta transacción"
+    "Emitida: la tiene en su cartera, la tienen otros (su obligación, A.8.1) o la acuña en esta transacción",
+    "Core AGRAM 17-11 (encargo «el puente entre libros», A15): no cuenta la serie forastera (su emisor es «<libro de origen>:<emisor>», src/tokens.js esEmisorForastero): la crea un «receive from another book», que no la emite su emisor (está en otro libro); la deciden «only a receive mints a foreign series», «what is received is what was sent» y los requisitos de su familia (epoch.8.9.3). docs/notas/PUENTE.md"
   ],
   ["epoch 0"],
   ["after minting E needs P on its record"],

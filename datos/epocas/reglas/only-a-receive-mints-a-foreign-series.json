@@ -1,0 +1,15 @@
+[
+  ["only a receive mints a foreign series"],
+  ["ev.1", "\"receive from another book\""],
+  ["=count (ev.1 where mint in it.4 and (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\")) = 0 or \"receive from another book\" in ev.4"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
+    "Diseño §4.3: la serie forastera (emisor «<libro>:<emisor>», src/tokens.js) solo la crea un «receive from another book», que miran «what is received is what was sent» y los requisitos de su familia; nadie de este libro la emite como suya"
+  ],
+  ["epoch 0"],
+  ["after what is received is what was sent"],
+  ["only a receive mints a foreign series: {first ev.3} mints a foreign series outside a receive"]
+]

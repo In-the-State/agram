@@ -1,0 +1,15 @@
+[
+  ["a declared balance is true"],
+  ["A.1"],
+  ["=not (\"declare a balance\" in ev.4) or first (payload(ev)).1.1 <= sum ((first ev.3).1.(first (payload(ev)).1.0) each 1) + sum (((first ev.3).1.(first (payload(ev)).1.0)).2 each 1)"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
+    "Diseño §4.5: «declare a balance» es verdad en ese punto: quien la escribe tiene, de esa serie, al menos lo que declara (lo disponible y lo bloqueado, sobre el libro de antes). Si declara más, se rechaza"
+  ],
+  ["epoch 0"],
+  ["after the tied record of E crossed before"],
+  ["a declared balance is true: {first ev.3} declares more {first (payload(ev)).1.0} than it has"]
+]

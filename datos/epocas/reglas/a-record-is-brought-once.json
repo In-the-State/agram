@@ -1,0 +1,15 @@
+[
+  ["a record is brought once"],
+  ["before.5", "9800000000"],
+  ["=not (\"bring a record from another book\" in ev.4) or count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it)).4 and first (payload(it)).1.1.0 = first (payload(ev)).1.1.0) = 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
+    "Diseño §4.1: el mismo registro no se trae dos veces; el segundo se rechaza (mira lo traído, en el 9.8 del génesis)"
+  ],
+  ["epoch 0"],
+  ["after a brought record comes with its proof"],
+  ["a record is brought once: {first ev.3} brings {first (payload(ev)).1.1.0} again: it was already brought"]
+]

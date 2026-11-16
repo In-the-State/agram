@@ -7,7 +7,7 @@
       ["=hex(slice(bytes(it), 0, 32)) = it"],
       ["me"],
       ["payload"],
-      ["1"],
+      ["1.0"],
       ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «this book hangs from»"],
       ["required"],
       [1],
@@ -48,6 +48,33 @@
       ["required"],
       [4],
       ["this book hangs from", "the action"]
+    ],
+    [
+      ["line keys"],
+      ["text"],
+      ["=count it.0 = 0 and it = 0 or count it.0 = 2 and count it.4 = 0 and (first it.0 in epoch.7.6.1 and hex(slice(bytes(last it.0), 0, 32)) = last it.0) and (count it.1 = 0 or count it.1 = 2 and first it.1 in epoch.7.6.1 and hex(slice(bytes(last it.1), 0, 32)) = last it.1) and (count it.2 = 0 or count it.2 = 2 and first it.2 in epoch.7.6.1 and hex(slice(bytes(last it.2), 0, 32)) = last it.2) and (count it.3 = 0 or count it.3 = 2 and first it.3 in epoch.7.6.1 and hex(slice(bytes(last it.3), 0, 32)) = last it.3) and (count it.1 = 0 or first it.0 != first it.1) and (count it.2 = 0 or first it.0 != first it.2) and (count it.3 = 0 or first it.0 != first it.3) and (count it.2 = 0 or first it.1 != first it.2) and (count it.3 = 0 or first it.1 != first it.3) and (count it.3 = 0 or first it.2 != first it.3)"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «this book hangs from»"],
+      ["required"],
+      [5],
+      [
+        0,
+        "the line keys of the book this one hangs from: up to four pairs [level, key], as in «open a private book here», or 0: none (by default); with them this book checks what it brings from it"
+      ]
+    ],
+    [
+      ["anchor origin"],
+      ["text"],
+      ["=hex(slice(utf8(it), 64, 65)) = \"3a\" and hex(slice(utf8(it), 65, 66)) != \"3a\" and hex(slice(bytes(text(slice(utf8(it), 0, 64))), 0, 32)) = text(slice(utf8(it), 0, 64))"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «this book hangs from»"],
+      ["optional"],
+      [6],
+      ["the origin of the line of that book: the outpoint of its anchor 0 (its txid, 64 hexadecimal characters in lower case, «:» and its output); a proof of that book whose anchors do not descend from it is another line. Checking it against Bitcoin is not a rule of the book: it is a grade of the proof; without it, what comes from that book reads «origin not checked»"]
     ]
   ],
   ["=first it.5 = first (first before.1).5 and first (first before.1).3 = me"],
@@ -58,9 +85,10 @@
     "VG 17-11 por Core State (agram-equipo/CONTRASTE_PRIVACIDAD_GOBIERNO.md, parte A): lo privado es otro libro que cuelga de un elemento del grande; el enlace es un dato en los dos lados. Este es el lado del pequeño: su génesis dice de qué libro y de qué elemento cuelga. Que el grande guarde y selle sin leer se declara aparte, con «add a parent»",
     "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): 0 el nombre de la acción; 1 el libro del que cuelga (el id de su génesis, 64 hex en minúsculas); 2 el elemento (su id, 64 hex); 3 quién lo dice; 4 la acción. Los dos son datos y no referencias: este libro no tiene el grande ni lo lee",
     "Se lanza sobre el génesis y solo se ofrece a su dueño (el autor del génesis): es de la oferta de la plantilla, sin regla de validez. Escrito a mano por otro, la época no lo rechaza; contrato.cuelgaDe solo cuenta los del autor del génesis. Ancla en el 9.5 del génesis: no choca con el 9 de la custodia, el 9.2, el 9.3 y el 9.6 de los ajustes, las preferencias y las revisiones, el 9.4 de los retoques de textos, ni con el 9.1 de «open a private book here»",
-    "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir"
+    "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir",
+    "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el enlace del pequeño anota también del grande sus claves de línea (1.1; 0 si ninguna, por defecto) y el origen de su línea (1.2, opcional, «anchor origin»), para traer de él; el libro pasa a 1.0 (lo opcional cierra su décupla). Un registro escrito antes, con el libro en 1, se sigue leyendo (contrato.cuelgaDe) pero no sirve para traer"
   ],
   ["epoch 0"],
   [9, 12],
-  ["this book hangs from: {me} says this book hangs from {first memo.2} of the book {first memo.1}"]
+  ["this book hangs from: {me} says this book hangs from {first memo.2} of the book {first memo.1.0}"]
 ]

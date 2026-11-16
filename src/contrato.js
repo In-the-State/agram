@@ -2827,15 +2827,17 @@ const despuesDe = (a, b) => {
 /**
  * Un enlace leído de su registro «open a private book here»: 1.0 el libro (64 hex), 1.1 dónde publica sus cabeceras (la
  * comprobación de las urls de «exterior settings»: http o https, sin la barra final, o null), 2 las claves de línea, pares
- * [nivel, clave] (de uno a cuatro, el nivel de epoch.7.6.1 sin repetir, la clave x-only). Lo que no es eso (un registro
- * escrito a mano), null.
+ * [nivel, clave] (de uno a cuatro, el nivel de epoch.7.6.1 sin repetir, la clave x-only), o 0: ninguna (Core AGRAM
+ * 17-11 con Core StateArk: un libro pequeño sin sellador se anuncia sin claves). Desde el puente (A15) el libro va en
+ * 1.0.0 y su 1.0.1 es el origen de su línea; el de un registro de antes, en 1.0, se lee igual. Lo que no es eso (un
+ * registro escrito a mano), null.
  */
 function enlaceDe(r, niveles) {
   const p = Array.isArray(r?.payload) ? r.payload : [];
-  const libro = texto(hoja(Array.isArray(p[1]) ? p[1][0] : undefined));
+  const libro = texto(hoja(hoja(Array.isArray(p[1]) ? p[1][0] : undefined)));
   if (!RE_ID.test(libro ?? '')) return null;
-  const pares = Array.isArray(p[2]) ? p[2] : [];
-  if (pares.length < 1 || pares.length > niveles.length) return null;
+  const pares = Array.isArray(p[2]) ? (p[2].length === 1 && p[2][0] === 0 ? [] : p[2]) : [];
+  if (pares.length > niveles.length || (pares.length < 1 && !(Array.isArray(p[2]) && p[2][0] === 0))) return null;
   const claves = [];
   for (const par of pares) {
     if (!Array.isArray(par) || par.length !== 2) return null;
@@ -2893,7 +2895,8 @@ export function cuelgaDe(eje) {
   let fuera = null;
   for (const r of eje.sobre(genesis.id, LIBRO_PRIVADO.cuelgaEn)) {
     if (r.autor !== genesis.autor || !accionesDelRegistro(r).includes(LIBRO_PRIVADO.cuelga)) continue;
-    const libro = texto(hoja(r.payload?.[1]));
+    // Desde el puente (A15) el libro va en 1.0 (con las claves de línea en 1.1 y el origen en 1.2); antes, en 1.
+    const libro = texto(hoja(hoja(r.payload?.[1])));
     const elemento = texto(hoja(r.payload?.[2]));
     if (!RE_ID.test(libro ?? '') || !RE_ID.test(elemento ?? '')) continue;
     const l = { libro, elemento, id: r.id, t: r.t };

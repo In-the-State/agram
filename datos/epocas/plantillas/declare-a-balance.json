@@ -1,0 +1,82 @@
+[
+  ["declare a balance"],
+  [
+    [
+      ["series"],
+      ["text"],
+      ["=count me.1.(it) > 0"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «declare a balance»"],
+      ["required"],
+      [1],
+      ["the series (its key in this book): one I have"]
+    ],
+    [
+      ["quantity"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «declare a balance»"],
+      ["required"],
+      [2],
+      [
+        "=sum (me.1.(first memo.1.0) each 1) + sum ((me.1.(first memo.1.0)).2 each 1)",
+        "how much I declare I have, available and locked (by default, all I have)"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «declare a balance»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «declare a balance»"],
+      ["required"],
+      [4],
+      ["=me", "who declares: the holder"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «declare a balance»"],
+      ["required"],
+      [5],
+      ["declare a balance", "the action"]
+    ]
+  ],
+  ["=it = first me.6"],
+  [["me"], ["person"]],
+  ["write"],
+  ["8"],
+  [
+    "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §4.5: en el origen, la escribe el titular: «tengo tanto de tal serie». La regla «a declared balance is true» la acepta solo si es verdad en ese punto (lo disponible y lo bloqueado de esa serie, sobre el libro de antes); declarar menos es verdad. No bloquea nada: es una foto con fecha. Traída al otro libro con «bring a record from another book», es la prueba que pide VG para R, P y T",
+    "Se lanza sobre la propia alta y se ancla en su 8 (la medida, frente a otros)",
+    "[8, 4]: la medida (PV 8), detrás de las de la 0"
+  ],
+  ["epoch 0"],
+  [8, 4],
+  ["declare a balance: {me} declares having {first memo.1.1} of {first memo.1.0}"]
+]

@@ -7,7 +7,7 @@
       ["=hex(slice(bytes(it), 0, 32)) = it"],
       ["me"],
       ["payload"],
-      ["1.0"],
+      ["1.0.0"],
       ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): parámetro de «open a private book here»"],
       ["required"],
       [1],
@@ -16,14 +16,17 @@
     [
       ["line keys"],
       ["text"],
-      ["=count it.0 = 2 and count it.4 = 0 and (first it.0 in epoch.7.6.1 and hex(slice(bytes(last it.0), 0, 32)) = last it.0) and (count it.1 = 0 or count it.1 = 2 and first it.1 in epoch.7.6.1 and hex(slice(bytes(last it.1), 0, 32)) = last it.1) and (count it.2 = 0 or count it.2 = 2 and first it.2 in epoch.7.6.1 and hex(slice(bytes(last it.2), 0, 32)) = last it.2) and (count it.3 = 0 or count it.3 = 2 and first it.3 in epoch.7.6.1 and hex(slice(bytes(last it.3), 0, 32)) = last it.3) and (count it.1 = 0 or first it.0 != first it.1) and (count it.2 = 0 or first it.0 != first it.2) and (count it.3 = 0 or first it.0 != first it.3) and (count it.2 = 0 or first it.1 != first it.2) and (count it.3 = 0 or first it.1 != first it.3) and (count it.3 = 0 or first it.2 != first it.3)"],
+      ["=count it.0 = 0 and it = 0 or count it.0 = 2 and count it.4 = 0 and (first it.0 in epoch.7.6.1 and hex(slice(bytes(last it.0), 0, 32)) = last it.0) and (count it.1 = 0 or count it.1 = 2 and first it.1 in epoch.7.6.1 and hex(slice(bytes(last it.1), 0, 32)) = last it.1) and (count it.2 = 0 or count it.2 = 2 and first it.2 in epoch.7.6.1 and hex(slice(bytes(last it.2), 0, 32)) = last it.2) and (count it.3 = 0 or count it.3 = 2 and first it.3 in epoch.7.6.1 and hex(slice(bytes(last it.3), 0, 32)) = last it.3) and (count it.1 = 0 or first it.0 != first it.1) and (count it.2 = 0 or first it.0 != first it.2) and (count it.3 = 0 or first it.0 != first it.3) and (count it.2 = 0 or first it.1 != first it.2) and (count it.3 = 0 or first it.1 != first it.3) and (count it.3 = 0 or first it.2 != first it.3)"],
       ["me"],
       ["payload"],
       ["2"],
-      ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado», con el ajuste de Core StateArk: el nivel explícito): parámetro de «open a private book here»"],
+      ["Core AGRAM 17-11 (encargo «abrir aquí un libro privado», con el ajuste de Core StateArk: el nivel explícito): parámetro de «open a private book here»; Core AGRAM 17-11 (encargo «el puente entre libros», A15) y Core AGRAM 17-11 con Core StateArk: de cero a cuatro, 0 sin claves"],
       ["required"],
       [2],
-      ["the line keys of the private book, the ones it declares in its settings: a list of one to four pairs [level, key], the level one of the cascade (epoch.7.6.1) and not repeated, the key x-only (64 hexadecimal characters in lower case); whoever seals this ledger knows by them which batch headers of the private book to anchor"]
+      [
+        0,
+        "the line keys of the private book, the ones it declares in its settings: a list of up to four pairs [level, key], the level one of the cascade (epoch.7.6.1) and not repeated, the key x-only (64 hexadecimal characters in lower case), or 0: none (a small book without a sealer is announced without keys; the last announcement that declares them counts); whoever seals this ledger knows by them which batch headers of the private book to anchor, and with them this book checks what it brings from it"
+      ]
     ],
     [
       ["who"],
@@ -60,6 +63,18 @@
       ["optional"],
       [5],
       ["where the private book publishes its batch headers: an http or https address, checked like the urls of «exterior settings»; without it, not said"]
+    ],
+    [
+      ["anchor origin"],
+      ["text"],
+      ["=hex(slice(utf8(it), 64, 65)) = \"3a\" and hex(slice(utf8(it), 65, 66)) != \"3a\" and hex(slice(bytes(text(slice(utf8(it), 0, 64))), 0, 32)) = text(slice(utf8(it), 0, 64))"],
+      ["me"],
+      ["payload"],
+      ["1.0.1"],
+      ["Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «open a private book here»"],
+      ["optional"],
+      [6],
+      ["the origin of the line of that book: the outpoint of its anchor 0 (its txid, 64 hexadecimal characters in lower case, «:» and its output); a proof of that book whose anchors do not descend from it is another line. Checking it against Bitcoin is not a rule of the book: it is a grade of the proof; without it, what comes from that book reads «origin not checked»"]
     ]
   ],
   ["=not (first it.3 != me and count (first it.3).6 > 0 and first (first it.3).6 = first it.5)"],
@@ -71,9 +86,10 @@
     "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): solo el enlace, como dato, en el lado del grande. 0 el nombre de la acción; 1.0 el libro privado (el id de su génesis, 64 hex en minúsculas, tipado como la clave de «add a parent»: un dato y no una referencia, porque este libro no lo tiene ni lo lee) y 1.1 dónde publica sus cabeceras (opcional, cierra su décupla: una dirección, texto como las de «exterior settings»; el contrato la da como url http o https o null); 2 las claves de línea del pequeño, una lista de pares [nivel, clave], de uno a cuatro, el nivel uno de epoch.7.6.1 sin repetir y la clave x-only (ajuste de Core StateArk: el nivel explícito; cuatro huecos opcionales, uno por nivel, dejarían un hueco cuando falta uno de abajo); 3 quién lo abre; 4 la acción",
     "Ancla en el 9.1 del elemento: el 9 es lo que le configura (allí anclan «add a parent», «remove a parent», «set the kind of owner» y «set a custody default») y el enlace no choca con ellos en su dirección; el 9.0 es el 9 por ceros, y en el génesis el 9.2, el 9.3 y el 9.6 ya los ocupan los ajustes, las preferencias y las revisiones. «this book hangs from» ancla en el 9.4 del génesis, así que en un génesis los dos no chocan",
     "Quién puede: quien puede escribir sobre X con las reglas que ya hay; sin regla de validez nueva. Su 4 es «write»: no mueve nada más que el coste de escribir. Sobre el alta de otra identidad no se ofrece, como «anchor here»: allí pide el precio de la atención («attention has a price»), que esta plantilla no paga; se escribe a mano con el pago en la misma transacción",
-    "Vale el último: si sobre el mismo elemento hay más de un registro para el mismo libro (al rotar una clave), contrato.librosPrivados da el último por instante y, a igualdad, por id. La época no tiene una forma general de quitar el enlace"
+    "Vale el último: si sobre el mismo elemento hay más de un registro para el mismo libro (al rotar una clave), contrato.librosPrivados da el último por instante y, a igualdad, por id. La época no tiene una forma general de quitar el enlace",
+    "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el libro pasa a 1.0.0 y su 1.0.1, opcional, es el origen de la línea del libro privado («anchor origin», el outpoint de su ancla 0), junto al libro (cierra su propia décupla: sin huecos); las claves de línea admiten 0, ninguna (acordado con Core StateArk). Un registro escrito antes, con el libro en 1.0, se sigue leyendo (contrato.librosPrivados) pero no sirve para traer: el puente lee el libro en 1.0.0"
   ],
   ["epoch 0"],
   [9, 9],
-  ["open a private book here: {me} opens the private book {first memo.1.0} on {first it.0}"]
+  ["open a private book here: {me} opens the private book {first memo.1.0.0} on {first it.0}"]
 ]

@@ -1,0 +1,15 @@
+[
+  ["a send locks what it names"],
+  ["9100000000", "9500000000"],
+  ["=not (\"send to another book\" in ev.4) or (\"open a private book here\" in (payload((first ev.6.5))).4 or \"this book hangs from\" in (payload((first ev.6.5))).4) and (\"open a private book here\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0) and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.3 and first it.0.0.2 = first (payload(ev)).1.1.4 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.2 = first before.5 and first (payload(ev)).1.1.5 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.2 = first (payload(ev)).1.0 and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.5 = first (payload(first it.5)).1.1.0)) = 1"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
+    "Diseño §4.2 y §4.4: el envío se ancla en un enlace con el libro de destino y bloquea, una vez y sin otro movimiento que su coste, lo que dice de la serie que dice, con la salida en ese enlace. Una serie forastera solo vuelve a su libro de origen"
+  ],
+  ["epoch 0"],
+  ["after only the families of the bridge cross"],
+  ["a send locks what it names: {first ev.3} sends to {first (payload(ev)).1.0} something that is not one lock of what the send names, with the link with that book as its exit"]
+]
