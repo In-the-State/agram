@@ -1,0 +1,66 @@
+[
+  ["enact a change"],
+  [
+    [
+      ["change"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["encargo A21 (gobierno): parámetro de «enact a change»"],
+      ["required"],
+      [1],
+      ["=it", "the proposal that is approved"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["encargo A21 (gobierno): parámetro de «enact a change»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["encargo A21 (gobierno): parámetro de «enact a change»"],
+      ["required"],
+      [3],
+      ["=me", "who records the approval: anyone"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["encargo A21 (gobierno): parámetro de «enact a change»"],
+      ["required"],
+      [4],
+      ["enact a change", "the action"]
+    ]
+  ],
+  ["=\"propose a change\" in (payload(it)).4 and count (down it where \"enact a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4) = 0 and first (first it.2).8"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["4"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §3.3: se lanza sobre la propuesta, la escribe cualquiera (también un agente: lo normal es que la carta lo haga sola) y fija el momento de la decisión. La regla «a change is enacted once it is approved» decide: «approved» pasa en ese punto, la propuesta no está retirada y no se aprobó ya. Se ofrece cuando eso pasa. Ancla en el 4 de la propuesta (la fábrica: lo que se decide), como «close by decision»",
+    "[4, 19]: la fábrica (PV 4), detrás de las de la 0 y de las de la época state ([4, 10] … [4, 18])"
+  ],
+  ["epoch 0"],
+  [4, 19],
+  ["enact a change: {me} records that {first it.0} is approved"]
+]

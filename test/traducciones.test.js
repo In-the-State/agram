@@ -17,7 +17,7 @@ test('traducciones: la lista de lo pedido cubre cada tipo de texto de la época 
   const pedidas = clavesPedidas();
   const tipos = new Set(pedidas.map((c) => c.tipo));
   for (const t of ['acción', 'parámetro de acción', 'mensaje de acción', 'plantilla', 'posición de plantilla', 'plantilla de cerrado', 'estado', 'nivel de madurez', 'orden', 'tamaño', 'formato legible', 'motivo (regla)', 'motivo (acción)', 'guía', 'opción de preferencia', 'modo de ejecución']) assert.ok(tipos.has(t), 'sin claves de tipo «' + t + '»');
-  assert.equal(pedidas.filter((c) => c.tipo === 'acción').length, 59, 'las 59 plantillas de transacción (con las dos del libro privado, 17-11) (+ las tres de padres y copias, A19, «ask for more firmness», A18, «give T to a thing of mine», V10, «set a custody default», 17-11, y «retouch a text», A20 escalón 1)');
+  assert.equal(pedidas.filter((c) => c.tipo === 'acción').length, 65, 'las 65 plantillas de transacción (con las dos del libro privado, 17-11) (+ las tres de padres y copias, A19, «ask for more firmness», A18, «give T to a thing of mine», V10, «set a custody default», 17-11, «retouch a text», A20 escalón 1, y las seis del gobierno, A21)');
   assert.equal(new Set(pedidas.map((c) => c.clave)).size, pedidas.length, 'sin claves repetidas');
 });
 

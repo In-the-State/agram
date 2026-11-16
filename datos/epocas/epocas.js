@@ -626,7 +626,37 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c"
     },
     {
-      "ref": "2405b528757fe55175569925d64bf89f8d3152a5330af5189f72ef5c0c244bcd"
+      "ref": "7a15d2ae9ae031dc090dd6b27bd674e67df7836143e82ec3ee2a658daf3d2c25"
+    },
+    {
+      "ref": "d41f0bf6610aca0d5e21fcc1335fc43e9c306044873840384bccd61300d94d45"
+    },
+    {
+      "ref": "236a72e0950f1ed84fd148d941221c60eb10006585d6e600efec47f6ce851da3"
+    },
+    {
+      "ref": "00d96395c6d1504055ece015b7c22c2bf4240059700d757495a7b2c845360769"
+    },
+    {
+      "ref": "bd9c575882c025d6636245c6cfca59350d2e30eb82042aaa7e924a49069b2130"
+    },
+    {
+      "ref": "abf36be1a2897f27d9ffbb7a12122439d05a24926aa62accb7b15424b564fb0c"
+    },
+    {
+      "ref": "fc83fbdfbd4d0596192f8290eef0fc3783c2bda4e8043f31fb958cb154feb568"
+    },
+    {
+      "ref": "32db1ef88eef41cd844945f9803d64f9874a6b47ddb44af10519bda61ce8e9e7"
+    },
+    {
+      "ref": "5f9154481910e70d57910d731c34c88fb307908e6dbf0ecffc1176b533334b4f"
+    },
+    {
+      "ref": "a381740ec9d938f541dd43d1b304222360ca996c20412f671c55ae7300cafbc2"
+    },
+    {
+      "ref": "8114171631a40f71fd2d6cd8e49da31e41366ea1c511da7b0d27ea48950bf559"
     }
   ],
   [
@@ -2268,11 +2298,61 @@ export const EPOCA_0_BTML_DATOS = [
     ],
     [
       [
-        "retouch",
-        "reserved, with no effect (VG 17-11 through Core State, A20 step 1, and the adjustment that followed: the pieces of the epoch are never decided by an open count nor by a raw amount of P; they are born with the owner and are widened by name): it would say who else retouches a text of this book besides its owner; today only the owner of the book (the author of its genesis) retouches («only the owner of the book retouches a text») and nothing reads this row. Only texts: rules and parameters are not retouched"
+        "governance",
+        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules (by their name) and the positions of the epoch that no change removes; 7 the pieces of governance: what only a governance change changes. The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
+      ],
+      [
+        0.5
+      ],
+      [
+        0.6666666666
+      ],
+      [
+        3
+      ],
+      [
+        4
       ],
       [
         0
+      ],
+      [
+        "nobody moves tokens of others",
+        "who has a key signs",
+        "without a key nobody acts",
+        "a declared key comes with its proof",
+        "a key is declared at its alta",
+        "locks keep their holder and name an exit",
+        "every event moves tokens",
+        "the cost of writing",
+        "writing burns today's T",
+        "nobody mints T",
+        "T is whole",
+        "T is not locked",
+        "informative T is only burned",
+        "a person joins by an invitation",
+        "not before the writer joined",
+        "a thing of mine is one whose alta I wrote",
+        "T only goes to things",
+        "epoch.7.0",
+        "epoch.1.3.1",
+        "epoch.7.2"
+      ],
+      [
+        "epoch.7.9",
+        "support of",
+        "support",
+        "approved",
+        "a change names its class and brings a change",
+        "only who proposed withdraws a change",
+        "a change is enacted once it is approved",
+        "a change comes into force with its proof",
+        "propose a change",
+        "support a change",
+        "withdraw support",
+        "enact a change",
+        "put a change in force",
+        "withdraw a change"
       ]
     ]
   ],
@@ -6712,7 +6792,85 @@ export const EPOCA_0_BTML_DATOS = [
           "template retouch a text param actions label: acción",
           "template retouch a text param actions help: la acción",
           "template retouch a text message: {me} retoca el texto {first ev.1.1} en {first ev.1.0}",
-          "only the owner of the book retouches a text: {first ev.3} retoca un texto de un libro cuyo génesis no escribió"
+          "only the owner of the book retouches a text: {first ev.3} retoca un texto de un libro cuyo génesis no escribió",
+          "support of: lo que cuenta un compromiso de P con un cambio propuesto: la presión de su titular entre los nombres de epoch.7.9.5 × lo que bloquea ÷ todo su P en el libro",
+          "support: la parte de la presión de los nombres de epoch.7.9.5 que respalda un cambio propuesto con su P bloqueado",
+          "missing support: cuánto apoyo le falta todavía a un cambio propuesto para llegar al umbral de su clase",
+          "approved: un cambio propuesto tiene más apoyo que el umbral de su clase (epoch.7.9.1 o epoch.7.9.2)",
+          "change state: el último registro que decidió un cambio propuesto: la propia propuesta, su aprobación, su entrada en vigor o su retirada",
+          "changes: los cambios propuestos del libro, colgados de su génesis",
+          "a change names its class and brings a change: {first ev.3} propone un cambio que no cuelga del 9.7 del génesis, no dice «ordinary» ni «governance» en su 2 o no trae ninguna época en su 1.1",
+          "only who proposed withdraws a change: {first ev.3} retira {first ev.6.5}, que no es un cambio propuesto abierto suyo",
+          "a change is enacted once it is approved: {first ev.3} aprueba {first ev.6.5}, que no es un cambio propuesto abierto con el apoyo que pide su clase",
+          "a change comes into force with its proof: {first ev.3} pone en vigor {first ev.6.5}, que no es un cambio aprobado que aún no esté en vigor, o sin una prueba de sello que lo cubra al nivel que pide su clase",
+          "template propose a change: proponer un cambio",
+          "template propose a change param title label: título",
+          "template propose a change param title help: un título corto del cambio",
+          "template propose a change param explanation label: explicación",
+          "template propose a change param explanation help: qué cambia y por qué, en llano",
+          "template propose a change param change label: cambio",
+          "template propose a change param change help: el cambio: la raíz de una época hija de la época vigente, como se escribe hoy una época que hereda (su 6 dice «hereda» con el id de esa época; donde no cambia nada, la marca { ref } a ella)",
+          "template propose a change param records label: registros",
+          "template propose a change param records help: los registros del cambio (reglas o plantillas) que referencia su raíz, si trae nuevos (hasta diez)",
+          "template propose a change param class label: clase",
+          "template propose a change param class help: ordinary (corriente) o governance (de gobierno): un cambio que toca una pieza de gobierno (epoch.7.9.7) es de gobierno y pide el umbral alto (epoch.7.9.2) y su nivel de firmeza (epoch.7.9.4)",
+          "template propose a change param who label: quién",
+          "template propose a change param who help: quién propone",
+          "template propose a change param actions label: acción",
+          "template propose a change param actions help: la acción",
+          "template propose a change message: {me} propone {first memo.0}, un cambio de clase {first memo.2}",
+          "template support a change: apoyar un cambio",
+          "template support a change param part label: parte",
+          "template support a change param part help: la parte de cada serie de P mía, esté donde esté en este libro, que bloqueo con esta propuesta como salida (1: toda)",
+          "template support a change param criteria label: criterio",
+          "template support a change param criteria help: la plantilla de cerrado del registro",
+          "template support a change param who label: quién",
+          "template support a change param who help: quién apoya",
+          "template support a change param actions label: acción",
+          "template support a change param actions help: la acción",
+          "template support a change message: {me} apoya {first it.0} con P suyo",
+          "template withdraw support: retirar el apoyo",
+          "template withdraw support param change label: cambio",
+          "template withdraw support param change help: la propuesta a la que se retira el apoyo",
+          "template withdraw support param criteria label: criterio",
+          "template withdraw support param criteria help: la plantilla de cerrado del registro",
+          "template withdraw support param who label: quién",
+          "template withdraw support param who help: quién retira su apoyo",
+          "template withdraw support param actions label: acción",
+          "template withdraw support param actions help: la acción",
+          "template withdraw support message: {me} retira su apoyo a {first it.0}",
+          "template enact a change: dar por aprobado un cambio",
+          "template enact a change param change label: cambio",
+          "template enact a change param change help: la propuesta que queda aprobada",
+          "template enact a change param criteria label: criterio",
+          "template enact a change param criteria help: la plantilla de cerrado del registro",
+          "template enact a change param who label: quién",
+          "template enact a change param who help: quién deja constancia de la aprobación: cualquiera",
+          "template enact a change param actions label: acción",
+          "template enact a change param actions help: la acción",
+          "template enact a change message: {me} deja constancia de que {first it.0} está aprobado",
+          "template put a change in force: poner un cambio en vigor",
+          "template put a change in force param change label: aprobación",
+          "template put a change in force param change help: la aprobación (el registro «dar por aprobado un cambio») cuyo cambio entra en vigor",
+          "template put a change in force param proof label: prueba",
+          "template put a change in force param proof help: la prueba de sello de la aprobación: la décupla del sello que el libro guarda en su 6.8.2 (por defecto, la que tiene); con nivel pedido 0, ninguna",
+          "template put a change in force param criteria label: criterio",
+          "template put a change in force param criteria help: la plantilla de cerrado del registro",
+          "template put a change in force param who label: quién",
+          "template put a change in force param who help: quién lo pone en vigor: cualquiera",
+          "template put a change in force param actions label: acción",
+          "template put a change in force param actions help: la acción",
+          "template put a change in force message: {me} pone en vigor el cambio que aprobó {first it.3}",
+          "template withdraw a change: retirar un cambio propuesto",
+          "template withdraw a change param change label: cambio",
+          "template withdraw a change param change help: la propuesta que se retira",
+          "template withdraw a change param criteria label: criterio",
+          "template withdraw a change param criteria help: la plantilla de cerrado del registro",
+          "template withdraw a change param who label: quién",
+          "template withdraw a change param who help: quién la retira: quien la propuso",
+          "template withdraw a change param actions label: acción",
+          "template withdraw a change param actions help: la acción",
+          "template withdraw a change message: {me} retira {first it.0}"
         ]
       ],
       [
@@ -6935,7 +7093,10 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "08ba521d0c536a96a00dae825466932de924149736babd157b3aeded5ccc9f02"
         },
         {
-          "ref": "ee204bf4b067cf7ad058c00a13465ed2586c4a5804ae88c6f9c8a823bccbff5f"
+          "ref": "32a71d47395114549a6c631ffa04f09c673ad0561ab8789d2ac86ff28a90b81d"
+        },
+        {
+          "ref": "200c5328146319abef1f6472acd4b77da2e4e47a067d22352d478f153f5ad653"
         },
         {
           "ref": "d48977fddf2db7440fc12be34b410704cbffc34b58aa49e0a9b8c0dbd359d571"
@@ -6981,6 +7142,12 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "f75da136da35d13e0cda76d5cde3daa342b32248f85af6f0c4dc29b4e47650d3"
+        },
+        {
+          "ref": "7feece0bd637fcbf0dbfc22af44fdfefceeee57120cb0d3d58081c285ca4f826"
+        },
+        {
+          "ref": "23c680184635442c34ecda01a0400852be6a3e697891b19487455f0bfcef4b54"
         },
         {
           "ref": "e42b5ccff63c250a2141612c893f7f9ee57bd468eebad887ed2b297721a936cb"
@@ -7040,6 +7207,12 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "fbb8b7791e9a62a9025a44422916f8c1b31bb29a7aa5401195f486b89a5e5ac6"
         },
         {
+          "ref": "5659559a9b207971c6150b14d2689c58f41a4343a6362b285aab438c89ca48e9"
+        },
+        {
+          "ref": "fa2dd60226921aaa91d95f0bec74ab359b95cbfb07f296c8be995c3c0fb0826c"
+        },
+        {
           "ref": "4d453575c924896213b169bc37c92322eb7b7c9222ebbc4da011a22b3e09f544"
         },
         {
@@ -7047,6 +7220,9 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "c0995f05b3a72517aff764458989f1789d35559f96fbf8897f9d167e11a441b7"
+        },
+        {
+          "ref": "0b5aebbeca779e601a05f2a408e5d8176b1ec15c10c8e6f7da197a78db3b9b17"
         },
         {
           "ref": "8b033881f62c40393928f34f161616b33c894d866609720820648f743c2d39a5"
@@ -8286,6 +8462,140 @@ export const EPOCA_0_DATOS = {
 // reglas/*.json: los registros de las reglas de la época, { archivo, id, registro }; el id, el hash de su cuerpo canónico
 export const REGLAS_DE_EPOCA_DATOS = [
   {
+    "archivo": "a-change-comes-into-force-with-its-proof.json",
+    "id": "8114171631a40f71fd2d6cd8e49da31e41366ea1c511da7b0d27ea48950bf559",
+    "registro": [
+      [
+        "a change comes into force with its proof"
+      ],
+      [
+        "X.6.8.2",
+        "epoch.7.9.3",
+        "epoch.7.9.4",
+        "epoch.7.6",
+        "before.8.6",
+        "before.8.9"
+      ],
+      [
+        "=not (\"put a change in force\" in ev.4) or \"enact a change\" in (payload(first ev.6.5)).4 and count (down (first ev.6.5) where \"put a change in force\" in (payload(it)).4) = 0 and (first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\" or first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") and ((count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) = 0 or (((\"cascada\" in (first (payload(ev)).1.1).6 and bytes(first (first (payload(ev)).1.1).4) = bytes(first ev.6.5) and cat(bytes(\"5120\"), taptweak(bytes(first (first (payload(ev)).1.1).8.2), tapleaf(cat(bytes(\"6a20\"), bytes(first (first (payload(ev)).1.1).3))), (first (payload(ev)).1.1).8.3)) = first (nth (first (first (payload(ev)).1.1).8.1) (first tx(bytes(first (first (payload(ev)).1.1).8.0))).2).1 and merkle(first (first tx(bytes(first (first (payload(ev)).1.1).8.0))).5, (first (payload(ev)).1.1).7.4, (first (payload(ev)).1.1).7.5, \"bitcoin\") = first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).3 and hex(first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).7) = first (first (payload(ev)).1.1).2 and below(reverse(first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).7), first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).8) and le(bytes(first (first (payload(ev)).1.1).7.2)) = first (first (payload(ev)).1.1).1 and signed(bytes(first (first (payload(ev)).1.1).7.1), hash(cat(bytes(first (first (payload(ev)).1.1).7.0), bytes(first (first (payload(ev)).1.1).7.2)), \"StateArk/Observador/Cabecera/v1\"), bytes(first (first (payload(ev)).1.1).7.3)) and first (first (payload(ev)).1.1).7.3 in before.8.6 and ((count (first (payload(ev)).1.1).9.0 > 0 and count (first (payload(ev)).1.1).9.1 = 0 and \"cabecera de lote\" in (first (payload(ev)).1.1).9.0.0.0 and \"v2\" in (first (payload(ev)).1.1).9.0.0.0 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.0)) = first (first (payload(ev)).1.1).9.0.0.1 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.1)) = first (first (payload(ev)).1.1).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.1).4), (first (payload(ev)).1.1).9.0.2, (first (payload(ev)).1.1).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.0.0.5)) and hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\") = bytes(first (first (payload(ev)).1.1).3) and first (first (payload(ev)).1.1).9.0.0.5 in before.8.6) or (count (first (payload(ev)).1.1).9.1 > 0 and count (first (payload(ev)).1.1).9.2 = 0 and \"cabecera de lote\" in (first (payload(ev)).1.1).9.0.0.0 and \"v2\" in (first (payload(ev)).1.1).9.0.0.0 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.0)) = first (first (payload(ev)).1.1).9.0.0.1 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.1)) = first (first (payload(ev)).1.1).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.1).4), (first (payload(ev)).1.1).9.0.2, (first (payload(ev)).1.1).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.0.0.5)) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.1.0.0 and \"v2\" in (first (payload(ev)).1.1).9.1.0.0 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.0)) = first (first (payload(ev)).1.1).9.1.0.1 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.1)) = first (first (payload(ev)).1.1).9.1.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.1.2, (first (payload(ev)).1.1).9.1.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.1.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.1.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.1.0.5)) and hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\") = bytes(first (first (payload(ev)).1.1).3) and first (first (payload(ev)).1.1).9.1.0.5 in before.8.6) or (count (first (payload(ev)).1.1).9.2 > 0 and count (first (payload(ev)).1.1).9.3 = 0 and \"cabecera de lote\" in (first (payload(ev)).1.1).9.0.0.0 and \"v2\" in (first (payload(ev)).1.1).9.0.0.0 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.0)) = first (first (payload(ev)).1.1).9.0.0.1 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.1)) = first (first (payload(ev)).1.1).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.1).4), (first (payload(ev)).1.1).9.0.2, (first (payload(ev)).1.1).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.0.0.5)) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.1.0.0 and \"v2\" in (first (payload(ev)).1.1).9.1.0.0 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.0)) = first (first (payload(ev)).1.1).9.1.0.1 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.1)) = first (first (payload(ev)).1.1).9.1.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.1.2, (first (payload(ev)).1.1).9.1.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.1.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.1.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.1.0.5)) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.2.0.0 and \"v2\" in (first (payload(ev)).1.1).9.2.0.0 and le(bytes(first (first (payload(ev)).1.1).9.2.0.7.0)) = first (first (payload(ev)).1.1).9.2.0.1 and le(bytes(first (first (payload(ev)).1.1).9.2.0.7.1)) = first (first (payload(ev)).1.1).9.2.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.2.2, (first (payload(ev)).1.1).9.2.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.2.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.2.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.2.0.7.0), bytes(first (first (payload(ev)).1.1).9.2.0.2), bytes(first (first (payload(ev)).1.1).9.2.0.3), bytes(first (first (payload(ev)).1.1).9.2.0.7.1), bytes(first (first (payload(ev)).1.1).9.2.0.5), bytes(first (first (payload(ev)).1.1).9.2.0.8), bytes(first (first (payload(ev)).1.1).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.2.0.5)) and hash(cat(bytes(first (first (payload(ev)).1.1).9.2.0.7.0), bytes(first (first (payload(ev)).1.1).9.2.0.2), bytes(first (first (payload(ev)).1.1).9.2.0.3), bytes(first (first (payload(ev)).1.1).9.2.0.7.1), bytes(first (first (payload(ev)).1.1).9.2.0.5), bytes(first (first (payload(ev)).1.1).9.2.0.8), bytes(first (first (payload(ev)).1.1).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\") = bytes(first (first (payload(ev)).1.1).3) and first (first (payload(ev)).1.1).9.2.0.5 in before.8.6) or (count (first (payload(ev)).1.1).9.3 > 0 and count (first (payload(ev)).1.1).9.4 = 0 and \"cabecera de lote\" in (first (payload(ev)).1.1).9.0.0.0 and \"v2\" in (first (payload(ev)).1.1).9.0.0.0 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.0)) = first (first (payload(ev)).1.1).9.0.0.1 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.1)) = first (first (payload(ev)).1.1).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.1).4), (first (payload(ev)).1.1).9.0.2, (first (payload(ev)).1.1).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.0.0.5)) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.1.0.0 and \"v2\" in (first (payload(ev)).1.1).9.1.0.0 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.0)) = first (first (payload(ev)).1.1).9.1.0.1 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.1)) = first (first (payload(ev)).1.1).9.1.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.1.2, (first (payload(ev)).1.1).9.1.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.1.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.1.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.1.0.5)) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.2.0.0 and \"v2\" in (first (payload(ev)).1.1).9.2.0.0 and le(bytes(first (first (payload(ev)).1.1).9.2.0.7.0)) = first (first (payload(ev)).1.1).9.2.0.1 and le(bytes(first (first (payload(ev)).1.1).9.2.0.7.1)) = first (first (payload(ev)).1.1).9.2.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.2.2, (first (payload(ev)).1.1).9.2.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.2.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.2.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.2.0.7.0), bytes(first (first (payload(ev)).1.1).9.2.0.2), bytes(first (first (payload(ev)).1.1).9.2.0.3), bytes(first (first (payload(ev)).1.1).9.2.0.7.1), bytes(first (first (payload(ev)).1.1).9.2.0.5), bytes(first (first (payload(ev)).1.1).9.2.0.8), bytes(first (first (payload(ev)).1.1).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.2.0.5)) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.3.0.0 and \"v2\" in (first (payload(ev)).1.1).9.3.0.0 and le(bytes(first (first (payload(ev)).1.1).9.3.0.7.0)) = first (first (payload(ev)).1.1).9.3.0.1 and le(bytes(first (first (payload(ev)).1.1).9.3.0.7.1)) = first (first (payload(ev)).1.1).9.3.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.2.0.7.0), bytes(first (first (payload(ev)).1.1).9.2.0.2), bytes(first (first (payload(ev)).1.1).9.2.0.3), bytes(first (first (payload(ev)).1.1).9.2.0.7.1), bytes(first (first (payload(ev)).1.1).9.2.0.5), bytes(first (first (payload(ev)).1.1).9.2.0.8), bytes(first (first (payload(ev)).1.1).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.3.2, (first (payload(ev)).1.1).9.3.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.3.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.3.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.3.0.7.0), bytes(first (first (payload(ev)).1.1).9.3.0.2), bytes(first (first (payload(ev)).1.1).9.3.0.3), bytes(first (first (payload(ev)).1.1).9.3.0.7.1), bytes(first (first (payload(ev)).1.1).9.3.0.5), bytes(first (first (payload(ev)).1.1).9.3.0.8), bytes(first (first (payload(ev)).1.1).9.3.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.3.0.5)) and hash(cat(bytes(first (first (payload(ev)).1.1).9.3.0.7.0), bytes(first (first (payload(ev)).1.1).9.3.0.2), bytes(first (first (payload(ev)).1.1).9.3.0.3), bytes(first (first (payload(ev)).1.1).9.3.0.7.1), bytes(first (first (payload(ev)).1.1).9.3.0.5), bytes(first (first (payload(ev)).1.1).9.3.0.8), bytes(first (first (payload(ev)).1.1).9.3.0.9)), \"StateArk/Lote/Cabecera/v2\") = bytes(first (first (payload(ev)).1.1).3) and first (first (payload(ev)).1.1).9.3.0.5 in before.8.6))) or not (\"cascada\" in (first (payload(ev)).1.1).6) and bytes(first (first (payload(ev)).1.1).4) = bytes(first ev.6.5) and cat(bytes(\"5120\"), taptweak(bytes(first (first (payload(ev)).1.1).8.2), tapleaf(cat(bytes(\"6a20\"), bytes(first (first (payload(ev)).1.1).3))), (first (payload(ev)).1.1).8.3)) = first (nth (first (first (payload(ev)).1.1).8.1) (first tx(bytes(first (first (payload(ev)).1.1).8.0))).2).1 and merkle(first (first tx(bytes(first (first (payload(ev)).1.1).8.0))).5, (first (payload(ev)).1.1).7.4, (first (payload(ev)).1.1).7.5, \"bitcoin\") = first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).3 and hex(first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).7) = first (first (payload(ev)).1.1).2 and below(reverse(first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).7), first (first cabecera(bytes(first (first (payload(ev)).1.1).7.0))).8) and le(bytes(first (first (payload(ev)).1.1).7.2)) = first (first (payload(ev)).1.1).1 and signed(bytes(first (first (payload(ev)).1.1).7.1), hash(cat(bytes(first (first (payload(ev)).1.1).7.0), bytes(first (first (payload(ev)).1.1).7.2)), \"StateArk/Observador/Cabecera/v1\"), bytes(first (first (payload(ev)).1.1).7.3)) and first (first (payload(ev)).1.1).7.3 in before.8.6 and hex(merkle(bytes(first ev.6.5), (first (payload(ev)).1.1).9.0, (first (payload(ev)).1.1).9.1, \"sip\")) = first (first (payload(ev)).1.1).3 and \"taproot\" in (first (payload(ev)).1.1).6) or (\"cascada\" in (first (payload(ev)).1.1).6 and bytes(first (first (payload(ev)).1.1).4) = bytes(first ev.6.5) and \"cabecera de lote\" in (first (payload(ev)).1.1).9.0.0.0 and \"v2\" in (first (payload(ev)).1.1).9.0.0.0 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.0)) = first (first (payload(ev)).1.1).9.0.0.1 and le(bytes(first (first (payload(ev)).1.1).9.0.0.7.1)) = first (first (payload(ev)).1.1).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.1).4), (first (payload(ev)).1.1).9.0.2, (first (payload(ev)).1.1).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.0.0.5)) and ((first (first (payload(ev)).1.1).9.0.0.5 in before.8.9 or first (first (payload(ev)).1.1).9.0.0.5 in before.8.6) and (((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.0.1) and (nth 0 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.0.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.0.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.0.1) < count epoch.7.6.4)) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.0.1) and (nth 1 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.0.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.0.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.0.1) < count epoch.7.6.4)) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.0.1) and (nth 2 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.0.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.0.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.0.1) < count epoch.7.6.4)) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.0.1) and (nth 3 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.0.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.0.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.0.1) < count epoch.7.6.4))) or \"cabecera de lote\" in (first (payload(ev)).1.1).9.1.0.0 and \"v2\" in (first (payload(ev)).1.1).9.1.0.0 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.0)) = first (first (payload(ev)).1.1).9.1.0.1 and le(bytes(first (first (payload(ev)).1.1).9.1.0.7.1)) = first (first (payload(ev)).1.1).9.1.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.0.0.7.0), bytes(first (first (payload(ev)).1.1).9.0.0.2), bytes(first (first (payload(ev)).1.1).9.0.0.3), bytes(first (first (payload(ev)).1.1).9.0.0.7.1), bytes(first (first (payload(ev)).1.1).9.0.0.5), bytes(first (first (payload(ev)).1.1).9.0.0.8), bytes(first (first (payload(ev)).1.1).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.1.2, (first (payload(ev)).1.1).9.1.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.1.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.1.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.1.0.5)) and ((first (first (payload(ev)).1.1).9.1.0.5 in before.8.9 or first (first (payload(ev)).1.1).9.1.0.5 in before.8.6) and (((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.1.1) and (nth 0 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.1.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.1.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.1.1) < count epoch.7.6.4)) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.1.1) and (nth 1 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.1.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.1.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.1.1) < count epoch.7.6.4)) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.1.1) and (nth 2 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.1.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.1.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.1.1) < count epoch.7.6.4)) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.1.1) and (nth 3 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.1.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.1.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.1.1) < count epoch.7.6.4))) or \"cabecera de lote\" in (first (payload(ev)).1.1).9.2.0.0 and \"v2\" in (first (payload(ev)).1.1).9.2.0.0 and le(bytes(first (first (payload(ev)).1.1).9.2.0.7.0)) = first (first (payload(ev)).1.1).9.2.0.1 and le(bytes(first (first (payload(ev)).1.1).9.2.0.7.1)) = first (first (payload(ev)).1.1).9.2.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.1.0.7.0), bytes(first (first (payload(ev)).1.1).9.1.0.2), bytes(first (first (payload(ev)).1.1).9.1.0.3), bytes(first (first (payload(ev)).1.1).9.1.0.7.1), bytes(first (first (payload(ev)).1.1).9.1.0.5), bytes(first (first (payload(ev)).1.1).9.1.0.8), bytes(first (first (payload(ev)).1.1).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.2.2, (first (payload(ev)).1.1).9.2.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.2.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.2.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.2.0.7.0), bytes(first (first (payload(ev)).1.1).9.2.0.2), bytes(first (first (payload(ev)).1.1).9.2.0.3), bytes(first (first (payload(ev)).1.1).9.2.0.7.1), bytes(first (first (payload(ev)).1.1).9.2.0.5), bytes(first (first (payload(ev)).1.1).9.2.0.8), bytes(first (first (payload(ev)).1.1).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.2.0.5)) and ((first (first (payload(ev)).1.1).9.2.0.5 in before.8.9 or first (first (payload(ev)).1.1).9.2.0.5 in before.8.6) and (((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.2.1) and (nth 0 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.2.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.2.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.2.1) < count epoch.7.6.4)) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.2.1) and (nth 1 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.2.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.2.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.2.1) < count epoch.7.6.4)) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.2.1) and (nth 2 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.2.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.2.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.2.1) < count epoch.7.6.4)) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.2.1) and (nth 3 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.2.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.2.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.2.1) < count epoch.7.6.4))) or \"cabecera de lote\" in (first (payload(ev)).1.1).9.3.0.0 and \"v2\" in (first (payload(ev)).1.1).9.3.0.0 and le(bytes(first (first (payload(ev)).1.1).9.3.0.7.0)) = first (first (payload(ev)).1.1).9.3.0.1 and le(bytes(first (first (payload(ev)).1.1).9.3.0.7.1)) = first (first (payload(ev)).1.1).9.3.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.1).9.2.0.7.0), bytes(first (first (payload(ev)).1.1).9.2.0.2), bytes(first (first (payload(ev)).1.1).9.2.0.3), bytes(first (first (payload(ev)).1.1).9.2.0.7.1), bytes(first (first (payload(ev)).1.1).9.2.0.5), bytes(first (first (payload(ev)).1.1).9.2.0.8), bytes(first (first (payload(ev)).1.1).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.1).9.3.2, (first (payload(ev)).1.1).9.3.3, \"sip\") = bytes(first (first (payload(ev)).1.1).9.3.0.3) and signed(bytes(first (first (payload(ev)).1.1).9.3.0.6), hash(cat(bytes(first (first (payload(ev)).1.1).9.3.0.7.0), bytes(first (first (payload(ev)).1.1).9.3.0.2), bytes(first (first (payload(ev)).1.1).9.3.0.3), bytes(first (first (payload(ev)).1.1).9.3.0.7.1), bytes(first (first (payload(ev)).1.1).9.3.0.5), bytes(first (first (payload(ev)).1.1).9.3.0.8), bytes(first (first (payload(ev)).1.1).9.3.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.1).9.3.0.5)) and ((first (first (payload(ev)).1.1).9.3.0.5 in before.8.9 or first (first (payload(ev)).1.1).9.3.0.5 in before.8.6) and (((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.3.1) and (nth 0 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.3.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.3.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.3.1) < count epoch.7.6.4)) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.3.1) and (nth 1 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.3.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.3.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.3.1) < count epoch.7.6.4)) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.3.1) and (nth 2 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.3.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.3.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.3.1) < count epoch.7.6.4)) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.1).9.3.1) and (nth 3 epoch.7.6.1) >= (count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"governance\") * first epoch.7.9.4 + count (epoch where first (payload((first (first (first ev.6.5).6).5))).2 = \"ordinary\") * first epoch.7.9.3) and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.1).9.3.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.1).9.3.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.1).9.3.1) < count epoch.7.6.4))))))))))"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Diseño §3.4: «put a change in force» se ancla en el «enact a change», lo escribe cualquiera y lleva en su payload 1.1 la décupla de sello de ese registro (la forma de eje.marcarSello y decuplaDeSello). Vale si el «enact a change» no tiene ya otro (un cambio entra en vigor una vez), la clase de su propuesta es «ordinary» o «governance» y, si el nivel que pide su clase (epoch.7.9.3 o epoch.7.9.4) no es 0, la prueba cubre el id del «enact a change» y llega a ese nivel: o vale entera («sealed», con el observador en before.8.6: llega a Bitcoin, el último nivel), o por la cadena, como «firm»: los eslabones de abajo arriba valen y uno, con la clave de su cabecera en before.8.9 (o before.8.6), dice un nivel a la altura del pedido o por encima, con su grado a la altura del exigido (epoch.7.6.5). Con nivel pedido 0 vale sin prueba",
+        "La fórmula es la de src/sello.js (formulaDeSelloDelDato: las piezas de «sealed» y de «firm») aplicada a la décupla del payload y al id del foco en vez de al 6.8.2 del registro y su 5; la escribe datos/epocas/gobierno.mjs (formulaDePonerEnVigor) y una prueba comprueba que es esta. El veredicto depende solo de lo que lleva el registro y de lo que el libro ya tiene: no cambia después",
+        "Que el cambio, fundido sobre la época vigente en ese punto, cargue y no toque el suelo, y que la época del libro cambie al aceptarlo, es del núcleo (el motor, encargo siguiente): aquí se escribe y se valida, pero la época no cambia"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after a change is enacted once it is approved"
+      ],
+      [
+        "a change comes into force with its proof: {first ev.3} puts in force {first ev.6.5}, which is not an enacted change not yet in force, or without a timestamp proof that covers it at the level its class asks"
+      ]
+    ]
+  },
+  {
+    "archivo": "a-change-is-enacted-once-it-is-approved.json",
+    "id": "a381740ec9d938f541dd43d1b304222360ca996c20412f671c55ae7300cafbc2",
+    "registro": [
+      [
+        "a change is enacted once it is approved"
+      ],
+      [
+        "X.2.8",
+        "X.4"
+      ],
+      [
+        "=not (\"enact a change\" in ev.4) or \"propose a change\" in (payload(first ev.6.5)).4 and count (down (first ev.6.5) where \"enact a change\" in (payload(it)).4 or \"withdraw a change\" in (payload(it)).4) = 0 and first (first (first ev.6.5).2).8"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Diseño §3.3: «enact a change» se ancla en la propuesta, lo escribe cualquiera y solo vale si la lectura «approved» de la propuesta (X.2.8) pasa en ese punto (sobre el libro de antes), la propuesta no está retirada y no se aprobó ya. Fija el momento de la decisión: lo que pase después con los apoyos no lo cambia"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after only who proposed withdraws a change"
+      ],
+      [
+        "a change is enacted once it is approved: {first ev.3} enacts {first ev.6.5}, which is not an open proposed change with the support its class asks"
+      ]
+    ]
+  },
+  {
+    "archivo": "a-change-names-its-class-and-brings-a-change.json",
+    "id": "32db1ef88eef41cd844945f9803d64f9874a6b47ddb44af10519bda61ce8e9e7",
+    "registro": [
+      [
+        "a change names its class and brings a change"
+      ],
+      [
+        "before.5",
+        "9700000000",
+        "\"ordinary\"",
+        "\"governance\""
+      ],
+      [
+        "=not (\"propose a change\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9700000000\" and (first (payload(ev)).2 = \"ordinary\" or first (payload(ev)).2 = \"governance\") and count (payload(ev)).1.1.0 > 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Diseño §3.1: un registro que dice «propose a change» en su 4 cuelga del 9.7 del génesis («changes»), declara su clase en su 2 («ordinary» o «governance») y trae un cambio: una raíz de época con nombre en su 1.1 (y sus registros, si los hay, en su 1.2). Es solo la forma que alcanza el BQL; que el cambio sea una época hija que carga, que no toque el suelo (epoch.7.9.6) y que su clase no se quede corta (lo que toca epoch.7.9.7 es «governance») lo comprueba el núcleo (encargo siguiente, el motor). Solo se mira con esa acción (el or es perezoso)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after changes"
+      ],
+      [
+        "a change names its class and brings a change: {first ev.3} proposes a change that does not hang from the 9.7 of the genesis, does not say «ordinary» or «governance» in its 2 or brings no epoch in its 1.1"
+      ]
+    ]
+  },
+  {
     "archivo": "a-declared-key-comes-with-its-proof.json",
     "id": "e85e54370d14e87b80c8ede4d62fdf09ffe7d9a2f2558ad5ccb5ff3ec9cfcac0",
     "registro": [
@@ -8622,6 +8932,46 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "approved.json",
+    "id": "bd9c575882c025d6636245c6cfca59350d2e30eb82042aaa7e924a49069b2130",
+    "registro": [
+      [
+        "approved"
+      ],
+      [
+        "X.2.6",
+        "epoch.7.9.1",
+        "epoch.7.9.2"
+      ],
+      [
+        "=first (payload(it)).2 = \"ordinary\" and first (first it.2).6 > first epoch.7.9.1 or first (payload(it)).2 = \"governance\" and first (first it.2).6 > first epoch.7.9.2"
+      ],
+      [
+        "X.2.8"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Diseño §4.2: una propuesta X pasa si su apoyo (X.2.6) supera el umbral de la clase que declara en su 2: «ordinary», epoch.7.9.1 (más de la mitad: 0.5); «governance», epoch.7.9.2 (dos tercios: 0.6666666666, así dos tercios exactos pasan). Supera, como el umbral de epoch.9.0.0.2. Los nombres y sus presiones son los de epoch.7.9.5 de la época con que se lee (en vigor en ese punto cuando exista el motor). Otra clase: falso",
+        "La lee la regla «a change is enacted once it is approved» en el momento de aprobar: la aprobación queda fija en ese registro y lo que pase después con los apoyos ya no cambia nada"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after missing support"
+      ],
+      [
+        "approved: a proposed change has more support than the threshold of its class (epoch.7.9.1 or epoch.7.9.2)"
+      ]
+    ]
+  },
+  {
     "archivo": "asked.json",
     "id": "6601886a586defcf3f1042ca9bdcaa3de87d54d6d89bcccee4122f1783cb7be7",
     "registro": [
@@ -8951,6 +9301,81 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "by when: what hangs from the node and refers to a date (the future T declared, what is locked until a date, what expires), soonest first"
+      ]
+    ]
+  },
+  {
+    "archivo": "change-state.json",
+    "id": "abf36be1a2897f27d9ffbb7a12122439d05a24926aa62accb7b15424b564fb0c",
+    "registro": [
+      [
+        "change state"
+      ],
+      [
+        "X"
+      ],
+      [
+        "=last (under it where \"propose a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4 or \"enact a change\" in (payload(it2)).4 or \"put a change in force\" in (payload(it2)).4)"
+      ],
+      [
+        "X.2.9"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "El estado de una propuesta X: el último registro que lo decidió, entre ella y lo que cuelga de ella: la propia propuesta (propuesta), su «enact a change» (aprobada, esperando su firmeza), su «put a change in force» (en vigor) o su «withdraw a change» (retirada). Se lee su 4, la acción. Una retirada solo cabe antes de aprobarse y la entrada en vigor solo después, así que el último por llegada es el estado. Es un registro, no un texto: da también quién y cuándo"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after approved"
+      ],
+      [
+        "change state: the last record that decided a proposed change: the proposal itself, its approval, its coming into force or its withdrawal"
+      ]
+    ]
+  },
+  {
+    "archivo": "changes.json",
+    "id": "fc83fbdfbd4d0596192f8290eef0fc3783c2bda4e8043f31fb958cb154feb568",
+    "registro": [
+      [
+        "changes"
+      ],
+      [
+        "before.5",
+        "9.7"
+      ],
+      [
+        "=down (first before.5) where \"propose a change\" in (payload(it2)).4"
+      ],
+      [
+        "X"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Las propuestas del libro, por llegada: los registros que dicen «propose a change» en su 4, colgados del génesis (en su 9.7, «changes»; la regla «a change names its class and brings a change» no deja otros). No se materializa (su 3 es X, como «asked»): la lee quien la pide. De cada una: su clase (su 2), quién la propuso (su 3), su apoyo (X.2.6), lo que le falta (X.2.7), si está aprobada (X.2.8), su estado (X.2.9) y quién la apoya (X.2.4, con «support of» en X.2.4.7)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after change state"
+      ],
+      [
+        "changes: the proposed changes of the book, hanging from its genesis"
       ]
     ]
   },
@@ -9725,6 +10150,45 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "missing-support.json",
+    "id": "00d96395c6d1504055ece015b7c22c2bf4240059700d757495a7b2c845360769",
+    "registro": [
+      [
+        "missing support"
+      ],
+      [
+        "X.2.6",
+        "epoch.7.9.1",
+        "epoch.7.9.2"
+      ],
+      [
+        "=count (epoch where (count (epoch where first (payload(it)).2 = \"governance\") * first epoch.7.9.2 + count (epoch where first (payload(it)).2 = \"ordinary\") * first epoch.7.9.1) > first (first it.2).6) * (count (epoch where first (payload(it)).2 = \"governance\") * first epoch.7.9.2 + count (epoch where first (payload(it)).2 = \"ordinary\") * first epoch.7.9.1) - count (epoch where (count (epoch where first (payload(it)).2 = \"governance\") * first epoch.7.9.2 + count (epoch where first (payload(it)).2 = \"ordinary\") * first epoch.7.9.1) > first (first it.2).6) * first (first it.2).6"
+      ],
+      [
+        "X.2.7"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Lo que le falta a una propuesta X para llegar al umbral de su clase (su 2: «ordinary», epoch.7.9.1; «governance», epoch.7.9.2), en la misma unidad que su apoyo (X.2.6); 0 si ya llega. Pasa si lo supera («approved»), así que con lo que falta en 0 y el apoyo justo en el umbral aún no pasa"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after support"
+      ],
+      [
+        "missing support: how much support a proposed change still lacks to reach the threshold of its class"
+      ]
+    ]
+  },
+  {
     "archivo": "nobody-mints-t.json",
     "id": "392d8fcdd240b149633b88285e7b17e6f085be431f52078999ab36331f1b98f2",
     "registro": [
@@ -10051,7 +10515,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "only-the-owner-of-the-book-retouches-a-text.json",
-    "id": "2405b528757fe55175569925d64bf89f8d3152a5330af5189f72ef5c0c244bcd",
+    "id": "7a15d2ae9ae031dc090dd6b27bd674e67df7836143e82ec3ee2a658daf3d2c25",
     "registro": [
       [
         "only the owner of the book retouches a text"
@@ -10077,7 +10541,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (A20, escalón 1; agram-equipo/COSTE_A20_RETOQUES.md): «por defecto retoca el dueño del libro». Un registro que dice «retouch a text» en su 4 (un retoque de un texto, anclado en el 9.4 del génesis) solo vale si lo escribe el autor del génesis del libro (before.5 es el génesis; su 3, su autor). Solo se mira cuando la candidata dice la acción (el or es perezoso)",
-        "VG 17-11 (por el coordinador, durante el encargo): las piezas de la época nunca se deciden por recuento abierto ni por cantidad bruta de P; «nacen con el dueño y se amplían por nombre». Ampliar el retoque a quien el dueño nombre en el 2.3 del génesis, pesado como lo pesa «weight» (por reparto, no por cantidad; «cualquiera» no abre nada), no sale limpio y corto en BQL sin primitivas nuevas (weight da un peso por presión y reparto, no una cantidad que comparar con un umbral entero), así que esta regla queda en «solo el dueño» y la fila epoch.7.9 es un parámetro reservado sin efecto",
+        "VG 17-11 (por el coordinador, durante el encargo): las piezas de la época nunca se deciden por recuento abierto ni por cantidad bruta de P; «nacen con el dueño y se amplían por nombre». Ampliar el retoque a quien el dueño nombre en el 2.3 del génesis, pesado como lo pesa «weight» (por reparto, no por cantidad; «cualquiera» no abre nada), no sale limpio y corto en BQL sin primitivas nuevas (weight da un peso por presión y reparto, no una cantidad que comparar con un umbral entero), así que esta regla queda en «solo el dueño». Desde el encargo A21 (17-11) la fila epoch.7.9 es «governance», el gobierno del cambio de reglas, y no abre el retoque: los textos los retoca solo el dueño",
         "Solo textos: el retoque no abre reglas, parámetros, estilos ni el orden de las acciones (escalón 2, otro sprint)"
       ],
       [
@@ -10129,6 +10593,48 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "only the owner sets who keeps it: {first ev.3} sets who keeps {first (first ev.6.5).0}, which it did not write, in a ledger whose genesis it did not write"
+      ]
+    ]
+  },
+  {
+    "archivo": "only-who-proposed-withdraws-a-change.json",
+    "id": "5f9154481910e70d57910d731c34c88fb307908e6dbf0ecffc1176b533334b4f",
+    "registro": [
+      [
+        "only who proposed withdraws a change"
+      ],
+      [
+        "X.3",
+        "X.4"
+      ],
+      [
+        "=not (\"withdraw a change\" in ev.4) or \"propose a change\" in (payload(first ev.6.5)).4 and first ev.3 = first (first ev.6.5).3 and count (down (first ev.6.5) where \"enact a change\" in (payload(it)).4 or \"withdraw a change\" in (payload(it)).4) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Diseño §3.5: «withdraw a change» se ancla en la propuesta, lo escribe quien la propuso (su 3) y solo antes de aprobarse (sin «enact a change» colgado de ella) y una vez. Devuelve los apoyos: deja de contar y cada titular recupera lo suyo con «withdraw support» (nadie mueve el P de otro: «nobody moves tokens of others»); el de quien la retira, la propia retirada"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after a change names its class and brings a change"
+      ],
+      [
+        "only who proposed withdraws a change: {first ev.3} withdraws {first ev.6.5}, which is not an open proposed change of its own"
       ]
     ]
   },
@@ -10634,6 +11140,89 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "stage: what the record announced in its 4.1 and has not happened yet, by station: E to pay, P to decide, R to attend, T to work"
+      ]
+    ]
+  },
+  {
+    "archivo": "support-of.json",
+    "id": "d41f0bf6610aca0d5e21fcc1335fc43e9c306044873840384bccd61300d94d45",
+    "registro": [
+      [
+        "support of"
+      ],
+      [
+        "X.2.4",
+        "A.2.1",
+        "epoch.7.9.5",
+        "epoch.9.0.0.4",
+        "before.5"
+      ],
+      [
+        "=count (epoch where P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1))) * ((first epoch.9.0.0.4) * count (epoch.7.9.5 where it2 = first it.3) + sum ((epoch.7.9.5 where it2 != first it.3 and it2 != 0 and count it2.6 = 0 and count it2.2 > 0 and first it2.2 = first it.3) each 1) + (first epoch.9.0.0.4) * count (epoch where count (epoch.7.9.5 where it3 != 0) = 0 and first it.3 = first (first before.5).3)) * it.1 / ((sum ((first it.3).2.1 each 1) - sum (((first it.3).2.1 where first it2.0 = first it.5 or first it.5 in up (first it2.0)) each 1)) + count (epoch where not (P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1)))))"
+      ],
+      [
+        "X.2.4.7"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "En cada compromiso con X (X.2.4: lo bloqueado con la salida = X, por titular y serie): lo que cuenta para X. Solo P, y no el situado sobre la propia propuesta o sobre lo anclado en ella: lo demás da 0. La presión de su titular entre los nombres de epoch.7.9.5 (un nombre suelto, la presión máxima epoch.9.0.0.4; «nombre k», una magnitud, k; el 0, ningún nombre: cuenta el dueño del libro, el autor del génesis, con la presión máxima) × lo que bloquea ÷ todo su P en el libro, esté donde esté (A.2.1, su P posicionado: lo disponible y lo bloqueado de cada registro o mirada, de cualquier origen, también el P que le dio recibir R en la raíz de su emisor). Quien no está en la lista da 0. Sumado sobre las series de un titular da su presión × la parte de su P que tiene bloqueada con X: como mucho su presión entera, porque lo bloqueado con X es parte de su P",
+        "Core AGRAM 17-11 (decisión del agente de la época): el P situado sobre la propia propuesta o sobre un registro anclado en ella no cuenta, ni bloqueado ni en el total: es el que dan escribirla, apoyarla o retirar el apoyo («writing a record gives ten P on it»). Si contara, apoyar diluiría al que apoya, escribir más antes de apoyar daría más peso y quien propone pesaría distinto que los demás (el resultado dependería de quién propuso)",
+        "Se materializa en X.2.4.7, al lado del peso de «weight» (X.2.4.8): «quién apoya una propuesta y con cuánto» es la lista X.2.4 con su titular (3), lo bloqueado (1) y lo que cuenta (7)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after only the owner of the book retouches a text"
+      ],
+      [
+        "support of: what a commitment of P with a proposed change counts for it: the pressure of its holder among the names of epoch.7.9.5 × what it locks ÷ all its P in the book"
+      ]
+    ]
+  },
+  {
+    "archivo": "support.json",
+    "id": "236a72e0950f1ed84fd148d941221c60eb10006585d6e600efec47f6ce851da3",
+    "registro": [
+      [
+        "support"
+      ],
+      [
+        "X.2.4.7",
+        "epoch.7.9.5",
+        "epoch.9.0.0.4"
+      ],
+      [
+        "=sum (((first it.2).4) each 7) / ((first epoch.9.0.0.4) * count (epoch.7.9.5 where it2 != 0 and not (count it2.2 > 0 and count it2.6 = 0)) + sum ((epoch.7.9.5 where it2 != 0 and count it2.2 > 0 and count it2.6 = 0) each 1) + (first epoch.9.0.0.4) * count (epoch where count (epoch.7.9.5 where it3 != 0) = 0))"
+      ],
+      [
+        "X.2.6"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "El apoyo de una propuesta X: la suma de lo que cuenta cada compromiso con X («support of», X.2.4.7) ÷ la suma de las presiones de los nombres de epoch.7.9.5 (vacío, el 0: el dueño del libro con la presión máxima). Va de 0 a 1, la unidad del umbral de epoch.9.0.0.2. No depende de quién propuso ni de cuánto ha escrito cada uno: cuenta la parte de su P, no la cantidad. Una lista cuyas presiones suman 0 da ERROR (división por cero): el núcleo no ha de dejarla entrar",
+        "Se materializa en X.2.6 y no en X.2.5: hay fórmulas que miran el 5 de cada ocupante del 2 de un registro («weight», motor.js) y lo evaluarían en todos"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after support of"
+      ],
+      [
+        "support: the part of the pressure of the names of epoch.7.9.5 that backs a proposed change with its locked P"
       ]
     ]
   },
@@ -11703,7 +12292,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "retouch-a-text.json",
-    "id": "ee204bf4b067cf7ad058c00a13465ed2586c4a5804ae88c6f9c8a823bccbff5f",
+    "id": "32a71d47395114549a6c631ffa04f09c673ad0561ab8789d2ac86ff28a90b81d",
     "registro": [
       [
         "retouch a text"
@@ -11923,7 +12512,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "9.4"
       ],
       [
-        "VG 17-11 por Core State (A20, escalón 1; agram-equipo/COSTE_A20_RETOQUES.md): «el id nombra la época tal como nació. Un retoque es un registro sobre la pieza en ese libro y gana lo último. El retoque vale para ese libro, no para otros que usen la misma época». Retoca el dueño del libro (VG 17-11, por el coordinador: las piezas de la época «nacen con el dueño y se amplían por nombre», nunca por cantidad de P; ampliarlo por nombre no sale corto en BQL y queda en solo el dueño, con epoch.7.9 reservado sin efecto). Solo textos: reglas y parámetros van en otro sprint",
+        "VG 17-11 por Core State (A20, escalón 1; agram-equipo/COSTE_A20_RETOQUES.md): «el id nombra la época tal como nació. Un retoque es un registro sobre la pieza en ese libro y gana lo último. El retoque vale para ese libro, no para otros que usen la misma época». Retoca el dueño del libro (VG 17-11, por el coordinador: las piezas de la época «nacen con el dueño y se amplían por nombre», nunca por cantidad de P; ampliarlo por nombre no sale corto en BQL y queda en solo el dueño; desde el encargo A21, epoch.7.9 es «governance», el gobierno del cambio de reglas, y no abre el retoque). Solo textos: reglas y parámetros van en otro sprint",
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Core AGRAM 17-11 (encargo «retocar un texto en su sitio», núcleo): se lanza sobre el génesis del libro (first it.5 = first before.5), que es el registro de la época en ese eje, la haya escrito o no. Ancla en su 9.4, el mismo sitio que los textos en la época (epoch.9.4): en el génesis no ancla nada más ahí (la época escrita va en su raíz, la emisión inicial y las altas también; «add a parent», «remove a parent», «set the kind of owner» y «set a custody default» anclan en su 9, no en el 9.4). Lleva el idioma, la clave y el texto en el 1.0, el 1.1 y el 1.2, como datos; no mueve nada más que el coste de escribir («write»). Se ofrece al dueño del libro (first it.3 = me sobre el génesis), la misma condición que la regla «only the owner of the book retouches a text», que es la que decide",
         "Los demás parámetros (criteria, who, actions) son los de siempre, con su defecto, para que el payload no tenga huecos; «actions» dice la acción en el 4, que es lo que mira la regla. Texto vacío = retirar los retoques de esa clave en ese idioma (vuelve el texto de nacimiento): como un texto vacío no es un terminal BTML, el parámetro «text» es opcional y retirar es escribir el retoque sin él (la carta no manda un campo vacío). La lectura (contrato.texto, contrato.mensaje, contrato.idiomas con eje) pone los retoques del libro encima de todo y descarta el que trae un hueco {…} que el texto de nacimiento no tiene (docs/notas/RETOQUES.md)",
@@ -11938,6 +12527,277 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "retouch a text: {me} retouches the text {first ev.1.1} in {first ev.1.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "propose-a-change.json",
+    "id": "200c5328146319abef1f6472acd4b77da2e4e47a067d22352d478f153f5ad653",
+    "registro": [
+      [
+        "propose a change"
+      ],
+      [
+        [
+          [
+            "title"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it != \"\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "a short title of the change"
+          ]
+        ],
+        [
+          [
+            "explanation"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it != \"\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "what changes and why, in plain words"
+          ]
+        ],
+        [
+          [
+            "change"
+          ],
+          [
+            "tenfold"
+          ],
+          [
+            "=count it.0 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "the change: the root of a child epoch of the epoch in force, as an epoch that inherits is written today (its 6 says «hereda» with the id of that epoch; where nothing changes, the mark { ref } to it)"
+          ]
+        ],
+        [
+          [
+            "records"
+          ],
+          [
+            "tenfold"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            4
+          ],
+          [
+            "the records of the change (rules or templates) that its root references, if it brings new ones (up to ten)"
+          ]
+        ],
+        [
+          [
+            "class"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"ordinary\" or it = \"governance\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "ordinary",
+            "ordinary or governance: a change that touches a piece of governance (epoch.7.9.7) is governance and asks the high threshold (epoch.7.9.2) and its level of firmness (epoch.7.9.4)"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "=me",
+            "who proposes"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «propose a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "propose a change",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.5 = first before.5 and count me.6 > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9.7"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Diseño §3.1: se lanza sobre el génesis del libro y ancla en su 9.7, «changes» (libre: en el génesis anclan el 9, el 9.1, el 9.2, el 9.3, el 9.4, el 9.5 y el 9.6; «configure a place» puede escribir en cualquier posición de un sitio y no se cuenta: las lecturas buscan la acción en el 4). La escribe cualquiera con alta en el libro y paga su T como todo registro (y, si no es el dueño, el precio de atención del grupo en que el dueño lo pone: el génesis es su alta, «attention has a price»). Lleva el título (0), la explicación (1.0), el cambio (1.1: la raíz de una época hija; 1.2 sus registros, si trae) y la clase (2). Su 4 es «write»",
+        "[0, 5]: la configuración del libro (PV 0, la abre el interrogante), detrás de «retouch a text» [0, 4]"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        0,
+        5
+      ],
+      [
+        "propose a change: {me} proposes {first memo.0}, a change of class {first memo.2}"
       ]
     ]
   },
@@ -15341,6 +16201,359 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "attach a file: {me} attaches a file to {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "support-a-change.json",
+    "id": "7feece0bd637fcbf0dbfc22af44fdfefceeee57120cb0d3d58081c285ca4f826",
+    "registro": [
+      [
+        "support a change"
+      ],
+      [
+        [
+          [
+            "part"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0 and it <= 1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            1,
+            "the part of each of my P series, wherever it is in this book, that I lock with this proposal as the exit (1: all of it)"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who supports"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «support a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "support a change",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"propose a change\" in (payload(it)).4 and count (down it where \"enact a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4) = 0 and count (me.1 where P in it2.0.0.0 and it2.1 > 0) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=me.1 where P in it2.0.0.0 and it2.1 > 0 and lock (it2.1 * first memo.1) it2.0 from me exit it"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Diseño §3.2: se lanza sobre una propuesta abierta (ni aprobada ni retirada) y bloquea, con la salida en la propuesta, la parte que diga de cada serie de P suya disponible, esté donde esté en el libro (me.1: cualquier registro, cualquier mirada, cualquier origen). No reutiliza «commit P», que solo admite P en el dominio de quien escribió el objetivo: el recuento dependería de quién propone. Ninguna regla de bloqueos cambia: «locks keep their holder and name an exit» (mismo titular a los dos lados, con salida), «nobody moves tokens of others», «P moves within a known scope» y «locked P backing live E is not released» (solo mira liberaciones con salida en una E) dejan bloquear P situado fuera del hilo de la propuesta",
+        "Bloquea todas sus series en una transacción para que el P que da escribir el apoyo («writing a record gives ten P on it») no obligue a otra; ese P nuevo no cuenta en su total («support of»). El mismo P no apoya dos propuestas a la vez: lo bloqueado ya no está disponible. Ancla en el 2.1 de la propuesta, como «commit P»",
+        "[2, 7]: el criterio (PV 2), detrás de las de la 0 y antes de las de la época state ([2, 10], [2, 11])"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        2,
+        7
+      ],
+      [
+        "support a change: {me} supports {first it.0} with P of its own"
+      ]
+    ]
+  },
+  {
+    "archivo": "withdraw-support.json",
+    "id": "23c680184635442c34ecda01a0400852be6a3e697891b19487455f0bfcef4b54",
+    "registro": [
+      [
+        "withdraw support"
+      ],
+      [
+        [
+          [
+            "change"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw support»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=it",
+            "the proposal whose support is withdrawn"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw support»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw support»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who withdraws its support"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw support»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "withdraw support",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=count (((first it.2).4) where first it2.3 = me and P in it2.0.0.0) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=me.1 where P in it2.0.0.0 and count it2.2.(it) > 0 and release (first it2.2.(it).1) it2.0 from me exit it"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Diseño §3.2: devuelve a su titular todo el P que tiene bloqueado con la propuesta como salida, cuando quiera (también después de aprobada o retirada: después de aprobada ya no cambia nada). Solo libera lo suyo: «nobody moves tokens of others». El 1 lleva la propuesta como dato, para que el payload no tenga huecos",
+        "[2, 8]: detrás de «support a change»"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        2,
+        8
+      ],
+      [
+        "withdraw support: {me} withdraws its support from {first it.0}"
       ]
     ]
   },
@@ -19065,6 +20278,358 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "enact-a-change.json",
+    "id": "5659559a9b207971c6150b14d2689c58f41a4343a6362b285aab438c89ca48e9",
+    "registro": [
+      [
+        "enact a change"
+      ],
+      [
+        [
+          [
+            "change"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «enact a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=it",
+            "the proposal that is approved"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «enact a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «enact a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who records the approval: anyone"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «enact a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "enact a change",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"propose a change\" in (payload(it)).4 and count (down it where \"enact a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4) = 0 and first (first it.2).8"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Diseño §3.3: se lanza sobre la propuesta, la escribe cualquiera (también un agente: lo normal es que la carta lo haga sola) y fija el momento de la decisión. La regla «a change is enacted once it is approved» decide: «approved» pasa en ese punto, la propuesta no está retirada y no se aprobó ya. Se ofrece cuando eso pasa. Ancla en el 4 de la propuesta (la fábrica: lo que se decide), como «close by decision»",
+        "[4, 19]: la fábrica (PV 4), detrás de las de la 0 y de las de la época state ([4, 10] … [4, 18])"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        4,
+        19
+      ],
+      [
+        "enact a change: {me} records that {first it.0} is approved"
+      ]
+    ]
+  },
+  {
+    "archivo": "withdraw-a-change.json",
+    "id": "fa2dd60226921aaa91d95f0bec74ab359b95cbfb07f296c8be995c3c0fb0826c",
+    "registro": [
+      [
+        "withdraw a change"
+      ],
+      [
+        [
+          [
+            "change"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=it",
+            "the proposal that is withdrawn"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=me",
+            "who withdraws it: who proposed it"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «withdraw a change»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "withdraw a change",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"propose a change\" in (payload(it)).4 and first it.3 = me and count (down it where \"enact a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4) = 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=me.1 where P in it2.0.0.0 and count it2.2.(it) > 0 and release (first it2.2.(it).1) it2.0 from me exit it"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Diseño §3.5: la escribe quien propuso, antes de aprobarse (la regla «only who proposed withdraws a change»). Devuelve los apoyos: dejan de contar y la propia retirada libera el P que quien propone tenía bloqueado con ella; el de los demás lo recupera cada uno con «withdraw support» (nadie mueve el P de otro). Ancla en el 4 de la propuesta",
+        "[4, 20]: detrás de «enact a change»"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        4,
+        20
+      ],
+      [
+        "withdraw a change: {me} withdraws {first it.0}"
+      ]
+    ]
+  },
+  {
     "archivo": "anchor-here.json",
     "id": "4d453575c924896213b169bc37c92322eb7b7c9222ebbc4da011a22b3e09f544",
     "registro": [
@@ -19682,6 +21247,216 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "view thread: the thread of {first it.0} up to the genesis"
+      ]
+    ]
+  },
+  {
+    "archivo": "put-a-change-in-force.json",
+    "id": "0b5aebbeca779e601a05f2a408e5d8176b1ec15c10c8e6f7da197a78db3b9b17",
+    "registro": [
+      [
+        "put a change in force"
+      ],
+      [
+        [
+          [
+            "change"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «put a change in force»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=it",
+            "the approval (the «enact a change» record) whose change comes into force"
+          ]
+        ],
+        [
+          [
+            "proof"
+          ],
+          [
+            "tenfold"
+          ],
+          [
+            "=count it.4 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «put a change in force»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            2
+          ],
+          [
+            "=first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)",
+            "the timestamp proof of the approval: the tenfold of the seal that the book keeps in its 6.8.2 (by default, the one it has); with level 0 asked, none"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «put a change in force»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «put a change in force»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who puts it in force: anyone"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo A21 (gobierno): parámetro de «put a change in force»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "put a change in force",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"enact a change\" in (payload(it)).4 and count (down it where \"put a change in force\" in (payload(it2)).4) = 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "6"
+      ],
+      [
+        "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Diseño §3.4: se lanza sobre el «enact a change» y lleva su prueba de sello como dato (1.1, por defecto la que el libro guarda en su 6.8.2): la firmeza viaja dentro de un registro y su veredicto no cambia después. La escribe cualquiera; lo normal, la carta de quien propuso en cuanto tiene el sello. Decide la regla «a change comes into force with its proof». Ancla en el 6 del «enact a change» (de dónde viene: su sello), como «ask for more firmness»",
+        "En este encargo la época del libro no cambia al aceptarlo: fundir el cambio y abrir una versión es del motor (encargo siguiente)",
+        "[6, 4]: el pasado (PV 6), detrás de las de la 0"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        6,
+        4
+      ],
+      [
+        "put a change in force: {me} puts in force the change approved by {first it.3}"
       ]
     ]
   },
@@ -22817,7 +24592,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "f7031e9643dfe71443260298c61023ac605d46d9494eddf72e2f963508b03eb7";
+export const EPOCA_0_BTML_ID = "5260d0df3907fbdd110ce6b412c6cf382bca16a1fc870665d4ec4335a52d0baa";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

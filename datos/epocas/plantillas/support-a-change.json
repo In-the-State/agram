@@ -1,0 +1,70 @@
+[
+  ["support a change"],
+  [
+    [
+      ["part"],
+      ["number"],
+      ["=it > 0 and it <= 1"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["encargo A21 (gobierno): parámetro de «support a change»"],
+      ["required"],
+      [1],
+      [
+        1,
+        "the part of each of my P series, wherever it is in this book, that I lock with this proposal as the exit (1: all of it)"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["encargo A21 (gobierno): parámetro de «support a change»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["encargo A21 (gobierno): parámetro de «support a change»"],
+      ["required"],
+      [3],
+      ["=me", "who supports"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["encargo A21 (gobierno): parámetro de «support a change»"],
+      ["required"],
+      [4],
+      ["support a change", "the action"]
+    ]
+  ],
+  ["=\"propose a change\" in (payload(it)).4 and count (down it where \"enact a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4) = 0 and count (me.1 where P in it2.0.0.0 and it2.1 > 0) > 0"],
+  [["me"], ["person"]],
+  ["=me.1 where P in it2.0.0.0 and it2.1 > 0 and lock (it2.1 * first memo.1) it2.0 from me exit it"],
+  ["2.1"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §3.2: se lanza sobre una propuesta abierta (ni aprobada ni retirada) y bloquea, con la salida en la propuesta, la parte que diga de cada serie de P suya disponible, esté donde esté en el libro (me.1: cualquier registro, cualquier mirada, cualquier origen). No reutiliza «commit P», que solo admite P en el dominio de quien escribió el objetivo: el recuento dependería de quién propone. Ninguna regla de bloqueos cambia: «locks keep their holder and name an exit» (mismo titular a los dos lados, con salida), «nobody moves tokens of others», «P moves within a known scope» y «locked P backing live E is not released» (solo mira liberaciones con salida en una E) dejan bloquear P situado fuera del hilo de la propuesta",
+    "Bloquea todas sus series en una transacción para que el P que da escribir el apoyo («writing a record gives ten P on it») no obligue a otra; ese P nuevo no cuenta en su total («support of»). El mismo P no apoya dos propuestas a la vez: lo bloqueado ya no está disponible. Ancla en el 2.1 de la propuesta, como «commit P»",
+    "[2, 7]: el criterio (PV 2), detrás de las de la 0 y antes de las de la época state ([2, 10], [2, 11])"
+  ],
+  ["epoch 0"],
+  [2, 7],
+  ["support a change: {me} supports {first it.0} with P of its own"]
+]

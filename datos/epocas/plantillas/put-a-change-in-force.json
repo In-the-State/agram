@@ -1,0 +1,82 @@
+[
+  ["put a change in force"],
+  [
+    [
+      ["change"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["encargo A21 (gobierno): parámetro de «put a change in force»"],
+      ["required"],
+      [1],
+      ["=it", "the approval (the «enact a change» record) whose change comes into force"]
+    ],
+    [
+      ["proof"],
+      ["tenfold"],
+      ["=count it.4 > 0"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["encargo A21 (gobierno): parámetro de «put a change in force»"],
+      ["optional"],
+      [2],
+      [
+        "=first ((first it.6).8.2 where \"sello de tiempo\" in it2.0)",
+        "the timestamp proof of the approval: the tenfold of the seal that the book keeps in its 6.8.2 (by default, the one it has); with level 0 asked, none"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["encargo A21 (gobierno): parámetro de «put a change in force»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["encargo A21 (gobierno): parámetro de «put a change in force»"],
+      ["required"],
+      [4],
+      ["=me", "who puts it in force: anyone"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["encargo A21 (gobierno): parámetro de «put a change in force»"],
+      ["required"],
+      [5],
+      ["put a change in force", "the action"]
+    ]
+  ],
+  ["=\"enact a change\" in (payload(it)).4 and count (down it where \"put a change in force\" in (payload(it2)).4) = 0"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["6"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §3.4: se lanza sobre el «enact a change» y lleva su prueba de sello como dato (1.1, por defecto la que el libro guarda en su 6.8.2): la firmeza viaja dentro de un registro y su veredicto no cambia después. La escribe cualquiera; lo normal, la carta de quien propuso en cuanto tiene el sello. Decide la regla «a change comes into force with its proof». Ancla en el 6 del «enact a change» (de dónde viene: su sello), como «ask for more firmness»",
+    "En este encargo la época del libro no cambia al aceptarlo: fundir el cambio y abrir una versión es del motor (encargo siguiente)",
+    "[6, 4]: el pasado (PV 6), detrás de las de la 0"
+  ],
+  ["epoch 0"],
+  [6, 4],
+  ["put a change in force: {me} puts in force the change approved by {first it.3}"]
+]

@@ -1,0 +1,66 @@
+[
+  ["withdraw support"],
+  [
+    [
+      ["change"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["encargo A21 (gobierno): parámetro de «withdraw support»"],
+      ["required"],
+      [1],
+      ["=it", "the proposal whose support is withdrawn"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["encargo A21 (gobierno): parámetro de «withdraw support»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["encargo A21 (gobierno): parámetro de «withdraw support»"],
+      ["required"],
+      [3],
+      ["=me", "who withdraws its support"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["encargo A21 (gobierno): parámetro de «withdraw support»"],
+      ["required"],
+      [4],
+      ["withdraw support", "the action"]
+    ]
+  ],
+  ["=count (((first it.2).4) where first it2.3 = me and P in it2.0.0.0) > 0"],
+  [["me"], ["person"]],
+  ["=me.1 where P in it2.0.0.0 and count it2.2.(it) > 0 and release (first it2.2.(it).1) it2.0 from me exit it"],
+  ["2.1"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §3.2: devuelve a su titular todo el P que tiene bloqueado con la propuesta como salida, cuando quiera (también después de aprobada o retirada: después de aprobada ya no cambia nada). Solo libera lo suyo: «nobody moves tokens of others». El 1 lleva la propuesta como dato, para que el payload no tenga huecos",
+    "[2, 8]: detrás de «support a change»"
+  ],
+  ["epoch 0"],
+  [2, 8],
+  ["withdraw support: {me} withdraws its support from {first it.0}"]
+]

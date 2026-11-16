@@ -175,6 +175,12 @@ No hay tipo de identidad (VG, 10-11, B1): persona o cosa se lee del 3 de su alta
 | asked | ninguna (su 3 es `X`: no se materializa; encargo A18) | el nivel de `epoch.7.6` que pide el registro por la escala del T real que quema su autor: la escala k pide el nivel k; semana, ciclo y año, el último; de varias, el más alto | `contrato.firmeza` (`pedidos`, origen «propio») |
 | on time | ninguna (su 3 es `X`; encargo A18) | si un nivel a la altura del pedido o por encima está alcanzado (como lo leía «firm» hasta el 17-11: no lee grados ni claves de línea, y los de en medio piden «sealed») con un instante no posterior al plazo (el instante del registro más un periodo de la escala elegida) | `contrato.firmeza` (`pedidos[].estado`) |
 | received | `X.6.8.4` | si la firma del relé vale sobre el id del recibo copiado en `X.6.8.1`; PENDIENTE si falta el dato | `contrato.verificado` (`recibo`) |
+| support of | `X.2.4.7` (en cada compromiso con X; encargo A21, el gobierno) | lo que cuenta para la propuesta X: la presión de su titular entre los nombres de `epoch.7.9.5` × lo que bloquea ÷ todo su P en el libro (`A.2.1`); sin el P situado sobre X o sobre lo anclado en ella; 0 si no es P o el titular no está en la lista | — |
+| support | `X.2.6` (A21) | el apoyo de una propuesta: la suma de «support of» ÷ la suma de las presiones de los nombres (de 0 a 1) | — |
+| missing support | `X.2.7` (A21) | lo que le falta para llegar al umbral de su clase (`epoch.7.9.1` o `7.9.2`); 0 si llega | — |
+| approved | `X.2.8` (A21) | si su apoyo supera el umbral de la clase que declara en su 2 («ordinary» o «governance») | — |
+| change state | `X.2.9` (A21) | el último registro que la decidió: ella misma, su «enact a change», su «put a change in force» o su «withdraw a change» | — |
+| changes | ninguna (su 3 es `X`; A21) | las propuestas del libro, colgadas de su génesis. Todo el gobierno, en `docs/notas/GOBIERNO.md` | — |
 
 Para leerlas, el contexto da dos posiciones más: `before.1`, los registros del libro por llegada, y `X.6.4`, lo que un registro atiende (los ids de su `contexto.atiende`; «attended» ya no lo usa desde el 3b: atender es anclarse sobre la petición). Por ejemplo, los registros no presentes del libro son `before.1 where not first it.6.1`. `test/lecturas-bqlm.test.js` comprueba cada lectura contra su función JS en los registros de los ejemplos.
 
@@ -386,7 +392,7 @@ for (const r of escrituras) {
 ```
 
 ```text
-38 condiciones, 3 reglas que escriben y 22 lecturas
+42 condiciones, 3 reglas que escriben y 28 lecturas
 no pasa: E is minted by and to its issuer: huesped mints E of casa, or to someone else
 no pasa: P is repositioned one step at a time: huesped mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin
 no pasa: minting E needs own R issued: huesped mints E and has never issued R of its own

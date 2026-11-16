@@ -1,0 +1,120 @@
+# El gobierno del cambio de reglas (A21, tramo 2, paso 1: la época)
+
+Core AGRAM, 17-11. Diseño: `agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md` (§3, §4 y §5), sobre lo decidido por VG en `state/REPLANTEO_CASCADA.md` (17-11). Este paso construye **solo la época 0**: la fila 7.9, seis plantillas, seis lecturas y cuatro reglas de validez. **El motor no está**: «put a change in force» se escribe y se valida, pero la época del libro no cambia al aceptarlo (§7). Pruebas: `test/gobierno.test.js`. Ejemplo: `node ejemplos/gobierno.mjs`.
+
+## 1. La idea
+
+Un cambio de reglas es una **época hija escrita en el libro** (`{ raiz, registros }`, la forma de siempre). Lo propone cualquiera con alta; lo apoyan los **nombres** de `epoch.7.9.5` bloqueando su P con la propuesta como salida; se da por aprobado cuando el apoyo supera el umbral de su clase; y entra en vigor con un registro que **lleva dentro la prueba de sello** de esa aprobación, al nivel de firmeza que pide su clase. Nunca cuenta quien propone ni un recuento abierto: solo los nombres.
+
+## 2. La fila `epoch.7.9`, «governance»
+
+| Posición | Qué es | Valor de nacimiento |
+|---|---|---|
+| 7.9.0 | `["governance", ayuda]` | — |
+| 7.9.1 | umbral de un cambio corriente (`ordinary`) | `0.5`: más de la mitad |
+| 7.9.2 | umbral de un cambio de gobierno (`governance`) | `0.6666666666`: dos tercios |
+| 7.9.3 | nivel de firmeza que pide un cambio corriente (un nivel de `epoch.7.6.1`; 0, sin prueba) | `3` |
+| 7.9.4 | nivel de firmeza que pide un cambio de gobierno | `4` |
+| 7.9.5 | quién cuenta: un nombre por hoja | `0`: ningún nombre, cuenta el dueño |
+| 7.9.6 | el suelo: reglas por su nombre y posiciones de la época | §6 |
+| 7.9.7 | las piezas de gobierno: lo que solo cambia un cambio de gobierno | §6 |
+
+- **Umbrales**: en la unidad de `epoch.9.0.0.2`, una parte de 0 a 1, y como allí **pasa si el apoyo lo supera** (estricto). Por eso «dos tercios» se escribe `0.6666666666`: dos tercios exactos (0.666…67) lo superan.
+- **Niveles**: VG 17-11: un cambio corriente pide el nivel 3 y un cambio de la propia regla de gobierno el nivel 4. Son datos: cada libro los cambia con su gobierno.
+- **Nombres**: cada hoja es una identidad (presión máxima, `epoch.9.0.0.4`, 9) o «nombre k» (una magnitud, D-VALOR: presión k), como el 2.3 de «weight». BTML no admite una posición vacía: el `0` dice «ningún nombre» y entonces cuenta **el dueño del libro** (el autor del génesis) con la presión máxima. Con nombres, el dueño solo cuenta si está en la lista.
+- Los retoques de texto (A20 escalón 1) no pasan por aquí: los sigue escribiendo solo el dueño.
+
+## 3. Las seis plantillas
+
+Todas pagan su T como cualquier registro (el coste de escribir, por posición) y no mueven nada más, salvo el bloqueo y la liberación del P. Los tres últimos parámetros de cada una son los de siempre, con su defecto, para que el payload no tenga huecos: `criteria` (2, la plantilla de cerrado), `who` (3, `=me`) y `actions` (4, el nombre de la plantilla: es lo que miran las reglas y las lecturas).
+
+| Plantilla | Se lanza sobre | Ancla | Aro `[pv, orden]` | Lanza | Payload | Mueve |
+|---|---|---|---|---|---|---|
+| **propose a change** | el génesis | `9.7` («changes») | `[0, 5]` | person | 0 título · 1.0 explicación · 1.1 el cambio (la raíz de la época hija) · 1.2 sus registros (opcional, hasta diez) · 2 clase | `write` |
+| **support a change** | una propuesta abierta | `2.1` | `[2, 7]` | person | 1 la parte (de 0 a 1; por defecto 1) | bloquea esa parte de cada serie de P suya disponible, con la salida = la propuesta |
+| **withdraw support** | una propuesta en la que tiene P bloqueado | `2.1` | `[2, 8]` | person | 1 la propuesta (dato) | libera todo su P bloqueado con ella |
+| **enact a change** | una propuesta abierta y aprobada | `4` | `[4, 19]` | agent | 1 la propuesta (dato) | `write` |
+| **put a change in force** | un «enact a change» aún no en vigor | `6` | `[6, 4]` | agent | 1.0 la aprobación (dato) · 1.1 la prueba de sello (opcional; por defecto la del 6.8.2 de la aprobación) | `write` |
+| **withdraw a change** | su propia propuesta abierta | `4` | `[4, 20]` | person | 1 la propuesta (dato) | libera el P de quien la retira bloqueado con ella |
+
+- **Cuándo se ofrece** (su 2): proponer, en el génesis a quien tiene alta; apoyar, si la propuesta no está aprobada ni retirada y quien mira tiene P libre; retirar el apoyo, si tiene P bloqueado con ella; aprobar, si está abierta y «approved» pasa; poner en vigor, sobre una aprobación sin «put a change in force»; retirar, a quien la propuso mientras está abierta. Decide la regla, no la oferta.
+- **9.7 del génesis** está libre de plantillas con ancla fija (en el génesis anclan el 9, 9.1, 9.2, 9.3, 9.4, 9.5 y 9.6). «configure a place» puede escribir en cualquier posición de un sitio: por eso las lecturas buscan la acción en el 4, no la posición.
+- **Apoyar no es «commit P»**: «commit P» solo admite P en el dominio de quien escribió el objetivo y el recuento dependería de quién propone. «support a change» toma P de **cualquier sitio del libro** (`me.1`: cualquier registro, mirada u origen) y bloquea **todas las series en una transacción**: si fuera una a una, cada apoyo daría diez P nuevos («writing a record gives ten P on it») y no se acabaría nunca. Ninguna regla de bloqueos lo impide: «locks keep their holder and name an exit» (mismo titular, con salida), «nobody moves tokens of others», «P moves within a known scope» y «locked P backing live E is not released» (solo liberaciones con salida en una E).
+- **El mismo P no apoya dos propuestas a la vez**: lo bloqueado con una no está disponible; bloquearlo otra vez lo rechaza el libro (saldo).
+- **Retirar la propuesta devuelve los apoyos**: dejan de valer para aprobar (la regla mira que no esté retirada) y la retirada libera el P de quien la retira. El de los demás no lo puede mover nadie más que su titular: cada uno lo recupera con «withdraw support», que se le sigue ofreciendo.
+- **Proponer en el génesis** es escribir en el alta del dueño: quien no es el dueño paga el precio de atención de su grupo («attention has a price»), como en cualquier otro registro sobre un alta.
+
+## 4. Las lecturas
+
+| Lectura | Dónde | Qué da |
+|---|---|---|
+| **support of** | `X.2.4.7`, en cada compromiso con X | lo que cuenta ese compromiso para la propuesta X |
+| **support** | `X.2.6` | el apoyo de X, de 0 a 1 |
+| **missing support** | `X.2.7` | lo que le falta para llegar al umbral de su clase; 0 si llega |
+| **approved** | `X.2.8` | verdadero si el apoyo supera el umbral de su clase |
+| **change state** | `X.2.9` | el registro que la decidió por última vez: ella misma (propuesta), su «enact a change» (aprobada, esperando su firmeza), su «put a change in force» (en vigor) o su «withdraw a change» (retirada); su 4 es el estado |
+| **changes** | `X` (no se materializa, como «asked») | las propuestas del libro, por llegada |
+
+«quién apoya una propuesta y con cuánto» es la lista `X.2.4` de la propuesta: cada compromiso con su titular (`.3`), lo bloqueado (`.1`) y lo que cuenta (`.7`, «support of»). De cada propuesta de «changes»: su clase (`payload(X).2`), quién propuso (`X.3`), su apoyo (`X.2.6`), lo que falta (`X.2.7`), si está aprobada (`X.2.8`) y su estado (`X.2.9`). Van en el 2 del registro (el criterio) y no en el 2.5 porque hay fórmulas («weight», `motor.js`) que miran el 5 de cada ocupante del 2.
+
+**«approved», en llano.** Para una propuesta X: por cada compromiso de P con X, la presión de su titular entre los nombres de 7.9.5 (0 si no está), por lo que bloquea, dividido por **todo su P en el libro** (`A.2.1`, su P posicionado: disponible y bloqueado, en cualquier registro o mirada y de cualquier origen); sumado para cada titular, es su presión por la parte de su P que tiene bloqueada con X, y como lo bloqueado con X es parte de su P, nunca pasa de su presión entera. La suma de todos, dividida por la suma de las presiones de los nombres, es el apoyo; pasa si supera el umbral de la clase que X declara en su 2 (7.9.1 para «ordinary», 7.9.2 para «governance»). **No cuenta el P situado sobre la propia propuesta ni sobre lo anclado directamente en ella** (ni bloqueado ni en el total): es el que da escribirla, apoyarla o retirar el apoyo. Decisión mía: si contara, apoyar diluiría al que apoya, escribir más antes de apoyar daría más peso y quien propone pesaría distinto de los demás.
+
+Consecuencias, probadas: solo cuentan los nombres; quien no está en la lista apoya y no mueve el resultado; escribir más registros no da más peso (se mide la parte del P propio, no la cantidad); el resultado no depende de quién propuso; el mismo P no apoya dos propuestas a la vez. «approved» es una lectura viva: después de aprobada, lo que pase con los apoyos ya no cambia nada porque la aprobación queda fija en el registro «enact a change» (y la cuenta de antes de escribir más P propio, también: escribir más **después** de apoyar baja la parte).
+
+**El P que nace al recibir R** («receiving R gives ten P on the root of its issuer») queda en la mirada 3 del alta del emisor, en la cartera de quien lo recibe: **cuenta en su P total**, como todo P suyo en el libro, esté donde esté (comprobado: bea, invitada por ana, tiene diez P en la mirada 3 del génesis y entran en su total).
+
+## 5. Las reglas de validez
+
+| Regla | Cuándo se mira | Qué pide |
+|---|---|---|
+| **a change names its class and brings a change** | «propose a change» en su 4 | cuelga del 9.7 del génesis, su 2 es «ordinary» o «governance» y su 1.1 trae una raíz con nombre |
+| **only who proposed withdraws a change** | «withdraw a change» en su 4 | se ancla en una propuesta, la escribe quien la propuso, y la propuesta no está aprobada ni retirada |
+| **a change is enacted once it is approved** | «enact a change» en su 4 | se ancla en una propuesta no aprobada ni retirada y «approved» pasa en ese punto (sobre el libro de antes) |
+| **a change comes into force with its proof** | «put a change in force» en su 4 | se ancla en un «enact a change» sin otro «put a change in force», la clase de su propuesta es una de las dos y, si el nivel que pide su clase no es 0, trae en su 1.1 la prueba que lo cubre a ese nivel |
+
+**«put a change in force», en llano.** L es el nivel de 7.9.3 (corriente) o 7.9.4 (gobierno). Con L = 0 vale sin prueba. Si no, la décupla de sello del payload (la misma forma que guarda `eje.marcarSello`) ha de cubrir **el id del «enact a change»** (su hoja) y: o vale entera, como «sealed» (por la vía «taproot» o «cascada», con la cabecera de Bitcoin firmada por un observador de `before.8.6`: llega al último nivel, que cubre todos), o, como «firm», por la cadena: los eslabones de abajo arriba valen (cabecera v2, camino «sip», firma con su propia clave) y uno de ellos, con la clave de su cabecera en `before.8.9` (las «line keys») o en `before.8.6`, dice un nivel a la altura de L o por encima, con su grado a la altura del exigido en ese nivel (`epoch.7.6.5`). No hay recibo de llegada (el registro no lo trae). La fórmula sale de `src/sello.js` (`formulaDeSelloDelDato`, las mismas piezas que «sealed» y «firm», aplicadas al dato del payload y al foco en vez de al 6.8.2 y al 5 del registro) por `datos/epocas/gobierno.mjs` (`formulaDePonerEnVigor`; `node datos/epocas/gobierno.mjs --escribir` la vuelve a poner en la regla y una prueba vigila que es la misma). El veredicto depende solo de lo que lleva el registro y de lo que el libro ya tiene: no cambia después.
+
+## 6. El suelo y las piezas de gobierno, como dato
+
+**7.9.6, el suelo** (cada nombre comprobado contra su archivo de `datos/epocas/reglas/`; todos existen con ese nombre exacto):
+
+1. Cada uno solo mueve lo suyo: «nobody moves tokens of others», «who has a key signs», «without a key nobody acts», «a declared key comes with its proof», «a key is declared at its alta», «locks keep their holder and name an exit».
+2. Todo registro paga su T: «every event moves tokens», «the cost of writing», «writing burns today's T», «nobody mints T», «T is whole», «T is not locked», «informative T is only burned».
+3. Se entra por invitación y el invitado queda protegido: «a person joins by an invitation», «not before the writer joined», «a thing of mine is one whose alta I wrote», «T only goes to things».
+4. Las posiciones de la época que leen las reglas del punto 2 y de las que depende que un registro cueste algo: **`epoch.7.0`** (el calendario: los segundos de cada escala, `7.0.k.1`, y qué escalas mide, las que tienen asignación; lo leen «the cost of writing», «writing burns today's T» e «informative T is only burned»), **`epoch.1.3.1`** (la asignación diaria de T de cada escala; «writing burns today's T») y **`epoch.7.2`** (las escalas informativas que se refieren a otra fecha; «informative T is only burned»).
+
+**7.9.7, las piezas de gobierno**: `epoch.7.9`, «support of», «support», «approved», las cuatro reglas de §5 y las seis plantillas. El encargo pedía la fila, «approved» y las seis plantillas; añado «support of» y «support» (de ellas sale «approved») y las cuatro reglas (deciden qué vale): si un cambio corriente pudiera cambiarlas, se saltaría el umbral alto. «missing support», «change state» y «changes» solo informan.
+
+Hacerlo cumplir (que un cambio no sustituya una regla del suelo, no quite nada de 7.9.6, no baje 7.9.2 por debajo de 7.9.1 y que la clase no se quede corta) es del núcleo, sobre los datos del cambio, en el encargo siguiente. Mirado ya: la época state sustituye «second factor» y «attention has a price», y la SIP de StateArk «sealed», «paid», «second factor» y «authorized by the holder»; ninguna está en el suelo.
+
+## 7. Lo que queda para el motor (encargo siguiente)
+
+- Comprobar al proponer y al poner en vigor que el cambio es una época hija que carga sobre la época vigente **en ese punto**, que no toca el suelo y que su clase no se queda corta. Hoy solo se mira la forma que alcanza el BQL (§5).
+- Al aceptar «put a change in force», fundir el cambio y abrir una versión de la época del eje (`eje.epoca()` la vigente, `eje.epocaDe(id)`, `eje.versiones()`), y las cachés por versión.
+- **Las referencias del cambio**: un cambio cuya raíz referencia registros nuevos (`{ ref }` a una regla o una plantilla que viene en su 1.2) lo rechaza hoy el suelo de las referencias ausentes (`src/condiciones/evento.js`: «referencia a un evento que no está en el eje»); solo pasan las marcas a la época del libro y a los registros que ya tiene. El núcleo ha de reconocer como resueltas las referencias a los registros que trae el propio cambio.
+- La comprobación del suelo al cargar una época hija de nacimiento.
+
+## 8. Coste
+
+Medido con 20 nombres en 7.9.5, 30 propuestas y 200 apoyos (cada nombre apoya diez propuestas con la parte 0.1; la propuesta más apoyada tiene 104 compromisos), sobre los límites de la época (10 000 ocupantes, 100 000 pasos y 2 000 000 bytes por evaluación; cada lectura que otra lee en su posición se evalúa con su propio presupuesto):
+
+| Lectura o regla | Ocupantes | Pasos | Bytes |
+|---|---|---|---|
+| «support of» (el peor de los 104 compromisos) | 642 | 564 | 0 |
+| «support» (sin las 104 «support of», cada una aparte) | 427 | 253 | 0 |
+| «missing support» | 48 | 26 | 0 |
+| «approved» | 12 | 5 | 0 |
+| «change state» | 66 | 46 | 0 |
+| «changes» | 99 | 100 | 0 |
+| «a change comes into force with its proof», cuatro eslabones y Bitcoin | 874 a 1 140 | — | 402 114 |
+| la misma, vía «taproot» | 173 | — | 133 799 |
+
+Ninguna se acerca a los límites. El tiempo: validar un «enact a change» sobre la propuesta de 104 compromisos tarda unos 0,2 s. Una prueba de cuatro eslabones en el payload son 76 posiciones: 76 minutos de T de coste de escribir.
+
+## 9. Límites que se saben
+
+- «approved» es viva: después de aprobada puede volver a dar falso (los apoyos se retiran); el estado lo dice «change state».
+- Escribir más P propio **después** de apoyar baja la parte con que se apoya (el P nuevo no está bloqueado).
+- Una propuesta sin aprobar no caduca: los apoyos quedan bloqueados hasta que se retiran.
+- Una lista de nombres cuyas presiones suman 0 deja «support» en ERROR (división por cero): el núcleo no ha de dejarla entrar.
+- Hasta diez registros nuevos por cambio (el 1.2 es una décupla).
