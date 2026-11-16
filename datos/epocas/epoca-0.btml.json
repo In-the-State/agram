@@ -160,7 +160,7 @@
     {"ref":"6ca50905d9242646b8c92ebf365d470b079504a010a36f7e17ac349425e59d75"},
     {"ref":"bfa0bd7f5cc4455648e32c3eef1993b2a4c88817a8c09d7c109145e4619cfcf8"},
     {"ref":"b40be0667c53f6d16a0e70ccefe4f9f6cd23ffa805a039e85c6a71f388bbec45"},
-    {"ref":"d48a6bf425b648515f3a21f2f1c761080fd2e5583e6632563f261d51bb5056ce"},
+    {"ref":"b4224ebed0d079b96f577025452cde2614ccf52d0b42cb19fe464ed35308accc"},
     {"ref":"c2929237612e7b1144e7c449d45b09bc9ece5137e7139523ecc5b60f8f10ffb1"},
     {"ref":"03ccc721272e9d7b44c684b44edb1edd66b6ed7a3d9127c87418aa84aa47d072"},
     {"ref":"4b3900df598d65e0917b8d817b819b0f924dbdc7bfcd81bfbcbe109e796a01a8"},
@@ -174,7 +174,8 @@
     {"ref":"ac078a27fc11b6213a945fca3c7fd2969bb3a1984464df2f21fbaf25b91997bf"},
     {"ref":"cd8c375175c656c4c902ebc420b043e942d15779825914a349b7103af3dd35cb"},
     {"ref":"a787f172195bcdb8aab325702d7068aa596df552b5ffec8753e0816b002abd0b"},
-    {"ref":"c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"}
+    {"ref":"c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"},
+    {"ref":"de6a9e30c0a70c6ab21b35bc93c0f73a52f9eddfc5fef47f39d8f1599e347574"}
   ],
   [
     [
@@ -833,6 +834,23 @@
       [["caducado"], ["=mint in it.4 and (first it.7.0).0 <= before.6.0.0"], ["=first it.7.0"]],
       [["caduca"], ["=mint in it.4"], ["=first it.7.0"]],
       [["caducado"], ["=burn in it.4"], ["=first it.6.0"]]
+    ],
+    [
+      [
+        "anchoring cadence",
+        "the anchoring cadence (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; SIP 0, «El sello en cascada» §5): for each level of whoever keeps a line (person, group, company, provider), the longest wait, in seconds, since the last header of that line anchored in Bitcoin; the seconds of 7.0 (year, cycle, week, day). Data for the sealer: AGRAM does not demand it"
+      ],
+      ["person", "group", "company", "provider"],
+      [31536000, 2419200, 604800, 86400]
+    ],
+    [
+      [
+        "layers",
+        "the layers (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; SIP 0, «El sello en cascada»), from the bottom up: the order is the rank, and a layer above covers the ones below; 2 the fastest rhythm of the seals of each layer, in seconds: at most one seal (one batch header) every so many seconds; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm in that layer (a token can be used before: it needs the seal of its layer to be firm). The names are the «capa» of each link of the seal (X.6.8.2, 9.k.1); the reading «firm» (X.6.8.9) reads this row"
+      ],
+      ["casa", "sidechain", "liquid", "bitcoin"],
+      [1, 60, 3600, 86400],
+      ["T", "R", "P", "E"]
     ]
   ],
   [
@@ -2115,7 +2133,7 @@
           "the cost of writing: lo que un registro exige en T, en segundos: un minuto del calendario por cada posición de su payload",
           "for when: la fecha a la que se refiere el registro, en segundos: la de su movimiento con fecha, o su propio instante si quema E propia",
           "clocks out of order: el reloj del libro, la marca de Nostr y el bloque de Bitcoin no van en orden",
-          "sealed: la prueba del sello de tiempo copiada en el 6.8.2 del registro no cuadra (la hoja, el camino de Merkle, el compromiso Taproot, la transacción de anclaje, la cabecera del bloque, la prueba de trabajo, la altura, o una cabecera que no firmó un observador declarado)",
+          "sealed: la prueba del sello de tiempo copiada en el 6.8.2 del registro no cuadra (la hoja, el camino de Merkle o la cadena de cabeceras de lote, el compromiso Taproot, la transacción de anclaje, la cabecera del bloque, la prueba de trabajo, la altura, o una cabecera que no firmó un observador declarado)",
           "received: el recibo de llegada copiado en el 6.8.1 del registro no lo firma su relé",
           "paid: el recibo de pago copiado en el 6.8.3 del registro no prueba que su transacción, en un bloque firmado por un observador declarado, pague el importe al destino (y apunte a este registro, si trae puntero), o no lo firma su emisor",
           "second factor: {first ev.3} mueve lo que protege uno de sus propios criterios (un segundo factor en el 2.4 de su alta)",
@@ -2130,6 +2148,7 @@
           "by when: lo que cuelga del nodo y se refiere a una fecha (el T futuro declarado, lo bloqueado hasta una fecha, lo que caduca), lo más próximo primero",
           "against others: sus hermanos, lo anclado sobre el mismo registro",
           "how: las acciones que su plantilla nombra como camino",
+          "firm: el registro no ha llegado a la capa de la familia más alta que mueve (epoch.7.6): no está sellado hasta esa capa y ninguna de más arriba lo cubre",
           "T is not locked: {first ev.3} bloquea o libera T; bloquear es de E, P y R",
           "T is whole: {first ev.3} mueve {first ((ev.1 where T in it.0.0.0 and it.1 != floor it.1) each 1)} de una escala de T; cada escala es un token",
           "T only goes to things: {first ev.3} da T a {(ev.1 where T in it.0.0.0 and transfer in it.4 and it.3.1 != first ev.3) each 3.1}: T no cruza a una persona, y una cosa solo lo da a una cosa del mismo dueño; dar tiempo a otro es acuñar E del tiempo propio",

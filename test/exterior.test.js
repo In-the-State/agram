@@ -273,14 +273,14 @@ test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) 
   assert.equal(celdas(con).find((o) => o.X === X).confirmaciones, 1);
   assert.equal((html(con).match(/class="verificado"/g) ?? []).length, 1, 'una sola marca, la de esa ejecución');
 
-  // El reverso del propio registro: la marca va debajo del ancla.
+  // El reverso del propio registro: la marca va en la estación de Bitcoin de la fila de firmeza (encargo «firmeza», VG 16-11), debajo del ancla.
   assert.equal((await arbol({ foco: { X: compra.id, pv: 5 } }, ORDENADOR)).centro.verificado, undefined);
   await sellar(compra.id, 1);
   const reverso = await arbol({ foco: { X: compra.id, pv: 5 } }, ORDENADOR);
   assert.equal(reverso.centro.cara, 'reverso');
   assert.equal(reverso.centro.verificado, true);
   assert.equal(reverso.centro.confirmaciones, 1);
-  assert.match(html(reverso), /class="verificado-linea"><small class="verificado" data-confirmaciones="1"[^>]*>◆ verificado · 1 confirmación<\/small>/);
+  assert.match(html(reverso), /<li class="estacion-firmeza" data-capa="bitcoin" data-estado="alcanzada"[^>]*><span class="estacion-firmeza-nombre">Bitcoin<\/span> <small class="verificado" data-confirmaciones="1"[^>]*>◆ verificado · 1 confirmación<\/small><\/li>/);
 
   // Pasan los bloques: el último sello conocido sube la profundidad («verificado · N confirmaciones») y, con las 6 de los ajustes del eje, «en firme».
   const otro = celdas(sin).find((o) => o.X !== X).X;
@@ -288,12 +288,12 @@ test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) 
   const tres = await arbol({ foco: { X: compra.id, pv: 5 } }, ORDENADOR);
   assert.equal(tres.centro.confirmaciones, 3, '3 − 1 + 1');
   assert.equal(tres.centro.enFirme, undefined);
-  assert.match(html(tres), /class="verificado-linea"><small class="verificado" data-confirmaciones="3"[^>]*>◆ verificado · 3 confirmaciones<\/small>/);
+  assert.match(html(tres), /data-capa="bitcoin"[^>]*><span class="estacion-firmeza-nombre">Bitcoin<\/span> <small class="verificado" data-confirmaciones="3"[^>]*>◆ verificado · 3 confirmaciones<\/small>/);
   const ultimo = celdas(sin).find((o) => o.X !== X && o.X !== otro).X;
   await sellar(ultimo, 6);
   const firme = await arbol({ foco: { X: compra.id, pv: 5 } }, ORDENADOR);
   assert.deepEqual([firme.centro.confirmaciones, firme.centro.enFirme, firme.centro.minimas], [6, true, 6], '6 − 1 + 1');
-  assert.match(html(firme), /class="verificado-linea"><small class="verificado" data-en-firme data-confirmaciones="6" title="en firme: [^"]*\(6 de 6;[^"]*">◆ en firme<\/small>/);
+  assert.match(html(firme), /data-capa="bitcoin"[^>]*><span class="estacion-firmeza-nombre">Bitcoin<\/span> <small class="verificado" data-en-firme data-confirmaciones="6" title="en firme: [^"]*\(6 de 6;[^"]*">◆ en firme<\/small>/);
   assert.doesNotMatch(html(firme), /verificado · \d/, 'en firme sustituye a «N confirmaciones»');
   // La celda de la matriz del 4 dice lo mismo de cada ejecución.
   const matriz = html(await arbol({ foco: { X: compra.id, pv: 4 } }, ORDENADOR));

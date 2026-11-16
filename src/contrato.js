@@ -32,6 +32,9 @@
 //   relojesFueraDeOrden(eje, id)           si los tres relojes de un registro (X.6.8) van fuera de orden: la lectura «clocks out of order»
 //   verificado(eje, id)                    { ok, sello, recibo, relojes, altura, profundidad, enFirme, pendiente, pendienteDeSello }: lo que dicen las reglas «sealed» y «received»
 //                                          de la época, relojes en orden, cuántas confirmaciones tiene y lo que falta para comprobarlo (§4.4)
+//   firmeza(eje, id)                       { capas: [{ capa, estado }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme }: hasta qué
+//                                          capa del sello en cascada ha llegado (la regla «firm», X.6.8.9) y si está en duda por una bifurcación
+//   cascadaDe(epoca)                       { plazos, capas: [{ capa, ritmo, familia }] }: el 7.5 y el 7.6 de la época
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
 //   yo(eje, identidad)                     mi alta y sus posiciones: cartera, criterio, atención, tiempo
 //   configuracion(eje, yo)                 mis preferencias (el registro en el 9 de mi alta) o los defectos de la plantilla
@@ -53,7 +56,7 @@ import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, esFormula } from './bqlm.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
 import { ocupantes as ocupantesDe } from './encaje.js';
-import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken } from './tokens.js';
+import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken, movimientosReales } from './tokens.js';
 import { esInstante, msUTC, msDeGuardado } from './instante.js';
 import { HITOS, cajaDeCuota, confluir, situar, SIN_BASE_ESCRITA } from './bases.js';
 import { pasoDe } from './pasos.js';
@@ -1790,6 +1793,31 @@ export function pvDeEntrada(eje, X, id) {
   return (ev.sobre ? digitoReferido(ev.payload, ev.sobre) : null) ?? 0;
 }
 
+/** Dónde pone la época el plazo de anclaje de cada nivel y las capas del sello en cascada (VG 16-11, encargo «firmeza»). */
+const CASCADA = Object.freeze({ plazos: [7, 5], capas: [7, 6] });
+
+/**
+ * El sello en cascada según la época (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3; encargo «firmeza»): de epoch.7.5 el plazo
+ * máximo, en segundos, desde la última cabecera anclada en Bitcoin de la línea de cada nivel (dato para quien sella: AGRAM
+ * no lo exige), y de epoch.7.6 las capas de abajo arriba (el orden es el rango), cada una con su ritmo máximo de sellos
+ * (cabeceras de lote) en segundos y la familia de token que queda en firme en ella. Lee la época dada (un registro de época
+ * cargado o su décupla; por defecto, la 0): una época hija que fije su 7.5 o su 7.6 manda (la resuelta ya lleva lo suyo).
+ * → { plazos: { person, group, company, provider }, capas: [{ capa, ritmo, familia }] }.
+ */
+export function cascadaDe(epoca = EPOCA_0_BTML) {
+  const raiz = raizDe(epoca ?? EPOCA_0_BTML);
+  const plazos = en(raiz, CASCADA.plazos);
+  const claves = hojas(plazos?.[1]).map(texto);
+  const valores = hojas(plazos?.[2]);
+  const capas = en(raiz, CASCADA.capas);
+  const ritmos = hojas(capas?.[2]);
+  const familias = hojas(capas?.[3]);
+  return {
+    plazos: Object.fromEntries(claves.map((k, i) => [k, Number(valores[i])]).filter(([k, v]) => k && Number.isFinite(v))),
+    capas: hojas(capas?.[1]).map(texto).map((capa, i) => ({ capa, ritmo: Number(ritmos[i]), familia: texto(familias[i]) ?? null })).filter((c) => c.capa),
+  };
+}
+
 /** Dónde pone la época los estados del futuro (VG 12-11, estudio BQL-transacciones): 0 la cabecera, 1… [[nombre], [cuándo], [su fecha]]. */
 const ESTADOS_DEL_FUTURO = [7, 4];
 
@@ -1861,7 +1889,63 @@ export function relojesFueraDeOrden(eje, id, opciones = {}) {
  * X.6.8.1 («received») y X.6.8.6 el recibo de pago copiado en X.6.8.3 («paid»). Los nombres y las fórmulas son de la
  * época; aquí solo las posiciones, como «clocks out of order» en X.6.9.
  */
-const COMPRUEBA = Object.freeze({ sello: '=first (first it.6).8.5', recibo: '=first (first it.6).8.4', pago: '=first (first it.6).8.6' });
+const COMPRUEBA = Object.freeze({ sello: '=first (first it.6).8.5', recibo: '=first (first it.6).8.4', pago: '=first (first it.6).8.6', firmeza: '=first (first it.6).8.9' });
+
+/**
+ * Las familias que un registro mueve con SUS PROPIAS SENTENCIAS (Core AGRAM 16-11, encargo «firmeza»): lo declarado y no
+ * anunciado (lo que cambia de manos, se acuña, se quema por decisión o se bloquea), sin la quema de T real de su autor (el
+ * coste de escribir) y sin lo que el libro da solo (los diez P por escribir, por recibir E o R: no son movimientos del
+ * registro). El mismo criterio que la regla «firm» (X.6.8.9).
+ */
+function familiasSentenciadas(ev) {
+  const coste = (m) => m.token === 'T' && (m.a === null || m.a === undefined) && m.de === ev.autor && ESCALAS_REALES.includes(m.escala);
+  return [...new Set(movimientosReales(ev).filter((m) => m && typeof m.token === 'string' && !coste(m)).map((m) => m.token))];
+}
+
+/**
+ * La firmeza de un registro (VG 16-11: «la carta enseña, en el 5, hasta qué capa ha llegado»; encargo «firmeza»; la
+ * fachada de la regla «firm», X.6.8.9, como verificado() lo es de «sealed»). Las capas son las de la época (cascadaDe, 7.6).
+ * → { capas: [{ capa, estado }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme } o null si el registro no está:
+ *   capas      una por capa de 7.6, en su orden, con su estado: «alcanzada» (la prueba pasa por ella; la primera, también
+ *              con su recibo de llegada; la última, Bitcoin, con «sealed»), «saltada» (por debajo de la más alta alcanzada,
+ *              y la prueba no pasa por ella) o «pendiente» (por encima);
+ *   alcanzada  el nombre de la capa más alta alcanzada, o null;
+ *   exigida    el de la capa de la familia más alta que el registro mueve con sus propias sentencias (sin el coste de
+ *              escribir ni el P que da el libro); la primera si no mueve nada;
+ *   firme      lo que da la regla «firm» (falso si queda PENDIENTE): la época decide, no esta función;
+ *   enDuda     true si su sello en cascada pasa por una cabecera de una clave acusada de bifurcación (eje.bifurcaciones)
+ *              con número igual o mayor que el de la bifurcación (SIP 0 §3: nada castiga solo; «sealed» y «firm» no cambian);
+ *   confirmaciones, enFirme  los de verificado(): la profundidad de su bloque y si ya tiene las de los ajustes del exterior.
+ */
+export function firmeza(eje, id, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  if (typeof id !== 'string' || !eje?.obtener?.(id)) return null;
+  const ev = eje.obtener(id);
+  const epoca = epocaDe(opciones, eje);
+  const tabla = cascadaDe(epoca).capas;
+  const v = verificado(eje, id, opciones);
+  const ctx = new ContextoEje(eje, { epoch: epoca });
+  const recibido = eje.recibo?.(id) ? comprobar(COMPRUEBA.recibo, ctx, id).valor === true : false;
+  const sello = eje.sello?.(id)?.decupla;
+  const cadena = Array.isArray(sello) && sello[6] === 'cascada' && Array.isArray(sello[9]) ? sello[9].filter(Array.isArray) : [];
+  const enCadena = new Set(cadena.map((e) => texto(hoja(e[1]))));
+  const ultima = tabla.length - 1;
+  const alcanza = tabla.map((c, k) => (k === ultima ? v.sello : k === 0 ? enCadena.has(c.capa) || recibido : v.sello && enCadena.has(c.capa)));
+  const alto = alcanza.lastIndexOf(true);
+  const familias = familiasSentenciadas(ev);
+  const exigida = Math.max(0, ...tabla.map((c, k) => (familias.includes(c.familia) ? k : -1)));
+  const cabeceras = cadena.map((e) => e[0]).filter(Array.isArray).map((c) => ({ numero: c[1], clave: c[5] }));
+  const enDuda = (typeof eje.bifurcaciones === 'function' ? eje.bifurcaciones() : []).some((b) => cabeceras.some((c) => c.clave === b.acusado && Number.isSafeInteger(c.numero) && c.numero >= b.numero));
+  return {
+    capas: tabla.map((c, k) => ({ capa: c.capa, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente' })),
+    alcanzada: alto < 0 ? null : tabla[alto].capa,
+    exigida: tabla[exigida]?.capa ?? null,
+    firme: comprobar(COMPRUEBA.firmeza, ctx, id).valor === true,
+    enDuda,
+    confirmaciones: v.profundidad,
+    enFirme: v.enFirme,
+  };
+}
 
 /** Lo que da una lectura de verdadero o falso sobre un registro: { valor: true | false } o { pendiente: motivo } si falta el dato. */
 function comprobar(expr, ctx, id) {

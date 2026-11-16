@@ -493,6 +493,31 @@ const htmlPendienteDeSello = () => `<small class="pendiente-sello" title="${attr
 const htmlPendienteDeSegundoFactor = (o) => `<small class="pendiente-segundo-factor" title="${attr(o?.motivoSegundoFactor || t('pendienteDeSegundoFactorTitulo'))}">${escapar(t('pendienteDeSegundoFactor'))}</small>`;
 const marcaVerificado = (o) => (o?.verificado ? htmlVerificado(o) : o?.pendienteDeSello ? htmlPendienteDeSello() : '') + (o?.pendienteDeSegundoFactor ? htmlPendienteDeSegundoFactor(o) : '');
 
+/** El nombre de una capa del sello en cascada en el idioma de la interfaz (capa_<nombre>); si no lo hay, el de la época. */
+const textoCapa = (capa) => (t('capa_' + capa) === 'capa_' + capa ? capa : t('capa_' + capa));
+/** La palabra de resumen de la firmeza: en duda, en firme, o se puede usar sin estar aún en firme. */
+const resumenFirmeza = (f) => (f.enDuda ? 'enDuda' : f.firme ? 'firme' : 'usable');
+const TEXTO_RESUMEN = Object.freeze({ enDuda: 'firmezaEnDuda', firme: 'firmezaFirme', usable: 'firmezaUsable' });
+const TEXTO_ESTADO_CAPA = Object.freeze({ alcanzada: 'capaAlcanzada', pendiente: 'capaPendiente', saltada: 'capaSaltada' });
+/**
+ * Las estaciones de firmeza del reverso (encargo «firmeza», VG 16-11): una por capa de la época, en su orden, con su
+ * estado (data-estado: alcanzada, pendiente, saltada), la que exige el registro señalada (data-exigida) y, en la de
+ * Bitcoin, lo de hoy (las confirmaciones y «en firme» con las del ajuste: htmlVerificado); detrás, la palabra de resumen.
+ * Todo sale de contrato.firmeza; aquí no se decide nada. '' sin firmeza.
+ */
+function htmlFirmeza(f) {
+  if (!f?.capas?.length) return '';
+  const ultima = f.capas.length - 1;
+  const estaciones = f.capas.map((c, k) => {
+    const exigida = c.capa === f.exigida;
+    const titulo = textoCapa(c.capa) + ': ' + t(TEXTO_ESTADO_CAPA[c.estado] ?? c.estado) + (exigida ? ' · ' + t('capaExigida') : '');
+    const bitcoin = k === ultima && c.estado === 'alcanzada' && f.confirmaciones ? ' ' + htmlVerificado({ confirmaciones: f.confirmaciones, enFirme: f.enFirme, minimas: f.minimas }) : '';
+    return `<li class="estacion-firmeza" data-capa="${attr(c.capa)}" data-estado="${attr(c.estado)}"${exigida ? ' data-exigida' : ''} title="${attr(titulo)}"><span class="estacion-firmeza-nombre">${escapar(textoCapa(c.capa))}</span>${bitcoin}</li>`;
+  }).join('');
+  const r = resumenFirmeza(f);
+  return `<div class="firmeza" data-resumen="${r}" aria-label="${attr(t('firmezaTitulo'))}"><ol class="estaciones-firmeza">${estaciones}</ol><small class="firmeza-resumen" title="${attr(t(TEXTO_RESUMEN[r] + 'Titulo', { exigida: f.exigida ? textoCapa(f.exigida) : '' }))}">${escapar(t(TEXTO_RESUMEN[r]))}</small></div>`;
+}
+
 /**
  * Lo de dentro de una celda de la matriz (encargo «datos2», issue #11: la celda es la lista de ejecuciones): cada una
  * con su estación si la tiene (su color y, si está ejecutada, su sello), las primeras y las demás contadas.
@@ -1030,7 +1055,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
-      ${ancla}${c.verificado ? `<p class="verificado-linea">${htmlVerificado(c)}</p>` : c.pendienteDeSello ? `<p class="verificado-linea">${htmlPendienteDeSello()}</p>` : ''}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
+      ${ancla}${htmlFirmeza(c.firmeza)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
       ${htmlBtml(c.btml)}
       ${pasosHtml}${validacion}
     </section>`;

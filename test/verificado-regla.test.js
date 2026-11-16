@@ -302,7 +302,7 @@ test('«sin verificar no se ejecuta» (epoch.4.3): sin sello configurado, ejecut
   assert.deepEqual(deE().verificados, [anuncio]);
 });
 
-test('el reverso de un registro con sello configurado y sin sello comprobado dice «pendiente de sello»; sin sello configurado, nada', async () => {
+test('el reverso de un registro con sello configurado y sin sello comprobado: las estaciones de firmeza (encargo «firmeza») sustituyen a «pendiente de sello»; sin sello configurado, tampoco hay marca', async () => {
   const c = await ejemploCompra();
   const { eje, compra } = c;
   const ORDENADOR = { ancho: 1920, alto: 1080 };
@@ -312,7 +312,9 @@ test('el reverso de un registro con sello configurado y sin sello comprobado dic
   await declararExterior(eje, { sello: 'http://127.0.0.1:8787' });
   const r = await reverso();
   assert.equal(r.centro.pendienteDeSello, true);
-  assert.match(html(r), /<p class="verificado-linea"><small class="pendiente-sello" title="[^"]+">pendiente de sello<\/small><\/p>/);
+  // Encargo «firmeza» (VG 16-11): en el reverso, la fila de estaciones sustituye a la marca de hoy: nada sellado, «se puede usar, aún no en firme».
+  assert.doesNotMatch(html(r), /pendiente-sello/);
+  assert.match(html(r), /<div class="firmeza" data-resumen="usable"[^>]*><ol class="estaciones-firmeza">(?:<li class="estacion-firmeza" data-capa="[a-z]+" data-estado="pendiente"[^>]*>(?:(?!<\/li>).)*<\/li>){4}<\/ol><small class="firmeza-resumen" title="[^"]+">se puede usar, aún no en firme<\/small><\/div>/s);
 });
 
 // ---------- «paid» (X.6.8.6): el recibo de pago de StateArk copiado en X.6.8.3 (encargos «taproot» y «pago2», Core AGRAM 13-11) ----------

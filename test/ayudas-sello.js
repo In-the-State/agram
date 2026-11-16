@@ -9,7 +9,7 @@
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { sha256, sha256d, hashEtiquetado, concatenar, deHex, aHex } from '../src/cripto.js';
 import { generarClaves } from '../src/autoridad.js';
-import { decuplaDeSello } from '../src/sello.js';
+import { decuplaDeSello, decuplaDeCabecera, leerCabeceraDeLote } from '../src/sello.js';
 import { salida } from '../src/index.js';
 import * as G from '../carta/guia.js';
 import { arbol } from '../servidor/sim/stateark/merkle.js';
@@ -88,6 +88,59 @@ export async function selloCompleto(id, { altura = 1, instante = '2026-11-10T11:
   };
   if (cambiar) cambiar(prueba);
   return { altura: prueba.altura, hash: prueba.hash, instante: prueba.instante, verificado: true, decupla: decuplaDeSello(prueba, id) };
+}
+
+/**
+ * Una cabecera de lote del SIP 0 («El sello en cascada» §1) firmada con `claves` (de prueba): { cabecera (la forma JSON,
+ * con su firma), decupla, hash }. `anterior`, 32 bytes a cero si no se da.
+ */
+export function cabeceraDeLoteFirmada({ numero = 0, anterior = '00'.repeat(32), raiz, hora = 1794830400 }, claves) {
+  const sinFirma = { numero, anterior, raiz, hora, clave: claves.publica, firma: '00'.repeat(64) };
+  const { hash } = leerCabeceraDeLote(decuplaDeCabecera(sinFirma));
+  const cabecera = { ...sinFirma, firma: aHex(schnorr.sign(deHex(hash), deHex(claves.privada), new Uint8Array(32))) };
+  return { cabecera, decupla: decuplaDeCabecera(cabecera), hash };
+}
+
+/**
+ * El sello EN CASCADA completo de `id` (SIP 0, «El sello en cascada» §2; encargo «firmeza») para eje.marcarSello: { altura,
+ * hash, instante, verificado: true, decupla, prueba, cabeceras }. `capas` son los eslabones de abajo arriba ([{ capa, claves?,
+ * numero?, otros?, ids? }]: `claves` las del emisor de esa capa, generadas si no se dan; `otros`, cuántos ids más van en su lote; `ids`, cuáles);
+ * la de arriba la firma el observador (la clave declarada). El hash de cada cabecera es hoja del lote de la de arriba; el de
+ * la de arriba es el compromiso de la hoja OP_RETURN del árbol Taproot de la salida 0 de una transacción de anclaje, de
+ * interna `interna` (una clave de prueba: ya no NUMS), y lo demás como selloCompleto. `cambiar(prueba)` deja tocar la
+ * prueba antes de hacer la décupla (para las pruebas en negativo).
+ */
+export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11:00:00.000Z', observador, capas = [{ capa: 'bitcoin' }], interna, otrasTx = 0, cambiar } = {}) {
+  let x = id;
+  let lote = null;
+  const cadena = [];
+  const cabeceras = [];
+  for (const [k, c] of capas.entries()) {
+    const claves = k === capas.length - 1 ? observador : (c.claves ?? (await generarClaves()));
+    const ids = [...new Set([x, ...(c.ids ?? []), ...Array.from({ length: c.otros ?? 0 }, (_, i) => de('otro id ' + k + ' ' + i + ' ' + x))])].sort();
+    const { raiz, caminos } = await arbol(ids);
+    if (k === 0) lote = raiz;
+    const h = cabeceraDeLoteFirmada({ numero: c.numero ?? 0, anterior: c.anterior, raiz, hora: 1794830400 + 60 * k }, claves);
+    cadena.push({ cabecera: h.cabecera, capa: c.capa, camino: caminos.get(x) });
+    cabeceras.push(h);
+    x = h.hash;
+  }
+  const internaDePrueba = interna ?? (await generarClaves()).publica;
+  const ancla = await anclar([x], { interna: internaDePrueba, previa: de('previa ' + x) });
+  const bloque = merkleBitcoin([ancla.txid, ...Array.from({ length: otrasTx }, (_, k) => de('otra tx ' + k))], 0);
+  const cabecera = cabeceraCon(bloque.raiz, { instante });
+  const alturaLe = le(altura, 4);
+  const firma = schnorr.sign(hashEtiquetado(ETIQUETA_OBSERVADOR, concatenar(cabecera, alturaLe)), deHex(observador.privada), new Uint8Array(32));
+  const prueba = {
+    altura, hash: aHex(sha256d(cabecera)), instante, lote, compromiso: x,
+    prueba: {
+      via: 'cascada', cadena,
+      taproot: { tx: ancla.tx, vout: 0, interna: internaDePrueba, hermanos: [...ancla.hermanos.get(x)] },
+      pasos: bloque.pasos, cabecera: aHex(cabecera), observador: { clave: observador.publica, firma: aHex(firma), altura_le: aHex(alturaLe) },
+    },
+  };
+  if (cambiar) cambiar(prueba);
+  return { altura: prueba.altura, hash: prueba.hash, instante: prueba.instante, verificado: true, decupla: decuplaDeSello(prueba, id), prueba, cabeceras };
 }
 
 /** Un relé de prueba: { privada, publica }. */

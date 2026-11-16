@@ -175,6 +175,17 @@ function marcaDeVerificado(eje, X, opciones) {
  * lectura «paid» (contrato.verificado, X.6.8.6) es verdadera, 'pendiente' si la sincronía de la cuenta espera su recibo
  * (estadoDePago), 'noVale' si «paid» es falsa; sin recibo ni espera, null. Nunca una pantalla de pagar.
  */
+/**
+ * Las estaciones de firmeza de un registro en su reverso (VG 16-11: «la carta enseña, en el 5, hasta qué capa ha llegado»;
+ * encargo «firmeza»): lo que da contrato.firmeza (una estación por capa de la época, epoch.7.6, con su estado; la exigida;
+ * firme y en duda; las confirmaciones de la de Bitcoin) y las confirmaciones que pide el eje (para el title de «en firme»).
+ * La carta no decide nada: solo lo pinta. null si el registro no está.
+ */
+function firmezaDelRegistro(eje, X, opciones) {
+  const f = contrato.firmeza(eje, X, opciones);
+  return f ? { ...f, minimas: exterior.ajustesDelEje(eje, opciones).confirmaciones } : null;
+}
+
 function pagoDelRegistro(eje, X, ctx) {
   const buscar = Boolean(ctx.yo && exterior.exterior(eje, ctx.yo, ctx.opciones).pago);
   const v = eje.pago?.(X) ? contrato.verificado(eje, X, ctx.opciones) : null;
@@ -684,6 +695,8 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
       tLegible: ev?.t ? fechaDelRegistro(ev.t, ctx.estado.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null,
       // «verificado» (los tres relojes, contrato.verificado): solo si lo está; una marca discreta, nunca un dato de la carta.
       ...marcaDeVerificado(eje, X, ctx.opciones),
+      // Las estaciones de firmeza (encargo «firmeza», VG 16-11): en el reverso sustituyen a la marca de verificado.
+      firmeza: firmezaDelRegistro(eje, X, ctx.opciones),
       // El recibo de pago (X.6.8.3): «pagado», «pago pendiente de bloque» o «no vale», y «buscar su recibo de pago» con «pay url».
       pago: pagoDelRegistro(eje, X, ctx),
     };

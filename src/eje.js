@@ -56,6 +56,7 @@ import { condicionesDe, CONDICIONES_GENESIS, CONDICIONES_GENESIS_GUARDADO, SIN_C
 import { ContextoEje } from './contexto-eje.js';
 import { quemaDelCoste } from './escritura.js';
 import { validarPayload } from './btml.js';
+import { bifurcacion } from './sello.js';
 
 export { reglasDelTope, SIN_CAPACIDAD } from './condiciones/tope.js';
 
@@ -157,6 +158,7 @@ export class Eje {
   #cota = { altura: null }; // la mayor altura de bloque de los sellos anotados (compartida con las copias, como #sellos): el «último sello conocido» con el que se cuenta la profundidad (contrato.verificado)
   #sellos = new Map(); // id → el sello de tiempo que lo ancla (src/sello.js): { altura, hash, instante, verificado }; vista del libro, fuera del cuerpo y del id (X.6.8.2)
   #pagos = new Map(); // id → el recibo de pago de StateArk copiado (marcarPago): { t, decupla }; vista del libro, fuera del cuerpo y del id (X.6.8.3)
+  #bifurcaciones = new Map(); // id de la equivocación → la bifurcación de una línea de cabeceras (marcarBifurcacion), comprobada sin libro; vista del libro, como el sello
   #epoca = null; // la época del eje, cargada y resuelta (#107): la escrita en su libro, o la que el génesis referencia y el código conoce (la 0)
   #escritura = null; // si el génesis escribe su época: { id, esperados, eventos, contenidos } (los registros de la época que han entrado, en orden, y los ids de sus payloads)
   #deLaEpoca = new Set(); // ids de los registros de la época: están en el libro (eventos, orden) pero no cuelgan del génesis como hijos
@@ -466,6 +468,27 @@ export class Eje {
     return true;
   }
 
+  /**
+   * Una bifurcación de una línea de cabeceras de lote (SIP 0, «El sello en cascada» §3; encargo «firmeza», VG 16-11): la
+   * equivocación portable «dos cabeceras con el mismo número» (`stateark.equivocacion@1` con `a` y `b` dos décuplas de
+   * cabecera), que se comprueba sin libro (src/sello.js bifurcacion: las dos firmas, la misma clave, el mismo número y
+   * distinto hash). Como el sello, es una vista del libro que llega de fuera: no es parte de ningún cuerpo firmado ni de
+   * ningún id y no entra en ninguna regla de escritura. Nada castiga solo: «sealed» y «firm» no cambian; contrato.firmeza
+   * dice «en duda» de un sello cuya cadena pasa por una cabecera de la clave acusada con número igual o mayor. Devuelve si
+   * la anotó; una que no lo es, o ya anotada, se ignora.
+   */
+  marcarBifurcacion(prueba) {
+    const b = bifurcacion(prueba);
+    if (!b || this.#bifurcaciones.has(b.id)) return false;
+    this.#bifurcaciones.set(b.id, Object.freeze({ ...b, hashes: Object.freeze([...b.hashes]) }));
+    return true;
+  }
+
+  /** Las bifurcaciones anotadas: [{ clase, acusado, numero, hashes, id }], por llegada. */
+  bifurcaciones() {
+    return [...this.#bifurcaciones.values()];
+  }
+
   /** El recibo de pago copiado de un registro { t, decupla } o null si no lo tiene (X.6.8.3). */
   pago(id) {
     return this.#pagos.get(id) ?? null;
@@ -620,6 +643,7 @@ export class Eje {
     nuevo.#recibos = this.#recibos;
     nuevo.#sellos = this.#sellos;
     nuevo.#pagos = this.#pagos;
+    nuevo.#bifurcaciones = this.#bifurcaciones;
     nuevo.#cota = this.#cota;
     const motivos = await nuevo.#libro.evaluar(nuevo.transaccion(g), CONDICIONES_GENESIS_GUARDADO, { evento: g, tLaxo: this.eventosV2 > 0, reglas: this.eventosV2 > 0 ? 2 : 3, contextoBqlm: (epoch) => new ContextoEje(nuevo, { ev: g, epoch }) });
     if (motivos.length) throw new Error('génesis rechazado: ' + motivos.map((m) => m.texto).join('; '));
@@ -660,6 +684,7 @@ export class Eje {
     this.#recibos = otro.#recibos;
     this.#sellos = otro.#sellos;
     this.#pagos = otro.#pagos;
+    this.#bifurcaciones = otro.#bifurcaciones;
     this.#cota = otro.#cota;
     this.#epoca = otro.#epoca;
     this.#escritura = otro.#escritura;
