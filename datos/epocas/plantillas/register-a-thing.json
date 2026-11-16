@@ -23,7 +23,7 @@
       ["encargo core-escribe (VG, 11-11): parámetro de «register a thing»"],
       ["required"],
       [2],
-      ["the minutes of T I give the thing to write with, by scales (a minute, an hour, a day, a week, a cycle, a year: the calendar of the epoch); no default: the owner decides (a thing has no daily T: it spends what its owner gives it; to top it up, another transfer of T)"]
+      ["the minutes of T I give the thing to write with, by scales (a minute, an hour, a day, a week, a cycle, a year: the calendar of the epoch); no default: the owner decides (a thing has no daily T: it spends what its owner gives it; to top it up, «give T to a thing of mine»)"]
     ],
     [
       ["key"],
