@@ -358,7 +358,7 @@ async function pagoDeLaSim(n = 1, { observador, puntero } = {}) {
   const custodia = new Custodia({ esquema: esquemaNoble(schnorr) });
   await custodia.crearClave('nostr', 'carril');
   let k = 0; // cada recibo, un segundo antes que el anterior: marcarPago se queda con el recibo más antiguo de un registro, y así cada caso reemplaza al de antes
-  const firmar = (campos) => custodia.firmarRecibo('carril', campos, { t: new Date(Date.parse(INICIO_PAGO) - 1000 * k++).toISOString() });
+  const firmar = (campos) => custodia.firmarRecibo('carril', campos, { t: new Date(Date.parse(INICIO_PAGO) - 1000 * k++).toISOString(), dominio: 'nostr' });
   return { sim, c, txid: txids[0], pagar, firmar };
 }
 

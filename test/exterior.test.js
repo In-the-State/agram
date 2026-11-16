@@ -64,10 +64,10 @@ test('la plantilla «exterior settings» es de la época (9.2.5): relé, archivo
 
 test('exterior(): las tres url de mi registro (http o https, sin la barra final); lo que no es una url y lo vacío no cuentan; el último registro manda; sin huecos: solo las claves con valor, y sus valores en paralelo (VG 13-11, #77)', async () => {
   const c = await cuentaDeVg();
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, guia: null, observadores: [], confirmaciones: 6 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [], confirmaciones: 6 });
   const a = await ajustarExterior(c, { 'relay url': 'http://127.0.0.1:8788/', 'blossom url': 'https://archivos.ejemplo/', 'seal url': 'ftp://no-es-http' });
   assert.deepEqual(a.campos.map((x) => x.clave), ['relay url', 'blossom url', 'seal url', 'pay url', 'observer keys', 'confirmations', 'guide url']);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: 'https://archivos.ejemplo', sello: null, guia: null, observadores: [], confirmaciones: 6 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: 'https://archivos.ejemplo', sello: null, pago: null, guia: null, observadores: [], confirmaciones: 6 });
   // Sin huecos ni rellenos (#77): 0 el nombre, 1 las claves de los ajustes con valor, 2 sus valores en paralelo, 3 quién, 4 su ayuda, 5 el tipo; ninguna posición vacía ni «-»
   assert.deepEqual(a.payload.map((x) => x.length), [1, 4, 4, 1, 1, 1]);
   assert.deepEqual(a.payload.slice(0, 3), [[PLANTILLA], ['relay url', 'blossom url', 'seal url', 'confirmations'], ['http://127.0.0.1:8788/', 'https://archivos.ejemplo/', 'ftp://no-es-http', 6]]);
@@ -78,7 +78,7 @@ test('exterior(): las tres url de mi registro (http o https, sin la barra final)
   assert.equal(b.cambiado, true);
   assert.deepEqual(b.payload.slice(0, 3), [[PLANTILLA], ['relay url', 'seal url', 'confirmations'], ['http://127.0.0.1:8788/', 'http://127.0.0.1:8787', 6]]);
   await salida.escribirDesde(c.eje, { modo: 'sequenced', autor: 'vg', sobre: b.sobre, en: b.en, payload: b.payload, t: T(2) }, c.cuenta.privada);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: null, sello: 'http://127.0.0.1:8787', guia: null, observadores: [], confirmaciones: 6 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: 'http://127.0.0.1:8788', archivos: null, sello: 'http://127.0.0.1:8787', pago: null, guia: null, observadores: [], confirmaciones: 6 });
   assert.equal(G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', {}).cambiado, false, 'sin cambios, nada que escribir');
   // El registro es de configuración: no se manda a ninguna IA, como el de la guía.
   const id = contrato.configuracionDe(c.eje, 'vg', PLANTILLA).de;
@@ -96,7 +96,7 @@ test('observer keys, confirmations y guide url (claves de un registro de ajustes
   const dado = CLAVE_A + ' ' + CLAVE_B.toUpperCase() + ' ' + CLAVE_A + ' no-es-clave';
   const a = await ajustarExterior(c, { 'observer keys': dado, confirmations: '12', 'guide url': 'http://127.0.0.1:8799/' });
   assert.deepEqual(a.payload.slice(1, 3), [['observer keys', 'confirmations', 'guide url'], [dado, 12, 'http://127.0.0.1:8799/']]);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, guia: 'http://127.0.0.1:8799', observadores: [CLAVE_A, CLAVE_B], confirmaciones: 12 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: 'http://127.0.0.1:8799', observadores: [CLAVE_A, CLAVE_B], confirmaciones: 12 });
   assert.deepEqual(contrato.validar(c.eje, contrato.configuracionDe(c.eje, 'vg', PLANTILLA).de), []);
   // Los textos del formulario, en los dos idiomas: en inglés (el canónico) la ayuda es la del propio registro de la plantilla.
   const ayudas = (idioma) => G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', {}, { idioma }).campos.map((x) => x.ayuda);
@@ -111,7 +111,7 @@ test('observer keys, confirmations y guide url (claves de un registro de ajustes
   const b = G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', { 'observer keys': '', 'guide url': '', confirmations: 'muchas' });
   assert.deepEqual(b.payload.slice(1, 3), [['confirmations'], [12]]);
   await salida.escribirDesde(c.eje, { modo: 'sequenced', autor: 'vg', sobre: b.sobre, en: b.en, payload: b.payload, t: T(2) }, c.cuenta.privada);
-  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, guia: null, observadores: [], confirmaciones: 12 });
+  assert.deepEqual(exterior.exterior(c.eje, 'vg'), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [], confirmaciones: 12 });
   // Como una clave repetida (varias hojas, un valor por clave) también se lee.
   const l = G.ajustesEditablesDe(PLANTILLA, c.eje, 'vg', { 'observer keys': CLAVE_A });
   const lista = contrato.registroDeAjustes(PLANTILLA, { 'observer keys': [CLAVE_A, CLAVE_B], confirmations: 12 }, { quien: 'vg' });
@@ -239,7 +239,7 @@ test('profundidad y «en firme»: (altura del último sello verificado conocido 
   assert.deepEqual(de(e1.id), [100, 6, true], '105 − 100 + 1 = 6');
   assert.equal(de(e2.id)[2], false);
   // Las confirmaciones que cuentan son las de la cuenta raíz del eje (la del génesis), con sus defectos si no hay registro.
-  assert.deepEqual(exterior.ajustesDelEje(eje), { relevo: null, archivos: null, sello: null, guia: null, observadores: [obs.publica], confirmaciones: 6 });
+  assert.deepEqual(exterior.ajustesDelEje(eje), { relevo: null, archivos: null, sello: null, pago: null, guia: null, observadores: [obs.publica], confirmaciones: 6 });
   await ajustarExterior({ cuenta, eje }, { confirmations: '3', 'observer keys': obs.publica + ' ' + CLAVE_A }, 5);
   assert.deepEqual(exterior.ajustesDelEje(eje).observadores, [obs.publica, CLAVE_A]);
   assert.equal(exterior.ajustesDelEje(eje).confirmaciones, 3);

@@ -7,13 +7,14 @@
 // sincronizan. El estado de la sincronía (Sincronia#serializar: la cola, los órdenes del servidor, lo rechazado; sin
 // la clave) va junto al eje, por cuenta, en agram.sync.estado.<alta> (cuentas.guardarEstadoSincronia).
 //
-//   abrir({ alta, eje, yo })          → la sincronía de la cuenta (restaurada o nueva) o null si no sincroniza
+//   abrir({ alta, eje, yo, firmante }) → la sincronía de la cuenta (restaurada o nueva) o null si no sincroniza; con
+//                                        «pay url», el servicio de pagos (src/pago.js) firmando con `firmante`
 //   pasar(S, eje, alta)               → sincroniza una vez y guarda su estado; el informe de src/sincronia.js
 //   ejeDelServidor({ cuenta, … })     → un dispositivo sin eje local: el eje nace del génesis del servidor
 //   enSerie(fn)                       → las llamadas de una en una: la que llega con otra en marcha, se repite al acabar
 //   lineaDeEstado(S, informe)         → lo que enseña la línea de estado (carta/dom.js htmlSincronia)
 
-import { sincronia, sello as selloDeTiempo } from '../src/index.js';
+import { sincronia, sello as selloDeTiempo, pago as pagos } from '../src/index.js';
 import * as cuentas from './cuentas.js';
 import { t } from './textos.js';
 
@@ -30,9 +31,11 @@ const mismoDestino = (datos, d) => datos && datos.url === d.url && datos.eje ===
 /**
  * La sincronía de una cuenta, o null si no sincroniza (sin `sync url` o `sync ledger` en la configuración de `yo`,
  * o sin clave de lectura en este navegador). Restaura la guardada en agram.sync.estado.<alta> si es del mismo
- * destino; si no, una nueva. Marca en el eje el reloj de los demás y los sellos de tiempo con lo ya recibido.
+ * destino; si no, una nueva. Marca en el eje el reloj de los demás, los sellos de tiempo y los recibos de pago con lo ya
+ * recibido. `firmante` ({ pubkey, firmar(idHex) → firmaHex }): el de la cuenta, con el que el cliente de pagos firma
+ * como el titular (la clave privada no sale de él).
  */
-export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora } = {}) {
+export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora, firmante = {} } = {}) {
   if (!alta || !eje) return null;
   const d = sincronia.destino(eje, yo);
   if (!d) return null;
@@ -40,7 +43,9 @@ export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora } = 
   if (!claveLectura) return null;
   // El sello de tiempo (X.6.8.2, src/sello.js): solo si la configuración dice «seal url» (exterior settings); sin ella, nada se sella.
   // (`sincronia.destino` ya trae el transporte por «relay url» si lo hay, y si no por «sync url»; docs/CONTRATO.md §16.2 bis.)
-  const opciones = { claveLectura, fetch, sello: selloDeTiempo.deConfiguracion(eje, yo, { fetch }), ...(ahora ? { ahora } : {}) };
+  // Los recibos de pago (X.6.8.3, src/pago.js): solo si la configuración dice «pay url»; firma el titular, la cuenta.
+  const pago = pagos.deConfiguracion(eje, yo, { fetch, firmar: firmante.firmar, pubkey: firmante.pubkey });
+  const opciones = { claveLectura, fetch, sello: selloDeTiempo.deConfiguracion(eje, yo, { fetch }), pago, ...(ahora ? { ahora } : {}) };
   let S = null;
   const datos = cuentas.estadoSincronia(alta);
   if (mismoDestino(datos, d)) {
@@ -53,6 +58,7 @@ export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora } = 
   S ??= new Sincronia({ url: d.url, eje: d.eje, ...opciones });
   S.marcarReloj(eje);
   S.marcarSellos(eje);
+  S.marcarPagos(eje);
   return S;
 }
 

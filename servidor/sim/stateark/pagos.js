@@ -22,7 +22,7 @@
 import { esId, sha256, sha256Texto, aBytes } from './hash.js';
 import { canonico, huella, hashEtiquetado } from './canon.js';
 import { politicaCandado } from './miniscript.js';
-import { madurez } from './madurez.js';
+import { madurez, CONFIRMACIONES_POR_DEFECTO } from './madurez.js';
 import { serializar } from './tx.js';
 import { caminoDePasos } from './sello.js';
 
@@ -90,7 +90,17 @@ async function etiquetaDeSerie(serie) {
   return `fondos/${await sha256Texto(`stateark-sim/serie:${serie}`)}`;
 }
 
-const pesoVirtual = (entradas, salidas) => 11 + 58 * entradas + 43 * salidas;
+/**
+ * El peso virtual de una transacción del carril, calculado como Bitcoin (S37), por exceso: nunca se queda corto.
+ * En unidades de peso (WU): cabecera 10 B × 4 + marcador y bandera de testigo 2 = 42; cada entrada P2TR por la
+ * ruta de la clave: 41 B sin testigo × 4 + testigo (1 + 1 + 64) = 230; cada salida P2TR (la más grande de las
+ * habituales: la P2WPKH son 31 B) 43 B × 4 = 172; el puntero OP_RETURN de 70 bytes: 8 + 1 + (2 + 70) = 81 B × 4 = 324.
+ * vsize = ⌈WU / 4⌉. Con dos entradas, vuelta, destino y puntero: ⌈1170 / 4⌉ = 293 vB (antes 256).
+ * `salidas` son las de dinero (destino y vuelta); el puntero se pide aparte. El modelo anterior, 11 + 58 e + 43 s,
+ * contaba el puntero como una salida de 43 B cuando son 81.
+ */
+export const pesoVirtual = (entradas, salidas, { puntero = false } = {}) =>
+  Math.ceil((42 + 230 * entradas + 172 * salidas + (puntero ? 324 : 0)) / 4);
 
 export class Carril {
   /**
@@ -155,6 +165,23 @@ export class Carril {
       if (etiqueta && !etiqueta.startsWith('fondos/') && !m.gastada_por && this.txs.get(m.txid).altura !== null) sat += m.sat;
     }
     return sat;
+  }
+
+  /**
+   * Los saldos por madurez (como `POST /pagos/saldos` del backend): las monedas sin gastar de la cartera, en sats,
+   * repartidas en pendiente (sin bloque), con fondos en sats (con bloque, menos de N) y en firme (N o más).
+   * Como `saldo`, deja fuera los fondos de una serie de E. `n` por defecto, 6.
+   */
+  saldos(nombre, n = CONFIRMACIONES_POR_DEFECTO) {
+    const c = this.#cartera(nombre);
+    const s = { altura: this.cadena.altura, n, pendiente: 0, con_fondos_en_sats: 0, en_firme: 0 };
+    for (const m of this.monedas.values()) {
+      const etiqueta = c.direcciones.get(m.direccion);
+      if (!etiqueta || etiqueta.startsWith('fondos/') || m.gastada_por) continue;
+      const { madurez: estado } = madurez(s.altura, this.txs.get(m.txid).altura, n);
+      s[estado === 'pendiente' ? 'pendiente' : estado === 'en firme' ? 'en_firme' : 'con_fondos_en_sats'] += m.sat;
+    }
+    return s;
   }
 
   /** Solo en la simulación: crea sats de la nada en una dirección (un grifo). Entran en el próximo bloque. */
@@ -233,13 +260,14 @@ export class Carril {
 
     const entradas = [];
     let entra = 0;
-    const nSalidas = 2 + (instruccion.puntero ? 1 : 0);
+    const nSalidas = 2; // destino y vuelta; el puntero (OP_RETURN) pesa distinto y se cuenta aparte
+    const conPuntero = Boolean(instruccion.puntero);
     for (const [, m] of disponibles) {
       entradas.push({ txid: m.txid, vout: m.vout, sat: m.sat, altura: this.txs.get(m.txid).altura });
       entra += m.sat;
-      if (entra >= importe + TASA_SAT_VB * pesoVirtual(entradas.length, nSalidas)) break;
+      if (entra >= importe + TASA_SAT_VB * pesoVirtual(entradas.length, nSalidas, { puntero: conPuntero })) break;
     }
-    const peso = pesoVirtual(entradas.length, nSalidas);
+    const peso = pesoVirtual(entradas.length, nSalidas, { puntero: conPuntero });
     let comision = TASA_SAT_VB * peso;
     if (entra < importe + comision) throw rechazo('insufficient_funds', `hacen falta ${importe + comision} sat y hay ${entra}`);
     let cambio = entra - importe - comision;
@@ -277,7 +305,7 @@ export class Carril {
     if (!esId(titular)) throw rechazo('authorization_invalid', 'el titular es una clave x-only');
     const huellaPlan = await huella(plan);
     const mensaje = await mensajeAutorizacion(huellaPlan);
-    if (!(await this.verificarFirma(firma, mensaje, titular))) throw rechazo('signature_invalid', 'la firma de la autorización no verifica');
+    if (!(await this.verificarFirma(firma, mensaje, titular))) throw rechazo('authorization_invalid', 'la firma de la autorización no verifica con su titular');
     return { schema: ESQUEMA_AUTORIZACION, plan: huellaPlan, instruccion: plan.instruccion, correlacion: plan.correlacion, titular, uso: USO, firma };
   }
 
@@ -293,7 +321,7 @@ export class Carril {
     if (autorizacion.instruccion !== huellaIns) throw rechazo('authorization_mismatch', 'la autorización es de otra orden');
     if (autorizacion.titular !== c.titular) throw rechazo('authorization_not_holder', 'no la firma el titular de esta cartera');
     if (!(await this.verificarFirma(autorizacion.firma, await mensajeAutorizacion(huellaPlan), c.titular))) {
-      throw rechazo('signature_invalid', 'la firma de la autorización no verifica');
+      throw rechazo('authorization_invalid', 'la firma de la autorización no verifica con su titular');
     }
     this.#caducada(instruccion);
     // Las cuentas tienen que cuadrar y cada entrada ha de ser de esta cartera y estar libre.
@@ -427,6 +455,24 @@ export class Carril {
       noAfirma: base.alcance.filter((a) => a.startsWith('NO afirma')).map((a) => a.slice('NO afirma '.length)),
       evidencia,
     };
+  }
+
+  /**
+   * El txid del pago cuyo puntero es ese id de AGRAM: el más antiguo con bloque (por altura y, a igual altura,
+   * por posición en el bloque). null si ningún pago lleva ese puntero; lanza `unconfirmed` si los hay pero
+   * ninguno tiene bloque.
+   */
+  txidPorPuntero(id) {
+    const candidatos = [];
+    for (const [txid, base] of this.recibos) if (base.puntero === id) candidatos.push(txid);
+    if (!candidatos.length) return null;
+    const enBloque = candidatos
+      .map((txid) => ({ txid, altura: this.txs.get(txid).altura }))
+      .filter((c) => c.altura !== null)
+      .map((c) => ({ ...c, pos: this.cadena.bloque(c.altura).lotes.indexOf(c.txid) }));
+    if (!enBloque.length) throw rechazo('unconfirmed', 'el pago aún no está en un bloque: su recibo no tiene evidencia');
+    enBloque.sort((x, y) => x.altura - y.altura || x.pos - y.pos);
+    return enBloque[0].txid;
   }
 
   /** La transacción de un txid (para quien quiera mirarla «en la cadena»). */

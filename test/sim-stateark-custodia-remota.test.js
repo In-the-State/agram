@@ -1,4 +1,4 @@
-// Copia de test/custodia-remota.test.js de stateark-sim (Core StateArk, commit cb83eda: la sim firma con el guardián real), con las rutas adaptadas a este repo (servidor/sim/stateark/ y src/). Sin el exe del guardián se salta diciéndolo (STATEARK_GUARDIAN_BIN lo señala; STATEARK_PARIDAD=obligatoria lo exige).
+// Copia de test/custodia-remota.test.js de stateark-sim (Core StateArk, commit cb83eda: la sim firma con el guardián real), con las rutas adaptadas a este repo (servidor/sim/stateark/ y src/). Sin el exe del guardián se salta diciéndolo (STATEARK_GUARDIAN_BIN lo señala; STATEARK_PARIDAD=obligatoria lo exige). [Al día con 108f888: ver LEEME de servidor/sim/stateark/.]
 // F1 paso 5: la sim firma con el guardián REAL (app/crates/stateark-guardian). Las pruebas lanzan el binario en una
 // carpeta temporal y un puerto libre, leen su cookie y lo matan al acabar. Sin el binario o sin AGRAM (su noble
 // verifica BIP-340), se saltan diciéndolo; con STATEARK_PARIDAD=obligatoria, fallan.
@@ -132,7 +132,7 @@ test('pago: autorización y recibo «pago» firmados por el guardián, verificad
   assert.equal(esquema.verificar(firma.firma, await mensajeAutorizacion(await huella(plan)), titular), true, 'el mensaje del guardián es el de la sim');
   const aut = await c.autorizar(plan, firma);
   // Una firma simulada ya no vale: el carril verifica con BIP-340.
-  await assert.rejects(c.autorizar(plan, { titular, firma: 'ab'.repeat(64) }), (e) => e.codigo === 'signature_invalid');
+  await assert.rejects(c.autorizar(plan, { titular, firma: 'ab'.repeat(64) }), (e) => e.codigo === 'authorization_invalid');
   const r = await c.ejecutar('casa', ins, plan, aut);
   await sim.minar();
   const txid = r.posicion.txid;
@@ -140,14 +140,14 @@ test('pago: autorización y recibo «pago» firmados por el guardián, verificad
   const campos = await c.reciboPago(txid);
   assert.equal(campos.evidencia[4][0], obs, 'la evidencia lleva la clave del observador del guardián');
   await k.crearClave('nostr', 'carril');
-  const sobre = await k.firmarRecibo('carril', campos, { t: INICIO });
+  const sobre = await k.firmarRecibo('carril', campos, { t: INICIO, dominio: 'nostr' });
   const v = await verificarReciboComun(sobre, { esquema });
   assert.equal(v.motivo, 'recibo válido');
   assert.equal(v.emisor, await k.publica('nostr', 'carril'));
   // La misma forma que el de la Custodia simulada.
   const local = new Custodia({ esquema });
   await local.crearClave('nostr', 'carril');
-  const sim2 = await local.firmarRecibo('carril', campos, { t: INICIO });
+  const sim2 = await local.firmarRecibo('carril', campos, { t: INICIO, dominio: 'nostr' });
   assert.deepEqual(Object.keys(sobre).sort(), Object.keys(sim2).sort());
   assert.deepEqual(sobre.recibo, sim2.recibo);
   // Tocar el recibo después: no verifica.
@@ -259,7 +259,19 @@ test('rechazos: un 422 del guardián llega como RechazoCustodia con su código; 
   await assert.rejects(k.firmarAutorizacion('casa', { schema: 'otra' }), codigo('not_a_plan'));
   // Esto lo rechaza el guardián (no hay comprobación en JS delante): llega su código tal cual. Lo de después, JS.
   await assert.rejects(k.revocarSesion('aarpia', 'no-es-clave'), codigo('session_invalid'));
-  await assert.rejects(k.firmarRecibo('agram-no', { clase: 'pago' }, { dominio: 'agram' }), codigo('wrong_domain'));
+  const ev = await sha256Texto('ev-s33');
+  const acept = { clase: 'aceptación', sujeto: [ev], ata: [['evento', ev]], universo: 'relé aarpia-sim', nucleo: 'abc123', epoca: 'e0', noAfirma: ['NO afirma nada'] };
+  await k.crearClave('agram', 'agram-no');
+  await assert.rejects(k.firmarRecibo('agram-no', acept, { t: INICIO, dominio: 'agram' }), codigo('wrong_domain'));
+  // El binario de app/target/debug puede ser anterior a S30: un campo ausente daba `field_missing`. Se admite solo eso.
+  const codigoOViejo = (c) => (e) => e.codigo === c || e.codigo === 'field_missing';
+  // S33: sin `t` o sin `dominio` no se supone nada (el guardián los exige); el alcance de una sesión lo juzga él.
+  await assert.rejects(k.firmarRecibo('carril', acept, { dominio: 'nostr' }), codigoOViejo('time_invalid'));
+  await assert.rejects(k.firmarRecibo('carril', acept, { t: INICIO }), codigoOViejo('domain_unknown'));
+  await assert.rejects(k.firmarRecibo('carril', acept, { t: 'ayer', dominio: 'nostr' }), codigo('time_invalid'));
+  await assert.rejects(k.emitirSesion('aarpia', { alcance: [1.5] }), codigo('scope_invalid'));
+  await assert.rejects(k.emitirSesion('aarpia', { alcance: [] }), codigo('scope_invalid'));
+  await assert.rejects(k.emitirSesion('aarpia', { alcance: [1], segundos: 90_000 }), codigo('scope_invalid'));
   // Canales: no están en el guardián (F4).
   for (const m of ['guardarCanal', 'contacto', 'enviar', 'comprobarEntrada']) await assert.rejects(k[m]('x', {}), codigo('not_in_guardian'));
   // Sin cookie o con una que no es: error claro.
@@ -295,4 +307,39 @@ test('servidor de la sim: con STATEARK_GUARDIAN_URL y STATEARK_GUARDIAN_DIR firm
   const solo = await crearServidor();
   assert.equal(solo.simulacion.custodia, null);
   assert.equal(solo.sellador.observador.custodia.simulada, true);
+});
+
+test('S45: probarVinculo llama a /custodia/probar-vinculo con la cookie y devuelve { clave, prueba } (guardián simulado en JS)', opciones, async () => {
+  const { createServer } = await import('node:http');
+  const { Custodia: Local } = await import('../servidor/sim/stateark/custodia.js');
+  const local = new Local({ esquema: esquemaNoble(schnorr) });
+  await local.crearClave('cartera', 'casa');
+  let visto = null;
+  const srv = createServer((req, res) => {
+    const trozos = [];
+    req.on('data', (t) => trozos.push(t));
+    req.on('end', async () => {
+      const cuerpo = JSON.parse(Buffer.concat(trozos).toString('utf8'));
+      visto = { metodo: req.method, ruta: req.url, auth: req.headers.authorization, cuerpo };
+      try {
+        const r = await local.probarVinculo(cuerpo.nombre, cuerpo.identidad);
+        res.writeHead(200, { 'content-type': 'application/json' }).end(JSON.stringify(r));
+      } catch (e) {
+        res.writeHead(422, { 'content-type': 'application/json' }).end(JSON.stringify({ error: e.message, codigo: e.codigo }));
+      }
+    });
+  });
+  await new Promise((r) => srv.listen(0, '127.0.0.1', r));
+  try {
+    const remota = new CustodiaRemota({ url: `http://127.0.0.1:${srv.address().port}`, cookie: 'cc'.repeat(32), schnorr });
+    const identidad = await sha256Texto('identidad-de-vg');
+    const p = await remota.probarVinculo('casa', identidad);
+    assert.deepEqual(visto, { metodo: 'POST', ruta: '/custodia/probar-vinculo', auth: `Bearer ${'cc'.repeat(32)}`, cuerpo: { nombre: 'casa', identidad } });
+    assert.equal(await remota.verificarPruebaVinculo(p, identidad), true);
+    assert.equal(await remota.verificarPruebaVinculo(p, `${identidad}x`), false);
+    await assert.rejects(remota.probarVinculo('nadie', identidad), codigo('key_unknown'));
+    await assert.rejects(remota.probarVinculo('casa', ''), codigo('identity_missing'));
+  } finally {
+    srv.close();
+  }
 });
