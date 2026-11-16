@@ -15,8 +15,8 @@ import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 const RAIZ = new URL('../carta/ejemplos.js', import.meta.url);
 const importarDesdeLaCarta = (ruta) => import(new URL(ruta, RAIZ).href);
 
-test('ejemplos: comida, reserva y tarea, cada uno con sus identidades y su módulo en el repositorio', () => {
-  assert.deepEqual(EJEMPLOS.map((x) => [x.id, x.etiqueta]), [['compra', 'comida'], ['reserva', 'reserva'], ['tarea', 'tarea']]);
+test('ejemplos: comida, reserva, tarea y cuenta (la cuenta del banco), cada uno con sus identidades y su módulo en el repositorio', () => {
+  assert.deepEqual(EJEMPLOS.map((x) => [x.id, x.etiqueta]), [['compra', 'comida'], ['reserva', 'reserva'], ['tarea', 'tarea'], ['cuenta', 'cuenta']]);
   for (const x of EJEMPLOS) {
     assert.ok(x.identidades.includes(x.identidad));
     assert.ok(existsSync(fileURLToPath(new URL(x.modulo, RAIZ))), x.modulo);

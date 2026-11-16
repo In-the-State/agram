@@ -1,0 +1,118 @@
+[
+  ["update the balance"],
+  [
+    [
+      ["amount"],
+      ["number"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [1],
+      ["how much the bank says the account has"]
+    ],
+    [
+      ["unit"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [2],
+      ["EUR", "the unit of the balance (EUR by default)"]
+    ],
+    [
+      ["when"],
+      ["instant"],
+      ["=(first it).0 <= first ev.6.0.0"],
+      ["me"],
+      ["payload"],
+      ["1.3"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [3],
+      ["when the bank says it: the instant of the balance, not after this record"]
+    ],
+    [
+      ["source"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [4],
+      ["confirmed by the bank", "who says it (confirmed by the bank by default)"]
+    ],
+    [
+      ["measure"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [5],
+      ["balance", "the name of the magnitude: balance"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [6],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [7],
+      [
+        "=me",
+        "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+      ]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"],
+      ["required"],
+      [8],
+      ["update the balance", "the action"]
+    ]
+  ],
+  ["=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["1"],
+  [
+    "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «El saldo es un dato de su registro, que se actualiza con lo que dice el banco. No hay unidades de euro fungibles en el libro.» Un registro anclado en el 1 de la cuenta que no mueve tokens (solo lo que cuesta escribir)",
+    "El saldo va como magnitud desplegada, la forma que la carta ya pinta: 1.0 su nombre (balance), 1.1 cuánto, 1.2 la unidad (EUR por defecto) y, detrás, 1.3 cuándo lo dice el banco (un instante). 3.0 quién lo escribe y 3.1 quién lo dice: «confirmed by the bank» por defecto, lo que el recibo enseña como «confirmado por el banco»",
+    "La lanza quien tiene P sobre la cuenta (sobre el registro entero o su mirada 1, mayor que cero) o una cosa suya (su dueño lo tiene): la conectora del banco, dada de alta con «register a thing». Modo agente: la puede lanzar una cosa declarada agente",
+    "Manda el último: el saldo de la cuenta es el del registro de saldo con el instante (1.3) más reciente, escrito con el permiso vigente; los anteriores quedan en el libro como historia (contrato.cuenta)",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["epoch 0"],
+  [1, 9],
+  ["update the balance: the bank says {first it.0} has {first ev.1.1} {first ev.1.2} at {first ev.1.3}"]
+]

@@ -597,6 +597,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"
+    },
+    {
+      "ref": "878e6c56491c5a045d85849255e781d055ef19fa3dc60ab05e1fe9284977b99b"
     }
   ],
   [
@@ -4859,6 +4862,310 @@ export const EPOCA_0_BTML_DATOS = [
             "its type: this template, named in the 5 of the record (B4: the 5 is the type)"
           ]
         ]
+      ],
+      [
+        [
+          [
+            "account"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "household account",
+            "the name its owner gives the account: the 0 of its record (never its number)"
+          ]
+        ],
+        [
+          [
+            "bank"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "Example Bank, 180",
+            "the bank (1.0, by its name) and the days its permission lasts (1.1, 180 by default); the balances hang from its 1"
+          ]
+        ],
+        [
+          [
+            "capacity"
+          ],
+          [
+            "number"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            1,
+            "one: the account is a single E, like a table"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "the owner",
+            "who connected it"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "template",
+            "write"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "connect an account",
+            "the action that connected it; what is ordered with the account (a payment instruction of StateArk) hangs from its 4 and needs P on it"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "account",
+            "the template of the record: account"
+          ]
+        ],
+        [
+          [
+            "origin"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "read"
+          ],
+          [
+            "6"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "where it comes from: the alta of its owner"
+          ]
+        ],
+        [
+          [
+            "permission"
+          ],
+          [
+            "instant"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "read"
+          ],
+          [
+            "7"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "the permission of the bank hangs from its 7 and its renewals from its 7.2"
+          ]
+        ],
+        [
+          [
+            "measures"
+          ],
+          [
+            "number"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "read"
+          ],
+          [
+            "8"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "what is measured"
+          ]
+        ],
+        [
+          "the path of an account",
+          "connect an account",
+          "grant the permission",
+          "issue E tied to X",
+          "renew the permission"
+        ]
       ]
     ],
     [
@@ -6025,7 +6332,90 @@ export const EPOCA_0_BTML_DATOS = [
           "template opinion param seen help: lo que enseñaba lo que tocó, en pocas palabras (hasta ochenta caracteres)",
           "template opinion param seen placeholder: Menú del día",
           "template opinion param route label: ruta",
-          "template opinion param route help: los tipos de los ancestros de lo que tocó, del más lejano al más cercano (pide el 6, el 7 y el 8 escritos: una posición nunca queda vacía)"
+          "template opinion param route help: los tipos de los ancestros de lo que tocó, del más lejano al más cercano (pide el 6, el 7 y el 8 escritos: una posición nunca queda vacía)",
+          "template connect an account: conectar una cuenta",
+          "template connect an account param name label: nombre",
+          "template connect an account param name help: el nombre que le pone su dueño a la cuenta: el 0 de su registro (nunca su número)",
+          "template connect an account param bank label: banco",
+          "template connect an account param bank help: el banco, por su nombre (sin número de cuenta y sin credencial)",
+          "template connect an account param permission days label: días del permiso",
+          "template connect an account param permission days help: cuántos días dura el permiso del banco (unos seis meses): cada permiso vence como mucho a estos días de darse, y renovarlo es un paso del camino",
+          "template connect an account param capacity label: capacidad",
+          "template connect an account param capacity help: uno: la cuenta es una E única, como una mesa; con capacidad uno no cabe otra E en su registro",
+          "template connect an account param who label: quién",
+          "template connect an account param who help: quién conecta la cuenta: su dueño",
+          "template connect an account param actions label: acción",
+          "template connect an account param actions help: la acción",
+          "template connect an account param type label: tipo",
+          "template connect an account param type help: el tipo del registro: cuenta (su camino es el 9 de la plantilla de datos «account»)",
+          "template connect an account message: {me} conecta la cuenta {first ev.0} en {first ev.1.0}",
+          "template grant the permission: dar el permiso",
+          "template grant the permission param what label: qué",
+          "template grant the permission param what help: qué vence: el permiso que da el banco para leer la cuenta (nunca la credencial: va al guardián de StateArk)",
+          "template grant the permission param until label: hasta",
+          "template grant the permission param until help: cuándo vence el permiso: como mucho los días de la cuenta (su 1.1, 180 por defecto) después de este registro",
+          "template grant the permission param criteria label: criterio",
+          "template grant the permission param criteria help: la plantilla de cerrado del registro",
+          "template grant the permission param who label: quién",
+          "template grant the permission param who help: quién lo escribe: quien tiene P sobre la cuenta, o una cosa suya (la conectora del banco)",
+          "template grant the permission param actions label: acción",
+          "template grant the permission param actions help: la acción",
+          "template grant the permission message: el permiso del banco para {first it.0} queda concedido hasta {first ev.1.1}",
+          "template renew the permission: renovar el permiso",
+          "template renew the permission param what label: qué",
+          "template renew the permission param what help: qué vence: el permiso que da el banco para leer la cuenta (nunca la credencial: va al guardián de StateArk)",
+          "template renew the permission param until label: hasta",
+          "template renew the permission param until help: cuándo vence el permiso: como mucho los días de la cuenta (su 1.1, 180 por defecto) después de este registro",
+          "template renew the permission param criteria label: criterio",
+          "template renew the permission param criteria help: la plantilla de cerrado del registro",
+          "template renew the permission param who label: quién",
+          "template renew the permission param who help: quién lo escribe: quien tiene P sobre la cuenta, o una cosa suya (la conectora del banco)",
+          "template renew the permission param actions label: acción",
+          "template renew the permission param actions help: la acción",
+          "template renew the permission message: el permiso del banco para {first it.0} vence ahora el {first ev.1.1}",
+          "template update the balance: actualizar el saldo",
+          "template update the balance param amount label: cuánto",
+          "template update the balance param amount help: cuánto dice el banco que tiene la cuenta",
+          "template update the balance param unit label: unidad",
+          "template update the balance param unit help: la unidad del saldo (EUR por defecto)",
+          "template update the balance param when label: cuándo",
+          "template update the balance param when help: cuándo lo dice el banco: el instante del saldo, no después de este registro",
+          "template update the balance param source label: fuente",
+          "template update the balance param source help: quién lo dice («confirmed by the bank», confirmado por el banco, por defecto)",
+          "template update the balance param measure label: magnitud",
+          "template update the balance param measure help: el nombre de la magnitud: el saldo",
+          "template update the balance param criteria label: criterio",
+          "template update the balance param criteria help: la plantilla de cerrado del registro",
+          "template update the balance param who label: quién",
+          "template update the balance param who help: quién lo escribe: quien tiene P sobre la cuenta, o una cosa suya (la conectora del banco)",
+          "template update the balance param actions label: acción",
+          "template update the balance param actions help: la acción",
+          "template update the balance message: el banco dice que {first it.0} tiene {first ev.1.1} {first ev.1.2} a {first ev.1.3}",
+          "template account: cuenta",
+          "template account param account label: cuenta",
+          "template account param account help: el nombre que le pone su dueño a la cuenta: el 0 de su registro (nunca su número)",
+          "template account param account placeholder: cuenta de casa",
+          "template account param bank label: banco",
+          "template account param bank help: el banco (1.0, por su nombre) y los días que dura su permiso (1.1, 180 por defecto); los saldos cuelgan de su 1",
+          "template account param bank placeholder: Banco de Ejemplo, 180",
+          "template account param capacity label: capacidad",
+          "template account param capacity help: uno: la cuenta es una E única, como una mesa",
+          "template account param who label: quién",
+          "template account param who help: quién la conectó",
+          "template account param who placeholder: su dueño",
+          "template account param actions label: acción",
+          "template account param actions help: la acción que la conectó; lo que se ordena con la cuenta (una orden de pago de StateArk) cuelga de su 4 y pide P sobre ella",
+          "template account param actions placeholder: conectar una cuenta",
+          "template account param type label: tipo",
+          "template account param type help: la plantilla del registro: cuenta",
+          "template account param type placeholder: cuenta",
+          "template account param origin label: origen",
+          "template account param origin help: de dónde viene: el alta de su dueño",
+          "template account param permission label: permiso",
+          "template account param permission help: el permiso del banco cuelga de su 7 y sus renovaciones de su 7.2",
+          "template account param measures label: medidas",
+          "template account param measures help: lo que se mide",
+          "acting on an account needs P on it: {first ev.3} actúa sobre la cuenta {first (first ev.6.5).0} (una orden, un saldo o un permiso) y ni quien escribe ni su dueño tienen P sobre ella"
         ]
       ],
       [
@@ -6263,6 +6653,12 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "ae55c652cf838632342ea5db1a90fbcc06d6c66741dd0db20404be6ebb82ac0a"
         },
         {
+          "ref": "71164092666e605305538f03d5ba58fa58a91b92a03e25bbe155cf86f0c683f4"
+        },
+        {
+          "ref": "9e0b82e0b2aa0466e27698672ea196ec67b3654e7638f89f6dbd9485901c7e56"
+        },
+        {
           "ref": "0736c1247ac3661b7fad721b9fe2f31df987fc5e815116f2cb3be7268fa63c49"
         },
         {
@@ -6354,6 +6750,12 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "a7d21518f277c75346a46aaa4ea3117757d29f05f4c4aa5fa23b1f5099eb9343"
+        },
+        {
+          "ref": "62cc3f27f546b836898750c63db19dd9e299912fb088bfc564d918f9aa992408"
+        },
+        {
+          "ref": "74d80e690d9d6edb27240bafb8a515d55d2517818314d5ebbaaeb587c848052c"
         },
         {
           "ref": "9a4c69fe823e93bb1bf2c908f5d469c02bb1a2cf93badd2b08ca18a2208e2a54"
@@ -7687,6 +8089,50 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "a person joins by an invitation: {first ev.3} has no alta and does not accept an invitation that names it (in time, with its key)"
+      ]
+    ]
+  },
+  {
+    "archivo": "acting-on-an-account-needs-p-on-it.json",
+    "id": "878e6c56491c5a045d85849255e781d055ef19fa3dc60ab05e1fe9284977b99b",
+    "registro": [
+      [
+        "acting on an account needs P on it"
+      ],
+      [
+        0
+      ],
+      [
+        "=not (\"connect an account\" in (payload(first ev.6.5)).4) or not (\"update the balance\" in ev.4 or \"grant the permission\" in ev.4 or \"renew the permission\" in ev.4 or last ev.6.5 = \"4000000000\" or last ev.6.5 = \"4100000000\" or last ev.6.5 = \"4200000000\" or last ev.6.5 = \"4300000000\" or last ev.6.5 = \"4400000000\" or last ev.6.5 = \"4500000000\" or last ev.6.5 = \"4600000000\" or last ev.6.5 = \"4700000000\" or last ev.6.5 = \"4800000000\" or last ev.6.5 = \"4900000000\") or count ((first ev.3).2.1 where it.0 = first (first ev.6.5).5 and it.1 > 0 and (count it.5 = 0 or first it.5 = 1)) > 0 or count ((first (first ev.3).6.3).2.1 where it.0 = first (first ev.6.5).5 and it.1 > 0 and (count it.5 = 0 or first it.5 = 1)) > 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «El P sobre ese registro dice quién puede ordenar pagos. Una cuenta familiar es P repartido.» Un registro anclado en el 4 de una cuenta (lo que se ordena hacer con ella: la orden de pago de StateArk, su plantilla «payment instruction», carril «banco») solo vale si quien lo escribe, o el dueño de la cosa que lo escribe, tiene P sobre el registro de la cuenta",
+        "Revisión de seguridad (Core AGRAM 16-11): también los registros de saldo y de permiso anclados directamente en la cuenta (los que dicen «update the balance», «grant the permission» o «renew the permission» en su 4: el 1, el 7 y el 7.2 de la cuenta), para que nadie sin P sobre ella escriba un saldo o un permiso falso; contrato.cuenta lo vuelve a comprobar al leer",
+        "Una cuenta es el registro escrito con «connect an account» (lo dice su 4). La condición de P es la de «minting E needs P on its record»: P sobre el registro entero o sobre su mirada 1, mayor que cero (A.2.1). El dueño de una cosa es el autor de su alta (A.6.3); el de una persona, ella misma",
+        "Para tener P sobre una cuenta ajena basta con tenerlo en su padre o en un hijo suyo y reposicionarlo un paso hacia ella («reposition P toward X»): quien recibió R del dueño de la cuenta tiene P sobre su alta, el padre de la cuenta",
+        "En el 4 es en el 4 mismo o en uno de sus nueve hijos (4.1, el anuncio, … 4.9): el BQL mínimo no lee los dígitos de una dirección (no compara textos con < ni los vuelve números), así que se nombran las diez direcciones; lo anclado más abajo (4.1.2…) o sobre lo anclado (un recibo sobre la orden) no es la cuenta y no lo mira"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after how"
+      ],
+      [
+        "acting on an account needs P on it: {first ev.3} acts on the account {first (first ev.6.5).0} (an order, a balance or a permission) and neither it nor its owner has P on it"
       ]
     ]
   },
@@ -11752,6 +12198,587 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "{last ev.3.1}"
+      ]
+    ]
+  },
+  {
+    "archivo": "connect-an-account.json",
+    "id": "71164092666e605305538f03d5ba58fa58a91b92a03e25bbe155cf86f0c683f4",
+    "registro": [
+      [
+        "connect an account"
+      ],
+      [
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the name its owner gives the account: the 0 of its record (never its number)"
+          ]
+        ],
+        [
+          [
+            "bank"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "the bank, by its name (no account number and no credential)"
+          ]
+        ],
+        [
+          [
+            "permission days"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            180,
+            "how many days the permission of the bank lasts (about six months): each permission expires at most this long after it is given, and renewing it is a step of the path"
+          ]
+        ],
+        [
+          [
+            "capacity"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it = 1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            1,
+            "one: the account is a single E, like a table; with capacity one no other E fits on its record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=me",
+            "who connects the account: its owner"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "connect an account",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «connect an account»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "account",
+            "the type of the record: account (its path is the 9 of the data template «account»)"
+          ]
+        ]
+      ],
+      [
+        "=first it.5 = first me.6"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "1.1",
+        "=first me.6"
+      ],
+      [
+        "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «La cuenta del banco es una E única, como una mesa. El saldo es un dato de su registro, que se actualiza con lo que dice el banco. No hay unidades de euro fungibles en el libro.» Conectar un banco es dar de alta una cosa, con una plantilla: esta. Elegir el banco queda hecho al escribir la cuenta",
+        "Ancla en el 1.1 de mi alta (mis recursos: lo que tengo), desde donde se lance. 0 el nombre que le pone su dueño (el 0 de un registro es lo que es); 1.0 el banco y 1.1 los días que dura el permiso (180 por defecto); 2 la capacidad, el entero 1, donde el eje lee el tope de E (tokens.capacidadDe): la E única se acuña después, con «issue E tied to X» sobre este registro, y no cabe otra; 3 quién; 4 la acción; 5 el tipo «account», cuya plantilla de datos lleva en su 9 el camino de la cuenta",
+        "Sin criterio de cierre en el 2: el 2 es la capacidad (tokens.capacidadDe solo lee un entero solo en el 2) y la cuenta se lee con la plantilla de cerrado de la época por defecto (motor.cerrado, sin nombre en su criterio)",
+        "Nada de credenciales, números de cuenta ni datos del banco: solo el nombre que le pone su dueño y el nombre del banco. La credencial va al guardián de StateArk, fuera del libro"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        1,
+        6
+      ],
+      [
+        "connect an account: {me} connects the account {first ev.0} at {first ev.1.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "update-the-balance.json",
+    "id": "9e0b82e0b2aa0466e27698672ea196ec67b3654e7638f89f6dbd9485901c7e56",
+    "registro": [
+      [
+        "update the balance"
+      ],
+      [
+        [
+          [
+            "amount"
+          ],
+          [
+            "number"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "how much the bank says the account has"
+          ]
+        ],
+        [
+          [
+            "unit"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "EUR",
+            "the unit of the balance (EUR by default)"
+          ]
+        ],
+        [
+          [
+            "when"
+          ],
+          [
+            "instant"
+          ],
+          [
+            "=(first it).0 <= first ev.6.0.0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "when the bank says it: the instant of the balance, not after this record"
+          ]
+        ],
+        [
+          [
+            "source"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "confirmed by the bank",
+            "who says it (confirmed by the bank by default)"
+          ]
+        ],
+        [
+          [
+            "measure"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "balance",
+            "the name of the magnitude: balance"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "=me",
+            "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «update the balance»"
+          ],
+          [
+            "required"
+          ],
+          [
+            8
+          ],
+          [
+            "update the balance",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "1"
+      ],
+      [
+        "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «El saldo es un dato de su registro, que se actualiza con lo que dice el banco. No hay unidades de euro fungibles en el libro.» Un registro anclado en el 1 de la cuenta que no mueve tokens (solo lo que cuesta escribir)",
+        "El saldo va como magnitud desplegada, la forma que la carta ya pinta: 1.0 su nombre (balance), 1.1 cuánto, 1.2 la unidad (EUR por defecto) y, detrás, 1.3 cuándo lo dice el banco (un instante). 3.0 quién lo escribe y 3.1 quién lo dice: «confirmed by the bank» por defecto, lo que el recibo enseña como «confirmado por el banco»",
+        "La lanza quien tiene P sobre la cuenta (sobre el registro entero o su mirada 1, mayor que cero) o una cosa suya (su dueño lo tiene): la conectora del banco, dada de alta con «register a thing». Modo agente: la puede lanzar una cosa declarada agente",
+        "Manda el último: el saldo de la cuenta es el del registro de saldo con el instante (1.3) más reciente, escrito con el permiso vigente; los anteriores quedan en el libro como historia (contrato.cuenta)",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        1,
+        9
+      ],
+      [
+        "update the balance: the bank says {first it.0} has {first ev.1.1} {first ev.1.2} at {first ev.1.3}"
       ]
     ]
   },
@@ -17942,6 +18969,421 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "grant-the-permission.json",
+    "id": "62cc3f27f546b836898750c63db19dd9e299912fb088bfc564d918f9aa992408",
+    "registro": [
+      [
+        "grant the permission"
+      ],
+      [
+        [
+          [
+            "what"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «grant the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "bank permission",
+            "what expires: the permission the bank gives to read the account (never the credential: it goes to the keeper of StateArk)"
+          ]
+        ],
+        [
+          [
+            "until"
+          ],
+          [
+            "instant"
+          ],
+          [
+            "=(first it).0 > first ev.6.0.0 and (first it).0 <= first ev.6.0.0 + 86400 * first (payload(first (path ev where \"connect an account\" in (payload(it2)).4))).1.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «grant the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "when the permission expires: at most the days of the account (its 1.1, 180 by default) after this record"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «grant the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «grant the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «grant the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "grant the permission",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "7"
+      ],
+      [
+        "VG 16-11 (encargo «cuenta del banco»): el paso 2 del camino de la cuenta. Ir a la web o la app del banco y dar el permiso lo hace la app de StateArk (fuera del libro); en el libro queda este registro de la cosa conectora: «permiso concedido», hasta cuándo, sin credencial ninguna",
+        "Un vencimiento con la forma de «set an expiry» de la época state: 1.0 qué vence, 1.1 cuándo (un instante), en el 7 de la cuenta. Su 1.1 no pasa de los días de la cuenta (el 1.1 del registro «connect an account» de su hilo) después del t de este registro: un defecto no puede fabricar un instante (el BQL mínimo no los construye), así que lo pone quien lo lanza y la validación lo comprueba",
+        "La lanza quien tiene P sobre la cuenta (sobre el registro entero o su mirada 1) o una cosa suya (su dueño lo tiene): la conectora del banco, dada de alta con «register a thing». Modo agente: la puede lanzar una cosa declarada agente",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        7,
+        4
+      ],
+      [
+        "grant the permission: the bank permission for {first it.0} is granted until {first ev.1.1}"
+      ]
+    ]
+  },
+  {
+    "archivo": "renew-the-permission.json",
+    "id": "74d80e690d9d6edb27240bafb8a515d55d2517818314d5ebbaaeb587c848052c",
+    "registro": [
+      [
+        "renew the permission"
+      ],
+      [
+        [
+          [
+            "what"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "bank permission",
+            "what expires: the permission the bank gives to read the account (never the credential: it goes to the keeper of StateArk)"
+          ]
+        ],
+        [
+          [
+            "until"
+          ],
+          [
+            "instant"
+          ],
+          [
+            "=(first it).0 > first ev.6.0.0 and (first it).0 <= first ev.6.0.0 + 86400 * first (payload(first (path ev where \"connect an account\" in (payload(it2)).4))).1.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "when the permission expires: at most the days of the account (its 1.1, 180 by default) after this record"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "renew the permission",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "7.2"
+      ],
+      [
+        "VG 16-11 (encargo «cuenta del banco»): «El permiso caduca cada seis meses más o menos, y renovarlo es un paso del camino del 9.» El paso 4 del camino de la cuenta: vuelve a poner el vencimiento, como mucho a los días de la cuenta (180 por defecto)",
+        "Ancla en el 7.2 de la cuenta (el 7 es el de dar el permiso): cada renovación cuelga directamente de la cuenta, como el permiso, y la regla «acting on an account needs P on it» la comprueba sin recorrer cadenas (el BQL mínimo no sube más de diez niveles con path). El vigente es el del último registro de permiso que llegó al 7 o al 7.2 de la cuenta (contrato.cuenta). En el camino, el paso queda hecho en cuanto hay una renovación (acciones.camino mira si hay un registro mío, o de una cosa mía, en su ancla): el vencimiento lo dice contrato.cuenta",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        7,
+        5
+      ],
+      [
+        "renew the permission: the bank permission for {first it.0} now expires on {first ev.1.1}"
+      ]
+    ]
+  },
+  {
     "archivo": "measure.json",
     "id": "9a4c69fe823e93bb1bf2c908f5d469c02bb1a2cf93badd2b08ca18a2208e2a54",
     "registro": [
@@ -18659,7 +20101,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8";
+export const EPOCA_0_BTML_ID = "e3d02c593061e6119aa309c529b292380b47a35025a83c633b0a5915261b09ae";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

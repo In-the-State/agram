@@ -1534,12 +1534,15 @@ export async function camino(eje, X, yo, opciones = {}) {
   const reglas = (epoca.reglasConId ?? []).map((x) => x.regla);
   const pasos = [];
 
-  /** Un paso mío con una plantilla: sus parámetros por defecto y si ya está hecho (un registro mío en su ancla); `falta` se lee con su 9 en el idioma. */
+  // Lo escrito por una cosa mía (la que tiene mi alta como autor de la suya) cuenta como mío en el camino: el permiso de
+  // una cuenta lo da la conectora del banco, una cosa de su dueño (encargo «cuenta del banco», VG 16-11).
+  const yoYMisCosas = new Set([yo, ...eje.identidades().filter((x) => x !== yo && eje.esPersona(x) === false && eje.obtener(eje.alta(x)?.id)?.autor === yo)]);
+  /** Un paso mío con una plantilla: sus parámetros por defecto y si ya está hecho (un registro mío, o de una cosa mía, en su ancla); `falta` se lee con su 9 en el idioma. */
   const mio = (nombre, extra = {}, sobre = ev) => {
     const plantilla = porNombre.get(nombre);
     if (!plantilla) return null;
     const prep = preparar(eje, plantilla, sobre, yo, extra, { t, epoca, idioma });
-    const hecho = eje.sobreDe(prep.sobre, prep.en, new Set([yo])).length > 0;
+    const hecho = eje.sobreDe(prep.sobre, prep.en, yoYMisCosas).length > 0;
     return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...Object.fromEntries(Object.entries(prep.valores)), ...extra }, lectura: esLectura(plantilla) }, hecho, falta: mensajeDe(eje, epoca, plantilla, prep.candidata, yo, sobre, idioma) };
   };
 

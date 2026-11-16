@@ -1,0 +1,18 @@
+[
+  ["acting on an account needs P on it"],
+  [0],
+  ["=not (\"connect an account\" in (payload(first ev.6.5)).4) or not (\"update the balance\" in ev.4 or \"grant the permission\" in ev.4 or \"renew the permission\" in ev.4 or last ev.6.5 = \"4000000000\" or last ev.6.5 = \"4100000000\" or last ev.6.5 = \"4200000000\" or last ev.6.5 = \"4300000000\" or last ev.6.5 = \"4400000000\" or last ev.6.5 = \"4500000000\" or last ev.6.5 = \"4600000000\" or last ev.6.5 = \"4700000000\" or last ev.6.5 = \"4800000000\" or last ev.6.5 = \"4900000000\") or count ((first ev.3).2.1 where it.0 = first (first ev.6.5).5 and it.1 > 0 and (count it.5 = 0 or first it.5 = 1)) > 0 or count ((first (first ev.3).6.3).2.1 where it.0 = first (first ev.6.5).5 and it.1 > 0 and (count it.5 = 0 or first it.5 = 1)) > 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 16-11 (la trae Core State; encargo «cuenta del banco»): «El P sobre ese registro dice quién puede ordenar pagos. Una cuenta familiar es P repartido.» Un registro anclado en el 4 de una cuenta (lo que se ordena hacer con ella: la orden de pago de StateArk, su plantilla «payment instruction», carril «banco») solo vale si quien lo escribe, o el dueño de la cosa que lo escribe, tiene P sobre el registro de la cuenta",
+    "Revisión de seguridad (Core AGRAM 16-11): también los registros de saldo y de permiso anclados directamente en la cuenta (los que dicen «update the balance», «grant the permission» o «renew the permission» en su 4: el 1, el 7 y el 7.2 de la cuenta), para que nadie sin P sobre ella escriba un saldo o un permiso falso; contrato.cuenta lo vuelve a comprobar al leer",
+    "Una cuenta es el registro escrito con «connect an account» (lo dice su 4). La condición de P es la de «minting E needs P on its record»: P sobre el registro entero o sobre su mirada 1, mayor que cero (A.2.1). El dueño de una cosa es el autor de su alta (A.6.3); el de una persona, ella misma",
+    "Para tener P sobre una cuenta ajena basta con tenerlo en su padre o en un hijo suyo y reposicionarlo un paso hacia ella («reposition P toward X»): quien recibió R del dueño de la cuenta tiene P sobre su alta, el padre de la cuenta",
+    "En el 4 es en el 4 mismo o en uno de sus nueve hijos (4.1, el anuncio, … 4.9): el BQL mínimo no lee los dígitos de una dirección (no compara textos con < ni los vuelve números), así que se nombran las diez direcciones; lo anclado más abajo (4.1.2…) o sobre lo anclado (un recibo sobre la orden) no es la cuenta y no lo mira"
+  ],
+  ["epoch 0"],
+  ["after how"],
+  ["acting on an account needs P on it: {first ev.3} acts on the account {first (first ev.6.5).0} (an order, a balance or a permission) and neither it nor its owner has P on it"]
+]

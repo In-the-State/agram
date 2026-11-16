@@ -1,0 +1,83 @@
+[
+  ["renew the permission"],
+  [
+    [
+      ["what"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"],
+      ["required"],
+      [1],
+      [
+        "bank permission",
+        "what expires: the permission the bank gives to read the account (never the credential: it goes to the keeper of StateArk)"
+      ]
+    ],
+    [
+      ["until"],
+      ["instant"],
+      ["=(first it).0 > first ev.6.0.0 and (first it).0 <= first ev.6.0.0 + 86400 * first (payload(first (path ev where \"connect an account\" in (payload(it2)).4))).1.1"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"],
+      ["required"],
+      [2],
+      ["when the permission expires: at most the days of the account (its 1.1, 180 by default) after this record"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"],
+      ["required"],
+      [4],
+      [
+        "=me",
+        "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+      ]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"],
+      ["required"],
+      [5],
+      ["renew the permission", "the action"]
+    ]
+  ],
+  ["=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["7.2"],
+  [
+    "VG 16-11 (encargo «cuenta del banco»): «El permiso caduca cada seis meses más o menos, y renovarlo es un paso del camino del 9.» El paso 4 del camino de la cuenta: vuelve a poner el vencimiento, como mucho a los días de la cuenta (180 por defecto)",
+    "Ancla en el 7.2 de la cuenta (el 7 es el de dar el permiso): cada renovación cuelga directamente de la cuenta, como el permiso, y la regla «acting on an account needs P on it» la comprueba sin recorrer cadenas (el BQL mínimo no sube más de diez niveles con path). El vigente es el del último registro de permiso que llegó al 7 o al 7.2 de la cuenta (contrato.cuenta). En el camino, el paso queda hecho en cuanto hay una renovación (acciones.camino mira si hay un registro mío, o de una cosa mía, en su ancla): el vencimiento lo dice contrato.cuenta",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["epoch 0"],
+  [7, 5],
+  ["renew the permission: the bank permission for {first it.0} now expires on {first ev.1.1}"]
+]

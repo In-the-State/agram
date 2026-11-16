@@ -183,6 +183,25 @@ function pagoDelRegistro(eje, X, ctx) {
   return buscar || estado ? { buscar, estado } : null;
 }
 
+/**
+ * La cuenta del banco de X (contrato.cuenta; encargo «cuenta del banco», VG 16-11), lista para pintar, o null si X no es
+ * una cuenta (ni la clave de su E): { X, nombre, banco, saldo: { cuanto, unidad, fecha, t, confirmado, fuente } | null,
+ * permiso: { estado, vence, t }, ordenan }. La carta no decide nada: el saldo que manda, el estado del permiso y quién
+ * ordena los da el núcleo; aquí solo se ponen en texto el número y las fechas.
+ */
+function cuentaDe(eje, X, ctx) {
+  const c = contrato.cuenta(eje, X, { t: ctx.opciones.t });
+  if (!c) return null;
+  const fecha = (x) => (x ? fechaDelRegistro(x, ctx.estado?.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null);
+  const s = c.saldo;
+  return {
+    X: c.id, nombre: c.nombre, banco: c.banco,
+    saldo: s ? { cuanto: contrato.legible(eje, s.cuanto, 'number', ctx.opciones).texto, unidad: s.unidad, fecha: fecha(s.t), t: s.t, confirmado: s.confirmado, fuente: s.fuente } : null,
+    permiso: { estado: c.permiso.estado, vence: fecha(c.permiso.vence), t: c.permiso.vence },
+    ordenan: c.ordenan,
+  };
+}
+
 function tamanoQueCabe(px, medidas, opciones) {
   const lista = contrato.tamanos(opciones);
   let elegido = lista[0] ?? null;
@@ -670,7 +689,8 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   };
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
-  if (g.cara === 'anverso') return { ...base, representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx) };
+  // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
+  if (g.cara === 'anverso') return { ...base, representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
     const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
@@ -1154,9 +1174,26 @@ function rosetonesDe(eje, yoDatos, ctx, medidas) {
       const o = contrato.ocupantes(eje, alta, pv, 0, cuantos, ctx.opciones);
       const tipoDato = contrato.tipo(eje, alta, pv, ctx.opciones);
       nodo.ocupantes = { total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(1, ctx.opciones), ctx, tipoDato, { posicion: pv, de: alta })) };
+      // La cartera en el rosetón del 1 (lo mío: recursos; encargo «cuenta del banco»): mis series de E (contrato.yo, A.1) con
+      // lo que tengo; la E de una cuenta del banco enseña el nombre de la cuenta y su saldo, no «1».
+      if (pv === 1) nodo.cartera = carteraDe(eje, yoDatos, ctx);
     }
     return nodo;
   });
+}
+
+/**
+ * Mis E de la cartera (contrato.yo: la cartera, A.1), para el rosetón del 1: [{ serie, texto, cantidad, cuenta }], cada
+ * una con su serie legible y lo que tengo (disponible y bloqueado); la de una cuenta del banco lleva `cuenta` (cuentaDe:
+ * su nombre y su saldo).
+ */
+function carteraDe(eje, yoDatos, ctx) {
+  return (yoDatos?.cartera ?? [])
+    .filter((x) => typeof x.serie === 'string' && x.serie.startsWith('E:'))
+    .map((x) => {
+      const cantidad = (x.disponible ?? 0) + (x.bloqueado ?? []).reduce((s, b) => s + (b.cuanto ?? 0), 0);
+      return { serie: x.serie, texto: legibleDe(eje, x.serie, null, ctx.opciones).texto, cantidad: contrato.legible(eje, cantidad, 'number', ctx.opciones).texto, cuenta: cuentaDe(eje, x.serie, ctx) };
+    });
 }
 
 /**

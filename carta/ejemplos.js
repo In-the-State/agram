@@ -1,4 +1,4 @@
-// Los ejemplos de la carta: comida (compra del menú), reserva (Booking) o tarea (Tasks), tres dominios con datos
+// Los ejemplos de la carta: comida (compra del menú), reserva (Booking), tarea (Tasks) o cuenta (la cuenta del banco), dominios con datos
 // inventados sobre el mismo núcleo (mudado de la web antigua, antigua/ui/ejemplos.js, al retirarla: #113). Cada ejemplo
 // vive en su módulo de ejemplos/ikisai y se carga al elegirlo, con import() dinámico: si el módulo no está en el
 // repositorio (o un ejemplo nuevo lleva `pr`: llega con esa PR), se avisa y se sigue con la comida; nada se rompe. Cada
@@ -49,6 +49,19 @@ export const EJEMPLOS = Object.freeze([
     async crear(m, claves) {
       const { eje, tarea } = await m.ejemploTarea({ claves });
       return { eje, foco: tarea.id };
+    },
+  },
+  {
+    // La cuenta del banco (encargo «cuenta del banco», VG 16-11): una E única con el saldo como dato; la conectora (la app
+    // de StateArk) está simulada y bea, con P sobre la cuenta, ordena.
+    id: 'cuenta',
+    etiqueta: 'cuenta',
+    modulo: '../ejemplos/ikisai/cuenta-banco.mjs',
+    identidades: ['ana', 'conectora', 'bea'],
+    identidad: 'ana',
+    async crear(m, claves) {
+      const { eje, cuenta } = await m.ejemploCuentaBanco({ claves });
+      return { eje, foco: cuenta.id };
     },
   },
 ]);
