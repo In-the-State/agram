@@ -695,8 +695,10 @@ export function marcoDelArte(arte, mundo, rango) {
 async function leerDelRepositorio(ruta) {
   const url = new URL('../' + ruta, import.meta.url);
   if (url.protocol === 'file:') {
-    const { readFile } = await import('node:fs/promises');
-    return readFile(url, 'utf8');
+    // Sin importar nada de Node: el núcleo solo importa lo suyo (TOK-03). El módulo se pide al proceso, si lo hay.
+    const fs = globalThis.process?.getBuiltinModule?.('node:fs/promises');
+    if (!fs) throw new Error(ruta + ': sin lectura de disco en este entorno');
+    return fs.readFile(url, 'utf8');
   }
   const r = await fetch(url);
   if (!r.ok) throw new Error(ruta + ': ' + r.status);
