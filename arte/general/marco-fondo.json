@@ -1,0 +1,46 @@
+{
+  "modelo": "general",
+  "nota": "El arte animado del modelo general en sus dos sitios (VG 14-11, #94): el FONDO, detrás de todo, y el MARCO, que rodea el bloque de campos sin cubrirlo. Cada dibujo de marco declara sus huecos en coordenadas de su lienzo: el bloque de campos, el personaje y los subelementos (rectángulo y punto de apoyo), con la banda del rótulo debajo de cada uno. Lo valida src/modelos.js al cargar (validarArteDeMarco). Procedencia: arte/general/LEEME.md.",
+  "dibujos": {
+    "tienda-amarillo": { "recurso": "arte/general/tiendas/interior-tienda-amarillo.svg", "externo": true, "lienzo": { "ancho": 1536, "alto": 1024 }, "huecos": "tienda" },
+    "tienda-verde": { "recurso": "arte/general/tiendas/interior-tienda-verde.svg", "externo": true, "lienzo": { "ancho": 1536, "alto": 1024 }, "huecos": "tienda" },
+    "tienda-azul-cian": { "recurso": "arte/general/tiendas/interior-tienda-azul-cian.svg", "externo": true, "lienzo": { "ancho": 1536, "alto": 1024 }, "huecos": "tienda" },
+    "tienda-rojo": { "recurso": "arte/general/tiendas/interior-tienda-rojo.svg", "externo": true, "lienzo": { "ancho": 1536, "alto": 1024 }, "huecos": "tienda" },
+    "jardin-1": { "recurso": "arte/general/jardin/etapa-1.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "jardin-3": { "recurso": "arte/general/jardin/etapa-3.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "jardin-5": { "recurso": "arte/general/jardin/etapa-5.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "jardin-10": { "recurso": "arte/general/jardin/etapa-10.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "parque-1": { "recurso": "arte/general/parque/etapa-1.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "parque-3": { "recurso": "arte/general/parque/etapa-3.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "parque-5": { "recurso": "arte/general/parque/etapa-5.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "parque-10": { "recurso": "arte/general/parque/etapa-10.svg", "externo": true, "lienzo": { "ancho": 512, "alto": 512 } },
+    "marco-jardin": { "recurso": "arte/fase2/bloque-5/biblioteca/jardin/marco/marco-centro-intermedio.svg", "lienzo": { "ancho": 512, "alto": 512 }, "huecos": "marco-jardin" },
+    "marco-parque": { "recurso": "arte/fase2/bloque-5/biblioteca/parque/marco/marco-centro-intermedio.svg", "lienzo": { "ancho": 512, "alto": 512 }, "huecos": "marco-parque" },
+    "marco-fabrica": { "recurso": "arte/fase2/bloque-5/biblioteca/fabrica/marco/marco-centro-intermedio.svg", "lienzo": { "ancho": 512, "alto": 512 }, "huecos": "marco-fabrica" }
+  },
+  "huecos": {
+    "tienda": {
+      "ajuste": "fijo",
+      "nota": "De colocacion-tiendas.json del paquete externo, tal cual: el personaje (la zona libre de la izquierda) y la fila de abajo de la estantería (sus huecos 6 a 10, de izquierda a derecha). El bloque de campos (el paquete no lo trae: declarado aquí) es la pared y la fila de arriba de la estantería, que quedan detrás del bloque y no se usan; el rótulo, la banda de 46 bajo cada hueco.",
+      "bloque": { "x": 488, "y": 0, "ancho": 1048, "alto": 568 },
+      "personaje": { "x": 75, "y": 161, "ancho": 390, "alto": 742, "apoyo": { "x": 270, "y": 903 } },
+      "rotulo": 46,
+      "subelementos": [
+        { "x": 562, "y": 575, "ancho": 158, "alto": 223, "apoyo": { "x": 641, "y": 798 } },
+        { "x": 750, "y": 575, "ancho": 158, "alto": 223, "apoyo": { "x": 829, "y": 798 } },
+        { "x": 938, "y": 575, "ancho": 158, "alto": 223, "apoyo": { "x": 1017, "y": 798 } },
+        { "x": 1126, "y": 575, "ancho": 158, "alto": 223, "apoyo": { "x": 1205, "y": 798 } },
+        { "x": 1314, "y": 575, "ancho": 158, "alto": 223, "apoyo": { "x": 1393, "y": 798 } }
+      ]
+    },
+    "marco-jardin": { "ajuste": "estirable", "escala": 0.25, "nota": "el interior del trapecio; los bordes lisos se alargan, las esquinas no", "bloque": { "x": 86, "y": 86, "ancho": 340, "alto": 354 } },
+    "marco-parque": { "ajuste": "estirable", "escala": 0.25, "nota": "el interior sin las esquinas redondeadas (rx 80), que no se alargan", "bloque": { "x": 116, "y": 136, "ancho": 280, "alto": 244 } },
+    "marco-fabrica": { "ajuste": "estirable", "escala": 0.25, "nota": "el interior por encima de la barra de abajo", "bloque": { "x": 52, "y": 56, "ancho": 408, "alto": 350 } }
+  },
+  "mundos": {
+    "1": { "marco": { "por": "rango", "dibujos": [[0, "tienda-amarillo"], [3, "tienda-verde"], [5, "tienda-azul-cian"], [7, "tienda-rojo"]] } },
+    "2": { "fondo": { "por": "paso", "ajuste": "contener", "dibujos": [[1, "jardin-1"], [3, "jardin-3"], [5, "jardin-5"], [10, "jardin-10"]] }, "marco": { "dibujos": [[0, "marco-jardin"]] } },
+    "3": { "fondo": { "por": "paso", "ajuste": "contener", "dibujos": [[1, "parque-1"], [3, "parque-3"], [5, "parque-5"], [10, "parque-10"]] }, "marco": { "dibujos": [[0, "marco-parque"]] } },
+    "4": { "marco": { "dibujos": [[0, "marco-fabrica"]] } }
+  }
+}

@@ -1,0 +1,16 @@
+# El arte del modelo general en sus dos sitios: el fondo y el marco
+
+VG, 14-11 (#94): el arte animado tiene **dos sitios y nada más**. El **fondo**, detrás de todo (los textos y lo demás, encima). El **marco**: edificios, árboles, muñecos son el marco del elemento; el bloque de campos legibles (el espacio que necesita el modo sobrio) va dentro y el arte lo rodea, sin cubrirlo nunca.
+
+`marco-fondo.json` es el arte del modelo `general` en esos dos sitios, como dato (lo lee, lo valida y lo sanea `src/modelos.js`, `cargarArteDeMarco`):
+
+- `dibujos`: cada dibujo, su recurso (un SVG del repositorio), su lienzo y, si es un marco, el nombre de sus huecos. `externo: true` es arte de fuera del equipo: se lee, se sanea (`svgLimpio`: sin comentarios ni prólogo; se rechaza si trae script, manejadores `on*`, `javascript:`, `foreignObject`, enlaces, imágenes, `use`, estilos o `url()` que no sea un id del propio dibujo) y se sirve como `data:image/svg+xml;base64,…` en un `<img>` (SEG-15), nunca en línea.
+- `huecos`: en coordenadas del lienzo. Un marco **fijo** declara el hueco del **bloque**, el del **personaje** y la lista ordenada de los **subelementos** (rectángulo y punto de apoyo), con el alto de la banda del **rótulo** que va debajo de cada uno; se escala entero de modo que el bloque cae en su hueco. Un marco **estirable** es un borde: solo declara el hueco del bloque (lo de dentro); sus esquinas no cambian y sus bordes lisos se alargan (`escala`: píxeles por unidad del lienzo). La validación exige rectángulos dentro del lienzo, apoyos dentro de su rectángulo y ningún solape entre el bloque, los huecos y los rótulos.
+- `mundos`: por mundo, el fondo (`por: paso`, la madurez del foco reescalada a sus umbrales; `ajuste`: cubrir la superficie o contenerse en ella) y el marco (`por: rango`, el peldaño de `contrato.rango` del elemento; sin `por`, el primero). Un mundo sin fondo aquí usa el fondo del modelo (`datos/epocas/modelos/general.json`); uno sin marco se queda solo con el fondo.
+
+Hoy: el 1 lleva una tienda como marco (sus cuatro paletas por rango: 0-2 amarilla, 3-4 verde, 5-6 azul cian, 7-9 roja); el 2 y el 3, la secuencia de crecimiento del jardín y del parque como fondo por etapa (1, 3, 5 y 10) y el marco de su mundo de la fase 2 como borde; el 4, el marco de la fábrica como borde; el 6, el 7, el 8 y el 9, solo su fondo (sus marcos de la fase 2 llevan un adorno en un borde que, alargado, se deformaría).
+
+## Procedencia
+
+- `tiendas/`, `jardin/` y `parque/`: **arte generado por IA externa, 15-11-2026** (el paquete «AGRAM · Interiores, Jardín y Parque»), revisado como dato no fiable (`agram-equipo/externo/REVISION_2026-11-15.md` §2, issues #94 y #114). Se copiaron solo los doce SVG, sin cambios (las etapas, renombradas `etapa-<n>.svg`), y su `colocacion-tiendas.json` convertido a los huecos de `tienda`: el personaje y la fila de abajo de la estantería (los huecos 6 a 10) tal cual. El hueco del bloque (la pared y la fila de arriba de la estantería, que quedan detrás del bloque) no venía en el paquete: está declarado aquí; los cinco huecos de arriba (`y` 298, mismos `x` y medidas) quedan sin usar.
+- Los marcos estirables del 2, el 3 y el 4 son los de la fase 2 (`arte/fase2/bloque-5`), por su ruta; sus huecos, declarados aquí.

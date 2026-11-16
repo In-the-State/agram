@@ -70,7 +70,7 @@ test('la carta de la compra en una pantalla alta (400×700) se apila y en una an
     assert.equal(n.etiqueta, C.etiqueta(eje, X.id, n.pv));
     assert.equal(typeof n.comprimido.dato, 'number');
     assert.equal(n.lado, modelos.cabecera().variantes[GEOMETRIA[n.pv].lado]);
-    assert.equal(n.pieza, null, 'en sobrio no hay piezas');
+    assert.ok(!n.pieza && !n.fondo, 'en sobrio no hay piezas');
   }
   const orden = a.laterales.find((n) => n.pv === 1);
   assert.equal(orden.comprimido.dato, C.ocupantes(eje, X.id, 1).total);
@@ -256,15 +256,16 @@ test('las preferencias se editan como un registro más: la candidata sale de la 
   const conf = C.configuracion(eje, 'huesped');
   assert.deepEqual([conf.language, conf.step], ['en', 5]);
   assert.ok(conf.de);
-  // Pedir animado: el árbol lo dice y pide piezas a la cadena de modelos (en animado hay pieza; con la cadena sobria, su forma).
+  // Pedir animado: el árbol lo dice y pide piezas a la cadena de modelos (el que nombra quien mira, delante).
   const q = preferencias(eje, 'huesped', { render: 'animated', model: 'animado-generico' });
   await eje.escribir({ autor: 'huesped', sobre: q.sobre, en: q.en, t: T1, movimientos: [minuto('huesped')], payload: q.payload });
   const foco = eje.orden.find((id) => eje.obtener(id).payload?.[0] === 'Compra del menú del día');
-  const a = await arbol({ foco: { X: foco, pv: 0 }, niveles: { 1: NIVEL.tarjeta } }, eje, 'huesped', ORDENADOR);
+  const a = await arbol({ foco: { X: foco, pv: 0 }, niveles: { 1: NIVEL.bloque } }, eje, 'huesped', ORDENADOR);
   assert.equal(a.animado, true);
+  assert.equal(modelos.modelo(eje, 'huesped')[0].nombre, 'animado-generico');
+  // el genérico no trae fondos: el del bloque lo da el general, detrás en la cadena (VG 14-11, #94: el fondo es uno de los dos sitios)
   const uno = a.laterales.find((n) => n.pv === 1);
-  assert.ok(uno.pieza && uno.pieza.modelo === 'animado-generico' && uno.pieza.recurso, JSON.stringify(uno.pieza));
-  assert.equal(uno.pieza.variante, modelos.cabecera().variantes[GEOMETRIA[1].lado]);
+  assert.equal(uno.fondo?.modelo, 'general', JSON.stringify(uno.fondo));
   assert.match(html(a), /pieza-imagen/);
 });
 
@@ -274,133 +275,78 @@ async function animadoConIkisai(eje, quien = 'huesped', mas = {}) {
   await eje.escribir({ autor: quien, sobre: p.sobre, en: p.en, t: T1, movimientos: [minuto(quien)], payload: p.payload });
 }
 
-test('el animado entero (etapa 5): cada PV lleva su etapa por madurez y orientación, su marco, en bloque su fondo y su personaje del rol por defecto; los ocupantes, su elemento; el aro, los iconos en sello', async () => {
-  const { eje, compra: X, menu, cuenta } = await compra();
+test('el animado tiene dos sitios (VG 14-11, #94): en bloque, el fondo del mundo detrás de todo; ni etapa, ni marco de esquinas, ni muñequito, ni dibujos junto al texto; el aro, los iconos en sello; a pantalla completa, la escena', async () => {
+  const { eje, compra: X, menu } = await compra();
   await animadoConIkisai(eje);
   const todos = Object.fromEntries(LATERALES.map((pv) => [pv, NIVEL.bloque]));
   const a = await arbol({ foco: { X: X.id, pv: 0 }, niveles: { ...todos, 2: NIVEL.tarjeta, 3: NIVEL.comprimido }, nuevos: new Set() }, eje, 'huesped', ORDENADOR);
   assert.equal(a.animado, true);
   assert.equal(a.limite, 10, 'el tope de animaciones, el defecto de la época (la preferencia «animations»)');
+  const { arte } = await modelos.cargarArteDeMarco();
   const madurez = C.madurez(eje, X.id);
-  const c = modelos.cabecera();
-  const cadena = modelos.modelo(eje, 'huesped');
   for (const n of a.laterales) {
-    const lado = GEOMETRIA[n.pv].lado;
-    // La etapa: la del modelo para «madurez.nivel de madurez.de», con la orientación de su lado (la cruz solo tiene centro: la de respaldo).
-    const esperada = modelos.pieza(cadena, 'etapa', n.pv, madurez.nivel, c.variantes[lado], { tamano: n.tamano.tamano, de: madurez.de });
-    assert.equal(n.etapa.recurso, esperada.recurso, 'etapa del PV ' + n.pv);
-    assert.equal(n.etapa.clave, 8, 'la madurez 11 de 15 reescalada a las diez etapas');
-    assert.equal(n.etapa.variante, GEOMETRIA[n.pv].grupo === 'x' ? c.variantes[lado] : c.variantes[0]);
-    assert.equal(n.etapa.tamano, n.nivel === NIVEL.comprimido ? 1 : 2, 'el sello en comprimido, el intermedio en tarjeta y bloque');
-    assert.ok(n.etapa.recurso.includes('/etapa/etapa-08-'), n.etapa.recurso);
-    // El marco: el del mundo del PV, en el 5 del modelo.
-    assert.equal(n.marco.recurso, modelos.pieza(cadena, 'marco', 5, n.pv, c.variantes[0], { tamano: n.tamano.tamano }).recurso);
-    assert.equal(n.marco.clave, n.pv);
+    for (const k of ['etapa', 'marco', 'personaje', 'munequito', 'nuevos', 'pieza']) assert.equal(n[k], undefined, `sin ${k} en el ${n.pv}`);
     if (n.nivel >= NIVEL.bloque) {
-      // El fondo (la etapa 5, la inferior más cercana a la 8) y el personaje del rol por defecto del mundo, esperando en bucle.
-      assert.ok(n.fondo.recurso.includes('/fondo/fondo-05-'), 'fondo del PV ' + n.pv);
-      assert.deepEqual([n.personaje.rol, n.personaje.accion, n.personaje.animar], [modelos.rolPorDefecto(c, 'munequito', n.pv), 'esperar', ANIMAR.bucle]);
-      assert.equal(n.personaje.pieza.rol, n.personaje.rol);
-      assert.equal(n.personaje.pieza.formato, 'lottie');
-      assert.equal(n.munequito, n.personaje.pieza);
-    } else if (n.nivel === NIVEL.tarjeta) {
-      assert.equal(n.fondo, undefined, 'sin fondo en tarjeta');
-      assert.equal(n.personaje.animar, ANIMAR.no, 'en tarjeta el personaje está parado');
-    } else {
-      assert.equal(n.personaje, undefined, 'en comprimido no hay personaje');
-    }
-    assert.equal(n.nuevos, null, 'nada nuevo: sin efectos');
+      // el fondo: el del arte del modelo si lo declara para el mundo (el jardín y el parque, por etapa), si no el del modelo (la etapa 5, la inferior más cercana a la 8)
+      const delArte = modelos.fondoDelArte(arte, n.pv, madurez.nivel, madurez.de);
+      if (delArte) assert.deepEqual([n.fondo.recurso, n.fondo.ajuste], [delArte.recurso, 'contener'], 'fondo del arte del ' + n.pv);
+      else assert.ok(n.fondo.recurso.includes('/fondo/fondo-05-') && n.fondo.ajuste === 'cubrir', 'fondo del modelo del ' + n.pv);
+    } else assert.equal(n.fondo, undefined, 'sin fondo en tarjeta ni en comprimido');
+    for (const o of n.ocupantes?.lista ?? []) assert.equal(o.elemento, undefined, 'ningún dibujo junto al texto de un ocupante');
   }
-  // Los ocupantes: el elemento del mundo; un registro referenciado, por su madurez; una hoja, la comodín.
-  const uno = a.laterales.find((n) => n.pv === 1);
-  const ref = uno.ocupantes.lista.find((o) => o.tipo === 'referencia' && o.X === cuenta.id);
-  assert.ok(ref.elemento?.recurso.includes('/ciudad/elemento/'), JSON.stringify(ref.elemento));
-  assert.equal(ref.elemento.tamano, 2);
-  // El centro: el marco neutro (la comodín del 5).
-  assert.equal(a.centro.marco.clave, modelos.CUALQUIERA);
-  assert.ok(a.centro.marco.recurso.includes('/comun/marco/'));
-  // El aro: el icono de cada mundo en sello.
+  // El centro no es un mundo: ni marco ni efectos.
+  assert.equal(a.centro.marco, undefined);
+  assert.equal(a.centro.nuevos, undefined);
+  // El aro: el icono de cada mundo en sello (un mando, no un sitio del arte).
   const b = await arbol({ foco: { X: menu.id, pv: 0 }, aro: { X: menu.id, pv: null } }, eje, 'huesped', MOVIL);
   for (const h of b.aro.huecos) {
     assert.equal(h.icono.clave, h.pv, 'icono del hueco ' + h.pv);
     assert.equal(h.icono.tamano, 1);
     assert.ok(h.icono.recurso.endsWith('-sello.svg'));
   }
-  // El HTML en Mapped (#16): el sobrio más capas (test/animado-capas.test.js): el fondo, la etapa en la cabecera, el marco
-  // en sus esquinas, el elemento de cada ocupante como capa; sin escenario ni personaje en tarjeta ni en bloque.
+  // El HTML en Mapped: el fondo es una capa detrás de todo; nada más de arte en los bloques.
   const h = html(a);
   assert.match(h, /data-animaciones="10"/);
-  assert.match(h, /<img class="pieza capa pieza-fondo capa-fondo pieza-imagen" src="\.\/arte\/fase2\/[^"]+\/fondo\/fondo-05-/);
-  assert.match(h, /<span class="marco-esquina arriba-izquierda"><img src="\.\/arte\/fase2\/bloque-5\/biblioteca\/ciudad\/marco\/marco-centro-intermedio\.svg"/);
-  assert.match(h, /capa-elemento/);
-  assert.doesNotMatch(h, /class="escenario|pieza-personaje|pieza-marco/);
+  assert.match(h, /<img class="pieza capa pieza-fondo capa-fondo ajuste-cubrir pieza-imagen" src="\.\/arte\/fase2\/[^"]+\/fondo\/fondo-05-/);
+  assert.doesNotMatch(h, /class="escenario|pieza-personaje|pieza-marco|pieza-etapa|capa-dibujo|capa-elemento|marco-esquina|pieza-elemento|capa-efectos/);
   assert.doesNotMatch(h, /undefined|\[object Object\]/);
-  // En Sequenced (el móvil en vertical, #7), la fila abierta lleva capas ligeras sobre el sobrio: el fondo atenuado, la
-  // etapa junto al nombre de la fila y el dibujo del mundo en cada hijo; sin escenario, sin muñequito y sin el marco
-  // estirado encima (test/animado-capas.test.js: quitar las capas da el sobrio).
+  // En Sequenced, la fila abierta lleva el fondo atenuado y nada más.
   const v = html(await arbol({ foco: { X: X.id, pv: 0 }, niveles: { 1: NIVEL.bloque }, nuevos: new Set() }, eje, 'huesped', MOVIL));
-  assert.match(v, /<img class="pieza capa pieza-fondo capa-fondo pieza-imagen" src="\.\/arte\/fase2\/[^"]+\/fondo\/fondo-05-/);
-  assert.match(v, /class="pieza capa pieza-etapa capa-etapa capa-etapa-fila pieza-imagen"/);
-  assert.match(v, /class="capa capa-dibujo/);
-  assert.doesNotMatch(v, /class="escenario|pieza-personaje|pieza-marco|class="pieza pieza-elemento/);
-  // Un PV abierto como foco lleva su escenario entero.
+  assert.match(v, /<img class="pieza capa pieza-fondo capa-fondo ajuste-cubrir pieza-imagen" src="\.\/arte\/fase2\/[^"]+\/fondo\/fondo-05-/);
+  assert.doesNotMatch(v, /class="escenario|pieza-personaje|pieza-marco|pieza-etapa|capa-dibujo|capa-elemento|pieza-elemento/);
+  // Un PV abierto como foco lleva su escena: el fondo y, si el arte declara un marco para su mundo, el marco con sus huecos.
   const f = await arbol({ foco: { X: X.id, pv: 4 }, nuevos: new Set() }, eje, 'huesped', MOVIL);
   assert.equal(f.centro.cara, 'pv');
-  assert.equal(f.centro.etapa.clave, 8);
-  assert.ok(f.centro.fondo.recurso && f.centro.personaje.animar === ANIMAR.bucle);
-  assert.match(html(f), /<section class="nucleo abierto[^>]*>\s*<header[^]*?<div class="escenario"/);
+  assert.ok(f.centro.escena.fondo.recurso.includes('/fabrica/fondo/'));
+  assert.equal(f.centro.escena.marco.dibujo, 'marco-fabrica');
+  assert.match(html(f), /<section class="nucleo abierto[^>]*>\s*<header[^]*?<img class="pieza capa pieza-fondo[^]*?<div class="arte-escena" data-ajuste="estirable" data-dibujo="marco-fabrica"/);
 });
 
-test('el animado anima lo que pasa: un movimiento nuevo del diario reproduce una vez el efecto de su primitiva (la correspondencia de la cabecera) y el personaje actúa; el ciclo que se cierra celebra; el tope de animaciones es un dato', async () => {
-  const { eje, menu } = await compra();
+test('el personaje del marco: espera en bucle; actúa una vez cuando llega algo nuevo bajo el elemento; el tope de animaciones es un dato; htmlPieza para, repite o reproduce una vez', async () => {
+  const { eje, compra: X } = await compra();
   await animadoConIkisai(eje);
-  // La huésped aplica un recurso al menú: la transacción cuelga del 0 del menú → en la carta del menú, el centro.
-  const r = await enviar(eje, menu.id, 'apply a resource', { quantity: 1, price: [['E:casa/EUR'], [12]] }, 'huesped', undefined, { t: T1 });
-  assert.equal(r.ok, true);
   const c = modelos.cabecera();
-  const a = await arbol({ foco: { X: menu.id, pv: 0 }, nuevos: new Set([r.asentado.id]) }, eje, 'huesped', ORDENADOR);
-  assert.deepEqual(a.centro.nuevos.entradas, [r.asentado.id]);
-  // Lo que la transacción hace: transferir los euros (el T que cuesta escribir y la obtención de P no son efectos).
-  assert.deepEqual(a.centro.nuevos.efectos.map((e) => [e.primitiva, e.clave]), [['transferir', modelos.corresponde(c, 'movimiento', 'transferir', 1)]]);
-  assert.ok(a.centro.nuevos.efectos[0].pieza.recurso.endsWith('/transferir-centro-intermedio.json'));
-  assert.equal(a.centro.consumido, false);
-  assert.match(html(a), /<div class="pieza pieza-efecto efecto-transferir pieza-lottie" data-lottie="[^"]+" data-fotograma="0" data-animar="1" data-bucle="0" data-prioridad="0"/);
-  // Sin marcarla como nueva, nada se anima.
-  const b = await arbol({ foco: { X: menu.id, pv: 0 }, nuevos: new Set() }, eje, 'huesped', ORDENADOR);
-  assert.equal(b.centro.nuevos, null);
-  // Una emisión de E por la casa sobre su alta: acuñar → crear-abajo en la X, crear-pasado si el mundo es el pasado (la correspondencia por mundo).
-  assert.equal(modelos.corresponde(c, 'movimiento', 'acunar', 1), 'crear-abajo');
-  assert.equal(modelos.corresponde(c, 'movimiento', 'acunar', 6), 'crear-pasado');
-  // Una escritura en el PV 3 del menú (cuelga de su 3): el personaje del 3 actúa una vez; lo demás sigue esperando.
-  const ev = await eje.escribir({ autor: 'huesped', sobre: menu.id, en: '3000000000', t: T1, movimientos: [minuto('huesped')], payload: ['nota'] });
-  const d = await arbol({ foco: { X: menu.id, pv: 0 }, niveles: { 3: NIVEL.bloque, 4: NIVEL.bloque }, nuevos: new Set([ev.id]) }, eje, 'huesped', ORDENADOR);
-  const tres = d.laterales.find((n) => n.pv === 3);
-  assert.deepEqual([tres.personaje.accion, tres.personaje.animar], ['actuar', ANIMAR.una]);
-  assert.ok(tres.personaje.pieza.recurso.includes('-actuar-centro-'));
-  assert.deepEqual(tres.nuevos.entradas, [ev.id]);
-  assert.deepEqual(tres.nuevos.efectos, [], 'solo quema el T de escribir: ningún efecto');
-  assert.equal(d.laterales.find((n) => n.pv === 4).personaje.accion, 'esperar');
-  // La reserva confirmada: el ciclo del PV 4 llega a su «de» (2 de 2: sus dos anuncios, VG 12-11, decisión 8) → celebra una vez.
-  const { eje: b2, reserva } = await ejemploReserva();
-  await animadoConIkisai(b2);
-  const e = await arbol({ foco: { X: reserva.id, pv: 0 }, niveles: { 4: NIVEL.bloque, 1: NIVEL.bloque }, nuevos: new Set() }, b2, 'huesped', MOVIL);
-  const cuatro = e.laterales.find((n) => n.pv === 4);
-  assert.deepEqual([cuatro.paso.k, cuatro.paso.de], [2, 2]);
-  assert.deepEqual([cuatro.personaje.accion, cuatro.personaje.animar, cuatro.personaje.rol], ['celebrar', ANIMAR.una, modelos.rolPorDefecto(c, 'munequito', 4)]);
-  assert.equal(e.laterales.find((n) => n.pv === 1).personaje.accion, 'esperar');
-  // En el móvil en vertical no hay muñequitos (#7): la celebración se ve a pantalla completa (Mapped), en la capa del personaje.
-  assert.doesNotMatch(html(e), /pieza-personaje/);
-  assert.match(html(await arbol({ foco: { X: reserva.id, pv: 4 }, nuevos: new Set() }, b2, 'huesped', ORDENADOR)), /pieza-personaje accion-celebrar pieza-lottie" data-lottie="[^"]+" data-fotograma="\d+" data-animar="1" data-bucle="0" data-prioridad="0"/);
+  const quieto = await arbol({ foco: { X: X.id, pv: 1 }, nuevos: new Set() }, eje, 'huesped', ORDENADOR);
+  const p = quieto.centro.rejilla.escena.marco.personaje;
+  assert.deepEqual([p.rol, p.accion, p.animar], [modelos.rolPorDefecto(c, 'munequito', 1), 'esperar', ANIMAR.bucle]);
+  assert.equal(p.pieza.formato, 'lottie');
+  // Una escritura en el PV 1 de la compra (cuelga de su 1): el vendedor actúa una vez.
+  const ev = await eje.escribir({ autor: 'huesped', sobre: X.id, en: '1000000000', t: T1, movimientos: [minuto('huesped')], payload: ['nota'] });
+  const d = await arbol({ foco: { X: X.id, pv: 1 }, nuevos: new Set([ev.id]) }, eje, 'huesped', ORDENADOR);
+  const q = d.centro.rejilla.escena.marco.personaje;
+  assert.deepEqual([q.accion, q.animar], ['actuar', ANIMAR.una]);
+  assert.ok(q.pieza.recurso.includes('-actuar-'));
+  assert.match(html(d), /class="pieza pieza-personaje accion-actuar pieza-lottie" data-lottie="[^"]+" data-fotograma="\d+" data-animar="1" data-bucle="0" data-prioridad="0"/);
   // El tope: la preferencia «animations» de quien mira.
-  await animadoConIkisai(b2, 'huesped', { animations: '3' });
-  const f = await arbol({ foco: { X: reserva.id, pv: 0 } }, b2, 'huesped', MOVIL);
+  await animadoConIkisai(eje, 'huesped', { animations: '3' });
+  const f = await arbol({ foco: { X: X.id, pv: 0 } }, eje, 'huesped', MOVIL);
   assert.equal(f.limite, 3);
   assert.match(html(f), /data-animaciones="3"/);
   // htmlPieza: parada, en bucle o una vez; una forma sobria sigue siendo una forma.
-  const pieza = cuatro.personaje.pieza;
-  assert.match(htmlPieza(pieza, { animar: ANIMAR.no }), /data-animar="0" data-bucle="0"/);
-  assert.match(htmlPieza(pieza, { animar: ANIMAR.bucle }), /data-animar="1" data-bucle="1"/);
-  assert.match(htmlPieza(pieza, { animar: true, prioridad: 1 }), /data-animar="1" data-bucle="1" data-prioridad="1"/);
+  assert.match(htmlPieza(q.pieza, { animar: ANIMAR.no }), new RegExp(`data-animar="0" data-bucle="${q.pieza.bucle ? 1 : 0}"`), 'parada: la repetición, la de la pieza');
+  assert.match(htmlPieza(q.pieza, { animar: ANIMAR.una }), /data-animar="1" data-bucle="0"/);
+  assert.match(htmlPieza(q.pieza, { animar: ANIMAR.bucle }), /data-animar="1" data-bucle="1"/);
+  assert.match(htmlPieza(q.pieza, { animar: true, prioridad: 1 }), /data-animar="1" data-bucle="1" data-prioridad="1"/);
   assert.match(htmlPieza({ tipo: 'fondo', forma: 'rectangulo' }), /class="pieza forma forma-rectangulo"/);
 });
 
@@ -432,13 +378,14 @@ test('la carta no lleva constantes de negocio: cambiar la tabla de división o l
   assert.equal(f.laterales.find((n) => n.pv === 1).ocupantes.cuantos, 3);
   assert.equal(f.laterales.find((n) => n.pv === 2).ocupantes.cuantos, 3);
   assert.equal(f.secuencia.futuro.ocupantes.cuantos, 3);
-  // Otro rol por defecto de la ciudad en una copia de la cabecera (epoch.9.7.0.4): el personaje del PV 1 cambia de rol.
+  // Otro rol por defecto de la ciudad en una copia de la cabecera (epoch.9.7.0.4): el personaje del marco del PV 1 cambia de rol.
   await animadoConIkisai(eje);
   const otroRol = epocaCon((e) => { e[9][7][0][4][1][2][0] = [[1], ['comprador']]; });
-  const g = await arbol({ foco: { X: X.id, pv: 0 }, niveles: { 1: NIVEL.bloque } }, eje, 'huesped', ORDENADOR, { epoca: otroRol });
-  const h = await arbol({ foco: { X: X.id, pv: 0 }, niveles: { 1: NIVEL.bloque } }, eje, 'huesped', ORDENADOR);
-  assert.deepEqual([h.laterales.find((n) => n.pv === 1).personaje.rol, g.laterales.find((n) => n.pv === 1).personaje.rol], ['vendedor', 'comprador']);
-  assert.ok(g.laterales.find((n) => n.pv === 1).personaje.pieza.recurso.includes('/comprador-esperar-'));
+  const g = await arbol({ foco: { X: X.id, pv: 1 } }, eje, 'huesped', ORDENADOR, { epoca: otroRol });
+  const h = await arbol({ foco: { X: X.id, pv: 1 } }, eje, 'huesped', ORDENADOR);
+  const personaje = (x) => x.centro.rejilla.escena.marco.personaje;
+  assert.deepEqual([personaje(h).rol, personaje(g).rol], ['vendedor', 'comprador']);
+  assert.ok(personaje(g).pieza.recurso.includes('/comprador-esperar-'));
   // Otro tope de animaciones por defecto en la época (9.3.7): la carta lo sigue.
   const otroTope = epocaCon((e) => { e[9][3][7][9][0] = 4; });
   assert.equal((await arbol({ foco: { X: X.id, pv: 0 } }, eje, 'casa', ORDENADOR, { epoca: otroTope })).limite, 4, 'quien no ha escrito preferencias sigue el defecto de la época');

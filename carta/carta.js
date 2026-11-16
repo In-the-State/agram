@@ -4,13 +4,12 @@
 // lo pide al núcleo: contrato, acciones, local, pasos y modelos. Aquí solo se mide el espacio, se pide y se ordena en
 // un árbol de nodos planos (sin DOM) que carta/dom.js convierte en HTML y test/carta.test.js comprueba en Node.
 //
-// En animado (etapa 5, la fase 2 del arte), cada PV lleva además: su ETAPA (la pieza grande del mundo, por el paso
-// de madurez del foco reescalado a los pasos del modelo, con la orientación de su lado), su MARCO (el del mundo), en
-// bloque y en foco su FONDO (el de la etapa inferior más cercana) y su PERSONAJE (el muñequito del rol por defecto
-// del mundo: esperar en bucle en lo enfocado, actuar cuando llega una transacción nueva, celebrar una vez cuando el
-// paso propio del PV llega a su «de», y parado en los demás), los ELEMENTOS de sus ocupantes y los EFECTOS de los
-// movimientos nuevos del diario (la primitiva del libro llevada a la clave de la pieza por la correspondencia de la
-// cabecera). Qué rol, qué efecto y cuántas animaciones a la vez son datos (la cabecera y la configuración).
+// En animado, el arte tiene DOS sitios y nada más (VG 14-11, #94): el FONDO del mundo, detrás de todo (en bloque y a
+// pantalla completa), y el MARCO del elemento a pantalla completa, que rodea su bloque de campos (el espacio del sobrio)
+// sin cubrirlo: el dibujo declara sus huecos (modelos.cargarArteDeMarco) y en ellos van el bloque, el PERSONAJE (el
+// muñequito del rol por defecto del mundo: esperar en bucle, actuar cuando llega una transacción nueva, celebrar cuando
+// el paso propio del PV llega a su «de») y los subelementos visibles por su orden, cada uno con su dibujo y su rótulo.
+// Qué rol, qué dibujo y cuántas animaciones a la vez son datos (la cabecera, el arte del modelo y la configuración).
 //
 //   arbol(estado, eje, yo, medidas, opciones)        → el árbol de la carta para quien mira (async: el camino lo es)
 //   formulario(eje, X, accion, yo, valores, opciones) → los campos del formulario de una acción del aro
@@ -30,9 +29,9 @@ import * as pasosDe from '../src/pasos.js';
 import * as modelos from '../src/modelos.js';
 import * as exterior from '../src/exterior.js';
 import { nombreDeRegla } from '../src/bqlm.js';
-import { partirClave } from '../src/tokens.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
 import { t, etiquetaLlana } from './textos.js';
+import { editorDeBtml, fechaDelRegistro } from './formato-btml.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
 const PIEZA = Object.freeze({ elemento: 'elemento', munequito: 'munequito', icono: 'icono', etapa: 'etapa', fondo: 'fondo', marco: 'marco', movimiento: 'movimiento' });
@@ -86,6 +85,42 @@ export function medidasDePantalla(ancho, alto) {
   if (ancho <= alto || base.alto >= ALTO_BAJO) return base;
   const k = Math.max(FACTOR_MINIMO, base.alto / ALTO_BAJO);
   return { ...base, hueco: Math.round(MEDIDAS.hueco * k), tarjeta: Math.round(MEDIDAS.tarjeta * k), linea: Math.round(MEDIDAS.linea * k) };
+}
+
+/**
+ * Lo menos que mide de ancho el bloque de campos dentro de un marco fijo para leerse (px; estilo.css, --bloque-minimo):
+ * si el dibujo entero, contenido en la escena, dejara su hueco de bloque más estrecho, el dibujo crece y se recorta por
+ * fuera, nunca por el bloque.
+ */
+export const BLOQUE_MINIMO = 300;
+
+/**
+ * Dónde cae cada hueco de un marco en una escena de `area` px ({ ancho, alto }) (VG 14-11, #94): la geometría que
+ * estilo.css calcula con las unidades del contenedor (.arte-escena), aquí para comprobarla. Un marco `fijo` se escala entero:
+ * contenido en la escena (s = el menor de ancho/LW y alto/LH), salvo que su hueco de bloque quede por debajo de
+ * BLOQUE_MINIMO de ancho (entonces crece) y nunca tanto que el bloque no quepa; se centra y se corre lo justo para que
+ * el bloque quede dentro. Uno `estirable` es un borde de grosor fijo (sus cortes por su escala) alrededor de la escena:
+ * el bloque es lo de dentro. → { s, lienzo, bloque, personaje, subelementos: [rect], rotulos: [rect] } en px de la escena.
+ */
+export function colocarEscena(marco, area, { minimo = BLOQUE_MINIMO } = {}) {
+  const { ancho: lw, alto: lh } = marco.lienzo;
+  const b = marco.bloque;
+  if (marco.ajuste === 'estirable') {
+    const s = marco.escala;
+    const bloque = { x: b.x * s, y: b.y * s, ancho: area.ancho - (lw - b.ancho) * s, alto: area.alto - (lh - b.alto) * s };
+    return { s, lienzo: { x: 0, y: 0, ancho: area.ancho, alto: area.alto }, bloque, personaje: null, subelementos: [], rotulos: [] };
+  }
+  const contener = Math.min(area.ancho / lw, area.alto / lh);
+  const s = Math.min(Math.max(contener, Math.min(minimo, area.ancho) / b.ancho), area.ancho / b.ancho, area.alto / b.alto);
+  const pinza = (min, v, max) => Math.max(min, Math.min(v, max));
+  const x = pinza(-b.x * s, (area.ancho - lw * s) / 2, area.ancho - (b.x + b.ancho) * s);
+  const y = pinza(-b.y * s, (area.alto - lh * s) / 2, area.alto - (b.y + b.alto) * s);
+  const rect = (r) => ({ x: x + r.x * s, y: y + r.y * s, ancho: r.ancho * s, alto: r.alto * s });
+  const subs = marco.subelementos ?? [];
+  return {
+    s, lienzo: { x, y, ancho: lw * s, alto: lh * s }, bloque: rect(b), personaje: marco.personaje ? rect(marco.personaje) : null,
+    subelementos: subs.map(rect), rotulos: subs.map((h) => rect({ x: h.x, y: h.y + h.alto, ancho: h.ancho, alto: marco.rotulo })),
+  };
 }
 
 /**
@@ -231,19 +266,13 @@ function claveDeSerie(m) {
 }
 
 /**
- * Un ocupante como nodo: { tipo: 'hoja' | 'referencia' | 'decupla' | 'lista', texto, ref, dir, X, representacion,
- * elemento }; el texto es el legible del núcleo. En animado, `elemento` es la pieza suelta del mundo (`pv`) para el
- * ocupante: un registro referenciado, por su propia madurez; lo demás, la comodín.
+ * Un ocupante como nodo: { tipo: 'hoja' | 'referencia' | 'decupla' | 'lista', texto, ref, dir, X, representacion };
+ * el texto es el legible del núcleo. El arte no va junto al texto de un ocupante (VG 14-11, #94: dos sitios, el fondo y
+ * el marco): su dibujo, si lo tiene, va en el hueco de subelemento del marco de su padre (escenaDe).
  */
-function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, lado = 0, posicion = pv, anidar = ctx.estado?.anidar ?? 0 } = {}) {
+function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, posicion = pv, anidar = ctx.estado?.anidar ?? 0 } = {}) {
   const l0 = legibleDe(eje, o, tipoDato, ctx.opciones);
   const l = { ...l0, texto: sinNombreInterno(l0.texto, eje, ctx.opciones) };
-  const elementoDe = (X) => {
-    if (!ctx.animado || pv === null || !LATERALES.includes(pv)) return null;
-    const m = X ? contrato.madurez(eje, X, ctx.opciones) : null;
-    // El arte propio del ocupante primero (#25): un registro con su icono se ve con él; lo demás, el general del mundo.
-    return conRecurso(piezaDe(ctx, PIEZA.elemento, pv, m?.nivel ?? null, lado, tamano, { de: m?.de ?? undefined, elemento: X ?? null }));
-  };
   if (esReferencia(o)) {
     const X = eje?.obtener(o.ref) ? o.ref : null;
     return {
@@ -257,12 +286,11 @@ function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, lado = 0, posi
       representacion: X ? representacionQueCabe(eje, X, tamano, ctx) : null,
       autor: X ? eje.obtener(X).autor : null,
       t: X ? eje.obtener(X).t ?? null : null, // la hora del escrito (la conversación del 3 y las cuentas del 6 y el 7 la enseñan)
-      elemento: elementoDe(X),
     };
   }
-  if (Array.isArray(o) && esDecupla(o)) return { tipo: 'decupla', pv: posicion, texto: l.texto, hojas: (l.partes.posiciones ?? []).map((p) => p?.texto ?? ''), elemento: elementoDe(null) };
-  if (esLista(o)) return { tipo: 'lista', pv: posicion, texto: l.texto, elemento: elementoDe(null) };
-  return { tipo: 'hoja', pv: posicion, texto: l.texto, valor: o, elemento: elementoDe(null) };
+  if (Array.isArray(o) && esDecupla(o)) return { tipo: 'decupla', pv: posicion, texto: l.texto, hojas: (l.partes.posiciones ?? []).map((p) => p?.texto ?? '') };
+  if (esLista(o)) return { tipo: 'lista', pv: posicion, texto: l.texto };
+  return { tipo: 'hoja', pv: posicion, texto: l.texto, valor: o };
 }
 
 /**
@@ -334,9 +362,6 @@ function retratoDe(ctx, elemento, pv, lado, tamano) {
   return plana;
 }
 
-/** La posición del modelo donde viven los marcos y los iconos: el centro (el reverso, el segundo de los centros de la geometría). */
-const CENTRO_DEL_MODELO = CENTROS[1] ?? CENTROS[0];
-
 /**
  * El rol del personaje de un PV de X. GANCHO: hoy el rol no sale del registro (nada en la época lo dice todavía); se
  * devuelve null y la carta usa el rol por defecto del mundo, que es un dato de la cabecera (epoch.9.7.0.4: la
@@ -351,13 +376,20 @@ function rolDe(ctx, eje, X, pv) {
   return rolDeRegistro(eje, X, pv, ctx) ?? modelos.rolPorDefecto(ctx.cabecera, PIEZA.munequito, pv);
 }
 
-/** La etapa de un PV: la pieza grande del mundo por el paso de madurez del foco (k de de, reescalado por el modelo), orientada por su lado. */
-const etapaDe = (ctx, pv, lado, tamano) => piezaDe(ctx, PIEZA.etapa, pv, ctx.madurez?.nivel ?? null, lado, tamano, { de: ctx.madurez?.de ?? undefined });
-/** El fondo de un PV: el de la etapa inferior más cercana a la madurez del foco (la fase 2 trae las de 5 y 10); solo con recurso. */
-const fondoDe = (ctx, pv, tamano) => conRecurso(piezaDe(ctx, PIEZA.fondo, pv, ctx.madurez?.nivel ?? null, 0, tamano, { de: ctx.madurez?.de ?? undefined }));
-/** El marco de un PV: el de su mundo (en el 5 del modelo, por mundo); el del centro, el neutro (la comodín). */
-const marcoDe = (ctx, pv, tamano) => conRecurso(piezaDe(ctx, PIEZA.marco, CENTRO_DEL_MODELO, pv, 0, tamano));
-/** Una pieza solo si trae recurso (una forma sobria no se pinta como fondo, marco ni efecto). */
+/**
+ * El fondo de un mundo (VG 14-11, #94: el primero de los dos sitios del arte, detrás de todo), por la madurez del elemento:
+ * el que declara el arte del modelo para ese mundo (modelos.fondoDelArte: el jardín y el parque, por etapa) y, si no
+ * declara ninguno, el del modelo (la pieza `fondo` de la etapa inferior más cercana). Solo con recurso; `ajuste`, cubrir
+ * la superficie (una escena) o contenerse en ella (una figura). → { tipo, formato, recurso, ajuste, … } o null.
+ */
+function fondoDelMundo(ctx, pv, tamano, madurez = ctx.madurez) {
+  if (!ctx.animado || !LATERALES.includes(pv)) return null;
+  const delArte = ctx.arte ? modelos.fondoDelArte(ctx.arte, pv, madurez?.nivel ?? null, madurez?.de ?? null) : null;
+  if (delArte) return { tipo: PIEZA.fondo, formato: delArte.formato, recurso: delArte.recurso, ajuste: delArte.ajuste, paso: delArte.paso, dibujo: delArte.dibujo };
+  const p = conRecurso(piezaDe(ctx, PIEZA.fondo, pv, madurez?.nivel ?? null, 0, tamano, { de: madurez?.de ?? undefined }));
+  return p ? { ...p, ajuste: modelos.AJUSTES_DE_FONDO[0] } : null;
+}
+/** Una pieza solo si trae recurso (una forma sobria no se pinta como fondo ni en un hueco del marco). */
 const conRecurso = (p) => (p && p.recurso ? p : null);
 
 /** Las transacciones nuevas del diario que tocan un PV de X (lo que la app marca en estado.nuevos), ya repartidas por PV: ctx.nuevosPorPv. */
@@ -383,38 +415,6 @@ function nuevosPorPvDe(eje, X, nuevos, opciones) {
  */
 function pvDondeCuelga(eje, X, id) {
   return contrato.pvDeEntrada(eje, X, id);
-}
-
-/** ¿Es una serie del tiempo (T)? La que tiene escala (tokens.partirClave); el T de cada escritura se quema siempre y no es lo que una transacción consume. */
-const esDeTiempo = (serie) => { try { return typeof serie === 'string' && partirClave(serie).escala !== undefined; } catch { return false; } };
-
-/**
- * Los efectos que un PV reproduce por lo nuevo del diario: por cada primitiva distinta de los movimientos declarados
- * (sin `clase`, que es la asignación de T y la obtención de P, y sin el T que cuesta escribir: acompañan a toda
- * escritura y no son lo que la transacción hace), la pieza de movimiento cuya
- * clave da la correspondencia de la cabecera para ese mundo (acunar → crear-abajo, o crear-pasado/futuro/arriba
- * según el mundo). Los efectos sirven en todos los mundos (*); el centro no es un mundo y pide por `mundoDelCentro`.
- * → { entradas: [ids], efectos: [{ primitiva, clave, pieza }], consumido }: consumido si todo lo declarado que no es
- * tiempo se quema (sale de alguien y no llega a nadie): la pieza se oculta al acabar el efecto.
- */
-function nuevosDe(ctx, pv, lado, tamano, mundoDelCentro) {
-  const entradas = ctx.nuevosPorPv.get(pv) ?? [];
-  if (!entradas.length) return null;
-  return efectosDeEntradas(ctx, entradas, LATERALES.includes(pv) ? pv : mundoDelCentro, lado, tamano, ctx.X);
-}
-
-/** Los efectos de unas entradas nuevas del diario en un mundo (lo que hace nuevosDe para un PV): { entradas, efectos, consumido }. */
-function efectosDeEntradas(ctx, entradas, mundo, lado, tamano, elemento = ctx.X) {
-  // Lo declarado: sin la asignación de T y la obtención de P (clase) y sin el tiempo que cuesta escribir (la serie T de cada escritura).
-  const declarados = entradas.flatMap((e) => e.movimientos.filter((m) => !m.clase && !esDeTiempo(m.serie)));
-  const primitivas = [...new Set(declarados.map((m) => m.primitiva))];
-  const efectos = primitivas.map((primitiva) => {
-    const clave = modelos.corresponde(ctx.cabecera, PIEZA.movimiento, primitiva, mundo);
-    return { primitiva, clave, pieza: conRecurso(piezaDe(ctx, PIEZA.movimiento, mundo, clave, lado, tamano, { elemento })) };
-  }).filter((e) => e.pieza);
-  // Lo consumido: todo lo declarado sale de alguien y no llega a nadie (la forma de una quema en el libro).
-  const consumido = declarados.length > 0 && declarados.every((m) => m.de && (m.a === null || m.a === undefined));
-  return { entradas: entradas.map((e) => e.id), efectos, consumido };
 }
 
 /**
@@ -493,15 +493,6 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   nodo.comprimido = propio && typeof propio.k === 'number'
     ? { dato: propio.k, de: propio.de, que: propio.nombre }
     : { dato: todo.total, de: null, que: nodo.etiqueta };
-  nodo.pieza = piezaDe(ctx, PIEZA.elemento, pv, ctx.pasos.comun?.k ?? null, g.lado, nodo.tamano);
-  if (ctx.animado) {
-    // La etapa del mundo por la madurez del foco (el sello en comprimido, el intermedio en tarjeta y bloque, el
-    // ilustrado donde lo hay), el marco del mundo y los efectos de lo nuevo; en bloque, el fondo y el personaje.
-    nodo.etapa = etapaDe(ctx, pv, g.lado, nodo.tamano);
-    nodo.marco = marcoDe(ctx, pv, nodo.tamano);
-    nodo.nuevos = nuevosDe(ctx, pv, g.lado, nodo.tamano, ctx.mundoDelCentro);
-    nodo.consumido = Boolean(nodo.nuevos?.consumido);
-  }
   if (nivel < NIVEL.tarjeta) return nodo;
   // El personaje del sitio (VG, 12-11, #38): cada cuadrante abierto tiene su responsable, el nodo X.<pv>.
   nodo.sitio = sitioDe(ctx, eje, X, String(pv), pv);
@@ -520,7 +511,7 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
     pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null,
   };
   if (mapa && nivel >= NIVEL.bloque && rejillaCabe(eje, pv, hueco, medidas, ctx.opciones)) {
-    nodo.rejilla = rejillaDe(eje, X, pv, ctx, { pagina: ctx.estado.paginas?.[pv] ?? 1, hueco, entrar: false });
+    nodo.rejilla = sitiosConMuneco(ctx, eje, rejillaDe(eje, X, pv, ctx, { pagina: ctx.estado.paginas?.[pv] ?? 1, hueco, entrar: false }), pv);
   }
   if (secuencia && rejilla && nivel >= NIVEL.bloque) {
     // Sequenced (el móvil en vertical): la fila abierta enseña el segundo nivel del PV como Mapped (rejillaDe: los hijos con
@@ -529,26 +520,19 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
     if (r) {
       r.enColumna = enColumnaDe(r, medidas, hueco);
       if (r.forma === 'matriz') r.escribir = accionPorDefecto(eje, r.X, pv, ctx);
-      nodo.rejilla = r;
+      nodo.rejilla = sitiosConMuneco(ctx, eje, r, pv);
     }
   }
   // La regla del vacío también en la lista: sin ocupantes, el paso del camino que la llenaría (Sequenced).
   if (secuencia && !nodo.rejilla && !o.total) Object.assign(nodo, { vacio: true, escribir: accionPorDefecto(eje, X, pv, ctx) });
   if (mapa && nivel < NIVEL.bloque) nodo.disposicion = contrato.division(eje, X, { datos: Math.max(1, o.ocupantes.length || 1), forma: hueco, ...ctx.opciones }).disposicion;
-  if (ctx.animado) nodo.personaje = personajeDe(ctx, eje, X, pv, g.lado, nodo.tamano, { enfocado: nivel >= NIVEL.bloque, nuevos: Boolean(nodo.nuevos), paso: propio ?? null });
   if (nivel >= NIVEL.bloque) {
     // Dentro del bloque, lista o matriz según la forma del hueco: lo decide la época (epoch.8.3.2).
     const d = contrato.division(eje, X, { datos: Math.max(1, o.ocupantes.length || 1), forma: hueco, ...ctx.opciones });
     nodo.disposicion = d.disposicion;
-    if (ctx.animado) nodo.fondo = fondoDe(ctx, pv, nodo.tamano);
-    nodo.munequito = nodo.personaje?.pieza ?? null;
-    // Mapped, el bloque en animado (VG, 11-11, #16): como la pantalla completa, capas sobre la misma rejilla sobria
-    // (capasDeRejilla): el dibujo del mundo en cada hijo; el fondo, la etapa y el marco los pinta el bloque. Sin
-    // personaje (solo a pantalla completa) y lo nuevo, sobre el bloque entero (nodo.nuevos).
-    if (ctx.animado && mapa && nodo.rejilla) capasDeRejilla(eje, X, pv, nodo.rejilla, ctx, nodo, nodo.tamano, { personaje: false, efectos: false });
-    // Sequenced, la fila abierta en animado (VG, 11-11, #7: «menos sobrecargado, pero algo»): las mismas capas, el dibujo
-    // del mundo en cada hijo; el fondo y la etapa los pinta la fila. Sin muñequito ni movimientos (sin efectos por hijo).
-    if (ctx.animado && secuencia && nodo.rejilla) capasDeRejilla(eje, X, pv, nodo.rejilla, ctx, nodo, nodo.tamano, { personaje: false, efectos: false });
+    // En animado, el bloque (en Mapped y en la fila abierta de Sequenced) lleva el primero de los dos sitios del arte: el
+    // fondo del mundo, detrás de todo (VG 14-11, #94). El marco, con sus huecos, es de la pantalla completa (escenaDe).
+    if (ctx.animado) nodo.fondo = fondoDelMundo(ctx, pv, nodo.tamano);
   }
   // El diario de lo llegado, en el PV del pasado (la cruz, lado del PV1): lo que entró bajo X por llegada.
   if (g.grupo === 'cruz' && g.lado === 1) {
@@ -636,11 +620,6 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
     // El personaje del centro (VG, 12-11, #38): el del 0 es la configuración general (la cruceta del 0 de mi alta, donde estaba la barra); el del 5 y el de un PV abierto, sus nodos.
     sitio: g.cara === 'anverso' ? sitioCero(eje, ctx, X) : sitioDe(ctx, eje, X, g.cara === 'reverso' ? '5' : String(pv), pv),
   };
-  if (ctx.animado) {
-    base.marco = marcoDe(ctx, null, tamano); // el centro no es un mundo: el marco neutro (la comodín)
-    base.nuevos = nuevosDe(ctx, pv, g.lado, tamano, ctx.mundoDelCentro);
-    base.consumido = Boolean(base.nuevos?.consumido);
-  }
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
   if (g.cara === 'anverso') return { ...base, representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx) };
@@ -652,6 +631,9 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
       ocupantes: { total: o.total, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamano, ctx, tipoDato, { posicion: pv })) },
       ancla: ev ? { sobre: ev.sobre ?? null, en: ev.en ? dirCorta(ev.en) : '', sobreTexto: ev.sobre ? legibleDe(eje, { ref: ev.sobre }, null, ctx.opciones).texto : null } : null,
       validacion: contrato.validar(eje, X, ctx.opciones),
+      // El reverso como editor de BTML (VG, 14-11, #93): las líneas del payload del registro, crudas o formateadas, y los criterios de formato.
+      btml: editorDeBtml(eje, X, ctx.estado.formato, { idioma: ctx.opciones.idioma, idiomas: contrato.idiomas(ctx.opciones), opciones: { epoca: ctx.opciones.epoca } }),
+      tLegible: ev?.t ? fechaDelRegistro(ev.t, ctx.estado.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null,
       // «verificado» (los tres relojes, contrato.verificado): solo si lo está; una marca discreta, nunca un dato de la carta.
       ...marcaDeVerificado(eje, X, ctx.opciones),
     };
@@ -662,19 +644,20 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   const o = contrato.ocupantes(eje, X, pv, pagina ? pagina.desde : 0, cuantos, ordenVertical(eje, pv, ctx)); // la lista vertical del 6 y el 7, en su orden (#18)
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   const d = contrato.division(eje, X, { datos: mapa ? mapa.datos : Math.max(1, o.ocupantes.length || 1), forma: hueco, ...ctx.opciones });
-  const escenario = ctx.animado && LATERALES.includes(pv) ? {
-    lado: ctx.variantes[g.lado] ?? ctx.variantes[0] ?? null,
-    etapa: etapaDe(ctx, pv, g.lado, tamano),
-    marco: marcoDe(ctx, pv, tamano),
-    fondo: fondoDe(ctx, pv, tamano),
-    personaje: personajeDe(ctx, eje, X, pv, g.lado, tamano, { enfocado: true, nuevos: Boolean(base.nuevos), paso: ctx.pasos.porPv[pv] ?? null }),
-  } : {};
-  // A pantalla completa, el animado son capas sobre la misma rejilla sobria (capasDeRejilla): el fondo, la etapa, los dibujos, el personaje, los efectos y el marco.
-  if (ctx.animado && LATERALES.includes(pv) && mapa?.rejilla) capasDeRejilla(eje, X, pv, mapa.rejilla, ctx, escenario, tamano);
+  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv })), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
+  // En animado, el PV a pantalla completa lleva sus dos sitios del arte (VG 14-11, #94; escenaDe): el fondo del mundo y el
+  // marco alrededor de su bloque de campos. Con rejilla (Mapped), la escena es de la rejilla (el elemento que divide, R);
+  // sin ella (Sequenced, un mundo sin división), del centro, con sus ocupantes como subelementos.
+  let escena = null;
+  if (ctx.animado && LATERALES.includes(pv)) {
+    const r = mapa?.rejilla ?? null;
+    if (r) sitiosConMuneco(ctx, eje, r, pv).escena = escenaDe(ctx, eje, r.X ?? X, pv, tamano, hijosDeRejilla(ctx, eje, r, pv, tamano), { sitio: r.sitio ?? null });
+    else escena = escenaDe(ctx, eje, X, pv, tamano, hijosDeLista(ctx, eje, X, ocupantes.lista, pv, tamano), { sitio: base.sitio ?? null });
+  }
   return {
     ...base,
-    ...escenario,
-    ocupantes: { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado })), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null },
+    escena,
+    ocupantes,
     disposicion: d.disposicion,
     division: mapa ? { pvs: d.pvs, datos: d.datos, cargarMas: d.cargarMas } : null,
     rejilla: mapa?.rejilla ?? null,
@@ -691,7 +674,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
 function porAutorizarDe(eje, X, pv, ctx) {
   if (pv !== 6 || !ctx.yo || eje.alta(ctx.yo)?.id !== X) return null;
   const lista = contrato.porAutorizar(eje, ctx.yo, { epoca: ctx.opciones.epoca, idioma: ctx.opciones.idioma });
-  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio })) : null;
+  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado) })) : null;
 }
 
 /** El nombre de la plantilla de datos de X en el idioma, o null si no tiene. */
@@ -883,6 +866,12 @@ function ejecucionDe(eje, X, accion, yo, valores, o) {
     escala: escala ?? e.propuesta.desde, elegida: Boolean(escala), cubre: e.cubre, alcanza: e.alcanza, escalas: e.escalas,
     incompleto: Boolean(e.incompleto), // faltan parámetros: lo exigido es el de lo que ya hay
     boton: contrato.botonDeEjecutar(eje, X, o),
+    // Los motivos que el núcleo da sin bloquear (lo que falta al registro, la lectura de segundo factor desbordada: `estado`
+    // PENDIENTE), en llano (VG 14-11, #89 y #70): arriba del botón si está apagado, como aviso si no.
+    motivos: motivosEnLlano(e.motivos, eje, o),
+    desbordado: (e.motivos ?? []).some((m) => m.estado === 'PENDIENTE'),
+    // El desglose de la autorización (#70, partes.autorizacion.transferencias): una línea por cosa titular, con su nombre legible.
+    autorizacion: (e.partes.find((p) => p.parte === 'autorizacion')?.transferencias ?? []).map((x) => ({ ...x, cosaTexto: legibleDe(eje, x.cosa, ['identity'], o).texto })),
     // el segundo factor (VG 12/13-11, #66, #70): lo que movería alcanza un criterio de quien ejecuta; se avisa antes
     ...(e.segundoFactor?.exige ? { segundoFactor: { titulares: e.segundoFactor.titulares } } : {}),
   };
@@ -923,7 +912,14 @@ export async function previsualizar(eje, X, accion, valores, yo, firmar, opcione
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
   const quien = (x) => (x === null || x === undefined ? t('nadie') : legibleDe(eje, x, ['identity'], o).texto);
   const movimientos = (r.evento?.movimientos ?? []).map((m) => `${quien(m.de)} → ${quien(m.a)} · ${legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto}${m.estado ? ' · ' + m.estado + (m.salida ? ' ' + m.salida : '') : ''}`);
-  return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
+  // Lo que se enseña al mantener pulsado un paso del camino (VG 14-11, #90): una frase, «se movería 1 hora de ti a cocina».
+  const sujeto = (x) => (x === yo ? t('previaTu') : quien(x));
+  const cuanto = (m) => legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto;
+  const frases = (r.evento?.movimientos ?? []).map((m) => {
+    const clave = m.estado === 'anunciado' ? 'previaAnuncia' : m.de === null || m.de === undefined ? 'previaCrea' : m.a === null || m.a === undefined ? 'previaGasta' : 'previaMueve';
+    return t(clave, { cuanto: cuanto(m), de: sujeto(m.de), a: sujeto(m.a) });
+  });
+  return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, frase: frases.join('; '), ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
 }
 
 /**
@@ -1081,13 +1077,29 @@ function rosetonesDe(eje, yoDatos, ctx, medidas) {
       comprimido: propio && typeof propio.k === 'number' ? { dato: propio.k, de: propio.de, que: propio.nombre } : { dato: total, de: null, que: null },
     };
     if (nivel >= NIVEL.tarjeta) {
-      const o = contrato.ocupantes(eje, alta, pv, 0, tamanoDeNivel(2, ctx.opciones)?.datos ?? ctx.paso, ctx.opciones);
+      // La tarjeta flotante lleva los datos de su paso; la pantalla completa (nivel 3), todo lo que el núcleo da de esa posición de mi alta en una página.
+      const cuantos = nivel >= NIVEL.bloque ? Math.max(ctx.paso, tamanoDeNivel(3, ctx.opciones)?.datos ?? 0) : tamanoDeNivel(2, ctx.opciones)?.datos ?? ctx.paso;
+      const o = contrato.ocupantes(eje, alta, pv, 0, cuantos, ctx.opciones);
       const tipoDato = contrato.tipo(eje, alta, pv, ctx.opciones);
       nodo.ocupantes = { total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(1, ctx.opciones), ctx, tipoDato, { posicion: pv })) };
     }
     return nodo;
   });
 }
+
+/**
+ * Pulsar un rosetón (VG, 14-11, #91): el comprimido se amplía (flota sobre la carta, de uno en uno); el ampliado, o el
+ * de la pantalla completa, se cierra al pulsar el mismo. Es solo estado de pantalla: devuelve los rosetones nuevos.
+ */
+export function alternarRoseton(rosetones, pv) {
+  return (rosetones?.[pv] ?? NIVEL.comprimido) >= NIVEL.tarjeta ? {} : { [pv]: NIVEL.tarjeta };
+}
+
+/** El doble toque en un rosetón: su vista ampliada a pantalla completa (la configuración de la cartera la llenará de más). */
+export const rosetonAPantallaCompleta = (pv) => ({ [pv]: NIVEL.bloque });
+
+/** ¿Hay un rosetón ampliado (flotando o a pantalla completa)? Pulsar fuera de él lo cierra. */
+export const hayRosetonAmpliado = (rosetones) => Object.values(rosetones ?? {}).some((n) => n >= NIVEL.tarjeta);
 
 /** El camino de X para yo, como lo da el núcleo, con cada paso marcado como mío, de espera o hecho; lo que se lanza, por su id y su nombre en el idioma. */
 async function caminoDe(eje, X, yo, ctx) {
@@ -1372,7 +1384,7 @@ function accionPorDefecto(eje, R, pv, ctx) {
 
 /**
  * El contexto con que se piden los nodos de la rejilla: siempre el sobrio. La forma del segundo nivel es la misma en
- * sobrio y en animado (el animado son solo capas añadidas sobre este mismo DOM, capasDeRejilla), así que sus ocupantes no llevan la
+ * sobrio y en animado (el animado solo le añade su escena alrededor: escenaDe), así que sus ocupantes no llevan la
  * pieza suelta del mundo ni una representación con recurso.
  */
 const sobrioDe = (ctx) => (ctx.animado ? (ctx.comoSobrio ??= { ...ctx, animado: false, cadena: [] }) : ctx);
@@ -1591,11 +1603,12 @@ function valorEnLlano(eje, p, ctx) {
   const partes = [cero !== undefined ? String(cero) : legibleDe(eje, { ref: p.de }, null, ctx.opciones).texto];
   const [desde, hasta] = hojas(hojas(pl[6])[2]);
   if (typeof desde === 'string' && typeof hasta === 'string' && Date.parse(desde) <= Date.parse(hasta)) {
-    partes.push(t('ratoMinutos', { n: Math.max(1, Math.round((Date.parse(hasta) - Date.parse(desde)) / 60000)) }));
+    const n = Math.max(1, Math.round((Date.parse(hasta) - Date.parse(desde)) / 60000));
+    partes.push(t(n === 1 ? 'ratoUnMinuto' : 'ratoMinutos', { n }));
     const cuando = horaLlana(hasta);
     if (cuando) partes.push(cuando);
   }
-  return partes.join(' · ');
+  return partes.join(', ');
 }
 
 /**
@@ -1866,7 +1879,7 @@ function rangoDeR(eje, R, ctx) {
  * registro baja un nivel de profundidad (`ruta`: los registros por los que se ha entrado) mientras queden niveles. Las
  * franjas del 6 y el 7, el cielo del 8 y el camino del 9 llevan bandas en lugar de celdas. Nada de esto decide qué
  * hay: lo dan los ocupantes, los pasos, las acciones y el diario del núcleo; y nada depende del modelo (sobrio o
- * animado dan el mismo árbol de la rejilla; en animado, capasDeRejilla solo le añade sus capas). → { pv, forma, columnas, filas, niveles, nivel, entra, ruta, X, estilo,
+ * animado dan el mismo árbol de la rejilla; en animado, escenaDe solo le añade su escena). → { pv, forma, columnas, filas, niveles, nivel, entra, ruta, X, estilo,
  * pagina, celdas, flotante?, ejes? } o { …, bandas, sinBanda, hilos?, cuota?, enElFoco?, camino?, madurez? } o null.
  */
 function rejillaDe(eje, X, pv, ctx, { ruta = [], pagina = 1, hueco = { ancho: 1, alto: 1 }, entrar = true, modo = 'mapped' } = {}) {
@@ -1890,12 +1903,13 @@ function rejillaDe(eje, X, pv, ctx, { ruta = [], pagina = 1, hueco = { ancho: 1,
  * los dados del tipo elemento (epoch.9.7.0.4: hijo, ocupante, vacio, actual, hecho, repetido, persona, cerrado) y la
  * fila de ese mundo dice el nombre del elemento (tienda, flor, polvo…). Sin fila en el mundo, nada (la
  * correspondencia solo renombra lo que renombra, y aquí lo no renombrado no se pinta); con fila, la pieza de ese
- * nombre al paso del mundo (`paso`, el de su etapa), solo si el modelo la tiene con recurso.
+ * nombre a la madurez del elemento (`madurez`, k de de, reescalada a los pasos del modelo), solo si el modelo la tiene
+ * con recurso.
  */
-function elementoDelMundo(ctx, mundo, dado, paso, lado, tamano, elemento = ctx.X) {
+function elementoDelMundo(ctx, mundo, dado, madurez, lado, tamano, elemento = ctx.X) {
   const nombre = modelos.corresponde(ctx.cabecera, PIEZA.elemento, dado, mundo);
   if (nombre === dado) return null;
-  const p = conRecurso(piezaDe(ctx, PIEZA.elemento, mundo, paso, lado, tamano, { rol: nombre, elemento }));
+  const p = conRecurso(piezaDe(ctx, PIEZA.elemento, mundo, madurez?.nivel ?? null, lado, tamano, { rol: nombre, elemento, de: madurez?.de ?? undefined }));
   return p && p.subclave === nombre ? p : null;
 }
 
@@ -1903,77 +1917,84 @@ function elementoDelMundo(ctx, mundo, dado, paso, lado, tamano, elemento = ctx.X
 const esPersonaOcupante = (eje, o) => o?.tipo === 'hoja' && typeof o.valor === 'string' && eje.esPersona?.(o.valor) === true;
 
 /**
- * Las capas del animado sobre la rejilla de un mundo a pantalla completa (VG, 11-11: «el animado es el sobrio
- * añadiéndole las imágenes animadas y los fondos»). La rejilla `r` es la misma que en sobrio (rejillaDe no depende del
- * modelo); aquí solo se le añade lo que se pinta encima y debajo, sin tocar nada de lo que ya tiene:
- *   r.capas = { fondo, etapa, marco, personaje, respaldo, efectos }: el fondo del mundo (por la madurez del foco, el
- *     del escenario), la etapa del elemento pulsado (R, por su madurez), el marco del mundo, el personaje del rol por
- *     defecto (esperar en bucle; actuar si hay algo nuevo bajo R), su respaldo estático (la pieza «*» de su rol: lo que
- *     se ve si Lottie no carga) y los efectos de lo nuevo que no cae en ningún hijo (van al centro del mundo);
- *   celda.capa / banda.capa = { total, hijo, ocupantes, hecho, efectos }: el dibujo del hijo (o el del vacío), uno por
- *     ocupante (o el de persona), el sello de lo hecho (la estación ejecutada) y los efectos de lo nuevo que cuelga de
- *     ese hijo (pvDondeCuelga);
- *   ocupante.dibujo: en las bandas (las cuentas del 6 y el 7, las estrellas del 8, los pasos del 9), el de cada uno.
- * Qué dibujo va con qué es la correspondencia de la cabecera (elementoDelMundo); dónde va cada capa, CSS. En un bloque
- * de Mapped (#16), `personaje: false` y `efectos: false`: sin muñequito y lo nuevo sobre el bloque entero, no por hijo.
+ * El dibujo de un subelemento en un hueco del marco: su retrato si es un registro con arte propio (#25); si es una
+ * persona, el de persona del mundo; si no, el del ocupante del mundo (la correspondencia de la cabecera, elementoDelMundo).
  */
-function capasDeRejilla(eje, X, pv, r, ctx, escenario, tamano, { personaje: conPersonaje = true, efectos: conEfectos = true } = {}) {
+function dibujoDeSubelemento(ctx, eje, o, pv, madurez, tamano, R) {
   const lado = GEOMETRIA[pv].lado;
-  const R = r.X ?? X;
-  const madurez = R === X ? ctx.madurez : contrato.madurez(eje, R, ctx.opciones);
-  const etapa = R === X ? escenario.etapa : piezaDe(ctx, PIEZA.etapa, pv, madurez?.nivel ?? null, lado, tamano, { de: madurez?.de ?? undefined, elemento: R });
-  const paso = typeof etapa?.clave === 'number' ? etapa.clave : null; // el paso del mundo: el de su etapa en el modelo
-  const dibujo = (dado) => elementoDelMundo(ctx, pv, dado, paso, lado, tamano, R);
-  // Cada ocupante que es un registro con arte propio se ve con su retrato (#25); los demás, con el dibujo del mundo.
-  const deOcupante = (o) => (o?.X && retratoDe(ctx, o.X, pv, lado, tamano)) || (esPersonaOcupante(eje, o) && dibujo('persona')) || dibujo('ocupante');
-  const efectosDe = (entradas) => (entradas?.length ? efectosDeEntradas(ctx, entradas, pv, lado, tamano, R) : null);
-  // Las personas de una caja del 3 (encargo pv3): la que es persona, con el dibujo de persona del mundo; una cosa, el de ocupante.
-  const dePersona = (p) => (eje.esPersona?.(p.identidad) === true && dibujo('persona')) || dibujo('ocupante');
+  const dibujo = (dado) => elementoDelMundo(ctx, pv, dado, madurez, lado, tamano, R);
+  if (o?.identidad !== undefined) return (eje.esPersona?.(o.identidad) === true && dibujo('persona')) || dibujo('ocupante');
+  return (o?.X && retratoDe(ctx, o.X, pv, lado, tamano)) || (esPersonaOcupante(eje, o) && dibujo('persona')) || dibujo('ocupante');
+}
+
+/**
+ * Los subelementos visibles de la rejilla de un mundo, en su orden: cada hijo (celda o banda) con su rótulo (su nombre,
+ * el 0 del subelemento) y el dibujo de uno de sus ocupantes (dibujoDeSubelemento: el que tiene retrato propio, #25, si
+ * no el primero) o, vacío, el del vacío del mundo. La tarjeta central (el elemento pulsado) no es un subelemento: es el elemento.
+ */
+function hijosDeRejilla(ctx, eje, r, pv, tamano) {
+  const R = r.X ?? ctx.X;
+  const madurez = R === ctx.X ? ctx.madurez : contrato.madurez(eje, R, ctx.opciones);
+  const vacio = () => elementoDelMundo(ctx, pv, 'vacio', madurez, GEOMETRIA[pv].lado, tamano, R);
+  const conRetrato = (lista) => lista.find((o) => o?.X && retratoDe(ctx, o.X, pv, GEOMETRIA[pv].lado, tamano)) ?? lista[0];
+  const de = (nombre, lista) => ({ rotulo: String(nombre ?? ''), dibujo: lista.length ? dibujoDeSubelemento(ctx, eje, conRetrato(lista), pv, madurez, tamano, R) : vacio() });
+  return [
+    ...(r.celdas ?? []).map((c) => ({ pv: c.pv ?? null, ...de(c.nombre ?? c.pv, c.personas ?? c.ocupantes ?? (c.ocupante ? [c.ocupante] : [])) })),
+    ...(r.bandas ?? []).map((b) => ({ pv: null, ...de(b.nombre, b.items ?? []) })),
+  ];
+}
+
+/**
+ * El muñeco del sitio de cada hijo de una rejilla en animado (VG, 12-11, #38): el mismo botón que su interrogante, con el
+ * muñequito del mundo como icono (personajeDelSitio). No es arte de la escena: es el icono de un mando.
+ */
+function sitiosConMuneco(ctx, eje, r, pv) {
+  if (!ctx.animado || !r) return r;
+  const R = r.X ?? ctx.X;
   for (const c of r.celdas ?? []) {
-    const lista = c.personas ?? c.ocupantes ?? (c.ocupante ? [c.ocupante] : []);
-    // El muñeco del sitio de la celda, en el mismo sitio que su interrogante (VG, 12-11, #38).
-    if (c.sitio) { const pj = personajeDelSitio(ctx, eje, R, pv, lado); if (pj) c.sitio = { ...c.sitio, personaje: pj }; }
-    c.capa = {
-      total: c.total ?? lista.length,
-      hijo: r.forma === 'matriz' ? null : c.vacio || !lista.length ? dibujo('vacio') : dibujo('hijo'),
-      ocupantes: lista.map(c.personas ? dePersona : deOcupante).filter(Boolean),
-      hecho: c.estado === 'ejecutada' ? dibujo('hecho') : null,
-      efectos: null,
-    };
+    if (!c.sitio) continue;
+    const pj = personajeDelSitio(ctx, eje, R, pv, GEOMETRIA[pv].lado);
+    if (pj) c.sitio = { ...c.sitio, personaje: pj };
   }
-  for (const b of r.bandas ?? []) {
-    const items = new Set([...(b.items ?? []), ...(b.cruces ?? []).flatMap((x) => x.items)]);
-    for (const o of items) o.dibujo = deOcupante(o);
-    const llena = Boolean(b.items?.length || b.mas);
-    // El cielo sin base escrita (encargo «datos3»): lo calculado al vuelo lleva además el polvo (el dibujo del vacío)
-    // bajo sus estrellas; las cajas vacías ya son polvo.
-    const polvo = r.base && r.base.escrita === false && llena ? dibujo('vacio') : null;
-    b.capa = { total: (b.items?.length ?? 0) + (b.mas ?? 0), hijo: llena ? dibujo('hijo') : b.foco ? null : dibujo('vacio'), ocupantes: polvo ? [polvo] : [], hecho: null, efectos: null };
-  }
-  // Lo nuevo bajo R, por el dígito del que cuelga (pvDondeCuelga): al hijo de ese dígito si lo hay; si no, al centro del mundo.
-  const porDigito = !conEfectos ? new Map() : R === X ? ctx.nuevosPorPv : nuevosPorPvDe(eje, R, ctx.nuevos, ctx.opciones);
-  const alCentro = [];
-  for (const [digito, entradas] of porDigito) {
-    const celda = r.forma === 'matriz' ? null : (r.celdas ?? []).find((c) => c.pv === digito);
-    if (celda) celda.capa.efectos = efectosDe(entradas);
-    else alCentro.push(...entradas);
-  }
-  const hayNuevos = [...porDigito.values()].some((l) => l.length > 0);
-  const pasos = R === X || !conPersonaje ? ctx.pasos : pasosPorPv(eje, R, ctx.opciones);
-  const personaje = conPersonaje ? personajeDe(ctx, eje, R, pv, lado, tamano, { enfocado: true, nuevos: hayNuevos, paso: pasos.porPv[pv] ?? null }) : null;
-  const quieto = personaje ? conRecurso(piezaDe(ctx, PIEZA.munequito, pv, modelos.CUALQUIERA, lado, tamano, { rol: personaje.rol, elemento: R })) : null;
-  // En la tarjeta central, lo propio del pulsado primero (#25): su etapa propia si la lleva; si no, su retrato (su pieza
-  // elemento propia); si no, la etapa del modelo de quien mira.
-  const suya = etapa?.propio ? etapa : retratoDe(ctx, R, pv, lado, tamano) ?? etapa;
-  r.capas = {
-    fondo: escenario.fondo ?? null,
-    etapa: conRecurso(suya),
-    marco: escenario.marco ?? null,
-    personaje: personaje?.pieza?.recurso ? personaje : null,
-    respaldo: quieto && quieto.subclave === personaje.rol && !quieto.animado ? quieto : null,
-    efectos: efectosDe(alCentro),
-  };
   return r;
+}
+
+/** Los subelementos visibles de una lista de ocupantes (un mundo sin rejilla): cada uno con su texto como rótulo y su dibujo. */
+function hijosDeLista(ctx, eje, X, lista, pv, tamano) {
+  return lista.map((o) => ({ pv: null, rotulo: o.texto ?? '', dibujo: dibujoDeSubelemento(ctx, eje, o, pv, ctx.madurez, tamano, X) }));
+}
+
+/**
+ * La escena de un elemento R a pantalla completa en un mundo (VG 14-11, #94: el arte tiene dos sitios y nada más):
+ *   fondo: el del mundo, detrás de todo (fondoDelMundo, por la madurez del foco: el mundo es suyo, también al bajar de nivel);
+ *   marco: el que el arte del modelo declara para el mundo (modelos.marcoDelArte), por el rango de R (contrato.rango),
+ *     con sus huecos en coordenadas de su lienzo: el bloque (donde dom.js pone el bloque de campos del sobrio, sin
+ *     cambiarlo), el personaje del mundo en el suyo (personajeDe: esperar en bucle; actuar si hay algo nuevo bajo R;
+ *     celebrar si su paso se cierra; con su dibujo quieto de respaldo por si Lottie no carga, y el sitio que abre) y
+ *     los subelementos visibles (`hijos`, en su orden) uno por hueco, con su dibujo y su rótulo; si hay más hijos que
+ *     huecos, los que caben y «+n» en el último.
+ * → { fondo, marco } (cualquiera de los dos, null). En «propio» (#25) no hay arte del modelo: sin marco.
+ */
+function escenaDe(ctx, eje, R, pv, tamano, hijos, { sitio = null } = {}) {
+  const lado = GEOMETRIA[pv].lado;
+  const fondo = fondoDelMundo(ctx, pv, tamano);
+  const m = ctx.arte ? modelos.marcoDelArte(ctx.arte, pv, contrato.rango(eje, R, ctx.opciones)?.peldano ?? 0) : null;
+  if (!m) return { fondo, marco: null };
+  const marco = { dibujo: m.dibujo, recurso: m.recurso, lienzo: m.lienzo, ajuste: m.ajuste, escala: m.escala, bloque: m.bloque, rotulo: m.rotulo, personaje: null, subelementos: [] };
+  if (m.personaje) {
+    const nuevos = R === ctx.X ? ctx.nuevosPorPv : nuevosPorPvDe(eje, R, ctx.nuevos, ctx.opciones);
+    const pasos = R === ctx.X ? ctx.pasos : pasosPorPv(eje, R, ctx.opciones);
+    const p = personajeDe(ctx, eje, R, pv, lado, tamano, { enfocado: true, nuevos: [...nuevos.values()].some((l) => l.length > 0), paso: pasos.porPv[pv] ?? null });
+    if (p?.pieza?.recurso) {
+      const quieto = conRecurso(piezaDe(ctx, PIEZA.munequito, pv, modelos.CUALQUIERA, lado, tamano, { rol: p.rol, elemento: R }));
+      marco.personaje = { hueco: m.personaje, ...p, respaldo: quieto && quieto.subclave === p.rol && !quieto.animado ? quieto : null, sitio };
+    }
+  }
+  const n = m.subelementos.length;
+  const caben = hijos.length > n ? Math.max(0, n - 1) : hijos.length;
+  marco.subelementos = hijos.slice(0, caben).map((h, k) => ({ orden: k + 1, hueco: m.subelementos[k], pv: h.pv ?? null, rotulo: h.rotulo, dibujo: h.dibujo ?? null, mas: null }));
+  if (n > 0 && hijos.length > n) marco.subelementos.push({ orden: n, hueco: m.subelementos[n - 1], pv: null, rotulo: '', dibujo: null, mas: hijos.length - caben });
+  return { fondo, marco };
 }
 
 /**
@@ -2058,7 +2079,8 @@ const pasoDelArbol = (pv, k, escala) => {
  *   aro: { X, pv } | null    el aro abierto sobre un registro (pv: el hueco desplegado); { X, nuevo: d }: sobre el
  *                            hueco vacío d de X, con un input nuevo que crea el elemento en X.d (issue #22)
  *   formulario: { X, accion, valores, motivos, resultado } | null
- *   rosetones: { [pv]: 1-2 } el paso de cada rosetón de identidad
+ *   rosetones: { [pv]: 1-3 } el paso de cada rosetón de identidad (1 comprimido, 2 ampliado flotando, 3 pantalla completa)
+ *   formato: { formateado, fecha, numeros, estilo } los criterios del editor de BTML del reverso (carta/formato-btml.js)
  *   local: LibroLocal | null el libro local de yo (solo se lee)
  *   leido: boolean           si la lente «leído» del 0 está abierta
  *   nuevos: Set<id>          las transacciones del diario llegadas desde la última vez (lo que el animado anima: efectos y actuar)
@@ -2102,6 +2124,12 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     proyecto: yo ? acciones.proyectoDeOpiniones(eje, yo, opciones) : null,
     medidas: m,
   };
+  // El arte en sus dos sitios (VG 14-11, #94: el fondo y el marco con sus huecos declarados) del modelo que lo declara,
+  // si ese modelo está en la cadena de quien mira; en «propio» (#25) no: solo el arte del propio elemento.
+  if (animado && !soloPropio) {
+    const { arte } = await (opciones.arteDeMarco ?? modelos.cargarArteDeMarco()); // `arteDeMarco`: otro arte ya cargado (las pruebas)
+    ctx.arte = arte && ctx.cadena.some((x) => x.nombre === arte.modelo) ? arte : null;
+  }
   const camino = await caminoDe(eje, X, yo, ctx);
   // Lo previsualizado de un paso del camino (encargo «datos3»): la app lo guarda en estado.previa y aquí solo se pasa.
   if (estado.previa && estado.previa.foco === X) camino.previa = estado.previa;
@@ -2112,7 +2140,6 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
   const apilada = d.disposicion !== disposiciones; // más alto que ancho: las franjas apiladas (Sequenced); si no, la matriz (Mapped)
   const pvsCentro = d.pvs.filter((pv) => CENTROS.includes(pv));
   const pvsLaterales = d.pvs.filter((pv) => LATERALES.includes(pv));
-  ctx.mundoDelCentro = pvsLaterales[0] ?? LATERALES[0]; // los efectos sirven en todos los mundos; el centro pide por el primero
   const pvPedido = typeof estado.foco === 'object' && estado.foco && typeof estado.foco.pv === 'number' ? estado.foco.pv : CENTROS[0];
   const pvCentro = pvsCentro.includes(pvPedido) || !CENTROS.includes(pvPedido) ? pvPedido : pvsCentro[0] ?? CENTROS[0];
   let laterales;
@@ -2203,7 +2230,7 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     ...(secuencia ? { secuencia: { filas: secuencia.filas, pasado: secuencia.pasado, futuro: secuencia.futuro, digitos: secuencia.digitos } } : {}),
     aro,
     sitio,
-    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, animado } : null,
+    formulario: form ? { ...form, motivos: estado.formulario.motivos ?? [], resultado: estado.formulario.resultado ?? null, reverso: Boolean(estado.formulario.reverso), animado } : null,
     camino,
     local: localDe(estado.local, opciones.t),
     tiempo: yoDatos?.tiempo ?? null,
