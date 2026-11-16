@@ -27,6 +27,7 @@
 //   transaccion(eje, plantilla, params, yo) construye la transacción y la valida en seco: { ok, evento, motivos, ejecucion }
 //   ejecucion(eje, plantilla, params, yo)   lo que exige en T cada parte y la denominación propuesta (el 4 ejecuta; decisión 7)
 //   sobreDe(eje, plantilla, params, yo)     el registro del que colgará lo que escribe (X o el que nombra su 5): la línea de antes de firmar
+//   enlazaDe(eje, plantilla, params, yo)    los registros que enlazará (los que su payload nombra, menos del que cuelga): a quién más va
 //   camino(eje, X, yo)                      lo que falta: lo del tutorial, lo que derivan las reglas, las sugerencias
 //   autoejecutar(eje, X, yo, firmar)        lanza los pasos míos en orden mientras pasen
 //   modoDeEjecucion(eje, plantilla)         su modo de ejecución: { declarado, modo, revisado } (system sin revisión se lee agent)
@@ -52,7 +53,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe } from './contrato.js';
 import { recuento, cerrado as cerradoDe } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
 
@@ -627,6 +628,27 @@ export function sobreDe(eje, cual, params = {}, yo, opciones = {}) {
     return typeof prep.sobre === 'string' && eje.obtener(prep.sobre) ? prep.sobre : null;
   } catch {
     return null;
+  }
+}
+
+/**
+ * Lo que enlazará lo que escribe una plantilla lanzada sobre X (encargo «puede leer», V7; hermana de sobreDe): los registros
+ * del eje que su payload nombrará por su id (contrato.enlacesDe), menos aquel del que colgará; con los parámetros dados y los
+ * defectos, como al construir la transacción. Es lo que la carta pasa a contrato.quienGuarda como `enlaza`. [] si la plantilla
+ * solo lee o lanza el camino, si X no está en el eje o si algo falla. Solo lee.
+ */
+export function enlazaDe(eje, cual, params = {}, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const plantilla = plantillaDeTransaccion(cual, opciones);
+  if (!plantilla || esLectura(plantilla) || esCamino(plantilla)) return [];
+  const { X: cualX, ...dados } = params;
+  const X = eventoDe(eje, cualX);
+  if (!X || !eje?.obtener(X.id) || typeof yo !== 'string' || !yo) return [];
+  try {
+    const prep = preparar(eje, plantilla, X, yo, dados, { t: relojDe(eje, opciones), epoca: epocaDe(opciones, eje), idioma: idiomaDe(eje, yo, opciones) });
+    return enlacesDe(eje, prep.payload, { sobre: prep.sobre });
+  } catch {
+    return [];
   }
 }
 

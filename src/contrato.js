@@ -38,11 +38,15 @@
 //   pedidoDeLote(eje, ids)                 { nivel, plazo }: el nivel más alto que pide alguno de esos registros y el plazo más corto de los que lo piden
 //   pedidoDeEscala(escalas), plazoDeSuelo(eje, id)   lo que pide pagar con unas escalas; el plazo por defecto (el más largo de 7.5)
 //   cascadaDe(epoca)                       { plazos: { <clase>: { escala, segundos } }, capas: [{ nivel, escala, ritmo, familia }] }: el 7.5 y el 7.6
+//   defectosDeCustodia(epoca)              { <clave>: { base, valores } }: las resoluciones de base de custodia, el 7.7 («parent reads», «linked operation»)
 //   cohorteDe(eje, X, { cohorte })         la cohorte del 8: contra quién se compara X, sus comparables por caja y quién escribió la base
 //   yo(eje, identidad)                     mi alta y sus posiciones: cartera, criterio, atención, tiempo
-//   custodia(eje, id)                      quién guarda un registro: { de, heredado, padres, clase, plazo } (los padres del elemento con
-//                                          configuración más cercano hacia arriba, él incluido; la clase del dueño y su plazo de 7.5)
-//   quienGuarda(eje, yo, sobre)            la línea de antes de firmar: { nodo, padres: [{ nombre, guarda, sella }], de }
+//   custodia(eje, id)                      quién guarda un registro: { de, padresDe, heredado, padres, clase, plazo, enlaza, ramas, todos } (los padres del
+//                                          elemento con configuración más cercano hacia arriba, él incluido, con si leen; la clase del dueño y su
+//                                          plazo de 7.5; lo que enlaza y, si la operación enlazada va a los dos, las ramas de los enlazados)
+//   ramasDelLibro(eje)                     todas las ramas del libro: [{ de, padresDe, padres (con lee y leeDe) }], una por elemento con configuración propia
+//   quienGuarda(eje, yo, sobre, { enlaza }) la línea de antes de firmar: { nodo, padres: [{ nombre, guarda, sella, lee }], de, enlazadas, todos }
+//   enlacesDe(eje, payload, { sobre })     los registros del eje que un payload nombra por su id, menos aquel del que cuelga
 //   cuenta(eje, id)                        la cuenta del banco de un registro (o de la clave de su E): nombre, banco, su E única,
 //                                          el saldo que manda, el estado del permiso y quién ordena (con P sobre ella); o null
 //   configuracion(eje, yo)                 mis preferencias (el registro en el 9 de mi alta) o los defectos de la plantilla
@@ -74,6 +78,7 @@ import { recuento, miradasDe } from './motor.js';
 import { estadoDePaquete } from './lente.js';
 import { cajasDelTres, conversacionDelTres as conversacionTres } from './tres.js';
 import { destino } from './sincronia.js';
+import { referenciasDe } from './condiciones/evento.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
 const RE_SERIE = /^[EPRT]:.+/;
@@ -2441,15 +2446,52 @@ export function cuenta(eje, id, { t } = {}) {
 /**
  * Lo que hace de un registro una configuración de quién guarda un elemento, por lo que dice su 4 (la acción con que se
  * escribió: el nombre canónico de su plantilla de la época), y dónde cuelga: el 9 del elemento (lo que le configura).
- * Lo que hace un padre (el 1.0 de su registro): guarda la copia cifrada, sella hacia arriba o las dos cosas.
+ * Lo que hace un padre (la primera hoja de su 1.0): guarda la copia cifrada, sella hacia arriba o las dos cosas; si lee lo
+ * que guarda (su 1.0.1, encargo «puede leer», V11). Las claves de los defectos de custodia de la época (epoch.7.7.1) que
+ * este módulo resuelve y lo que significa cada valor permitido; qué valor vale por defecto NO está aquí: es la base de la
+ * época (epoch.7.7.2) o la que diga un elemento con «set a custody default».
  */
 export const CUSTODIA = Object.freeze({
   padre: 'add a parent',
   quitar: 'remove a parent',
   clase: 'set the kind of owner',
+  defecto: 'set a custody default',
   en: '9000000000',
   hace: Object.freeze({ keeps: Object.freeze({ guarda: true, sella: false }), seals: Object.freeze({ guarda: false, sella: true }), 'keeps and seals': Object.freeze({ guarda: true, sella: true }) }),
+  lee: Object.freeze({ reads: true, 'does not read': false }),
+  claves: Object.freeze({ lee: 'parent reads', enlace: 'linked operation' }),
+  significa: Object.freeze({ 'parent reads': Object.freeze({ yes: true, no: false }), 'linked operation': Object.freeze({ both: true, own: false }) }),
 });
+
+/** Dónde pone la época los defectos de custodia (encargo «puede leer», V11 y V7): 0 la cabecera, 1 las claves, 2 la base de cada una, 3 los valores permitidos de cada una. */
+const DEFECTOS_DE_CUSTODIA = [7, 7];
+
+/**
+ * Las resoluciones de base de custodia según la época (VG 17-11 por Core State, V11 y V7: «definidas por la época,
+ * configurables y con resoluciones de base; no son reglas fijas en código»; encargo «puede leer»). De epoch.7.7, por clave
+ * (hoy «parent reads» y «linked operation»), los valores que permite y el de base (null si la base no es uno de ellos).
+ * Lee la época dada (un registro de época cargado o su décupla; por defecto, la 0): una época hija que fije su 7.7 manda.
+ * Hermana de cascadaDe. → { <clave>: { base, valores: [..] } }
+ */
+export function defectosDeCustodia(epoca = EPOCA_0_BTML) {
+  const d = en(raizDe(epoca ?? EPOCA_0_BTML), DEFECTOS_DE_CUSTODIA);
+  const bases = hojas(d?.[2]);
+  const permitidos = hojas(d?.[3]);
+  return Object.fromEntries(hojas(d?.[1]).map((k, i) => {
+    const valores = hojas(permitidos[i]).map(texto).filter(Boolean);
+    const base = texto(hoja(bases[i]));
+    return [texto(k), { base: valores.includes(base) ? base : null, valores }];
+  }).filter(([k]) => k));
+}
+
+/**
+ * Los registros que enlaza un payload (encargo «puede leer», V7): los que nombra por su id (sus referencias, leídas como
+ * las lee el suelo de referencias, `referenciasDe`) y están en el eje, sin repetir y en su orden, menos aquel del que cuelga
+ * (`sobre`) y el propio registro (`propio`). Una referencia a la época o a lo que el eje no tiene no enlaza nada.
+ */
+export function enlacesDe(eje, payload, { sobre, propio } = {}) {
+  return [...new Set(referenciasDe(payload))].filter((x) => x !== sobre && x !== propio && Boolean(eje?.obtener?.(x)));
+}
 
 const RE_CLAVE_XONLY = /^[0-9a-f]{64}$/;
 
@@ -2474,20 +2516,25 @@ function configuraElElemento(eje, autor, elemento) {
   return autor === elemento.autor || autor === eje.obtener(eje.genesisId)?.autor;
 }
 
+/** La primera hoja de un nodo (bajando por sus primeras posiciones). */
+const primeraHoja = (x) => (Array.isArray(x) ? primeraHoja(x[0]) : x);
+
 /**
- * Un padre leído de su registro (el que escribe «add a parent»): 0 el nombre; 1.0 qué hace y 1.1 el nivel en que sella;
- * 2.0 la clave x-only con que firma sus cabeceras y 2.1 el grado que declara; 3.1 su dirección. Lo opcional que falta, o
- * que no es lo que dice ser (un nivel que la época no tiene, una dirección que no es http(s) o lleva credenciales), sale
- * null. Sin nombre, sin una clave x-only o sin qué hace, no es un padre: null.
+ * Un padre leído de su registro (el que escribe «add a parent»): 0 el nombre; 1.0.0 qué hace (en un registro de antes del
+ * 17-11, 1.0), 1.0.1 si lee y 1.1 el nivel en que sella; 2.0 la clave x-only con que firma sus cabeceras y 2.1 el grado que
+ * declara; 3.1 su dirección. Lo opcional que falta, o que no es lo que dice ser (un nivel que la época no tiene, una
+ * dirección que no es http(s) o lleva credenciales, un «can read» que no es reads ni does not read), sale null. Sin nombre,
+ * sin una clave x-only o sin qué hace, no es un padre: null. `leeDicho` (interno) es lo que dice su registro de leer.
  */
 function padreDe(r, niveles) {
   const p = Array.isArray(r?.payload) ? r.payload : [];
   const nombre = texto(hoja(p[0]));
-  const hace = CUSTODIA.hace[texto(hoja(p[1]?.[0]))];
+  const hace = CUSTODIA.hace[texto(primeraHoja(p[1]?.[0]))];
   const clave = texto(hoja(p[2]?.[0]));
   if (!nombre || !hace || !RE_CLAVE_XONLY.test(clave ?? '')) return null;
   const nivel = hoja(p[1]?.[1]);
   const grado = hoja(p[2]?.[1]);
+  const dice = Array.isArray(p[1]?.[0]) && Array.isArray(p[1][0][0]) ? CUSTODIA.lee[texto(hoja(p[1][0][1]))] : undefined;
   return {
     id: r.id,
     nombre,
@@ -2497,59 +2544,191 @@ function padreDe(r, niveles) {
     nivel: niveles.includes(nivel) ? nivel : null,
     grado: typeof grado === 'number' || (typeof grado === 'string' && grado.trim()) ? grado : null,
     url: urlDePadre(hoja(p[3]?.[1])),
+    leeDicho: typeof dice === 'boolean' ? dice : null,
   };
 }
 
 /**
- * Quién guarda un registro (VG 16-11: «copias y padres son lo mismo, y son configurables: ninguno, uno o varios»; «la
- * configuración cuelga de un elemento y se hereda hacia abajo»). Solo lee:
- *   { de, heredado, padres: [{ id, nombre, clave, guarda, sella, nivel, grado, url }], clase, plazo: { escala, segundos } }
- * `de` es el elemento del que sale la configuración de padres: el más cercano hacia arriba por el hilo (`sobre`), el propio
- * `id` incluido, que tenga algún padre vivo en su 9 (null si no hay ninguno hasta la raíz); `heredado`, si `de` no es `id`.
- * Los padres, por llegada: los registros «add a parent» anclados en el 9 de `de` por quien escribió `de` o por la identidad
- * del génesis, menos los retirados (un «remove a parent» de los mismos, anclado en el mismo 9, que los refiere en su 1).
- * Quitar el último padre de un elemento lo deja sin configuración propia: vuelve a heredar la de arriba.
- * `clase` sale de su propia herencia (puede venir de otro elemento que los padres): el registro «set the kind of owner»
- * más cercano hacia arriba con una clase de epoch.7.5 (en un mismo elemento, el último); sin ninguno, la clase del plazo
- * más largo de 7.5. `plazo`, el de esa clase en 7.5 (cascadaDe). null si `id` no está en el eje.
+ * Lo común de custodia, quienGuarda y ramasDelLibro: el lector de la configuración de custodia de un eje (los registros
+ * válidos del 9 de un elemento, la rama desde un elemento, el defecto de una clave de 7.7 desde un elemento) y las ramas de
+ * un registro que colgaría de `desde` y enlaza `enlaza`.
  */
-export function custodia(eje, id, opciones = {}) {
-  if (!eje || typeof id !== 'string' || !eje.obtener?.(id)) return null;
-  opciones = conEpoca(eje, opciones);
-  const cascada = cascadaDe(epocaDe(opciones, eje));
+function lectorDeCustodia(eje, opciones) {
+  const epoca = epocaDe(opciones, eje);
+  const cascada = cascadaDe(epoca);
+  const defectos = defectosDeCustodia(epoca);
   const niveles = cascada.capas.map((c) => c.nivel);
   const llegada = new Map((eje.orden ?? []).map((x, i) => [x, i]));
   const porLlegada = (a, b) => (llegada.get(a.id) ?? 0) - (llegada.get(b.id) ?? 0);
   const validos = (elemento, accion) => eje.sobre(elemento.id, CUSTODIA.en).filter((r) => accionesDelRegistro(r).includes(accion) && configuraElElemento(eje, r.autor, elemento)).sort(porLlegada);
-  let de = null;
-  let padres = [];
+  /** Los valores de una clave de 7.7 que dice un elemento («set a custody default» en su 9, válidos y permitidos por la época), por llegada. */
+  const dichos = (elemento, clave) => validos(elemento, CUSTODIA.defecto).filter((r) => texto(hoja(r.payload?.[0])) === clave).map((r) => texto(hoja(r.payload?.[1]))).filter((v) => (defectos[clave]?.valores ?? []).includes(v));
+  /** Los padres vivos de un elemento: sus «add a parent» menos los retirados por un «remove a parent» de su mismo 9. */
+  const padresEn = (elemento) => {
+    const quitados = new Set(validos(elemento, CUSTODIA.quitar).map((r) => hoja(r.payload?.[1])).map((x) => (esReferencia(x) ? x.ref : x)).filter((x) => typeof x === 'string'));
+    return validos(elemento, CUSTODIA.padre).filter((r) => !quitados.has(r.id)).map((r) => padreDe(r, niveles)).filter(Boolean);
+  };
+  /** ¿Tiene un elemento configuración de custodia propia? Algún padre vivo o un «parent reads» suyo. `linked operation` no abre rama. */
+  const propia = (elemento) => padresEn(elemento).length > 0 || dichos(elemento, CUSTODIA.claves.lee).length > 0;
+  /**
+   * La rama desde un elemento (Core, 17-11): `de`, el más cercano hacia arriba, él incluido, con configuración de custodia
+   * propia; `padresDe`, el más cercano hacia arriba desde `de`, él incluido, con padres vivos, y sus padres. Sin ninguna
+   * configuración hasta la raíz, `de` null.
+   */
+  const rama = (desde) => {
+    let de = null;
+    for (const elemento of eje.hilo(desde)) {
+      const vivos = padresEn(elemento);
+      if (de === null && (vivos.length || dichos(elemento, CUSTODIA.claves.lee).length)) de = elemento.id;
+      if (de !== null && vivos.length) return { de, padresDe: elemento.id, padres: vivos };
+    }
+    return { de, padresDe: null, padres: [] };
+  };
+  /**
+   * El valor de una clave de 7.7 desde un elemento: el del registro «set a custody default» más cercano hacia arriba, él
+   * incluido, que diga esa clave con un valor que la época permite (en un mismo elemento, el último); sin ninguno, la base
+   * de la época. → { valor, si (lo que significa: true, false o null si este módulo no conoce ese valor), de ('elemento' |
+   * 'epoca'), en (el elemento o null) }.
+   */
+  const defecto = (desde, clave) => {
+    const si = (v) => (typeof CUSTODIA.significa[clave]?.[v] === 'boolean' ? CUSTODIA.significa[clave][v] : null);
+    if (typeof desde === 'string') {
+      for (const elemento of eje.hilo(desde)) {
+        const d = dichos(elemento, clave);
+        if (d.length) return { valor: d[d.length - 1], si: si(d[d.length - 1]), de: 'elemento', en: elemento.id };
+      }
+    }
+    const base = defectos[clave]?.base ?? null;
+    return { valor: base, si: si(base), de: 'epoca', en: null };
+  };
+  /**
+   * Los padres de una rama, cada uno con si lee y de dónde sale: su registro (padre); si no, el «parent reads» desde `de`, la
+   * rama, hacia arriba (elemento); si no, la época. Se resuelve desde `de` y no desde el registro: toda una rama lee igual.
+   */
+  const conLee = (r) => {
+    let base;
+    return r.padres.map(({ leeDicho, ...p }) => {
+      if (leeDicho !== null) return { ...p, lee: leeDicho, leeDe: 'padre' };
+      base ??= defecto(r.de, CUSTODIA.claves.lee);
+      return { ...p, lee: base.si === true, leeDe: base.de };
+    });
+  };
+  /**
+   * Las ramas de un registro que cuelga de `desde` (o es `desde`, él incluido en su hilo) y enlaza `enlaza`: la propia y, si
+   * el «linked operation» que le toca (desde `desde` hacia arriba, si no la época) va a los dos, las de cada enlazado
+   * (desde él hacia arriba). Solo las que tienen padres (una rama sin padres no recibe nada); una rama, una vez (por su
+   * `de`); cada padre con su `lee` y `leeDe` en esa rama. `todos`: los padres de todas las ramas por su clave, sin repetir:
+   * guarda o sella si lo hace en alguna; `leeEn`, las ramas (sus `de`) en las que lee, sin fundir (el sobre se envuelve por rama).
+   */
+  const ramas = (desde, enlaza) => {
+    const suya = rama(desde);
+    const enlace = defecto(desde, CUSTODIA.claves.enlace);
+    const fuera = [];
+    const vistas = new Set();
+    const anadir = (r, por) => {
+      if (r.de === null || !r.padres.length || vistas.has(r.de)) return;
+      vistas.add(r.de);
+      fuera.push({ de: r.de, padresDe: r.padresDe, por, padres: conLee(r) });
+    };
+    anadir(suya, desde);
+    if (enlace.si === true) for (const x of enlaza) anadir(rama(x), x);
+    const porClave = new Map();
+    for (const r of fuera) {
+      for (const p of r.padres) {
+        const t = porClave.get(p.clave) ?? { clave: p.clave, nombre: p.nombre, url: p.url, guarda: false, sella: false, en: [], leeEn: [] };
+        t.guarda ||= p.guarda;
+        t.sella ||= p.sella;
+        t.url ??= p.url;
+        if (!t.en.includes(r.de)) t.en.push(r.de);
+        if (p.lee && !t.leeEn.includes(r.de)) t.leeEn.push(r.de);
+        porClave.set(p.clave, t);
+      }
+    }
+    return { suya, enlace, ramas: fuera, todos: [...porClave.values()] };
+  };
+  return { cascada, validos, propia, rama, defecto, conLee, ramas };
+}
+
+/**
+ * Quién guarda un registro (VG 16-11: «copias y padres son lo mismo, y son configurables: ninguno, uno o varios»; «la
+ * configuración cuelga de un elemento y se hereda hacia abajo»; VG 17-11, V11 y V7: «puede leer» por padre y la operación
+ * que enlaza dos elementos, con resoluciones de base en la época, epoch.7.7). Solo lee:
+ *   { de, padresDe, heredado, padres: [{ id, nombre, clave, guarda, sella, nivel, grado, url, lee, leeDe }], clase, plazo: { escala, segundos },
+ *     enlaza: [ids], ramas: [{ de, padresDe, por, padres }], todos: [{ clave, nombre, url, guarda, sella, en, leeEn }] }
+ * `de` es la rama (Core, 17-11): el elemento más cercano hacia arriba por el hilo (`sobre`), el propio `id` incluido, con
+ * configuración de custodia propia (algún padre vivo en su 9, o un «set a custody default» de `parent reads`); null si no
+ * hay ninguno hasta la raíz. `heredado`, si `de` no es `id`. `padresDe`, el elemento con padres vivos más cercano hacia
+ * arriba desde `de`, él incluido (igual a `de` cuando los padres son suyos; null si no hay). Los padres, por llegada: los
+ * registros «add a parent» anclados en el 9 de `padresDe` por quien escribió ese elemento o por la identidad del génesis,
+ * menos los retirados (un «remove a parent» de los mismos, anclado en el mismo 9, que los refiere en su 1). Quitar el último
+ * padre de un elemento sin otra configuración lo deja heredando la de arriba.
+ * `clase` sale de su propia herencia (puede venir de otro elemento que los padres): el registro «set the kind of owner»
+ * más cercano hacia arriba con una clase de epoch.7.5 (en un mismo elemento, el último); sin ninguno, la clase del plazo
+ * más largo de 7.5. `plazo`, el de esa clase en 7.5 (cascadaDe).
+ * `lee` de cada padre: lo que diga su registro (`leeDe: 'padre'`); si no dice nada, el «parent reads» del registro «set a
+ * custody default» más cercano hacia arriba DESDE `de`, él incluido (`'elemento'`); si no hay ninguno, la base de 7.7
+ * (`'epoca'`): todos los registros de una misma rama tienen los mismos padres y el mismo «lee». `enlaza`, los registros que
+ * su payload nombra (enlacesDe). `ramas`, la propia y, si el «linked operation» que le toca (desde `id` hacia arriba, si no
+ * la época) lo dice, la de cada enlazado; solo las que tienen padres; cada una con su `de`, su `padresDe`, el elemento `por`
+ * el que se llega (`id` o el enlazado) y sus padres con su `lee` en ESA rama. `todos`, los padres de todas las ramas por su
+ * clave, sin repetir: guarda y sella si lo hacen en alguna; `en`, las ramas en que está; `leeEn`, las ramas en que lee (no se
+ * funde: si lee en una y no en otra, el sobre de la otra no es para él). null si `id` no está en el eje.
+ */
+export function custodia(eje, id, opciones = {}) {
+  if (!eje || typeof id !== 'string' || !eje.obtener?.(id)) return null;
+  opciones = conEpoca(eje, opciones);
+  const lector = lectorDeCustodia(eje, opciones);
+  const { cascada, validos } = lector;
+  const ev = eje.obtener(id);
+  const enlaza = enlacesDe(eje, ev.payload, { sobre: ev.sobre, propio: id });
+  const { suya, ramas, todos } = lector.ramas(id, enlaza);
   let clase = null;
   for (const elemento of eje.hilo(id)) {
-    if (de === null) {
-      const quitados = new Set(validos(elemento, CUSTODIA.quitar).map((r) => hoja(r.payload?.[1])).map((x) => (esReferencia(x) ? x.ref : x)).filter((x) => typeof x === 'string'));
-      const vivos = validos(elemento, CUSTODIA.padre).filter((r) => !quitados.has(r.id)).map((r) => padreDe(r, niveles)).filter(Boolean);
-      if (vivos.length) [de, padres] = [elemento.id, vivos];
+    const dichas = validos(elemento, CUSTODIA.clase).map((r) => texto(hoja(r.payload?.[0]))).filter((k) => k && cascada.plazos[k]);
+    if (dichas.length) {
+      clase = dichas[dichas.length - 1];
+      break;
     }
-    if (clase === null) {
-      const dichas = validos(elemento, CUSTODIA.clase).map((r) => texto(hoja(r.payload?.[0]))).filter((k) => k && cascada.plazos[k]);
-      if (dichas.length) clase = dichas[dichas.length - 1];
-    }
-    if (de !== null && clase !== null) break;
   }
   // Sin clase dicha: la del plazo más largo de 7.5 (a igual plazo, la primera).
   if (clase === null) for (const [k, v] of Object.entries(cascada.plazos)) if (clase === null || (v.segundos ?? -1) > (cascada.plazos[clase].segundos ?? -1)) clase = k;
   const plazo = clase ? { escala: cascada.plazos[clase].escala, segundos: cascada.plazos[clase].segundos } : null;
-  return { de, heredado: de !== null && de !== id, padres, clase, plazo };
+  const de = suya.de;
+  return { de, padresDe: suya.padresDe, heredado: de !== null && de !== id, padres: lector.conLee(suya), clase, plazo, enlaza, ramas, todos };
+}
+
+/**
+ * Todas las ramas del libro (Core, 17-11: lo que necesita StateArk, que envuelve una clave por rama y se la da al padre en
+ * todos los lotes de esa rama): una por elemento con configuración de custodia propia (algún padre vivo o un «parent
+ * reads» suyo), por llegada: [{ de, padresDe, padres: [{ id, clave, nombre, guarda, sella, nivel, grado, url, lee, leeDe }] }],
+ * cada padre con su «lee» en esa rama (como en custodia). Solo lee.
+ */
+export function ramasDelLibro(eje, opciones = {}) {
+  if (!eje?.orden) return [];
+  opciones = conEpoca(eje, opciones);
+  const lector = lectorDeCustodia(eje, opciones);
+  const fuera = [];
+  for (const id of eje.orden) {
+    const elemento = eje.obtener(id);
+    if (!elemento || !lector.propia(elemento)) continue;
+    const r = lector.rama(id);
+    fuera.push({ de: r.de, padresDe: r.padresDe, padres: lector.conLee(r) });
+  }
+  return fuera;
 }
 
 /**
  * Lo que dirá la carta en una línea antes de firmar (VG 16-11, «transparente no es invisible», N2): quién va a guardar lo
- * que `yo` escribe colgado de `sobre` (el elemento del que va a colgar). → { nodo, padres: [{ nombre, guarda, sella }], de }
+ * que `yo` escribe colgado de `sobre` (el elemento del que va a colgar) y, desde el 17-11 (V11 y V7), quién podrá leerlo.
+ * `opciones.enlaza`: los registros que enlazará lo que se escribe (acciones.enlazaDe). →
+ *   { nodo, padres: [{ nombre, guarda, sella, lee }], de, enlazadas, todos: [{ nombre, guarda, sella, lee }] }
  * `nodo` es el nombre de máquina del transporte configurado (el de la dirección de sincronia.destino), o null si el libro
- * no sale de este dispositivo; `padres` y `de`, los de custodia(eje, sobre) ([] y null si `sobre` no está en el eje).
+ * no sale de este dispositivo; `padres` y `de`, los de la rama de `sobre` ([] y null si `sobre` no está en el eje), cada
+ * padre con su `lee` en esa rama; `enlazadas`, cuántas ramas de enlazados recibirán el registro (las que no son la propia);
+ * `todos`, los padres de todas sus ramas sin repetir, y `lee` si lee en alguna de ellas: el registro va entero a cada rama,
+ * así que para ESTE registro puede leerlo quien lee en alguna (en custodia, `todos` lleva `leeEn` por rama).
  */
 export function quienGuarda(eje, yo, sobre, opciones = {}) {
-  const c = typeof sobre === 'string' ? custodia(eje, sobre, opciones) : null;
   let nodo = null;
   try {
     const d = typeof yo === 'string' && yo ? destino(eje, yo, opciones) : null;
@@ -2557,7 +2736,18 @@ export function quienGuarda(eje, yo, sobre, opciones = {}) {
   } catch {
     nodo = null;
   }
-  return { nodo, padres: (c?.padres ?? []).map(({ nombre, guarda, sella }) => ({ nombre, guarda, sella })), de: c?.de ?? null };
+  if (!eje || typeof sobre !== 'string' || !eje.obtener?.(sobre)) return { nodo, padres: [], de: null, enlazadas: 0, todos: [] };
+  opciones = conEpoca(eje, opciones);
+  const lector = lectorDeCustodia(eje, opciones);
+  const enlaza = (Array.isArray(opciones.enlaza) ? opciones.enlaza : []).filter((x) => typeof x === 'string' && x !== sobre && eje.obtener(x));
+  const { suya, ramas, todos } = lector.ramas(sobre, enlaza);
+  return {
+    nodo,
+    padres: lector.conLee(suya).map(({ nombre, guarda, sella, lee }) => ({ nombre, guarda, sella, lee })),
+    de: suya.de,
+    enlazadas: ramas.filter((r) => r.de !== suya.de).length,
+    todos: todos.map(({ nombre, guarda, sella, leeEn }) => ({ nombre, guarda, sella, lee: leeEn.length > 0 })),
+  };
 }
 
 /**

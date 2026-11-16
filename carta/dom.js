@@ -543,41 +543,69 @@ const textoHacePadre = (p) => t(p.guarda && p.sella ? 'custodiaGuardaYSella' : p
 /** La clase del dueño (epoch.7.5): clase_<valor> si la carta lo tiene; si no, el valor tal cual. */
 const textoClase = (k) => (t('clase_' + k) === 'clase_' + k ? String(k) : t('clase_' + k));
 
+/** Si un padre puede leerlo en esa rama y, si no lo dice su registro, de dónde sale (encargo «puede leer»): de contrato.custodia. */
+const htmlLeePadre = (p) => (typeof p.lee !== 'boolean' ? '' : ` <span class="custodia-lee">${escapar(t(p.lee ? 'custodiaLee' : 'custodiaNoLee'))}</span>${p.leeDe === 'elemento' || p.leeDe === 'epoca' ? ` <small class="custodia-lee-de">${escapar(t(p.leeDe === 'elemento' ? 'custodiaLeeDeElemento' : 'custodiaLeeDeEpoca'))}</small>` : ''}`);
+
+/** Los padres de una rama: cada uno con su nombre, lo que hace, su nivel y su grado si los declara, y si puede leerlo. */
+const htmlPadresDeRama = (padres) => `<ul class="custodia-padres">${padres.map((p) => {
+  const extra = [p.nivel !== null && p.nivel !== undefined ? textoCapa(p.nivel) : '', p.grado !== null && p.grado !== undefined ? textoGrado(p.grado) : ''].filter(Boolean).join(' · ');
+  return `<li class="custodia-padre" data-guarda="${p.guarda ? 1 : 0}" data-sella="${p.sella ? 1 : 0}"${typeof p.lee === 'boolean' ? ` data-lee="${p.lee ? 1 : 0}"` : ''}><b>${escapar(p.nombre)}</b> <span>${escapar(textoHacePadre(p))}</span>${extra ? ` <small>${escapar(extra)}</small>` : ''}${htmlLeePadre(p)}</li>`;
+}).join('')}</ul>`;
+
 /**
  * «Quién guarda esto» en el reverso (encargo «padres y copias», A19; en la raíz del libro, «este libro»): cada padre con su
- * nombre, lo que hace y, si los declara, su nivel y su grado; «heredado de …» cuando la configuración viene de arriba; el
- * plazo por defecto y su clase; sin padres, «sin padres: nadie más lo guarda ni lo sella»; con nodo, que el nodo lo ve en
- * claro. Todo sale de contrato.custodia y contrato.quienGuarda; aquí no se decide nada. '' sin custodia. Hermana de
- * htmlFirmeza.
+ * nombre, lo que hace y, si los declara, su nivel y su grado, y si puede leerlo (encargo «puede leer», V11: «puede leerlo»
+ * o «no puede leerlo» y, si no lo dice su registro, «por defecto aquí» o «por defecto de la época»); «heredado de …» cuando
+ * la configuración viene de arriba; si el registro enlaza otros elementos y va a sus padres (V7), una fila por rama, «también
+ * lo guardan, por <elemento>: …», con lo que cada padre lee en ESA rama; el plazo por defecto y su clase; sin padres, «sin
+ * padres: nadie más lo guarda ni lo sella»; con nodo, que el nodo lo ve en claro. Todo sale de contrato.custodia y
+ * contrato.quienGuarda; aquí no se decide nada. En «este libro», con más de una rama, cada padre con las ramas en que guarda,
+ * sella y lee (contrato.ramasDelLibro). '' sin custodia. Hermana de htmlFirmeza.
  */
 function htmlCustodia(c) {
   if (!c) return '';
-  const padres = c.padres?.length
-    ? `<ul class="custodia-padres">${c.padres.map((p) => {
-      const extra = [p.nivel !== null && p.nivel !== undefined ? textoCapa(p.nivel) : '', p.grado !== null && p.grado !== undefined ? textoGrado(p.grado) : ''].filter(Boolean).join(' · ');
-      return `<li class="custodia-padre" data-guarda="${p.guarda ? 1 : 0}" data-sella="${p.sella ? 1 : 0}"><b>${escapar(p.nombre)}</b> <span>${escapar(textoHacePadre(p))}</span>${extra ? ` <small>${escapar(extra)}</small>` : ''}</li>`;
-    }).join('')}</ul>`
-    : `<p class="custodia-sin">${escapar(t('custodiaSinPadres'))}</p>`;
+  const padres = c.padres?.length ? htmlPadresDeRama(c.padres) : `<p class="custodia-sin">${escapar(t('custodiaSinPadres'))}</p>`;
   const heredado = c.heredado ? `<small class="custodia-heredado">${escapar(t('custodiaHeredado', { de: c.deTexto ?? '' }))}</small>` : '';
+  const ramas = (c.enlazadas ?? []).map((r) => `<div class="custodia-rama"><small class="custodia-rama-por">${escapar(t('custodiaTambien', { por: r.porTexto ?? '' }))}</small>${htmlPadresDeRama(r.padres)}</div>`).join('');
   const plazo = c.plazo ? `<small class="custodia-plazo">${escapar(t('custodiaPlazo', { plazo: c.plazoEscala ? t('custodiaUna', { escala: t('escalaUna_' + c.plazoEscala) }) : t('custodiaSegundos', { n: c.plazo.segundos }), clase: textoClase(c.clase) }))}</small>` : '';
   const nodo = c.nodo ? `<small class="custodia-nodo">${escapar(t('custodiaNodo'))}</small>` : '';
-  return `<div class="custodia" data-padres="${c.padres?.length ?? 0}"${c.heredado ? ' data-heredado' : ''}><h4>${escapar(t(c.libro ? 'custodiaLibro' : 'custodiaTitulo'))}</h4>${padres}${heredado}${plazo}${nodo}</div>`;
+  return `<div class="custodia" data-padres="${c.padres?.length ?? 0}"${c.heredado ? ' data-heredado' : ''}><h4>${escapar(t(c.libro ? 'custodiaLibro' : 'custodiaTitulo'))}</h4>${padres}${heredado}${ramas}${plazo}${nodo}${htmlPorPadre(c.porPadre)}</div>`;
 }
+
+/** En «este libro», con más de una rama: cada padre con las ramas en que guarda, sella y lee (contrato.ramasDelLibro, por carta.js). */
+const htmlPorPadre = (porPadre) => (porPadre?.length
+  ? `<ul class="custodia-libro">${porPadre.map((p) => `<li><b>${escapar(p.nombre)}</b> <span>${escapar([
+    p.guarda.length ? t('custodiaGuardaEn', { ramas: p.guarda.join(', ') }) : '',
+    p.sella.length ? t('custodiaSellaEn', { ramas: p.sella.join(', ') }) : '',
+    p.lee.length ? t('custodiaLeeEn', { ramas: p.lee.join(', ') }) : t('custodiaNoLeeEnNinguna'),
+  ].filter(Boolean).join(' · '))}</span></li>`).join('')}</ul>`
+  : '');
+
+/** Una lista en palabras: «a», «a y b», «a, b y c». */
+const enLista = (xs) => (xs.length > 1 ? xs.slice(0, -1).join(', ') + t('quienGuardaY') + xs[xs.length - 1] : xs[0] ?? '');
 
 /**
  * La línea de antes de firmar (encargo «padres y copias», N2: «transparente no es invisible»), junto al botón: quién
  * guardará lo que se escribe, de contrato.quienGuarda. «Lo guardarán: tú, el nodo <nombre> y <n> padres (<nombres>)», o
- * «Solo lo guardas tú, en este dispositivo» sin nodo ni padres. Sin panel ni pasos. '' sin línea.
+ * «Solo lo guardas tú, en este dispositivo» sin nodo ni padres. Con padres (encargo «puede leer»), quién puede leerlo: el
+ * nodo, si lo hay, y los padres que leen en alguna de sus ramas («Pueden leerlo: el nodo y trabajo.»); si va también a las
+ * ramas de lo que enlaza, cuántas son. Los padres son los de todas sus ramas (`todos`), sin repetir. Sin panel ni pasos.
+ * '' sin línea.
  */
 function htmlQuienGuarda(q) {
   if (!q) return '';
-  const n = q.padres?.length ?? 0;
+  const padres = q.todos ?? q.padres ?? [];
+  const n = padres.length;
   if (!q.nodo && !n) return `<p class="quien-guarda" data-solo>${escapar(t('quienGuardaSolo'))}</p>`;
   const partes = [t('quienGuardaTu')];
   if (q.nodo) partes.push(t('quienGuardaNodo', { nombre: q.nodo }));
-  if (n) partes.push(t(n === 1 ? 'quienGuardaUnPadre' : 'quienGuardaPadres', { n, nombres: q.padres.map((p) => p.nombre).join(', ') }));
-  const quienes = partes.length > 1 ? partes.slice(0, -1).join(', ') + t('quienGuardaY') + partes[partes.length - 1] : partes[0];
-  return `<p class="quien-guarda">${escapar(t('quienGuarda', { quienes }))}</p>`;
+  if (n) partes.push(t(n === 1 ? 'quienGuardaUnPadre' : 'quienGuardaPadres', { n, nombres: padres.map((p) => p.nombre).join(', ') }) + (q.enlazadas ? t('quienGuardaRamas', { n: q.enlazadas + (q.de ? 1 : 0) }) : ''));
+  let linea = t('quienGuarda', { quienes: enLista(partes) });
+  if (n) {
+    const leen = [...(q.nodo ? [t('quienGuardaElNodo')] : []), ...padres.filter((p) => p.lee === true).map((p) => p.nombre)];
+    linea += t('quienGuardaPuntoLeen', { quienes: leen.length ? enLista(leen) : t('quienGuardaSoloTu') });
+  }
+  return `<p class="quien-guarda">${escapar(linea)}</p>`;
 }
 
 /**

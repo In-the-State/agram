@@ -611,7 +611,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "a6987da0cc3a486631226896ff11aa8c464adbc86baae53a6b5394feeea5c5fb"
     },
     {
-      "ref": "c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617"
+      "ref": "e62ec99522bdf3349620586b4e40605594e9680571a27ce0c03019db213cceae"
     },
     {
       "ref": "265af8a7522a8cd77fee78f248923962c3890ef47a61bd5cb25ce3533748c704"
@@ -2213,6 +2213,30 @@ export const EPOCA_0_BTML_DATOS = [
         "R",
         "P",
         "E"
+      ]
+    ],
+    [
+      [
+        "custody defaults",
+        "the base resolutions of custody (VG 17-11 through Core State, the group «who can read what»: V11 and V7, defined by the epoch, configurable and with base resolutions, not fixed rules in code): 1 the keys, 2 the base value of each key, 3 the values allowed for each key (one list per key, in the order of 1). «parent reads»: whether a parent reads its branch when its record does not say (yes or no): a parent can keep and seal without receiving the envelope. «linked operation»: to whom a record that links other elements goes: both, to the parents of the branch of each element it links as well; own, only to those of the element it hangs from. The owner of an element changes them for it and what hangs from it with «set a custody default»; the reading is contrato.custodia"
+      ],
+      [
+        "parent reads",
+        "linked operation"
+      ],
+      [
+        "yes",
+        "both"
+      ],
+      [
+        [
+          "yes",
+          "no"
+        ],
+        [
+          "both",
+          "own"
+        ]
       ]
     ]
   ],
@@ -6508,6 +6532,8 @@ export const EPOCA_0_BTML_DATOS = [
           "template add a parent param grade help: el grado que declara el padre (quién responde), opaco como el de un eslabón del sello: un número o un texto corto; sin él, no se dice",
           "template add a parent param url label: dirección",
           "template add a parent param url help: dónde se encuentra al padre: una dirección http o https, sin credenciales; sin ella, no se dice",
+          "template add a parent param can read label: puede leer",
+          "template add a parent param can read help: si el padre lee lo que guarda: reads (la clave del sobre se envuelve también para él) o does not read (guarda y sella sin recibir el sobre); sin él, el defecto «parent reads» del elemento más cercano hacia arriba que lo diga, o el de base de la época (epoch.7.7)",
           "template add a parent message: {me} añade el padre {first ev.0} a {first it.0}",
           "template remove a parent: quitar un padre",
           "template remove a parent param parent label: padre",
@@ -6544,7 +6570,19 @@ export const EPOCA_0_BTML_DATOS = [
           "template give T to a thing of mine param actions label: acción",
           "template give T to a thing of mine param actions help: la acción",
           "template give T to a thing of mine message: {me} da {first ev.1.1} de T de la escala {first ev.1.0} a {first it.0}",
-          "a thing of mine is one whose alta I wrote: {first ev.3} da T con «dar T a una cosa mía» a {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, que no es una cosa cuya alta escribió"
+          "a thing of mine is one whose alta I wrote: {first ev.3} da T con «dar T a una cosa mía» a {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, que no es una cosa cuya alta escribió",
+          "template set a custody default: decidir cómo se guarda aquí",
+          "template set a custody default param key label: qué se decide",
+          "template set a custody default param key help: una de las claves de los defectos de custodia de la época (epoch.7.7.1): «parent reads» (si un padre lee lo que guarda cuando su registro no lo dice) o «linked operation» (a quién va un registro que enlaza otros elementos)",
+          "template set a custody default param value label: valor",
+          "template set a custody default param value help: el valor para este elemento y lo que cuelga de él: uno de los que la época permite para esa clave (epoch.7.7.3); por defecto, el de base de la época (epoch.7.7.2)",
+          "template set a custody default param criteria label: criterio",
+          "template set a custody default param criteria help: la plantilla de cerrado del registro",
+          "template set a custody default param who label: quién",
+          "template set a custody default param who help: quién lo decide: el dueño del elemento (quien lo escribió) o la identidad del génesis del libro",
+          "template set a custody default param actions label: acción",
+          "template set a custody default param actions help: la acción",
+          "template set a custody default message: {me} pone {first ev.0} a {first ev.1} en {first it.0}"
         ]
       ],
       [
@@ -6914,13 +6952,16 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "dee46772ef10d44f6ae9e35974ce1e19466fca47cf6088c372dac7209e18afd5"
         },
         {
-          "ref": "c86e8cf586f51031fb12c017c807ccd20e206a416f9e013fe7214a7f6f156a01"
+          "ref": "0e07a0558cb06099a25ab102c05f414ed21984e115787797a0d04a8f5f6f7bd5"
         },
         {
           "ref": "e32320e88634620543caf44460ee413ef266bd104371a216feeaa246bd8f7a8d"
         },
         {
           "ref": "6855920bf1834b1f262bf338df52510bd88a941a152ff4dee6845505d4ed5ed0"
+        },
+        {
+          "ref": "fce6cac82d91c1aa26033459717f8d029c35237666592c03fd0e14bcb2048e2f"
         }
       ]
     ],
@@ -9871,7 +9912,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "only-the-owner-sets-who-keeps-it.json",
-    "id": "c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617",
+    "id": "e62ec99522bdf3349620586b4e40605594e9680571a27ce0c03019db213cceae",
     "registro": [
       [
         "only the owner sets who keeps it"
@@ -9880,7 +9921,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         0
       ],
       [
-        "=not (\"add a parent\" in ev.4 or \"remove a parent\" in ev.4 or \"set the kind of owner\" in ev.4) or first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first before.1).3"
+        "=not (\"add a parent\" in ev.4 or \"remove a parent\" in ev.4 or \"set the kind of owner\" in ev.4 or \"set a custody default\" in ev.4) or first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first before.1).3"
       ],
       [
         "ev.3"
@@ -9896,8 +9937,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "*"
       ],
       [
-        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 5 y 7): los padres son testigos, no jueces; los padres, las copias y los grados son propiedad de cada libro, y los pone su dueño. Core AGRAM 16-11 (encargo «padres y copias», A19): un registro que pone o quita un padre, o que dice la clase del dueño («add a parent», «remove a parent», «set the kind of owner» en su 4), solo vale si su autor escribió el elemento del que cuelga (first ev.6.5 y su 3) o es la identidad del génesis del libro (before.1 y su 3)",
-        "Solo se mira cuando la candidata dice una de las tres acciones (el or es perezoso): before.1 no se recorre para lo demás. contrato.custodia lo vuelve a comprobar al leer (un libro escrito antes de esta regla, o en otra época, no cuela la configuración de otro)"
+        "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 5 y 7): los padres son testigos, no jueces; los padres, las copias y los grados son propiedad de cada libro, y los pone su dueño. Core AGRAM 16-11 (encargo «padres y copias», A19): un registro que pone o quita un padre, que dice la clase del dueño o que cambia un defecto de custodia («add a parent», «remove a parent», «set the kind of owner», «set a custody default» en su 4; la última, desde el encargo «puede leer», 17-11), solo vale si su autor escribió el elemento del que cuelga (first ev.6.5 y su 3) o es la identidad del génesis del libro (before.1 y su 3)",
+        "Solo se mira cuando la candidata dice una de las cuatro acciones (el or es perezoso): before.1 no se recorre para lo demás. contrato.custodia lo vuelve a comprobar al leer (un libro escrito antes de esta regla, o en otra época, no cuela la configuración de otro)"
       ],
       [
         "epoch 0"
@@ -20958,7 +20999,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "add-a-parent.json",
-    "id": "c86e8cf586f51031fb12c017c807ccd20e206a416f9e013fe7214a7f6f156a01",
+    "id": "0e07a0558cb06099a25ab102c05f414ed21984e115787797a0d04a8f5f6f7bd5",
     "registro": [
       [
         "add a parent"
@@ -21013,7 +21054,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "payload"
           ],
           [
-            "1.0"
+            "1.0.0"
           ],
           [
             "Core AGRAM 16-11 (encargo «padres y copias», A19): parámetro de «add a parent»"
@@ -21221,6 +21262,38 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           [
             "where the parent is reached: an http or https address, without credentials; without it, not said"
           ]
+        ],
+        [
+          [
+            "can read"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=\"reads\" in it or \"does not read\" in it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «puede leer», V11): parámetro de «add a parent»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            9
+          ],
+          [
+            "whether the parent reads what it keeps: reads (the key of the envelope is wrapped for it too) or does not read (it keeps and seals without receiving the envelope); without it, the custody default «parent reads» of the closest element above that says it, or the base of the epoch (epoch.7.7)"
+          ]
         ]
       ],
       [
@@ -21243,9 +21316,10 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       [
         "VG 16-11 (state/ANCLAJE_EN_CASCADA.md §7, puntos 3, 4, 5 y 7): «copias y padres son lo mismo, y son configurables: ninguno, uno o varios». Un padre guarda la copia cifrada, sella hacia arriba o hace las dos cosas; varios padres, cada uno con su parte; los padres son testigos, no jueces, y la configuración la pone el dueño",
         "Core State 16-11 (state/REPLANTEO_CASCADA.md, «Resuelto sin VG», N1 de AGRAM): la configuración de padres cuelga de un elemento (un registro cualquiera) y se hereda hacia abajo: la rama de un registro es la del elemento con configuración más cercano hacia arriba, él incluido. Esta plantilla se lanza sobre cualquier registro y ancla en su 9 (lo que le configura); un registro por padre",
-        "Sin huecos ni rellenos (VG 13-11, #77): lo opcional cierra su propia décupla, así que falte lo que falte no queda ningún hueco. 0 el nombre; 1.0 qué hace (keeps, seals, keeps and seals) y 1.1 el nivel en que sella (opcional, un nivel de epoch.7.6.1); 2.0 la clave x-only con que firma sus cabeceras de lote y 2.1 el grado que declara (opcional, opaco); 3.0 quién lo pone y 3.1 la dirección del padre (opcional, http o https); 4 la acción. Nada secreto: ni claves privadas, ni credenciales, ni direcciones con credenciales (contrato.custodia descarta una dirección que no sea http(s) o que lleve credenciales)",
+        "Sin huecos ni rellenos (VG 13-11, #77): lo opcional cierra su propia décupla, así que falte lo que falte no queda ningún hueco. 0 el nombre; 1.0.0 qué hace (keeps, seals, keeps and seals), 1.0.1 si lee (opcional, desde el 17-11: reads o does not read) y 1.1 el nivel en que sella (opcional, un nivel de epoch.7.6.1); 2.0 la clave x-only con que firma sus cabeceras de lote y 2.1 el grado que declara (opcional, opaco); 3.0 quién lo pone y 3.1 la dirección del padre (opcional, http o https); 4 la acción. Nada secreto: ni claves privadas, ni credenciales, ni direcciones con credenciales (contrato.custodia descarta una dirección que no sea http(s) o que lleve credenciales)",
         "Quién puede: solo vale la configuración escrita por quien escribió el elemento o por la identidad del génesis del libro (la regla «only the owner sets who keeps it»); por eso solo se ofrece a ellos. Quitar un padre es «remove a parent»",
-        "Su 4 es «write»: no mueve nada más que el coste de escribir (la regla de la época «the cost of writing»). Fuera de esta plantilla, preguntas abiertas de VG: que quien te invita sea tu padre por defecto, la operación que enlaza dos elementos, con qué clave se cifra y la compensación al padre"
+        "Su 4 es «write»: no mueve nada más que el coste de escribir (la regla de la época «the cost of writing»). Fuera de esta plantilla, preguntas abiertas de VG: que quien te invita sea tu padre por defecto, con qué clave se cifra y la compensación al padre",
+        "Core AGRAM 17-11 (encargo «puede leer», V11): «can read» es la 1.0.1, la segunda posición de una décupla 1.0 cuya 0 es qué hace. Era el único sitio sin huecos: 0-4 van siempre llenos y cada x.1 ya lo ocupa un opcional (el nivel, el grado, la dirección), así que un 1.2, 2.2 o 3.2 dejaría un hueco cuando falta el de delante, y del 5 al 9 son el tipo y las lecturas de cualquier registro. Por eso qué hace pasa de 1.0 a 1.0.0; un registro escrito antes, con qué hace en 1.0, sigue valiendo (contrato.custodia lee la primera hoja de 1.0) y no dice si lee: vale la resolución por defecto"
       ],
       [
         "epoch 0"
@@ -21641,6 +21715,214 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "set the kind of owner: {me} says the owner of {first it.0} is of the kind {first ev.0}"
       ]
     ]
+  },
+  {
+    "archivo": "set-a-custody-default.json",
+    "id": "fce6cac82d91c1aa26033459717f8d029c35237666592c03fd0e14bcb2048e2f",
+    "registro": [
+      [
+        "set a custody default"
+      ],
+      [
+        [
+          [
+            "key"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.7.7.1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «puede leer», V11 y V7): parámetro de «set a custody default»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=first epoch.7.7.1",
+            "what is decided here: one of the keys of the custody defaults of the epoch (epoch.7.7.1)"
+          ]
+        ],
+        [
+          [
+            "value"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in lookup(epoch.7.7.1, epoch.7.7.3, first ev.0)"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «puede leer», V11 y V7): parámetro de «set a custody default»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first lookup(epoch.7.7.1, epoch.7.7.2, first ev.0)",
+            "the value for this element and what hangs from it: one of the values the epoch allows for that key (epoch.7.7.3); by default, the base of the epoch (epoch.7.7.2)"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «puede leer», V11 y V7): parámetro de «set a custody default»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «puede leer», V11 y V7): parámetro de «set a custody default»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who decides it: the owner of the element (its author) or the identity of the genesis of the ledger"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «puede leer», V11 y V7): parámetro de «set a custody default»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "set a custody default",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 = me or first (first before.1).3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "9"
+      ],
+      [
+        "VG 17-11 por Core State, el grupo «quién puede leer qué» (V11 y V7): «puede leer» y la operación que enlaza dos elementos quedan definidas por la época, el foco y los PV de AGRAM, configurables y con resoluciones de base; no son reglas fijas en código. Las bases son el dato de la época epoch.7.7 («custody defaults»); esta plantilla las cambia para un elemento y lo que cuelga de él",
+        "0 la clave (una de epoch.7.7.1), 1 el valor (uno de los permitidos de esa clave, epoch.7.7.3, validado contra la época con lookup; por defecto, la base de 7.7.2), 2 la plantilla de cerrado, 3 quién, 4 la acción. Se hereda hacia abajo como la clase del dueño: en un elemento manda la última de cada clave; sin ninguna hasta la raíz, la base de la época (contrato.custodia)",
+        "Quién puede: como al poner un padre, quien escribió el elemento o la identidad del génesis del libro (la regla «only the owner sets who keeps it»). Su 4 es «write»: no mueve nada más que el coste de escribir"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        9,
+        8
+      ],
+      [
+        "set a custody default: {me} sets {first ev.0} to {first ev.1} on {first it.0}"
+      ]
+    ]
   }
 ];
 
@@ -21684,7 +21966,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06";
+export const EPOCA_0_BTML_ID = "f5a219faca16a2df4250b9e20fe80bb1a6b9e61100a5ee10fded0cdefdf13a55";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
