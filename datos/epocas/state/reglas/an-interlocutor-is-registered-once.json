@@ -1,24 +1,15 @@
 [
   ["an interlocutor is registered once"],
-  [
-    "register an interlocutor",
-    "interlocutor",
-    "node",
-    "epoch.9.0.5.1",
-    "epoch.9.0.5.2"
-  ],
-  ["=not (\"register an interlocutor\" in (payload(ev)).4) or first ev.6.5 = first (first ev.3).6 and last (first ev.6).5 = \"1400000000\" and \"interlocutor\" in (payload(ev)).5 and first (payload(ev)).6.0 in epoch.9.0.5.1 and not (first (payload(ev)).6.0 in epoch.9.0.5.2) and hex(slice(bytes(first (payload(ev)).6.1), 0, 32)) = first (payload(ev)).6.1 and count ((down (first ev.6.5)) where first (payload(it)).6.1 = first (payload(ev)).6.1 and first (payload(it)).6.0 = first (payload(ev)).6.0 and \"register an interlocutor\" in (payload(it)).4) = 0 and count ((first ev.3).1 where R in it.0.0.0 and it.1 > 0 and count ((down (first (it.0.0.1).6)) where \"node\" in (payload(it2)).5 and first it2.3 = it.0.0.1) > 0) > 0"],
+  ["register an interlocutor", "interlocutor", "ev.5", "node", "epoch.9.0.5.1", "epoch.9.0.5.2"],
+  ["=not (\"register an interlocutor\" in (payload(ev)).4) or count ev.5 = 1 and first ev.6.5 = first (first ev.3).6 and last (first ev.6).5 = \"1400000000\" and \"interlocutor\" in (payload(ev)).5 and first (payload(ev)).6.0 in epoch.9.0.5.1 and not (first (payload(ev)).6.0 in epoch.9.0.5.2) and hex(slice(bytes(first (payload(ev)).6.1), 0, 32)) = first (payload(ev)).6.1 and count ((down (first ev.6.5)) where first (payload(it)).6.1 = first (payload(ev)).6.1 and first (payload(it)).6.0 = first (payload(ev)).6.0 and \"register an interlocutor\" in (payload(it)).4) = 0 and count ((first ev.3).1 where R in it.0.0.0 and it.1 > 0 and count ((down (first (it.0.0.1).6)) where \"node\" in (payload(it2)).5 and first it2.3 = it.0.0.1) > 0) > 0"],
   ["ev.3"],
-  [
-    "mint",
-    "transfer",
-    "lock",
-    "release",
-    "burn"
-  ],
+  ["mint", "transfer", "lock", "release", "burn"],
   ["*"],
-  ["Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): el alta de un interlocutor va en el 1.4 de la propia alta de quien la escribe, con el tipo «interlocutor», un canal de fuera (de epoch.9.0.5.1 y no de epoch.9.0.5.2) y una huella de 64 hexadecimales en minúsculas, la escribe quien tiene R en el nodo (R de quien escribió el alta de un nodo) y una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor (se mira lo anclado en su 1.4: lo mismo que la plantilla pone). Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)"],
+  [
+    "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): el alta de un interlocutor va en el 1.4 de la propia alta de quien la escribe, con el tipo «interlocutor», un canal de fuera (de epoch.9.0.5.1 y no de epoch.9.0.5.2) y una huella de 64 hexadecimales en minúsculas, la escribe quien tiene R en el nodo (R de quien escribió el alta de un nodo) y una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor (se mira lo anclado en su 1.4: lo mismo que la plantilla pone). Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)",
+    "Core AGRAM 17-11 (arreglos de la revisión del gobierno, H7): el alta de un interlocutor no declara ninguna clave (su 5 es solo su id: count ev.5 = 1). Un interlocutor no actúa: si el alta escrita a mano le diera una clave, el servicio podría firmar en su nombre"
+  ],
   ["state 0"],
   ["after who opens, renames and archives a conversation"],
-  ["an interlocutor is registered once: {first ev.3} registers an interlocutor outside the 1.4 of its own alta, on a channel of the house or not in the list, with a malformed fingerprint, without R in a node, or with a channel and fingerprint it already registered"]
+  ["an interlocutor is registered once: {first ev.3} registers an interlocutor outside the 1.4 of its own alta, on a channel of the house or not in the list, with a malformed fingerprint, without R in a node, with a channel and fingerprint it already registered, or declaring a key (an interlocutor has none)"]
 ]

@@ -1,13 +1,13 @@
 {
-  "id": "164afd644225700fc44828fb1d207056c188d1d6c73ad0369876739a3ce9663e",
-  "hereda": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a",
+  "id": "37886658af86ad4a6d2feb49ed43c96508212b96a5ce46ad88a6011cca25b366",
+  "hereda": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e",
   "raiz": [
     [
       "época state 0",
       "state epoch 0"
     ],
     {
-      "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+      "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
     },
     [
       {
@@ -23,7 +23,7 @@
         "ref": "a004dbdf59c8e3b4afae62e2b9552b67960279a74e4a0cb1fb86d0bde5df4588"
       },
       {
-        "ref": "1980bcd136f0a999c3eebe1faf74339c2cdd0740150bab9b337c76b931d72796"
+        "ref": "2e19da123a22accdf6efb62f759b4b7332a50cf4d60467b30f5a4ae5908f396b"
       },
       {
         "ref": "f2d2a07e502ffb783248b0162f322df179c4894538587a96955053b4db71402e"
@@ -75,17 +75,17 @@
       }
     ],
     {
-      "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+      "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
     },
     [
       {
-        "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       },
       {
-        "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       },
       {
-        "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       },
       [
         [
@@ -143,7 +143,7 @@
       ]
     ],
     {
-      "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+      "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
     },
     [
       [
@@ -159,31 +159,31 @@
         "hereda"
       ],
       [
-        "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       ]
     ],
     {
-      "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+      "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
     },
     {
-      "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+      "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
     },
     [
       [
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         [
           [
@@ -202,29 +202,29 @@
         ]
       ],
       {
-        "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       },
       [
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         [
           [
@@ -1093,17 +1093,17 @@
         ]
       ],
       {
-        "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       },
       [
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         [
           [
@@ -1809,7 +1809,7 @@
             "template interlocutor of param channel help: el canal: uno de la época que no sea de la casa",
             "template interlocutor of param fingerprint label: huella",
             "template interlocutor of param fingerprint help: la huella del identificador de fuera: 64 caracteres hexadecimales en minúsculas",
-            "an interlocutor is registered once: {first ev.3} da de alta un interlocutor fuera del 1.4 de su propia alta, en el canal de la casa o en uno que no está en la lista, con una huella mal formada, sin R en un nodo, o con un canal y una huella que ya dio de alta",
+            "an interlocutor is registered once: {first ev.3} da de alta un interlocutor fuera del 1.4 de su propia alta, en el canal de la casa o en uno que no está en la lista, con una huella mal formada, sin R en un nodo, con un canal y una huella que ya dio de alta, o declarando una clave (un interlocutor no tiene)",
             "template interlocutor of message: {first ((payload(first (((under it) where it2 = it or first (payload(it2)).6.1 = first (payload(ev)).1 and first (payload(it2)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it2)).4 and first it2.3 = first it.3) by count (epoch where it2 = it)))).3.1 where first (((under it) where it3 = it or first (payload(it3)).6.1 = first (payload(ev)).1 and first (payload(it3)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it3)).4 and first it3.3 = first it.3) by count (epoch where it3 = it)) != it)}"
           ]
         ],
@@ -1824,11 +1824,11 @@
         ]
       ],
       {
-        "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+        "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
       },
       [
         {
-          "ref": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a"
+          "ref": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e"
         },
         [
           {
@@ -2119,12 +2119,13 @@
       [
         "register an interlocutor",
         "interlocutor",
+        "ev.5",
         "node",
         "epoch.9.0.5.1",
         "epoch.9.0.5.2"
       ],
       [
-        "=not (\"register an interlocutor\" in (payload(ev)).4) or first ev.6.5 = first (first ev.3).6 and last (first ev.6).5 = \"1400000000\" and \"interlocutor\" in (payload(ev)).5 and first (payload(ev)).6.0 in epoch.9.0.5.1 and not (first (payload(ev)).6.0 in epoch.9.0.5.2) and hex(slice(bytes(first (payload(ev)).6.1), 0, 32)) = first (payload(ev)).6.1 and count ((down (first ev.6.5)) where first (payload(it)).6.1 = first (payload(ev)).6.1 and first (payload(it)).6.0 = first (payload(ev)).6.0 and \"register an interlocutor\" in (payload(it)).4) = 0 and count ((first ev.3).1 where R in it.0.0.0 and it.1 > 0 and count ((down (first (it.0.0.1).6)) where \"node\" in (payload(it2)).5 and first it2.3 = it.0.0.1) > 0) > 0"
+        "=not (\"register an interlocutor\" in (payload(ev)).4) or count ev.5 = 1 and first ev.6.5 = first (first ev.3).6 and last (first ev.6).5 = \"1400000000\" and \"interlocutor\" in (payload(ev)).5 and first (payload(ev)).6.0 in epoch.9.0.5.1 and not (first (payload(ev)).6.0 in epoch.9.0.5.2) and hex(slice(bytes(first (payload(ev)).6.1), 0, 32)) = first (payload(ev)).6.1 and count ((down (first ev.6.5)) where first (payload(it)).6.1 = first (payload(ev)).6.1 and first (payload(it)).6.0 = first (payload(ev)).6.0 and \"register an interlocutor\" in (payload(it)).4) = 0 and count ((first ev.3).1 where R in it.0.0.0 and it.1 > 0 and count ((down (first (it.0.0.1).6)) where \"node\" in (payload(it2)).5 and first it2.3 = it.0.0.1) > 0) > 0"
       ],
       [
         "ev.3"
@@ -2140,7 +2141,8 @@
         "*"
       ],
       [
-        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): el alta de un interlocutor va en el 1.4 de la propia alta de quien la escribe, con el tipo «interlocutor», un canal de fuera (de epoch.9.0.5.1 y no de epoch.9.0.5.2) y una huella de 64 hexadecimales en minúsculas, la escribe quien tiene R en el nodo (R de quien escribió el alta de un nodo) y una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor (se mira lo anclado en su 1.4: lo mismo que la plantilla pone). Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)"
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): el alta de un interlocutor va en el 1.4 de la propia alta de quien la escribe, con el tipo «interlocutor», un canal de fuera (de epoch.9.0.5.1 y no de epoch.9.0.5.2) y una huella de 64 hexadecimales en minúsculas, la escribe quien tiene R en el nodo (R de quien escribió el alta de un nodo) y una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor (se mira lo anclado en su 1.4: lo mismo que la plantilla pone). Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)",
+        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, H7): el alta de un interlocutor no declara ninguna clave (su 5 es solo su id: count ev.5 = 1). Un interlocutor no actúa: si el alta escrita a mano le diera una clave, el servicio podría firmar en su nombre"
       ],
       [
         "state 0"
@@ -2149,7 +2151,7 @@
         "after who opens, renames and archives a conversation"
       ],
       [
-        "an interlocutor is registered once: {first ev.3} registers an interlocutor outside the 1.4 of its own alta, on a channel of the house or not in the list, with a malformed fingerprint, without R in a node, or with a channel and fingerprint it already registered"
+        "an interlocutor is registered once: {first ev.3} registers an interlocutor outside the 1.4 of its own alta, on a channel of the house or not in the list, with a malformed fingerprint, without R in a node, with a channel and fingerprint it already registered, or declaring a key (an interlocutor has none)"
       ]
     ],
     [

@@ -1,0 +1,16 @@
+[
+  ["a support is true at its point"],
+  ["ev.4", "A.2.1", "ev.1", "ev.6.5", "before.5"],
+  ["=not (\"support a change\" in ev.4) or first (payload(ev)).1.1 = sum ((first ev.3).2.1 each 1) - sum (((first ev.3).2.1 where first it.0 = first ev.6.5 or first ev.6.5 in up (first it.0)) each 1) and first (payload(ev)).1.1 > 0 and first (payload(ev)).1.2 = count (down first ev.6.5 where \"withdraw support\" in (payload(it)).4 and first it.3 = first ev.3) and first (payload(ev)).1.3 - (sum ((payload(last (under first ev.6.5 where it = first ev.6.5 or \"support a change\" in (payload(it)).4 and first it.3 = first ev.3 and first it.6.5 = first ev.6.5 and first (payload(it)).1.2 = count (down first ev.6.5 where \"withdraw support\" in (payload(it2)).4 and first it2.3 = first ev.3)))).1.3) + sum ((ev.1 where P in it.0.0.0 and lock in it.4 and first ev.6.5 in it.2 and not (first it.0.0.1 = first ev.6.5 or first ev.6.5 in up (first it.0.0.1))) each 1) / first (payload(ev)).1.1) <= 0.000001 and (sum ((payload(last (under first ev.6.5 where it = first ev.6.5 or \"support a change\" in (payload(it)).4 and first it.3 = first ev.3 and first it.6.5 = first ev.6.5 and first (payload(it)).1.2 = count (down first ev.6.5 where \"withdraw support\" in (payload(it2)).4 and first it2.3 = first ev.3)))).1.3) + sum ((ev.1 where P in it.0.0.0 and lock in it.4 and first ev.6.5 in it.2 and not (first it.0.0.1 = first ev.6.5 or first ev.6.5 in up (first it.0.0.1))) each 1) / first (payload(ev)).1.1) - first (payload(ev)).1.3 <= 0.000001"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, arreglos de la revisión de seguridad del gobierno (agram-equipo/encargos/encargo-arreglos-gobierno.md, punto G; hallazgo H8 de test/revision-gobierno.test.js): la parte que un titular compromete con una propuesta queda fijada cuando la compromete. docs/notas/GOBIERNO.md",
+    "Un registro que dice «support a change» en su 4 declara en su 1.1 el P total de quien lo escribe en ese punto (todo su P en el libro, A.2.1, sin el situado sobre la propuesta ni sobre lo anclado directamente en ella), mayor que 0; en su 1.2, cuántas veces ha retirado ya su apoyo de esa propuesta («withdraw support» suyos anclados en ella); y en su 1.3, lo que tiene comprometido con ella: el 1.3 de su último apoyo vivo (el último suyo anclado en ella con el mismo 1.2; sin él, 0) más lo que bloquea este (P con la salida en la propuesta, sin ese P situado) entre su total. Solo vale si es verdad en ese punto, como «declare a balance» en el diseño del puente. Lo comprometido se compara con una tolerancia de 0.000001: la plantilla redondea lo que bloquea a la milmillonésima",
+    "El 1.3 es acumulado porque el BQL mínimo no deja dividir cada apoyo por su propio total al sumarlos: «support of» lee solo el del último apoyo vivo de cada titular. Restaurar y reordenar vuelven a pasar esta regla en el orden nuevo"
+  ],
+  ["epoch 0"],
+  ["after a change comes into force with its proof"],
+  ["a support is true at its point: {first ev.3} supports {first ev.6.5} declaring a total of P, a number of withdrawals or a committed part that are not those of this point"]
+]

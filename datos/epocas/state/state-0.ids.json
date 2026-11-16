@@ -1,6 +1,6 @@
 {
-  "epoca": "164afd644225700fc44828fb1d207056c188d1d6c73ad0369876739a3ce9663e",
-  "hereda": "239f4849909f14ef55aa5d3604136a5a79ba7bb4f996614203d9ea833239cb5a",
+  "epoca": "37886658af86ad4a6d2feb49ed43c96508212b96a5ce46ad88a6011cca25b366",
+  "hereda": "4ebe2c064d83ff608c61f4b451e8b7d5b1cc0f8f7bb8d0fca5cfe2c6276a432e",
   "registrosAlPublicar": 63,
   "reglas": [
     {
@@ -26,7 +26,7 @@
     {
       "nombre": "an interlocutor is registered once",
       "archivo": "an-interlocutor-is-registered-once.json",
-      "id": "1980bcd136f0a999c3eebe1faf74339c2cdd0740150bab9b337c76b931d72796"
+      "id": "2e19da123a22accdf6efb62f759b4b7332a50cf4d60467b30f5a4ae5908f396b"
     },
     {
       "nombre": "anchors asked",

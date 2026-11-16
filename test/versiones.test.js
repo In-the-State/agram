@@ -200,14 +200,14 @@ test('versiones: el segundo cambio que ya no encaja se rechaza al ponerlo en vig
   assert.ok(!r.ev);
   assert.match(delMotor(r.motivos).join(' '), /en este punto, sobre la versión vigente: el cambio deja el umbral de un cambio de gobierno \(epoch\.7\.9\.2, 0\.55\) por debajo del de un cambio corriente \(epoch\.7\.9\.1, 0\.6\)/);
   assert.equal(eje.versiones().length, 2);
-  // Clase: c hace de «a test limit» una pieza de gobierno; d, corriente, la sustituye: valía al proponerla, ya no.
-  const piezas = [...V.piezasDeGobiernoDe(eje.epoca()), 'a test limit'];
-  const c = await L.aprobar('la regla de prueba es de gobierno', { 7: siete({ nueve: fila79({ 7: piezas }) }) }, { clase: 'governance' });
-  const otra = regla(undefined, 'a test limit: {first (payload(ev)).1} is too much');
-  const d = await L.aprobar('otro mensaje', { 2: [{ ref: idDeRegistro(otra) }] }, { registros: [otra] });
+  // Clase: c hace de epoch.7.8 (el parámetro de la regla de prueba) una pieza de gobierno; d, corriente, lo cambia: valía al
+  // proponerla, ya no. (Sustituir la regla misma ya pide «governance» al proponer: arreglos de la revisión, H2.)
+  const piezas = [...V.piezasEscritasDe(eje.epoca()), 'epoch.7.8'];
+  const c = await L.aprobar('el parámetro de prueba es de gobierno', { 7: siete({ nueve: fila79({ 7: piezas }) }) }, { clase: 'governance' });
+  const d = await L.aprobar('subir el límite', { 7: siete({ ocho: [M, [10]] }) });
   assert.ok((await L.poner(c.aprobacion)).ev);
   const r2 = await L.poner(d.aprobacion);
-  assert.match(delMotor(r2.motivos).join(' '), /toca «a test limit», que es una pieza de gobierno \(epoch\.7\.9\.7\), y se declara «ordinary»/);
+  assert.match(delMotor(r2.motivos).join(' '), /toca «epoch\.7\.8», que es una pieza de gobierno \(epoch\.7\.9\.7\), y se declara «ordinary»/);
 });
 
 test('versiones: al proponer, el núcleo rechaza lo que toca el suelo, la clase que se queda corta y los nombres sin presión', async () => {
@@ -257,7 +257,8 @@ test('versiones: un cambio que añade una plantilla la deja usable desde el regi
   // Sustituir la regla de prueba (no es del suelo ni de gobierno): rige la nueva desde el registro siguiente.
   assert.ok((await L.mide(4)).ev);
   const estricta = regla('=not ("test measure" in ev.4) or first (payload(ev)).1 <= 3', 'a test limit: {first (payload(ev)).1} is above three');
-  const s = await L.aprobar('una regla más estricta', { 2: [{ ref: idDeRegistro(estricta) }] }, { registros: [estricta] });
+  // Una condición sustituida es de clase «governance» (arreglos de la revisión, H2): el dueño solo cuenta, con los dos tercios.
+  const s = await L.aprobar('una regla más estricta', { 2: [{ ref: idDeRegistro(estricta) }] }, { registros: [estricta], clase: 'governance' });
   assert.ok((await L.poner(s.aprobacion)).ev);
   assert.match((await L.mide(4)).error.message, /a test limit: 4 is above three/);
   assert.ok((await L.mide(3)).ev);
@@ -268,7 +269,7 @@ test('versiones: una caché no sirve el texto ni la plantilla de otra versión',
   const { eje } = L;
   const antes = eje.versiones()[0].version;
   const otra = regla(undefined, 'a test limit: {first (payload(ev)).1} is not allowed');
-  const s = await L.aprobar('otro mensaje', { 2: [{ ref: idDeRegistro(otra) }] }, { registros: [otra] });
+  const s = await L.aprobar('otro mensaje', { 2: [{ ref: idDeRegistro(otra) }] }, { registros: [otra], clase: 'governance' });
   const mensaje = (epoca) => C.mensaje(eje, 'a test limit', 'en', epoca ? { epoca } : {});
   const viejo = mensaje();
   await L.poner(s.aprobacion);

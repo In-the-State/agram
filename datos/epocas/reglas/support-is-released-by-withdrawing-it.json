@@ -1,0 +1,15 @@
+[
+  ["support is released by withdrawing it"],
+  ["ev.1", "ev.4", "ev.6.5", "before.5"],
+  ["=count (ev.1 where release in it.4 and not ((\"withdraw support\" in ev.4 or \"withdraw a change\" in ev.4) and first ev.6.5 in it.2) and count (it.2 where it2 in (down (first before.5) where \"propose a change\" in (payload(it3)).4)) > 0) = 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, arreglos de la revisión de seguridad del gobierno (agram-equipo/encargos/encargo-arreglos-gobierno.md, punto G; hallazgo H8 de test/revision-gobierno.test.js): la parte que un titular compromete con una propuesta queda fijada cuando la compromete. docs/notas/GOBIERNO.md",
+    "Lo bloqueado con un cambio propuesto (la salida es una propuesta colgada del génesis) solo se libera en un registro que dice «withdraw support» o «withdraw a change» en su 4 y se ancla en esa propuesta. Así toda liberación cuenta como una retirada (el 1.2 de los apoyos siguientes sube y los anteriores dejan de contar) y el P liberado no sigue contando en una propuesta mientras apoya otra"
+  ],
+  ["epoch 0"],
+  ["after a support is true at its point"],
+  ["support is released by withdrawing it: {first ev.3} releases what is locked with a proposed change without withdrawing its support from it or withdrawing the change"]
+]
