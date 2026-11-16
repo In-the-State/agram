@@ -86,7 +86,7 @@ Salen «add a connection», «change a connection's permissions» y «remove a c
 - **set a group price**: lo que ancla en el 3.k.2 de su propia alta;
 - **move to group** y **veto someone**: lo que ancla en el 3.k.3 de su propia alta (el veto es el 3.5.3), solo si la identidad movida (su 0) tiene un alta que cuelga de una invitación al dominio del nodo (una conexión, vigente o no).
 
-Es una tercera rama de la lectura «second factor» de esta época, no una regla que rechace: sin criterio, todo sigue como antes. La posición del ancla se lee de los diez dígitos de su dirección como cinco bytes (`le(bytes(last (first it.6).5))`: el 3.k.2 da de 8240 a 8249 y el 3.k.3, de 12336 a 12345). Mientras espera la firma, la conexión **no sale en «current connections»** (su invitación lleva su X.6.8.7 sin su X.6.8.8) y un veto pendiente **no la quita** (el «nothing» solo cuenta si hay un veto ya firmado). **Lo que no alcanza sin tocar la 0**: el grupo y el precio de la atención del dueño (`it.6.3` y `it.6.2` de su alta, las lecturas «attention group» y «attention price» de la 0, que leen los grupos del 3 de su alta tal como los arma `src/contexto-eje.js`) y la regla «attention has a price», que los lee, cambian en cuanto se escriben, firmados o no: un cambio de grupo o de precio pendiente ya rige para lo que cuesta escribir, y un veto pendiente ya rechaza. Para que no, habría que sustituir en esta época esas dos lecturas por otras que salten lo que espera su firma (o que el núcleo arme los grupos sin ello).
+Es una tercera rama de la lectura «second factor» de esta época, no una regla que rechace: sin criterio, todo sigue como antes. La posición del ancla se lee de los diez dígitos de su dirección como cinco bytes (`le(bytes(last (first it.6).5))`: el 3.k.2 da de 8240 a 8249 y el 3.k.3, de 12336 a 12345). Mientras espera la firma, la conexión **no sale en «current connections»** (su invitación lleva su X.6.8.7 sin su X.6.8.8) y un veto pendiente **no la quita** (el «nothing» solo cuenta si hay un veto ya firmado). **Lo que espera la firma tampoco rige la atención** (encargo «los dos canales», A0, VG 17-11 por Core State): esta época sustituye las lecturas «attention group» (X.6.3) y «attention price» (X.6.2) de la 0, que leían los grupos del 3 del alta del dueño tal como los arma `src/contexto-eje.js` (`#grupos` y `#corregido`, en JavaScript, sin mirar firmas), por otras con el mismo nombre que solo cuentan lo firmado: de los grupos que nombran a quien escribe (A.3.k.3, el último, como en la 0) solo vale uno con un registro del dueño en el 3.k.3 de su alta que lo nombre y no espere la firma (X.6.8.7 sin todas sus firmas en X.6.8.8), y el precio de la zona es el del último registro firmado del dueño en su 3.k.2 o, si no hay ninguno, el de la época (epoch.1.2.1.k.2). Así un cambio de grupo, un precio o un veto pendientes **no cambian lo que cuesta escribir ni rechazan** hasta que firma quien nombra el criterio; firmados, sí. La regla «attention has a price» de esta época lee además el precio una sola vez (como el elemento de un `where`) y no en cada comparación, porque cada lectura de X.6.2 vuelve a evaluar las dos lecturas y ahora incluyen firmas. No toca la 0 ni el núcleo: bastó con las fórmulas de la época. Coste en §6.
 
 ## 5. Qué escribe el vigía
 
@@ -106,7 +106,7 @@ Cada consulta se evalúa con el núcleo sobre el eje del nodo, `bqlm.evaluar(for
 | las conexiones vigentes | el nodo | la lectura con nombre **«current connections»** (abajo) |
 | su clave | su alta | la que nombra la invitación, `(payload(first (up it))).3.5` |
 | sus relés | su alta | `(payload(last ((down it) where last (first it2.6).5 = "1300000000" and first it2.3 = first it.3 and "declare my relays" in (payload(it2)).4))).1` |
-| su grupo y su precio | su alta | `it.6.3` y `it.6.2` (las lecturas «attention group» y «attention price» de la 0: su sitio en la atención del dueño) |
+| su grupo y su precio | su alta | `it.6.3` y `it.6.2` (las lecturas «attention group» y «attention price» de esta época, que sustituyen a las de la 0: su sitio en la atención del dueño, sin lo que espera la firma del titular) |
 | la R del dueño que le queda | su alta | `sum (((first it.3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (up it)).3) each 1)` |
 | los pedidos de ancla, servidos o no | el nodo | la lectura con nombre **«anchors asked»** (abajo) |
 | de cada pedido: quién, libro, clave, nivel, cabecera, instante | el pedido | `first it.3`; `(payload(it)).6.0`, `.6.1`, `.6.2`, `.6.3`; `first it.6.0` |
@@ -121,6 +121,8 @@ Cada consulta se evalúa con el núcleo sobre el eje del nodo, `bqlm.evaluar(for
 - **current connections** (conexiones vigentes): `before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and "invitation" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (first (first (up (first it2.6))).6).8.7 = count (first (first (up (first it2.6))).6).8.8 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and (first (first it2.6).6.2.0 != "nothing" or count ((down (first (first it.3).6)) where last (first it3.6).5 = "3530000000" and first (payload(it3)).0 = it2) > 0 and count ((down (first (first it.3).6)) where last (first it3.6).5 = "3530000000" and first (payload(it3)).0 = it2 and count (first it3.6).8.7 = count (first it3.6).8.8) = 0)`: las identidades cuya alta cuelga de una invitación del dueño al nodo que no espera la firma del titular, con R suya y no vetadas (un veto que espera la firma no cuenta), por llegada.
 
 **Coste** (medido con el ejemplo más 48 conexiones firmadas: 50 conexiones, 49 vigentes y una vetada, 66 identidades, 20 criterios «require authorization» y 256 registros; los topes, `LIMITES` de `src/bqlm.js`: 100 000 pasos y 10 000 ocupantes por evaluación, y cada lectura materializada dentro de otra lleva los suyos): «second factor» de una invitación al nodo, 1134 pasos y 1601 ocupantes (antes de la tercera rama, 728 ocupantes); de un «move to group», 1774 y 2154 (antes, 662); de una operación bajo el nodo, 1482 y 1895 (antes, 1304); «authorized by the holder» de la invitación, 302 y 585; «current connections», 2182 pasos y 5481 ocupantes (antes, 2161 ocupantes: la firma de cada invitación cuesta unos 50, los 20 criterios de su X.6.8.7 y los de su X.6.8.8) en un segundo; «anchors asked», 145 y 160. Los ocupantes de «current connections» crecen con conexiones × criterios: con 20 criterios, el tope de 10 000 llegaría hacia las 90 conexiones.
+
+**Coste de A0** (la atención sin lo que espera la firma; medido sobre el eje de ejemplo, y los tiempos con otros agentes trabajando en la máquina, así que valen de orden): «attention group» no cambia de coste (101 pasos y 283 ocupantes con el pedido de ancla del vecino; solo mira firmas cuando un grupo nombra a quien escribe); «attention price» pasa de 22 pasos y 56 ocupantes a 651 pasos y 1738 ocupantes cuando el grupo tiene un precio escrito (la firma de ese precio, su X.6.8.7, es una lectura con su propio presupuesto) y de 22 y 30 a 45 y 69 cuando rige el de la época. La regla «attention has a price» lee ahora el precio una vez y no unas quince: escribir sobre el alta de otro (el pedido de ancla) pasó de 43 ms a 38 ms de validación (la regla, de 31 a 17 ms) con solo A0, y un registro corriente que no escribe sobre un alta ajena no lee la atención (la regla se para en su primer «or»): ni antes ni después.
 
 En el contrato de JS (`src/contrato.js`) no hay una lectura de conexiones: se leen así. Con el nodo de ejemplo:
 
@@ -158,4 +160,97 @@ El eje es la única fuente: el nodo no lleva en la máquina ninguna lista aparte
 
 ## 7. Publicar la época en un eje vacío
 
-`node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del operador; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **38 registros** (el génesis, la raíz y sus 36 registros: 4 reglas, 2 de ellas lecturas con nombre, y 32 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: cabe en un minuto. El mayor, la raíz, ocupa unos 63 KB (el tope es de 256 KB). Después, las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.
+`node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del operador; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **60 registros** (el génesis, la raíz y sus 58 registros: 20 reglas, 10 de ellas lecturas con nombre, y 38 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: algo más de un minuto. El mayor, la raíz, ocupa unos 73 KB (el tope es de 256 KB). Después, las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.
+
+## 8. Las conversaciones y los canales
+
+VG 17-11 (por Core State; cerrado con Core AARPIA, encargo «los dos canales»): en el sprint 1 hay dos canales, al menos simulados: uno con personas (Telegram) y uno de IA (el agente de la casa con un modelo simulado). Las conversaciones viven en el libro del nodo, en esta época; la 0 no se toca. Es el caso 2 de AARPIA (`aarpia/APPS_PARA_AGRAM.md`) en cuatro niveles: la persona, el espacio del agente (su alta), la conversación (el activo) y su estado (activa o archivada, una lectura). «Continuar» no es plantilla: es cada mensaje.
+
+**Quién es quién.** El **agente**: una pieza «agent» del nodo declarada agente («register an agent», «declare agent»). El **servicio** que habla con Telegram: una persona del libro (entra por invitación con R del operador); es el único que ve el identificador de fuera (el chat_id), que nunca se guarda en el libro. El **interlocutor de fuera**: una identidad del libro sin clave, dada de alta por el servicio (una cosa suya: su alta la escribe el servicio); no actúa: el servicio habla de ella y en su nombre. En el canal de la casa, el interlocutor es la propia persona.
+
+**Los canales** son un dato de la época, `epoch.9.0.5` (`[["channels"], [todos], [los de la casa], [nota]]`): `epoch.9.0.5.1` = `telegram`, `house` y `epoch.9.0.5.2` = `house`. Se añade un canal sin tocar plantillas; uno que no está en `9.0.5.2` es «de fuera» (lo escribe y lo entrega quien dio de alta al interlocutor).
+
+### Las plantillas
+
+| Plantilla (8) | X y ancla | Payload | Quién la escribe |
+|---|---|---|---|
+| **open a conversation** [1, 24] | el alta de un agente declarado; ancla en su **1.5** (donde encajan los contextos) | 0 el título (opcional; sin él, la representación), **1 el agente** (por defecto el 3.1 de X), 2 el criterio de cierre, **3.0 quien la abre**, **3.1 el interlocutor** (por defecto quien la abre), 4 «open a conversation», 5 «conversation with an agent» | el dueño del agente (quien escribió su alta) o quien tiene R suya; el interlocutor es quien la abre o una identidad cuya alta escribió quien la abre (el servicio la abre en nombre del interlocutor). Quien no es el dueño paga el precio de su grupo: el 4 devuelve al dueño la R del precio (`first (first ev.6).2.1`), y «attention has a price» lo exige, porque el alta del agente es una pieza |
+| **rename a conversation** [0, 5] | la conversación; ancla en su **0** | 0 el título nuevo, 1 la conversación, 2 el criterio, 3 quién, 4 «rename a conversation» | quien la abrió o el dueño del agente; vale el último |
+| **archive a conversation** [4, 24] | la conversación; ancla en su **4** | 0 la causa (por defecto «archived»), 1 la conversación, 2 «closed by decision», 3 quién, 4 «archive a conversation» y «close by decision» (la forma de «close by decision» de la 0) | quien la abrió o el dueño del agente; después no admite mensajes |
+| **message in** [3, 13] | la conversación; ancla en su **3** | **0 «message in»**, **1.0 el canal**, **1.1 el interlocutor** (por defecto, el de la conversación), **1.2 el texto**, **1.3 el adjunto**, **1.4 en respuesta a** | canal de la casa: la propia persona (1.1 = quien escribe); canal de fuera: quien dio de alta al interlocutor (el autor de su alta, y no él mismo). Siempre el interlocutor de la conversación (su 3.1). Modo persona |
+| **message out** [3, 14] | la conversación; ancla en su **3** | lo mismo con **0 «message out»** (canal e interlocutor, por defecto los del último que entró) | el agente de la conversación (su 1) o su dueño; siempre al interlocutor de la conversación. Modo agente (el dueño, una persona, también la lanza) |
+| **delivery result** [4, 25] | un «message out» de fuera; ancla en su **4** | 0 la representación, 1 el mensaje, 2 el criterio, 3 quién, 4 y 5 «delivery result», **6.0 `sent` o `failed`**, **6.1 la causa** (obligatoria si `failed`), **6.2 una referencia de fuera** (opcional) | quien entrega: el autor del alta del interlocutor del mensaje. Un reintento es otro; vale el último por instante y, a igualdad, por id. En la casa no lleva |
+
+Un mensaje lleva lo mínimo que admite la época: un payload no tiene huecos ni textos vacíos (`validarPayload`), así que su acción va en su 0 (lo que es) y no en el 4, que obligaría a escribir también el 2 y el 3. Al menos uno de 1.2 y 1.3; el que falte delante de otro se escribe `-` (los defectos lo ponen: el texto, si hay adjunto; el adjunto, si hay respuesta), y `-` no cuenta como texto ni como adjunto. El adjunto es un puntero: 64 hexadecimales en minúsculas (el sha256 de un blob) o `telegram:` y el identificador del archivo. Lo que el BQL mínimo comprueba de `telegram:`: el prefijo (sus nueve bytes en utf8), que le sigue algo y que todo cabe en 137 bytes (relleno de ceros, el byte 137 es cero); **no comprueba** que el identificador sea solo de letras, cifras, guion y guion bajo (no hay primitiva que recorra un texto). Un puntero que no es ni lo uno ni lo otro deja la regla en ERROR (`bytes(…)` de algo que no es hexadecimal) y también se rechaza, con un motivo menos llano.
+
+### Las reglas de validez
+
+Lo que piden las plantillas lo exigen también a lo escrito a mano seis reglas de esta época, detrás de «attention has a price»; cada una se para en su primer `or` si la candidata no es lo suyo (un mensaje es lo que dice «message in» o «message out» en su 0 y cuelga del 3 de una conversación):
+
+- **a message names a channel and its interlocutor**: el 1.0, de `epoch.9.0.5.1`; el 1.1, el interlocutor de la conversación (su 3.1). Nadie mete en una conversación lo que dice o se le dice a otro.
+- **a message carries a text or a file**: al menos uno de 1.2 y 1.3 que no sea `-`; el adjunto, un puntero como arriba; el 1.4, un mensaje de la misma conversación.
+- **who writes a message**: lo de la tabla.
+- **an archived conversation takes no messages**: con un «archive a conversation» en su 4 (de quien la abrió o del dueño del agente), ni uno más.
+- **a delivery result comes from whoever delivers**: en el 4 de un «message out» de fuera, de quien dio de alta a su interlocutor, `sent` o `failed` con causa.
+- **who opens, renames and archives a conversation**: lo de la tabla para abrir, renombrar y archivar.
+
+### Las lecturas
+
+Lecturas con nombre (reglas con «read» y su 3 en `X`), con `leerRegla` como las del §6:
+
+| Lectura | `it` | Da |
+|---|---|---|
+| **conversations** | el alta del agente | sus conversaciones (registros), por llegada, activas o archivadas |
+| **conversation title** | la conversación | el título vigente: el 0 del último renombre válido o su propio 0 |
+| **conversation archived** | la conversación | verdadero si está archivada, falso si está activa |
+| **messages of** | la conversación | sus mensajes (registros), por llegada; de cada uno, `first (payload(it)).0` el sentido y `(payload(it)).1.0` a `.1.4` el canal, el interlocutor, el texto, el adjunto y en respuesta a |
+| **message count** | la conversación | cuántos mensajes tiene |
+| **last message** | la conversación | el instante de su último mensaje (nada si no tiene) |
+| **delivery** | un «message out» | su resultado vigente (un registro: su 6.0, 6.1 y 6.2), o nada |
+| **messages to deliver** | la conversación | los «message out» de fuera sin resultado o con el vigente `failed`, por llegada |
+
+«messages to deliver» es **por conversación**: el servicio la lee en cada conversación del agente. Una global no cabe: lo que cuelga de un agente con 30 conversaciones de 200 mensajes son unos 9000 registros, y recorrerlo (`under`) costó 1688 ocupantes por 304 registros, así que pasaría del tope de 10 000.
+
+**La huella del interlocutor.** El alta del interlocutor de fuera lleva su canal y la huella de su identificador de fuera (64 hexadecimales), nunca el identificador. La huella es un HMAC-SHA256 del identificador con una clave que guarda StateArk; la época no sabe cómo se calcula, solo que son 64 hexadecimales.
+
+**Lo que queda parado: el alta del interlocutor sin T ni tokens** (encargo, C). La época 0 no lo admite: una identidad existe cuando tiene cuenta en el libro, y la cuenta la abre la primera transacción que la toca (`src/libro.js`, `#abrir`, desde `#confirmar`); un movimiento es de una cantidad mayor que cero (`src/libro.js`, «la cantidad es un número > 0»), y `src/eje.js` (`transaccion`, su `abre`) solo abre sin movimiento la cuenta del autor del génesis. Sin tocar la 0 ni el núcleo no hay alta sin dotación, así que **«register an interlocutor» y la lectura «interlocutor of» no están**, ni la regla de que la misma pareja canal y huella no se dé de alta dos veces. El cambio mínimo sería en el núcleo: que `transaccion` de `src/eje.js` abra también, sin movimiento, la cuenta de la identidad que declara el 3.1 de un registro de un tipo que diga la época (por ejemplo, con «interlocutor» en su 5), escrito por una identidad con alta; las reglas de la 0 ya admiten un alta sin clave. Mientras, todo lo demás es genérico (el interlocutor es una identidad con alta y quien escribe en su nombre es el autor de su alta), y en el ejemplo el servicio da de alta al interlocutor a mano con lo que la 0 admite hoy: una cosa suya sin clave con **un minuto de T**, en la forma que tendría la plantilla (su canal y su huella en el 6).
+
+**Coste en T.** Cada posición escrita cuesta un minuto («the cost of writing»): un mensaje de solo texto, **4 minutos** (0, 1.0, 1.1 y 1.2); con adjunto, 5; en respuesta y sin adjunto, 6 (el adjunto va como `-`); abrir una conversación, 7 (y una R del dueño si no es su dueño); un resultado de entrega, de 7 a 9 (8 el fallido con su causa, 9 el enviado con su referencia); renombrar, 5; archivar, 6. **Al día**: una persona tiene 1440 minutos de T de minuto, así que escribe hasta **360 mensajes de solo texto al día** (288 con adjunto, 240 en respuesta), si no escribe otra cosa; un agente (una cosa) no tiene T del día: gasta su dotación (el de la casa, 600 minutos en el ejemplo: unos 150 mensajes) y su dueño se la repone.
+
+**Coste de leer y de escribir** (una conversación de Telegram con 200 mensajes, 100 que entran y 100 que salen, 66 resultados de entrega, y 30 conversaciones del agente; los pasos y ocupantes son los de la propia evaluación, frente a los topes de 100 000 y 10 000): «conversations» 124 pasos y 153 ocupantes; «conversation title» 1476 y 1742; «conversation archived» 601 y 600; «messages of» y «message count» 901 y 1200; «last message» 903 y 1202; «delivery» 14 y 24; «messages to deliver» 2663 y 4993 (la que más: el resultado vigente de cada mensaje que sale; el tope de ocupantes llegaría hacia los 400 mensajes en una conversación). Escribir un mensaje en esa conversación cuesta unos 25 ms de validación; de las reglas nuevas, solo «an archived conversation takes no messages» crece con la conversación (607 pasos y 613 ocupantes con 200 mensajes: mira lo anclado en ella); las demás, de 10 a 16 pasos. Las seis reglas se miran en cada escritura del libro y se paran en su primera comprobación: el ejemplo del nodo pasó de unos 4,7 s a 5,5 s con el paso 10 añadido (medido con otros agentes en la máquina: vale de orden).
+
+Con el nodo de ejemplo:
+
+```js
+import { ejemploNodo } from './ejemplos/state/nodo.mjs';
+import { leerRegla } from './src/bqlm.js';
+import { ContextoEje } from './src/contexto-eje.js';
+
+const { eje, ids } = await ejemploNodo();
+const lee = (nombre, id) => leerRegla(eje.epoca().lecturas.find((r) => r[0][0] === nombre), id, new ContextoEje(eje, { epoch: eje.epoca() })).valor.map((x) => x?.id ?? x);
+for (const c of lee('conversations', ids.agenteCasa)) {
+  const [, [agente], , [[abre], [interlocutor]]] = eje.obtener(c).payload;
+  console.log(`«${lee('conversation title', c)}», de ${abre} con ${agente} (interlocutor ${interlocutor}): ${lee('conversation archived', c)[0] ? 'archivada' : 'activa'}, ${lee('message count', c)} mensajes, el último ${lee('last message', c)[0] ?? '—'}`);
+  for (const m of lee('messages of', c)) {
+    const [[que], [[canal], [quien], [texto], [adjunto] = [], respuesta]] = eje.obtener(m).payload;
+    const entrega = que === 'message out' && canal !== 'house' ? lee('delivery', m).map((d) => eje.obtener(d).payload[6][0][0]) : [];
+    console.log(`  ${que} por ${canal}, ${quien}: ${texto}${adjunto && adjunto !== '-' ? ' + ' + adjunto : ''}${respuesta ? ' (en respuesta)' : ''}${entrega.length ? ' · entrega vigente: ' + entrega : ''}`);
+  }
+  console.log(`  por entregar: ${lee('messages to deliver', c).length}`);
+}
+```
+
+```text
+«Horario de la tienda», de persona-casa con agente-casa (interlocutor persona-casa): activa, 2 mensajes, el último 2026-11-16T09:00:00Z
+  message in por house, persona-casa: ¿A qué hora abre la tienda de ejemplo?
+  message out por house, persona-casa: Abre a las nueve (respuesta del modelo simulado). (en respuesta)
+  por entregar: 0
+«open a conversation: servicio-telegram opens a conversation with agente-casa», de servicio-telegram con agente-casa (interlocutor interlocutor-1): activa, 2 mensajes, el último 2026-11-16T09:06:00Z
+  message in por telegram, interlocutor-1: Hola, ¿queda pan? + telegram:AgAD-ejemplo_0001
+  message out por telegram, interlocutor-1: Sí, hasta las dos. (en respuesta) · entrega vigente: sent
+  por entregar: 0
+«Una prueba ya resuelta», de persona-casa con agente-casa (interlocutor persona-casa): archivada, 0 mensajes, el último —
+  por entregar: 0
+```
+
+La conversación de Telegram no tiene título: su 0 es su representación. La primera entrega de su respuesta falló («el canal no respondió a tiempo») y el reintento salió: vale el último.

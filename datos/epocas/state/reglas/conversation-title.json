@@ -1,0 +1,12 @@
+[
+  ["conversation title"],
+  ["rename a conversation"],
+  ["=(last ((under it) where it2 = it or first (first it2.6).5 = it and last (first it2.6).5 = \"0000000000\" and \"rename a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3))).0"],
+  ["X"],
+  ["read"],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), E: con it = una conversación, su título vigente: el 0 del último «rename a conversation» de quien la abrió o del dueño del agente y, si no hay, su propio 0 (el título con que se abrió o, sin él, su representación). Se toma lo último de (under it) entre la conversación y sus renombres porque el BQL mínimo no une listas"],
+  ["state 0"],
+  ["after conversations"],
+  ["conversation title: the current title of the conversation"]
+]

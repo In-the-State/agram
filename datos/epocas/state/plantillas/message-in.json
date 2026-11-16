@@ -1,0 +1,104 @@
+[
+  ["message in"],
+  [
+    [
+      ["kind"],
+      ["text"],
+      ["=it = \"message in\""],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
+      ["required"],
+      [1],
+      [
+        "message in",
+        "what the record is: «message in» (its 0; a message carries no other action, to weigh the least)"
+      ]
+    ],
+    [
+      ["channel"],
+      ["text"],
+      ["=it in epoch.9.0.5.1"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
+      ["required"],
+      [2],
+      ["house", "the channel: one of the closed list of the epoch (epoch.9.0.5.1)"]
+    ],
+    [
+      ["interlocutor"],
+      ["identity"],
+      ["=count it.6 > 0"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
+      ["required"],
+      [3],
+      [
+        "=first (payload(it)).3.1",
+        "the interlocutor of the conversation (its 3.1): on the house channel, the person who writes; on an outside channel, the one whose alta the service wrote"
+      ]
+    ],
+    [
+      ["text"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
+      ["optional"],
+      [4],
+      [
+        "=(\"-\" where count ((payload(ev)).1.3) > 0)",
+        "what is said (optional if there is a file; with only a file, it is «-»)"
+      ]
+    ],
+    [
+      ["file"],
+      ["text"],
+      ["=it = \"-\" or hex(slice(cat(utf8(it), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 9)) = \"74656c656772616d3a\" and hex(slice(cat(utf8(it), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 9, 10)) != \"00\" and hex(slice(cat(utf8(it), bytes(\"000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 137, 138)) = \"00\" or hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1.3"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
+      ["optional"],
+      [5],
+      [
+        "=(\"-\" where count ((payload(ev)).1.4) > 0)",
+        "a pointer to a file (optional if there is a text): the sha256 of a blob (64 hexadecimal characters in lower case) or «telegram:» and the identifier of the file"
+      ]
+    ],
+    [
+      ["reply to"],
+      ["ref"],
+      ["=(first (payload(it)).0 = \"message in\" or first (payload(it)).0 = \"message out\")"],
+      ["me"],
+      ["payload"],
+      ["1.4"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «message in»"],
+      ["optional"],
+      [6],
+      ["the message this one answers (optional): a message of the same conversation"]
+    ]
+  ],
+  ["=\"conversation with an agent\" in (payload(it)).5 and not (count ((down it) where last (first it2.6).5 = \"4000000000\" and \"archive a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3)) > 0) and (first (payload(it)).3.1 = me or first (payload(it)).3.1 != me and first (first (first (payload(it)).3.1).6).3 = me)"],
+  [
+    ["me"],
+    ["person"]
+  ],
+  ["write"],
+  ["3"],
+  [
+    "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B: un mensaje anclado en el 3 de la conversación (quién, comunicación), con el mínimo de posiciones que admite la época (son lo que más se escribe; un payload no tiene huecos, así que no lleva 2, 3 ni 4): 0 qué es («message in» o «message out»), 1.0 el canal (de la lista cerrada epoch.9.0.5.1, un dato de esta época: se añaden canales sin tocar plantillas), 1.1 el interlocutor (el de la conversación, su 3.1), 1.2 el texto y 1.3 un puntero a un adjunto (al menos uno de los dos; el que falte delante de otro va como «-», por los defectos: un payload no tiene textos vacíos), 1.4 en respuesta a (un mensaje de la misma conversación). No mueve más que el coste de escribir y no paga atención (la conversación no es un alta). Lo exigen también a lo escrito a mano las reglas «a message names a channel and its interlocutor», «a message carries a text or a file», «who writes a message» y «an archived conversation takes no messages»",
+    "Lo que entra, siempre del interlocutor de la conversación (su 3.1). Quién lo escribe: en un canal de fuera (no está en epoch.9.0.5.2), solo quien dio de alta al interlocutor (el autor de su alta: el servicio), así que nadie más habla en su nombre; en el canal de la casa (house, en epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe)",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [3, 13],
+  ["message in: {first (payload(ev)).1.2}"]
+]

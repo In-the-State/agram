@@ -49,7 +49,19 @@
   "<hereda>",
   "<hereda>",
   [
-    "<hereda>",
+    [
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      [
+        ["channels"],
+        ["telegram", "house"],
+        ["house"],
+        ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State): los canales de una conversación con un agente, una lista cerrada que es un dato de la época para añadir canales sin tocar plantillas: 1 todos (el 1.0 de un mensaje es uno de ellos); 2 los de la casa, donde la persona habla por sí misma (sin interlocutor de fuera ni entrega). Los demás son de fuera: los escribe y los entrega quien dio de alta al interlocutor"]
+      ]
+    ],
     "<hereda>",
     [
       "<hereda>",

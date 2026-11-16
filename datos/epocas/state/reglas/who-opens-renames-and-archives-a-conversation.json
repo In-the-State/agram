@@ -1,0 +1,24 @@
+[
+  ["who opens, renames and archives a conversation"],
+  [
+    "open a conversation",
+    "rename a conversation",
+    "archive a conversation",
+    "agent",
+    "declare agent"
+  ],
+  ["=not (\"open a conversation\" in (payload(ev)).4 or \"rename a conversation\" in (payload(ev)).4 or \"archive a conversation\" in (payload(ev)).4) or \"open a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"1500000000\" and \"agent\" in (payload((first ev.6.5))).5 and first (payload((first ev.6.5))).3.1 = first (payload(ev)).1 and count (((first ev.6.5).9) where \"declare agent\" in it.4 and first it.3 = first (first ev.6.5).3) > 0 and (first ev.3 = first (first ev.6.5).3 or count ((first ev.3).1 where R in it.0.0.0 and it.0.0.1 = first (first ev.6.5).3 and it.1 > 0) > 0) and (first (payload(ev)).3.1 = first ev.3 or first (payload(ev)).3.1 != first ev.3 and first (first (first (payload(ev)).3.1).6).3 = first ev.3) or not (\"open a conversation\" in (payload(ev)).4) and \"conversation with an agent\" in (payload((first ev.6.5))).5 and (first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and (\"rename a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"0000000000\" or \"archive a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"4000000000\")"],
+  ["ev.3"],
+  [
+    "mint",
+    "transfer",
+    "lock",
+    "release",
+    "burn"
+  ],
+  ["*"],
+  ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A: una conversación se abre en el 1.5 del alta de un agente declarado (el de su 1); la abre su dueño o quien tiene R del dueño (el precio de la atención lo cobra «attention has a price»), y su interlocutor (3.1) es quien la abre o una identidad cuya alta escribió quien la abre (el servicio, para una conversación de fuera); se renombra (en su 0) y se archiva (en su 4) solo por quien la abrió o por el dueño del agente"],
+  ["state 0"],
+  ["after a delivery result comes from whoever delivers"],
+  ["who opens, renames and archives a conversation: {first ev.3} opens a conversation outside the 1.5 of the alta of a declared agent, without being its owner or having its R, or for an interlocutor it did not register; or renames or archives one it did not open and whose agent it does not own"]
+]

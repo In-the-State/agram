@@ -1,0 +1,79 @@
+[
+  ["rename a conversation"],
+  [
+    [
+      ["title"],
+      ["text"],
+      ["=it != \"\""],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «rename a conversation»"],
+      ["required"],
+      [1],
+      ["the new title"]
+    ],
+    [
+      ["about"],
+      ["ref"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «rename a conversation»"],
+      ["required"],
+      [2],
+      ["=first it.5", "the conversation: X"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «rename a conversation»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «rename a conversation»"],
+      ["required"],
+      [4],
+      ["=me", "who writes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA): parámetro de «rename a conversation»"],
+      ["required"],
+      [5],
+      ["rename a conversation", "the action"]
+    ]
+  ],
+  ["=\"conversation with an agent\" in (payload(it)).5 and (first it.3 = me or first (first (first (payload(it)).1).6).3 = me)"],
+  [
+    ["me"],
+    ["person"]
+  ],
+  ["write"],
+  ["0"],
+  [
+    "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A.2: cambia el título: un ocupante más en el 0 de la conversación (anclado en su 0, con el título nuevo en su propio 0); vale el último («conversation title»). La lanza quien la abrió o el dueño del agente; lo escrito por otro lo rechaza la regla «who opens, renames and archives a conversation»",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [0, 5],
+  ["rename a conversation: {me} renames {first it.0}"]
+]

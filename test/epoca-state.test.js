@@ -52,9 +52,9 @@ test('la época se genera desde su fuente, sin fallos, y los archivos están al 
   const g = generar();
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: npm run epoca:state`);
-  assert.equal(g.registros.length, 36, '4 reglas (2 de ellas lecturas con nombre) y 32 plantillas de transacción');
+  assert.equal(g.registros.length, 58, '20 reglas (10 de ellas lecturas con nombre) y 38 plantillas de transacción');
   const ids = JSON.parse(readFileSync('datos/epocas/state/state-0.ids.json', 'utf8'));
-  assert.equal(ids.registrosAlPublicar, 38, 'el génesis, la raíz y sus 36 registros');
+  assert.equal(ids.registrosAlPublicar, 60, 'el génesis, la raíz y sus 58 registros');
 });
 
 test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; src/ no la importa', () => {
@@ -66,11 +66,11 @@ test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; sr
   const e = cargarEpocaEscrita(epocaState());
   assert.equal(e.id, g.id);
   assert.equal(e.hereda, ID_DE_LA_0);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 32);
-  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 2, 'dos reglas sustituyen a las de la 0 con el mismo nombre y se añaden dos lecturas con nombre');
-  for (const n of ['anchors asked', 'current connections']) assert.ok(e.lecturas.some((r) => r[0][0] === n), n);
+  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 38);
+  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 16, 'cuatro reglas sustituyen a las de la 0 con el mismo nombre (second factor y las tres de la atención) y se añaden seis reglas y diez lecturas con nombre');
+  for (const n of ['anchors asked', 'current connections', 'conversations', 'conversation title', 'conversation archived', 'messages of', 'message count', 'last message', 'delivery', 'messages to deliver']) assert.ok(e.lecturas.some((r) => r[0][0] === n), n);
   for (const n of ['add a connection', "change a connection's permissions", 'remove a connection']) assert.ok(!e.transacciones.some((x) => x.plantilla[0][0] === n), 'fuera: ' + n);
-  for (const n of ['second factor', 'attention has a price']) assert.notEqual(e.reglasConId.find((x) => x.regla[0][0] === n).id, EPOCA_0_BTML.reglasConId.find((x) => x.regla[0][0] === n).id);
+  for (const n of ['second factor', 'attention has a price', 'attention group', 'attention price']) assert.notEqual(e.reglasConId.find((x) => x.regla[0][0] === n).id, EPOCA_0_BTML.reglasConId.find((x) => x.regla[0][0] === n).id);
   const fuentes = readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => readFileSync(join('src', f), 'utf8'));
   assert.ok(!fuentes.some((s) => /state-0|epocas\/state/.test(s)), 'la época no viaja con el núcleo (#115)');
 });
@@ -396,13 +396,16 @@ test('con criterio, mover de grupo, poner el precio de un grupo y vetar a una co
     assert.ok(sf.exige && sf.pendiente, que);
     assert.deepEqual(sf.titulares, [N.llavero], que);
   }
-  // El veto pendiente no la quita de las vigentes (aunque el precio de la 0, X.6.2, ya diga «nothing»).
-  assert.deepEqual(leer(eje, DE_LA_CONEXION.grupo, ids.conexion).valor, [5]);
+  // El veto pendiente no la quita de las vigentes, y desde A0 (encargo «los dos canales») tampoco la cambia de grupo: lo que
+  // espera la firma no cuenta en «attention group» ni en «attention price» de esta época (sigue en el 3, con su precio).
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.grupo, ids.conexion).valor, [3]);
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.precio, ids.conexion).valor.map((x) => x?.v ?? x), [[['my R'], [1]]]);
   assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino]);
   // Firmado, sí.
   await firmarCon(eje, N.llavero, veto.id, 1603);
   assert.equal(A.segundoFactor(eje, veto.id).pendiente, false);
   assert.deepEqual(lectura(eje, 'current connections', ids.nodo), []);
+  assert.deepEqual(leer(eje, DE_LA_CONEXION.grupo, ids.conexion).valor, [5], 'firmado, el veto sí la pone en el grupo de los vetados');
   // En el ejemplo, el precio de las conexiones y el veto al otro nodo esperaron y los firmó el llavero.
   for (const k of ['precioConexiones', 'quitarConexion']) {
     const x = A.segundoFactor(eje, ids[k]);
@@ -485,4 +488,220 @@ test('un eje con la época 0 a secas da los mismos veredictos que antes: nada de
   const pieza = await altaDe('pieza', 2);
   await altaDe(N.llavero, 3);
   await escribirPagando(cero, { autor: N.llavero, sobre: pieza.id, en: '8000000000', t: hora(4), movimientos: [pagaElCoste(N.llavero)], payload: ['disco', 1, '%', N.llavero, 'measure a piece'] }, K.llavero.privada);
+});
+
+// A0 del encargo «los dos canales» (VG 17-11 por Core State): lo que espera la firma del titular no rige el precio de la
+// atención hasta que está firmado. Esta época sustituye «attention group» y «attention price» (y lee el precio una sola vez
+// en «attention has a price»).
+test('A0: un precio, un cambio de grupo y un veto pendientes no cambian el coste ni rechazan; firmados, sí', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const altaOperador = eje.alta(N.operador).id;
+  const otro = 'nodo-a0';
+  const { inv, alta } = await invitarAlNodo(eje, ids, otro, 2000, { cuanta: 20 });
+  await firmarCon(eje, N.llavero, inv.id, 2002);
+  const K = claveDePrueba(otro);
+  let minuto = 2010;
+  let cabecera = 0;
+  // Pedir un ancla devolviendo `cuanta` R del dueño: { ok, motivos } (si pasa, entra en el eje).
+  const pedir = async (cuanta) => {
+    const r = await A.transaccion(eje, 'ask for an anchor', { X: ids.nodo, amount: cuanta, ledger: 'ab'.repeat(32), key: K.publica, level: 2, header: (++cabecera).toString(16).padStart(2, '0').repeat(32) }, otro, { t: hora(minuto++), firmar: (ev) => firmar(ev, K.privada) });
+    if (r.ok) await eje.anadir(r.evento);
+    return r;
+  };
+  const grupo = () => leer(eje, DE_LA_CONEXION.grupo, alta.id).valor;
+  const precio = () => leer(eje, DE_LA_CONEXION.precio, alta.id).valor.map((x) => x?.v ?? x);
+  assert.deepEqual([grupo(), precio()], [[3], [[['my R'], [1]]]]);
+  // El precio del grupo 3 a 2, pendiente: sigue costando 1.
+  const p3 = await lanzar(eje, 'set a group price', altaOperador, { token: 'my R', amount: 2, zone: 3 }, N.operador, minuto++);
+  assert.ok(A.segundoFactor(eje, p3.id).pendiente);
+  assert.deepEqual(precio(), [[['my R'], [1]]], 'el precio pendiente no rige');
+  assert.ok((await pedir(1)).ok, 'con el precio de antes pasa');
+  // Firmado: cuesta 2.
+  await firmarCon(eje, N.llavero, p3.id, minuto++);
+  assert.deepEqual(precio(), [[['my R'], [2]]]);
+  const corto = await pedir(1);
+  assert.equal(corto.ok, false);
+  assert.ok(corto.motivos.some((m) => /attention has a price|precio de su grupo/.test(m.mensaje)), JSON.stringify(corto.motivos));
+  assert.ok((await pedir(2)).ok);
+  // Un precio firmado para el grupo 4 y un cambio de grupo pendiente al 4: sigue en el 3 y cuesta 2.
+  const p4 = await lanzar(eje, 'set a group price', altaOperador, { token: 'my R', amount: 3, zone: 4 }, N.operador, minuto++);
+  await firmarCon(eje, N.llavero, p4.id, minuto++);
+  const mover = await lanzar(eje, 'move to group', altaOperador, { whom: otro, zone: 4 }, N.operador, minuto++);
+  assert.ok(A.segundoFactor(eje, mover.id).pendiente);
+  assert.deepEqual([grupo(), precio()], [[3], [[['my R'], [2]]]], 'el cambio de grupo pendiente no rige');
+  assert.ok((await pedir(2)).ok);
+  // Firmado: grupo 4, cuesta 3.
+  await firmarCon(eje, N.llavero, mover.id, minuto++);
+  assert.deepEqual([grupo(), precio()], [[4], [[['my R'], [3]]]]);
+  assert.equal((await pedir(2)).ok, false);
+  assert.ok((await pedir(3)).ok);
+  // Un veto pendiente no rechaza; firmado, sí.
+  const veto = await lanzar(eje, 'veto someone', altaOperador, { whom: otro }, N.operador, minuto++);
+  assert.ok(A.segundoFactor(eje, veto.id).pendiente);
+  assert.deepEqual(grupo(), [4], 'el veto pendiente no rige');
+  assert.ok((await pedir(3)).ok, 'el veto pendiente no rechaza');
+  await firmarCon(eje, N.llavero, veto.id, minuto++);
+  assert.deepEqual([grupo(), precio()], [[5], [[['nothing'], [0]]]]);
+  assert.equal((await pedir(3)).ok, false, 'vetado');
+});
+
+// Los dos canales (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA).
+/** Una lectura con nombre, como ids (los registros) o valores. */
+const lecturaIds = (eje, nombre, id) => lectura(eje, nombre, id).map((x) => x?.id ?? x);
+/** Lanza una plantilla en seco (no la añade): { ok, motivos, evento }. */
+const enSeco = (eje, nombre, X, params, quien, minuto) => A.transaccion(eje, nombre, { X, ...params }, quien, { t: hora(minuto), firmar: (ev) => firmar(ev, CLAVES[quien].privada) });
+/** El payload de un mensaje escrito a mano: su 0 y su 1 (una décupla: cada hoja en su posición). */
+const mensaje = (que, ...uno) => [que, uno.map((x) => [x])];
+/** Escribe a mano (sin plantilla): null si entra, el mensaje del error si no. */
+const aMano = (eje, autor, sobre, en, payload, minuto) => escribirPagando(eje, { autor, sobre, en, t: hora(minuto), movimientos: [pagaElCoste(autor)], payload }, CLAVES[autor].privada).then(() => null, (e) => e.message);
+
+test('conversaciones: abrir, renombrar y archivar; las lecturas dan título, estado, último mensaje y recuento', async () => {
+  const { eje, ids, rechazos } = await ejemplo();
+  assert.deepEqual(lecturaIds(eje, 'conversations', ids.agenteCasa), [ids.conversacionCasa, ids.conversacionTelegram, ids.conversacionArchivada]);
+  const c = eje.obtener(ids.conversacionCasa);
+  assert.equal([c.autor, c.sobre, c.en].join(' '), [N.personaCasa, ids.agenteCasa, '1500000000'].join(' '), 'en el 1.5 del alta del agente');
+  assert.deepEqual(c.payload, [['Horario de la tienda'], [N.agenteCasa], ['all announced movements happened'], [[N.personaCasa], [N.personaCasa]], ['open a conversation'], ['conversation with an agent']]);
+  assert.ok(c.movimientos.some((m) => m.token === 'R' && m.emisor === N.operador && m.de === N.personaCasa && m.a === N.operador && m.cantidad === 1), 'quien no es el dueño paga el precio de su grupo');
+  assert.deepEqual(eje.obtener(ids.conversacionTelegram).payload[3], [[N.servicio], [N.interlocutor]], 'el servicio la abre en nombre del interlocutor');
+  assert.deepEqual(lectura(eje, 'conversation title', ids.conversacionCasa), ['Horario de la tienda']);
+  assert.deepEqual(lectura(eje, 'conversation title', ids.conversacionArchivada), ['Una prueba ya resuelta'], 'vale el último renombre');
+  assert.deepEqual(lectura(eje, 'conversation archived', ids.conversacionCasa), [false]);
+  assert.deepEqual(lectura(eje, 'conversation archived', ids.conversacionArchivada), [true]);
+  assert.deepEqual(lectura(eje, 'message count', ids.conversacionCasa), [2]);
+  assert.deepEqual(lectura(eje, 'message count', ids.conversacionArchivada), [0]);
+  assert.deepEqual(lectura(eje, 'last message', ids.conversacionCasa), [eje.obtener(ids.respuestaCasa).t]);
+  assert.deepEqual(lectura(eje, 'last message', ids.conversacionArchivada), []);
+  assert.deepEqual(lecturaIds(eje, 'messages of', ids.conversacionTelegram), [ids.entraTelegram, ids.saleTelegram]);
+  assert.ok(rechazos.some((r) => r.caso === 'un mensaje en una conversación archivada' && r.motivos.some((m) => /archived|archivada/.test(m))));
+  // Lo ofrecido: abrir, a quien tiene R del dueño; renombrar y archivar, a quien la abrió y al dueño, no a otro.
+  assert.ok(A.acciones(eje, ids.agenteCasa, 1, N.visita).some((a) => a.nombre === 'open a conversation'));
+  assert.ok(A.acciones(eje, ids.conversacionCasa, 0, N.operador).some((a) => a.nombre === 'rename a conversation'));
+  assert.ok(!A.acciones(eje, ids.conversacionCasa, 0, N.visita).some((a) => a.nombre === 'rename a conversation'));
+  assert.ok(!A.acciones(eje, ids.conversacionArchivada, 4, N.personaCasa).some((a) => a.nombre === 'archive a conversation'), 'ya archivada');
+});
+
+test('conversaciones: renombrar o archivar la de otro no entra; abrirla bajo algo que no es un agente o para un interlocutor ajeno, tampoco', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const conv = ids.conversacionCasa;
+  assert.match(await aMano(eje, N.visita, conv, '0000000000', ['otro título', { ref: conv }, 'all announced movements happened', N.visita, 'rename a conversation'], 3000), /who opens, renames and archives a conversation/);
+  assert.match(await aMano(eje, N.servicio, conv, '4000000000', ['archived', { ref: conv }, 'closed by decision', N.servicio, ['archive a conversation', 'close by decision']], 3001), /who opens, renames and archives a conversation/);
+  // El dueño del agente sí renombra.
+  assert.equal(await aMano(eje, N.operador, conv, '0000000000', ['título del dueño', { ref: conv }, 'all announced movements happened', N.operador, 'rename a conversation'], 3002), null);
+  assert.deepEqual(lectura(eje, 'conversation title', conv), ['título del dueño']);
+  // Abrir bajo una pieza que no es un agente (el contenedor), o para un interlocutor cuya alta no escribió quien la abre.
+  const abrir = await enSeco(eje, 'open a conversation', ids.contenedor, { agent: N.agenteCasa }, N.personaCasa, 3003);
+  assert.equal(abrir.ok, false);
+  const ajeno = await enSeco(eje, 'open a conversation', ids.agenteCasa, { interlocutor: N.interlocutor }, N.personaCasa, 3004);
+  assert.equal(ajeno.ok, false);
+  assert.ok(ajeno.motivos.some((m) => /who opens|abre una conversación/.test(m.mensaje)), JSON.stringify(ajeno.motivos));
+});
+
+test('mensajes: sin texto ni adjunto no; el adjunto, sha256 o «telegram:…» y nada más', async () => {
+  const { eje, ids } = await ejemplo();
+  const conv = ids.conversacionCasa;
+  const prueba = (params, minuto) => enSeco(eje, 'message in', conv, { channel: 'house', ...params }, N.personaCasa, minuto);
+  assert.equal((await prueba({}, 3100)).ok, false, 'ni texto ni adjunto');
+  for (const [file, bien] of [
+    ['ab'.repeat(32), true],
+    ['telegram:AgAD-ejemplo_0002', true],
+    ['telegram:' + 'a'.repeat(128), true],
+    ['telegram:' + 'a'.repeat(129), false],
+    ['telegram:', false],
+    ['AB'.repeat(32), false],
+    ['ab'.repeat(31), false],
+    ['ftp://ejemplo.invalid/archivo', false],
+    ['-', false],
+  ]) {
+    const r = await prueba({ file }, 3101);
+    assert.equal(r.ok, bien, file + ': ' + JSON.stringify(r.motivos));
+  }
+  // Solo el adjunto: el texto va como «-» (un payload no tiene textos vacíos) y no cuenta como texto.
+  const solo = await prueba({ file: 'cd'.repeat(32) }, 3102);
+  assert.deepEqual(solo.evento.payload[1], [['house'], [N.personaCasa], ['-'], ['cd'.repeat(32)]]);
+  // A mano, lo mismo lo dice la regla.
+  assert.match(await aMano(eje, N.personaCasa, conv, '3000000000', mensaje('message in', 'house', N.personaCasa), 3103), /a message carries a text or a file/);
+  assert.match(await aMano(eje, N.personaCasa, conv, '3000000000', mensaje('message in', 'house', N.personaCasa, '-', '-'), 3104), /a message carries a text or a file/);
+  assert.match(await aMano(eje, N.personaCasa, conv, '3000000000', mensaje('message in', 'house', N.personaCasa, 'hola', 'telegram:'), 3105), /a message carries a text or a file/);
+  // En respuesta a un mensaje de otra conversación, no.
+  assert.match(await aMano(eje, N.personaCasa, conv, '3000000000', mensaje('message in', 'house', N.personaCasa, 'hola', '-', { ref: ids.entraTelegram }), 3106), /a message carries a text or a file/);
+  // Un canal que no está en la lista, no.
+  assert.equal((await enSeco(eje, 'message in', conv, { channel: 'fax', text: 'hola' }, N.personaCasa, 3107)).ok, false);
+});
+
+test('quién escribe un mensaje: el «message in» de fuera solo lo escribe quien dio de alta al interlocutor, el de la casa la propia persona, y siempre el interlocutor de la conversación; el «message out», el agente o su dueño', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const casa = ids.conversacionCasa;
+  const tg = ids.conversacionTelegram;
+  // Los buenos (los del ejemplo) entraron; y otra vuelta de cada uno pasa.
+  assert.ok((await enSeco(eje, 'message in', casa, { text: 'otra pregunta' }, N.personaCasa, 3200)).ok);
+  assert.ok((await enSeco(eje, 'message in', tg, { channel: 'telegram', text: 'otra' }, N.servicio, 3201)).ok);
+  assert.ok((await enSeco(eje, 'message out', tg, { text: 'otra respuesta' }, N.agenteCasa, 3202)).ok);
+  assert.ok((await enSeco(eje, 'message out', casa, { text: 'del dueño' }, N.operador, 3203)).ok, 'el dueño del agente también');
+  // Un «message in» de fuera de quien no dio de alta al interlocutor (la persona de la casa habla por el de Telegram).
+  assert.match(await aMano(eje, N.personaCasa, tg, '3000000000', mensaje('message in', 'telegram', N.interlocutor, 'suplantado'), 3204), /who writes a message/);
+  // La pasarela que dio de alta al interlocutor mete un «message in» suyo en la conversación de otra persona (la de la casa).
+  assert.match(await aMano(eje, N.servicio, casa, '3000000000', mensaje('message in', 'telegram', N.interlocutor, 'colado'), 3205), /a message names a channel and its interlocutor/);
+  assert.equal((await enSeco(eje, 'message in', casa, { channel: 'telegram', interlocutor: N.interlocutor, text: 'colado' }, N.servicio, 3206)).ok, false);
+  // En el canal de la casa, otra persona (la visita) escribe en la conversación de la persona de la casa: no.
+  assert.match(await aMano(eje, N.visita, casa, '3000000000', mensaje('message in', 'house', N.visita, 'me cuelo'), 3207), /a message names a channel and its interlocutor/);
+  assert.ok(!A.acciones(eje, casa, 3, N.visita).some((a) => a.nombre === 'message in'), 'ni se le ofrece');
+  assert.ok(!A.acciones(eje, casa, 3, N.servicio).some((a) => a.nombre === 'message in'), 'ni a la pasarela en la conversación de otro');
+  assert.ok(A.acciones(eje, casa, 3, N.personaCasa).some((a) => a.nombre === 'message in'));
+  assert.ok(A.acciones(eje, tg, 3, N.servicio).some((a) => a.nombre === 'message in'));
+  // «message in» de la casa con 1.1 distinto de quien escribe (el dueño del agente, en nombre de la persona).
+  assert.match(await aMano(eje, N.operador, casa, '3000000000', mensaje('message in', 'house', N.personaCasa, 'en su nombre'), 3208), /who writes a message/);
+  // «message out» de quien no es el agente ni su dueño: la persona de la casa, o otro agente (el vigía).
+  assert.match(await aMano(eje, N.personaCasa, casa, '3000000000', mensaje('message out', 'house', N.personaCasa, 'me respondo'), 3209), /who writes a message/);
+  assert.match(await aMano(eje, N.vigia, casa, '3000000000', mensaje('message out', 'house', N.personaCasa, 'otro agente'), 3210), /who writes a message/);
+  // Un «message out» a otro interlocutor que el de su conversación, tampoco.
+  assert.match(await aMano(eje, N.agenteCasa, casa, '3000000000', mensaje('message out', 'telegram', N.interlocutor, 'desviado'), 3211), /a message names a channel and its interlocutor/);
+});
+
+test('una conversación archivada no admite mensajes, tampoco escritos a mano', async () => {
+  const { eje, ids } = await ejemplo();
+  const vieja = ids.conversacionArchivada;
+  assert.equal(eje.obtener(ids.archivada).en, '4000000000');
+  assert.match(await aMano(eje, N.personaCasa, vieja, '3000000000', mensaje('message in', 'house', N.personaCasa, '¿sigue abierta?'), 3300), /an archived conversation takes no messages/);
+  assert.match(await aMano(eje, N.agenteCasa, vieja, '3000000000', mensaje('message out', 'house', N.personaCasa, 'respuesta tardía'), 3301), /an archived conversation takes no messages/);
+  assert.ok(!A.acciones(eje, vieja, 3, N.personaCasa).some((a) => a.nombre === 'message in'));
+});
+
+test('entrega: «failed» sin causa no; solo quien entrega y solo fuera de la casa; tras «failed» y «sent» vale «sent» y sale de «messages to deliver»', async () => {
+  const { eje, ids } = await ejemploNodo();
+  const tg = ids.conversacionTelegram;
+  // El ejemplo: una fallida y su reintento enviado.
+  assert.deepEqual(lecturaIds(eje, 'delivery', ids.saleTelegram), [ids.entregaEnviada]);
+  assert.deepEqual(eje.obtener(ids.entregaFallida).payload[6], [['failed'], ['el canal no respondió a tiempo']]);
+  assert.deepEqual(eje.obtener(ids.entregaEnviada).payload[6], [['sent'], ['-'], ['ref-ejemplo-42']], 'sin causa delante de la referencia: «-»');
+  assert.deepEqual(lectura(eje, 'messages to deliver', tg), []);
+  // Un mensaje nuevo: por entregar; falla: sigue; se envía: sale.
+  const nuevo = await lanzar(eje, 'message out', tg, { text: 'un aviso' }, N.agenteCasa, 3400);
+  assert.deepEqual(lecturaIds(eje, 'messages to deliver', tg), [nuevo.id]);
+  assert.equal((await enSeco(eje, 'delivery result', nuevo.id, { result: 'failed' }, N.servicio, 3401)).ok, false, '«failed» sin causa');
+  assert.match(await aMano(eje, N.servicio, nuevo.id, '4000000000', ['delivery result: failed', { ref: nuevo.id }, 'all announced movements happened', N.servicio, 'delivery result', 'delivery result', [['failed'], ['-']]], 3402), /a delivery result comes from whoever delivers/);
+  const fallo = await lanzar(eje, 'delivery result', nuevo.id, { result: 'failed', cause: 'sin red' }, N.servicio, 3403);
+  assert.deepEqual(lecturaIds(eje, 'delivery', nuevo.id), [fallo.id]);
+  assert.deepEqual(lecturaIds(eje, 'messages to deliver', tg), [nuevo.id], 'con el último «failed» sigue por entregar');
+  // Quien no dio de alta al interlocutor no entrega; en la casa no hay entrega.
+  assert.match(await aMano(eje, N.personaCasa, nuevo.id, '4000000000', ['delivery result: sent', { ref: nuevo.id }, 'all announced movements happened', N.personaCasa, 'delivery result', 'delivery result', [['sent']]], 3404), /a delivery result comes from whoever delivers/);
+  assert.match(await aMano(eje, N.personaCasa, ids.respuestaCasa, '4000000000', ['delivery result: sent', { ref: ids.respuestaCasa }, 'all announced movements happened', N.personaCasa, 'delivery result', 'delivery result', [['sent']]], 3405), /a delivery result comes from whoever delivers/);
+  assert.ok(!A.acciones(eje, ids.respuestaCasa, 4, N.servicio).some((a) => a.nombre === 'delivery result'));
+  const enviado = await lanzar(eje, 'delivery result', nuevo.id, { result: 'sent' }, N.servicio, 3406);
+  assert.deepEqual(lecturaIds(eje, 'delivery', nuevo.id), [enviado.id]);
+  assert.deepEqual(lectura(eje, 'messages to deliver', tg), []);
+  // A igualdad de instante vale el de mayor id.
+  const otro = await lanzar(eje, 'message out', tg, { text: 'otro aviso' }, N.agenteCasa, 3407);
+  const a = await lanzar(eje, 'delivery result', otro.id, { result: 'sent' }, N.servicio, 3408);
+  const b = await lanzar(eje, 'delivery result', otro.id, { result: 'failed', cause: 'duplicado' }, N.servicio, 3408);
+  const mayor = [a, b].sort((x, y) => (x.id < y.id ? -1 : 1))[1];
+  assert.deepEqual(lecturaIds(eje, 'delivery', otro.id), [mayor.id]);
+  assert.deepEqual(lecturaIds(eje, 'messages to deliver', tg), mayor === b ? [otro.id] : []);
+});
+
+test('el peso de un mensaje: cuatro posiciones con solo texto', async () => {
+  const { eje, ids } = await ejemplo();
+  const coste = (id) => eje.obtener(id).movimientos.filter((m) => m.token === 'T' && m.a === null).reduce((s, m) => s + m.cantidad, 0);
+  assert.equal(coste(ids.preguntaCasa), 4, '0, 1.0, 1.1 y 1.2: cuatro minutos');
+  assert.equal(coste(ids.entraTelegram), 5, 'con un adjunto, cinco');
+  assert.equal(coste(ids.respuestaCasa), 6, 'en respuesta a, sin adjunto: el adjunto va como «-», seis');
 });
