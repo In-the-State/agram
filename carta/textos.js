@@ -249,6 +249,41 @@ export const TEXTOS = Object.freeze({
     transaccion: 'transacción',
     transacciones: 'transacciones',
     nada: '∅',
+    nadie: 'nadie',
+    // lo que es un archivo adjunto como representación, en la celda de la cruceta
+    archivoDe_html: 'una página',
+    archivoDe_image: 'una imagen',
+    archivoDe_svg: 'un dibujo',
+    archivoDe_lottie: 'una animación',
+    archivoDe_otro: 'un archivo',
+    // los ajustes por lo que hacen (VG 14-11, #83): la etiqueta dice qué decide, sin nombrar AARPIA, StateArk ni Blossom;
+    // los nombres técnicos van en la ayuda del campo (la de la época). Por clave del ajuste.
+    'ajuste_step': 'cuántos se cargan de una vez',
+    'ajuste_render': 'cómo se pinta (sobrio, propio o todo)',
+    'ajuste_language': 'idioma de los mensajes',
+    'ajuste_sizes': 'tamaños de cada punto de vista',
+    'ajuste_model': 'qué dibujos se usan primero',
+    'ajuste_animations': 'cuántas animaciones a la vez',
+    'ajuste_sync url': 'dónde se comparte el libro',
+    'ajuste_sync ledger': 'nombre del libro compartido',
+    'ajuste_guide model': 'qué modelo contesta a la guía',
+    'ajuste_guide via': 'por dónde habla la guía',
+    'ajuste_guide history': 'cuántos turnos recuerda la guía',
+    'ajuste_guide context': 'cuánto de la pantalla lee la guía',
+    'ajuste_opinions anchor': 'dónde se guardan mis opiniones',
+    'ajuste_relay url': 'por dónde viajan los eventos',
+    'ajuste_blossom url': 'dónde se guardan los archivos',
+    'ajuste_seal url': 'quién sella',
+    'ajuste_pay url': 'quién cobra',
+    'ajuste_observer keys': 'quién vigila los sellos',
+    'ajuste_confirmations': 'cuándo un sello es firme',
+    'ajuste_guide url': 'dónde está la guía',
+    // lo que hizo un asiento del libro, en llano (VG 14-11, #83): ninguna primitiva del libro sale en pantalla
+    primitiva_acunar: 'crear',
+    primitiva_quemar: 'gastar',
+    primitiva_transferir: 'transferir',
+    primitiva_bloquear: 'reservar',
+    primitiva_liberar: 'liberar',
     deMiAlta: '{que} de mi alta',
     miFoco: 'mi foco',
     // Sequenced (el móvil en vertical): el personaje del 0 arriba de la columna, las filas de la tarjeta, el hilo y la fila de dígitos
@@ -279,6 +314,12 @@ export const TEXTOS = Object.freeze({
     aroNuevoDe: 'nuevo en {que} de {de}',
     aroNuevoMarcador: 'escribe algo nuevo en {que}',
     aroNuevoTitulo: 'lo que escribas crea un elemento en {que}; después se abre su aro (en su 2, adjuntar un archivo)',
+    // el aro sobre un hueco en lenguaje llano (VG 14-11, #87): qué crea y dónde; el nombre va en el 0 de lo que se crea
+    aroCrear: 'crear algo aquí',
+    aroCrearDonde: '{que}, sobre {de}',
+    aroCrearNombre: 'el nombre de lo que creas',
+    aroCrearNombreTitulo: 'el nombre es el 0 de lo que se crea ({que}); después se abre su aro',
+    aroCrearCon: 'o créalo con',
     huecoVacioTitulo: 'mantén pulsado para crear un elemento aquí',
     nuevoAquiMarcador: 'escribe algo nuevo sobre {que}',
     creado: 'creado {id} en {pv} de {X}: su aro, abierto',
@@ -387,8 +428,8 @@ export const TEXTOS = Object.freeze({
     guiaErrorCuota: 'demasiadas preguntas o cuota agotada (429)',
     guiaError: 'la guía no ha podido contestar ({estado}): {motivo}',
     guiaRespuestaVacia: 'la guía ha contestado sin texto',
-    guiaClaveIa: 'clave de Anthropic (vía directa)',
-    guiaClaveIaAyuda: 'solo para la vía directa: se guarda únicamente en este navegador, para esta cuenta; no entra en el eje ni en la copia de seguridad, y cualquiera con acceso a este navegador puede leerla',
+    guiaClaveIa: 'clave para hablar con la guía sin servidor',
+    guiaClaveIaAyuda: 'la clave de Anthropic, solo para la vía directa: se guarda únicamente en este navegador, para esta cuenta; no entra en el eje ni en la copia de seguridad, y cualquiera con acceso a este navegador puede leerla',
     guiaAjustes: 'ajustes de la guía',
     // el exterior: los ajustes de relé, archivos y sello, y la marca de verificado (los tres relojes)
     exteriorAjustes: 'ajustes del exterior',
@@ -512,6 +553,23 @@ export const TEXTOS = Object.freeze({
 /** El idioma de la interfaz propia: el de la configuración si hay textos en él; si no, el primero que haya. */
 export function idiomaDeInterfaz(idioma) {
   return idioma && TEXTOS[idioma] ? idioma : Object.keys(TEXTOS)[0];
+}
+
+/**
+ * La palabra con que nace el HTML básico de toda alta (VG 14-11, #84), por idioma de la cuenta (el código de la
+ * configuración: «es», «en»); sin el idioma, la del primero. Son datos de la propia carta, aparte de TEXTOS: añadir un
+ * idioma aquí no cambia el idioma de la interfaz.
+ */
+export const HOLA = Object.freeze({ es: 'hola', en: 'hello' });
+export const holaInicial = (idioma) => HOLA[idioma] ?? HOLA[Object.keys(HOLA)[0]];
+
+/**
+ * La etiqueta en llano de un ajuste (VG 14-11, #83), por la clave del ajuste, si la interfaz tiene textos en ese idioma;
+ * null si no (la etiqueta que da la época, traducida, se queda).
+ */
+export function etiquetaLlana(clave, idioma) {
+  const x = TEXTOS[idioma]?.['ajuste_' + clave];
+  return typeof x === 'string' ? x : null;
 }
 
 /** Un texto de la carta por su clave, con los huecos {nombre} rellenos; si falta la clave, la clave misma. */

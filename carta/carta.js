@@ -29,9 +29,10 @@ import * as acciones from '../src/acciones.js';
 import * as pasosDe from '../src/pasos.js';
 import * as modelos from '../src/modelos.js';
 import * as exterior from '../src/exterior.js';
+import { nombreDeRegla } from '../src/bqlm.js';
 import { partirClave } from '../src/tokens.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
-import { t } from './textos.js';
+import { t, etiquetaLlana } from './textos.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
 const PIEZA = Object.freeze({ elemento: 'elemento', munequito: 'munequito', icono: 'icono', etapa: 'etapa', fondo: 'fondo', marco: 'marco', movimiento: 'movimiento' });
@@ -187,12 +188,56 @@ function representacionDelFoco(eje, X, tamano, ctx) {
 const legibleDe = (eje, o, tipo, opciones) => contrato.legible(eje, o, tipo, opciones);
 
 /**
+ * Los nombres internos de la época (los de sus plantillas de transacción y de datos y los de sus reglas), de mayor a menor
+ * largo: lo que un mensaje de la época trae delante, «<nombre>: <texto>», cuando el texto de una regla o de una plantilla
+ * se escribe con su nombre canónico por delante (VG 14-11, #83: la carta nunca pinta la clave interna).
+ */
+const NOMBRES_INTERNOS = new WeakMap();
+function nombresInternosDe(eje, opciones) {
+  const epoca = opciones?.epoca ?? (typeof eje?.epoca === 'function' ? eje.epoca() : null);
+  if (!epoca || typeof epoca !== 'object') return [];
+  if (!NOMBRES_INTERNOS.has(epoca)) {
+    const nombres = new Set();
+    for (const p of acciones.plantillasDeTransaccion({ epoca })) nombres.add(p.nombre);
+    for (const p of contrato.plantillas(null, { epoca })) nombres.add(p.nombre);
+    for (const { regla } of epoca.reglasConId ?? []) { const n = nombreDeRegla(regla); if (n) nombres.add(n); }
+    NOMBRES_INTERNOS.set(epoca, [...nombres].filter((n) => typeof n === 'string' && n).sort((a, b) => b.length - a.length));
+  }
+  return NOMBRES_INTERNOS.get(epoca);
+}
+/** Un texto de la época sin el nombre interno que lleva delante («la regla: lo que dice» → «lo que dice»); lo que no empieza por uno, igual. */
+export function sinNombreInterno(texto, eje, opciones) {
+  if (typeof texto !== 'string') return texto;
+  const n = nombresInternosDe(eje, opciones).find((x) => texto.startsWith(x + ': '));
+  return n ? texto.slice(n.length + 2) : texto;
+}
+
+/**
+ * Un asiento del libro en llano (VG 14-11, #83): lo que hizo con las palabras de todos los días (crear, gastar, transferir,
+ * reservar, liberar: textos.js, no la primitiva del libro) y la cantidad con su serie como la dice el núcleo.
+ */
+function movimientoEnLlano(eje, m, opciones) {
+  const palabra = t('primitiva_' + m.primitiva);
+  return (palabra === 'primitiva_' + m.primitiva ? m.primitiva : palabra) + ' ' + legibleDe(eje, m, null, opciones).texto;
+}
+
+/** La clave de la serie de un movimiento de una candidata (T:minuto, E:casa/EUR, R:ana, P:<ámbito>/<origen>), la que lee el núcleo. */
+function claveDeSerie(m) {
+  if (m.token === 'T') return 'T:' + m.escala;
+  if (m.token === 'E') return 'E:' + m.emisor + '/' + m.denominacion;
+  if (m.token === 'R') return 'R:' + m.emisor;
+  if (m.token === 'P') return 'P:' + m.ambito + (m.origen ? '/' + m.origen : '');
+  return m.token;
+}
+
+/**
  * Un ocupante como nodo: { tipo: 'hoja' | 'referencia' | 'decupla' | 'lista', texto, ref, dir, X, representacion,
  * elemento }; el texto es el legible del núcleo. En animado, `elemento` es la pieza suelta del mundo (`pv`) para el
  * ocupante: un registro referenciado, por su propia madurez; lo demás, la comodín.
  */
 function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, lado = 0, posicion = pv, anidar = ctx.estado?.anidar ?? 0 } = {}) {
-  const l = legibleDe(eje, o, tipoDato, ctx.opciones);
+  const l0 = legibleDe(eje, o, tipoDato, ctx.opciones);
+  const l = { ...l0, texto: sinNombreInterno(l0.texto, eje, ctx.opciones) };
   const elementoDe = (X) => {
     if (!ctx.animado || pv === null || !LATERALES.includes(pv)) return null;
     const m = X ? contrato.madurez(eje, X, ctx.opciones) : null;
@@ -509,7 +554,7 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   if (g.grupo === 'cruz' && g.lado === 1) {
     const d = contrato.diario(eje, X, 0, cuantos, vertical);
     // Cada asiento, legible: la primitiva del libro y la cantidad con su serie como la dice el núcleo.
-    nodo.diario = { total: d.total, entradas: d.entradas.map((e) => ({ id: e.id, t: e.t, autor: e.autor, movimientos: e.movimientos.map((m) => m.primitiva + ' ' + legibleDe(eje, m, null, ctx.opciones).texto), ancla: e.ancla })) };
+    nodo.diario = { total: d.total, entradas: d.entradas.map((e) => ({ id: e.id, t: e.t, autor: e.autor, movimientos: e.movimientos.map((m) => movimientoEnLlano(eje, m, ctx.opciones)), ancla: e.ancla })) };
     // Lo por autorizar, en el 6 de mi alta (VG 14-11, #70): una línea por registro con lo que le falta.
     nodo.porAutorizar = porAutorizarDe(eje, X, pv, ctx);
     // Las opiniones ancladas en este registro, si es el proyecto donde se anclan (acciones.opiniones): con sus respuestas.
@@ -717,16 +762,48 @@ function nodoAro(eje, X, yo, ctx) {
 }
 
 /**
- * El aro sobre un hueco vacío (issue #22): un clic mantenido sobre un hijo vacío o el espacio libre de un mundo abre el
- * aro con un input nuevo en el centro; lo que se escriba crea el elemento en la posición `pv` de R (lo escribe la app
- * como cualquier campo, carta/app.js campo). Sin sitios: el elemento aún no existe; al crearlo, la app abre su aro.
+ * Lo que se puede crear en un hueco (VG 14-11, #87): las acciones de escritura que el núcleo ofrece en el sitio de la
+ * posición (acciones.acciones: su condición pasa) y que escriben ahí, según el 5 de su plantilla (dónde ancla), sin las
+ * de lectura ni el camino. Una plantilla cuyo ancla es un hueco {…} desde el primer dígito no se sabe dónde escribe: no
+ * se ofrece. Los dígitos que están en las dos rutas (la del hueco y la del ancla, hasta donde llegue la más corta) han
+ * de coincidir: en el 3, lo que escribe en 3 (un mensaje, una invitación); en el 1, lo que escribe en 1 (un recurso); en
+ * el 4, lo que escribe en 4 (una acción). → [{ id, nombre }] en el idioma; vacío si no hay nada que crear ahí.
+ */
+export function creableEn(eje, R, ruta, yo, opciones = {}) {
+  const sitio = Number(ruta?.[0]);
+  if (!Number.isInteger(sitio) || !yo) return [];
+  return acciones.acciones(eje, R, sitio, yo, opciones)
+    .filter((a) => !a.lectura && !a.camino && a.puedeLanzar !== false)
+    .filter((a) => {
+      const ancla = hojas(a.plantilla?.[5])[0];
+      const trozos = typeof ancla === 'string' ? ancla.split('.') : [];
+      if (!trozos.length || trozos[0].startsWith('{')) return false;
+      return trozos.every((x, i) => i >= ruta.length || x.startsWith('{') || Number(x) === Number(ruta[i]));
+    })
+    .map((a) => ({ id: a.id, nombre: a.etiqueta }));
+}
+
+/**
+ * El aro sobre un hueco vacío (issue #22, VG 14-11 #87): un clic mantenido sobre un hijo vacío o el espacio libre de un
+ * mundo abre el aro que dice en llano qué se crea y dónde («crear algo aquí: con quién, sobre un recurso») con un input
+ * para el nombre (el 0 de lo que se crea; lo escribe la app como cualquier campo, carta/app.js campo) y, debajo, lo que
+ * el núcleo ofrece crear en esa posición (creableEn). Sin nada que crear ahí no hay aro (null). Sin sitios: el elemento
+ * aún no existe; al crearlo, la app abre su aro. La posición es la ruta entera del hueco (estado.aro.en, o la de un
+ * dígito), así el nombre es el de esa posición en la época (el de una caja del 3, no el de la posición 5 del registro).
  */
 function nodoAroNuevo(eje, R, pv, ctx) {
-  const etiqueta = contrato.etiqueta(eje, R, pv, ctx.opciones);
+  const en = ctx.estado.aro?.en;
+  const ruta = Array.isArray(en) && en.length && en.every(Number.isInteger) ? en : [pv];
+  const crear = creableEn(eje, R, ruta, ctx.yo, ctx.opciones);
+  if (!crear.length) return null;
+  // El nombre de la posición: la del primer dígito de la ruta y, si el hueco es una caja con nombre (las del 3), el suyo («con quién · comercial»);
+  // sin él, el de la posición de la ruta entera. Nunca el de la posición 1 de un registro para el hueco de una caja.
+  const nombre = typeof ctx.estado.aro?.nombre === 'string' ? ctx.estado.aro.nombre.trim() : '';
+  const etiqueta = ruta.length > 1 && nombre ? [contrato.etiqueta(eje, R, ruta[0], ctx.opciones), nombre].filter(Boolean).join(' · ') : contrato.etiqueta(eje, R, ruta.length > 1 ? ruta : pv, ctx.opciones) ?? contrato.etiqueta(eje, R, pv, ctx.opciones);
   const de = legibleDe(eje, { ref: R }, null, ctx.opciones).texto;
   return {
-    X: R, nuevo: true, texto: t('aroNuevoDe', { que: etiqueta, de }), huecos: [],
-    centro: { pv, nuevo: true, etiqueta, de, ayuda: contrato.ayuda(eje, R, pv, ctx.opciones), valor: '', opciones0: opcionesDe(eje, R, pv, ctx), opciones5: [], pv5: null, editando: true },
+    X: R, nuevo: true, texto: t('aroCrear') + ': ' + t('aroCrearDonde', { que: etiqueta, de }), huecos: [],
+    centro: { pv, nuevo: true, etiqueta, de, ayuda: contrato.ayuda(eje, R, ruta.length > 1 ? ruta : pv, ctx.opciones), crear, valor: '', opciones0: [], opciones5: [], pv5: null, editando: true },
   };
 }
 
@@ -812,6 +889,14 @@ function ejecucionDe(eje, X, accion, yo, valores, o) {
 }
 
 /**
+ * Los motivos de un rechazo (o la lectura de una acción) sin el nombre interno de la regla o de la plantilla que llevan
+ * delante («only persons mint: …», sinNombreInterno): lo que la carta enseña. El núcleo los da tal cual con la regla aparte.
+ */
+export function motivosEnLlano(motivos, eje, opciones = {}) {
+  return (motivos ?? []).map((m) => ({ ...m, mensaje: sinNombreInterno(m?.mensaje, eje, opciones) }));
+}
+
+/**
  * Lanza una acción: construye, firma con `firmar` (una función async (evento) → evento firmado, o nada: el núcleo
  * valida la candidata ya firmada) y valida con acciones.transaccion; si pasa y hay evento, lo asienta con eje.anadir. Devuelve lo que da transaccion
  * más `asentado` (el evento guardado) o, si el eje lo rechaza al asentar, el motivo tal cual.
@@ -836,9 +921,19 @@ export async function enviar(eje, X, accion, valores, yo, firmar, opciones = {})
 export async function previsualizar(eje, X, accion, valores, yo, firmar, opciones = {}) {
   const r = await acciones.transaccion(eje, accion, { X, ...valores }, yo, { ...opciones, ...(typeof firmar === 'function' ? { firmar } : {}) });
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
-  const quien = (x) => (x === null || x === undefined ? '∅' : legibleDe(eje, x, ['identity'], o).texto);
-  const movimientos = (r.evento?.movimientos ?? []).map((m) => `${quien(m.de)} → ${quien(m.a)} · ${m.cantidad} ${m.token}${m.escala ? ':' + m.escala : m.emisor ? ':' + m.emisor + (m.denominacion ? '/' + m.denominacion : '') : m.ambito ? ':' + String(m.ambito).slice(0, 8) : ''}${m.estado ? ' · ' + m.estado + (m.salida ? ' ' + m.salida : '') : ''}`);
+  const quien = (x) => (x === null || x === undefined ? t('nadie') : legibleDe(eje, x, ['identity'], o).texto);
+  const movimientos = (r.evento?.movimientos ?? []).map((m) => `${quien(m.de)} → ${quien(m.a)} · ${legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto}${m.estado ? ' · ' + m.estado + (m.salida ? ' ' + m.salida : '') : ''}`);
   return { ok: Boolean(r.ok), motivos: r.motivos ?? [], movimientos, ...(r.lectura ? { lectura: r.lectura } : {}), ...(r.paso ? { paso: r.paso } : {}) };
+}
+
+/**
+ * Los ajustes de un formulario de configuración (preferencias, guía, exterior: { campos: [{ clave, etiqueta, … }] }) con
+ * la etiqueta en llano (VG 14-11, #83: lo que decide el ajuste, no el nombre del servicio; textos.js etiquetaLlana); la
+ * ayuda, con los nombres técnicos, es la de la época. Sin etiqueta llana en ese idioma, la de la época.
+ */
+export function conEtiquetasLlanas(ajustes, idioma) {
+  if (!ajustes?.campos) return ajustes;
+  return { ...ajustes, campos: ajustes.campos.map((c) => ({ ...c, etiqueta: etiquetaLlana(c.clave, idioma) ?? c.etiqueta })) };
 }
 
 /**
@@ -999,7 +1094,7 @@ async function caminoDe(eje, X, yo, ctx) {
   if (!yo) return { pasos: [], niveles: null };
   const c = await acciones.camino(eje, X, yo, ctx.opciones);
   return {
-    pasos: c.pasos.map((p) => ({ fuente: p.fuente, falta: p.falta, hecho: Boolean(p.hecho), espera: p.espera ?? null, regla: p.regla ?? null, porque: p.porque ?? null, propuesta: p.propuesta ?? null, invalida: p.invalida ?? null, mio: Boolean(p.hacer) && !p.espera && !p.hecho, hacer: p.hacer ? { ...accionDe(p.hacer.plantilla, ctx.opciones), X: p.hacer.X, parametros: p.hacer.parametros, lectura: Boolean(p.hacer.lectura) } : null, pasa: p.pasa, motivos: p.motivos })),
+    pasos: c.pasos.map((p) => ({ fuente: p.fuente, falta: sinNombreInterno(p.falta, eje, ctx.opciones), hecho: Boolean(p.hecho), espera: p.espera ?? null, regla: p.regla ?? null, porque: sinNombreInterno(p.porque ?? null, eje, ctx.opciones), propuesta: p.propuesta ?? null, invalida: p.invalida ?? null, mio: Boolean(p.hacer) && !p.espera && !p.hecho, hacer: p.hacer ? { ...accionDe(p.hacer.plantilla, ctx.opciones), X: p.hacer.X, parametros: p.hacer.parametros, lectura: Boolean(p.hacer.lectura) } : null, pasa: p.pasa, motivos: p.motivos })),
     niveles: c.niveles ?? null,
   };
 }
@@ -1485,6 +1580,12 @@ function horaLlana(instante, ahora = Date.now()) {
 function valorEnLlano(eje, p, ctx) {
   const plano = p.valor.map(String).join(' · ');
   const pl = p.de ? eje.obtener(p.de)?.payload : null;
+  // Un archivo adjunto como representación (su 5 es «archivo:<sha256>»): se dice qué es («una página»), no el mensaje con que lo escribió la plantilla.
+  if (esDecupla(pl) && modelos.idDeArchivo(hojas(pl[5])[0])) {
+    const formato = hojas(pl[1]?.[1])[0];
+    const palabra = t('archivoDe_' + formato);
+    return palabra === 'archivoDe_' + formato ? t('archivoDe_otro') : palabra;
+  }
   if (!esDecupla(pl) || pl.length < 2) return plano;
   const cero = hojas(pl[0]).find((h) => typeof h === 'string' || typeof h === 'number');
   const partes = [cero !== undefined ? String(cero) : legibleDe(eje, { ref: p.de }, null, ctx.opciones).texto];
@@ -1615,7 +1716,7 @@ function itemsDeBandas(eje, R, pv, ctx) {
   for (const x of todos) if (esReferencia(x) && eje.obtener(x.ref)) items.push({ id: x.ref, nodo: conEstado(x.ref, nodoRef(x)) });
   if (esPvDelPasado(pv)) {
     for (const e of contrato.diario(eje, R, 0, 1e9, ctx.opciones).entradas) {
-      const m = e.movimientos.map((a) => a.primitiva + ' ' + legibleDe(eje, a, null, ctx.opciones).texto).join(' · ');
+      const m = e.movimientos.map((a) => movimientoEnLlano(eje, a, ctx.opciones)).join(' · ');
       items.push({ id: e.id, nodo: { tipo: 'entrada', pv, texto: m || e.id.slice(0, 8), t: e.t, autor: e.autor, ref: e.id, ...(e.estado ? { estado: e.estado } : {}) } });
     }
     // #45 (VG 12-11): el 6 lee también el hilo, de dónde cuelga R hacia arriba (lo que da contrato.leer con nivel negativo).

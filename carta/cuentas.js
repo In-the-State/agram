@@ -31,6 +31,7 @@
 
 import { Eje, autoridad, persistencia, contrato, salida, exterior } from '../src/index.js';
 import { plantillaDePreferencias, preferencias } from './carta.js';
+import { adjuntarHtmlInicial } from './archivos.js';
 import { CLAVES as GUIA, ajustesEditablesDe } from './guia.js';
 import { esDePreferencias } from './sitio.js';
 
@@ -136,9 +137,11 @@ export function camposDelAlta({ idioma, epoca } = {}) {
  * génesis referencia la época 0 (lo hace Eje.genesis) y es la única alta sin invitación. Si `idioma` difiere del
  * de la época, escribe además mi configuración (un registro «preferences» en el 9 de mi alta, firmado) con él; y los
  * `ajustes` (los defectos del sitio, carta/sitio.js) en el mismo registro y en el de «exterior settings».
+ * Con `htmlInicial` (la app lo pide, VG 14-11, #84), la alta nace además con su HTML básico en el PV0 (adjuntarHtmlInicial): un
+ * registro más, anclado en la alta; sin él, la cuenta es solo su alta (y lo que se pide: idioma, ajustes).
  * → { cuenta, eje, privada, publica } (las dos claves en hexadecimal)
  */
-export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca } = {}) {
+export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false } = {}) {
   const limpio = String(nombre ?? '').trim();
   if (!limpio) throw new Error('la cuenta necesita un nombre: el 0 de tu alta');
   const { publica, privada } = await autoridad.generarClaves();
@@ -160,6 +163,8 @@ export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toIS
     if (x?.cambiado) await salida.escribirDesde(eje, { modo: 'sequenced', autor: identidad, sobre: x.sobre, en: x.en, payload: x.payload, t }, privada);
   }
   const cuenta = { nombre: limpio, idioma: idioma ?? contrato.configuracion(eje, identidad, o)[claveIdioma(o)], identidad, alta, publica };
+  // Toda alta nace con su HTML básico en el PV0 (VG 14-11, #84): «hola» en medio, en el idioma de la cuenta.
+  if (htmlInicial) await adjuntarHtmlInicial(eje, alta, identidad, firmarCon(privada), cuenta.idioma, o);
   return { cuenta, eje, privada, publica };
 }
 

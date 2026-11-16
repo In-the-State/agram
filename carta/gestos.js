@@ -134,7 +134,10 @@ export function instalar(raiz, m) {
         ultimoMantener = Date.now();
         // bajado por dígitos dentro del registro (data-hueco-en, encargo «lecturas»): la dirección entera, la base y el dígito
         const en = el.dataset.huecoEn ? el.dataset.huecoEn.split('.').map(Number) : [];
-        m.aroNuevo?.(el.dataset.huecoX, pv, { ancla: anclaDe(t, x, y), ...(en.length && hijo && el.contains(hijo) ? { en } : {}) });
+        // una caja del 3 (VG 14-11, #87) lleva su dirección entera (data-hueco-ruta, «3.1»): el hueco es esa, no la posición de su dígito
+        const ruta = hijo && el.contains(hijo) && hijo.dataset.huecoRuta ? hijo.dataset.huecoRuta.split('.').map(Number) : null;
+        if (ruta?.length > 1 && ruta.every(Number.isInteger)) m.aroNuevo?.(el.dataset.huecoX, ruta[ruta.length - 1], { ancla: anclaDe(t, x, y), en: ruta.slice(0, -1), ...(hijo.dataset.huecoNombre ? { nombre: hijo.dataset.huecoNombre } : {}) });
+        else m.aroNuevo?.(el.dataset.huecoX, pv, { ancla: anclaDe(t, x, y), ...(en.length && hijo && el.contains(hijo) ? { en } : {}) });
         return true;
       }
       el = el.parentElement?.closest('[data-x]'); // sin posición (el contenedor de una rejilla en un bloque): el aro de lo de detrás, como siempre

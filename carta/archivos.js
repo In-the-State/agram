@@ -19,7 +19,8 @@
 import * as contrato from '../src/contrato.js';
 import { destinoDeArchivos } from '../src/sincronia.js';
 import { referenciaDeArchivo } from '../src/modelos.js';
-import { t } from './textos.js';
+import { enviar } from './carta.js';
+import { t, HOLA, holaInicial } from './textos.js';
 
 /** Tope de un archivo (el de la función). */
 export const LIMITE = 2 * 1024 * 1024;
@@ -54,6 +55,50 @@ const hex = (buf) => Array.from(new Uint8Array(buf), (b) => b.toString(16).padSt
 /** SHA-256 en hexadecimal de unos bytes (el id del archivo, el mismo que calcula la función). */
 export async function sha256(bytes) {
   return hex(await globalThis.crypto.subtle.digest('SHA-256', bytes));
+}
+
+/**
+ * El HTML básico con que nace toda alta (VG 14-11, #84): «hola» en medio, texto plano en el idioma de la cuenta, sin
+ * estilos externos ni scripts (el iframe aislado los ignoraría igual: SEG-14, SEG-15). Es el archivo que la alta
+ * adjunta a su PV0 (`archivo:<sha256>`); como lo trae la propia carta, se ve sin servidor: INICIALES lo tiene a mano por su id.
+ */
+export function htmlInicial(idioma) {
+  const hola = holaInicial(idioma);
+  return `<!doctype html><html lang="${HOLA[idioma] ? idioma : Object.keys(HOLA)[0]}"><head><meta charset="utf-8"><title>${hola}</title></head><body style="margin:0;min-height:100vh;display:grid;place-items:center;font:24px system-ui,sans-serif"><p>${hola}</p></body></html>`;
+}
+
+/** El HTML inicial de un idioma como archivo adjunto: { id, tipo, bytes, referencia }. */
+export async function inicial(idioma) {
+  const bytes = new TextEncoder().encode(htmlInicial(idioma));
+  const id = await sha256(bytes);
+  return { id, tipo: 'text/html', bytes, referencia: referenciaDeArchivo(id) };
+}
+
+/** Los HTML iniciales de todos los idiomas que la carta sabe saludar: id → bytes (se calculan una vez, al cargar el módulo). */
+export const INICIALES = new Map();
+try {
+  for (const idioma of Object.keys(HOLA)) {
+    const x = await inicial(idioma);
+    INICIALES.set(x.id, x.bytes);
+  }
+} catch { /* sin WebCrypto (un contexto no seguro) no hay hash que calcular: los iniciales se bajarían como cualquier archivo */ }
+
+/**
+ * El HTML básico inicial en el PV0 de una alta (VG 14-11, #84): la plantilla «attach a file» escribe sobre X su
+ * representación de tamaño 3 con la referencia `archivo:<sha256>` del HTML de `inicial`; `firmar`, la firma de quien la
+ * escribe (o nada). Sirve para una cuenta nueva (cuentas.crearCuenta, con `htmlInicial`) y para una cosa dada de alta.
+ * → el registro asentado, o null si no pasó (la alta ya existe: sin su HTML se ve como hasta ahora, su nombre).
+ */
+export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opciones = {}) {
+  try {
+    const x = await inicial(idioma);
+    const formato = formatoDeTipo(x.tipo, opciones);
+    if (!formato) return null;
+    const r = await enviar(eje, X, 'attach a file', { file: x.referencia, format: formato, size: 3 }, identidad, firmar, opciones);
+    return r.ok && r.asentado ? r.asentado : null;
+  } catch {
+    return null;
+  }
 }
 
 /**
@@ -160,6 +205,7 @@ export class Archivos {
   contenido(id) {
     const e = this.cache.get(id);
     if (e && !(e.estado === 'error' && e.reintentar && Date.now() >= e.reintentar)) return e;
+    if (INICIALES.has(id)) return this.listo(id, 'text/html', INICIALES.get(id)); // el HTML con que nace toda alta: lo trae la carta
     const d = this.destino();
     if (!d) return { estado: 'falta' };
     const cargando = { estado: 'cargando' };

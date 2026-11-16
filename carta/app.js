@@ -18,7 +18,7 @@
 // sincronizan nunca. Nada de esto bloquea: se escribe en local y la cola sube lo pendiente.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, enviar, previsualizar, formulario, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
@@ -28,7 +28,7 @@ import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
-import { Archivos, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
+import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from '../antigua/ui/ejemplos.js';
 import { alternarLeido, leidoAbierto } from '../antigua/ui/leido.js';
 import { leerLocal, guardarLocal } from '../antigua/ui/comun.js';
@@ -226,11 +226,11 @@ function extraDe() {
   return {
     ejemplos: EJEMPLOS.map((e) => ({ id: e.id, etiqueta: e.etiqueta })), ejemplo: ejemploElegido(), guardado: estado.guardado, aviso: estado.aviso, exito: estado.exito, nuevos: estado.nuevos,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
-    preferencias: estado.config && estado.eje ? preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias) : null, motivosPreferencias: estado.motivosPreferencias,
+    preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
     cuentas: cuentas.cuentas(), cuenta: estado.cuenta ? { nombre: estado.cuenta.nombre, alta: estado.cuenta.alta, identidad: estado.cuenta.identidad } : null,
     guiaAjustes: estado.config && estado.eje ? guiaAjustesDe() : undefined,
-    exteriorAjustes: estado.config && estado.eje ? guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, porDefectoDelSitio().exterior) ?? undefined : undefined,
+    exteriorAjustes: estado.config && estado.eje ? conEtiquetasLlanas(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, porDefectoDelSitio().exterior), idioma()) ?? undefined : undefined,
     segundoFactor: estado.config && estado.eje ? segundoFactorDeConfiguracion(estado.eje, estado.identidad) ?? undefined : undefined,
     parteConfiguracion: estado.config || undefined, arranque: estado.arranque, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
     archivo: (id) => archivos.contenido(id), // los archivos adjuntos (el HTML del PV0 en su iframe aislado, las imágenes)
@@ -289,7 +289,7 @@ function pintarGuia() {
 /** Los ajustes de la guía para el formulario de configuración: los campos de la época y la clave de la API de este navegador. */
 function guiaAjustesDe() {
   const a = guia.ajustesEditables(estado.eje, estado.identidad);
-  return a ? { ...a, claveIa: guia.claveIa(almacenLocal(), altaDeGuia()) ?? '' } : undefined;
+  return a ? { ...conEtiquetasLlanas(a, idioma()), claveIa: guia.claveIa(almacenLocal(), altaDeGuia()) ?? '' } : undefined;
 }
 
 /**
@@ -603,7 +603,7 @@ async function adjuntarArchivo(X, accion, campos, elegido) {
       estado.exito = t(a.sinRed ? 'archivoPendiente' : 'archivoAdjuntado', { id: a.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
       tocar(X, 'hecho ' + canonicoDe(accion));
       marcarNuevos();
-    } else estado.aviso = (r.motivos ?? []).map((m) => m.mensaje).join(' · ');
+    } else estado.aviso = motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje).join(' · ');
   } catch (e) {
     estado.aviso = String(e.message ?? e);
   }
@@ -784,11 +784,13 @@ const manejadores = {
    * Mantener un hueco (issue #22: un hijo de la rejilla, el espacio libre de un mundo, un PV vacío): el aro con un input
    * nuevo en el centro; lo escrito crea el elemento en la posición pv de X (campo con `nuevo`) y abre su aro.
    */
-  async aroNuevo(X, pv, { ancla, en } = {}) {
+  async aroNuevo(X, pv, { ancla, en, nombre } = {}) {
     if (!X || !Number.isInteger(pv) || !estado.eje?.obtener(X)) return;
     // Bajado por dígitos dentro de X (encargo «lecturas»): el elemento se crea en la dirección entera, X.<en>.<pv>.
     const base = Array.isArray(en) && en.every(Number.isInteger) ? en : [];
-    estado.aro = { X, pv: null, nuevo: pv, ...(base.length ? { en: [...base, pv] } : {}), ancla: ancla ?? null, editar: false };
+    // Sin nada que crear en esa posición (VG 14-11, #87: lo que el núcleo ofrece escribir ahí) el aro no se abre.
+    if (!creableEn(estado.eje, X, [...base, pv], estado.identidad, { idioma: idioma() }).length) return;
+    estado.aro = { X, pv: null, nuevo: pv, ...(base.length ? { en: [...base, pv] } : {}), ...(nombre ? { nombre } : {}), ancla: ancla ?? null, editar: false };
     estado.formulario = null;
     limpiarMensajes();
     tocar(X, 'aro nuevo ' + pv);
@@ -900,7 +902,7 @@ const manejadores = {
       tocar(estado.foco.X, 'reclasificar ' + persona + ' 3.' + caja);
       marcarNuevos();
     } else {
-      estado.formulario = { X: alta, accion: 'move to group', valores, motivos: r.motivos ?? [], resultado: null };
+      estado.formulario = { X: alta, accion: 'move to group', valores, motivos: motivosEnLlano(r.motivos, estado.eje), resultado: null };
     }
     pintar();
   },
@@ -940,6 +942,8 @@ const manejadores = {
     const denominacion = f.ejecutar ? (f.escala ?? acciones.ejecucion(estado.eje, f.accion, { X: f.X, ...valores }, estado.identidad, { idioma: idioma() }).denominacion ?? undefined) : undefined;
     const r = await enviar(estado.eje, f.X, f.accion, valores, estado.identidad, firmarCon(estado.identidad), denominacion ? { denominacion } : {});
     if (r.ok && r.asentado) {
+      // Una cosa dada de alta nace también con su HTML básico en el PV0 (VG 14-11, #84), como mi cuenta.
+      if (canonicoDe(f.accion) === 'register a thing') await adjuntarHtmlInicial(estado.eje, r.asentado.id, estado.identidad, firmarCon(estado.identidad), idioma());
       trasEscribir();
       if (f.propuesta) externa.quitarPropuesta(almacenLocal(), dondePropuestas(), f.propuesta);
       estado.formulario = null;
@@ -947,13 +951,13 @@ const manejadores = {
       tocar(f.X, 'hecho ' + canonicoDe(f.accion));
       marcarNuevos();
     } else if (r.ok && r.lectura) {
-      f.resultado = r.lectura.mensaje;
+      f.resultado = sinNombreInterno(r.lectura.mensaje, estado.eje);
       f.motivos = [];
     } else if (r.ok && !r.evento) {
       f.resultado = r.pasos ? t('pasosMios', { cuantos: r.pasos.length }) : r.paso ? t('elPaso', { que: r.paso.hacer ? nombreDeAccion(r.paso.hacer.plantilla) : r.paso.falta }) : t('nadaQueHacer');
       f.motivos = [];
     } else {
-      f.motivos = r.motivos;
+      f.motivos = motivosEnLlano(r.motivos, estado.eje);
       f.resultado = null;
     }
     pintar();
@@ -991,7 +995,7 @@ const manejadores = {
       if (valoresSegundo.family) {
         const familias = valoresSegundo.family.split(/[\s,]+/).filter(Boolean);
         const r = await enviar(estado.eje, estado.eje.alta(estado.identidad).id, 'second factor', { family: familias.length === 1 ? familias[0] : familias, amount: Number(valoresSegundo.amount || 0), ...(valoresSegundo.holder ? { holder: valoresSegundo.holder } : {}) }, estado.identidad, firmarCon(estado.identidad));
-        if (!r.asentado) throw new Error((r.motivos ?? []).map((m) => m.mensaje ?? m).join(' · ') || 'second factor');
+        if (!r.asentado) throw new Error(motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje ?? m).join(' · ') || 'second factor');
       }
       guardar();
       estado.config = false;
@@ -1099,7 +1103,7 @@ const manejadores = {
     if (!accion || !p?.hacer) return;
     try {
       const r = await previsualizar(estado.eje, X ?? estado.foco.X, accion, p.hacer.parametros ?? {}, estado.identidad, firmarCon(estado.identidad));
-      estado.previa = { foco: estado.foco.X, paso, ...r };
+      estado.previa = { foco: estado.foco.X, paso, ...r, motivos: motivosEnLlano(r.motivos, estado.eje), ...(r.lectura ? { lectura: { ...r.lectura, mensaje: sinNombreInterno(r.lectura.mensaje, estado.eje) } } : {}) };
     } catch (e) {
       estado.previa = { foco: estado.foco.X, paso, ok: false, motivos: [{ regla: null, mensaje: String(e.message ?? e) }], movimientos: [] };
     }
@@ -1234,7 +1238,7 @@ const manejadores = {
         pintar();
         return;
       }
-      motivos = r.motivos ?? []; // lo que no pasa se enseña en el formulario, para cambiarlo
+      motivos = motivosEnLlano(r.motivos, estado.eje); // lo que no pasa se enseña en el formulario, para cambiarlo
     }
     estado.formulario = { X: e.sobre, accion: e.accion, valores: e.parametros, motivos, resultado: null, propuesta: id };
     estado.aro = null;
@@ -1290,7 +1294,7 @@ const manejadores = {
     ar.ocupado = true;
     await pintar();
     try {
-      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes: ajustesDelSitio.defectos() });
+      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes: ajustesDelSitio.defectos(), htmlInicial: true });
       const guardada = await cuentas.guardarCuenta(r);
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');

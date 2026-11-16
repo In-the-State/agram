@@ -112,7 +112,7 @@ test('#92 la configuración se separa: el 2 abre mis criterios y preferencias; e
   const dos = htmlConfiguracion(p, { claveLectura: '', guia, exterior, segundoFactor, parte: '2' });
   const nueve = htmlConfiguracion(p, { claveLectura: '', guia, exterior, segundoFactor, parte: '9' });
   assert.deepEqual(etiquetas(dos), ['paso', 'pintado', 'idioma', 'tamaños', 'modelo', 'animaciones', 'familia']);
-  assert.deepEqual(etiquetas(nueve), ['servidor', 'eje compartido', 'clave de lectura', 'modelo de la guía', 'clave de Anthropic (vía directa)', 'relé']);
+  assert.deepEqual(etiquetas(nueve), ['servidor', 'eje compartido', 'clave de lectura', 'modelo de la guía', 'clave para hablar con la guía sin servidor', 'relé']);
   assert.match(dos, /data-parte="2"[^>]*>[^]*<h2><span class="numero">2<\/span> mis criterios y preferencias<\/h2>/);
   assert.match(nueve, /data-parte="9"[^>]*>[^]*<h2><span class="numero">9<\/span> guía y exterior<\/h2>/);
   assert.doesNotMatch(dos, /data-clave-lectura|data-guia-campo|data-exterior-campo|data-clave-ia/);

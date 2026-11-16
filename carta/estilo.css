@@ -1050,11 +1050,16 @@ html.mapped body{padding:0}
 /* un hueco donde se puede crear un elemento (mantenerlo pulsado: issue #22) */
 [data-hueco-pv]:not(.rejilla){cursor:copy}
 /* el aro sobre un hueco: solo el centro, un poco más ancho, con su input nuevo */
-.aro.aro-nuevo{--centro-ancho:min(240px,70vw);--centro-alto:72px}
+.aro.aro-nuevo{--centro-ancho:min(240px,70vw);--centro-alto:92px}
 .aro.anclado.aro-nuevo{--centro-ancho:240px} /* repaso #17: en el ancla, un número (min() no se puede leer en app.js situarAro: el centro salía de 14px) */
 .aro.aro-nuevo .aro-centro{grid-area:2 / 1 / 3 / 4;justify-self:center;width:var(--centro-ancho);padding:8px}
 .aro.aro-nuevo .aro-centro>b{display:block;font-size:12px;color:var(--muted)}
 .aro.anclado.aro-nuevo .aro-centro>b{display:block}
+/* el aro sobre un hueco en llano (VG 14-11, #87): qué crea y dónde, el nombre, y lo que el núcleo ofrece crear ahí */
+.aro.aro-nuevo .aro-centro>b{font-size:13px;color:inherit}
+.aro.anclado.aro-nuevo .aro-centro>.aro-donde{display:block}
+.aro-donde{display:block;font-size:11px;line-height:1.25;color:var(--muted);margin-bottom:4px;overflow-wrap:break-word}
+.aro-crear .aro-crear-con{font-size:11px;color:var(--muted);padding:2px 6px}
 /* el 3 por tema (encargo pv3, VG 12-11): cada caja, sus personas con el marcador del canal de R (doy, recibo); el botón
    que cicla y el interrogante del sitio en la cabeza; arrastrar una persona a otra caja la reclasifica */
 .caja-tres .hijo-cabeza{align-items:center;flex-wrap:wrap;row-gap:2px} /* repaso beta #6: en una caja estrecha el botón y el «?» bajan de línea en vez de comerse el nombre */
