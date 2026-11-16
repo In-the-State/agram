@@ -183,32 +183,42 @@ export function formulaDeUnaVez() {
 
 // ---------- enviar ----------
 
-/** Lo que lleva un «send to another book»: 1.0 el libro de destino, 1.1 la serie (sus partes), 1.2 cuánto, 1.3 a quién (su clave). */
+/**
+ * Lo que lleva un «send to another book»: 1.0 el libro de destino; 1.1 la serie como la nombra este libro: 1.1.0 su clave,
+ * 1.1.1 su emisor, 1.1.2 su denominación (si la tiene) y 1.1.3 el registro al que está atada en el libro donde nació; 1.2
+ * cuánto; 1.3 a quién (su clave pública). El libro de destino no tiene esta serie: lee sus partes del registro traído.
+ */
 const SP = (k) => '(payload(ev)).1.1.' + k;
 const noEnviar = 'not ("' + P.enviar + '" in ev.4)';
+/** La familia que dice la clave de una serie (un texto «E:…»): su primera letra. */
+const familiaDe = (clave) => 'text(slice(utf8(' + clave + '), 0, 1))';
 const familiaEs = (texto, it) => '(' + ['E', 'P', 'R', 'T'].map((f) => texto + ' = "' + f + '" and ' + f + ' in ' + it + '.0.0.0').join(' or ') + ')';
+/** ¿Nombra el emisor `e` (un texto) una serie forastera de `libro` («<libro>:…»)? Con 65 bytes a cero detrás, slice no se sale. */
+const deLibro = (e, libro) => 'slice(cat(utf8(' + e + '), bytes("' + CEROS + '")), 0, 65) = cat(utf8(' + libro + '), bytes("3a"))';
+const sinDosPuntos = (e) => 'hex(slice(cat(utf8(' + e + '), bytes("' + CEROS + '")), 64, 65)) != "3a"';
 
-/** «only the families of the bridge cross»: la familia que dice el envío (1.1.1) está en epoch.8.9.1 y es la de lo que bloquea. */
+/** «only the families of the bridge cross»: la familia de la serie que se envía (la de su clave, 1.1.0) está en epoch.8.9.1 y es la de lo que bloquea. */
 export function formulaDeFamilias() {
-  return '=' + noEnviar + ' or first ' + SP(1) + ' in epoch.8.9.1 and count (ev.1 where lock in it.4 and not ' + familiaEs('first ' + SP(1), 'it') + ') = 0';
+  const F = familiaDe('first ' + SP(0));
+  return '=' + noEnviar + ' or ' + F + ' in epoch.8.9.1 and count (ev.1 where lock in it.4 and not ' + familiaEs(F, 'it') + ') = 0';
 }
 
 /**
  * «a send locks what it names»: se ancla en un enlace que nombra el libro de destino (1.0, otro libro); bloquea una sola
- * vez, cuánto dice (1.2), con la salida en el enlace, de la serie cuyas partes dice (1.1.3 su emisor, 1.1.4 su
- * denominación), y nada más que su coste. Dónde nació la serie (1.1.2) y su registro atado allí (1.1.5): si es de aquí,
- * este libro y su registro; si es forastera, solo vuelve a su libro de origen, su emisor empieza por él y el registro es
- * el que trajo el registro al que está atada (diseño §4.4: la vuelta).
+ * vez, cuánto dice (1.2), con la salida en el enlace, de la serie cuyas partes dice (1.1.1 su emisor, 1.1.2 su
+ * denominación), y nada más que su coste. Su registro atado (1.1.3): si la serie es de aquí, el suyo; si es forastera,
+ * solo vuelve a su libro de origen (su emisor empieza por él) y es el registro que trajo aquí el registro al que está
+ * atada (diseño §4.4: la vuelta).
  */
 export function formulaDelEnvio() {
   const L = '(first ev.6.5)';
-  const D = 'first ' + '(payload(ev)).1.0';
-  const nacio = 'not ' + forasteraMov('it') + ' and first ' + SP(2) + ' = first before.5 and first ' + SP(5) + ' = first it.5'
-    + ' or ' + forasteraMov('it') + ' and first ' + SP(2) + ' = ' + D + ' and slice(utf8(first it.0.0.1), 0, 64) = utf8(' + D + ')'
-    + ' and "' + P.traer + '" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = ' + D + ' and first ' + SP(5) + ' = first (payload(first it.5)).1.1.0';
+  const D = 'first (payload(ev)).1.0';
+  const atado = 'not ' + forasteraMov('it') + ' and first ' + SP(3) + ' = first it.5'
+    + ' or ' + forasteraMov('it') + ' and slice(utf8(first it.0.0.1), 0, 64) = utf8(' + D + ')'
+    + ' and "' + P.traer + '" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = ' + D + ' and first ' + SP(3) + ' = first (payload(first it.5)).1.1.0';
   return '=' + noEnviar + ' or ' + esEnlace(L) + ' and ' + libroEs(L, D) + ' and ' + D + ' != first before.5'
     + ' and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0'
-    + ' and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first ' + SP(3) + ' and first it.0.0.2 = first ' + SP(4) + ' and (' + nacio + ')) = 1';
+    + ' and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first ' + SP(1) + ' and first it.0.0.2 = first ' + SP(2) + ' and (' + atado + ')) = 1';
 }
 
 /**
@@ -240,24 +250,27 @@ export function formulaDeRecibir() {
 }
 
 /**
- * «what is received is what was sent»: la familia cruza aquí (epoch.8.9.1); si la serie nació aquí (la vuelta), libera
- * una vez, cuánto se envió, de la serie de aquí cuyo nombre forastero era el del envío, con la salida en un enlace al
- * libro de origen, y no mueve nada más; si nació en el origen, acuña una vez, cuánto se envió, para quien recibe, la serie
- * forastera: el emisor «<origen>:<emisor>» y la misma denominación (su registro atado lo mira el requisito de E).
+ * «what is received is what was sent»: la familia (la de la clave de la serie) cruza aquí (epoch.8.9.1). Si el emisor que
+ * dice el envío es «<este libro>:<emisor>» (la vuelta), libera una vez, cuánto se envió, de la serie de aquí de ese
+ * emisor, esa denominación y ese registro atado, con la salida en un enlace al libro de origen, y no mueve nada más; si el
+ * emisor es de allí (sin «:»), acuña una vez, cuánto se envió, para quien recibe, la serie forastera: el emisor
+ * «<origen>:<emisor>» y la misma denominación (su registro atado lo mira el requisito de E).
  */
 export function formulaDeLoEnviado() {
   const q = 'first ' + SND('1.2');
-  const vuelta = 'first ' + SND('1.1.2') + ' = first before.5'
+  const F = familiaDe('first ' + SND('1.1.0'));
+  const E_ = 'first ' + SND('1.1.1');
+  const vuelta = deLibro(E_, 'first before.5')
     + ' and count (ev.1 where mint in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where release in it.4) = 1'
-    + ' and count (ev.1 where release in it.4 and it.1 = ' + q + ' and it.3.0 = first ev.3 and ' + familiaEs('first ' + SND('1.1.1'), 'it')
-    + ' and first it.0.0.2 = first ' + SND('1.1.4') + ' and first it.5 = first ' + SND('1.1.5')
-    + ' and cat(utf8(first before.5), bytes("3a"), utf8(first it.0.0.1)) = utf8(first ' + SND('1.1.3') + ')'
+    + ' and count (ev.1 where release in it.4 and it.1 = ' + q + ' and it.3.0 = first ev.3 and ' + familiaEs(F, 'it')
+    + ' and first it.0.0.2 = first ' + SND('1.1.2') + ' and first it.5 = first ' + SND('1.1.3')
+    + ' and cat(utf8(first before.5), bytes("3a"), utf8(first it.0.0.1)) = utf8(' + E_ + ')'
     + ' and count (it.2 where count ' + SALIDA + '.5 > 0 and ' + libroEs(SALIDA, O) + ') > 0) = 1';
-  const ida = 'first ' + SND('1.1.2') + ' = ' + O
+  const ida = sinDosPuntos(E_)
     + ' and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1'
-    + ' and count (ev.1 where mint in it.4 and it.1 = ' + q + ' and it.3.1 = first ev.3 and ' + familiaEs('first ' + SND('1.1.1'), 'it')
-    + ' and first it.0.0.2 = first ' + SND('1.1.4') + ' and utf8(first it.0.0.1) = cat(utf8(' + O + '), bytes("3a"), utf8(first ' + SND('1.1.3') + '))) = 1';
-  return '=' + noRecibir + ' or first ' + SND('1.1.1') + ' in epoch.8.9.1 and (' + vuelta + ' or ' + ida + ')';
+    + ' and count (ev.1 where mint in it.4 and it.1 = ' + q + ' and it.3.1 = first ev.3 and ' + familiaEs(F, 'it')
+    + ' and first it.0.0.2 = first ' + SND('1.1.2') + ' and utf8(first it.0.0.1) = cat(utf8(' + O + '), bytes("3a"), utf8(' + E_ + '))) = 1';
+  return '=' + noRecibir + ' or ' + F + ' in epoch.8.9.1 and (' + vuelta + ' or ' + ida + ')';
 }
 
 /** «only a receive mints a foreign series»: nadie acuña una serie forastera fuera de un «receive from another book». */
@@ -268,12 +281,12 @@ export function formulaDeForastera() {
 /**
  * «the tied record of E crossed before» (el requisito de E, si epoch.8.9.3 lo nombra para E): la serie forastera de E que
  * acuña un «receive from another book» está atada al registro traído (del libro de origen) del registro al que la E está
- * atada allí (1.1.5 del envío).
+ * atada allí (1.1.3 del envío).
  */
 export function formulaDelRequisitoDeE() {
   return '=' + noRecibir + ' or not ("' + REQUISITO_DE_E + '" in lookup(epoch.8.9.1, epoch.8.9.3, "E"))'
     + ' or count (ev.1 where mint in it.4 and ' + forasteraMov('it') + ' and not (count it.5 > 0 and "' + P.traer + '" in (payload(first it.5)).4'
-    + ' and first (payload(first it.5)).1.0 = ' + O + ' and first (payload(first it.5)).1.1.0 = first ' + SND('1.1.5') + ')) = 0';
+    + ' and first (payload(first it.5)).1.0 = ' + O + ' and first (payload(first it.5)).1.1.0 = first ' + SND('1.1.3') + ')) = 0';
 }
 
 // ---------- declarar un saldo ----------

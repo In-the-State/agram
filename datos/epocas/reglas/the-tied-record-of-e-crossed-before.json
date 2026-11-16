@@ -1,7 +1,7 @@
 [
   ["the tied record of E crossed before"],
   ["epoch.8.9.1", "epoch.8.9.3", "9800000000"],
-  ["=not (\"receive from another book\" in ev.4) or not (\"the tied record of E crossed before\" in lookup(epoch.8.9.1, epoch.8.9.3, \"E\")) or count (ev.1 where mint in it.4 and (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and not (count it.5 > 0 and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload((first ev.6.5))).1.0 and first (payload(first it.5)).1.1.0 = first (payload((first ev.6.5))).1.1.6.1.1.5)) = 0"],
+  ["=not (\"receive from another book\" in ev.4) or not (\"the tied record of E crossed before\" in lookup(epoch.8.9.1, epoch.8.9.3, \"E\")) or count (ev.1 where mint in it.4 and (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and not (count it.5 > 0 and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload((first ev.6.5))).1.0 and first (payload(first it.5)).1.1.0 = first (payload((first ev.6.5))).1.1.6.1.1.3)) = 0"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],

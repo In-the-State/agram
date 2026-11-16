@@ -1,7 +1,7 @@
 [
   ["only the families of the bridge cross"],
   ["epoch.8.9.1"],
-  ["=not (\"send to another book\" in ev.4) or first (payload(ev)).1.1.1 in epoch.8.9.1 and count (ev.1 where lock in it.4 and not (first (payload(ev)).1.1.1 = \"E\" and E in it.0.0.0 or first (payload(ev)).1.1.1 = \"P\" and P in it.0.0.0 or first (payload(ev)).1.1.1 = \"R\" and R in it.0.0.0 or first (payload(ev)).1.1.1 = \"T\" and T in it.0.0.0)) = 0"],
+  ["=not (\"send to another book\" in ev.4) or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) in epoch.8.9.1 and count (ev.1 where lock in it.4 and not (text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"T\" and T in it.0.0.0)) = 0"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],

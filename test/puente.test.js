@@ -149,7 +149,7 @@ test('puente: enviar E y recibirla crea la serie forastera para quien se nombró
   const { grande, pequeno, abre, claves, menu, serie } = m;
   // Sin traer antes el menú: el envío se trae, pero no se recibe (el requisito de E).
   const envio = await m.lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 3, to: claves.bea.publica }, 'ana');
-  assert.deepEqual(envio.payload[1], [[pequeno.genesisId], [[serie], ['E'], [grande.genesisId], ['ana'], ['plato'], [menu.id]], [3], [claves.bea.publica]]);
+  assert.deepEqual(envio.payload[1], [[pequeno.genesisId], [[serie], ['ana'], ['plato'], [menu.id]], [3], [claves.bea.publica]]);
   assert.deepEqual(saldoDe(grande, 'ana', serie), { libre: 2, bloqueado: 3 }, 'bloqueadas con la salida en el enlace');
   assert.equal(grande.bloqueado('ana', serie, abre.id), 3);
   const envioTraido = await m.traer(pequeno, grande, envio);
@@ -194,10 +194,10 @@ test('puente: la vuelta suelta lo bloqueado y no más; lo bloqueado para el otro
     await assert.rejects(grande.escribir({ autor: 'ana', sobre: abre.id, en: '4000000000', t: e.t(), payload, movimientos: [quemaDelCoste('ana', payload, 'minuto', { eje: grande }), { token: 'E', emisor: 'ana', denominacion: 'plato', registro: menu.id, cantidad: 1, ...m }] }, claves.ana.privada), new RegExp(N.soloLaVuelta), que);
   }
   assert.deepEqual(saldoDe(grande, 'ana', serie), { libre: 3, bloqueado: 2 });
-  // Una «vuelta» de algo que no se envió: bea envía como nacida en el grande una E suya del pequeño.
+  // Una «vuelta» de algo que no se envió: bea envía una E suya del pequeño diciendo que está atada al menú del grande.
   const suya = await e.lanza(pequeno, 'anchor here', { X: pequeno.genesisId, title: 'lo de bea', content: 'x' }, 'bea');
   await e.lanza(pequeno, 'issue E tied to X', { X: suya.id, denomination: 'vale', quantity: 2 }, 'bea');
-  const falsa = await e.intenta(pequeno, P.enviar, { X: cuelga.id, series: 'E:bea/vale@' + suya.id, quantity: 1, to: claves.ana.publica, 'born in': grande.genesisId, 'tied record': menu.id }, 'bea');
+  const falsa = await e.intenta(pequeno, P.enviar, { X: cuelga.id, series: 'E:bea/vale@' + suya.id, quantity: 1, to: claves.ana.publica, 'tied record': menu.id }, 'bea');
   assert.ok(reglas(falsa).includes(N.envio), 'no es una vuelta: la serie es de aquí');
   // Ni se devuelve más de lo que se envió: bea no tiene más de 2 libres de la forastera.
   const mas = await e.intenta(pequeno, P.enviar, { X: cuelga.id, series: forastera, quantity: 5, to: claves.ana.publica }, 'bea');

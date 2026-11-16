@@ -674,10 +674,10 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "29b903f35ee08c9d0afe2db2ceb56a27e0fe05d9b08343df70f74060f6e6040f"
     },
     {
-      "ref": "74a274f290158bc6a2c11635385c3e356879a53a37b2cdd434804aa9d3dc977b"
+      "ref": "3e37fd9a3d70406abd099388ad8e7bb99a933b027c09a4ba1a88e2376fee75d3"
     },
     {
-      "ref": "12c36fa5e37c29f1d297ea3402a87656081f3e03e9ecbce34ccfbac9df97769b"
+      "ref": "a8e44fcb58260e81a9ae0dddd748ada56267be2ddaca8be97ac973effdb7b4c0"
     },
     {
       "ref": "e2aa7ab36fe4f37c00ed373549c9b14a014377f3253e29df7caa4f1a2d54f8ad"
@@ -686,13 +686,13 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "90aca5f357dcd30293219704b70d747b7bc1d68833ae7ab3988b0c9001142491"
     },
     {
-      "ref": "e8c5b99c4a1b7983747ffab447c50c1a610880253efc1f5055e4edc3b15f36d4"
+      "ref": "e738e6b9081d2cdd88bae6379de8b0047751af025e78f185e143bfbcf330187f"
     },
     {
       "ref": "2df4c5ca447902e823f67686efbdc44ef66abf65ef87abc818260ab9e99ef2d2"
     },
     {
-      "ref": "31f85b134da23825587df9f560b8dcb094017153c0e159345d40068c1e4d12c2"
+      "ref": "b3ec09fa474965084de73848512338ede6ff5cce9e07c8def4766409599fff9d"
     },
     {
       "ref": "416c61c9b99c9902a15e9b1aba8a27b9d30d05e956bc437c9acc55aa654f936d"
@@ -6948,10 +6948,6 @@ export const EPOCA_0_BTML_DATOS = [
           "template send to another book param book help: el libro de destino: el id de su génesis, el que nombra el enlace (por defecto, ese)",
           "template send to another book param series label: serie",
           "template send to another book param series help: la serie que se envía, una mía (su clave en este libro)",
-          "template send to another book param family label: familia",
-          "template send to another book param family help: su familia (E, P, R o T): solo cruzan las de epoch.8.9.1",
-          "template send to another book param born in label: nació en",
-          "template send to another book param born in help: el libro donde nació la serie: este, o, si es una serie forastera, su libro de origen (entonces solo vuelve allí)",
           "template send to another book param issuer label: emisor",
           "template send to another book param issuer help: su emisor, como se llama en este libro",
           "template send to another book param denomination label: denominación",
@@ -7352,10 +7348,10 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "fa2dd60226921aaa91d95f0bec74ab359b95cbfb07f296c8be995c3c0fb0826c"
         },
         {
-          "ref": "00530a7c667b62939616e974dd7a3a62340fd5dd9b2e5de13125d9facc319ccb"
+          "ref": "30878e4ab69a12d04012fe7f7cd50db65b46ccf59a3e9c54c2d4b6690ff16704"
         },
         {
-          "ref": "4ff02c01f16d7df7c183e76b2f858f3b33d34707618d3f175e1542b38e427ddc"
+          "ref": "a030814fb1d8be133225dda73a42b547ea88a74aee0951262c307404e2166562"
         },
         {
           "ref": "4d453575c924896213b169bc37c92322eb7b7c9222ebbc4da011a22b3e09f544"
@@ -9133,7 +9129,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-send-locks-what-it-names.json",
-    "id": "12c36fa5e37c29f1d297ea3402a87656081f3e03e9ecbce34ccfbac9df97769b",
+    "id": "a8e44fcb58260e81a9ae0dddd748ada56267be2ddaca8be97ac973effdb7b4c0",
     "registro": [
       [
         "a send locks what it names"
@@ -9143,7 +9139,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "9500000000"
       ],
       [
-        "=not (\"send to another book\" in ev.4) or (\"open a private book here\" in (payload((first ev.6.5))).4 or \"this book hangs from\" in (payload((first ev.6.5))).4) and (\"open a private book here\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0) and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.3 and first it.0.0.2 = first (payload(ev)).1.1.4 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.2 = first before.5 and first (payload(ev)).1.1.5 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.2 = first (payload(ev)).1.0 and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.5 = first (payload(first it.5)).1.1.0)) = 1"
+        "=not (\"send to another book\" in ev.4) or (\"open a private book here\" in (payload((first ev.6.5))).4 or \"this book hangs from\" in (payload((first ev.6.5))).4) and (\"open a private book here\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0) and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.1 and first it.0.0.2 = first (payload(ev)).1.1.2 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.3 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.3 = first (payload(first it.5)).1.1.0)) = 1"
       ],
       [
         "ev.3"
@@ -11048,7 +11044,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "only-the-families-of-the-bridge-cross.json",
-    "id": "74a274f290158bc6a2c11635385c3e356879a53a37b2cdd434804aa9d3dc977b",
+    "id": "3e37fd9a3d70406abd099388ad8e7bb99a933b027c09a4ba1a88e2376fee75d3",
     "registro": [
       [
         "only the families of the bridge cross"
@@ -11057,7 +11053,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "epoch.8.9.1"
       ],
       [
-        "=not (\"send to another book\" in ev.4) or first (payload(ev)).1.1.1 in epoch.8.9.1 and count (ev.1 where lock in it.4 and not (first (payload(ev)).1.1.1 = \"E\" and E in it.0.0.0 or first (payload(ev)).1.1.1 = \"P\" and P in it.0.0.0 or first (payload(ev)).1.1.1 = \"R\" and R in it.0.0.0 or first (payload(ev)).1.1.1 = \"T\" and T in it.0.0.0)) = 0"
+        "=not (\"send to another book\" in ev.4) or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) in epoch.8.9.1 and count (ev.1 where lock in it.4 and not (text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload(ev)).1.1.0), 0, 1)) = \"T\" and T in it.0.0.0)) = 0"
       ],
       [
         "ev.3"
@@ -12044,7 +12040,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "the-tied-record-of-e-crossed-before.json",
-    "id": "31f85b134da23825587df9f560b8dcb094017153c0e159345d40068c1e4d12c2",
+    "id": "b3ec09fa474965084de73848512338ede6ff5cce9e07c8def4766409599fff9d",
     "registro": [
       [
         "the tied record of E crossed before"
@@ -12055,7 +12051,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "9800000000"
       ],
       [
-        "=not (\"receive from another book\" in ev.4) or not (\"the tied record of E crossed before\" in lookup(epoch.8.9.1, epoch.8.9.3, \"E\")) or count (ev.1 where mint in it.4 and (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and not (count it.5 > 0 and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload((first ev.6.5))).1.0 and first (payload(first it.5)).1.1.0 = first (payload((first ev.6.5))).1.1.6.1.1.5)) = 0"
+        "=not (\"receive from another book\" in ev.4) or not (\"the tied record of E crossed before\" in lookup(epoch.8.9.1, epoch.8.9.3, \"E\")) or count (ev.1 where mint in it.4 and (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and not (count it.5 > 0 and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload((first ev.6.5))).1.0 and first (payload(first it.5)).1.1.0 = first (payload((first ev.6.5))).1.1.6.1.1.3)) = 0"
       ],
       [
         "ev.3"
@@ -12224,7 +12220,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "what-is-received-is-what-was-sent.json",
-    "id": "e8c5b99c4a1b7983747ffab447c50c1a610880253efc1f5055e4edc3b15f36d4",
+    "id": "e738e6b9081d2cdd88bae6379de8b0047751af025e78f185e143bfbcf330187f",
     "registro": [
       [
         "what is received is what was sent"
@@ -12234,7 +12230,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "before.5"
       ],
       [
-        "=not (\"receive from another book\" in ev.4) or first (payload((first ev.6.5))).1.1.6.1.1.1 in epoch.8.9.1 and (first (payload((first ev.6.5))).1.1.6.1.1.2 = first before.5 and count (ev.1 where mint in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where release in it.4) = 1 and count (ev.1 where release in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.0 = first ev.3 and (first (payload((first ev.6.5))).1.1.6.1.1.1 = \"E\" and E in it.0.0.0 or first (payload((first ev.6.5))).1.1.6.1.1.1 = \"P\" and P in it.0.0.0 or first (payload((first ev.6.5))).1.1.6.1.1.1 = \"R\" and R in it.0.0.0 or first (payload((first ev.6.5))).1.1.6.1.1.1 = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.4 and first it.5 = first (payload((first ev.6.5))).1.1.6.1.1.5 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it.0.0.1)) = utf8(first (payload((first ev.6.5))).1.1.6.1.1.3) and count (it.2 where count (text(utf8(it2))).5 > 0 and (\"open a private book here\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0.0 = first (payload((first ev.6.5))).1.0 or \"this book hangs from\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0 = first (payload((first ev.6.5))).1.0)) > 0) = 1 or first (payload((first ev.6.5))).1.1.6.1.1.2 = first (payload((first ev.6.5))).1.0 and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1 and count (ev.1 where mint in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.1 = first ev.3 and (first (payload((first ev.6.5))).1.1.6.1.1.1 = \"E\" and E in it.0.0.0 or first (payload((first ev.6.5))).1.1.6.1.1.1 = \"P\" and P in it.0.0.0 or first (payload((first ev.6.5))).1.1.6.1.1.1 = \"R\" and R in it.0.0.0 or first (payload((first ev.6.5))).1.1.6.1.1.1 = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.4 and utf8(first it.0.0.1) = cat(utf8(first (payload((first ev.6.5))).1.0), bytes(\"3a\"), utf8(first (payload((first ev.6.5))).1.1.6.1.1.3))) = 1)"
+        "=not (\"receive from another book\" in ev.4) or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) in epoch.8.9.1 and (slice(cat(utf8(first (payload((first ev.6.5))).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count (ev.1 where mint in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where release in it.4) = 1 and count (ev.1 where release in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.0 = first ev.3 and (text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.2 and first it.5 = first (payload((first ev.6.5))).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it.0.0.1)) = utf8(first (payload((first ev.6.5))).1.1.6.1.1.1) and count (it.2 where count (text(utf8(it2))).5 > 0 and (\"open a private book here\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0.0 = first (payload((first ev.6.5))).1.0 or \"this book hangs from\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0 = first (payload((first ev.6.5))).1.0)) > 0) = 1 or hex(slice(cat(utf8(first (payload((first ev.6.5))).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) != \"3a\" and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1 and count (ev.1 where mint in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.1 = first ev.3 and (text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.2 and utf8(first it.0.0.1) = cat(utf8(first (payload((first ev.6.5))).1.0), bytes(\"3a\"), utf8(first (payload((first ev.6.5))).1.1.6.1.1.1))) = 1)"
       ],
       [
         "ev.3"
@@ -21332,7 +21328,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "send-to-another-book.json",
-    "id": "00530a7c667b62939616e974dd7a3a62340fd5dd9b2e5de13125d9facc319ccb",
+    "id": "30878e4ab69a12d04012fe7f7cd50db65b46ccf59a3e9c54c2d4b6690ff16704",
     "registro": [
       [
         "send to another book"
@@ -21406,7 +21402,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ],
         [
           [
-            "family"
+            "issuer"
           ],
           [
             "text"
@@ -21433,76 +21429,6 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             3
           ],
           [
-            "=first (\"E\" where E in before.4.(first memo.1.1.0).0.0)",
-            "=first (\"P\" where P in before.4.(first memo.1.1.0).0.0)",
-            "=first (\"R\" where R in before.4.(first memo.1.1.0).0.0)",
-            "=first (\"T\" where T in before.4.(first memo.1.1.0).0.0)",
-            "its family (E, P, R or T): only those of epoch.8.9.1 cross"
-          ]
-        ],
-        [
-          [
-            "born in"
-          ],
-          [
-            "text"
-          ],
-          [
-            "=hex(slice(bytes(it), 0, 32)) = it"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "1.1.2"
-          ],
-          [
-            "Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «send to another book»"
-          ],
-          [
-            "required"
-          ],
-          [
-            4
-          ],
-          [
-            "=first (before.5 where not (E in before.4.(first memo.1.1.0).0.0 and hex(slice(cat(utf8(first before.4.(first memo.1.1.0).0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\"))",
-            "=first ((payload(first before.4.(first memo.1.1.0).5)).1.0 where E in before.4.(first memo.1.1.0).0.0 and hex(slice(cat(utf8(first before.4.(first memo.1.1.0).0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\")",
-            "the book where the series was born: this one, or, if it is a foreign series, its book of origin (then it only goes back there)"
-          ]
-        ],
-        [
-          [
-            "issuer"
-          ],
-          [
-            "text"
-          ],
-          [
-            "any"
-          ],
-          [
-            "me"
-          ],
-          [
-            "payload"
-          ],
-          [
-            "1.1.3"
-          ],
-          [
-            "Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «send to another book»"
-          ],
-          [
-            "required"
-          ],
-          [
-            5
-          ],
-          [
             "=first before.4.(first memo.1.1.0).0.1",
             "its issuer, as named in this book"
           ]
@@ -21524,7 +21450,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "payload"
           ],
           [
-            "1.1.4"
+            "1.1.2"
           ],
           [
             "Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «send to another book»"
@@ -21533,7 +21459,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "optional"
           ],
           [
-            6
+            4
           ],
           [
             "=first before.4.(first memo.1.1.0).0.2",
@@ -21557,7 +21483,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "payload"
           ],
           [
-            "1.1.5"
+            "1.1.3"
           ],
           [
             "Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «send to another book»"
@@ -21566,7 +21492,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "optional"
           ],
           [
-            7
+            5
           ],
           [
             "=first (before.4.(first memo.1.1.0).5 where not (E in before.4.(first memo.1.1.0).0.0 and hex(slice(cat(utf8(first before.4.(first memo.1.1.0).0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\"))",
@@ -21600,7 +21526,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            8
+            6
           ],
           [
             "how many are sent: they stay locked here, with the link as their exit, until they come back"
@@ -21632,7 +21558,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            9
+            7
           ],
           [
             "whom it goes to in the other book: their public key (x-only, 64 hexadecimal characters in lower case), the one their alta declares there"
@@ -21664,7 +21590,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            10
+            8
           ],
           [
             "=first epoch.9.0.1.2",
@@ -21697,7 +21623,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            11
+            9
           ],
           [
             "=me",
@@ -21730,7 +21656,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "required"
           ],
           [
-            12
+            10
           ],
           [
             "send to another book",
@@ -21759,7 +21685,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Diseño §4.2: en el origen, bloquea una cantidad de una serie mía con la salida en el enlace con el libro de destino y nombra a quién va allí, por su clave pública. Lo deciden «only the families of the bridge cross» (la familia está en epoch.8.9.1) y «a send locks what it names»; lo bloqueado no se suelta dentro del origen («what is locked for another book is released only by its return»): solo lo suelta la vuelta. Una serie forastera (diseño §4.4) solo vuelve a su libro de origen",
-        "Las partes de la serie van como datos (1.1: su clave, su familia, dónde nació, su emisor, su denominación y su registro atado allí) porque el libro de destino no tiene esta serie: las lee del registro traído. Se lanza sobre el enlace y se ancla en su 4 (lo que mueve)",
+        "Las partes de la serie van como datos (1.1: su clave, su emisor, su denominación y su registro atado en el libro donde nació; la familia se lee de la clave y si es forastera, de su emisor: una plantilla no pasa de diez parámetros) porque el libro de destino no tiene esta serie: las lee del registro traído. Se lanza sobre el enlace y se ancla en su 4 (lo que mueve)",
         "[4, 26]: lo que mueve (PV 4), detrás de las de la época state ([4, 22]-[4, 25])"
       ],
       [
@@ -21776,7 +21702,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "receive-from-another-book.json",
-    "id": "4ff02c01f16d7df7c183e76b2f858f3b33d34707618d3f175e1542b38e427ddc",
+    "id": "a030814fb1d8be133225dda73a42b547ea88a74aee0951262c307404e2166562",
     "registro": [
       [
         "receive from another book"
@@ -21927,7 +21853,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=first (payload(it)).1.1.6.1.1.2 = first before.5 and release first (payload(it)).1.1.6.1.2 (first ((me.1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.4 and first it2.0.5 = first (payload(it)).1.1.6.1.1.5 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.3)) each 0)) from me exit first (payload(it)).1.3 or first (payload(it)).1.1.6.1.1.2 != first before.5 and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.5) > 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.3)))).(first (payload(it)).1.1.6.1.1.4).(first ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.5)) to me or first (payload(it)).1.1.6.1.1.2 != first before.5 and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.5) = 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.3)))).(first (payload(it)).1.1.6.1.1.4) to me"
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and release first (payload(it)).1.1.6.1.2 (first ((me.1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit first (payload(it)).1.3 or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) > 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2).(first ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3)) to me or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) = 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2) to me"
       ],
       [
         "4"
@@ -26499,7 +26425,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "9e0d6e15eb52a6e8fc7654257eeaf34309f1bddee33d5617abe9da25b4046dd0";
+export const EPOCA_0_BTML_ID = "69e1c7b27484395edac7a6812c0ed558ce80fdea882e130b65305596440c4679";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
