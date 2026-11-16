@@ -563,7 +563,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "03ccc721272e9d7b44c684b44edb1edd66b6ed7a3d9127c87418aa84aa47d072"
     },
     {
-      "ref": "5d716a36add1de913cd6e0c8fcae273ef6f924bb86c9b288f3017aebe85c6de9"
+      "ref": "4b3900df598d65e0917b8d817b819b0f924dbdc7bfcd81bfbcbe109e796a01a8"
     },
     {
       "ref": "e954e0cd193b6da1a4c4f63d8bb39021ef0ada790ac02285d5944ab2c3f652bb"
@@ -9181,7 +9181,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "second-factor.json",
-    "id": "5d716a36add1de913cd6e0c8fcae273ef6f924bb86c9b288f3017aebe85c6de9",
+    "id": "4b3900df598d65e0917b8d817b819b0f924dbdc7bfcd81bfbcbe109e796a01a8",
     "registro": [
       [
         "second factor"
@@ -9192,7 +9192,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "moves"
       ],
       [
-        "=(down (first (first it.3).6)) where last (first it2.6).5 = \"2400000000\" and \"second factor\" in (payload(it2)).4 and first it2.3 = first it.3 and count ((moves it) where not (\"anunciado\" in it3.2) and it3.3.0 = first it.3 and (first it3.0 in (payload(it2)).1 or \"E\" in (payload(it2)).1 and E in it3.0.0.0 or \"P\" in (payload(it2)).1 and P in it3.0.0.0 or \"R\" in (payload(it2)).1 and R in it3.0.0.0 or \"T\" in (payload(it2)).1 and T in it3.0.0.0)) > 0 and sum (((moves it) where not (\"anunciado\" in it3.2) and it3.3.0 = first it.3 and (first it3.0 in (payload(it2)).1 or \"E\" in (payload(it2)).1 and E in it3.0.0.0 or \"P\" in (payload(it2)).1 and P in it3.0.0.0 or \"R\" in (payload(it2)).1 and R in it3.0.0.0 or \"T\" in (payload(it2)).1 and T in it3.0.0.0)) each 1) >= first (payload(it2)).2"
+        "=(down (first (first it.3).6)) where last (first it2.6).5 = \"2400000000\" and count ((payload(it2)) where \"second factor\" in it3.4 and count ((first it2.3) where it4 = first it.3 and count ((sum (((moves it) where it5.3.0 = it4 and not (\"anunciado\" in it5.2) and count ((first it5.0) where count (it3.1 where it6 in it7 or \"E\" in it7 and E in it5.0.0.0 or \"P\" in it7 and P in it5.0.0.0 or \"R\" in it7 and R in it5.0.0.0 or \"T\" in it7 and T in it5.0.0.0) > 0) > 0) each 1)) where it5 > 0 and it5 >= first it3.2) > 0) > 0) > 0"
       ],
       [
         "X.6.8.7"
@@ -18395,7 +18395,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "9cd5a949ae30d3ef3dff698eec90f600d62a229d77aa17c1bf6b702fff6415f0";
+export const EPOCA_0_BTML_ID = "0411807f91f2278eb8e023e465fff6b54a7e1305d074341150c566cffac715a9";
 
 // correcciones/*.json: ocupantes añadidos a un registro de la época, { archivo, sobre, en, ocupante, de }
 export const CORRECCIONES_DE_EPOCA_DATOS = [];
