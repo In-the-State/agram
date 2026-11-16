@@ -573,7 +573,7 @@ export const TEXTOS = Object.freeze({
     ejecutarApagado: 'el botón sigue apagado: este registro está en «{nombre}» ({rango}) y se marca al llegar al {marca}',
     ejecutarApagadoSinRango: 'el botón sigue apagado: este registro aún no tiene rango y se marca al llegar al {marca}',
     // la cuenta del banco (encargo «cuenta del banco», VG 16-11; contrato.cuenta): el registro de la cuenta y su E en la cartera
-    cuentaTitulo: 'cuenta del banco: el saldo es lo que dice el banco; quien tiene P sobre la cuenta puede ordenar pagos',
+    cuentaTitulo: 'cuenta del banco: el saldo es lo que dice el banco; quien tiene P sobre la cuenta puede proponer pagos; cada uno lo aprueba el titular en su banco',
     cuentaSaldo: 'saldo',
     cuentaSinSaldo: 'sin saldo todavía',
     cuentaConfirmado: 'confirmado por el banco',
@@ -581,6 +581,11 @@ export const TEXTOS = Object.freeze({
     cuentaPermiso_falta: 'sin permiso: falta darlo en el banco',
     cuentaPermiso_vigente: 'permiso del banco hasta {vence}',
     cuentaPermiso_caducado: 'sin permiso: caducó el {vence}; el saldo no se actualiza hasta renovarlo',
+    // quién puede proponer pagos y quién los aprueba (VG 17-11, V6; contrato.cuenta, su «ordenan»)
+    cuentaProponen: 'pueden proponer pagos: {quienes}',
+    cuentaProponenMas: '{quienes} y {n} más',
+    cuentaAprueba: 'cada pago lo aprueba {titular} en su banco',
+    cuentaVenSaldo: 'ven el saldo quienes leen este libro',
     cartera: 'cartera',
     formularioVoltear: 'ver cómo está hecho (el reverso)',
     formularioVolver: 'volver',

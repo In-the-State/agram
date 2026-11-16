@@ -10,6 +10,6 @@
     "Solo se mira cuando la candidata dice una de las cuatro acciones (el or es perezoso): before.1 no se recorre para lo demás. contrato.custodia lo vuelve a comprobar al leer (un libro escrito antes de esta regla, o en otra época, no cuela la configuración de otro)"
   ],
   ["epoch 0"],
-  ["after an account lives in its owner's book"],
+  ["after the E of an account stays with its owner"],
   ["only the owner sets who keeps it: {first ev.3} sets who keeps {first (first ev.6.5).0}, which it did not write, in a ledger whose genesis it did not write"]
 ]

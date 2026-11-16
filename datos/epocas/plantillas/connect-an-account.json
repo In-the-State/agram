@@ -98,7 +98,7 @@
     "Ancla en el 1.1 de mi alta (mis recursos: lo que tengo), desde donde se lance. 0 el nombre que le pone su dueño (el 0 de un registro es lo que es); 1.0 el banco y 1.1 los días que dura el permiso (180 por defecto); 2 la capacidad, el entero 1, donde el eje lee el tope de E (tokens.capacidadDe): la E única se acuña después, con «issue E tied to X» sobre este registro, y no cabe otra; 3 quién; 4 la acción; 5 el tipo «account», cuya plantilla de datos lleva en su 9 el camino de la cuenta",
     "Sin criterio de cierre en el 2: el 2 es la capacidad (tokens.capacidadDe solo lee un entero solo en el 2) y la cuenta se lee con la plantilla de cerrado de la época por defecto (motor.cerrado, sin nombre en su criterio)",
     "Nada de credenciales, números de cuenta ni datos del banco: solo el nombre que le pone su dueño y el nombre del banco. La credencial va al guardián de StateArk, fuera del libro",
-    "PROVISIONAL (Core AGRAM 16-11, a falta del sí expreso de VG): solo se ofrece a quien escribió el génesis del eje; la regla «an account lives in its owner's book» lo exige al escribir"
+    "Core AGRAM 16-11; firme desde VG 17-11 (V6, por Core State): solo se ofrece a quien escribió el génesis del eje; la regla «an account lives in its owner's book» lo exige al escribir"
   ],
   ["epoch 0"],
   [1, 6],

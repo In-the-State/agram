@@ -9,7 +9,10 @@
 //   5. quién ordena: la regla «acting on an account needs P on it» y la cuenta compartida (P reposicionado);
 //   6. la revisión de seguridad: nadie sin P escribe saldos ni permisos; el permiso y «confirmado por el banco» solo de
 //      una cosa del dueño; fechas que no pueden mentir;
-//   7. contrato.cuenta, la carta y el ejemplo.
+//   7. contrato.cuenta, la carta y el ejemplo;
+//   8. la cuenta vive en el libro de su dueño (firme, VG 17-11, V6);
+//   9. la E de una cuenta no cambia de manos (VG 17-11, V6): ni se transfiere ni se acuña para otra persona, y las
+//      plantillas no lo ofrecen; el dueño la acuña y la quema como antes; una invitada sigue ganando P y proponiendo.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
@@ -31,6 +34,7 @@ const ORDENADOR = { ancho: 1200, alto: 800 };
 const reglas = (r) => r.motivos.map((m) => m.regla);
 const P_SOBRE_LA_CUENTA = 'acting on an account needs P on it';
 const EL_BANCO = "the bank speaks through the owner's thing";
+const DE_SU_DUENO = 'the E of an account stays with its owner';
 
 /** Un eje con ana (génesis, con su R emitida), bea invitada por ana y la conectora, una cosa de ana; y la cuenta de ana. */
 async function mundo() {
@@ -280,6 +284,15 @@ test('la carta pinta lo que da contrato.cuenta: en el anverso de la cuenta, el s
   const entrada = a.rosetones.find((x) => x.pv === 1).cartera.find((x) => x.cuenta);
   assert.deepEqual([entrada.cuenta.nombre, entrada.cuenta.saldo.cuanto], ['cuenta de casa', a.centro.cuenta.saldo.cuanto]);
   assert.match(h, new RegExp('<li class="cartera-cuenta" data-cuenta="' + r.cuenta.id + '"><span class="cartera-nombre">cuenta de casa</span> <b>' + a.centro.cuenta.saldo.cuanto + ' EUR</b></li>'));
+  // VG 17-11 (V6): debajo del permiso, quién puede proponer pagos (contrato.cuenta, su «ordenan»), quién los aprueba y quién ve el saldo.
+  assert.deepEqual([a.centro.cuenta.proponen, a.centro.cuenta.titular], [{ nombres: ['ana', 'bea'], mas: 0 }, 'ana']);
+  const tras = bloque.slice(bloque.indexOf('data-permiso='));
+  assert.ok(tras.includes('<p class="cuenta-proponen">' + textoDeLaCarta('cuentaProponen', { quienes: 'ana, bea' }) + '</p>'), bloque);
+  assert.ok(tras.includes('<p class="cuenta-aprueba">' + textoDeLaCarta('cuentaAprueba', { titular: 'ana' }) + '</p>'), bloque);
+  assert.ok(tras.includes('<p class="cuenta-ven">' + textoDeLaCarta('cuentaVenSaldo') + '</p>'), bloque);
+  assert.equal(textoDeLaCarta('cuentaProponen', { quienes: 'ana, bea' }), 'pueden proponer pagos: ana, bea');
+  assert.equal(textoDeLaCarta('cuentaAprueba', { titular: 'ana' }), 'cada pago lo aprueba ana en su banco');
+  assert.match(textoDeLaCarta('cuentaTitulo'), /puede proponer pagos; cada uno lo aprueba el titular en su banco/);
   const otro = await arbol({ foco: { X: r.nota.id, pv: 0 } }, r.eje, 'ana', ORDENADOR);
   assert.equal(otro.centro.cuenta, null);
   assert.ok(!html(otro).includes('cuenta-del-banco'));
@@ -288,9 +301,9 @@ test('la carta pinta lo que da contrato.cuenta: en el anverso de la cuenta, el s
   assert.ok(sin.includes('data-permiso="falta"') && sin.includes(textoDeLaCarta('cuentaSinSaldo')));
 });
 
-// ---------- 8. PROVISIONAL (a falta del sí de VG): la cuenta solo se conecta en el libro propio ----------
+// ---------- 8. la cuenta solo se conecta en el libro propio (firme: VG 17-11, V6) ----------
 
-test("provisional: «an account lives in its owner's book»: en un libro ajeno conectar una cuenta se rechaza (ni se ofrece); en el propio pasa, y una persona invitada al libro propio gana P y ordena", async () => {
+test("«an account lives in its owner's book» (VG 17-11, V6): en un libro ajeno conectar una cuenta se rechaza (ni se ofrece); en el propio pasa, y una persona invitada al libro propio gana P y ordena", async () => {
   const { eje, cuenta, lanzar } = await mundo(); // el libro de ana (su génesis): bea está invitada
   const altaBea = eje.alta('bea').id;
   assert.ok(!A.acciones(eje, altaBea, 1, 'bea').some((a) => a.nombre === 'connect an account'), 'a bea no se le ofrece en el libro de ana');
@@ -304,4 +317,93 @@ test("provisional: «an account lives in its owner's book»: en un libro ajeno c
   await lanzar('reposition P toward X', cuenta.id, {}, 'bea', T2);
   const orden = await ordenar(eje, cuenta, 'bea');
   assert.deepEqual([orden.autor, C.cuenta(eje, cuenta.id).ordenan], ['bea', ['ana', 'bea']]);
+});
+
+// ---------- 9. la E de una cuenta no cambia de manos (VG 17-11, V6) ----------
+
+/** Un movimiento a mano de la E de la cuenta de ana (de ana a quien sea; de null es acuñar). */
+const eDeLaCuenta = (cuenta, de, a) => ({ token: 'E', emisor: 'ana', denominacion: 'account', registro: cuenta.id, cantidad: 1, de, a });
+
+test('«the E of an account stays with its owner»: la E de la cuenta no se transfiere a otra persona ni se acuña para otra (rechazo con el motivo de la regla); el dueño la acuña y la quema como antes', async () => {
+  const { eje, cuenta, lanzar } = await mundo();
+  assert.ok(EPOCA_0_BTML.reglasConId.some((x) => x.regla[0][0] === DE_SU_DUENO));
+  // Acuñarla para otra a mano ya lo para el suelo (la emisión de E va a su emisor); que otra la acuñe para sí, con P
+  // sobre la cuenta, lo para la regla (la prueba siguiente).
+  await assert.rejects(eje.escribir({ autor: 'ana', sobre: cuenta.id, en: '6000000000', t: T1, payload: ['para bea'], movimientos: [pagaElCoste('ana'), eDeLaCuenta(cuenta, null, 'bea')] }),
+    /la emisión de E va a su propio emisor/);
+  // El dueño la acuña como hasta ahora.
+  const serie = claveToken({ token: 'E', emisor: 'ana', denominacion: 'account', registro: cuenta.id });
+  await acunar(lanzar, cuenta);
+  assert.equal(eje.saldo('ana', serie), 1);
+  // Transferirla a otra persona: se rechaza.
+  const pasar = (mov, t = T2) => eje.escribir({ autor: 'ana', sobre: cuenta.id, en: '6000000000', t, payload: ['paso'], movimientos: [pagaElCoste('ana'), mov] });
+  await assert.rejects(pasar(eDeLaCuenta(cuenta, 'ana', 'bea')), /the E of an account stays with its owner: ana passes the E of an account to bea, who did not write it/);
+  assert.deepEqual([eje.saldo('ana', serie), eje.saldo('bea', serie), C.cuenta(eje, cuenta.id).unica.quien], [1, 0, ['ana']]);
+  // Otra E de ana (sin cuenta) sí pasa de manos: la regla solo mira las series atadas a una cuenta.
+  const nota = await lanzar('anchor here', eje.alta('ana').id, { title: 'vales', content: 'x' }, 'ana', T1);
+  await lanzar('issue E tied to X', nota.id, { denomination: 'vale', quantity: 3 }, 'ana', T1);
+  await eje.escribir({ autor: 'ana', sobre: nota.id, en: '6000000000', t: T2, payload: ['un vale para bea'], movimientos: [pagaElCoste('ana'), { token: 'E', emisor: 'ana', denominacion: 'vale', registro: nota.id, cantidad: 1, de: 'ana', a: 'bea' }] });
+  assert.equal(eje.saldo('bea', claveToken({ token: 'E', emisor: 'ana', denominacion: 'vale', registro: nota.id })), 1);
+  // Un anuncio no mueve nada (no está en el 1 de la candidata: la regla no lo mira), pero «pay» no se ofrece para cumplir
+  // el de la E de la cuenta; el de un vale, sí.
+  const anuncia = (mov, payload) => eje.escribir({ autor: 'ana', sobre: nota.id, en: '4100000000', t: T2, payload: [payload], movimientos: [pagaElCoste('ana'), { ...mov, estado: 'anunciado' }] });
+  const deLaCuenta = await anuncia(eDeLaCuenta(cuenta, 'ana', 'bea'), 'la cuenta para bea');
+  assert.ok(!A.acciones(eje, nota.id, 4, 'ana').some((a) => a.nombre === 'pay'), 'no se ofrece pagar el anuncio de la E de la cuenta');
+  const pago = await A.transaccion(eje, 'pay', { X: nota.id, announcement: deLaCuenta.id }, 'ana', { t: T2 });
+  assert.ok(reglas(pago).includes(DE_SU_DUENO), JSON.stringify(pago.motivos));
+  await anuncia({ token: 'E', emisor: 'ana', denominacion: 'vale', registro: nota.id, cantidad: 1, de: 'ana', a: 'bea' }, 'otro vale para bea');
+  assert.ok(A.acciones(eje, nota.id, 4, 'ana').some((a) => a.nombre === 'pay'), 'el de un vale, sí');
+  // Quemarla sigue valiendo («consume» sobre la cuenta).
+  const quema = await lanzar('consume', cuenta.id, { series: serie, quantity: 1 }, 'ana', T3);
+  assert.deepEqual(quema.movimientos.slice(1).map((m) => [m.token, m.de, m.a]), [['E', 'ana', null]]);
+  assert.equal(eje.saldo('ana', serie), 0);
+});
+
+test('la E de una cuenta: quien gana P sobre una cuenta ajena no acuña su E (ni se le ofrece); las plantillas que mueven E no ofrecen pasarla a otra persona', async () => {
+  const { eje, alta, cuenta, lanzar } = await mundo();
+  const altaBea = eje.alta('bea').id;
+  // bea gana P sobre la cuenta (como en el ejemplo): sigue proponiendo, pero no acuña la E de la cuenta.
+  await lanzar('anchor here', cuenta.id, { title: 'nota', content: 'x' }, 'bea', T1);
+  await lanzar('reposition P toward X', cuenta.id, {}, 'bea', T1);
+  assert.ok(eje.poderSobre('bea', cuenta.id) > 0);
+  assert.ok(!A.acciones(eje, cuenta.id, 1, 'bea').some((a) => a.nombre === 'issue E tied to X'), 'a bea no se le ofrece acuñar sobre la cuenta de ana');
+  const deBea = await A.transaccion(eje, 'issue E tied to X', { X: cuenta.id, denomination: 'account', quantity: 1 }, 'bea', { t: T1 });
+  assert.ok(reglas(deBea).includes(DE_SU_DUENO), JSON.stringify(deBea.motivos));
+  assert.ok(A.acciones(eje, cuenta.id, 1, 'ana').some((a) => a.nombre === 'issue E tied to X'), 'a ana sí');
+  await acunar(lanzar, cuenta);
+  // Con solo la E de la cuenta, ni pagar con E un recurso de otra ni pujar con ella.
+  const ofrece = (nombre, X, pv) => A.acciones(eje, X, pv, 'ana').some((a) => a.nombre === nombre);
+  assert.deepEqual([ofrece('apply a resource', altaBea, 1), ofrece('lock E as a bid for a quota', alta, 1)], [false, false]);
+  // Escribir a bea cuando su precio es E: el pago no toma la E de la cuenta (no hay otra: la plantilla no tiene con qué pagar).
+  for (const zone of [0, 1, 2, 3, 4]) await lanzar('set a group price', altaBea, { token: 'E', amount: 1, zone }, 'bea', T1);
+  const carta = await A.transaccion(eje, 'write to X', { X: altaBea, text: 'hola' }, 'ana', { t: T2 });
+  assert.deepEqual([carta.ok, reglas(carta)], [false, ['write to X']], 'la plantilla no encuentra con qué E pagar: la de la cuenta no cuenta');
+  assert.match(carta.motivos[0].mensaje, /no hay serie/);
+  // Con otra E (sin cuenta), las mismas plantillas vuelven a ofrecerse y la toman a ella.
+  const nota = await lanzar('anchor here', alta, { title: 'vales', content: 'x' }, 'ana', T2);
+  await lanzar('issue E tied to X', nota.id, { denomination: 'vale', quantity: 3 }, 'ana', T2);
+  assert.deepEqual([ofrece('apply a resource', altaBea, 1), ofrece('lock E as a bid for a quota', alta, 1)], [true, true]);
+  const puja = A.acciones(eje, alta, 1, 'ana').find((a) => a.nombre === 'lock E as a bid for a quota');
+  assert.match(puja.parametros.find((p) => p.nombre === 'series').valor, /^E:ana\/vale@/);
+  const conVale = await A.transaccion(eje, 'write to X', { X: altaBea, text: 'hola' }, 'ana', { t: T2 });
+  assert.ok(conVale.ok, JSON.stringify(conVale.motivos));
+  assert.deepEqual(conVale.evento.movimientos.filter((m) => m.token === 'E').map((m) => [m.denominacion, m.a]), [['vale', 'bea']]);
+  // bea, con P sobre la cuenta, sigue proponiendo pagos.
+  const orden = await ordenar(eje, cuenta, 'bea');
+  assert.deepEqual([orden.autor, C.cuenta(eje, cuenta.id).ordenan], ['bea', ['ana', 'bea']]);
+});
+
+test('la carta: si pueden proponer pagos más de tres, los tres primeros y «y N más»', async () => {
+  const { eje, cuenta, lanzar } = await mundo();
+  for (const quien of ['cris', 'dani']) await entrarPorInvitacion(eje, { por: 'ana', quien, t: T0 });
+  for (const quien of ['bea', 'cris', 'dani']) {
+    await lanzar('anchor here', cuenta.id, { title: 'nota de ' + quien, content: 'x' }, quien, T1);
+    await lanzar('reposition P toward X', cuenta.id, {}, quien, T1);
+  }
+  assert.deepEqual(C.cuenta(eje, cuenta.id).ordenan, ['ana', 'bea', 'cris', 'dani']);
+  const a = await arbol({ foco: { X: cuenta.id, pv: 0 } }, eje, 'ana', ORDENADOR);
+  assert.deepEqual(a.centro.cuenta.proponen, { nombres: ['ana', 'bea', 'cris'], mas: 1 });
+  const quienes = textoDeLaCarta('cuentaProponenMas', { quienes: 'ana, bea, cris', n: 1 });
+  assert.equal(quienes, 'ana, bea, cris y 1 más');
+  assert.ok(html(a).includes('<p class="cuenta-proponen">' + textoDeLaCarta('cuentaProponen', { quienes }) + '</p>'));
 });
