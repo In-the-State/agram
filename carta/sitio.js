@@ -14,7 +14,7 @@
 import { contrato, exterior } from '../src/index.js';
 
 /** Los ajustes del sitio que se admiten, con su forma: «url» (http o https, sin credenciales) o «eje» (un nombre de eje). */
-export const AJUSTES = Object.freeze({ 'sync url': 'url', 'sync ledger': 'eje', 'guide url': 'url', 'relay url': 'url', 'blossom url': 'url', 'seal url': 'url' });
+export const AJUSTES = Object.freeze({ 'sync url': 'url', 'sync ledger': 'eje', 'guide url': 'url', 'relay url': 'url', 'blossom url': 'url', 'seal url': 'url', 'pay url': 'url' });
 /** De ellos, los que son de las preferencias (el 9 de la alta, plantilla «preferences»); los demás son de «exterior settings». */
 const DE_PREFERENCIAS = new Set(['sync url', 'sync ledger']);
 export const esDePreferencias = (clave) => DE_PREFERENCIAS.has(clave);

@@ -40,6 +40,13 @@
 // en un bloque se comprueba (`verificar`) y, si vale, entra en el eje como el tercer reloj del registro (eje.marcarSello →
 // X.6.8.2: altura, hash e instante). Es una vista del libro: no toca el evento, su id ni su firma. Un fallo del servicio de
 // sello nunca rompe la sincronización: se anota en el informe y se reintenta en la siguiente.
+//
+// El recibo de pago: con un adaptador `pago` (src/pago.js, el servicio de pagos de StateArk), la sincronía lleva la cuenta
+// de los registros que esperan su recibo de pago (`esperarPago(id, { txid })`; sin txid, se busca por el puntero del pago,
+// el id del registro). En cada sincronización pide el recibo de cada uno (por txid si lo tiene; si no, por puntero, hasta
+// PAGOS_POR_PASADA); el que llega entra en el eje (eje.marcarPago → X.6.8.3, lo comprueba la regla «paid») y deja de
+// esperarse; pendiente (sin bloque) o inexistente, se sigue esperando. Es una vista del libro, como el sello. Nunca
+// lanza: los fallos van a `informe.pagos.errores` y se reintenta en la siguiente.
 
 import { Eje } from './eje.js';
 import { configuracion } from './contrato.js';
@@ -50,6 +57,9 @@ export const VERSION_SINCRONIA = 1;
 
 /** Cuántas pruebas de sello se piden como mucho en cada sincronización (el resto, en la siguiente). */
 export const PRUEBAS_POR_PASADA = 500;
+
+/** Cuántos recibos de pago se piden como mucho en cada sincronización (el resto, en la siguiente). */
+export const PAGOS_POR_PASADA = 500;
 
 /** Cuántos recibos de llegada se piden como mucho en cada sincronización (el resto, en la siguiente). */
 export const RECIBOS_POR_PASADA = 500;
@@ -134,15 +144,20 @@ export class Sincronia {
   #sinRutaDeRecibo = false; // el servidor no sirve GET /eventos/recibo: detectado una vez por sesión (no se guarda)
   #sello; // el adaptador de src/sello.js, o null: sin él nada se sella
   #sellos = new Map(); // id → 'por sellar' | 'pendiente' (en un lote, aún sin bloque) | { altura, hash, instante, verificado }
+  #pago; // el adaptador de src/pago.js, o null: sin él no se pide ningún recibo de pago
+  #esperasDePago = new Map(); // id → { txid } (txid null: se busca por el puntero): lo que espera su recibo de pago
+  #pagos = new Map(); // id → el sobre del recibo de pago que ya entró en el eje (eje.marcarPago)
+  #pagosPorPasada = PAGOS_POR_PASADA;
 
   /**
    * url: la base del servidor (…/functions/v1 en Supabase; http://127.0.0.1:8787 en pruebas). eje: el nombre del eje.
    * claveLectura: la clave de lectura (va en X-Clave-Lectura; nunca se guarda aquí). firmar (opcional): async (evento) →
    * evento firmado, para lo local que llegara sin firma. fetch: la de la plataforma, o una de prueba. sello (opcional): el
-   * adaptador de src/sello.js; sin él no se sella nada. recibosPorPasada (opcional): el tope de recibos por
-   * sincronización (RECIBOS_POR_PASADA, 500).
+   * adaptador de src/sello.js; sin él no se sella nada. pago (opcional): el adaptador de src/pago.js; sin él no se pide
+   * ningún recibo de pago. recibosPorPasada y pagosPorPasada (opcionales): los topes de recibos de llegada y de recibos
+   * de pago por sincronización (RECIBOS_POR_PASADA y PAGOS_POR_PASADA, 500).
    */
-  constructor({ url, eje, claveLectura, firmar, fetch = globalThis.fetch?.bind(globalThis), ahora = () => Date.now(), sello = null, recibosPorPasada = RECIBOS_POR_PASADA } = {}) {
+  constructor({ url, eje, claveLectura, firmar, fetch = globalThis.fetch?.bind(globalThis), ahora = () => Date.now(), sello = null, pago = null, recibosPorPasada = RECIBOS_POR_PASADA, pagosPorPasada = PAGOS_POR_PASADA } = {}) {
     if (typeof url !== 'string' || !url) throw new TypeError('sincronía: hace falta la url del servidor');
     if (typeof eje !== 'string' || !eje) throw new TypeError('sincronía: hace falta el nombre del eje');
     this.#url = url.replace(/\/+$/, '');
@@ -152,6 +167,8 @@ export class Sincronia {
     this.#fetch = fetch;
     this.#ahora = ahora;
     this.#sello = sello ?? null;
+    this.#pago = pago ?? null;
+    this.#pagosPorPasada = Number.isSafeInteger(pagosPorPasada) && pagosPorPasada > 0 ? pagosPorPasada : PAGOS_POR_PASADA;
     this.#recibosPorPasada = Number.isSafeInteger(recibosPorPasada) && recibosPorPasada > 0 ? recibosPorPasada : RECIBOS_POR_PASADA;
   }
 
@@ -218,6 +235,43 @@ export class Sincronia {
    */
   estadoDeSello(id) {
     return this.#sellos.get(id);
+  }
+
+  /** El adaptador de pagos de esta sincronía (o null). */
+  get pago() {
+    return this.#pago;
+  }
+
+  /** Cambia el adaptador de pagos (o lo quita con null): la configuración pudo cambiar. */
+  usarPago(pago) {
+    this.#pago = pago ?? null;
+  }
+
+  /**
+   * Apunta que el registro `id` espera su recibo de pago: en cada sincronización se pide (por `txid`, si se sabe; si no,
+   * por el puntero del pago, que es el id del registro) hasta que entra en el eje. → si lo apuntó (no, si el id no es un
+   * id o su recibo ya entró).
+   */
+  esperarPago(id, { txid } = {}) {
+    if (typeof id !== 'string' || !/^[0-9a-f]{64}$/.test(id) || this.#pagos.has(id)) return false;
+    const t = typeof txid === 'string' && /^[0-9a-f]{64}$/.test(txid) ? txid : this.#esperasDePago.get(id)?.txid ?? null;
+    this.#esperasDePago.set(id, { txid: t });
+    return true;
+  }
+
+  /**
+   * El estado del recibo de pago de un registro: el sobre (`stateark.recibo@1`) si ya entró en el eje, { esperando: true,
+   * txid? } si se espera, o undefined si no se conoce.
+   */
+  estadoDePago(id) {
+    if (this.#pagos.has(id)) return this.#pagos.get(id);
+    const e = this.#esperasDePago.get(id);
+    return e ? { esperando: true, ...(e.txid ? { txid: e.txid } : {}) } : undefined;
+  }
+
+  /** Los ids que esperan su recibo de pago. */
+  get esperasDePago() {
+    return [...this.#esperasDePago.keys()];
   }
 
   /** Los ids del eje local que el servidor aún no tiene, en orden de entrada. */
@@ -298,6 +352,13 @@ export class Sincronia {
     return n;
   }
 
+  /** Marca en el eje los recibos de pago ya recibidos (tras restaurar, como marcarSellos): X.6.8.3. */
+  marcarPagos(ejeLocal) {
+    let n = 0;
+    for (const [id, sobre] of this.#pagos) if (ejeLocal.marcarPago(id, sobre)) n += 1;
+    return n;
+  }
+
   /**
    * Sincroniza: baja lo nuevo y lo añade al eje local validándolo con las
    * reglas (lo que no pasa, a `rechazados`); reordena el eje local por el
@@ -346,7 +407,47 @@ export class Sincronia {
     informe.pendientes = this.pendientes(eje);
     await this.#recibir(eje, informe);
     await this.#sellar(eje, informe);
+    await this.#pagar(eje, informe);
     return informe;
+  }
+
+  /**
+   * El recibo de pago de lo que lo espera: de cada uno (hasta PAGOS_POR_PASADA, el resto en la próxima) se pide al
+   * servicio por su txid o, sin él, por su puntero; el que llega entra en el eje (eje.marcarPago, X.6.8.3) y deja de
+   * esperarse; pendiente o inexistente, sigue esperando. Informe: `pagos` { anotados: ids que entraron en el eje,
+   * pendientes: cuántos siguen esperando, errores }. Nunca lanza: sin red se deja para la próxima pasada.
+   */
+  async #pagar(eje, informe) {
+    if (!this.#pago) return;
+    const r = (informe.pagos = { anotados: [], pendientes: 0, errores: [] });
+    let pedidos = 0;
+    let sinRed = false;
+    for (const [id, { txid }] of [...this.#esperasDePago]) {
+      if (sinRed || !eje.eventos.has(id) || pedidos >= this.#pagosPorPasada) {
+        r.pendientes += 1; // sin red, aún no en este eje, o pasado el tope: en la próxima pasada
+        continue;
+      }
+      pedidos += 1;
+      try {
+        const sobre = txid ? await this.#pago.reciboPago(txid) : await this.#pago.reciboPorPuntero(id);
+        if (!sobre || sobre.pendiente) {
+          r.pendientes += 1; // sin pago aún, o sin bloque: se sigue esperando
+          continue;
+        }
+        if (eje.marcarPago(id, sobre)) this.#pagos.set(id, sobre);
+        if (eje.pago(id)) {
+          this.#esperasDePago.delete(id);
+          r.anotados.push(id);
+        } else {
+          r.errores.push({ id, motivo: 'el recibo de pago no tiene la forma esperada' });
+          r.pendientes += 1;
+        }
+      } catch (e) {
+        r.errores.push({ id, motivo: e?.message ?? String(e) });
+        r.pendientes += 1;
+        if (!Number.isInteger(e?.estado)) sinRed = true; // sin respuesta del servicio: lo demás, en la próxima
+      }
+    }
   }
 
   /**
@@ -520,6 +621,7 @@ export class Sincronia {
       rechazados: [...this.#rechazados].map(([id, r]) => [id, { ...r }]),
       ...(this.#recibos.size ? { recibos: [...this.#recibos].map(([id, e]) => [id, typeof e === 'object' ? { ...e } : e]) } : {}),
       ...(this.#sellos.size ? { sellos: [...this.#sellos].map(([id, e]) => [id, typeof e === 'object' ? { ...e } : e]) } : {}),
+      ...(this.#esperasDePago.size || this.#pagos.size ? { pagos: { esperas: [...this.#esperasDePago].map(([id, e]) => [id, { ...e }]), anotados: [...this.#pagos].map(([id, sobre]) => [id, JSON.parse(JSON.stringify(sobre))]) } } : {}),
     };
   }
 
@@ -539,6 +641,15 @@ export class Sincronia {
     for (const [id, e] of datos.sellos ?? []) {
       if (e === 'por sellar' || e === 'pendiente') s.#sellos.set(id, e);
       else if (e && typeof e === 'object') s.#sellos.set(id, { altura: e.altura, hash: e.hash, instante: e.instante, verificado: e.verificado === true });
+    }
+    // Lo guardado antes de los pagos no trae `pagos`: se restaura igual, sin esperas.
+    const pagos = datos.pagos && typeof datos.pagos === 'object' ? datos.pagos : {};
+    for (const [id, e] of Array.isArray(pagos.esperas) ? pagos.esperas : []) s.esperarPago(id, { txid: e?.txid });
+    for (const [id, sobre] of Array.isArray(pagos.anotados) ? pagos.anotados : []) {
+      if (typeof id === 'string' && sobre && typeof sobre === 'object') {
+        s.#pagos.set(id, sobre);
+        s.#esperasDePago.delete(id);
+      }
     }
     return s;
   }
