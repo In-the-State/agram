@@ -724,7 +724,29 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
 function porAutorizarDe(eje, X, pv, ctx) {
   if (pv !== 6 || !ctx.yo || eje.alta(ctx.yo)?.id !== X) return null;
   const lista = contrato.porAutorizar(eje, ctx.yo, { epoca: ctx.opciones.epoca, idioma: ctx.opciones.idioma });
-  return lista.length ? lista.map((x) => ({ id: x.id, que: esElCeroGuardado(eje, x.id, x.que) ? ceroDe(eje, x.id, ctx, x.que) : x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado) })) : null;
+  if (!lista.length) return null;
+  const mios = misCosas(eje, ctx.yo);
+  // `titular` (me toca autorizar) y `cosas`, las MÍAS que de verdad faltan en ese registro (encargo «anfitrión»): con un
+  // anfitrión, la línea lleva «autorizar» y son las que se le piden firmar.
+  return lista.map((x) => ({ id: x.id, que: esElCeroGuardado(eje, x.id, x.que) ? ceroDe(eje, x.id, ctx, x.que) : x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado), titular: Boolean(x.titular), cosas: cosasPorFirmar(eje, x, mios, ctx.opciones) }));
+}
+
+/** Yo y mis cosas (las identidades que no son persona cuya alta escribí yo), como las cuenta acciones.porAutorizar. */
+function misCosas(eje, yo) {
+  return new Set([yo, ...(eje.identidades?.() ?? []).filter((i) => i !== yo && eje.esPersona(i) === false && eje.obtener(eje.alta(i)?.id)?.autor === yo)]);
+}
+
+/** Las cosas mías que faltan por firmar en una línea de acciones.porAutorizar (sus `faltan`), con su nombre legible. */
+const cosasPorFirmar = (eje, x, mios, opciones) => (x.desbordado ? [] : [...new Set((x.faltan ?? []).map((c) => c.titular).filter((c) => mios.has(c)))])
+  .map((id) => ({ id, texto: legibleDe(eje, id, ['identity'], opciones).texto }));
+
+/**
+ * Lo que `yo` firmaría del registro `id` con un anfitrión (encargo «anfitrión», carta/anfitrion.js): las cosas mías que le
+ * faltan, [{ id, texto }]; [] si no está por autorizar para mí, está desbordado o no me toca.
+ */
+export function porFirmar(eje, yo, id, opciones = {}) {
+  const x = contrato.porAutorizar(eje, yo, opciones).find((y) => y.id === id);
+  return x?.titular ? cosasPorFirmar(eje, x, misCosas(eje, yo), opciones) : [];
 }
 
 /** El nombre de la plantilla de datos de X en el idioma, o null si no tiene. */

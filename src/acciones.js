@@ -1376,8 +1376,10 @@ function autorizacionDe(eje, epoca, candidata, base, { yo, t, idioma }) {
  * falta. Construye, firma y valida en seco (no asienta): → { ok, evento, motivos, transferido, exigido } (en segundos).
  *
  * Opciones (cuarto argumento): `t`, el instante (por defecto, el reloj del libro); `idioma`;
- * `firmar({ canonico, id }) → firma`, el FIRMANTE INYECTABLE: recibe el cuerpo canónico del registro (el texto que se hashea)
- * y su id, y devuelve la firma BIP-340 del id (64 bytes en hex, o un objeto { firma } como el `segundoFactor(nombre,
+ * `firmar({ canonico, id, propuesta }) → firma`, el FIRMANTE INYECTABLE: recibe el cuerpo canónico del registro (el texto que
+ * se hashea), su id y `propuesta`, el cuerpo canónico del registro que se autoriza (su SHA-256 es el `sobre` de la
+ * autorización: el guardián comprueba que cuadra y enseña al titular qué autoriza; quien no lo lea sigue igual), y devuelve
+ * la firma BIP-340 del id (64 bytes en hex, o un objeto { firma } como el `segundoFactor(nombre,
  * titular, { canonico, id })` de la custodia de StateArk, que además comprueba que el id sea el hash del cuerpo). Si no
  * hay `firmar`, firma en local con `privada` (la clave privada de la cosa; sin ella, el registro va sin firmar, para
  * mostrar que no vale). La forma antigua `autorizar(eje, id, cosa, privada, { t })` sigue valiendo.
@@ -1415,7 +1417,9 @@ export async function autorizar(eje, idPropuesta, cosa, privadaOOpciones, opcion
     evento = await crearEvento({ autor: cosa, sobre: idPropuesta, en: SEGUNDO_FACTOR.ancla, t, movimientos: quema ? [quema] : [], payload });
     if (firmante) {
       // El firmante de fuera (el guardián): recibe el cuerpo canónico y el id, y devuelve la firma del id. Aquí no hay privada.
-      const dada = await firmante({ canonico: canonicoDe(cuerpoDe(evento)), id: evento.id });
+      // Recibe también la propuesta (su cuerpo canónico, cuyo SHA-256 es el `sobre`): el guardián comprueba que cuadra y
+      // enseña al titular qué autoriza de verdad.
+      const dada = await firmante({ canonico: canonicoDe(cuerpoDe(evento)), id: evento.id, propuesta: canonicoDe(cuerpoDe(propuesta)) });
       const firma = typeof dada === 'string' ? dada : dada?.firma;
       if (dada !== null && typeof dada === 'object' && dada.id !== undefined && dada.id !== evento.id) throw new Error('el firmante firmó otro registro: ' + String(dada.id).slice(0, 8) + ', no ' + evento.id.slice(0, 8));
       if (typeof firma !== 'string' || !/^[0-9a-f]{128}$/.test(firma)) throw new Error('el firmante no devolvió una firma (64 bytes en hexadecimal)');
