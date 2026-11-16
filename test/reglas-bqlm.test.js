@@ -44,6 +44,7 @@ import { ejemploLente } from '../ejemplos/ikisai/lente-booking.mjs';
 import { ejemploReserva } from '../ejemplos/ikisai/reserva-booking.mjs';
 import { ejemploTarea } from '../ejemplos/ikisai/tarea-tasks.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
+import { REGLAS_DEL_PUENTE } from '../datos/epocas/puente.mjs';
 
 /** Las reglas que el encargo 3b cambia o añade: sin condición JS que traducir (test/reglas-3b.test.js). */
 export const DEL_3B = Object.freeze([
@@ -67,7 +68,9 @@ export const DE_LA_BETA = Object.freeze([
   'only the owner of the book retouches a text',
   'a change names its class and brings a change', 'only who proposed withdraws a change', 'a change is enacted once it is approved', 'a change comes into force with its proof',
 ]);
-const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]) && !DE_LA_BETA.includes(r[0][0]));
+/** Las trece del puente entre libros (A15, 17-11): nacen en BQL y no traducen ninguna condición JS (test/puente.test.js). */
+export const DEL_PUENTE = Object.freeze(Object.values(REGLAS_DEL_PUENTE));
+const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]) && !DE_LA_BETA.includes(r[0][0]) && !DEL_PUENTE.includes(r[0][0]));
 const nombreDe = (r) => r[0][0];
 const DIVERGENCIAS = process.env.AGRAM_DIVERGENCIAS === '1';
 /** Las reglas de la clave y la firma (B4): se ejercitan en un eje con claves, no en el fuzz de demostración. */
@@ -197,10 +200,11 @@ async function repasar(eje, cuenta) {
 
 // ---------- la época ----------
 
-test('las reglas de economía: 42 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
+test('las reglas de economía: 55 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
   // #137 (encargo «recuentos»): 31 + las siete de la beta (DE_LA_BETA: el banco, A19, V10, VG 17-11, V6, y A20 escalón 1), sin condición JS;
-  // y las cuatro del gobierno (A21, 17-11).
-  assert.equal(EPOCA_0_BTML.condiciones.length, 42);
+  // y las cuatro del gobierno (A21, 17-11); y las trece del puente (A15, 17-11).
+  assert.equal(EPOCA_0_BTML.condiciones.length, 55);
+  assert.deepEqual(DEL_PUENTE.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_PUENTE], 'las del puente están en la época, sin condición JS');
   assert.deepEqual(DE_71.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_71], 'la de #71.2 está en la época, sin condición JS');
   assert.deepEqual(DE_LA_BETA.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_LA_BETA], 'las de la beta del 16-11 están en la época, sin condición JS');
   assert.deepEqual(DEL_3B.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_3B], 'las del 3b están todas en la época');

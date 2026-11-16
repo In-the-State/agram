@@ -1,7 +1,7 @@
 [
   ["what is locked for another book is released only by its return"],
   ["9100000000", "9500000000"],
-  ["=count (ev.1 where (release in it.4 or transfer in it.4) and count (it.2 where count (text(utf8(it2))).5 > 0 and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0) = 0 or \"receive from another book\" in ev.4"],
+  ["=count (ev.1 where (release in it.4 or transfer in it.4) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0) = 0 or \"receive from another book\" in ev.4"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],

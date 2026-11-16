@@ -277,6 +277,19 @@ test('los vectores de cascada de StateArk: su prueba de un registro vale; las ma
   assert.deepEqual(v(otroLibro.prueba(c.prueba.id, c.decupla)), ['RESUELTO', false]);
 });
 
+test('puente: las dos primitivas nuevas del BQL mínimo, json y text (puras: solo leen sus argumentos)', async () => {
+  const { canonico } = await import('../src/evento.js');
+  const payload = [['menú'], [['ensalada'], [3, 'a "b"']], [{ ref: 'ab'.repeat(32), dir: '1000000000' }]];
+  const ctx = new ContextoEje(null, { ev: { autor: 'ana', t: '2026-11-17T09:00:00Z', movimientos: [], payload } });
+  const de = (e) => evaluar(e, ctx);
+  assert.equal(de('text(json(payload(ev)))').valor[0], canonico(payload), 'una décupla, con su referencia: el canónico del id de un evento');
+  assert.equal(de('text(json("a \\"b\\""))').valor[0], JSON.stringify('a "b"'));
+  assert.equal(de('text(json(2.5))').valor[0], '2.5');
+  assert.equal(de('text(cat(utf8("ab"), bytes("3a"), utf8("ana")))').valor[0], 'ab:ana', 'juntar textos');
+  assert.match(de('text(bytes("ff"))').motivo, /UTF-8/);
+  assert.equal(de('json(cabecera(bytes("00")))').estado, 'ERROR');
+});
+
 test('puente: el coste de validar «bring a record from another book» (pasos, ocupantes, bytes y milisegundos)', async () => {
   const m = await conMenu();
   const proof = await m.sellar(m.grande, m.menu.id);

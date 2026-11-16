@@ -290,7 +290,7 @@ test('signed sobre bytes(id) de un evento real firmado: el mensaje de un registr
 // ---------- forma ----------
 
 test('forma: las primitivas son llamadas con su número de argumentos; no son verbos (una regla que las usa solo lee)', () => {
-  assert.deepEqual(Object.keys(VERIFICACION).sort(), ['below', 'bytes', 'cabecera', 'cat', 'hash', 'hex', 'le', 'lookup', 'merkle', 'ots', 'payload', 'reverse', 'sha256', 'sha256d', 'signed', 'slice', 'tapleaf', 'taptweak', 'tx', 'utf8']);
+  assert.deepEqual(Object.keys(VERIFICACION).sort(), ['below', 'bytes', 'cabecera', 'cat', 'hash', 'hex', 'json', 'le', 'lookup', 'merkle', 'ots', 'payload', 'reverse', 'sha256', 'sha256d', 'signed', 'slice', 'tapleaf', 'taptweak', 'text', 'tx', 'utf8']);
   assert.match(estado('taptweak(bytes("00"), bytes("00"))').motivo, /lleva 3 argumentos, no 2/);
   assert.match(estado('hash').motivo, /se escribe con sus argumentos entre paréntesis/);
   assert.match(estado('slice(bytes("00"), 1)').motivo, /lleva 3 argumentos, no 2/);

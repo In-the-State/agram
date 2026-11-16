@@ -227,7 +227,7 @@ export function formulaDelEnvio() {
  * «what is received is what was sent»).
  */
 export function formulaDeSoloLaVuelta() {
-  return '=count (ev.1 where (release in it.4 or transfer in it.4) and count (it.2 where count ' + SALIDA + '.5 > 0 and ' + esEnlace(SALIDA) + ') > 0) = 0 or "' + P.recibir + '" in ev.4';
+  return '=count (ev.1 where (release in it.4 or transfer in it.4) and count (it.2 where first ' + SALIDA + '.5 = ' + SALIDA + ' and ' + esEnlace(SALIDA) + ') > 0) = 0 or "' + P.recibir + '" in ev.4';
 }
 
 // ---------- recibir ----------
@@ -265,7 +265,7 @@ export function formulaDeLoEnviado() {
     + ' and count (ev.1 where release in it.4 and it.1 = ' + q + ' and it.3.0 = first ev.3 and ' + familiaEs(F, 'it')
     + ' and first it.0.0.2 = first ' + SND('1.1.2') + ' and first it.5 = first ' + SND('1.1.3')
     + ' and cat(utf8(first before.5), bytes("3a"), utf8(first it.0.0.1)) = utf8(' + E_ + ')'
-    + ' and count (it.2 where count ' + SALIDA + '.5 > 0 and ' + libroEs(SALIDA, O) + ') > 0) = 1';
+    + ' and count (it.2 where first ' + SALIDA + '.5 = ' + SALIDA + ' and ' + libroEs(SALIDA, O) + ') > 0) = 1';
   const ida = sinDosPuntos(E_)
     + ' and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1'
     + ' and count (ev.1 where mint in it.4 and it.1 = ' + q + ' and it.3.1 = first ev.3 and ' + familiaEs(F, 'it')
