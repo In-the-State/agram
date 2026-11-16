@@ -519,3 +519,220 @@ export const POSICIONES = Object.freeze({ pieza: PIEZA, cabecera: CABECERA, tipo
 
 /** ¿Es `x` una lista de referencias (la forma de una posición de un modelo de la época)? */
 export const esListaDeReferencias = (x) => esLista(x) && x.every(esReferencia);
+
+// ---------- El arte en sus dos sitios: el fondo y el marco con huecos declarados (VG 14-11, #94; #114) ----------
+// «El arte animado tiene DOS sitios y nada más»: el FONDO, detrás de todo, y el MARCO, que rodea el bloque de campos del
+// elemento (el espacio que necesita el sobrio) y nunca lo cubre. Cada dibujo de marco declara sus HUECOS en coordenadas de
+// su lienzo: el del bloque, el del personaje y la lista ordenada de los subelementos (rectángulo y punto de apoyo), con la
+// banda del rótulo debajo de cada uno. Es dato del modelo (arte/general/marco-fondo.json), no código: aquí solo se lee, se
+// valida y se sanea. Un marco `fijo` se escala entero (el bloque cae en su hueco); uno `estirable` es un borde: sus
+// esquinas no cambian y sus bordes lisos se alargan hasta rodear el bloque (solo declara el hueco del bloque).
+//
+//   cargarArteDeMarco({ leer })       el arte del modelo general en sus dos sitios, validado y con los SVG externos como data: (async, una vez)
+//   validarArteDeMarco(datos)         los motivos por los que el arte no vale (rectángulos fuera del lienzo, solapes, referencias)
+//   svgLimpio(texto)                  el SVG sin comentarios ni prólogo, o null si trae algo que ejecuta o pide fuera
+//   svgComoDatos(texto)               el SVG saneado como «data:image/svg+xml;base64,…» (SEG-15), o null
+//   fondoDelArte(arte, mundo, k, de)  el fondo del mundo para el paso k de `de` (la madurez), o null
+//   marcoDelArte(arte, mundo, rango)  el marco del mundo para el rango del elemento (contrato.rango), o null
+
+/** Dónde vive el arte en sus dos sitios del modelo general (una ruta del repositorio, junto a sus dibujos). */
+export const ARTE_DE_MARCO = 'arte/general/marco-fondo.json';
+/** Los ajustes de un marco: escalado entero o borde que se alarga. */
+export const AJUSTES_DE_MARCO = Object.freeze(['fijo', 'estirable']);
+/** Cómo se pinta un fondo: cubriendo la superficie (una escena) o contenido en ella (una figura sobre transparente). */
+export const AJUSTES_DE_FONDO = Object.freeze(['cubrir', 'contener']);
+
+/**
+ * Lo que un SVG no puede traer para entrar como arte (SEG-15): lo que ejecuta (script, manejadores on*, javascript:), lo que
+ * incrusta otro documento (foreignObject, iframe, object, embed) y lo que pide fuera (enlaces, imágenes, use, estilos,
+ * url() que no sea un id del propio dibujo, entidades).
+ */
+const SVG_VEDADO = [
+  /<\s*script\b/i, /\son[a-z]+\s*=/i, /javascript\s*:/i, /<\s*foreignObject\b/i,
+  /<\s*(iframe|object|embed|image|img|a|use|style|link|meta|audio|video|animate|set)\b/i,
+  /\b(xlink:)?href\s*=/i, /@import/i, /url\(\s*(?!['"]?#)/i, /<!ENTITY/i, /<!DOCTYPE/i,
+];
+
+/** El SVG sin comentarios ni prólogo XML, o null si trae algo vedado o no es un <svg>. */
+export function svgLimpio(texto) {
+  if (typeof texto !== 'string') return null;
+  const s = texto.replace(/^﻿/, '').replace(/<\?xml[^>]*\?>/gi, '').replace(/<!--[\s\S]*?-->/g, '').trim();
+  if (!/^<svg\b/i.test(s) || !/<\/svg>$/i.test(s)) return null;
+  return SVG_VEDADO.some((re) => re.test(s)) ? null : s;
+}
+
+/** Unos bytes en base64, en Node y en el navegador. */
+const enBase64 = (bytes) => {
+  let bin = '';
+  for (let i = 0; i < bytes.length; i += 0x8000) bin += String.fromCharCode(...bytes.subarray(i, i + 0x8000));
+  return btoa(bin);
+};
+
+/** El SVG saneado como data: (SEG-15: un data: es de origen opaco y en <img> no ejecuta nada), o null. */
+export function svgComoDatos(texto) {
+  const s = svgLimpio(texto);
+  return s === null ? null : 'data:image/svg+xml;base64,' + enBase64(new TextEncoder().encode(s));
+}
+
+/** ¿Es `r` un rectángulo { x, y, ancho, alto } de números finitos, con medidas positivas? */
+const esRect = (r) => Boolean(r) && [r.x, r.y, r.ancho, r.alto].every(Number.isFinite) && r.ancho > 0 && r.alto > 0;
+/** ¿Está el rectángulo `r` dentro de un lienzo { ancho, alto }? */
+const dentro = (r, l) => r.x >= 0 && r.y >= 0 && r.x + r.ancho <= l.ancho && r.y + r.alto <= l.alto;
+/** ¿Se solapan dos rectángulos (con área en común; tocarse por el borde no cuenta)? */
+export const solapan = (a, b) => a.x < b.x + b.ancho && b.x < a.x + a.ancho && a.y < b.y + b.alto && b.y < a.y + a.alto;
+/** La banda del rótulo de un subelemento: debajo de su hueco, de su ancho y del alto que declara el dibujo. */
+export const bandaDelRotulo = (h, alto) => ({ x: h.x, y: h.y + h.alto, ancho: h.ancho, alto });
+/** Una ruta del repositorio a un SVG del arte (sin «..», sin esquema). */
+const RE_RECURSO_SVG = /^arte\/(?:[a-z0-9_-]+\/)*[a-z0-9_-]+(?:\.[a-z0-9_-]+)*\.svg$/i;
+
+/**
+ * Los motivos por los que el arte en sus dos sitios no vale (vacío si vale). Cada dibujo, un SVG del repositorio con su
+ * lienzo; sus huecos, un juego declarado: el bloque dentro del lienzo; en un marco fijo, el personaje y cada subelemento
+ * dentro del lienzo, con su apoyo dentro de su rectángulo, y la banda de su rótulo también; el bloque no se solapa con
+ * ningún otro hueco ni rótulo, ni los huecos entre sí; un marco estirable solo declara el bloque. Cada mundo (1-4, 6-9)
+ * pide sus dibujos por un umbral creciente.
+ */
+export function validarArteDeMarco(datos) {
+  const motivos = [];
+  if (!datos || typeof datos !== 'object') return ['el arte no es un objeto'];
+  const dibujos = datos.dibujos ?? {};
+  const huecos = datos.huecos ?? {};
+  for (const [nombre, d] of Object.entries(dibujos)) {
+    if (typeof d?.recurso !== 'string' || !RE_RECURSO_SVG.test(d.recurso)) motivos.push(`dibujo ${nombre}: el recurso no es un SVG del arte del repositorio`);
+    const l = d?.lienzo;
+    if (!l || !(Number.isFinite(l.ancho) && l.ancho > 0 && Number.isFinite(l.alto) && l.alto > 0)) { motivos.push(`dibujo ${nombre}: sin lienzo`); continue; }
+    if (d.huecos === undefined) continue;
+    const h = huecos[d.huecos];
+    if (!h) { motivos.push(`dibujo ${nombre}: los huecos «${d.huecos}» no están declarados`); continue; }
+    if (!AJUSTES_DE_MARCO.includes(h.ajuste)) motivos.push(`huecos ${d.huecos}: ajuste «${h.ajuste}» desconocido`);
+    if (!esRect(h.bloque)) { motivos.push(`huecos ${d.huecos}: sin el hueco del bloque`); continue; }
+    if (!dentro(h.bloque, l)) motivos.push(`huecos ${d.huecos}: el bloque sale del lienzo de ${nombre}`);
+    const otros = [];
+    if (h.ajuste === 'estirable') {
+      if (h.personaje || h.subelementos?.length) motivos.push(`huecos ${d.huecos}: un marco estirable solo declara el bloque`);
+      if (!(Number.isFinite(h.escala) && h.escala > 0 && h.escala <= 4)) motivos.push(`huecos ${d.huecos}: un marco estirable dice su escala (píxeles por unidad del lienzo, hasta 4)`);
+    } else {
+      const conApoyo = (r, que) => {
+        if (!esRect(r)) { motivos.push(`huecos ${d.huecos}: ${que} no es un rectángulo`); return; }
+        if (!dentro(r, l)) motivos.push(`huecos ${d.huecos}: ${que} sale del lienzo de ${nombre}`);
+        const a = r.apoyo;
+        if (!a || !Number.isFinite(a.x) || !Number.isFinite(a.y) || a.x < r.x || a.x > r.x + r.ancho || a.y < r.y || a.y > r.y + r.alto) motivos.push(`huecos ${d.huecos}: el apoyo de ${que} no está en su rectángulo`);
+        otros.push({ que, r });
+      };
+      if (h.personaje) conApoyo(h.personaje, 'el personaje');
+      const rotulo = h.rotulo;
+      if ((h.subelementos ?? []).length && !(Number.isFinite(rotulo) && rotulo > 0)) motivos.push(`huecos ${d.huecos}: los subelementos sin el alto de su rótulo`);
+      (h.subelementos ?? []).forEach((s, k) => {
+        conApoyo(s, `el subelemento ${k + 1}`);
+        if (esRect(s) && Number.isFinite(rotulo) && rotulo > 0) {
+          const b = bandaDelRotulo(s, rotulo);
+          if (!dentro(b, l)) motivos.push(`huecos ${d.huecos}: el rótulo del subelemento ${k + 1} sale del lienzo de ${nombre}`);
+          otros.push({ que: `el rótulo del subelemento ${k + 1}`, r: b });
+        }
+      });
+    }
+    for (const o of otros) if (esRect(o.r) && solapan(h.bloque, o.r)) motivos.push(`huecos ${d.huecos}: el bloque se solapa con ${o.que}`);
+    otros.forEach((a, i) => otros.slice(i + 1).forEach((b) => { if (esRect(a.r) && esRect(b.r) && solapan(a.r, b.r)) motivos.push(`huecos ${d.huecos}: ${a.que} se solapa con ${b.que}`); }));
+  }
+  for (const [mundo, m] of Object.entries(datos.mundos ?? {})) {
+    if (!MUNDOS.includes(Number(mundo))) motivos.push(`mundo ${mundo}: no es un mundo (1-4, 6-9)`);
+    for (const sitio of ['fondo', 'marco']) {
+      const s = m?.[sitio];
+      if (s === undefined) continue;
+      const lista = Array.isArray(s.dibujos) ? s.dibujos : [];
+      if (!lista.length) motivos.push(`mundo ${mundo}: el ${sitio} sin dibujos`);
+      if (sitio === 'fondo' && s.ajuste !== undefined && !AJUSTES_DE_FONDO.includes(s.ajuste)) motivos.push(`mundo ${mundo}: ajuste de fondo «${s.ajuste}» desconocido`);
+      let antes = -Infinity;
+      for (const par of lista) {
+        const [umbral, nombre] = Array.isArray(par) ? par : [];
+        if (!Number.isFinite(umbral) || umbral <= antes) motivos.push(`mundo ${mundo}: los umbrales del ${sitio} no crecen`);
+        antes = umbral;
+        const d = dibujos[nombre];
+        if (!d) motivos.push(`mundo ${mundo}: el ${sitio} pide «${nombre}», que no está`);
+        else if (sitio === 'marco' && d.huecos === undefined) motivos.push(`mundo ${mundo}: el marco «${nombre}» no declara sus huecos`);
+      }
+    }
+  }
+  return motivos;
+}
+
+/** El último dibujo cuyo umbral no pasa de k (los umbrales crecen), o el primero si k no llega a ninguno. */
+const porUmbral = (lista, k) => {
+  let elegido = lista[0] ?? null;
+  for (const par of lista) if (typeof k === 'number' && par[0] <= k) elegido = par;
+  return elegido;
+};
+
+/**
+ * El fondo de un mundo en el arte: el dibujo del paso de madurez `k` de `de` reescalado a los pasos que declara (su
+ * mayor umbral), el inferior más cercano. → { dibujo, recurso, formato, ajuste, lienzo, paso } o null si el mundo no lo declara.
+ */
+export function fondoDelArte(arte, mundo, k, de) {
+  const s = arte?.mundos?.[mundo]?.fondo;
+  if (!s) return null;
+  const tope = Math.max(...s.dibujos.map((p) => p[0]));
+  const paso = typeof k === 'number' && typeof de === 'number' && de > 0 ? Math.max(1, Math.ceil((k * tope) / de)) : k;
+  const [umbral, nombre] = porUmbral(s.dibujos, paso) ?? [];
+  const d = arte.dibujos[nombre];
+  return d?.datos ? { dibujo: nombre, recurso: d.datos, formato: d.formato, ajuste: s.ajuste ?? AJUSTES_DE_FONDO[0], lienzo: d.lienzo, paso: umbral } : null;
+}
+
+/**
+ * El marco de un mundo en el arte: el dibujo que toca por el rango del elemento (el peldaño de contrato.rango; sin él, el
+ * primero), con sus huecos. → { dibujo, recurso, formato, lienzo, ajuste, escala, bloque, personaje, subelementos, rotulo } o null.
+ */
+export function marcoDelArte(arte, mundo, rango) {
+  const s = arte?.mundos?.[mundo]?.marco;
+  if (!s) return null;
+  const [, nombre] = porUmbral(s.dibujos, s.por === 'rango' ? rango ?? 0 : 0) ?? [];
+  const d = arte.dibujos[nombre];
+  const h = d ? arte.huecos[d.huecos] : null;
+  if (!d?.datos || !h) return null;
+  return { dibujo: nombre, recurso: d.datos, formato: d.formato, lienzo: d.lienzo, ajuste: h.ajuste, escala: h.escala ?? null, bloque: h.bloque, personaje: h.personaje ?? null, subelementos: h.subelementos ?? [], rotulo: h.rotulo ?? 0 };
+}
+
+/** Lee un archivo del repositorio como texto: en el navegador, por la red (relativo a este módulo); en Node, del disco. */
+async function leerDelRepositorio(ruta) {
+  const url = new URL('../' + ruta, import.meta.url);
+  if (url.protocol === 'file:') {
+    const { readFile } = await import('node:fs/promises');
+    return readFile(url, 'utf8');
+  }
+  const r = await fetch(url);
+  if (!r.ok) throw new Error(ruta + ': ' + r.status);
+  return r.text();
+}
+
+let arteCargado = null;
+/**
+ * El arte del modelo general en sus dos sitios, una vez: el JSON validado (validarArteDeMarco) y cada dibujo con su
+ * `datos`, lo que se pinta: un SVG externo (`externo`, arte de fuera del equipo), leído, saneado y como data: (SEG-15);
+ * uno del repositorio, su ruta. Si el arte no vale o no se puede leer, { arte: null, motivos }: la carta no pinta ni
+ * fondo ni marco de aquí (el fondo del modelo sigue). `leer` (para las pruebas) sustituye a la lectura del repositorio.
+ */
+export function cargarArteDeMarco({ leer } = {}) {
+  if (!leer && arteCargado) return arteCargado;
+  const leerTexto = leer ?? leerDelRepositorio;
+  const promesa = (async () => {
+    try {
+      const datos = JSON.parse(await leerTexto(ARTE_DE_MARCO));
+      const motivos = validarArteDeMarco(datos);
+      if (motivos.length) return { arte: null, motivos };
+      const dibujos = {};
+      const formatos = cabecera().formatos;
+      for (const [nombre, d] of Object.entries(datos.dibujos)) {
+        const datosDe = d.externo ? svgComoDatos(await leerTexto(d.recurso)) : d.recurso;
+        if (!datosDe) motivos.push(`dibujo ${nombre}: el SVG no pasa el saneado`);
+        // su formato, el de la época que dice su extensión (epoch.9.5.1)
+        const formato = formatos.find((f) => d.recurso.toLowerCase().endsWith('.' + f.toLowerCase())) ?? null;
+        if (!formato) motivos.push(`dibujo ${nombre}: un formato que la época no tiene`);
+        dibujos[nombre] = { ...d, datos: datosDe, formato };
+      }
+      return motivos.length ? { arte: null, motivos } : { arte: { ...datos, dibujos }, motivos: [] };
+    } catch (e) {
+      return { arte: null, motivos: [String(e?.message ?? e)] };
+    }
+  })();
+  if (!leer) arteCargado = promesa;
+  return promesa;
+}

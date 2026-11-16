@@ -125,7 +125,10 @@ test('animado: el muñeco es el mismo botón que el interrogante (una capa), con
   const celdas = completa.centro.rejilla.celdas.filter((c) => c.sitio);
   assert.ok(celdas.length > 0 && celdas.every((c) => c.sitio.personaje?.pieza?.recurso), 'cada celda con su muñeco');
   assert.ok(celdas.every((c) => sitios(hc).some((s) => s.lugar === c.sitio.lugar && s.muneco)));
-  assert.match(hc, new RegExp(`<div class="capa capa-personaje"[^>]*data-sitio="3" data-sitio-x="${compra.id}"`), 'el muñeco del hueco abre el sitio del PV');
+  // el personaje de la zona del marco (el de la tienda del 1, VG 14-11 #94) abre el sitio de la rejilla
+  const uno = html(await arbol({ foco: { X: compra.id, pv: 1 } }, eje, 'huesped', GRANDE));
+  assert.match(uno, new RegExp(`<div class="capa capa-personaje" style="[^"]*" data-sitio="1" data-sitio-x="${compra.id}"`), 'el muñeco de su zona abre el sitio del PV');
+  assert.doesNotMatch(hc, /capa-personaje/, 'el 3 no tiene marco con zona de personaje: sin muñeco suelto');
   assert.match(CSS, /\.capa-personaje\[data-sitio\]\{pointer-events:auto/);
   // Sequenced: el muñeco de cada fila con arte (el 0 y el 5 no tienen muñeco en el modelo general: se quedan con el interrogante)
   const movil = html(await arbol({ foco: { X: compra.id, pv: 0 } }, eje, 'huesped', MOVIL));
