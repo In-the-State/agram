@@ -1,4 +1,4 @@
-// Copia de test/recibo-pago.test.js de stateark-sim (Core StateArk, commit ddcc475: el recibo único «pago» con la transacción cruda, la firma del observador y el puntero), con las rutas adaptadas a este repo (servidor/sim/stateark/ y src/). La regla «paid» de la época, en test/verificado-regla.test.js.
+// Copia de test/recibo-pago.test.js de stateark-sim (Core StateArk, commit ddcc475: el recibo único «pago» con la transacción cruda, la firma del observador y el puntero), con las rutas adaptadas a este repo (servidor/sim/stateark/ y src/). La regla «paid» de la época, en test/verificado-regla.test.js. [Al día con 108f888: ver LEEME de servidor/sim/stateark/.]
 // El recibo único de clase «pago» (stateark.recibo@1) con la transacción cruda de Bitcoin, leído con el código REAL
 // de AGRAM (src/cripto.js: leerTx, leerCabecera, raizMerkle; src/btml.js), como lo comprobará la regla «paid» del
 // SIP 0: la transacción está en el bloque (Merkle «bitcoin» hasta la raíz de la cabecera), la cabecera da el bloque
@@ -78,7 +78,7 @@ test('el recibo «pago»: décupla BTML válida según AGRAM, con la evidencia c
     const campos = await c.reciboPago(txid);
     const custodia = new Custodia();
     await custodia.crearClave('nostr', 'carril');
-    const r = await custodia.firmarRecibo('carril', campos, { t: INICIO });
+    const r = await custodia.firmarRecibo('carril', campos, { t: INICIO, dominio: 'nostr' });
     assert.equal((await verificarReciboComun(r)).ok, true);
     const d = r.recibo;
     assert.deepEqual(validarPayload(d), { ok: true, errores: [] }, `n=${n}`);

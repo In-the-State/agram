@@ -21,7 +21,7 @@
 import { esId, sha256Texto, hashEtiquetadoBytes, leHex } from './hash.js';
 import { canonico, huella, hashEtiquetado } from './canon.js';
 import { mensajeAutorizacion } from './pagos.js';
-import { sobreDeRecibo } from './recibo.js';
+import { sobreDeRecibo, decuplaDeRecibo } from './recibo.js';
 
 export const DOMINIOS = Object.freeze(['agram', 'cartera', 'nostr']);
 export const USO_SESION = 'StateArk/Sesion/v1';
@@ -34,6 +34,8 @@ export const USO_SEGUNDO_FACTOR = 'StateArk/SecondFactor/v1';
 export const ESQUEMA_VINCULO = 'stateark-sim/vinculo@1';
 
 const HEX = /^[0-9a-f]*$/;
+/** Un instante ISO 8601 en UTC: `AAAA-MM-DDTHH:MM:SS[.fff]Z` (el `es_instante` del guardián). */
+export const esInstante = (t) => typeof t === 'string' && /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(\.\d+)?Z$/.test(t);
 const aBytes = (h) => Uint8Array.from(h.match(/../g) ?? [], (x) => parseInt(x, 16));
 const aHex = (b) => Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('');
 
@@ -201,6 +203,19 @@ export class Custodia {
     return verificarVinculo(vinculo, this.esquema);
   }
 
+  /**
+   * La prueba del vínculo nuevo (S45, opción c), como `probar_vinculo` del guardián: la clave de gasto de la
+   * cartera `nombre` (la sim no deriva BIP-32: su clave 'cartera' x-only hace de la interna de `m/86'/1'/0'/0/0`)
+   * firma BIP-340 sobre hashEtiquetado(USO_VINCULO, utf8(identidad) ‖ clave). Devuelve { clave, prueba }.
+   * Primero la clave (`key_unknown`), luego la identidad (`identity_missing`), como el guardián.
+   */
+  async probarVinculo(nombre, identidad) {
+    const k = this.#clave('cartera', nombre);
+    if (typeof identidad !== 'string' || !identidad) throw rechazo('identity_missing', 'falta la identidad de AGRAM que se vincula');
+    const mensaje = await mensajePruebaVinculo(identidad, k.publica);
+    return { clave: k.publica, prueba: await this.esquema.firmar(mensaje, k.privada) };
+  }
+
   // ── Observador de cabeceras (H9, VG 12-11) ────────────────────────────────────────────────────
 
   /**
@@ -223,17 +238,21 @@ export class Custodia {
    * Firma un recibo único (stateark.recibo@1). Las claves de servicio (dominio 'nostr') firman cualquier clase
    * salvo «rotación»; una rotación solo la firma la clave de AGRAM que rota, y solo sobre sí misma.
    */
-  async firmarRecibo(nombre, campos, { t, dominio = 'nostr' } = {}) {
-    if (campos?.clase === 'rotación') {
+  async firmarRecibo(nombre, campos, { t, dominio } = {}) {
+    // El mismo orden y los mismos códigos que el guardián (S33): dominio, clave, forma, quién firma, instante.
+    // Sin `dominio` o sin `t` NO se supone nada: `domain_unknown` y `time_invalid`.
+    if (!DOMINIOS.includes(dominio)) throw rechazo('domain_unknown', `dominio «${dominio}»; los que hay: ${DOMINIOS.join(', ')}`);
+    const k = this.#clave(dominio, nombre);
+    decuplaDeRecibo(campos); // la forma (lanza ErrorRecibo)
+    if (campos.clase === 'rotación') {
       if (dominio !== 'agram') throw rechazo('wrong_domain', 'una rotación la firma la clave de AGRAM que rota');
-      const k = this.#clave('agram', nombre);
       if (campos.sujeto?.[0] !== k.publica) throw rechazo('wrong_subject', 'una clave solo firma su propia rotación');
       if (!campos.ata?.some(([c, v]) => c === 'sucesora' && esId(v) && v !== k.publica)) throw rechazo('successor_missing', 'la rotación nombra su sucesora, otra clave x-only');
     } else if (dominio !== 'nostr') {
       throw rechazo('wrong_domain', 'los recibos los firman las claves de servicio (dominio nostr)');
     }
-    const k = this.#clave(dominio, nombre);
-    const sobre = await sobreDeRecibo(k.publica, campos, t ?? new Date().toISOString());
+    if (!esInstante(t)) throw rechazo('time_invalid', 't es un instante ISO 8601 en UTC');
+    const sobre = await sobreDeRecibo(k.publica, campos, t);
     return { ...sobre, firma: await this.esquema.firmar(sobre.id, k.privada) };
   }
 
@@ -329,6 +348,7 @@ export class Custodia {
 
   async revocarSesion(nombreLarga, sesion, { instante } = {}) {
     const k = this.#clave('nostr', nombreLarga);
+    if (!esId(sesion)) throw rechazo('session_invalid', 'la sesión es una clave x-only'); // como el guardián (S33)
     const cuerpo = { schema: 'stateark-sim/revocacion@1', uso: USO_REVOCACION, larga: k.publica, sesion, instante: instante ?? new Date().toISOString() };
     const revocacion = { ...cuerpo, firma: await this.esquema.firmar(await hashEtiquetado(USO_REVOCACION, canonico(cuerpo)), k.privada) };
     this.#revocadas.set(sesion, revocacion);
@@ -399,6 +419,22 @@ export async function verificarSesion(d, { ahora, kind, revocaciones = [], esque
 /** El mensaje que firman las dos claves de un vínculo. */
 export function mensajeVinculo({ schema, uso, agram, cartera, instante }) {
   return hashEtiquetado(USO_VINCULO, canonico({ schema, uso, agram, cartera, instante }));
+}
+
+/** El mensaje de la prueba de posesión del vínculo nuevo: hashEtiquetado(USO_VINCULO, utf8(identidad) ‖ clave). */
+export function mensajePruebaVinculo(identidad, clave) {
+  const id = new TextEncoder().encode(identidad);
+  const k = aBytes(clave);
+  const datos = new Uint8Array(id.length + k.length);
+  datos.set(id, 0);
+  datos.set(k, id.length);
+  return hashEtiquetadoBytes(USO_VINCULO, datos);
+}
+
+/** Comprueba, sin la custodia, la prueba de posesión de una clave de gasto para una identidad de AGRAM (lo que hace «linked»). */
+export async function verificarPruebaVinculo({ clave, prueba } = {}, identidad, esquema = esquemaSimulado) {
+  if (!esId(clave) || typeof prueba !== 'string' || !HEX.test(prueba) || typeof identidad !== 'string' || !identidad) return false;
+  return Boolean(await esquema.verificar(prueba, await mensajePruebaVinculo(identidad, clave), clave));
 }
 
 /** Comprueba un vínculo con cualquier esquema, sin necesitar la custodia que lo hizo. */

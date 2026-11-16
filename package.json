@@ -7,7 +7,8 @@
   "engines": { "node": ">=20" },
   "scripts": {
     "test": "node --test",
-    "test:carta": "node --test test/carta.test.js test/carta-mapped.test.js test/division-mundos.test.js test/animado-capas.test.js test/arte-marco-fondo.test.js test/estilo.test.js test/modelos.test.js test/personaje-del-sitio.test.js test/arreglos-repaso.test.js test/segundo-factor.test.js test/carta-hoy.test.js test/carta-llana.test.js test/carta-formularios.test.js test/carta-rosetones-cara5.test.js",
+    "test:main": "node --test --test-timeout=180000",
+    "test:carta": "node --test test/carta.test.js test/carta-mapped.test.js test/division-mundos.test.js test/animado-capas.test.js test/arte-marco-fondo.test.js test/estilo.test.js test/modelos.test.js test/personaje-del-sitio.test.js test/arreglos-repaso.test.js test/segundo-factor.test.js test/carta-hoy.test.js test/carta-llana.test.js test/carta-formularios.test.js test/carta-rosetones-cara5.test.js test/carta-remates.test.js test/carta-pagos.test.js",
     "bench": "node bench/eje.mjs",
     "epocas": "node datos/epocas/generar.mjs",
     "epoca:state": "node datos/epocas/state/generar.mjs"

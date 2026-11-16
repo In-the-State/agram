@@ -19,7 +19,7 @@ import { readFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { esId } from './hash.js';
-import { RechazoCustodia, esquemaNoble, verificarVinculo, comprobarSegundoFactor } from './custodia.js';
+import { RechazoCustodia, esquemaNoble, verificarVinculo, verificarPruebaVinculo, comprobarSegundoFactor } from './custodia.js';
 import { decuplaDeRecibo } from './recibo.js';
 
 const rechazo = (codigo, mensaje) => new RechazoCustodia(codigo, mensaje);
@@ -151,6 +151,16 @@ export class CustodiaRemota {
     return verificarVinculo(vinculo, this.esquema);
   }
 
+  /** La prueba del vínculo nuevo (S45): `POST /custodia/probar-vinculo` → { clave, prueba }. La comprueba el guardián (`identity_missing`, `key_unknown`). */
+  async probarVinculo(nombre, identidad) {
+    return this.#llamar('/custodia/probar-vinculo', { nombre, identidad });
+  }
+
+  /** Comprueba { clave, prueba } para esa identidad, con el esquema BIP-340 de AGRAM. */
+  verificarPruebaVinculo(p, identidad) {
+    return verificarPruebaVinculo(p, identidad, this.esquema);
+  }
+
   // ── Observador de cabeceras (H9) ───────────────────────────────────────────────────────────────
 
   async firmarCabecera(nombre, cabecera, altura) {
@@ -166,19 +176,18 @@ export class CustodiaRemota {
    * aquí con `decuplaDeRecibo` (que lanza `ErrorRecibo`, como en la simulada, si falta algo). Devuelve el mismo
    * sobre: { schema, emisor, t, recibo, id, firma }.
    */
-  async firmarRecibo(nombre, campos, { t, dominio = 'nostr' } = {}) {
-    if (campos?.clase !== 'rotación' && dominio !== 'nostr') throw rechazo('wrong_domain', 'los recibos los firman las claves de servicio (dominio nostr)');
+  async firmarRecibo(nombre, campos, { t, dominio } = {}) {
+    // Sin `t` ni `dominio` por defecto (S33): el guardián los exige y responde `time_invalid` / `domain_unknown`.
+    // Quién puede firmar qué (`wrong_domain`, rotaciones) también lo decide él.
     const recibo = decuplaDeRecibo(campos);
-    return this.#llamar('/custodia/firmar-recibo', { dominio, nombre, t: t ?? new Date().toISOString(), recibo });
+    return this.#llamar('/custodia/firmar-recibo', { ...(dominio === undefined ? {} : { dominio }), nombre, ...(t === undefined ? {} : { t }), recibo });
   }
 
   // ── Sesiones para AARPIA ───────────────────────────────────────────────────────────────────────
 
-  async emitirSesion(nombreLarga, { alcance, segundos = 3600, desde } = {}) {
-    // El guardián descarta en silencio lo que no es entero en el alcance; aquí se rechaza, como en la simulada.
-    if (!Array.isArray(alcance) || !alcance.length || !alcance.every(Number.isInteger)) throw rechazo('scope_invalid', 'el alcance es una lista de kinds de Nostr');
-    if (!Number.isInteger(segundos) || segundos <= 0 || segundos > 86_400) throw rechazo('scope_invalid', 'una sesión dura entre 1 s y 24 h');
-    return this.#llamar('/custodia/emitir-sesion', { nombre: nombreLarga, alcance, segundos, ...(desde ? { desde } : {}) });
+  async emitirSesion(nombreLarga, { alcance, segundos, desde } = {}) {
+    // El alcance y la duración los valida el guardián (S33: `scope_invalid`); aquí no se repite ni se corrige nada.
+    return this.#llamar('/custodia/emitir-sesion', { nombre: nombreLarga, alcance, ...(segundos === undefined ? {} : { segundos }), ...(desde ? { desde } : {}) });
   }
 
   async revocarSesion(nombreLarga, sesion, { instante } = {}) {

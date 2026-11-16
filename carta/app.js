@@ -18,8 +18,8 @@
 // sincronizan nunca. Nada de esto bloquea: se escribe en local y la cola sube lo pendiente.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
-import { leerFormato, guardarFormato, formatoValido } from './formato-btml.js';
+import { arbol, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
@@ -162,7 +162,7 @@ const sincronizar = sinc.enSerie(async () => {
   if (archivos.pendientes.size && !informe.sinRed) await archivos.subirPendientes(); // lo adjuntado sin red, como la cola de eventos
   if (estado.sincronia !== S || estado.eje !== eje) return; // otra cuenta en pantalla: lo de esta ya quedó guardado
   estado.lineaSincronia = sinc.lineaDeEstado(S, informe);
-  if (informe.reordenado || informe.anadidos.length) {
+  if (informe.reordenado || informe.anadidos.length || informe.pagos?.anotados.length) {
     guardar();
     marcarNuevos();
     await pintar();
@@ -179,9 +179,19 @@ function pintarSincronia() {
   else raiz.querySelector('.sitio-cruceta[data-sitio-general] .guardado')?.insertAdjacentHTML('afterend', nuevo);
 }
 
+/**
+ * El firmante de la cuenta para el servicio de pagos (src/pago.js): firma el id del evento NIP-98 con la clave de la
+ * cuenta, el mismo material con el que firma sus registros (autoridad.firmar); la privada no sale de aquí.
+ */
+function firmanteDeLaCuenta() {
+  const privada = estado.cuenta?.privada;
+  if (!privada) return {};
+  return { pubkey: autoridad.publicaDe(privada), firmar: async (id) => (await autoridad.firmar({ id }, privada)).firma };
+}
+
 /** Abre la sincronía de la cuenta en pantalla (con servidor, eje compartido y clave de lectura) y sincroniza sin esperar. */
 function abrirSincronia() {
-  estado.sincronia = estado.cuenta && estado.eje ? sinc.abrir({ alta: estado.cuenta.alta, eje: estado.eje, yo: estado.cuenta.identidad }) : null;
+  estado.sincronia = estado.cuenta && estado.eje ? sinc.abrir({ alta: estado.cuenta.alta, eje: estado.eje, yo: estado.cuenta.identidad, firmante: firmanteDeLaCuenta() }) : null;
   estado.lineaSincronia = null;
   if (estado.sincronia) void sincronizar();
 }
@@ -271,7 +281,7 @@ function datosGuia() {
   const evaluadas = externa.evaluarTodas(estado.eje, estado.identidad, propuestasPendientes());
   const propuestas = {
     aqui: evaluadas.filter((e) => e.sobre === estado.foco.X).length,
-    fuera: evaluadas.filter((e) => e.sobre !== estado.foco.X).map((e) => (e.sobre ? { ...e, sobreTexto: contrato.legible(estado.eje, { ref: e.sobre }, null, { idioma: idioma() }).texto } : e)),
+    fuera: evaluadas.filter((e) => e.sobre !== estado.foco.X).map((e) => (e.sobre ? { ...e, sobreTexto: ceroDe(estado.eje, e.sobre, { idioma: idioma() }, contrato.legible(estado.eje, { ref: e.sobre }, null, { idioma: idioma() }).texto) } : e)),
   };
   return { historial: g.historial, pensando: g.pensando, pendiente: g.pendiente, error: g.error, borrador: g.borrador, preguntas: guia.preguntasRapidas(estado.eje, idioma()), via: aj.via, ejemplo: !estado.cuenta, propuestas };
 }
@@ -649,11 +659,15 @@ async function escribirPreferencias(valores) {
   await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: p.sobre, en: p.en, payload: p.payload }, privadaDe(estado.identidad));
 }
 
-/** Los criterios de formato del BTML (el reverso) de quien mira: guardados en este navegador, por cuenta o «ejemplo». */
-const formatoDe = () => leerFormato(almacenLocal(), estado.cuenta ? estado.cuenta.alta : null);
-function cambiarFormato(cambio) {
-  guardarFormato(almacenLocal(), estado.cuenta ? estado.cuenta.alta : null, formatoValido({ ...formatoDe(), ...cambio }));
-  pintar();
+/**
+ * Los criterios de formato del BTML (el reverso) de quien mira: salen del libro (el registro «format settings» de mi alta,
+ * #93). Sin cuenta (el ejemplo) valen los cambiados en esta sesión, en memoria; `formatoSesion` es lo que el botón
+ * «formatear» alterna (la vista de esta sesión: no escribe nada). Lo guardado de antes en el almacén local no se migra: se borra.
+ */
+function formatoDe() {
+  olvidarFormatoLocal(almacenLocal(), estado.cuenta ? estado.cuenta.alta : null);
+  if (!estado.eje) return formatoValido(null);
+  return formatoDeLibro(estado.eje, estado.identidad, { memoria: estado.cuenta ? {} : estado.formatoMemoria, sesion: estado.formatoSesion });
 }
 
 const manejadores = {
@@ -1070,14 +1084,52 @@ const manejadores = {
     estado.rosetones = {};
     pintar();
   },
-  /** El reverso como editor de BTML (#93): alternar el BTML crudo y el formateado; la elección se guarda en este navegador. */
-  formatear() {
-    cambiarFormato({ formateado: !formatoDe().formateado });
+  /**
+   * «buscar su recibo de pago» en el reverso de un registro (encargo «carta: pagos»): lo apunta en la sincronía de la
+   * cuenta (esperarPago, por el puntero del pago: el id del registro) y sincroniza; el recibo entra cuando llega. Sin
+   * libro compartido o sin «pay url» no hay a quién pedirlo: se dice.
+   */
+  buscarPago(X) {
+    const S = estado.sincronia;
+    if (!X || !estado.eje?.obtener(X)) return;
+    if (!S?.pago) {
+      estado.aviso = t('pagoSinLibro');
+      pintar();
+      return;
+    }
+    S.esperarPago(X);
+    guardar();
+    pintar();
+    void sincronizar();
   },
-  /** Un criterio de formato del BTML: fecha, números y estilo, en este navegador; el idioma, en mi configuración (la preferencia «language» del núcleo). */
-  formato(clave, valor) {
+  /** El reverso como editor de BTML (#93): alternar el BTML crudo y el formateado, solo en esta sesión (no se escribe nada: cómo se abre es «al abrir»). */
+  formatear() {
+    estado.formatoSesion = !formatoDe().formateado;
+    pintar();
+  },
+  /**
+   * Un criterio de formato del BTML (fecha, números, estilo, al abrir): con cuenta, un registro «format settings» en el
+   * libro por cada cambio, por el camino de las preferencias; sin cuenta, en memoria durante la sesión. El idioma es
+   * la preferencia «language» del núcleo.
+   */
+  async formato(clave, valor) {
     if (clave === 'idioma') return manejadores.preferencia('language', valor);
-    cambiarFormato({ [clave]: valor });
+    if (!estado.cuenta) {
+      estado.formatoMemoria = { ...estado.formatoMemoria, [clave]: valor };
+      pintar();
+      return;
+    }
+    try {
+      const r = registroDeFormato(estado.eje, estado.identidad, { [clave]: valor });
+      if (!r) throw new Error(t('sinAlta'));
+      await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: r.sobre, en: r.en, payload: r.payload }, privadaDe(estado.identidad));
+      guardar();
+      estado.aviso = '';
+    } catch (e) {
+      estado.aviso = String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, '');
+    }
+    abrirSincronia();
+    pintar();
   },
   leido() {
     estado.leido = alternarLeido();
