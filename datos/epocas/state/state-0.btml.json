@@ -1,5 +1,5 @@
 {
-  "id": "006d84987e7606aee305a9fea618a61ffe2bc7b8b134e6f18881f72d9f9dc3aa",
+  "id": "b5c2a1bf94a5c321fabaef3db8cf938ac233a88d6656a36902f29c873c39de73",
   "hereda": "5260d0df3907fbdd110ce6b412c6cf382bca16a1fc870665d4ec4335a52d0baa",
   "raiz": [
     [
@@ -21,6 +21,9 @@
       },
       {
         "ref": "a004dbdf59c8e3b4afae62e2b9552b67960279a74e4a0cb1fb86d0bde5df4588"
+      },
+      {
+        "ref": "1980bcd136f0a999c3eebe1faf74339c2cdd0740150bab9b337c76b931d72796"
       },
       {
         "ref": "f2d2a07e502ffb783248b0162f322df179c4894538587a96955053b4db71402e"
@@ -65,10 +68,10 @@
         "ref": "323c60eb15ec9ef25e8948e28feb3f274ed5272a8899a4ba5cee86422006cf63"
       },
       {
-        "ref": "c9fc418e18db66dd6fa53ad4e3790f3c0911f917098834fae381df60d8056f07"
+        "ref": "b135daef7c2e0fd7b82d2320d929c0406681333470abe554e482e11ef00a10e6"
       },
       {
-        "ref": "d0c06b770d93f42e2dc511be317da3386cd81fa796f2bb4f54f58c5ee1b9c048"
+        "ref": "f0cfe84bf36bee0c665fe0ac2e03aa63ff2f3d8226bffb2e5d1f406caee019d5"
       }
     ],
     {
@@ -1782,7 +1785,32 @@
             "message count: cuántos mensajes tiene la conversación",
             "last message: el instante del último mensaje de la conversación",
             "delivery: el resultado vigente de la entrega del mensaje",
-            "messages to deliver: los mensajes que salen por un canal de fuera de la conversación y aún no están enviados"
+            "messages to deliver: los mensajes que salen por un canal de fuera de la conversación y aún no están enviados",
+            "template register an interlocutor: dar de alta un interlocutor",
+            "template register an interlocutor param thing label: interlocutor",
+            "template register an interlocutor param thing help: la identidad del interlocutor nuevo: un nombre sin alta en este eje, nunca su identificador de fuera",
+            "template register an interlocutor param endowment label: dotación",
+            "template register an interlocutor param endowment help: el segundo de mi T que abre su cuenta: lo mínimo que pide la época 0 (una identidad existe cuando la toca un movimiento); no recibe nada más",
+            "template register an interlocutor param criteria label: criterio de cierre",
+            "template register an interlocutor param criteria help: la plantilla de cerrado del registro",
+            "template register an interlocutor param who label: quién",
+            "template register an interlocutor param who help: quién lo da de alta: el servicio, su dueño",
+            "template register an interlocutor param actions label: acción",
+            "template register an interlocutor param actions help: la acción",
+            "template register an interlocutor param type label: tipo",
+            "template register an interlocutor param type help: el tipo del registro: el alta de un interlocutor de fuera",
+            "template register an interlocutor param channel label: canal",
+            "template register an interlocutor param channel help: el canal: uno de la época (epoch.9.0.5.1) que no sea de la casa (epoch.9.0.5.2)",
+            "template register an interlocutor param fingerprint label: huella",
+            "template register an interlocutor param fingerprint help: la huella de su identificador de fuera: 64 caracteres hexadecimales en minúsculas (un HMAC-SHA256 con una clave que guarda StateArk; nunca el identificador)",
+            "template register an interlocutor message: {first (payload(ev)).3.1}",
+            "template interlocutor of: el interlocutor de",
+            "template interlocutor of param channel label: canal",
+            "template interlocutor of param channel help: el canal: uno de la época que no sea de la casa",
+            "template interlocutor of param fingerprint label: huella",
+            "template interlocutor of param fingerprint help: la huella del identificador de fuera: 64 caracteres hexadecimales en minúsculas",
+            "an interlocutor is registered once: {first ev.3} da de alta un interlocutor fuera del 1.4 de su propia alta, en el canal de la casa o en uno que no está en la lista, con una huella mal formada, sin R en un nodo, o con un canal y una huella que ya dio de alta",
+            "template interlocutor of message: {first ((payload(first (((under it) where it2 = it or first (payload(it2)).6.1 = first (payload(ev)).1 and first (payload(it2)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it2)).4 and first it2.3 = first it.3) by count (epoch where it2 = it)))).3.1 where first (((under it) where it3 = it or first (payload(it3)).6.1 = first (payload(ev)).1 and first (payload(it3)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it3)).4 and first it3.3 = first it.3) by count (epoch where it3 = it)) != it)}"
           ]
         ],
         [
@@ -1844,6 +1872,12 @@
           },
           {
             "ref": "644b8aaabffaa07052a17a3d12d21148236ca832fde97b6660fab2b679980498"
+          },
+          {
+            "ref": "2c8fb5ef97bb9089f5260850c1dbd6b2cbad38841ef2511485f3bc3f5f5834b8"
+          },
+          {
+            "ref": "f6ed6271527e8b2f1c3e5ce6640637a06a5af687f15b5c1d7fc17966d8e88489"
           },
           {
             "ref": "187b2f23913af2ecf13ace76a6a98711b5c51ae6f09bfedb52966a81d6676fd3"
@@ -2076,6 +2110,46 @@
       ],
       [
         "an archived conversation takes no messages: {first ev.3} writes in a conversation that was archived"
+      ]
+    ],
+    [
+      [
+        "an interlocutor is registered once"
+      ],
+      [
+        "register an interlocutor",
+        "interlocutor",
+        "node",
+        "epoch.9.0.5.1",
+        "epoch.9.0.5.2"
+      ],
+      [
+        "=not (\"register an interlocutor\" in (payload(ev)).4) or first ev.6.5 = first (first ev.3).6 and last (first ev.6).5 = \"1400000000\" and \"interlocutor\" in (payload(ev)).5 and first (payload(ev)).6.0 in epoch.9.0.5.1 and not (first (payload(ev)).6.0 in epoch.9.0.5.2) and hex(slice(bytes(first (payload(ev)).6.1), 0, 32)) = first (payload(ev)).6.1 and count ((down (first ev.6.5)) where first (payload(it)).6.1 = first (payload(ev)).6.1 and first (payload(it)).6.0 = first (payload(ev)).6.0 and \"register an interlocutor\" in (payload(it)).4) = 0 and count ((first ev.3).1 where R in it.0.0.0 and it.1 > 0 and count ((down (first (it.0.0.1).6)) where \"node\" in (payload(it2)).5 and first it2.3 = it.0.0.1) > 0) > 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): el alta de un interlocutor va en el 1.4 de la propia alta de quien la escribe, con el tipo «interlocutor», un canal de fuera (de epoch.9.0.5.1 y no de epoch.9.0.5.2) y una huella de 64 hexadecimales en minúsculas, la escribe quien tiene R en el nodo (R de quien escribió el alta de un nodo) y una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor (se mira lo anclado en su 1.4: lo mismo que la plantilla pone). Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        "after who opens, renames and archives a conversation"
+      ],
+      [
+        "an interlocutor is registered once: {first ev.3} registers an interlocutor outside the 1.4 of its own alta, on a channel of the house or not in the list, with a malformed fingerprint, without R in a node, or with a channel and fingerprint it already registered"
       ]
     ],
     [
@@ -2606,7 +2680,7 @@
         "declare agent"
       ],
       [
-        "=not (\"open a conversation\" in (payload(ev)).4 or \"rename a conversation\" in (payload(ev)).4 or \"archive a conversation\" in (payload(ev)).4) or \"open a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"1500000000\" and \"agent\" in (payload((first ev.6.5))).5 and first (payload((first ev.6.5))).3.1 = first (payload(ev)).1 and count (((first ev.6.5).9) where \"declare agent\" in it.4 and first it.3 = first (first ev.6.5).3) > 0 and (first ev.3 = first (first ev.6.5).3 or count ((first ev.3).1 where R in it.0.0.0 and it.0.0.1 = first (first ev.6.5).3 and it.1 > 0) > 0) and (first (payload(ev)).3.1 = first ev.3 or first (payload(ev)).3.1 != first ev.3 and first (first (first (payload(ev)).3.1).6).3 = first ev.3) or not (\"open a conversation\" in (payload(ev)).4) and \"conversation with an agent\" in (payload((first ev.6.5))).5 and (first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and (\"rename a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"0000000000\" or \"archive a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"4000000000\")"
+        "=not (\"open a conversation\" in (payload(ev)).4 or \"rename a conversation\" in (payload(ev)).4 or \"archive a conversation\" in (payload(ev)).4) or \"open a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"1500000000\" and \"agent\" in (payload((first ev.6.5))).5 and first (payload((first ev.6.5))).3.1 = first (payload(ev)).1 and count (((first ev.6.5).9) where \"declare agent\" in it.4 and first it.3 = first (first ev.6.5).3) > 0 and (first ev.3 = first (first ev.6.5).3 or count ((first ev.3).1 where R in it.0.0.0 and it.0.0.1 = first (first ev.6.5).3 and it.1 > 0) > 0) and (first (payload(ev)).3.1 = first ev.3 or first (payload(ev)).3.1 != first ev.3 and first (first (first (payload(ev)).3.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).3.1).6)).5) or not (\"open a conversation\" in (payload(ev)).4) and \"conversation with an agent\" in (payload((first ev.6.5))).5 and (first ev.3 = first (first ev.6.5).3 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and (\"rename a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"0000000000\" or \"archive a conversation\" in (payload(ev)).4 and last (first ev.6).5 = \"4000000000\")"
       ],
       [
         "ev.3"
@@ -2622,7 +2696,8 @@
         "*"
       ],
       [
-        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A: una conversación se abre en el 1.5 del alta de un agente declarado (el de su 1); la abre su dueño o quien tiene R del dueño (el precio de la atención lo cobra «attention has a price»), y su interlocutor (3.1) es quien la abre o una identidad cuya alta escribió quien la abre (el servicio, para una conversación de fuera); se renombra (en su 0) y se archiva (en su 4) solo por quien la abrió o por el dueño del agente"
+        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A: una conversación se abre en el 1.5 del alta de un agente declarado (el de su 1); la abre su dueño o quien tiene R del dueño (el precio de la atención lo cobra «attention has a price»), y su interlocutor (3.1) es quien la abre o una identidad cuya alta escribió quien la abre (el servicio, para una conversación de fuera); se renombra (en su 0) y se archiva (en su 4) solo por quien la abrió o por el dueño del agente",
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira"
       ],
       [
         "state 0"
@@ -2644,7 +2719,7 @@
         "epoch.9.0.5.2"
       ],
       [
-        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3)"
+        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3)"
       ],
       [
         "ev.3"
@@ -2660,7 +2735,8 @@
         "*"
       ],
       [
-        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B, quién escribe: «message in» de un canal de fuera, solo quien dio de alta al interlocutor (el autor de su alta, y no él mismo), así que nadie más habla en su nombre; «message in» del canal de la casa (epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe); «message out», el agente de la conversación (su 1) o el dueño del agente (quien escribió su alta). Con «a message names a channel and its interlocutor», el interlocutor es además el de la conversación"
+        "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B, quién escribe: «message in» de un canal de fuera, solo quien dio de alta al interlocutor (el autor de su alta, y no él mismo), así que nadie más habla en su nombre; «message in» del canal de la casa (epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe); «message out», el agente de la conversación (su 1) o el dueño del agente (quien escribió su alta). Con «a message names a channel and its interlocutor», el interlocutor es además el de la conversación",
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira"
       ],
       [
         "state 0"
@@ -6575,6 +6651,412 @@
       ],
       [
         "open a conversation: {me} opens a conversation with {first (payload(ev)).1}"
+      ]
+    ],
+    [
+      [
+        "register an interlocutor"
+      ],
+      [
+        [
+          [
+            "thing"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the identity of the new interlocutor: a name without an alta in this ledger, never its outside identifier"
+          ]
+        ],
+        [
+          [
+            "endowment"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it = 1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            1,
+            "the one second of my T that opens its account: the least the epoch 0 asks (an identity exists when a movement touches it); it receives nothing else"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who registers it: the service, its owner"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "register an interlocutor",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "interlocutor",
+            "the type of the record: the alta of an outside interlocutor"
+          ]
+        ],
+        [
+          [
+            "channel"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.0.5.1 and not (it in epoch.9.0.5.2)"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "telegram",
+            "the channel: one of the epoch (epoch.9.0.5.1) that is not of the house (epoch.9.0.5.2)"
+          ]
+        ],
+        [
+          [
+            "fingerprint"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «register an interlocutor»"
+          ],
+          [
+            "required"
+          ],
+          [
+            8
+          ],
+          [
+            "the fingerprint of its outside identifier: 64 hexadecimal characters in lower case (an HMAC-SHA256 with a key StateArk keeps; never the identifier)"
+          ]
+        ]
+      ],
+      [
+        "=first it.5 = first me.6 and count (me.1 where R in it2.0.0.0 and it2.1 > 0 and count ((down (first (it2.0.0.1).6)) where \"node\" in (payload(it3)).5 and first it3.3 = it2.0.0.1) > 0) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=transfer first memo.1 T.0 from me to first memo.3.1"
+      ],
+      [
+        "1.4",
+        "=first me.6"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): da de alta una identidad sin clave, una cosa de quien la lanza (su alta la escribe el servicio, que tiene R en el nodo: R de quien escribió el alta de un nodo, que la ancló en su propia alta), para hablar de ella y en su nombre. Ancla en el 1.4 de la propia alta (como «register a thing»). No declara clave: sin clave no actúa. Datos en el 6: 6.0 el canal (de fuera) y 6.1 la huella de su identificador de fuera; tipo «interlocutor» en el 5",
+        "La dotación: una identidad existe cuando un movimiento la toca (la cuenta la abre la primera transacción que la toca, src/libro.js) y un movimiento es de una cantidad mayor que cero, así que el alta le pasa lo mínimo: un segundo de la T de quien la lanza (T.0, la escala menor del calendario), y nada más. Ni T para escribir ni tokens",
+        "La huella es un HMAC-SHA256 del identificador de fuera con una clave que guarda StateArk; la plantilla solo sabe que son 64 hexadecimales en minúsculas. Una misma pareja de canal y huella no se da de alta dos veces por el mismo escritor (la regla «an interlocutor is registered once»); «interlocutor of» da la identidad",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        1,
+        25
+      ],
+      [
+        "{first (payload(ev)).3.1}"
+      ]
+    ],
+    [
+      [
+        "interlocutor of"
+      ],
+      [
+        [
+          [
+            "channel"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.0.5.1 and not (it in epoch.9.0.5.2)"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «interlocutor of»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "telegram",
+            "the channel: one of the epoch that is not of the house"
+          ]
+        ],
+        [
+          [
+            "fingerprint"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «interlocutor of»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "the fingerprint of the outside identifier: 64 hexadecimal characters in lower case"
+          ]
+        ]
+      ],
+      [
+        "=count ((down it) where \"register an interlocutor\" in (payload(it2)).4) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "read"
+      ],
+      [
+        "1.4"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): la lectura «interlocutor of»: sobre el alta de quien da de alta interlocutores (X: la del servicio), dado un canal y una huella, la identidad que tiene esa pareja, la primera por llegada; nada si no hay. Una plantilla que solo lee (su 4, read) porque la lectura pide dos datos: su mensaje (el 9) es la identidad. Recorre lo que cuelga del alta X (under X) mirando primero la huella del 6 de cada registro, lo más barato, y ordena con X al final (by): la primera alta que coincide, por llegada, o X si ninguna, y entonces nada. El servicio no depende así solo de su mapa privado",
+        "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        1,
+        26
+      ],
+      [
+        "{first ((payload(first (((under it) where it2 = it or first (payload(it2)).6.1 = first (payload(ev)).1 and first (payload(it2)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it2)).4 and first it2.3 = first it.3) by count (epoch where it2 = it)))).3.1 where first (((under it) where it3 = it or first (payload(it3)).6.1 = first (payload(ev)).1 and first (payload(it3)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it3)).4 and first it3.3 = first it.3) by count (epoch where it3 = it)) != it)}"
       ]
     ],
     [

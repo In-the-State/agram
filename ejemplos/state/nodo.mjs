@@ -24,8 +24,8 @@
 //      simulado) y sus conversaciones: una por la casa (una persona pregunta, el agente responde), una por Telegram (el
 //      servicio da de alta al interlocutor, abre la conversación, entra un mensaje, el agente responde, una entrega
 //      fallida y su reintento enviado) y una renombrada y archivada, que ya no admite mensajes. El interlocutor de fuera
-//      entra con lo que la época 0 admite hoy, un alta con un minuto de T (sin clave): la 0 no abre una cuenta sin
-//      movimientos, así que «register an interlocutor» (sin T ni tokens) queda parado (docs/EPOCA_STATE.md).
+//      entra con «register an interlocutor»: una cosa del servicio sin clave, con un segundo de T (la 0 no abre una
+//      cuenta sin un movimiento).
 //
 // Uso: node ejemplos/state/nodo.mjs   (imprime el resumen; `ejemploNodo()` da el eje a las pruebas y a la carta).
 
@@ -35,7 +35,6 @@ import { Eje } from '../../src/eje.js';
 import { publicaDe, firmar, firmarPosesion } from '../../src/autoridad.js';
 import * as A from '../../src/acciones.js';
 import { epocaState } from '../../datos/epocas/state/generar.mjs';
-import { escribirPagando, pagaElCoste } from '../ikisai/coste.mjs';
 
 /** Una clave de prueba derivada de una semilla fija (nada real): { publica, privada } x-only en hexadecimal. */
 export const claveDePrueba = (semilla) => {
@@ -205,10 +204,10 @@ export async function ejemploNodo({ hasta = null } = {}) {
   await hacer('message out', casa.id, { text: 'Abre a las nueve (respuesta del modelo simulado).', 'reply to': ids.preguntaCasa }, N.agenteCasa, { guarda: 'respuestaCasa' });
   // Por Telegram: el servicio da de alta al interlocutor (la huella de su identificador de fuera, nunca el identificador),
   // abre la conversación y escribe lo que entra en su nombre; el agente responde; la primera entrega falla y el reintento
-  // sale. El alta del interlocutor se escribe a mano con lo que la 0 admite hoy (un minuto de T, sin clave), en la forma
-  // que tendría «register an interlocutor» (su canal y su huella en el 6), que queda parado: la 0 no da de alta sin dotación.
+  // sale. El alta del interlocutor («register an interlocutor») es una cosa del servicio sin clave, con su canal y su huella
+  // en el 6 y un segundo de T, lo mínimo que la 0 pide para abrir una cuenta.
   await entra(N.servicio, 5, 'altaServicio');
-  ids.interlocutor = (await escribirPagando(eje, { autor: N.servicio, sobre: ids.altaServicio, en: '1400000000', t: t(), movimientos: [pagaElCoste(N.servicio), { token: 'T', escala: 'minuto', cantidad: 1, de: N.servicio, a: N.interlocutor }], payload: [N.interlocutor, 1, 'all announced movements happened', [N.servicio, N.interlocutor], 'register a thing', 'interlocutor', ['telegram', HUELLA]] }, K[N.servicio].privada)).id;
+  await hacer('register an interlocutor', ids.altaServicio, { thing: N.interlocutor, channel: 'telegram', fingerprint: HUELLA }, N.servicio, { guarda: 'interlocutor' });
   const tg = await hacer('open a conversation', ids.agenteCasa, { interlocutor: N.interlocutor }, N.servicio, { guarda: 'conversacionTelegram' });
   await hacer('message in', tg.id, { channel: 'telegram', text: 'Hola, ¿queda pan?', file: 'telegram:AgAD-ejemplo_0001' }, N.servicio, { guarda: 'entraTelegram' });
   await hacer('message out', tg.id, { text: 'Sí, hasta las dos.', 'reply to': ids.entraTelegram }, N.agenteCasa, { guarda: 'saleTelegram' });

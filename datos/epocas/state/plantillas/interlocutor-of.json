@@ -1,0 +1,43 @@
+[
+  ["interlocutor of"],
+  [
+    [
+      ["channel"],
+      ["text"],
+      ["=it in epoch.9.0.5.1 and not (it in epoch.9.0.5.2)"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «interlocutor of»"],
+      ["required"],
+      [1],
+      ["telegram", "the channel: one of the epoch that is not of the house"]
+    ],
+    [
+      ["fingerprint"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): parámetro de «interlocutor of»"],
+      ["required"],
+      [2],
+      ["the fingerprint of the outside identifier: 64 hexadecimal characters in lower case"]
+    ]
+  ],
+  ["=count ((down it) where \"register an interlocutor\" in (payload(it2)).4) > 0"],
+  [
+    ["me"],
+    ["agent"]
+  ],
+  ["read"],
+  ["1.4"],
+  [
+    "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima): la lectura «interlocutor of»: sobre el alta de quien da de alta interlocutores (X: la del servicio), dado un canal y una huella, la identidad que tiene esa pareja, la primera por llegada; nada si no hay. Una plantilla que solo lee (su 4, read) porque la lectura pide dos datos: su mensaje (el 9) es la identidad. Recorre lo que cuelga del alta X (under X) mirando primero la huella del 6 de cada registro, lo más barato, y ordena con X al final (by): la primera alta que coincide, por llegada, o X si ninguna, y entonces nada. El servicio no depende así solo de su mapa privado",
+    "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["state 0"],
+  [1, 26],
+  ["{first ((payload(first (((under it) where it2 = it or first (payload(it2)).6.1 = first (payload(ev)).1 and first (payload(it2)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it2)).4 and first it2.3 = first it.3) by count (epoch where it2 = it)))).3.1 where first (((under it) where it3 = it or first (payload(it3)).6.1 = first (payload(ev)).1 and first (payload(it3)).6.0 = first (payload(ev)).0 and \"register an interlocutor\" in (payload(it3)).4 and first it3.3 = first it.3) by count (epoch where it3 = it)) != it)}"]
+]
