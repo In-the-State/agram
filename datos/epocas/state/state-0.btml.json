@@ -1,13 +1,13 @@
 {
-  "id": "fedeb2838cdefa9d42e9899f91955f6212d970135104fbc55fbe44c1d571f183",
-  "hereda": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc",
+  "id": "1f101132e0670f82734d09ad14340deb262f68c584de5f655c06ab4fda09e18c",
+  "hereda": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06",
   "raiz": [
     [
       "época state 0",
       "state epoch 0"
     ],
     {
-      "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+      "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
     },
     [
       {
@@ -18,17 +18,17 @@
       }
     ],
     {
-      "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+      "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
     },
     [
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       [
         [
@@ -86,7 +86,7 @@
       ]
     ],
     {
-      "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+      "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
     },
     [
       [
@@ -101,43 +101,43 @@
         "hereda"
       ],
       [
-        "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       ]
     ],
     {
-      "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+      "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
     },
     {
-      "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+      "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
     },
     [
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       [
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         [
           [
@@ -1006,17 +1006,17 @@
         ]
       ],
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       [
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         [
           [
@@ -1612,11 +1612,11 @@
         ]
       ],
       {
-        "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+        "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
       },
       [
         {
-          "ref": "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc"
+          "ref": "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06"
         },
         [
           {

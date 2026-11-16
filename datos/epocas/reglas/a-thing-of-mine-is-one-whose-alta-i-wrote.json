@@ -1,0 +1,15 @@
+[
+  ["a thing of mine is one whose alta I wrote"],
+  [0],
+  ["=not (\"give T to a thing of mine\" in ev.4) or count (ev.1 where T in it.0.0.0 and transfer in it.4 and not (first it.3.1 != first ev.3 and count (first it.3.1).6 > 0 and first (first it.3.1).6.3 = first ev.3)) = 0"],
+  ["ev.3"],
+  ["transfer"],
+  ["*"],
+  [
+    "VG 16-11 por Core State (V10; encargo «dar T a una cosa mía» de Core AGRAM): la plantilla «give T to a thing of mine» da T solo a una cosa propia, de quien la lanza: ni a personas ni a cosas de otro. A una persona ya lo impide «T only goes to things»; a la cosa de otro no lo impide ninguna regla (una persona puede dar T a cualquier cosa: VG, 8-11, «T de segundo para automatismos y maquinaria»; test/reglas-3b.test.js), así que esta regla lo exige solo a lo que dice esa acción en su 4, como «only the owner sets who keeps it» con las suyas",
+    "Una cosa mía es una identidad que no soy yo cuya alta escribí yo (first (first it.3.1).6.3 = first ev.3: el autor de su alta, A.6.3), la misma lectura de cosa y dueño que «T only goes to things» (VG, 10-11, B1). Solo se mira cuando la candidata dice la acción (el or es perezoso)"
+  ],
+  ["epoch 0"],
+  ["after only the owner sets who keeps it"],
+  ["a thing of mine is one whose alta I wrote: {first ev.3} gives T with «give T to a thing of mine» to {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, which is not a thing whose alta it wrote"]
+]

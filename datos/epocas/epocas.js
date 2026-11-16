@@ -539,7 +539,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "c18f55cc90fe2a94590a0dfedf5d92e35621c8f3c9dfbe818a897b00285fcfa8"
     },
     {
-      "ref": "3391bd026c160cb3a4ed261ca4a61366c72777b17616a9f2393a6852af1132b0"
+      "ref": "87ffc19382e02362267f331c8a041449fde75b36f2be134f718270c595865641"
     },
     {
       "ref": "3252f748943f49747d491709009569d8258e87ccb0baf49743d427e3d16c68f4"
@@ -614,7 +614,10 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "c58edba58ee87876714f72dc52b193ee12f9b7863f16a802c16f220147f50617"
     },
     {
-      "ref": "bd22f1d984a8f1ab3c23b8bcff00536367be524f050b3d3074cb3b9917001f8c"
+      "ref": "265af8a7522a8cd77fee78f248923962c3890ef47a61bd5cb25ce3533748c704"
+    },
+    {
+      "ref": "6601886a586defcf3f1042ca9bdcaa3de87d54d6d89bcccee4122f1783cb7be7"
     },
     {
       "ref": "bb68cbe5d817a2de1e783d84828684dcdc08f206fb60b2f67014047e40028b7c"
@@ -6055,7 +6058,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template register a thing param thing label: cosa",
           "template register a thing param thing help: la identidad de la cosa nueva (un nombre sin alta en este eje)",
           "template register a thing param minutes label: minutos",
-          "template register a thing param minutes help: los minutos de T que doy a la cosa para escribir, por escalas (un minuto, una hora, un día, una semana, un ciclo, un año: el calendario de la época); sin defecto: lo decide el dueño (una cosa no tiene T diario: gasta lo que le da su dueño; reponer es otra transferencia de T)",
+          "template register a thing param minutes help: los minutos de T que doy a la cosa para escribir, por escalas (un minuto, una hora, un día, una semana, un ciclo, un año: el calendario de la época); sin defecto: lo decide el dueño (una cosa no tiene T diario: gasta lo que le da su dueño; reponer es «dar T a una cosa mía»)",
           "template register a thing param key label: clave",
           "template register a thing param key help: la clave pública de la cosa (x-only, 64 caracteres hexadecimales): este registro la declara en su alta; solo es obligatoria si el eje exige firmas",
           "template register a thing param proof label: prueba",
@@ -6528,7 +6531,20 @@ export const EPOCA_0_BTML_DATOS = [
           "template set the kind of owner param actions label: acción",
           "template set the kind of owner param actions help: la acción",
           "template set the kind of owner message: {me} dice que el dueño de {first it.0} es de la clase {first ev.0}",
-          "only the owner sets who keeps it: {first ev.3} dice quién guarda {first (first ev.6.5).0}, que no escribió, en un libro cuyo génesis no escribió"
+          "only the owner sets who keeps it: {first ev.3} dice quién guarda {first (first ev.6.5).0}, que no escribió, en un libro cuyo génesis no escribió",
+          "template give T to a thing of mine: dar T a una cosa mía",
+          "template give T to a thing of mine param scale label: escala",
+          "template give T to a thing of mine param scale help: la escala de T real que doy (su número en el calendario de la época, epoch.7.0: 0 segundo, 1 minuto, 2 hora, 3 día, 4 semana, 5 ciclo, 6 año)",
+          "template give T to a thing of mine param amount label: cantidad",
+          "template give T to a thing of mine param amount help: cuántas unidades de esa escala de mi T de hoy doy a la cosa: un entero mayor que cero; sin defecto: lo decide el dueño",
+          "template give T to a thing of mine param criteria label: criterio",
+          "template give T to a thing of mine param criteria help: la plantilla de cerrado del registro",
+          "template give T to a thing of mine param who label: quién",
+          "template give T to a thing of mine param who help: quién da: el dueño de la cosa",
+          "template give T to a thing of mine param actions label: acción",
+          "template give T to a thing of mine param actions help: la acción",
+          "template give T to a thing of mine message: {me} da {first ev.1.1} de T de la escala {first ev.1.0} a {first it.0}",
+          "a thing of mine is one whose alta I wrote: {first ev.3} da T con «dar T a una cosa mía» a {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, que no es una cosa cuya alta escribió"
         ]
       ],
       [
@@ -6763,7 +6779,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "fb69618da8bf1cfbf555ecf28b21b88c830deb0c835983a2396fedb818d69cf2"
         },
         {
-          "ref": "ae55c652cf838632342ea5db1a90fbcc06d6c66741dd0db20404be6ebb82ac0a"
+          "ref": "deb5503a9bb3d9603c3048b0bea61ada12d3474200ca38f598c88051e37f4ce2"
         },
         {
           "ref": "26e48a5b39f23bab6ec64eb60f1534713252b86add2af1e48ed5d10b6114eadb"
@@ -6773,6 +6789,9 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "f2a4884da732c3f554ca8ee520ea4d8b2ec3245949dc0f7e9c5983ad647d18d6"
+        },
+        {
+          "ref": "b62f6e646a382a7cc9418c53f61b1e285e2afdd3e1b2950dc33a629988e8dc10"
         },
         {
           "ref": "0736c1247ac3661b7fad721b9fe2f31df987fc5e815116f2cb3be7268fa63c49"
@@ -8218,6 +8237,43 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "a-thing-of-mine-is-one-whose-alta-i-wrote.json",
+    "id": "265af8a7522a8cd77fee78f248923962c3890ef47a61bd5cb25ce3533748c704",
+    "registro": [
+      [
+        "a thing of mine is one whose alta I wrote"
+      ],
+      [
+        0
+      ],
+      [
+        "=not (\"give T to a thing of mine\" in ev.4) or count (ev.1 where T in it.0.0.0 and transfer in it.4 and not (first it.3.1 != first ev.3 and count (first it.3.1).6 > 0 and first (first it.3.1).6.3 = first ev.3)) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "transfer"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 16-11 por Core State (V10; encargo «dar T a una cosa mía» de Core AGRAM): la plantilla «give T to a thing of mine» da T solo a una cosa propia, de quien la lanza: ni a personas ni a cosas de otro. A una persona ya lo impide «T only goes to things»; a la cosa de otro no lo impide ninguna regla (una persona puede dar T a cualquier cosa: VG, 8-11, «T de segundo para automatismos y maquinaria»; test/reglas-3b.test.js), así que esta regla lo exige solo a lo que dice esa acción en su 4, como «only the owner sets who keeps it» con las suyas",
+        "Una cosa mía es una identidad que no soy yo cuya alta escribí yo (first (first it.3.1).6.3 = first ev.3: el autor de su alta, A.6.3), la misma lectura de cosa y dueño que «T only goes to things» (VG, 10-11, B1). Solo se mira cuando la candidata dice la acción (el or es perezoso)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after only the owner sets who keeps it"
+      ],
+      [
+        "a thing of mine is one whose alta I wrote: {first ev.3} gives T with «give T to a thing of mine» to {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, which is not a thing whose alta it wrote"
+      ]
+    ]
+  },
+  {
     "archivo": "acting-on-an-account-needs-p-on-it.json",
     "id": "a4a7ee336d00e8f8ac80e00c3091581e00e2eb4427a13330256ab00c948d6f65",
     "registro": [
@@ -8387,7 +8443,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "asked.json",
-    "id": "bd22f1d984a8f1ab3c23b8bcff00536367be524f050b3d3074cb3b9917001f8c",
+    "id": "6601886a586defcf3f1042ca9bdcaa3de87d54d6d89bcccee4122f1783cb7be7",
     "registro": [
       [
         "asked"
@@ -8419,7 +8475,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "epoch 0"
       ],
       [
-        "after only the owner sets who keeps it"
+        "after a thing of mine is one whose alta I wrote"
       ],
       [
         "asked: the level of epoch.7.6 that the record asks by the scale of the real T its author burns to write it: the scale k asks the level k, and the week, the cycle and the year ask the last one"
@@ -10316,7 +10372,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "stage.json",
-    "id": "3391bd026c160cb3a4ed261ca4a61366c72777b17616a9f2393a6852af1132b0",
+    "id": "87ffc19382e02362267f331c8a041449fde75b36f2be134f718270c595865641",
     "registro": [
       [
         "stage"
@@ -10329,7 +10385,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "=((down it) where last (first it2.6).5 = \"4100000000\" and first it2.3 = first it.3) where not (count (it.1 where transfer in it3.4 and it3.0 = first it2.0 and it3.3.0 = last it2.3.0 and it3.3.1 = last it2.3.1 and it3.1 >= last it2.1) + count ((down it) each 1 where transfer in it3.4 and it3.0 = first it2.0 and it3.3.0 = last it2.3.0 and it3.3.1 = last it2.3.1 and it3.1 >= last it2.1) > 0)",
-        "=((down it) where last (first it2.6).5 = \"4100000000\" and first it2.3 = first it.3) where not (count (moves it2 where \"anunciado\" in it3.2) > 0 and count ((moves it2) where \"anunciado\" in it3.2 and count ((down it2) where count ((moves it4) where not \"anunciado\" in it5.2 and it5.0 = it3.0 and it5.3.0 = it3.3.0 and it5.3.1 = it3.3.1 and it5.4 = it3.4 and it5.1 >= it3.1) > 0) = 0) = 0 or count (moves it2 where \"anunciado\" in it3.2) = 0 and count ((down it2) where count ((moves it3) where not \"anunciado\" in it4.2 and transfer in it4.4 and it4.0 = first it2.0 and it4.3.0 = last it2.3.0 and it4.3.1 = last it2.3.1 and it4.1 >= last it2.1) > 0) > 0)"
+        "=((down it) where last (first it2.6).5 = \"4100000000\" and first it2.3 = first it.3) where not (count (moves it2 where \"anunciado\" in it3.2) > 0 and count ((moves it2) where \"anunciado\" in it3.2 and count ((down it2) where count ((moves it4) where not \"anunciado\" in it5.2 and it5.0 = it3.0 and it5.3.0 = it3.3.0 and it5.3.1 = it3.3.1 and it5.4 = it3.4 and it5.1 >= it3.1) > 0 and (not (T in it3.0.0.0 and burn in it3.4 and count epoch.7.0.(it3.0.0.1) = 1 and it3.3.0 = first it4.3) or sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.0.1) each 1) * epoch.7.0.0.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.1.1) each 1) * epoch.7.0.1.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.2.1) each 1) * epoch.7.0.2.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.3.1) each 1) * epoch.7.0.3.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.4.1) each 1) * epoch.7.0.4.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.5.1) each 1) * epoch.7.0.5.1 + sum ((moves it4 where T in it5.0.0.0 and burn in it5.4 and not \"anunciado\" in it5.2 and it5.3.0 = first it4.3 and epoch.7.0.(it5.0.0.1).1 = epoch.7.0.6.1) each 1) * epoch.7.0.6.1 - (first (first it4.8).6.1 - sum ((down it4) each 8.6.1)) * first epoch.7.0.1.1 >= it3.1 * first epoch.7.0.(it3.0.0.1).1)) = 0) = 0 or count (moves it2 where \"anunciado\" in it3.2) = 0 and count ((down it2) where count ((moves it3) where not \"anunciado\" in it4.2 and transfer in it4.4 and it4.0 = first it2.0 and it4.3.0 = last it2.3.0 and it4.3.1 = last it2.3.1 and it4.1 >= last it2.1) > 0) > 0)"
       ],
       [
         "X.4.8"
@@ -10345,7 +10401,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "Lo que el dueño de X anunció en su 4.1 (un registro por movimiento: [[serie], [cuánto], [qué], [[de], [a]]]) y aún no ha pasado: la misma lectura que la plantilla de cerrado «all announced movements happened» (epoch.9.0.1) y que «what is missing» (epoch.9.0.3), como lectura de la época. Lo hecho es lo anunciado (X.4.1) que no está aquí",
         "La familia de un anuncio se lee buscando su serie por su valor en las series del libro, before.4.(first it.0): un texto no fabrica una serie (SEG-09); así X.4.8 where E in (before.4.(first it.0)).0.0 es la estación de pagar",
         "Se materializa en X.4.8: fábrica, frente a otros: lo ocurrido frente a lo previsto (la regla corta del 8 en la profundidad 1), que es exactamente la estación de un proceso",
-        "VG 12-11 (estudio BQL-transacciones, decisión 8; #48): el anuncio es un movimiento anunciado del libro (estado «anunciado», sin tocar saldos; lo lee moves con la clase «anuncio») y lo cumple lo que se ancla sobre él moviendo lo mismo: un anuncio puede llevar varios movimientos anunciados (las noches de una reserva) y se cumple cuando cada uno lo mueve un registro anclado sobre él, con la misma serie, de quién, a quién y la primitiva, y al menos lo anunciado (sus asientos del libro, moves). Así cada pago cumple un solo anuncio: antes lo anunciado se casaba por existencia con cualquier pago de X o de lo anclado en X, y un pago de 20 cerraba dos anuncios iguales de 20 (#48). Mientras los ejemplos escriban el anuncio como antes (un payload que imita un movimiento: [[serie], [cuánto], [para qué], [[de], [a]]]), la misma fórmula lo lee así, también cumplido solo por lo que se ancla sobre él. Es la única fórmula de lo anunciado: la plantilla de cerrado (epoch.9.0.1), «what is missing» (epoch.9.0.3), el paso «ciclo» (epoch.9.8) y las estaciones (epoch.4.3) leen esta lectura"
+        "VG 12-11 (estudio BQL-transacciones, decisión 8; #48): el anuncio es un movimiento anunciado del libro (estado «anunciado», sin tocar saldos; lo lee moves con la clase «anuncio») y lo cumple lo que se ancla sobre él moviendo lo mismo: un anuncio puede llevar varios movimientos anunciados (las noches de una reserva) y se cumple cuando cada uno lo mueve un registro anclado sobre él, con la misma serie, de quién, a quién y la primitiva, y al menos lo anunciado (sus asientos del libro, moves). Así cada pago cumple un solo anuncio: antes lo anunciado se casaba por existencia con cualquier pago de X o de lo anclado en X, y un pago de 20 cerraba dos anuncios iguales de 20 (#48). Mientras los ejemplos escriban el anuncio como antes (un payload que imita un movimiento: [[serie], [cuánto], [para qué], [[de], [a]]]), la misma fórmula lo lee así, también cumplido solo por lo que se ancla sobre él. Es la única fórmula de lo anunciado: la plantilla de cerrado (epoch.9.0.1), «what is missing» (epoch.9.0.3), el paso «ciclo» (epoch.9.8) y las estaciones (epoch.4.3) leen esta lectura",
+        "Core AGRAM 16-11 (#134, encargo «dar T a una cosa mía»): el coste de escribir un registro no cumple un anuncio. Antes, un registro anclado sobre un anuncio de T que solo pagaba su coste (commit P, seis minutos) lo daba por cumplido si el coste llegaba a lo anunciado. El libro no distingue la quema del coste de la quema deliberada (las dos son quemas de T real de su autor, sin estado ni clase), así que, cuando lo anunciado es una quema de T real de quien escribe el registro, se pide además que lo que ese registro quema de T real de su autor, en segundos y en todas las escalas (como «writing burns today's T»), menos su coste de escribir, llegue a lo anunciado en segundos. El coste es el de «the cost of writing» (un minuto del calendario por posición), con las posiciones del propio registro: la medida del 8 (X.8.6.1) lleva todo lo que cuelga de él, así que se le resta la de cada registro anclado sobre él (su down). Lo demás (pagar E, comprometer P, atender R, dar T a otro) no lo toca: el coste de escribir no es nunca ese movimiento"
       ],
       [
         "epoch 0"
@@ -12348,7 +12405,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "register-a-thing.json",
-    "id": "ae55c652cf838632342ea5db1a90fbcc06d6c66741dd0db20404be6ebb82ac0a",
+    "id": "deb5503a9bb3d9603c3048b0bea61ada12d3474200ca38f598c88051e37f4ce2",
     "registro": [
       [
         "register a thing"
@@ -12415,7 +12472,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             2
           ],
           [
-            "the minutes of T I give the thing to write with, by scales (a minute, an hour, a day, a week, a cycle, a year: the calendar of the epoch); no default: the owner decides (a thing has no daily T: it spends what its owner gives it; to top it up, another transfer of T)"
+            "the minutes of T I give the thing to write with, by scales (a minute, an hour, a day, a week, a cycle, a year: the calendar of the epoch); no default: the owner decides (a thing has no daily T: it spends what its owner gives it; to top it up, «give T to a thing of mine»)"
           ]
         ],
         [
@@ -13408,6 +13465,215 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "ask for more firmness: {me} asks more firmness for {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "give-t-to-a-thing-of-mine.json",
+    "id": "b62f6e646a382a7cc9418c53f61b1e285e2afdd3e1b2950dc33a629988e8dc10",
+    "registro": [
+      [
+        "give T to a thing of mine"
+      ],
+      [
+        [
+          [
+            "scale"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=count epoch.7.0.(it) = 1"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "encargo «dar T a una cosa mía» (VG 16-11, V10): parámetro de «give T to a thing of mine»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            1,
+            "the scale of real T I give (its index in the calendar of the epoch, epoch.7.0: 0 second, 1 minute, 2 hour, 3 day, 4 week, 5 cycle, 6 year)"
+          ]
+        ],
+        [
+          [
+            "amount"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0 and floor it = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "encargo «dar T a una cosa mía» (VG 16-11, V10): parámetro de «give T to a thing of mine»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "how many units of that scale of my T of today I give the thing: a whole number greater than zero; no default: the owner decides"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "encargo «dar T a una cosa mía» (VG 16-11, V10): parámetro de «give T to a thing of mine»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "encargo «dar T a una cosa mía» (VG 16-11, V10): parámetro de «give T to a thing of mine»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who gives: the owner of the thing"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "encargo «dar T a una cosa mía» (VG 16-11, V10): parámetro de «give T to a thing of mine»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "give T to a thing of mine",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=count (first it.0).6 > 0 and first (first it.0).6.5 = first it.5 and first it.3 = me and first it.0 != me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=transfer first memo.1.1 T.(first memo.1.0) from me to first it.0"
+      ],
+      [
+        "1.4"
+      ],
+      [
+        "VG 16-11 por Core State (V10): «una plantilla que dé T a una cosa propia ya dada de alta. Entra antes de congelar la 0. Con ella el volcado del roadmap no pide tres días, y los Cores pueden seguir escribiendo su avance». Es la «otra transferencia de T» que prometía la ayuda de «register a thing»: reponer el T de una cosa",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Core AGRAM 16-11 (encargo «dar T a una cosa mía»): se lanza sobre el ALTA de la cosa (X), no sobre la cosa: una plantilla se lanza sobre un registro, y el nombre de la cosa es el 0 de su alta (VG, 13-11, #75), así que la cosa es first it.0. Se ofrece si X es el alta de esa identidad ((first it.0).6 es X), la escribí yo (first it.3 = me) y no es la mía (first it.0 != me): una cosa mía. La lanza una persona (el T de hoy es de las personas; una cosa gasta lo que le dan)",
+        "Los demás parámetros (criteria, who, actions) son los de siempre, con su defecto, para que el payload no tenga huecos. Mueve T real de hoy de quien la lanza a la cosa: la escala, un índice de epoch.7.0 con fila (una escala real, como la de «ask for more firmness»), y la cantidad, un entero mayor que cero, libre (sin la lista cerrada de «register a thing», que no cambia). No más de lo que se tiene: lo dice «writing burns today's T» (lo que se da a otro de una escala no pasa de lo que queda hoy). Ni a una persona: «T only goes to things». Ni a una cosa de otro: «a thing of mine is one whose alta I wrote», regla de validez de esta acción (una persona sí puede dar T a la cosa de otro con un movimiento suelto: «T only goes to things» lo deja, test/reglas-3b.test.js; esta acción dice «a una cosa mía» y la regla lo exige). Ancla en el 1.4 del alta de la cosa, donde ancla «register a thing» en el alta del dueño: recursos × fábrica, lo que se hace con los recursos de la cosa",
+        "[1, 22]: el PV 1 es el de «register a thing» (recursos). No pisa la época hija de StateArk (PV 1, órdenes 7, 8 y 10), ni la época state (10 a 20), ni el [1, 21] que tomó a la vez «ask for more firmness» (rama beta-t); el siguiente libre es el [1, 23]"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        1,
+        22
+      ],
+      [
+        "give T to a thing of mine: {me} gives {first ev.1.1} T of scale {first ev.1.0} to {first it.0}"
       ]
     ]
   },
@@ -21418,7 +21684,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "1e70b5cb90724ab0a3f4d73b6d4aa8d966538e3bd3c1294c6e94403d91d763cc";
+export const EPOCA_0_BTML_ID = "29487c2f6a43f365c01b12e0e03f657668a42fdde7d73d890a998c2c8d9ced06";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
