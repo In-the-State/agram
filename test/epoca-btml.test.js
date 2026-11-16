@@ -166,19 +166,15 @@ test('reglas como registros: un archivo por regla (su 0 en kebab), id = hash del
   assert.equal(kebab("P is minted on one's own record"), 'p-is-minted-on-one-s-own-record');
 });
 
-test('corregir una regla es añadir un ocupante a su registro: el id no cambia y manda el último', async () => {
-  const { REGLAS_DE_EPOCA_DATOS } = await import('../datos/epocas/epocas.js');
-  const { evaluarRegla } = await import('../src/bqlm.js');
+test('una regla no se corrige, se versiona (#119): sin mecanismo de correcciones; una opción «correcciones» no hace nada y la regla manda con lo suyo', async () => {
+  const datos = await import('../datos/epocas/epocas.js');
+  const { generar } = await import('../datos/epocas/generar.mjs');
+  assert.equal('CORRECCIONES_DE_EPOCA_DATOS' in datos, false, 'epocas.js ya no las lleva');
+  assert.doesNotMatch(generar(), /correcciones/i);
   const primera = EPOCA_0_BTML.reglasConId[0];
-  const correccion = { archivo: 'prueba.json', sobre: primera.id, en: '2', ocupante: '=1 = 2', de: 'prueba' };
-  const corregida = cargarEpocaBtml(JSON_EN_DISCO, { registros: REGLAS_DE_EPOCA_DATOS, correcciones: [correccion] });
-  assert.equal(corregida.reglasConId[0].id, primera.id, 'el registro de la regla no cambia, ni su id');
-  assert.deepEqual(corregida.condiciones[0][2], [...primera.regla[2], '=1 = 2'], 'la corrección va detrás de lo suyo');
-  const ctx2 = new ContextoEje(null, { epoch: corregida });
-  assert.equal(evaluarRegla(corregida.condiciones[0], ctx2).pasa, false, 'vale el último ocupante del 2');
-  assert.equal(evaluar('last (first epoch.2).2', ctx2).texto, '=1 = 2');
-  assert.throws(() => cargarEpocaBtml(JSON_EN_DISCO, { registros: REGLAS_DE_EPOCA_DATOS, correcciones: [{ ...correccion, sobre: 'ab'.repeat(32) }] }), /no es sobre una regla de la época/);
-  assert.throws(() => cargarEpocaBtml(JSON_EN_DISCO, { registros: REGLAS_DE_EPOCA_DATOS, correcciones: [{ ...correccion, en: '12' }] }), /un dígito/);
+  const con = cargarEpocaBtml(JSON_EN_DISCO, { registros: datos.REGLAS_DE_EPOCA_DATOS, correcciones: [{ sobre: primera.id, en: '2', ocupante: '=1 = 2' }] });
+  assert.deepEqual(con.condiciones[0][2], primera.regla[2], 'lo de fuera no se añade a la regla');
+  assert.equal(con.reglasConId[0].id, primera.id);
 });
 
 test('3 a 9: plantilla de identidad, primitivas y despliegues, procedencia, calendario, cortes y modos, plantillas y tutorial', () => {

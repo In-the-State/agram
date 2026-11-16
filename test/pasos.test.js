@@ -9,7 +9,7 @@ import { madurez } from '../src/contrato.js';
 import { cuota } from '../src/mapped.js';
 import { cajaDeCuota } from '../src/bases.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { crearEvento } from '../src/evento.js';
 import { ejemploCompra, ejemploCuenta } from '../ejemplos/ikisai/compra-food.mjs';
 import { ejemploReserva } from '../ejemplos/ikisai/reserva-booking.mjs';
@@ -21,7 +21,7 @@ const minuto = (de, cantidad) => (cantidad === undefined ? pagaElCoste(de) : { t
 function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   cambiar(e);
-  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
 }
 
 test('la tabla de pasos es un dato de la época: una fila por punto de vista (4 el ciclo, 8 la cuota, 7 la escala, * la madurez), con k y de como fórmulas o como lecturas del núcleo', () => {

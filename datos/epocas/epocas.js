@@ -18397,9 +18397,6 @@ export const GUIA_DE_EPOCA_DATOS = [
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
 export const EPOCA_0_BTML_ID = "0411807f91f2278eb8e023e465fff6b54a7e1305d074341150c566cffac715a9";
 
-// correcciones/*.json: ocupantes añadidos a un registro de la época, { archivo, sobre, en, ocupante, de }
-export const CORRECCIONES_DE_EPOCA_DATOS = [];
-
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
   {

@@ -12,7 +12,7 @@ import { crearEvento } from '../src/evento.js';
 import { evaluar } from '../src/bqlm.js';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import * as A from '../src/acciones.js';
 import * as C from '../src/contrato.js';
 import { recuento, cerrado, peso, ANUNCIO } from '../src/motor.js';
@@ -40,7 +40,7 @@ function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   const plantillas = JSON.parse(JSON.stringify(PLANTILLAS_DE_EPOCA_DATOS));
   cambiar(e, plantillas);
-  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, plantillas, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, plantillas, id: EPOCA_0_BTML.id });
 }
 
 /**
@@ -626,7 +626,7 @@ test('el coste de escribir: una sola regla de la época, por posición (A3); la 
   // Cambiar la regla en una copia de la época cambia el coste: es un dato, no código (dos minutos por posición).
   const cara = cargarEpocaBtml(JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS)), {
     registros: REGLAS_DE_EPOCA_DATOS.map((r) => (r.registro[0][0] === 'the cost of writing' ? { ...r, registro: r.registro.map((x, i) => (i === 2 ? ['=2 * first (first it.8).6.1 * first epoch.7.0.1.1'] : x)) } : r)),
-    plantillas: PLANTILLAS_DE_EPOCA_DATOS, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id,
+    plantillas: PLANTILLAS_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id,
   });
   assert.equal(exigido(['a'], { epoca: cara }), 120);
 });

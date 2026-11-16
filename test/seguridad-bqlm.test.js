@@ -9,7 +9,7 @@ import { evaluar, evaluarRegla, evaluarEscritura, POR_LIMITE, LIMITES, NADIE, DE
 import { readFileSync } from 'node:fs';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import * as A from '../src/acciones.js';
 import { generarClaves, firmar as firmarEvento } from '../src/autoridad.js';
 import { crearEvento, canonico, cuerpo, hash, RAIZ } from '../src/evento.js';
@@ -137,7 +137,7 @@ test('SEG-13 el presupuesto cobra lo que devuelve cada referencia aunque esté m
 function epocaCambiada({ regla, plantilla } = {}) {
   const registros = REGLAS_DE_EPOCA_DATOS.map((r) => (regla && r.registro[0][0] === regla.nombre ? { ...r, registro: r.registro.map((x, i) => (i === 2 ? [regla.formula] : i === 4 && regla.cuatro ? regla.cuatro : x)) } : r));
   const plantillas = PLANTILLAS_DE_EPOCA_DATOS.map((p) => (plantilla && p.registro[0][0] === plantilla.nombre ? { ...p, registro: p.registro.map((x, i) => (i === 4 ? plantilla.cuatro : x)) } : p));
-  return cargarEpocaBtml(JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS)), { registros, plantillas, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS)), { registros, plantillas, id: EPOCA_0_BTML.id });
 }
 
 test('SEG-14 nadie mueve lo ajeno desde una regla: una regla de la época con un verbo no se carga (y evaluada, es ERROR); un put solo en una regla que escribe y solo en su lista cerrada', async () => {

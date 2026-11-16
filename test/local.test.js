@@ -6,7 +6,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { LibroLocal, ESCALA_INTERACCION, ESCALA_REGISTRO, REGLA_DEL_T, VERSION_LOCAL } from '../src/local.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
-import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, CORRECCIONES_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { diaCivil } from '../src/tokens.js';
 import * as agram from '../src/index.js';
@@ -19,7 +19,7 @@ const T = (s) => '2026-11-07T15:00:' + String(s).padStart(2, '0') + 'Z';
 function epocaCon(cambiar) {
   const e = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
   cambiar(e);
-  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, correcciones: CORRECCIONES_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
+  return cargarEpocaBtml(e, { registros: REGLAS_DE_EPOCA_DATOS, id: EPOCA_0_BTML.id });
 }
 
 test('las escalas son niveles de agregación: la interacción es la primera de la época (segundo) y el registro que engloba, la siguiente (minuto)', () => {

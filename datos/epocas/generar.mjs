@@ -1,5 +1,5 @@
 // Genera datos/epocas/epocas.js desde los JSON de esta carpeta (epoca-*.json)
-// y de los registros de la época (reglas/*.json, correcciones/*.json), para
+// y de los registros de la época (reglas/*.json, plantillas/, guia/, modelos/), para
 // que src/epocas.js los importe sin fetch, igual en Node que en el navegador.
 // Los JSON mandan: se cambian ellos y se vuelve a generar con `npm run epocas`.
 // Una prueba comprueba que epocas.js está al día.
@@ -17,11 +17,9 @@
 // acuñado por el autor, el P del génesis, el escalonado, el colateral de R) se
 // reescribieron en el encargo 3b como reglas de la época y la carpeta se retiró.
 //
-// Corregir una regla no la modifica en sitio: se añade un ocupante a su
-// registro, un archivo en correcciones/ { "sobre": <id de la regla>, "en":
-// <la posición, un dígito>, "ocupante": <lo nuevo>, "de": <procedencia> }.
-// El registro de la regla (y su id) no cambia; quien lo lee toma el último
-// ocupante de esa posición (src/epocas.js, cargarEpocaBtml; docs/BQLM.md §5).
+// Una regla no se corrige: se versiona (#119). Se cambia su archivo de frente y
+// se regenera; cambia su id y el de la época (el mecanismo de «correcciones»,
+// ocupantes añadidos desde una carpeta aparte, se retiró en la época 0 final).
 
 import { createHash } from 'node:crypto';
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -127,11 +125,6 @@ export function ordenarPorAro(plantillas) {
     vistas.add(llave(p));
   }
   return [...plantillas].sort((a, b) => llave(a) - llave(b));
-}
-
-/** Las correcciones de los registros de la época: [{ archivo, sobre, en, ocupante, de }], por nombre de archivo. */
-export function correccionesDe(carpeta = join(CARPETA, 'correcciones')) {
-  return jsonDe(carpeta).map((archivo) => ({ archivo, ...leerJSON(join(carpeta, archivo)) }));
 }
 
 /** Las reglas en el orden de su 8: la que dice «first» y, detrás de cada una, la que dice «after <su nombre>». */
@@ -282,9 +275,6 @@ export function generar(carpeta = CARPETA) {
   partes.push('');
   partes.push('// el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)');
   partes.push(`export const EPOCA_0_BTML_ID = ${JSON.stringify(idDe(raizConReglas(carpeta)))};`);
-  partes.push('');
-  partes.push('// correcciones/*.json: ocupantes añadidos a un registro de la época, { archivo, sobre, en, ocupante, de }');
-  partes.push(`export const CORRECCIONES_DE_EPOCA_DATOS = ${JSON.stringify(correccionesDe(join(carpeta, 'correcciones')), null, 2)};`);
   partes.push('');
   partes.push('// modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia');
   partes.push(`export const MODELOS_DE_EPOCA_DATOS = ${JSON.stringify(modelosDe(join(carpeta, MODELOS)), null, 2)};`);
