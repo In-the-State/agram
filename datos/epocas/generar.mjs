@@ -250,6 +250,26 @@ export function raizConReglas(carpeta = CARPETA) {
   return [...raiz.slice(0, 2), reglas.map(({ id }) => ({ ref: id })), ...raiz.slice(3, 9), nueve];
 }
 
+/** La hoja de retoques de la 0 del código (A20 escalón 1, docs/notas/RETOQUES.md). */
+export const RETOQUES_0 = 'retoques-0.json';
+
+/**
+ * La hoja de retoques de la 0 del código: retoques-0.json, una lista de [idioma, clave, texto] (tres textos; idioma y
+ * clave no vacíos). Va FUERA del id de la época: no entra en la raíz (raizConReglas no la mira), así que corregir un
+ * texto aquí no cambia el id. La lectura (src/contrato.js) la pone encima de los textos de nacimiento de la 0 y debajo
+ * de los de una época hija. Sin archivo, vacía.
+ */
+export function retoquesDe(carpeta = CARPETA) {
+  const ruta = join(carpeta, RETOQUES_0);
+  if (!existsSync(ruta)) return [];
+  const hoja = leerJSON(ruta);
+  if (!Array.isArray(hoja)) throw new Error(RETOQUES_0 + ': una lista de [idioma, clave, texto]');
+  hoja.forEach((e, k) => {
+    if (!Array.isArray(e) || e.length !== 3 || !e.every((x) => typeof x === 'string') || !e[0] || !e[1]) throw new Error(RETOQUES_0 + ': la entrada ' + k + ' no es [idioma, clave, texto] (tres textos; idioma y clave no vacíos)');
+  });
+  return hoja;
+}
+
 /** Texto de epocas.js para los JSON de la carpeta, en orden de nombre de archivo, y los registros de la época. */
 export function generar(carpeta = CARPETA) {
   const archivos = readdirSync(carpeta).filter((f) => /^epoca-.*\.json$/.test(f)).sort();
@@ -278,6 +298,9 @@ export function generar(carpeta = CARPETA) {
   partes.push('');
   partes.push('// modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia');
   partes.push(`export const MODELOS_DE_EPOCA_DATOS = ${JSON.stringify(modelosDe(join(carpeta, MODELOS)), null, 2)};`);
+  partes.push('');
+  partes.push('// retoques-0.json: la hoja de retoques de la 0 del código (A20 escalón 1), [idioma, clave, texto]; fuera del id de la época: la lectura la pone encima de los textos de nacimiento de la 0 y debajo de los de una hija');
+  partes.push(`export const RETOQUES_0_DATOS = ${JSON.stringify(retoquesDe(carpeta), null, 2)};`);
   partes.push('');
   return partes.join('\n');
 }

@@ -525,7 +525,7 @@ Los mensajes de las reglas (su 9) son en inglés, canónicos, y empiezan por el 
 
 ```js
 mensaje(eje, regla, idioma = 'en', { ev })   // → el texto; regla es la décupla o su nombre; null si no existe
-idiomas()                                    // → ['en', 'es']
+idiomas()                                    // → ['en', 'es'] (con eje, idiomas(eje): también los de sus retoques, §8.1 bis)
 ```
 
 ### 8.1 Los textos de la época por clave: `texto(eje, clave, idioma, { original })`
@@ -549,6 +549,27 @@ La carta se lee en español (etapa 1 del roadmap, parte mecánica) **por datos**
 texto(eje, clave, idioma = 'en', { original })   // → el texto, o null
 claves                                           // → { plantilla, parametro, mensaje, nivel, orden, tamano, legible }
 ```
+
+### 8.1 bis Los retoques de un libro: `retoque`, `retoques`, `puedeRetocar` y `conClaves` (A20 escalón 1, VG 17-11 por Core State)
+
+El id de una época la nombra **tal como nació**; un texto se corrige con un **retoque**, un registro normal del libro, y gana el último. El retoque es **de ese libro**: otro libro con la misma época no lo ve. Lo entero, en `docs/notas/RETOQUES.md`.
+
+- **La plantilla «retouch a text»** (época 0, `[0, 4]`, PV 0: configuración): se lanza sobre el génesis del libro y ancla en su **9.4**; lleva el idioma, la clave y el texto en el 1.0, 1.1 y 1.2 (datos), y «retouch a text» en su 4. Firmada y pagada con T como cualquiera, sin más movimientos. Sin texto (el parámetro `text` no se da: un texto vacío no es un terminal BTML) **retira** los retoques de esa clave en ese idioma.
+- **Quién**: la regla «only the owner of the book retouches a text»: solo el autor del génesis. La fila `epoch.7.9` («retouch», `[0]`) está **reservada y sin efecto**: VG 17-11, las piezas de la época «nacen con el dueño y se amplían por nombre», nunca por recuento abierto ni por cantidad de P; ampliarlo a quien el dueño nombre en el 2.3 del génesis, pesado como «weight», no sale corto en BQL sin primitivas nuevas, y queda para después.
+- **La lectura.** Con un eje delante (`texto`, `mensaje`, y todo lo que lee por ellos: etiquetas, ayudas, `legible`, el aro…), el orden es: textos de nacimiento de la 0, **hoja de retoques de la 0** (`datos/epocas/retoques-0.json`, fuera del id), textos de la época hija, **retoques del libro**. Entre retoques de la misma clave e idioma gana el último por **instante** del registro y, a igualdad, por **id** (no por el orden de entrada: lo mismo en todas las réplicas). `idiomas(eje)` cuenta los idiomas que solo existen por retoques. Sin eje, nada cambia.
+- **Lo que se ignora**: un retoque cuyos huecos `{…}` no son un subconjunto exacto (carácter a carácter) de los del texto de nacimiento de esa clave en ese idioma (para un idioma nuevo, el original: el registro «en», el 9 de la regla o de la plantilla); una clave que no existe en la época y no empieza por «carta »; un texto que es una fórmula (`=…`; `==` lo escapa). El texto es un dato: nunca HTML ni estilo (la carta lo escapa). El nombre de una plantilla, regla o lectura (su 0) es una clave y no se retoca: se retoca su traducción.
+- **Claves de la carta**: «carta <clave de carta/textos.js>». El núcleo las guarda y las devuelve tal cual; sus huecos los comprueba la carta.
+
+```js
+retoque(eje, clave, idioma = 'en')   // → { idioma, clave, texto, quien, cuando, id } (id: el del registro) o null: el retoque vigente
+retoques(eje)                        // → [{ idioma, clave, texto, quien, cuando, id }]: los vigentes del libro, por idioma y clave
+puedeRetocar(eje, identidad)         // → ¿puede retocar en este libro? (hoy, ¿es el dueño, el autor del génesis?)
+conClaves(() => …)                   // → { valor, lecturas: [{ clave, idioma, texto, retoque }] }: las claves de lo que leyó la función
+idiomas(eje, opciones)               // → con eje, también los idiomas que solo existen por retoques; idiomas(opciones) sigue igual
+PREFIJO_DE_LA_CARTA                  // → 'carta '
+```
+
+`conClaves` es como la carta sabe la clave de un texto que hoy solo recibe: envuelve cualquier llamada síncrona del contrato o de las acciones y devuelve, además de lo de siempre, una lectura por texto leído (por `texto` o `mensaje`) en su orden, con el id del retoque que lo dio o null. No cambia lo que devuelve nadie.
 
 ### 8.2 Valores legibles: `legible(eje, valor, tipo, { idioma })` y `desdeLegible(texto, tipo, { eje, idioma })`
 

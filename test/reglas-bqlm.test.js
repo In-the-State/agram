@@ -58,11 +58,13 @@ export const DE_71 = Object.freeze(['an expiry has expired']);
  * Las condiciones que entraron en la beta (16-11) sin pasar por esta red (#137, encargo «recuentos»): nacen en BQL,
  * solo leen el libro y no traducen ninguna condición JS. Cada una se comprueba en positivo y en negativo en su archivo:
  * la cuenta del banco, las tres primeras y «the E of an account stays with its owner» (VG 17-11, V6)
- * (test/cuenta-banco.test.js); padres y copias, A19 (test/padres.test.js); dar T a una cosa mía, V10 (test/dar-t.test.js).
+ * (test/cuenta-banco.test.js); padres y copias, A19 (test/padres.test.js); dar T a una cosa mía, V10 (test/dar-t.test.js);
+ * retocar un texto, A20 escalón 1 (test/retoques.test.js).
  */
 export const DE_LA_BETA = Object.freeze([
   'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book",
   'the E of an account stays with its owner', 'only the owner sets who keeps it', 'a thing of mine is one whose alta I wrote',
+  'only the owner of the book retouches a text',
 ]);
 const REGLAS = EPOCA_0_BTML.condiciones.filter((r) => !DEL_3B.includes(r[0][0]) && !DE_71.includes(r[0][0]) && !DE_LA_BETA.includes(r[0][0]));
 const nombreDe = (r) => r[0][0];
@@ -194,9 +196,9 @@ async function repasar(eje, cuenta) {
 
 // ---------- la época ----------
 
-test('las reglas de economía: 37 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
-  // #137 (encargo «recuentos»): 31 + las seis de la beta (DE_LA_BETA: el banco, A19, V10 y, VG 17-11, V6), sin condición JS.
-  assert.equal(EPOCA_0_BTML.condiciones.length, 37);
+test('las reglas de economía: 38 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
+  // #137 (encargo «recuentos»): 31 + las siete de la beta (DE_LA_BETA: el banco, A19, V10, VG 17-11, V6, y A20 escalón 1), sin condición JS.
+  assert.equal(EPOCA_0_BTML.condiciones.length, 38);
   assert.deepEqual(DE_71.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_71], 'la de #71.2 está en la época, sin condición JS');
   assert.deepEqual(DE_LA_BETA.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_LA_BETA], 'las de la beta del 16-11 están en la época, sin condición JS');
   assert.deepEqual(DEL_3B.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_3B], 'las del 3b están todas en la época');
