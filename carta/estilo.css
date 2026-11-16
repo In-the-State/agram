@@ -138,7 +138,8 @@ small{color:var(--muted)}
 .ocupante-ref .texto{grid-column:2;font-weight:500}
 .ocupante-ref .quien{grid-column:2}
 .ocupante-ref .rep-mini{grid-row:span 2;width:32px;height:32px;object-fit:contain}
-.ocupante-ref:not(:has(.rep-mini)) .texto,.ocupante-ref:not(:has(.rep-mini)) .quien{grid-column:1 / -1}
+.ocupante-ref:not(:has(.rep-mini)):not(:has(.capa-icono)) .texto,.ocupante-ref:not(:has(.rep-mini)):not(:has(.capa-icono)) .quien{grid-column:1 / -1}
+.ocupante-ref .capa-icono{grid-row:span 2;width:32px;height:32px;margin:0}
 .ocupante-decupla{display:flex;flex-wrap:wrap;gap:4px}
 .ocupante-decupla .hoja{background:var(--panel2);border-radius:6px;padding:1px 6px;font-size:13px}
 .cargar-mas button{width:100%;font-size:13px}
@@ -808,6 +809,9 @@ html.mapped body{padding:0}
 .capa-rotulo{z-index:2;display:block;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;text-align:center;padding:0 3px;font-size:clamp(9px,calc(var(--s) * 24),13px);line-height:calc(var(--al) * var(--s));color:var(--fg);background:color-mix(in oklab,var(--panel) 90%,transparent);border-radius:4px}
 .capa-rotulo.rotulo-mas{font-weight:700}
 /* el personaje del mundo en su zona, de pie en su apoyo; hasta que Lottie pinta (o si no carga), su dibujo quieto */
+.capa.capa-icono{display:inline-block;flex:none;width:1.5em;height:1.5em;max-width:none;aspect-ratio:auto;margin:0 .4em 0 0;vertical-align:-.35em;object-fit:contain}
+.arte-escena .capa-icono{display:none}
+.arte-escena .ocupante-ref:not(:has(.rep-mini)) .texto,.arte-escena .ocupante-ref:not(:has(.rep-mini)) .quien{grid-column:1 / -1}
 .capa-personaje{z-index:1}
 .capa-personaje .pieza{position:absolute;inset:0;width:100%;height:100%;max-width:none;aspect-ratio:auto;object-fit:contain;object-position:50% 100%;filter:drop-shadow(0 3px 3px rgba(0,0,0,.3))}
 .capa-personaje .respaldo{display:none}

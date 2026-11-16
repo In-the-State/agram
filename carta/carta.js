@@ -195,7 +195,9 @@ function representacionQueCabe(eje, X, tamano, { animado, opciones }) {
   const deHoja = todas.find((r) => r.tamano === 0 && !r.recurso)?.formato ?? null;
   const caben = todas.filter((r) => r.tamano <= (tamano?.tamano ?? 0) && (animado || (!r.recurso && r.formato === deHoja)));
   if (!caben.length) return null;
-  return conArchivo(caben.reduce((a, b) => (b.tamano >= a.tamano ? b : a)));
+  const r = caben.reduce((a, b) => (b.tamano >= a.tamano ? b : a));
+  // El 0 de lo escrito por una plantilla, en el idioma de quien mira (ceroDe); una imagen o un texto alternativo, tal cual.
+  return conArchivo(!r.recurso && esElCeroGuardado(eje, X, r.texto) ? { ...r, texto: ceroDe(eje, X, { opciones }, r.texto) } : r);
 }
 
 /**
@@ -219,8 +221,33 @@ function representacionDelFoco(eje, X, tamano, ctx) {
   return aisladas.length ? conArchivo(aisladas[aisladas.length - 1]) : representacionQueCabe(eje, X, tamano, ctx);
 }
 
-/** Un valor en texto legible, como lo dice el núcleo en el idioma de quien mira (contrato.legible); `tipo`, el de la posición o el parámetro. */
-const legibleDe = (eje, o, tipo, opciones) => contrato.legible(eje, o, tipo, opciones);
+/**
+ * El 0 de un registro leído en el idioma de quien mira (contrato.ceroLegible, §8.2 bis): lo que escribió una plantilla se
+ * vuelve a componer con su mensaje en ese idioma y los nombres de lo que nombra; un 0 escrito a mano, tal cual. Es lo
+ * ÚNICO que la carta usa para enseñar el 0 de un registro para leerlo; no cambia nada de lo que se escribe ni se compara
+ * (ids y 0 guardado). `ctx.opciones` lleva el idioma y la época; si el núcleo da null (X no está en el eje), `tal`.
+ */
+export function ceroDe(eje, X, ctx, tal = null) {
+  const opciones = ctx?.opciones ?? ctx ?? {};
+  if (typeof X !== 'string' || !eje?.obtener?.(X)) return tal;
+  return contrato.ceroLegible(eje, X, opciones)?.texto ?? tal;
+}
+
+/** ¿Es `texto` el 0 que guarda el registro X? (Solo entonces es el 0 el que se está enseñando, y no otra representación.) */
+const esElCeroGuardado = (eje, X, texto) => typeof texto === 'string' && eje?.obtener?.(X)?.payload?.[0] === texto;
+
+/**
+ * Un valor en texto legible, como lo dice el núcleo en el idioma de quien mira (contrato.legible); `tipo`, el de la posición o el parámetro.
+ * Una referencia a un registro entero (sin posición) enseña su 0 legible (ceroDe) cuando lo que da el núcleo es el 0 guardado.
+ */
+function legibleDe(eje, o, tipo, opciones) {
+  const l = contrato.legible(eje, o, tipo, opciones);
+  const p = l.partes;
+  if (esReferencia(o) && p?.X && !p.dir && esElCeroGuardado(eje, p.X, p.representacion) && l.texto === p.representacion) {
+    return { ...l, texto: ceroDe(eje, p.X, { opciones }, l.texto) };
+  }
+  return l;
+}
 
 /**
  * Los nombres internos de la época (los de sus plantillas de transacción y de datos y los de sus reglas), de mayor a menor
@@ -270,9 +297,11 @@ function claveDeSerie(m) {
  * el texto es el legible del núcleo. El arte no va junto al texto de un ocupante (VG 14-11, #94: dos sitios, el fondo y
  * el marco): su dibujo, si lo tiene, va en el hueco de subelemento del marco de su padre (escenaDe).
  */
-function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, posicion = pv, anidar = ctx.estado?.anidar ?? 0 } = {}) {
+function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, posicion = pv, anidar = ctx.estado?.anidar ?? 0, de = null } = {}) {
   const l0 = legibleDe(eje, o, tipoDato, ctx.opciones);
-  const l = { ...l0, texto: sinNombreInterno(l0.texto, eje, ctx.opciones) };
+  // La hoja del 0 de `de` (su padre) es el 0 que guarda: se enseña legible (ceroDe), no el texto guardado.
+  const delCero = de && posicion === 0 && typeof o === 'string' && esElCeroGuardado(eje, de, o);
+  const l = { ...l0, texto: sinNombreInterno(delCero ? ceroDe(eje, de, ctx, l0.texto) : l0.texto, eje, ctx.opciones) };
   if (esReferencia(o)) {
     const X = eje?.obtener(o.ref) ? o.ref : null;
     return {
@@ -284,6 +313,8 @@ function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, posicion = pv,
       dir: dirCorta(o.dir),
       X,
       representacion: X ? representacionQueCabe(eje, X, tamano, ctx) : null,
+      // Su arte propio (#25) junto a su texto, con marco general y sin él (dom.js lo esconde donde el marco ya lo pone en su hueco).
+      ...(X && GEOMETRIA[posicion] ? conRetrato(retratoDe(ctx.conArte ?? ctx, X, posicion, GEOMETRIA[posicion].lado, tamano)) : {}),
       autor: X ? eje.obtener(X).autor : null,
       t: X ? eje.obtener(X).t ?? null : null, // la hora del escrito (la conversación del 3 y las cuentas del 6 y el 7 la enseñan)
     };
@@ -304,7 +335,7 @@ function anidadosDe(eje, X, tamano, ctx, anidar) {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
     if (!o.total) continue;
     const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
-    fuera.push({ pv, total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamano, ctx, tipoDato, { posicion: pv, anidar })) });
+    fuera.push({ pv, total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamano, ctx, tipoDato, { posicion: pv, anidar, de: X })) });
   }
   return fuera;
 }
@@ -361,6 +392,9 @@ function retratoDe(ctx, elemento, pv, lado, tamano) {
   const { crudo: _c, ...plana } = p;
   return plana;
 }
+
+/** El retrato propio de un ocupante como campo del nodo (`icono`), o nada si no lo tiene: el nodo no cambia de forma sin arte propio. */
+const conRetrato = (retrato) => (retrato ? { icono: retrato } : {});
 
 /**
  * El rol del personaje de un PV de X. GANCHO: hoy el rol no sale del registro (nada en la época lo dice todavía); se
@@ -506,7 +540,7 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   nodo.ocupantes = {
     total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden,
-    lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(nivel - 1, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado })),
+    lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(nivel - 1, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado, de: X })),
     cargarMas: !mapa && o.total > o.desde + o.ocupantes.length,
     pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null,
   };
@@ -628,11 +662,11 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
     const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
     return {
       ...base,
-      ocupantes: { total: o.total, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamano, ctx, tipoDato, { posicion: pv })) },
+      ocupantes: { total: o.total, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamano, ctx, tipoDato, { posicion: pv, de: X })) },
       ancla: ev ? { sobre: ev.sobre ?? null, en: ev.en ? dirCorta(ev.en) : '', sobreTexto: ev.sobre ? legibleDe(eje, { ref: ev.sobre }, null, ctx.opciones).texto : null } : null,
       validacion: contrato.validar(eje, X, ctx.opciones),
       // El reverso como editor de BTML (VG, 14-11, #93): las líneas del payload del registro, crudas o formateadas, y los criterios de formato.
-      btml: editorDeBtml(eje, X, ctx.estado.formato, { idioma: ctx.opciones.idioma, idiomas: contrato.idiomas(ctx.opciones), opciones: { epoca: ctx.opciones.epoca } }),
+      btml: editorDeBtml(eje, X, ctx.estado.formato, { idioma: ctx.opciones.idioma, idiomas: contrato.idiomas(ctx.opciones), opciones: { epoca: ctx.opciones.epoca }, cero: (id, tal) => ceroDe(eje, id, ctx, tal), conCuenta: Boolean(ctx.estado.cuenta) }),
       tLegible: ev?.t ? fechaDelRegistro(ev.t, ctx.estado.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null,
       // «verificado» (los tres relojes, contrato.verificado): solo si lo está; una marca discreta, nunca un dato de la carta.
       ...marcaDeVerificado(eje, X, ctx.opciones),
@@ -644,7 +678,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   const o = contrato.ocupantes(eje, X, pv, pagina ? pagina.desde : 0, cuantos, ordenVertical(eje, pv, ctx)); // la lista vertical del 6 y el 7, en su orden (#18)
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   const d = contrato.division(eje, X, { datos: mapa ? mapa.datos : Math.max(1, o.ocupantes.length || 1), forma: hueco, ...ctx.opciones });
-  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv })), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
+  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv, de: X })), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
   // En animado, el PV a pantalla completa lleva sus dos sitios del arte (VG 14-11, #94; escenaDe): el fondo del mundo y el
   // marco alrededor de su bloque de campos. Con rejilla (Mapped), la escena es de la rejilla (el elemento que divide, R);
   // sin ella (Sequenced, un mundo sin división), del centro, con sus ocupantes como subelementos.
@@ -674,7 +708,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
 function porAutorizarDe(eje, X, pv, ctx) {
   if (pv !== 6 || !ctx.yo || eje.alta(ctx.yo)?.id !== X) return null;
   const lista = contrato.porAutorizar(eje, ctx.yo, { epoca: ctx.opciones.epoca, idioma: ctx.opciones.idioma });
-  return lista.length ? lista.map((x) => ({ id: x.id, que: x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado) })) : null;
+  return lista.length ? lista.map((x) => ({ id: x.id, que: esElCeroGuardado(eje, x.id, x.que) ? ceroDe(eje, x.id, ctx, x.que) : x.que, falta: x.falta, propio: x.propio, desbordado: Boolean(x.desbordado) })) : null;
 }
 
 /** El nombre de la plantilla de datos de X en el idioma, o null si no tiene. */
@@ -1064,24 +1098,24 @@ export const ORDEN_ROSETONES = Object.freeze([1, 2, 0, 3, 4, 6, 7, 5, 8, 9]);
 function rosetonesDe(eje, yoDatos, ctx, medidas) {
   if (!yoDatos) return [];
   const alta = yoDatos.alta;
-  const pasos = pasosPorPv(eje, alta, ctx.opciones);
   return ORDEN_ROSETONES.map((pv) => {
     const nivel = ctx.estado.rosetones?.[pv] ?? NIVEL.comprimido;
-    const propio = pasos.porPv[pv];
     const total = contrato.ocupantes(eje, alta, pv, 0, 0, ctx.opciones).total;
     const nodo = {
       pv, X: alta, grupo: GEOMETRIA[pv].grupo, lado: ctx.variantes[GEOMETRIA[pv].lado] ?? null, fila: GEOMETRIA[pv].fila ?? null, nivel,
       // Dónde va en el ordenador (VG, 10-11): en su esquina o lateral, como su PV; el 0 arriba al centro y el 5 abajo.
       sitio: { fila: (GEOMETRIA[pv].borde ?? GEOMETRIA[pv].celda)[0], columna: (GEOMETRIA[pv].borde ?? GEOMETRIA[pv].celda)[1], centro: CENTROS.includes(pv) },
       etiqueta: contrato.etiqueta(eje, alta, pv, ctx.opciones),
-      comprimido: propio && typeof propio.k === 'number' ? { dato: propio.k, de: propio.de, que: propio.nombre } : { dato: total, de: null, que: null },
+      // El número del rosetón son sus OCUPANTES, igual comprimido y ampliado (VG 14-11, #91; Core 16-11); sin ocupantes, sin número.
+      // El paso lo cuentan el camino de la tarjeta y el dibujo del marco, no el rosetón.
+      comprimido: { dato: total > 0 ? total : null },
     };
     if (nivel >= NIVEL.tarjeta) {
       // La tarjeta flotante lleva los datos de su paso; la pantalla completa (nivel 3), todo lo que el núcleo da de esa posición de mi alta en una página.
       const cuantos = nivel >= NIVEL.bloque ? Math.max(ctx.paso, tamanoDeNivel(3, ctx.opciones)?.datos ?? 0) : tamanoDeNivel(2, ctx.opciones)?.datos ?? ctx.paso;
       const o = contrato.ocupantes(eje, alta, pv, 0, cuantos, ctx.opciones);
       const tipoDato = contrato.tipo(eje, alta, pv, ctx.opciones);
-      nodo.ocupantes = { total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(1, ctx.opciones), ctx, tipoDato, { posicion: pv })) };
+      nodo.ocupantes = { total: o.total, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(1, ctx.opciones), ctx, tipoDato, { posicion: pv, de: alta })) };
     }
     return nodo;
   });
@@ -1385,9 +1419,10 @@ function accionPorDefecto(eje, R, pv, ctx) {
 /**
  * El contexto con que se piden los nodos de la rejilla: siempre el sobrio. La forma del segundo nivel es la misma en
  * sobrio y en animado (el animado solo le añade su escena alrededor: escenaDe), así que sus ocupantes no llevan la
- * pieza suelta del mundo ni una representación con recurso.
+ * pieza suelta del mundo ni una representación con recurso. (`conArte` guarda el contexto de verdad: lo único que el sobrio le pide
+ * es el arte propio de un ocupante, #25.)
  */
-const sobrioDe = (ctx) => (ctx.animado ? (ctx.comoSobrio ??= { ...ctx, animado: false, cadena: [] }) : ctx);
+const sobrioDe = (ctx) => (ctx.animado ? (ctx.comoSobrio ??= { ...ctx, animado: false, cadena: [], conArte: ctx }) : ctx);
 
 /** Los ocupantes de una celda como nodos; cada uno que es un registro con algo dentro entra (mientras queden niveles). */
 function nodosDeCelda(eje, R, ocupantes, pv, digito, d, ctx, entrar, base = []) {

@@ -14,7 +14,7 @@ import { arbol, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, N
 import { html } from '../carta/dom.js';
 import { instalar } from '../carta/gestos.js';
 import { TEXTOS, t } from '../carta/textos.js';
-import { CRITERIOS, FORMATO_INICIAL, formatoValido, leerFormato, guardarFormato, claveDeFormato, lineasDeBtml, editorDeBtml } from '../carta/formato-btml.js';
+import { formatoValido, lineasDeBtml, editorDeBtml } from '../carta/formato-btml.js';
 import * as C from '../src/contrato.js';
 import { direccion } from '../src/btml.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
@@ -22,6 +22,9 @@ import { pagaElCoste } from './ayudas-coste.js';
 
 const ORDENADOR = { ancho: 1200, alto: 800 };
 const T1 = '2026-11-08T10:00:00Z';
+// El formato de quien no ha elegido (lo da la plantilla «format settings» de la época: la carta no lo escribe) y los valores de la fecha.
+const FORMATO_INICIAL = Object.freeze(formatoValido(null));
+const CRITERIOS = { fecha: C.clavesDeConfiguracionDe(C.AJUSTES_DE_FORMATO).find((c) => c.clave === 'date format').valores };
 const CSS = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
 const APP = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
 
@@ -243,15 +246,16 @@ test('#93 «formatear» alterna el BTML crudo y el formateado (fechas legibles, 
   assert.match(texto, /8 nov 2026/);
   assert.match(texto, /^ {4}1234567\.5$/m, 'el número, como viene por defecto');
   // Los criterios: fecha, números, estilo (en este navegador) e idioma (en la configuración), cada uno con sus valores en el idioma.
-  assert.deepEqual(b.criterios.map((c) => c.clave), ['fecha', 'numeros', 'estilo', 'idioma']);
-  assert.deepEqual(b.criterios.map((c) => c.guardaEn), ['local', 'local', 'local', 'cuenta']);
+  assert.deepEqual(b.criterios.map((c) => c.clave), ['fecha', 'numeros', 'estilo', 'vista', 'idioma']);
+  assert.deepEqual(b.criterios.map((c) => c.guardaEn), ['sesion', 'sesion', 'sesion', 'sesion', 'libro'], 'sin cuenta, en memoria; el idioma, en el libro');
+  assert.equal(b.criterios[3].etiqueta, 'al abrir');
   assert.deepEqual(b.criterios[0].opciones.map((o) => o.valor), [...CRITERIOS.fecha]);
   assert.ok(b.criterios.every((c) => c.etiqueta && c.opciones.every((o) => o.texto && !/^criterio_/.test(o.texto))));
-  assert.ok(b.criterios[3].opciones.some((o) => o.valor === 'es'));
+  assert.ok(b.criterios[4].opciones.some((o) => o.valor === 'es'));
   const h = html(f);
   assert.match(h, /<button type="button" class="btml-formatear" data-formatear aria-pressed="true"/);
   assert.match(h, /<fieldset class="btml-criterios"><legend>criterios de formato<\/legend>/);
-  for (const c of ['fecha', 'numeros', 'estilo', 'idioma']) assert.match(h, new RegExp(`<select data-formato="${c}">`));
+  for (const c of ['fecha', 'numeros', 'estilo', 'vista', 'idioma']) assert.match(h, new RegExp(`<select data-formato="${c}">`));
   assert.match(h, /<option value="legible" selected>/);
   // Cada criterio cambia lo que se lee: números agrupados, fecha corta y larga, ISO, listas en una línea.
   const con = async (cambio) => (await arbol({ foco: { X, pv: 5 }, formato: { ...FORMATO_INICIAL, formateado: true, ...cambio } }, eje, 'huesped', ORDENADOR)).centro.btml.lineas.map((l) => l.trozos.map((z) => z.v).join('')).join('\n');
@@ -272,30 +276,6 @@ test('#93 «formatear» alterna el BTML crudo y el formateado (fechas legibles, 
   assert.ok(conRefs.centro.btml.lineas.every((l) => l.trozos.every((z) => z.k !== 'ref')), 'ningún id crudo al formatear');
 });
 
-test('#93 los criterios de formato se guardan (por cuenta, en este navegador) y se vuelven a leer; lo roto vuelve a lo de siempre', () => {
-  const almacen = (() => { const m = new Map(); return { getItem: (k) => m.get(k) ?? null, setItem: (k, v) => { m.set(k, v); }, m }; })();
-  assert.deepEqual(leerFormato(almacen, 'ALTA1'), FORMATO_INICIAL, 'sin nada guardado, lo de siempre: crudo');
-  assert.equal(guardarFormato(almacen, 'ALTA1', { formateado: true, fecha: 'corta', numeros: 'agrupados', estilo: 'compacto' }), true);
-  assert.deepEqual(leerFormato(almacen, 'ALTA1'), { formateado: true, fecha: 'corta', numeros: 'agrupados', estilo: 'compacto' }, 'se vuelve a leer');
-  assert.deepEqual(leerFormato(almacen, 'OTRA'), FORMATO_INICIAL, 'por cuenta');
-  assert.deepEqual(leerFormato(almacen, null), FORMATO_INICIAL, 'el ejemplo tiene el suyo');
-  assert.ok(almacen.m.has(claveDeFormato('ALTA1')));
-  assert.equal(claveDeFormato(null), 'agram.formato.ejemplo');
-  // Un valor desconocido, un JSON roto o un almacén que falla: nada se rompe.
-  almacen.setItem(claveDeFormato('ALTA1'), JSON.stringify({ formateado: 'sí', fecha: '<script>', numeros: 3 }));
-  assert.deepEqual(leerFormato(almacen, 'ALTA1'), FORMATO_INICIAL);
-  almacen.setItem(claveDeFormato('ALTA1'), '{no es json');
-  assert.deepEqual(leerFormato(almacen, 'ALTA1'), FORMATO_INICIAL);
-  const roto = { getItem() { throw new Error('bloqueado'); }, setItem() { throw new Error('bloqueado'); } };
-  assert.deepEqual(leerFormato(roto, 'A'), FORMATO_INICIAL);
-  assert.equal(guardarFormato(roto, 'A', FORMATO_INICIAL), false);
-  assert.deepEqual(formatoValido({ fecha: 'larga' }), { formateado: false, fecha: 'larga', numeros: 'tal-cual', estilo: 'expandido' });
-  // La app lo lee en cada pintado, lo guarda al cambiarlo y el idioma va por la preferencia del núcleo.
-  assert.match(APP, /estado\.formato = formatoDe\(\)/);
-  assert.match(APP, /guardarFormato\(almacenLocal\(\)/);
-  assert.match(APP, /if \(clave === 'idioma'\) return manejadores\.preferencia\('language', valor\)/);
-});
-
 test('#93 los criterios en la carta (arbol → editor) leen lo guardado; el idioma de la cuenta cambia los nombres y las fechas del formateado', async () => {
   const { eje, X } = await registroConDatos([['2026-11-07T13:30:00Z'], [1234567.5]]);
   const es = editorDeBtml(eje, X, { ...FORMATO_INICIAL, formateado: true }, { idioma: 'es', idiomas: C.idiomas() });
@@ -309,8 +289,9 @@ test('#93 los criterios en la carta (arbol → editor) leen lo guardado; el idio
 });
 
 test('#93 en el reverso nada se escribe a mano: ni input ni campo del 5; el aviso y el botón están en la hoja de textos', async () => {
-  for (const k of ['btmlTitulo', 'btmlFormatear', 'btmlFormatearTitulo', 'btmlCriterios', 'btmlCriteriosAyuda', 'btmlSinDatos', 'criterio_fecha', 'criterio_numeros', 'criterio_estilo', 'criterio_idioma', 'rosetonTitulo', 'rosetonCerrar', 'rosetonCerrarTitulo', 'rosetonVacio']) assert.ok(TEXTOS.es[k] && t(k) !== k, k);
-  for (const [c, valores] of Object.entries(CRITERIOS)) for (const v of valores) assert.ok(TEXTOS.es[`criterio_${c}_${v}`], `criterio_${c}_${v}`);
+  for (const k of ['btmlTitulo', 'btmlFormatear', 'btmlFormatearTitulo', 'btmlCriterios', 'btmlCriteriosAyuda', 'btmlAlAbrir', 'btmlSinDatos', 'criterio_idioma', 'rosetonTitulo', 'rosetonCerrar', 'rosetonCerrarTitulo', 'rosetonVacio']) assert.ok(TEXTOS.es[k] && t(k) !== k, k);
+  // Los valores de los criterios salen de la plantilla de la época (con su nombre en el idioma), no de la hoja de textos de la carta.
+  assert.equal(Object.keys(TEXTOS.es).filter((k) => /^criterio_(fecha|numeros|estilo)/.test(k)).length, 0);
   const { eje, compra } = await ejemploCompra();
   const h = html(await arbol({ foco: { X: compra.id, pv: 5 }, formato: { ...FORMATO_INICIAL, formateado: true } }, eje, 'huesped', ORDENADOR));
   const editor = h.match(/<div class="btml-editor[^]*?<\/pre>/)[0];

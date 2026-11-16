@@ -219,13 +219,20 @@ function htmlOcupante(o) {
   return htmlOcupanteSolo(o) + dentro;
 }
 
+/**
+ * El arte propio de un ocupante (#25), pequeño junto a su texto: una capa más (clase `capa`: quitarla da el sobrio), la misma
+ * pieza <img> con data: saneado que va en el hueco del marco. Con marco general, el marco ya lo enseña en su hueco y aquí
+ * se esconde (estilo.css); sin él (otro modelo, el pintado «propio», un mundo que solo trae fondo), es el que se ve.
+ */
+const htmlIconoPropio = (o) => (o.icono ? capaPieza(o.icono, { clase: 'capa-icono' }) : '');
+
 /** El data-id de un ocupante que es un registro con estilo (el de la rejilla): a él se aplica `[data-id="…"]` (htmlEstilos). */
 const dataId = (o) => (o?.estilo && o.X ? ` data-id="${attr(o.X)}"` : '');
 
 function htmlOcupanteSolo(o) {
   if (o.tipo === 'referencia' && o.X) {
     const rep = o.representacion?.recurso ? htmlRepresentacion(o.representacion, { clase: 'rep-mini' }) : '';
-    return `<button type="button" class="ocupante ocupante-ref"${nodo('ocupante', { x0: o.texto, rep: repDe(o.representacion) })}${o.pv !== null && o.pv !== undefined ? ` data-pv="${o.pv}"` : ''}${dataId(o)} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('entrarEn', { que: o.texto }))}">${rep}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button>`;
+    return `<button type="button" class="ocupante ocupante-ref"${nodo('ocupante', { x0: o.texto, rep: repDe(o.representacion) })}${o.pv !== null && o.pv !== undefined ? ` data-pv="${o.pv}"` : ''}${dataId(o)} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('entrarEn', { que: o.texto }))}">${htmlIconoPropio(o)}${rep}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button>`;
   }
   if (o.tipo === 'decupla') return `<span class="ocupante ocupante-decupla"${nodo('ocupante')}>${o.hojas.map((h) => `<span class="hoja">${escapar(h)}</span>`).join('')}</span>`;
   return `<span class="ocupante ocupante-hoja"${nodo('ocupante')}>${escapar(o.texto)}</span>`;
@@ -251,7 +258,7 @@ function htmlElementoDeBanda(o) {
 /** Un ocupante de una celda de la rejilla: si se puede entrar, un clic baja un nivel (data-celda) y un botoncito abre el registro. */
 function htmlOcupanteDeCelda(o) {
   if (o.entra) {
-    return `<button type="button" class="ocupante ocupante-ref ocupante-celda"${nodo('ocupante', { x0: o.texto })} data-pv="${o.pv}"${dataId(o)} data-celda="${o.X}" data-x="${o.X}" title="${attr(t('entrarEnCelda', { que: o.texto }))}"><span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button><button type="button" class="celda-abrir"${nodo('control')} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('abrirEnCelda', { que: o.texto }))}" aria-label="${attr(t('abrirEnCelda', { que: o.texto }))}">↗</button>`;
+    return `<button type="button" class="ocupante ocupante-ref ocupante-celda"${nodo('ocupante', { x0: o.texto })} data-pv="${o.pv}"${dataId(o)} data-celda="${o.X}" data-x="${o.X}" title="${attr(t('entrarEnCelda', { que: o.texto }))}">${htmlIconoPropio(o)}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button><button type="button" class="celda-abrir"${nodo('control')} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('abrirEnCelda', { que: o.texto }))}" aria-label="${attr(t('abrirEnCelda', { que: o.texto }))}">↗</button>`;
   }
   return htmlOcupanteSolo(o);
 }
@@ -1022,7 +1029,7 @@ function htmlRoseton(r, { enSuSitio = false } = {}) {
   const ampliado = nivel >= NIVEL.tarjeta && r.ocupantes;
   // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
   return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
-    <span class="numero">${r.pv}</span><span class="dato">${escapar(r.comprimido.dato)}</span>
+    <span class="numero">${r.pv}</span>${r.comprimido.dato ? `<span class="dato">${escapar(r.comprimido.dato)}</span>` : ''}
     ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>` : ''}
   </button>`;
 }
@@ -1032,7 +1039,7 @@ function htmlRosetonPantalla(lista) {
   if (!r) return '';
   const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
   return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
-    <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span><small>${escapar(r.ocupantes.total)}</small><button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
+    <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span>${r.ocupantes.total ? `<small>${escapar(r.ocupantes.total)}</small>` : ''}<button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
     <ul>${filas}</ul>
   </section>`;
 }
