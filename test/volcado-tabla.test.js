@@ -62,23 +62,20 @@ test('volcar: dos casas, tres líneas, las cuatro fases y una desconocida; espej
   const { eje, claves } = await preparar();
   const opciones = (t, extra = {}) => ({ claves, correspondencia: CORR, t, ...extra });
 
-  // Día 1: la dueña da de alta a Alfa con todo su T de minuto del día (la plantilla da 1, 60 o 1440); Beta, otro día.
+  // Día 1: la dueña da a cada cosa lo justo: 1 minuto en el alta (el mínimo de «register a thing») y el resto con
+  // «give T to a thing of mine». Las dos casas caben en un día.
   const uno = await volcar(eje, TABLA, opciones(DIA(1)));
-  assert.equal(uno.escritos.filter((e) => e.tipo === 'alta').length, 1);
-  assert.deepEqual(uno.t.dado, { Alfa: { minuto: 1440 } });
-  assert.ok(uno.paraLaDuena.some((x) => x.startsWith('dar de alta a Beta con 60 minutos')), uno.paraLaDuena.join('\n'));
-  assert.ok(uno.noPuede.every((x) => x.paso.cosa === 'Beta'));
-  assert.ok(uno.avisos.includes('fila a5: fase «rara» desconocida; se queda en propuesta'));
+  assert.deepEqual(uno.escritos.filter((e) => e.tipo === 'alta' || e.tipo === 'dar').map((e) => e.cosa + ' ' + e.tipo + ' ' + e.plantilla), ['Alfa alta register a thing', 'Alfa dar give T to a thing of mine', 'Beta alta register a thing', 'Beta dar give T to a thing of mine']);
+  assert.deepEqual(Object.keys(uno.t.dado), ['Alfa', 'Beta']);
+  for (const c of ['Alfa', 'Beta']) {
+    assert.equal(uno.t.dado[c].minuto, uno.t.gastado[c].minuto, c + ': la dueña le da lo que gasta');
+    assert.equal(eje.saldoT(c, 'minuto', DIA(1)), 0, c + ': se queda sin T');
+    assert.deepEqual(Object.keys(uno.t.gastado[c]), ['minuto']);
+  }
+  assert.ok(uno.t.dado.Alfa.minuto < 1440 && uno.t.dado.Alfa.minuto + uno.t.dado.Beta.minuto <= 1440, JSON.stringify(uno.t.dado));
+  assert.deepEqual([uno.paraLaDuena, uno.noPuede], [[], []]);
+  assert.deepEqual(uno.avisos, ['fila a5: fase «rara» desconocida; se queda en propuesta']);
   assert.deepEqual(uno.t.calculado, uno.t.gastado, 'el T calculado es el gastado');
-  comprobarLibro(eje, TABLA.filter((f) => f.equipo === 'Alfa'), ESPERADA);
-
-  // Día 2: la misma tabla; Beta entra (60 minutos le bastan) y lo de Alfa no cambia.
-  const dos = await volcar(eje, TABLA, opciones(DIA(2)));
-  assert.deepEqual(dos.t.dado, { Beta: { minuto: 60 } });
-  assert.ok(dos.escritos.every((e) => e.cosa === 'Beta'));
-  assert.deepEqual(dos.sinCambios, ['a1', 'a2', 'a3', 'a4', 'a5']);
-  assert.deepEqual(dos.noPuede, []);
-  assert.deepEqual(dos.t.calculado, dos.t.gastado);
   const libro = comprobarLibro(eje, TABLA, ESPERADA);
   // Una tarea en el libro: su 0 es el texto y su 1 los datos; el anuncio en su 4.1.
   const a2 = eje.obtener(libro.tareas.get('a2').id);
@@ -87,11 +84,11 @@ test('volcar: dos casas, tres líneas, las cuatro fases y una desconocida; espej
 
   // Otra vez la misma tabla: no escribe nada.
   const antes = eje.orden.length;
-  const tres = await volcar(eje, TABLA, opciones(DIA(2, 10)));
+  const tres = await volcar(eje, TABLA, opciones(DIA(2)));
   assert.equal(tres.escritos.length, 0);
   assert.equal(eje.orden.length, antes);
   assert.deepEqual(tres.sinCambios, TABLA.map((f) => f.ref));
-  assert.deepEqual(tres.t.gastado, {});
+  assert.deepEqual([tres.t.gastado, tres.t.dado, tres.paraLaDuena], [{}, {}, []]);
 
   // La tabla cambiada: una nueva, una que avanza, un texto que cambia, una que retrocede y una que desaparece.
   const cambiada = [
@@ -107,14 +104,25 @@ test('volcar: dos casas, tres líneas, las cuatro fases y una desconocida; espej
   assert.equal(sim.simulado, true);
   assert.equal(eje.orden.length, antes, 'simular no escribe');
   assert.deepEqual(sim.t.calculado, sim.t.gastado);
-  const resumen = (inf) => inf.escritos.map((e) => (e.fila ?? e.proyecto) + ' ' + e.tipo);
-  assert.deepEqual(resumen(sim), ['a1 autorizada', 'a1 ejecutada', 'a3 correccion', 'a6 tarea', 'a6 propuesta', 'a6 autorizada']);
-  assert.match(pintar(sim), /^SIMULADO \(no se escribe nada\): escribiría 6 registros/);
+  const resumen = (inf) => inf.escritos.map((e) => (e.fila ?? e.proyecto ?? e.cosa) + ' ' + e.tipo);
+  // Alfa se quedó sin T: la dueña le da lo que gasta esta pasada, con «give T to a thing of mine», antes de sus pasos.
+  assert.deepEqual(resumen(sim), ['Alfa dar', 'a1 autorizada', 'a1 ejecutada', 'a3 correccion', 'a6 tarea', 'a6 propuesta', 'a6 autorizada']);
+  assert.match(pintar(sim), /^SIMULADO \(no se escribe nada\): escribiría 7 registros/);
+  assert.deepEqual(Object.keys(sim.t.dado), ['Alfa']);
+  assert.equal(sim.t.dado.Alfa.minuto, sim.t.gastado.Alfa.minuto);
+  assert.deepEqual(sim.paraLaDuena, []);
+  // Sin la clave de la dueña no se puede dar T: queda para ella y los pasos de Alfa no se escriben.
+  const sinDuena = await volcar(eje, cambiada, { claves: { cosas: claves.cosas }, correspondencia: CORR, t: DIA(3), simular: true });
+  assert.equal(sinDuena.paraLaDuena.length, 1);
+  assert.match(sinDuena.paraLaDuena[0], /^dar a Alfa al menos \d+ minutos de T con «give T to a thing of mine» \(tendría 0\): sin la clave de la dueña no se puede$/);
+  assert.deepEqual(sinDuena.escritos, []);
+  assert.equal(sinDuena.noPuede.length, 6);
 
   const cuatro = await volcar(eje, cambiada, opciones(DIA(3)));
   assert.deepEqual(resumen(cuatro), resumen(sim), 'escribe lo que dijo la simulación');
   assert.deepEqual(cuatro.t.calculado, cuatro.t.gastado);
   assert.deepEqual(cuatro.t.gastado, sim.t.gastado);
+  assert.equal(eje.saldoT('Alfa', 'minuto', DIA(3)), 0, 'lo justo otra vez');
   assert.ok(cuatro.avisos.includes('fila a4: la fase «abierta» (autorizada) retrocede desde cerrada; no se deshace'));
   assert.ok(cuatro.avisos.includes('fila b1: ya no está en la tabla; no se borra'));
   assert.deepEqual(cuatro.sinCambios, ['a2', 'a4', 'a5']);

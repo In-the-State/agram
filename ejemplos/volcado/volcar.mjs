@@ -1,8 +1,10 @@
-// Volcado de una tabla de tareas en un libro (encargo A8, Core AGRAM 16-11; VG por Core State, #131). Sin plantilla nueva
-// y sin tocar la época: lee una tabla JSON (una lista de filas) y la vuelca con las plantillas de la época 0. El libro es
-// espejo de la tabla: volver a pasarla no escribe nada; con la tabla cambiada se escribe solo la diferencia.
+// Volcado de una tabla de tareas en un libro (encargo A8, Core AGRAM 16-11; VG por Core State, #131): lee una tabla JSON
+// (una lista de filas) y la vuelca con las plantillas de la época 0. El libro es espejo de la tabla: volver a pasarla no
+// escribe nada; con la tabla cambiada se escribe solo la diferencia.
 //
 //   cada cosa de la tabla (una columna)   una cosa de la dueña, dada de alta con «register a thing» y su clave
+//   el T de cada cosa                     lo justo: el alta da el mínimo de su lista y el resto, o lo que le falte en una
+//                                         pasada posterior, llega con «give T to a thing of mine» (V10, 16-11)
 //   cada proyecto (otra columna)          un registro de la cosa sobre su alta («anchor here»): de él cuelgan sus tareas
 //   cada fila                             un registro de la cosa sobre el proyecto («anchor here»): su 0 es el texto y su 1
 //                                         los datos como «etiqueta: valor» (el id de la fila y los que diga la
@@ -34,22 +36,25 @@ import * as A from '../../src/acciones.js';
 import { cerrado } from '../../src/motor.js';
 import { serializar, restaurar } from '../../src/persistencia.js';
 import { firmar, firmarPosesion, generarClaves, publicaDe } from '../../src/autoridad.js';
-import { esAnunciado } from '../../src/tokens.js';
+import { esAnunciado, ESCALAS_REALES } from '../../src/tokens.js';
 
 /** Los pasos del proceso de una tarea, en orden: la fase de una fila dice hasta cuál llega. */
 export const PASOS = Object.freeze(['propuesta', 'autorizada', 'ejecutada', 'cerrada']);
 
 /** Las plantillas de la época 0 que escribe el volcado. */
 export const PLANTILLAS = Object.freeze({
-  alta: 'register a thing', registro: 'anchor here',
+  alta: 'register a thing', dar: 'give T to a thing of mine', registro: 'anchor here',
   propuesta: 'declare future T', autorizada: 'commit P', ejecutada: 'deliver', cerrada: 'close',
 });
 
 /**
- * La dueña paga el coste de escribir cada alta en T de segundo: su T de minuto es lo que da a las cosas («register a
- * thing» transfiere T de minuto) y cada escala es su propio token, sin conversión.
+ * La dueña paga el coste de escribir cada alta y cada «give T to a thing of mine» en T de segundo: su T de minuto es lo
+ * que da a las cosas (las dos plantillas transfieren T de minuto) y cada escala es su propio token, sin conversión.
  */
 const ESCALA_DE_LA_DUENA = 'segundo';
+
+/** La escala que da la dueña con «give T to a thing of mine»: el minuto, por su índice en el calendario (su parámetro scale). */
+const MINUTO = ESCALAS_REALES.indexOf('minuto');
 
 const SEP = ': ';
 const EN_0 = '0000000000';
@@ -69,7 +74,7 @@ export function correspondenciaDe(c = {}) {
   for (const k of ['id', 'cosa', 'proyecto', 'texto', 'fase']) if (typeof col[k] !== 'string' || !col[k]) throw new Error('correspondencia: falta la columna «' + k + '»');
   const fases = c.fases ?? {};
   for (const [f, paso] of Object.entries(fases)) if (!PASOS.includes(paso)) throw new Error('correspondencia: la fase «' + f + '» lleva a «' + paso + '», que no es un paso (' + PASOS.join(', ') + ')');
-  const minutos = c.minutosAnunciados ?? 10;
+  const minutos = c.minutosAnunciados ?? 1;
   if (!Number.isInteger(minutos) || minutos < 1) throw new Error('correspondencia: minutosAnunciados ha de ser un entero positivo');
   return { columnas: { ...col, datos: Array.isArray(col.datos) ? col.datos : [] }, fases, nombres: c.nombres ?? {}, minutosAnunciados: minutos, cuando: c.cuando ?? null };
 }
@@ -208,10 +213,11 @@ function minutosPermitidos() {
 
 /**
  * Escribe los pasos en `eje`, en orden, cada uno con su plantilla, firmado por quien lo escribe; lo que no pasa se
- * anota y se saltan los que dependen de él. `minutos` (Map cosa → minutos) son los que la dueña da a cada cosa nueva.
+ * anota y se saltan los que dependen de él. `minutos` (Map cosa → minutos) son los que la dueña da a cada cosa nueva en
+ * su alta, y `dar` (Map cosa → minutos) los que le da después con «give T to a thing of mine» (el paso «dar»).
  * → { escritos: [{ paso, ev }], fallos: [{ paso, motivo, quema }] }.
  */
-async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, t0 }) {
+async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, dar = new Map(), t0 }) {
   const ids = { alta: new Map(), proyecto: new Map(), tarea: new Map(), anuncio: new Map() };
   const libro = leerLibro(eje, duena, corr);
   for (const [c, id] of libro.cosas) ids.alta.set(c, id);
@@ -224,7 +230,7 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, t0 }) {
   let s = 0;
   for (const paso of pasos) {
     const dep = [paso.cosa, paso.proyecto !== undefined ? paso.cosa + '\0' + paso.proyecto : null, paso.fila ? 'fila\0' + paso.fila : null].filter(Boolean);
-    const propia = paso.tipo === 'alta' ? paso.cosa : paso.tipo === 'proyecto' ? paso.cosa + '\0' + paso.proyecto : 'fila\0' + paso.fila;
+    const propia = paso.tipo === 'alta' || paso.tipo === 'dar' ? paso.cosa : paso.tipo === 'proyecto' ? paso.cosa + '\0' + paso.proyecto : 'fila\0' + paso.fila;
     if (dep.some((d) => caidas.has(d))) { fallos.push({ paso, motivo: 'depende de un paso que no pasó', quema: null }); caidas.add(propia); continue; }
     let X;
     let params;
@@ -232,6 +238,7 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, t0 }) {
     const tarea = paso.tarea ?? ids.tarea.get(paso.fila);
     switch (paso.tipo) {
       case 'alta': X = eje.alta(duena)?.id; params = { thing: paso.cosa, minutes: minutos.get(paso.cosa), ...(claves.cosas?.[paso.cosa]?.publica ? { key: claves.cosas[paso.cosa].publica } : {}) }; break;
+      case 'dar': X = ids.alta.get(paso.cosa); params = { scale: MINUTO, amount: dar.get(paso.cosa) }; break;
       case 'proyecto': X = ids.alta.get(paso.cosa); params = { title: paso.proyecto }; break;
       case 'tarea': X = ids.proyecto.get(paso.cosa + '\0' + paso.proyecto); params = { title: paso.texto, content: paso.datos }; break;
       case 'correccion': X = tarea; params = { title: paso.texto, content: paso.datos }; break;
@@ -251,7 +258,7 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, t0 }) {
     };
     let r;
     try {
-      r = X ? await A.transaccion(eje, plantilla, { X, ...params }, paso.quien, { t, firmar: firma, ...(paso.tipo === 'alta' ? { escala: ESCALA_DE_LA_DUENA } : {}) }) : { ok: false, evento: null, motivos: [{ mensaje: 'no hay registro donde escribir' }] };
+      r = X ? await A.transaccion(eje, plantilla, { X, ...params }, paso.quien, { t, firmar: firma, ...(paso.quien === duena ? { escala: ESCALA_DE_LA_DUENA } : {}) }) : { ok: false, evento: null, motivos: [{ mensaje: 'no hay registro donde escribir' }] };
     } catch (e) {
       r = { ok: false, evento: null, motivos: [{ mensaje: e.message }] };
     }
@@ -294,13 +301,25 @@ const copia = async (eje) => restaurar(serializar(eje));
 
 // ---------- volcar ----------
 
+/** Los pasos con el de dar T a cada cosa de `cosas` (el paso «dar»): detrás de su alta o, si ya la tiene, delante de su primer paso. */
+function conDar(pasos, cosas, duena) {
+  const fuera = [];
+  const puesto = new Set();
+  for (const p of pasos) {
+    if (cosas.has(p.cosa) && !puesto.has(p.cosa) && p.tipo !== 'alta') { fuera.push({ tipo: 'dar', quien: duena, cosa: p.cosa }); puesto.add(p.cosa); }
+    fuera.push(p);
+  }
+  return fuera;
+}
+
 /**
  * Vuelca `tabla` (una lista de filas) en `eje`. opciones: { duena (la identidad dueña; por defecto la autora del
  * génesis), claves: { duena: { privada }, cosas: { nombre: { publica, privada } } }, correspondencia, t (el instante del
- * primer registro; uno por segundo después), simular }. Antes de escribir calcula el T: cada cosa en una copia del eje
- * (la dueña le da allí lo más que deja «register a thing» con su T del día), y de eso los minutos que la dueña da a
- * cada cosa nueva: el menor que la plantilla deja y cubre lo que gasta. Si a la dueña no le llega su T del día, las
- * cosas que no caben se quedan para otro día (en el informe). Con `simular`, todo pasa en una copia: no se escribe nada.
+ * primer registro; uno por segundo después), simular }. Antes de escribir mide lo que gasta cada cosa en una copia del
+ * eje (allí la dueña le da todo el T de minuto que le queda) y la dueña le da lo justo: al darla de alta, el mínimo de
+ * la lista de «register a thing»; el resto, o lo que le falte a una cosa que ya tiene alta, con «give T to a thing of
+ * mine». Si a la dueña no le llega su T de minuto del día, las cosas que no caben se quedan para otro día (en el
+ * informe), y sin su clave (en un eje que exige firmas) no se da T. Con `simular`, todo pasa en una copia.
  * → el informe: { simulado, escritos, sinCambios, avisos, noPuede, paraLaDuena, desaparecen, t: { calculado, gastado, dado }, eje } (eje: donde se escribió; con simular, la copia).
  */
 export async function volcar(eje, tabla, opciones = {}) {
@@ -312,60 +331,77 @@ export async function volcar(eje, tabla, opciones = {}) {
   const avisos = [...plan.avisos];
   const paraLaDuena = [];
   const noPuede = [];
+  const minimo = minutosPermitidos()[0] ?? 1;
+  const puedeDar = !eje.exigirFirmas || Boolean(claves.duena?.privada);
 
-  // 1. El T de cada cosa, calculado en una copia del eje, antes de escribir nada.
-  const permitidos = minutosPermitidos();
+  // 1. Lo que gasta cada cosa, medido en una copia del eje antes de escribir nada: la dueña la da de alta con el mínimo
+  //    y le da todo el T de minuto que le quede. Aparte, lo que quema la propia dueña al darla de alta y al darle T.
   const cosas = [...new Set(plan.pasos.map((p) => p.cosa))];
-  const quemaDe = new Map();
+  const medida = new Map(); // cosa → { quema: lo que queman sus pasos, alta y dar: lo que quema la dueña en esos pasos }
   const necesita = new Map();
   for (const cosa of cosas) {
     const suyos = plan.pasos.filter((p) => p.cosa === cosa);
     const prueba = await copia(eje);
     const nueva = suyos.some((p) => p.tipo === 'alta');
-    const tope = permitidos.filter((m) => m <= prueba.saldoT(duena, 'minuto', t0)).at(-1) ?? 0;
-    const r = await escribirPlan(prueba, suyos, { duena, claves, corr, minutos: new Map([[cosa, tope]]), t0 });
-    const quema = {};
-    for (const { ev } of r.escritos) juntar(quema, tDe(ev).quema);
-    for (const f of r.fallos) if (f.quema) juntar(quema, f.quema.quema);
-    quemaDe.set(cosa, quema);
-    necesita.set(cosa, Object.values(quema[cosa] ?? {}).reduce((x, y) => x + y, 0));
+    const mucho = Math.max(0, prueba.saldoT(duena, 'minuto', t0) - (nueva ? minimo : 0));
+    const pasosDePrueba = mucho > 0 && puedeDar ? conDar(suyos, new Set([cosa]), duena) : suyos;
+    const r = await escribirPlan(prueba, pasosDePrueba, { duena, claves, corr, minutos: new Map([[cosa, minimo]]), dar: new Map([[cosa, mucho]]), t0 });
+    const m = { quema: {}, alta: {}, dar: {} };
+    const parte = (paso) => (paso.tipo === 'alta' ? m.alta : paso.tipo === 'dar' ? m.dar : m.quema);
+    for (const { paso, ev } of r.escritos) juntar(parte(paso), tDe(ev).quema);
+    for (const f of r.fallos) if (f.quema) juntar(parte(f.paso), f.quema.quema);
+    medida.set(cosa, m);
+    necesita.set(cosa, Object.values(m.quema[cosa] ?? {}).reduce((x, y) => x + y, 0));
     const sinCalcular = r.fallos.filter((f) => !f.quema).length;
     if (r.fallos.length) avisos.push(`${cosa}: ${r.fallos.length} pasos no pasan en la copia${sinCalcular ? ` (${sinCalcular} sin calcular su T)` : ''}: ${r.fallos[0].motivo}`);
-    if (!nueva) {
-      const tiene = eje.saldoT(cosa, 'minuto', t0);
-      if (tiene < necesita.get(cosa)) paraLaDuena.push(`dar a ${cosa} ${necesita.get(cosa) - tiene} minutos de T más (tiene ${tiene} y el volcado gasta ${necesita.get(cosa)}); reponer no tiene plantilla en la época 0`);
-    }
   }
 
-  // 2. Los minutos que la dueña da a cada cosa nueva, mientras le llegue su T de minuto del día.
+  // 2. Lo que la dueña da a cada cosa, lo justo, mientras le llegue su T de minuto del día: el mínimo en el alta de una
+  //    cosa nueva, y con «give T to a thing of mine» lo que le falte para lo que gasta.
   const minutos = new Map();
+  const dar = new Map();
   const dado = {};
   let queda = eje.saldoT(duena, 'minuto', t0);
   const fuera = new Set();
-  for (const p of plan.pasos.filter((x) => x.tipo === 'alta')) {
-    const n = necesita.get(p.cosa) ?? 0;
-    const m = permitidos.find((x) => x >= n) ?? permitidos.at(-1);
-    if (n > (permitidos.at(-1) ?? 0)) avisos.push(`${p.cosa}: necesita ${n} minutos y «register a thing» da como mucho ${permitidos.at(-1)}`);
-    if (eje.exigirFirmas && !claves.cosas?.[p.cosa]?.privada) { avisos.push(`${p.cosa}: sin clave; no se da de alta`); fuera.add(p.cosa); continue; }
-    if (m > queda) {
-      fuera.add(p.cosa);
-      paraLaDuena.push(`dar de alta a ${p.cosa} con ${m} minutos de T (gasta ${n}): hoy a la dueña le quedan ${queda} minutos de T de minuto; otro día`);
+  for (const cosa of cosas) {
+    const nueva = plan.pasos.some((p) => p.cosa === cosa && p.tipo === 'alta');
+    const n = necesita.get(cosa) ?? 0;
+    const tiene = nueva ? minimo : eje.saldoT(cosa, 'minuto', t0);
+    const falta = Math.max(0, n - tiene);
+    if (nueva && eje.exigirFirmas && !claves.cosas?.[cosa]?.privada) { avisos.push(`${cosa}: sin clave; no se da de alta`); fuera.add(cosa); continue; }
+    if (falta > 0 && !puedeDar) {
+      fuera.add(cosa);
+      // Sin dar T, lo medido en la copia se para en el primer paso que no tiene T: es lo menos que le falta.
+      paraLaDuena.push(`dar a ${cosa} al menos ${falta} minutos de T con «${PLANTILLAS.dar}» (tendría ${tiene}): sin la clave de la dueña no se puede`);
       continue;
     }
-    queda -= m;
-    minutos.set(p.cosa, m);
-    sumar(dado, p.cosa, 'minuto', m);
+    const pide = (nueva ? minimo : 0) + falta;
+    if (pide > queda) {
+      fuera.add(cosa);
+      paraLaDuena.push(`${nueva ? 'dar de alta a' : 'dar T a'} ${cosa} con ${pide} minutos de T (gasta ${n}): hoy a la dueña le quedan ${queda} minutos de T de minuto; otro día`);
+      continue;
+    }
+    queda -= pide;
+    if (nueva) minutos.set(cosa, minimo);
+    if (falta > 0) dar.set(cosa, falta);
+    if (pide > 0) sumar(dado, cosa, 'minuto', pide);
   }
-  // Lo calculado: lo que quema cada cosa que se vuelca hoy (y la dueña al darla de alta) más lo que la dueña le da.
+  // Lo calculado: lo que quema cada cosa que se vuelca hoy, lo que quema la dueña al darla de alta y al darle T (el
+  // coste de escribir, por posición: no depende de cuánto da) y lo que le da.
   const calculado = {};
-  for (const [cosa, quema] of quemaDe) if (!fuera.has(cosa)) juntar(calculado, quema);
-  for (const m of minutos.values()) sumar(calculado, duena, 'minuto', m);
-  const pasos = plan.pasos.filter((p) => !fuera.has(p.cosa));
-  for (const p of plan.pasos.filter((x) => fuera.has(x.cosa))) noPuede.push({ paso: p, motivo: 'la cosa ' + p.cosa + ' no se da de alta hoy' });
+  for (const [cosa, m] of medida) {
+    if (fuera.has(cosa)) continue;
+    juntar(calculado, m.quema);
+    if (minutos.has(cosa)) juntar(calculado, m.alta);
+    if (dar.has(cosa)) juntar(calculado, m.dar);
+    if (dado[cosa]) sumar(calculado, duena, 'minuto', dado[cosa].minuto);
+  }
+  const pasos = conDar(plan.pasos.filter((p) => !fuera.has(p.cosa)), new Set(dar.keys()), duena);
+  for (const p of plan.pasos.filter((x) => fuera.has(x.cosa))) noPuede.push({ paso: p, motivo: 'la cosa ' + p.cosa + ' no tiene hoy el T que gasta' });
 
   // 3. Escribir (o simular en una copia).
   const destino = opciones.simular ? await copia(eje) : eje;
-  const r = await escribirPlan(destino, pasos, { duena, claves, corr, minutos, t0 });
+  const r = await escribirPlan(destino, pasos, { duena, claves, corr, minutos, dar, t0 });
   const gastado = {};
   for (const { ev } of r.escritos) { const x = tDe(ev); juntar(gastado, x.quema); juntar(gastado, x.da); }
   for (const f of r.fallos) noPuede.push({ paso: f.paso, motivo: f.motivo });
