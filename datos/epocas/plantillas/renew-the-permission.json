@@ -50,10 +50,7 @@
       ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «renew the permission»"],
       ["required"],
       [4],
-      [
-        "=me",
-        "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
-      ]
+      ["=me", "who writes: a thing of the owner of the account (the connector of the bank)"]
     ],
     [
       ["actions"],
@@ -68,12 +65,13 @@
       ["renew the permission", "the action"]
     ]
   ],
-  ["=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"],
+  ["=\"connect an account\" in (payload(it)).4 and me != first it.3 and first me.6.3 = first it.3"],
   [["me"], ["agent"]],
   ["write"],
   ["7.2"],
   [
     "VG 16-11 (encargo «cuenta del banco»): «El permiso caduca cada seis meses más o menos, y renovarlo es un paso del camino del 9.» El paso 4 del camino de la cuenta: vuelve a poner el vencimiento, como mucho a los días de la cuenta (180 por defecto)",
+    "La lanza una cosa del dueño de la cuenta (la conectora del banco, dada de alta con «register a thing»), no el dueño ni una cosa de otro: lo dice la regla «the bank speaks through the owner's thing» (revisión de seguridad, 16-11). Modo agente: la puede lanzar una cosa declarada agente",
     "Ancla en el 7.2 de la cuenta (el 7 es el de dar el permiso): cada renovación cuelga directamente de la cuenta, como el permiso, y la regla «acting on an account needs P on it» la comprueba sin recorrer cadenas (el BQL mínimo no sube más de diez niveles con path). El vigente es el del último registro de permiso que llegó al 7 o al 7.2 de la cuenta (contrato.cuenta). En el camino, el paso queda hecho en cuanto hay una renovación (acciones.camino mira si hay un registro mío, o de una cosa mía, en su ancla): el vencimiento lo dice contrato.cuenta",
     "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
   ],

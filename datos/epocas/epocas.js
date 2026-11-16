@@ -600,6 +600,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "878e6c56491c5a045d85849255e781d055ef19fa3dc60ab05e1fe9284977b99b"
+    },
+    {
+      "ref": "9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea"
     }
   ],
   [
@@ -4932,7 +4935,7 @@ export const EPOCA_0_BTML_DATOS = [
         ],
         [
           [
-            "capacity"
+            "single E"
           ],
           [
             "number"
@@ -6357,7 +6360,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template grant the permission param criteria label: criterio",
           "template grant the permission param criteria help: la plantilla de cerrado del registro",
           "template grant the permission param who label: quién",
-          "template grant the permission param who help: quién lo escribe: quien tiene P sobre la cuenta, o una cosa suya (la conectora del banco)",
+          "template grant the permission param who help: quién lo escribe: una cosa del dueño de la cuenta (la conectora del banco)",
           "template grant the permission param actions label: acción",
           "template grant the permission param actions help: la acción",
           "template grant the permission message: el permiso del banco para {first it.0} queda concedido hasta {first ev.1.1}",
@@ -6369,7 +6372,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template renew the permission param criteria label: criterio",
           "template renew the permission param criteria help: la plantilla de cerrado del registro",
           "template renew the permission param who label: quién",
-          "template renew the permission param who help: quién lo escribe: quien tiene P sobre la cuenta, o una cosa suya (la conectora del banco)",
+          "template renew the permission param who help: quién lo escribe: una cosa del dueño de la cuenta (la conectora del banco)",
           "template renew the permission param actions label: acción",
           "template renew the permission param actions help: la acción",
           "template renew the permission message: el permiso del banco para {first it.0} vence ahora el {first ev.1.1}",
@@ -6398,8 +6401,8 @@ export const EPOCA_0_BTML_DATOS = [
           "template account param bank label: banco",
           "template account param bank help: el banco (1.0, por su nombre) y los días que dura su permiso (1.1, 180 por defecto); los saldos cuelgan de su 1",
           "template account param bank placeholder: Banco de Ejemplo, 180",
-          "template account param capacity label: capacidad",
-          "template account param capacity help: uno: la cuenta es una E única, como una mesa",
+          "template account param single E label: E única",
+          "template account param single E help: uno: la cuenta es una E única, como una mesa",
           "template account param who label: quién",
           "template account param who help: quién la conectó",
           "template account param who placeholder: su dueño",
@@ -6415,7 +6418,10 @@ export const EPOCA_0_BTML_DATOS = [
           "template account param permission help: el permiso del banco cuelga de su 7 y sus renovaciones de su 7.2",
           "template account param measures label: medidas",
           "template account param measures help: lo que se mide",
-          "acting on an account needs P on it: {first ev.3} actúa sobre la cuenta {first (first ev.6.5).0} (una orden, un saldo o un permiso) y ni quien escribe ni su dueño tienen P sobre ella"
+          "acting on an account needs P on it: {first ev.3} actúa sobre la cuenta {first (first ev.6.5).0} (una orden, un saldo o un permiso) y ni quien escribe ni su dueño tienen P sobre ella",
+          "template issue E tied to X param commitment label: compromiso",
+          "template issue E tied to X param commitment help: cuánto de mi P sobre X (o sobre su mirada 1) se bloquea con la serie como salida: el compromiso que pide la cuota de un registro con capacidad (1 por defecto si X declara su capacidad en su 2; sin capacidad no se bloquea nada)",
+          "the bank speaks through the owner's thing: {first ev.3} escribe un permiso que no es de una cosa del dueño de la cuenta, o un permiso o un saldo con una fecha que su registro no permite"
         ]
       ],
       [
@@ -6641,7 +6647,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "e03812e74c35aaf4dd9e6353096206fff39c367cc78c7588c0cea86b06818a45"
         },
         {
-          "ref": "c79be09a4080f92414aa4c68d0501b0be6763146344c690ce44918cd84f81ded"
+          "ref": "3d3c1ab9fb2d5187d09181c73646c0a81d144fd36106f5428765bf72ef1f1a66"
         },
         {
           "ref": "f3949cbf6e8129fa8322482ba57da4df736e1a64a49745f86d019d694997c87d"
@@ -6662,7 +6668,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "0736c1247ac3661b7fad721b9fe2f31df987fc5e815116f2cb3be7268fa63c49"
         },
         {
-          "ref": "4d99b6d20183362b9e8c7e5d8a7210810a8f01da90b5ff44108f46b9f9d8475e"
+          "ref": "e1066e2c36dfdafddde3392ab45623a5265c5f6062f07bce718b323534219ed9"
         },
         {
           "ref": "798ff09d61ae05fca865e2c762a7949ebeb194382ee2fa7331072e08f8103fb6"
@@ -6752,10 +6758,10 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "a7d21518f277c75346a46aaa4ea3117757d29f05f4c4aa5fa23b1f5099eb9343"
         },
         {
-          "ref": "62cc3f27f546b836898750c63db19dd9e299912fb088bfc564d918f9aa992408"
+          "ref": "ce1ffa496807bffbd90ac5d338a7fb367d0009d0a67519bb3dbf675df287daad"
         },
         {
-          "ref": "74d80e690d9d6edb27240bafb8a515d55d2517818314d5ebbaaeb587c848052c"
+          "ref": "2051ad4e2b7b1e23c9baac7538eafae8221509d229fea6494895288786260c7b"
         },
         {
           "ref": "9a4c69fe823e93bb1bf2c908f5d469c02bb1a2cf93badd2b08ca18a2208e2a54"
@@ -10133,6 +10139,48 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "the-bank-speaks-through-the-owner-s-thing.json",
+    "id": "9085122eafc3402e6ef67bf5d7b699e9d363ac14311bdc758f5aa724c5798eea",
+    "registro": [
+      [
+        "the bank speaks through the owner's thing"
+      ],
+      [
+        0
+      ],
+      [
+        "=not (\"connect an account\" in (payload(first ev.6.5)).4) or not (\"grant the permission\" in ev.4 or \"renew the permission\" in ev.4 or \"update the balance\" in ev.4) or \"update the balance\" in ev.4 and (first (payload(ev)).1.3).0 <= first ev.6.0.0 or (\"grant the permission\" in ev.4 or \"renew the permission\" in ev.4) and first ev.3 != first (first ev.6.5).3 and first (first ev.3).6.3 = first (first ev.6.5).3 and (first (payload(ev)).1.1).0 <= first ev.6.0.0 + 86400 * first (payload(first ev.6.5)).1.1"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Revisión de seguridad de la cuenta del banco (Core AGRAM 16-11, encargo «cuenta del banco», ajuste): lo que dice el banco no puede mentir en sus fechas ni venir de cualquiera. En una cuenta (el registro que dice «connect an account» en su 4), anclado directamente en ella:",
+        "un permiso o una renovación («grant the permission», «renew the permission») solo vale si lo escribe una cosa del DUEÑO de la cuenta (una identidad que no es el dueño y cuya alta escribió el autor de la cuenta, A.6.3: la conectora), y si su vencimiento (su 1.1) no pasa del t del registro más los días de la cuenta (su 1.1);",
+        "un saldo («update the balance») solo vale si su instante (su 1.3, cuándo lo dice el banco) no es posterior al t de su registro. Quién puede escribirlo lo dice «acting on an account needs P on it»; contrato.cuenta lo vuelve a comprobar todo al leer"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after acting on an account needs P on it"
+      ],
+      [
+        "the bank speaks through the owner's thing: {first ev.3} writes a permission that is not from a thing of the owner of the account, or a permission or a balance whose date goes beyond what its record allows"
+      ]
+    ]
+  },
+  {
     "archivo": "the-cost-of-writing.json",
     "id": "b40be0667c53f6d16a0e70ccefe4f9f6cd23ffa805a039e85c6a71f388bbec45",
     "registro": [
@@ -11271,7 +11319,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "issue-e-tied-to-x.json",
-    "id": "c79be09a4080f92414aa4c68d0501b0be6763146344c690ce44918cd84f81ded",
+    "id": "3d3c1ab9fb2d5187d09181c73646c0a81d144fd36106f5428765bf72ef1f1a66",
     "registro": [
       [
         "issue E tied to X"
@@ -11473,6 +11521,39 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "=me",
             "who writes"
           ]
+        ],
+        [
+          [
+            "commitment"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.3"
+          ],
+          [
+            "Core AGRAM 16-11 (encargo «cuenta del banco», ajuste): parámetro de «issue E tied to X»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "=first ((payload(it)).2 where floor it2 = it2 and it2 > 0) * 0 + 1",
+            "how much of my P on X (or on its view 1) is locked with the series as its exit: the commitment the quota of a record with capacity asks for (1 by default when X declares its capacity in its 2; without capacity, nothing is locked)"
+          ]
         ]
       ],
       [
@@ -11487,7 +11568,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=mint first memo.1.1 E.(me).(first memo.1.0).(it) to me price first memo.1.2"
+        "=mint first memo.1.1 E.(me).(first memo.1.0).(it) to me price first memo.1.2",
+        "=count memo.1.3 > 0 and lock first memo.1.3 (first ((me.1 where P in it2.0.0.0 and it2.1 >= first memo.1.3 and first it2.0.0.1 = first it.5 and (count it2.0.0.5 = 0 or first it2.0.0.5 = 1)) each 0)) from me exit E.(me).(first memo.1.0).(it)"
       ],
       [
         "1"
@@ -11496,7 +11578,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "VG, tras 3b-bis (encargo 3c-2a, MUNDOS_DISEÑO §11 con la corrección de VG al 4): cada acción del aro es una plantilla de transacción de la época; la carta solo lista y lanza lo que el núcleo le da, y si una acción no debe aparecer lo dice su 2",
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe (una posición «1.2»; si no se escribe en él, un hueco con nombre «{parámetro}»: nada de «-»), 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda; un defecto «=…» se lee sobre it = X, me y la candidata ev); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve (un movimiento por décupla: 0 la serie, una clave, una fórmula o sus partes [familia, emisor|escala|ámbito, denominación|origen, registro], 1 cuánto, 2 la primitiva y, si la lleva, su salida, el precio de una emisión de E o la fecha de un T informativo, 3 [[de], [a]]; lo que da cero o nada no se mueve) o «read» si solo lee, o «path» si lanza el camino; 5 el dígito (o camino) de X donde ancla, y si no es X, el registro; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Si tengo P en X o en X.1 (la regla «minting E needs P on its record» lo exige igual); la emisión lleva el precio de la serie (su 2.2)",
-        "VG 12-11 (estudio BQL-transacciones, decisiones 5 a 7 y 10; #49): su 4 mueve con sentencias del BQL mínimo, una por ocupante, evaluadas en orden con it = X, me = quien la lanza y memo = el payload de la candidata (bqlm.evaluarPlantilla): los cinco símbolos como verbos (mint transfer lock release burn) con from, to, exit, when y price, la serie como posición de su familia (T.1, R.(me)…) o leída del libro (before.4.(…)), el condicional con el and perezoso y el nivel en mano put v at A.1.(S).1. La candidata la firma quien la lanza y la validan después las reglas, que solo leen (invariante del núcleo). La lista de antes (un movimiento por décupla) convivió con las sentencias mientras duró la migración y se retiró al fundir con PV3, cuando todas las plantillas dieron el mismo evento por las dos vías (doble ejecución; lo que movía la lista quedó en test/doble-ejecucion-esperada.json). Sin el minuto copiado: el coste de escribir lo cobra a toda candidata la regla de la época «the cost of writing», por posición"
+        "VG 12-11 (estudio BQL-transacciones, decisiones 5 a 7 y 10; #49): su 4 mueve con sentencias del BQL mínimo, una por ocupante, evaluadas en orden con it = X, me = quien la lanza y memo = el payload de la candidata (bqlm.evaluarPlantilla): los cinco símbolos como verbos (mint transfer lock release burn) con from, to, exit, when y price, la serie como posición de su familia (T.1, R.(me)…) o leída del libro (before.4.(…)), el condicional con el and perezoso y el nivel en mano put v at A.1.(S).1. La candidata la firma quien la lanza y la validan después las reglas, que solo leen (invariante del núcleo). La lista de antes (un movimiento por décupla) convivió con las sentencias mientras duró la migración y se retiró al fundir con PV3, cuando todas las plantillas dieron el mismo evento por las dos vías (doble ejecución; lo que movía la lista quedó en test/doble-ejecucion-esperada.json). Sin el minuto copiado: el coste de escribir lo cobra a toda candidata la regla de la época «the cost of writing», por posición",
+        "Core AGRAM 16-11 (encargo «cuenta del banco», ajuste; la cuota del tope, D1 y F1 de VG del 9-11, src/condiciones/tope.js): en un registro con capacidad, acuñar pide P comprometido con la serie. La segunda sentencia del 4 bloquea «commitment» (1.3) de mi P sobre X o sobre su mirada 1 (el que ya exige su 2, con su origen) con la salida = la serie que acuña. El defecto es 1 solo si el 2 de X es un número entero positivo (la capacidad, tokens.capacidadDe); si el 2 es un texto, el defecto no se resuelve (el léxico no tiene prueba de tipo: floor de un texto es ERROR), «commitment» queda sin poner y no se bloquea nada: la plantilla queda como antes. La capacidad que declara solo un antepasado de X no se lee aquí (path recorrería textos y daría ERROR): se pone «commitment» a mano"
       ],
       [
         "epoch 0"
@@ -12993,7 +13076,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "reposition-p-toward-x.json",
-    "id": "4d99b6d20183362b9e8c7e5d8a7210810a8f01da90b5ff44108f46b9f9d8475e",
+    "id": "e1066e2c36dfdafddde3392ab45623a5265c5f6062f07bce718b323534219ed9",
     "registro": [
       [
         "reposition P toward X"
@@ -13028,7 +13111,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             1
           ],
           [
-            "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and count it2.0.5 = 0 and (first it2.0.0.1 in up it or first it2.0.0.1 in down it)) each 0)",
+            "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and count it2.0.0.5 = 0 and (first it2.0.0.1 in up it or first it2.0.0.1 in down it)) each 0)",
             "the P series moved: P of mine on the parent or a child of X"
           ]
         ],
@@ -13061,7 +13144,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             2
           ],
           [
-            "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and count it2.0.5 = 0 and (first it2.0.0.1 in up it or first it2.0.0.1 in down it)) each 1)",
+            "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and count it2.0.0.5 = 0 and (first it2.0.0.1 in up it or first it2.0.0.1 in down it)) each 1)",
             "how much P is burned there"
           ]
         ],
@@ -13187,7 +13270,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "VG, tras 3b-bis (encargo 3c-2a, MUNDOS_DISEÑO §11 con la corrección de VG al 4): cada acción del aro es una plantilla de transacción de la época; la carta solo lista y lanza lo que el núcleo le da, y si una acción no debe aparecer lo dice su 2",
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe (una posición «1.2»; si no se escribe en él, un hueco con nombre «{parámetro}»: nada de «-»), 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda; un defecto «=…» se lee sobre it = X, me y la candidata ev); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve (un movimiento por décupla: 0 la serie, una clave, una fórmula o sus partes [familia, emisor|escala|ámbito, denominación|origen, registro], 1 cuánto, 2 la primitiva y, si la lleva, su salida, el precio de una emisión de E o la fecha de un T informativo, 3 [[de], [a]]; lo que da cero o nada no se mueve) o «read» si solo lee, o «path» si lanza el camino; 5 el dígito (o camino) de X donde ancla, y si no es X, el registro; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Un paso (N7): subir deja una décima, bajar añade una (epoch.1.1.4.2); la regla «P is repositioned one step at a time» lo comprueba",
-        "VG 12-11 (estudio BQL-transacciones, decisiones 5 a 7 y 10; #49): su 4 mueve con sentencias del BQL mínimo, una por ocupante, evaluadas en orden con it = X, me = quien la lanza y memo = el payload de la candidata (bqlm.evaluarPlantilla): los cinco símbolos como verbos (mint transfer lock release burn) con from, to, exit, when y price, la serie como posición de su familia (T.1, R.(me)…) o leída del libro (before.4.(…)), el condicional con el and perezoso y el nivel en mano put v at A.1.(S).1. La candidata la firma quien la lanza y la validan después las reglas, que solo leen (invariante del núcleo). La lista de antes (un movimiento por décupla) convivió con las sentencias mientras duró la migración y se retiró al fundir con PV3, cuando todas las plantillas dieron el mismo evento por las dos vías (doble ejecución; lo que movía la lista quedó en test/doble-ejecucion-esperada.json). Sin el minuto copiado: el coste de escribir lo cobra a toda candidata la regla de la época «the cost of writing», por posición"
+        "VG 12-11 (estudio BQL-transacciones, decisiones 5 a 7 y 10; #49): su 4 mueve con sentencias del BQL mínimo, una por ocupante, evaluadas en orden con it = X, me = quien la lanza y memo = el payload de la candidata (bqlm.evaluarPlantilla): los cinco símbolos como verbos (mint transfer lock release burn) con from, to, exit, when y price, la serie como posición de su familia (T.1, R.(me)…) o leída del libro (before.4.(…)), el condicional con el and perezoso y el nivel en mano put v at A.1.(S).1. La candidata la firma quien la lanza y la validan después las reglas, que solo leen (invariante del núcleo). La lista de antes (un movimiento por décupla) convivió con las sentencias mientras duró la migración y se retiró al fundir con PV3, cuando todas las plantillas dieron el mismo evento por las dos vías (doble ejecución; lo que movía la lista quedó en test/doble-ejecucion-esperada.json). Sin el minuto copiado: el coste de escribir lo cobra a toda candidata la regla de la época «the cost of writing», por posición",
+        "Core AGRAM 16-11 (encargo «cuenta del banco», ajuste): el defecto de «from» y «amount» lee la mirada del ámbito donde está (el 0.5 de la serie, it2.0.0.5; antes it2.0.5, el registro de una E, que en P siempre está vacío) y no propone el P de una mirada, que no es un paso (la regla «P is repositioned one step at a time» lo rechazaba); su 2 no cambia"
       ],
       [
         "epoch 0"
@@ -18970,7 +19054,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "grant-the-permission.json",
-    "id": "62cc3f27f546b836898750c63db19dd9e299912fb088bfc564d918f9aa992408",
+    "id": "ce1ffa496807bffbd90ac5d338a7fb367d0009d0a67519bb3dbf675df287daad",
     "registro": [
       [
         "grant the permission"
@@ -19104,7 +19188,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           ],
           [
             "=me",
-            "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+            "who writes: a thing of the owner of the account (the connector of the bank)"
           ]
         ],
         [
@@ -19142,7 +19226,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"
+        "=\"connect an account\" in (payload(it)).4 and me != first it.3 and first me.6.3 = first it.3"
       ],
       [
         [
@@ -19161,7 +19245,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       [
         "VG 16-11 (encargo «cuenta del banco»): el paso 2 del camino de la cuenta. Ir a la web o la app del banco y dar el permiso lo hace la app de StateArk (fuera del libro); en el libro queda este registro de la cosa conectora: «permiso concedido», hasta cuándo, sin credencial ninguna",
         "Un vencimiento con la forma de «set an expiry» de la época state: 1.0 qué vence, 1.1 cuándo (un instante), en el 7 de la cuenta. Su 1.1 no pasa de los días de la cuenta (el 1.1 del registro «connect an account» de su hilo) después del t de este registro: un defecto no puede fabricar un instante (el BQL mínimo no los construye), así que lo pone quien lo lanza y la validación lo comprueba",
-        "La lanza quien tiene P sobre la cuenta (sobre el registro entero o su mirada 1) o una cosa suya (su dueño lo tiene): la conectora del banco, dada de alta con «register a thing». Modo agente: la puede lanzar una cosa declarada agente",
+        "La lanza una cosa del dueño de la cuenta (la conectora del banco, dada de alta con «register a thing»), no el dueño ni una cosa de otro: lo dice la regla «the bank speaks through the owner's thing» (revisión de seguridad, 16-11). Modo agente: la puede lanzar una cosa declarada agente",
         "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
       ],
       [
@@ -19178,7 +19262,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "renew-the-permission.json",
-    "id": "74d80e690d9d6edb27240bafb8a515d55d2517818314d5ebbaaeb587c848052c",
+    "id": "2051ad4e2b7b1e23c9baac7538eafae8221509d229fea6494895288786260c7b",
     "registro": [
       [
         "renew the permission"
@@ -19312,7 +19396,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           ],
           [
             "=me",
-            "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
+            "who writes: a thing of the owner of the account (the connector of the bank)"
           ]
         ],
         [
@@ -19350,7 +19434,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"
+        "=\"connect an account\" in (payload(it)).4 and me != first it.3 and first me.6.3 = first it.3"
       ],
       [
         [
@@ -19368,6 +19452,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 16-11 (encargo «cuenta del banco»): «El permiso caduca cada seis meses más o menos, y renovarlo es un paso del camino del 9.» El paso 4 del camino de la cuenta: vuelve a poner el vencimiento, como mucho a los días de la cuenta (180 por defecto)",
+        "La lanza una cosa del dueño de la cuenta (la conectora del banco, dada de alta con «register a thing»), no el dueño ni una cosa de otro: lo dice la regla «the bank speaks through the owner's thing» (revisión de seguridad, 16-11). Modo agente: la puede lanzar una cosa declarada agente",
         "Ancla en el 7.2 de la cuenta (el 7 es el de dar el permiso): cada renovación cuelga directamente de la cuenta, como el permiso, y la regla «acting on an account needs P on it» la comprueba sin recorrer cadenas (el BQL mínimo no sube más de diez niveles con path). El vigente es el del último registro de permiso que llegó al 7 o al 7.2 de la cuenta (contrato.cuenta). En el camino, el paso queda hecho en cuanto hay una renovación (acciones.camino mira si hay un registro mío, o de una cosa mía, en su ancla): el vencimiento lo dice contrato.cuenta",
         "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
       ],
@@ -20101,7 +20186,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "e3d02c593061e6119aa309c529b292380b47a35025a83c633b0a5915261b09ae";
+export const EPOCA_0_BTML_ID = "0fbdbed4f715701432b671b7f4dc11aa59b4cad8e2021f9c27dd1a182b991115";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

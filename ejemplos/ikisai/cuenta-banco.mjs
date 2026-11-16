@@ -9,9 +9,9 @@
 //   - ana da de alta la conectora, una cosa suya con clave («register a thing»): la que en la vida real es la app de
 //     StateArk que va a la web o la app del banco. Aquí está simulada: nada sale del libro y no hay credencial ninguna;
 //   - la conectora deja «permiso concedido» en el 7 de la cuenta («grant the permission»), hasta dentro de 180 días;
-//   - ana acuña la E única de la cuenta («issue E tied to X», denominación «account», cantidad 1) con un bloqueo de 1
-//     de su P sobre la cuenta, con la salida = la serie: la cuota del tope (src/condiciones/tope.js) lo pide en un
-//     registro con capacidad y la plantilla no lo escribe (lo dice docs/notas/CUENTA_BANCO.md: decide VG);
+//   - ana acuña la E única de la cuenta («issue E tied to X», denominación «account», cantidad 1); la plantilla bloquea
+//     además 1 de su P sobre la cuenta con la salida = la serie (su «commitment»), lo que pide la cuota del tope en un
+//     registro con capacidad;
 //   - la conectora escribe dos saldos («update the balance», en el 1 de la cuenta): manda el de instante más reciente;
 //   - bea ancla una nota en la cuenta («anchor here»), con lo que obtiene diez P sobre la nota, y lo reposiciona un paso
 //     hacia la cuenta («reposition P toward X»: subir deja una décima, 1 P); desde entonces puede ordenar: escribe una
@@ -21,7 +21,6 @@
 
 import { Eje } from '../../src/eje.js';
 import * as A from '../../src/acciones.js';
-import { claveToken } from '../../src/tokens.js';
 import { firmar, firmarPosesion } from '../../src/autoridad.js';
 import { entrarPorInvitacion } from './altas.mjs';
 import { pagaElCoste, escribirPagando } from './coste.mjs';
@@ -79,12 +78,8 @@ export async function ejemploCuentaBanco({ claves = {} } = {}) {
   // 2. Ir al banco y dar el permiso: lo hace la conectora fuera del libro; en el libro, «permiso concedido» hasta dentro de 180 días.
   r.permiso = await lanzar('grant the permission', r.cuenta.id, { until: diasDespues(T1, CUENTA.dias) }, 'conectora', T1);
 
-  // 3. Volver: se acuña la E única. El evento de «issue E tied to X» y, con él, 1 de P de ana sobre la cuenta bloqueado
-  // con la salida = la serie (la cuota del tope: sin P comprometido, una cuenta con capacidad no deja acuñar).
-  const emision = await A.transaccion(eje, 'issue E tied to X', { X: r.cuenta.id, denomination: 'account', quantity: 1 }, 'ana', { t: T1 });
-  const serie = claveToken({ token: 'E', emisor: 'ana', denominacion: 'account', registro: r.cuenta.id });
-  const compromiso = { token: 'P', ambito: r.cuenta.id, origen: 'ana', cantidad: 1, de: 'ana', a: 'ana', estado: 'bloqueo', salida: serie };
-  r.unica = await eje.escribir({ autor: 'ana', sobre: emision.evento.sobre, en: emision.evento.en, t: T1, payload: emision.evento.payload, movimientos: [...emision.evento.movimientos, compromiso] }, priv('ana'));
+  // 3. Volver: se acuña la E única, con la plantilla (que compromete 1 de P de ana sobre la cuenta con la serie).
+  r.unica = await lanzar('issue E tied to X', r.cuenta.id, { denomination: 'account', quantity: 1 }, 'ana', T1);
 
   // Los saldos: lo que dice el banco, escrito por la conectora en el 1 de la cuenta; manda el de instante más reciente.
   r.saldos = [];
@@ -92,7 +87,7 @@ export async function ejemploCuentaBanco({ claves = {} } = {}) {
 
   // La cuenta compartida: bea ancla una nota en la cuenta (diez P sobre la nota) y reposiciona ese P un paso hacia la cuenta.
   r.nota = await lanzar('anchor here', r.cuenta.id, { title: 'cuenta compartida', content: 'la llevamos entre las dos' }, 'bea', T2);
-  r.reposicion = await lanzar('reposition P toward X', r.cuenta.id, { from: 'P:' + r.nota.id + '/bea', amount: 10 }, 'bea', T2);
+  r.reposicion = await lanzar('reposition P toward X', r.cuenta.id, {}, 'bea', T2); // por defecto, el P de bea sobre su nota
 
   // Ordenar: bea escribe en el 4 de la cuenta (la orden de pago es de StateArk; aquí, un texto inventado).
   r.orden = await escribirPagando(eje, { autor: 'bea', sobre: r.cuenta.id, en: '4000000000', t: T3, payload: ['orden de pago simulada: 30 EUR para la compra de la semana'], movimientos: [pagaElCoste('bea')] }, priv('bea'));

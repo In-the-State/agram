@@ -50,10 +50,7 @@
       ["Core AGRAM 16-11 (encargo «cuenta del banco»): parámetro de «grant the permission»"],
       ["required"],
       [4],
-      [
-        "=me",
-        "who writes: whoever has P on the account, or a thing of theirs (the connector of the bank)"
-      ]
+      ["=me", "who writes: a thing of the owner of the account (the connector of the bank)"]
     ],
     [
       ["actions"],
@@ -68,14 +65,14 @@
       ["grant the permission", "the action"]
     ]
   ],
-  ["=\"connect an account\" in (payload(it)).4 and (count (me.2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0 or count ((first me.6.3).2.1 where it2.0 = first it.5 and it2.1 > 0 and (count it2.5 = 0 or first it2.5 = 1)) > 0)"],
+  ["=\"connect an account\" in (payload(it)).4 and me != first it.3 and first me.6.3 = first it.3"],
   [["me"], ["agent"]],
   ["write"],
   ["7"],
   [
     "VG 16-11 (encargo «cuenta del banco»): el paso 2 del camino de la cuenta. Ir a la web o la app del banco y dar el permiso lo hace la app de StateArk (fuera del libro); en el libro queda este registro de la cosa conectora: «permiso concedido», hasta cuándo, sin credencial ninguna",
     "Un vencimiento con la forma de «set an expiry» de la época state: 1.0 qué vence, 1.1 cuándo (un instante), en el 7 de la cuenta. Su 1.1 no pasa de los días de la cuenta (el 1.1 del registro «connect an account» de su hilo) después del t de este registro: un defecto no puede fabricar un instante (el BQL mínimo no los construye), así que lo pone quien lo lanza y la validación lo comprueba",
-    "La lanza quien tiene P sobre la cuenta (sobre el registro entero o su mirada 1) o una cosa suya (su dueño lo tiene): la conectora del banco, dada de alta con «register a thing». Modo agente: la puede lanzar una cosa declarada agente",
+    "La lanza una cosa del dueño de la cuenta (la conectora del banco, dada de alta con «register a thing»), no el dueño ni una cosa de otro: lo dice la regla «the bank speaks through the owner's thing» (revisión de seguridad, 16-11). Modo agente: la puede lanzar una cosa declarada agente",
     "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
   ],
   ["epoch 0"],
