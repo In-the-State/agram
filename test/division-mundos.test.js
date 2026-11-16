@@ -781,7 +781,7 @@ test('el 1 a pantalla completa: el pie de cada esquina con lo que mide su hijo (
   assert.deepEqual(uno.coste, hijos[0].coste);
   assert.deepEqual(dos.capacidad, { capacidad: 2, comprometido: 0, disponible: 2, franja: '' });
   assert.deepEqual(tres.flujo.map((f) => [f.serie, f.entra, f.sale]), hijos[2].salidas.map((x) => [x.serie, 0, x.cantidad]));
-  assert.deepEqual(tres.flujo.map((f) => f.texto).slice(0, 2), ['hora', 'EUR'], 'la serie, legible');
+  assert.deepEqual(tres.flujo.map((f) => f.texto).slice(0, 2), ['hora', 'euros de Casa de ejemplo'], 'la serie, legible');
   assert.equal(['coste', 'capacidad', 'flujo'].some((k) => k in cuatro), false);
   const h = rejillaHtml(html(a));
   assert.ok(h.includes(`<p class="hijo-coste">${t('hijoCoste', { coste: 'EUR 12' })}</p>`));

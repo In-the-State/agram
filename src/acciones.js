@@ -51,7 +51,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe } from './contrato.js';
 import { recuento, cerrado as cerradoDe } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
 
@@ -983,6 +983,14 @@ export function estaciones(eje, X, opciones = {}) {
   });
 }
 
+/** Un movimiento anunciado en llano: «huesped da 1 hora a cocina» (los formatos «legible announced movement» de epoch.9.4). */
+function movimientoLegible(eje, m, idioma, opciones) {
+  const o = { idioma, epoca: epocaDe(opciones, eje) };
+  const partes = { amount: legible(eje, { serie: m.serie, cantidad: m.cantidad }, undefined, o).texto, from: legible(eje, m.de, 'identity', o).texto, to: m.a ? legible(eje, m.a, 'identity', o).texto : '' };
+  const formato = textoDe(eje, claves.legible(m.a ? 'announced movement' : 'announced movement from'), idioma, { original: m.a ? '{from} gives {amount} to {to}' : '{from} gives {amount}', epoca: o.epoca });
+  return String(formato).replace(/\{([^{}]+)\}/g, (_, k) => String(partes[k] ?? ''));
+}
+
 /** ¿Espera este registro su segundo factor? (segundoFactor) */
 function esperaSegundoFactor(eje, h, opciones) {
   return segundoFactor(eje, h.id, opciones)?.pendiente === true;
@@ -1055,6 +1063,28 @@ export function ejecuciones(eje, X, opciones = {}) {
     };
   })];
 }
+
+// ---------- 4 ter. las preferencias de formato (#93) ----------
+
+/** El nombre de la plantilla de las preferencias de formato (#93): la que lee configuracionDeFormato. */
+export const AJUSTES_DE_FORMATO = 'format settings';
+
+/**
+ * Mis preferencias de formato (#93): el registro «format settings» anclado en el 9 de mi alta por mí (el último), leído
+ * por sus claves, como «language» en las preferencias; sin registro, los de siempre (el primer valor de cada una).
+ * → { 'date format': legible | larga | corta | iso, 'number format': tal-cual | agrupados, 'editor style': expandido |
+ * compacto, 'editor view': crudo | formateado, de }. Un valor que la enumeración de la plantilla no tiene (un registro
+ * escrito a mano) vuelve al de siempre; validar(eje, registro) lo señala.
+ */
+export function configuracionDeFormato(eje, quien, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const c = configuracionDe(eje, quien, AJUSTES_DE_FORMATO, opciones);
+  for (const { clave, defecto, valores } of clavesDeConfiguracionDe(AJUSTES_DE_FORMATO, opciones)) {
+    if (Array.isArray(valores) && !valores.includes(c[clave])) c[clave] = defecto;
+  }
+  return c;
+}
+
 
 // ---------- 4 bis. el segundo factor (VG 12/13-11, #66, #70; SIP 0 de StateArk) ----------
 
@@ -1511,7 +1541,9 @@ export async function camino(eje, X, yo, opciones = {}) {
     const porQuien = new Map();
     for (const m of a.movimientos) porQuien.set(m.de, [...(porQuien.get(m.de) ?? []), m]);
     for (const [de, ms] of porQuien) {
-      const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ?? '') + ' ' + ms.map((m) => m.cantidad + ' ' + m.serie + ' ' + m.de + (m.a ? ' → ' + m.a : '')).join('; '); // sin destino resuelto (a: null) no se imprime «→ null» (repaso beta #2)
+      // En llano (época 0 final, #9 del añadido): cuánto por su nombre, de quién y a quién por su 0, con el formato de la
+      // época («legible announced movement»); sin destino resuelto (a: null), sin «a» (repaso beta #2: nunca «→ null»).
+      const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ? a.que + ': ' : '') + ms.map((m) => movimientoLegible(eje, m, idioma, opciones)).join('; ');
       const estacion = estacionDe.get(partirClave(ms[0].serie).token);
       if (de === yo && estacion) {
         const paso = mio(estacion.plantilla, { announcement: { ref: anuncio.id } });

@@ -104,9 +104,9 @@ test('#2 los pasos del camino no dicen «→ null» y lo que repiten (el «stage
   assert.match(h, /<p class="camino-comun">stage: lo anunciado<\/p>/);
   assert.match(h, /<span class="falta">servir 1 T:hora huesped → cocina<\/span>/);
   assert.doesNotMatch(h, /null/);
-  // y en el núcleo: un destino sin resolver (a: null) no imprime la flecha
+  // y en el núcleo: un destino sin resolver (a: null) no imprime «a nadie» ni «null» (época 0 final: el paso, en llano)
   const fuente = readFileSync(new URL('../src/acciones.js', import.meta.url), 'utf8');
-  assert.match(fuente, /m\.de \+ \(m\.a \? ' → ' \+ m\.a : ''\)/);
+  assert.match(fuente, /m\.a \? 'announced movement' : 'announced movement from'/);
 });
 
 test('#13 la configuración avisa de lo mal escrito en vez de guardarlo o volver al defecto en silencio', () => {

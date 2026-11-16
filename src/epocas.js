@@ -679,12 +679,18 @@ export function fusionarRaices(base, hija, { registroDe = () => undefined, ids =
  * Ids anteriores de la época 0 que el código sigue reconociendo como ella: el de beta 16f30d2 (antes de normalizar su 6
  * a [[notas], [claves], [valores]], #107), del que hereda la SIP 0 de StateArk y que nombra el génesis de los ejes de
  * entonces; y el de 0d95471b, antes de H13 (15-11: las dos reglas de las claves declaradas admiten claves en cualquier
- * registro y en la invitación), del que hereda la SIP 0 viva y que nombran los génesis de los ejes de ayer. La época 0
- * que se carga con ellos es la de hoy.
+ * registro y en la invitación), del que hereda la SIP 0 viva y que nombran los génesis de los ejes de ayer; y el de
+ * 9cd5a949, antes de la época 0 final (16-11), el de los ejes del nodo y la SIP de StateArk de hoy. La época 0 que se
+ * carga con ellos es la de hoy.
  */
 export const IDS_ANTERIORES_DE_LA_0 = Object.freeze([
   '8346d2f80a855093dc7818b7d8fa811b38f309f48e70b2f2c067359ea5e5d6e8',
   '0d95471b24e0ebc6aa93d949e38bf249613933316504b2cd72f8c370cade6858', // antes de H13: las reglas de las claves declaradas (15-11)
+  // Antes de la época 0 final (16-11: «second factor» en un recorrido, el 0 legible, las series de E, los recuentos, las
+  // preferencias de formato, los textos sin BQL V0, sin correcciones): los ejes del nodo y la época SIP de StateArk, que
+  // hereda por id, la nombran y siguen resolviendo hasta que se reescriban. Core vacía esta muleta al crear el eje de la
+  // aceptación.
+  '9cd5a949ae30d3ef3dff698eec90f600d62a229d77aa17c1bf6b702fff6415f0',
 ]);
 
 /** Las épocas que este código conoce, por id: la 0 (la que trae el código, con sus ids anteriores) y las que se registren (registrarEpoca). */

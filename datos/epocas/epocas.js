@@ -858,7 +858,7 @@ export const EPOCA_0_BTML_DATOS = [
           "PV0: la lente libre sobre el registro en foco (nombre, cifra, imagen, HTML). Puede engañar; no garantiza verdad."
         ],
         [
-          "compra 0 = 'Compra del menú del día'; =LOCAL(0) lo devuelve."
+          "compra 0 = 'Compra del menú del día'; con it = la compra, =first (payload(it)).0 lo devuelve (payload(it): lo escrito, sin lo que el libro junta en sus posiciones)."
         ]
       ],
       [
@@ -877,7 +877,7 @@ export const EPOCA_0_BTML_DATOS = [
           "criterios"
         ],
         [
-          "PV2, jardín: lo que distingue cosas aparentemente iguales; decisiones y preferencias; BUSCAR, FILTRAR, ORDENAR, ELEGIR."
+          "PV2, jardín: lo que distingue cosas aparentemente iguales; decisiones y preferencias; buscar, filtrar (where), ordenar (by) y elegir (first, last, nth)."
         ],
         [
           "menú 2 = ['sin gluten', 'vegetariano']; compra 2 = [ref menú:2]."
@@ -970,7 +970,7 @@ export const EPOCA_0_BTML_DATOS = [
           "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): qué es la parte; su nombre o cara, lo que se ve si no se desarrolla."
         ],
         [
-          "compra 1.0 = [ref menú:1]: qué es lo comprado; =LOCAL(1, 0, 0) lee su ocupante (la referencia, seguida); x.0 ocupa la misma dirección que x (colisión por ceros)."
+          "compra 1.0 = [ref menú:1]: qué es lo comprado; =first (payload(it)).1.0 lee su ocupante (la referencia, seguida); x.0 ocupa la misma dirección que x (colisión por ceros)."
         ]
       ],
       [
@@ -978,10 +978,10 @@ export const EPOCA_0_BTML_DATOS = [
           "cuánto"
         ],
         [
-          "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): cuánto; su magnitud (número con unidad, veces, duración), donde SUMAR y el producto tienen sentido."
+          "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): cuánto; su magnitud (número con unidad, veces, duración), donde la suma (sum) y el producto tienen sentido."
         ],
         [
-          "compra 1.1 = 1 (un menú): =LOCAL(1, 1) * 12 EUR da 12 EUR."
+          "compra 1.1 = 1 (un menú): =first (payload(it)).1.1 * (first (payload(it)).1.2).1 da 12 (los EUR, en (first (payload(it)).1.2).2: el BQL mínimo solo opera números)."
         ]
       ],
       [
@@ -992,7 +992,7 @@ export const EPOCA_0_BTML_DATOS = [
           "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): con qué condición; el criterio que la distingue o la condiciona: precio, requisito, límite."
         ],
         [
-          "compra 1.2 = 'EUR 12': =REF(compra, \"1200000000\") da 12 EUR; una corrección escrita en '1200000000' es otro ocupante."
+          "compra 1.2 = 'EUR 12': =(first (payload(it)).1.2).1 da 12 y =(first (payload(it)).1.2).2 da EUR; lo que se escribe después anclado en '1200000000' es otro ocupante (=last it.1.2)."
         ]
       ],
       [
@@ -1022,7 +1022,7 @@ export const EPOCA_0_BTML_DATOS = [
           "dónde encaja"
         ],
         [
-          "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): dónde encaja; la dirección o referencia donde encaja en el árbol, lo que BUSCAR(LOCAL(5)) recibiría."
+          "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): dónde encaja; la dirección o referencia donde encaja en el árbol, la que sirve para buscarlo y situarlo."
         ],
         [
           "Un escrito en la 1.5 de una reserva de Booking = { ref: calendario, dir: '7000000000' }: dónde encajan sus recursos."
@@ -1126,7 +1126,7 @@ export const EPOCA_0_BTML_DATOS = [
           "Aplicado al nodo de arriba (la parte, el nodo de la profundidad 1): qué se hace; la operación que lo produjo: suma, producto, elección, consolidación."
         ],
         [
-          "Los 14 EUR de la cuenta nacen de una suma: =REF(compra, \"1200000000\") + 2 EUR."
+          "Los 14 EUR de la cuenta nacen de una suma: =(first (payload(it)).1.2).1 + 2, con it = la compra (los EUR, en su 1.2)."
         ]
       ],
       [
@@ -1181,7 +1181,7 @@ export const EPOCA_0_BTML_DATOS = [
           "Aplicado al nodo de arriba (la parte, el nodo de la profundidad 1): cómo; el camino de cálculo, la fórmula o la instrucción que lo obtiene."
         ],
         [
-          "La fórmula '=REF(…) + 2 EUR'; con '==' se guarda como texto sin evaluarse."
+          "La fórmula '=(first (payload(it)).1.2).1 + 2'; con '==' se guarda como texto sin evaluarse."
         ]
       ]
     ],
@@ -4524,7 +4524,7 @@ export const EPOCA_0_BTML_DATOS = [
             "arrival"
           ],
           [
-            "reserved for the payments service (StateArk, §5 of the outside contract); nothing reads it yet"
+            "the address of the payment service (StateArk): the card asks it for payment receipts and signs what it asks with the holder's key"
           ]
         ],
         [
@@ -4655,6 +4655,208 @@ export const EPOCA_0_BTML_DATOS = [
           ],
           [
             "the base url of the guide (the AARPIA gateway: POST {url}/guia); empty, the guide is asked at the sync url of the preferences (the Supabase function)"
+          ]
+        ]
+      ],
+      [
+        [
+          [
+            "format settings"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "0"
+          ],
+          [
+            "VG 16-11 (#93; época 0 final): los criterios de formato de la cara 5 (el editor de BTML) y de las fechas y los números se guardan en la cuenta, en un registro de este tipo en el 9 del alta, junto al de preferencias (que ya tiene las diez posiciones); escritos y leídos como «language» (contrato.registroDeAjustes, contrato.configuracionDe, contrato.configuracionDeFormato)"
+          ],
+          [
+            "required"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "format settings",
+            "how the card writes what it shows: dates, numbers and the BTML editor of face 5"
+          ]
+        ],
+        [
+          [
+            "date format"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=\"legible\" in it.1 or \"larga\" in it.1 or \"corta\" in it.1 or \"iso\" in it.1"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "1"
+          ],
+          [
+            "VG 16-11 (#93; época 0 final): los criterios de formato de la cara 5 (el editor de BTML) y de las fechas y los números se guardan en la cuenta, en un registro de este tipo en el 9 del alta, junto al de preferencias (que ya tiene las diez posiciones); escritos y leídos como «language» (contrato.registroDeAjustes, contrato.configuracionDe, contrato.configuracionDeFormato)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "legible",
+            "how dates are written: legible (the usual one), larga (long), corta (short) or iso (ISO 8601)"
+          ]
+        ],
+        [
+          [
+            "number format"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=\"tal-cual\" in it.2 or \"agrupados\" in it.2"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "2"
+          ],
+          [
+            "VG 16-11 (#93; época 0 final): los criterios de formato de la cara 5 (el editor de BTML) y de las fechas y los números se guardan en la cuenta, en un registro de este tipo en el 9 del alta, junto al de preferencias (que ya tiene las diez posiciones); escritos y leídos como «language» (contrato.registroDeAjustes, contrato.configuracionDe, contrato.configuracionDeFormato)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "tal-cual",
+            "how numbers are written: tal-cual (as they are, the usual one) or agrupados (grouped by thousands)"
+          ]
+        ],
+        [
+          [
+            "editor style"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=\"expandido\" in it.3 or \"compacto\" in it.3"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "3"
+          ],
+          [
+            "VG 16-11 (#93; época 0 final): los criterios de formato de la cara 5 (el editor de BTML) y de las fechas y los números se guardan en la cuenta, en un registro de este tipo en el 9 del alta, junto al de preferencias (que ya tiene las diez posiciones); escritos y leídos como «language» (contrato.registroDeAjustes, contrato.configuracionDe, contrato.configuracionDeFormato)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "expandido",
+            "how the BTML editor of face 5 lays out a record: expandido (expanded, the usual one) or compacto (compact)"
+          ]
+        ],
+        [
+          [
+            "editor view"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=\"crudo\" in it.4 or \"formateado\" in it.4"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "template",
+            "settings",
+            "write"
+          ],
+          [
+            "4"
+          ],
+          [
+            "VG 16-11 (#93; época 0 final): los criterios de formato de la cara 5 (el editor de BTML) y de las fechas y los números se guardan en la cuenta, en un registro de este tipo en el 9 del alta, junto al de preferencias (que ya tiene las diez posiciones); escritos y leídos como «language» (contrato.registroDeAjustes, contrato.configuracionDe, contrato.configuracionDeFormato)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "crudo",
+            "how the BTML editor of face 5 opens: crudo (the raw BTML, the usual one) or formateado (already formatted with these criteria)"
+          ]
+        ],
+        [
+          [
+            "format settings"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "owner"
+          ],
+          [
+            "write"
+          ],
+          [
+            "5"
+          ],
+          [
+            "VG 16-11 (#93; época 0 final): los criterios de formato de la cara 5 (el editor de BTML) y de las fechas y los números se guardan en la cuenta, en un registro de este tipo en el 9 del alta, junto al de preferencias (que ya tiene las diez posiciones); escritos y leídos como «language» (contrato.registroDeAjustes, contrato.configuracionDe, contrato.configuracionDeFormato)"
+          ],
+          [
+            "optional"
+          ],
+          [
+            "arrival"
+          ],
+          [
+            "format settings",
+            "its type: this template, named in the 5 of the record (B4: the 5 is the type)"
           ]
         ]
       ]
@@ -5079,7 +5281,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template admit someone param who help: quién admite: el dueño de X",
           "template admit someone param actions label: acción",
           "template admit someone param actions help: la acción",
-          "template admit someone message: admit someone: {me} admite a {last ev.3.1} en {first it.0} con {first ev.1.0} de su R",
+          "template admit someone message: {me} admite a {last ev.3.1} en {first it.0} con {first ev.1.0} de su R",
           "template remove someone: quitar a alguien",
           "template remove someone param whom label: a quién",
           "template remove someone param whom help: a quién dejo de admitir en X (y en lo que cuelga de X): una identidad con alta",
@@ -5091,23 +5293,23 @@ export const EPOCA_0_BTML_DATOS = [
           "template remove someone param who help: quién quita: el dueño de X",
           "template remove someone param actions label: acción",
           "template remove someone param actions help: la acción",
-          "template remove someone message: remove someone: {me} quita a {last ev.3.1} de {first it.0}",
+          "template remove someone message: {me} quita a {last ev.3.1} de {first it.0}",
           "template veto someone: vetar",
           "template veto someone param whom label: a quién",
           "template veto someone param whom help: a quién veto: una identidad con alta (por defecto, aquella cuya alta es X, o el dueño de X)",
-          "template veto someone message: veto someone: {me} veta a {first ev.0}",
+          "template veto someone message: {me} veta a {first ev.0}",
           "template move to group: llevar a un grupo",
           "template move to group param whom label: a quién",
           "template move to group param whom help: a quién llevo: una identidad con alta (por defecto, aquella cuya alta es X, o el dueño de X)",
           "template move to group param zone label: grupo",
           "template move to group param zone help: el grupo de mi 3 al que va la conversación (0 sin tema … 4 trabajo, 5 vetados): donde se ancla el registro, el 3.<grupo>.3 de mi alta",
-          "template move to group message: move to group: {me} lleva a {first ev.0} a un grupo de su 3",
+          "template move to group message: {me} lleva a {first ev.0} a un grupo de su 3",
           "template set a minimum: poner un mínimo",
           "template set a minimum param box label: caja",
           "template set a minimum param box help: la caja del 3 (0 … 5): el nodo X.3.<caja> cuya posición se pone",
           "template set a minimum param amount label: cantidad",
           "template set a minimum param amount help: la cantidad mínima de R en el canal (lo que doy más lo que recibo) para aparecer en la caja; quien no llega cae al 0",
-          "template set a minimum message: set a minimum: {me} pone la cantidad mínima de una caja de su 3",
+          "template set a minimum message: {me} pone la cantidad mínima de una caja de su 3",
           "template set a minimum rank: poner un rango mínimo",
           "template set a minimum rank param box label: caja",
           "template set a minimum rank param box help: la caja del 3 (0 … 5): el nodo X.3.<caja> cuya posición se pone",
@@ -5115,7 +5317,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template set a minimum rank param rank help: el rango (nivel.grado, las diez cajas del 8) que hace falta sobre el foco para aparecer en la caja",
           "template set a minimum rank param mode label: modo",
           "template set a minimum rank param mode help: solo ese rango, o ampliar hacia arriba o hacia abajo desde él",
-          "template set a minimum rank message: set a minimum rank: {me} pone el rango mínimo de una caja de su 3",
+          "template set a minimum rank message: {me} pone el rango mínimo de una caja de su 3",
           "template configure a place: configurar el sitio",
           "template configure a place param place label: sitio",
           "template configure a place param place help: el sitio, como un camino de dígitos bajo X (3.4: la caja 4 de su 3)",
@@ -5123,7 +5325,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template configure a place param position help: la posición del sitio que se pone (0 su nombre, 5 el estilo de lo de abajo, 9 su guía…)",
           "template configure a place param value label: valor",
           "template configure a place param value help: lo que dice la posición",
-          "template configure a place message: configure a place: {me} pone una posición de un sitio de {first it.0}",
+          "template configure a place message: {me} pone una posición de un sitio de {first it.0}",
           "template aggregate T: agrupar T",
           "template aggregate T param title label: título",
           "template aggregate T param title help: el título del registro de la escala superior",
@@ -5139,7 +5341,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template aggregate T param type help: su tipo",
           "template aggregate T param parts label: partes",
           "template aggregate T param parts help: los registros de abajo que engloba (referencias en su 6: de dónde viene)",
-          "template aggregate T message: aggregate T: {me} agrupa lo que cuelga de {first it.0} en un solo registro",
+          "template aggregate T message: {me} agrupa lo que cuelga de {first it.0} en un solo registro",
           "template anchor here: anclar aquí",
           "template anchor here param title label: título",
           "template anchor here param title help: el título del registro nuevo",
@@ -5161,7 +5363,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template anchor here param about help: el registro del que trata el nuevo, como referencia",
           "template anchor here param route label: ruta",
           "template anchor here param route help: un camino a seguir desde el registro nuevo: los nombres de los pasos (el tutorial de su 9)",
-          "template anchor here message: anchor here: {me} ancla un registro nuevo sobre {first it.0}",
+          "template anchor here message: {me} ancla un registro nuevo sobre {first it.0}",
           "template apply a resource: aplicar un recurso",
           "template apply a resource param what label: qué",
           "template apply a resource param what help: lo que se compra, reserva o propina: el registro (una referencia a él)",
@@ -5177,9 +5379,9 @@ export const EPOCA_0_BTML_DATOS = [
           "template apply a resource param actions help: la acción que escribe el registro",
           "template apply a resource param type label: tipo",
           "template apply a resource param type help: su plantilla: purchase (compra)",
-          "template apply a resource message: apply a resource: {me} da {first ev.1.1 * first (first ev.1.2).1} {first (first ev.1.2).0} a {first it.3} por {first it.0}",
+          "template apply a resource message: {me} da {first ev.1.1 * first (first ev.1.2).1} {first (first ev.1.2).0} a {first it.3} por {first it.0}",
           "template ask for a recommendation: pedir una recomendación",
-          "template ask for a recommendation message: ask for a recommendation: las sugerencias del camino de {first it.0}",
+          "template ask for a recommendation message: las sugerencias del camino de {first it.0}",
           "template attach a file: adjuntar un archivo",
           "template attach a file param file label: archivo",
           "template attach a file param file help: el archivo, subido a los archivos del eje: archivo:<su sha256> (la carta abre el selector de archivos y lo sube)",
@@ -5193,7 +5395,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template attach a file param who help: quién lo adjunta",
           "template attach a file param actions label: acción",
           "template attach a file param actions help: la acción",
-          "template attach a file message: attach a file: {me} adjunta un archivo a {first it.0}",
+          "template attach a file message: {me} adjunta un archivo a {first it.0}",
           "template attend: atender",
           "template attend param text label: texto",
           "template attend param text help: la respuesta",
@@ -5205,13 +5407,13 @@ export const EPOCA_0_BTML_DATOS = [
           "template attend param criteria help: la plantilla de cerrado del registro",
           "template attend param who label: quién",
           "template attend param who help: quién escribe",
-          "template attend message: attend: {me} atiende a {first it.3}",
+          "template attend message: {me} atiende a {first it.3}",
           "template auto-run to the end: seguir hasta el final",
-          "template auto-run to the end message: auto-run to the end: cada paso mío del camino de {first it.0}, mientras pasen",
+          "template auto-run to the end message: cada paso mío del camino de {first it.0}, mientras pasen",
           "template borrow criteria from someone: adoptar el criterio de alguien",
           "template borrow criteria from someone param whom label: de quién",
           "template borrow criteria from someone param whom help: de quién adopto el criterio (un nombre en el 2.3 de mi alta: la lente de criterios)",
-          "template borrow criteria from someone message: borrow criteria from someone: {me} adopta el criterio de {first it.3}",
+          "template borrow criteria from someone message: {me} adopta el criterio de {first it.3}",
           "template break down: desglosar",
           "template break down param title label: título",
           "template break down param title help: el título de la parte",
@@ -5227,7 +5429,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template break down param type help: su tipo",
           "template break down param whole label: todo",
           "template break down param whole help: el registro del que es parte: X",
-          "template break down message: break down: {me} desglosa {first it.0} en una parte",
+          "template break down message: {me} desglosa {first it.0} en una parte",
           "template change cohort: cambiar de cohorte",
           "template change cohort param cohort label: cohorte",
           "template change cohort param cohort help: con qué se compara X: siblings (los hermanos), project (el proyecto), genesis (el génesis)",
@@ -5239,7 +5441,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template change cohort param criteria help: la plantilla de cerrado del registro",
           "template change cohort param who label: quién",
           "template change cohort param who help: quién escribe",
-          "template change cohort message: change cohort: {me} cambia la cohorte de {first it.0}",
+          "template change cohort message: {me} cambia la cohorte de {first it.0}",
           "template close: cerrar",
           "template close param text label: texto",
           "template close param text help: la nota de cierre",
@@ -5251,7 +5453,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template close param criteria help: la plantilla de cerrado del registro",
           "template close param who label: quién",
           "template close param who help: quién escribe",
-          "template close message: close: {me} cierra {first it.0}: todo lo anunciado ha pasado",
+          "template close message: {me} cierra {first it.0}: todo lo anunciado ha pasado",
           "template close with error: cerrar con error",
           "template close with error param cause label: causa",
           "template close with error param cause help: por qué se cierra con error: texto obligatorio",
@@ -5263,7 +5465,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template close with error param criteria help: la plantilla de cerrado del registro",
           "template close with error param who label: quién",
           "template close with error param who help: quién escribe",
-          "template close with error message: close with error: {me} cierra {first it.0} con error: {first ev.0}",
+          "template close with error message: {me} cierra {first it.0} con error: {first ev.0}",
           "template expire: caducar",
           "template expire param deadline label: plazo",
           "template expire param deadline help: el plazo declarado que ha vencido: la fecha de un anuncio pendiente del proceso (su 7.1), anterior al último tiempo del libro",
@@ -5275,7 +5477,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template expire param criteria help: la plantilla de cerrado del registro",
           "template expire param who label: quién",
           "template expire param who help: quién escribe",
-          "template expire message: expire: {me} caduca {first it.0}: el plazo {first ev.2.1} ha vencido",
+          "template expire message: {me} caduca {first it.0}: el plazo {first ev.2.1} ha vencido",
           "template close by decision: cerrar por decisión",
           "template close by decision param cause label: causa",
           "template close by decision param cause help: por qué se cierra por decisión: texto opcional; sin él, «closed by decision»",
@@ -5287,7 +5489,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template close by decision param criteria help: la plantilla de cerrado del registro",
           "template close by decision param who label: quién",
           "template close by decision param who help: quién escribe",
-          "template close by decision message: close by decision: {me} cierra {first it.0} por decisión: {first ev.0}",
+          "template close by decision message: {me} cierra {first it.0} por decisión: {first ev.0}",
           "template commit P: comprometer P",
           "template commit P param power label: poder",
           "template commit P param power help: la serie de P que se compromete: P mío en el dominio de X",
@@ -5299,7 +5501,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template commit P param actions help: la acción",
           "template commit P param who label: quién",
           "template commit P param who help: quién escribe",
-          "template commit P message: commit P: {me} compromete {first ev.1.1} P con {first it.0}",
+          "template commit P message: {me} compromete {first ev.1.1} P con {first it.0}",
           "template commit time: comprometer tiempo",
           "template commit time param series label: serie",
           "template commit time param series help: la serie mía que se bloquea hasta una fecha",
@@ -5313,11 +5515,11 @@ export const EPOCA_0_BTML_DATOS = [
           "template commit time param criteria help: la plantilla de cerrado del registro",
           "template commit time param who label: quién",
           "template commit time param who help: quién escribe",
-          "template commit time message: commit time: {me} bloquea {first ev.1.1} {first ev.1.0} hasta {first ev.1.2}",
+          "template commit time message: {me} bloquea {first ev.1.1} {first ev.1.0} hasta {first ev.1.2}",
           "template compare with another record: comparar con otro registro",
           "template compare with another record param other label: otro",
           "template compare with another record param other help: el registro con el que se compara X",
-          "template compare with another record message: compare with another record: {first it.0} frente a otro registro",
+          "template compare with another record message: {first it.0} frente a otro registro",
           "template consume: consumir",
           "template consume param series label: serie",
           "template consume param series help: la serie de E atada a X que se consume",
@@ -5329,7 +5531,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template consume param criteria help: la plantilla de cerrado del registro",
           "template consume param who label: quién",
           "template consume param who help: quién escribe",
-          "template consume message: consume: {me} quema {first ev.1.1} {first ev.1.0} de {first it.0}",
+          "template consume message: {me} quema {first ev.1.1} {first ev.1.0} de {first it.0}",
           "template declare capacity or threshold: declarar capacidad o umbral",
           "template declare capacity or threshold param tally label: recuento",
           "template declare capacity or threshold param tally help: la plantilla de recuento (suma ponderada, media ponderada, umbral)",
@@ -5343,7 +5545,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template declare capacity or threshold param criteria help: la plantilla de cerrado del registro",
           "template declare capacity or threshold param who label: quién",
           "template declare capacity or threshold param who help: quién escribe",
-          "template declare capacity or threshold message: declare capacity or threshold: {me} declara {first ev.1.0} por encima de {first ev.1.1} y capacidad {first ev.1.2} sobre {first it.0}",
+          "template declare capacity or threshold message: {me} declara {first ev.1.0} por encima de {first ev.1.1} y capacidad {first ev.1.2} sobre {first it.0}",
           "template declare future T: declarar T futuro",
           "template declare future T param what label: qué",
           "template declare future T param what help: lo que se hará",
@@ -5357,7 +5559,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template declare future T param criteria help: la plantilla de cerrado del registro",
           "template declare future T param who label: quién",
           "template declare future T param who help: quién escribe",
-          "template declare future T message: declare future T: {me} anuncia {first ev.1.1} minutos de T para el {first ev.1.0} sobre {first it.0}",
+          "template declare future T message: {me} anuncia {first ev.1.1} minutos de T para el {first ev.1.0} sobre {first it.0}",
           "template deliver: entregar",
           "template deliver param announcement label: anuncio",
           "template deliver param announcement help: el movimiento anunciado mío que no es E (T por trabajar, P por decidir, R por atender; en el 4.1 de X) que entrego",
@@ -5367,7 +5569,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template deliver param criteria help: la plantilla de cerrado del registro",
           "template deliver param who label: quién",
           "template deliver param who help: quién escribe",
-          "template deliver message: deliver: {me} entrega lo anunciado en {first it.0}",
+          "template deliver message: {me} entrega lo anunciado en {first it.0}",
           "template expire something mine: caducar algo mío",
           "template expire something mine param series label: serie",
           "template expire something mine param series help: la serie de mi propia E que caduca",
@@ -5379,9 +5581,9 @@ export const EPOCA_0_BTML_DATOS = [
           "template expire something mine param criteria help: la plantilla de cerrado del registro",
           "template expire something mine param who label: quién",
           "template expire something mine param who help: quién escribe",
-          "template expire something mine message: expire something mine: {me} quema {first ev.1.1} {first ev.1.0}",
+          "template expire something mine message: {me} quema {first ev.1.1} {first ev.1.0}",
           "template follow the path: seguir el camino",
-          "template follow the path message: follow the path: el siguiente paso del camino de {first it.0}",
+          "template follow the path message: el siguiente paso del camino de {first it.0}",
           "template forgive: perdonar",
           "template forgive param amount label: cantidad",
           "template forgive param amount help: cuánta R del dueño de X quemo",
@@ -5391,7 +5593,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template forgive param criteria help: la plantilla de cerrado del registro",
           "template forgive param who label: quién",
           "template forgive param who help: quién escribe",
-          "template forgive message: forgive: {me} perdona {first ev.1} R de {first it.3}",
+          "template forgive message: {me} perdona {first ev.1} R de {first it.3}",
           "template give own R: dar R propia",
           "template give own R param amount label: cantidad",
           "template give own R param amount help: cuánta R mía doy al dueño de X",
@@ -5401,7 +5603,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template give own R param criteria help: la plantilla de cerrado del registro",
           "template give own R param who label: quién",
           "template give own R param who help: quién escribe",
-          "template give own R message: give own R: {me} da {first ev.1} de su R a {first it.3}",
+          "template give own R message: {me} da {first ev.1} de su R a {first it.3}",
           "template issue E tied to X: emitir E atada a X",
           "template issue E tied to X param denomination label: denominación",
           "template issue E tied to X param denomination help: la denominación de la serie (EUR, plaza@noche…)",
@@ -5415,7 +5617,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template issue E tied to X param criteria help: la plantilla de cerrado del registro",
           "template issue E tied to X param who label: quién",
           "template issue E tied to X param who help: quién escribe",
-          "template issue E tied to X message: issue E tied to X: {me} acuña {first ev.1.1} {first ev.1.0} atada a {first it.0}",
+          "template issue E tied to X message: {me} acuña {first ev.1.1} {first ev.1.0} atada a {first it.0}",
           "template lock E as a bid for a quota: bloquear E como puja por una cuota",
           "template lock E as a bid for a quota param series label: serie",
           "template lock E as a bid for a quota param series help: la serie de E que se bloquea",
@@ -5427,7 +5629,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template lock E as a bid for a quota param criteria help: la plantilla de cerrado del registro",
           "template lock E as a bid for a quota param who label: quién",
           "template lock E as a bid for a quota param who help: quién escribe",
-          "template lock E as a bid for a quota message: lock E as a bid for a quota: {me} bloquea {first ev.1.1} {first ev.1.0} con {first it.0} como salida",
+          "template lock E as a bid for a quota message: {me} bloquea {first ev.1.1} {first ev.1.0} con {first it.0} como salida",
           "template measure: medir",
           "template measure param title label: título",
           "template measure param title help: el título de la base",
@@ -5439,7 +5641,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template measure param who help: quién mide",
           "template measure param actions label: acción",
           "template measure param actions help: la acción",
-          "template measure message: measure: {me} escribe una base en el 8 de {first it.0}",
+          "template measure message: {me} escribe una base en el 8 de {first it.0}",
           "template pay: pagar",
           "template pay param announcement label: anuncio",
           "template pay param announcement help: el movimiento de E anunciado (en el 4.1 de X) que pago",
@@ -5449,7 +5651,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template pay param criteria help: la plantilla de cerrado del registro",
           "template pay param who label: quién",
           "template pay param who help: quién escribe",
-          "template pay message: pay: {me} paga lo anunciado en {first it.0}",
+          "template pay message: {me} paga lo anunciado en {first it.0}",
           "template propose: proponer",
           "template propose param title label: título",
           "template propose param title help: el título de la propuesta",
@@ -5461,7 +5663,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template propose param who help: quién propone y quién decide",
           "template propose param actions label: acción",
           "template propose param actions help: la acción",
-          "template propose message: propose: {me} propone algo en la fábrica de {first it.0}",
+          "template propose message: {me} propone algo en la fábrica de {first it.0}",
           "template reference X from another record: referenciar X desde otro registro",
           "template reference X from another record param title label: título",
           "template reference X from another record param title help: el título",
@@ -5473,7 +5675,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template reference X from another record param who help: quién escribe",
           "template reference X from another record param actions label: acción",
           "template reference X from another record param actions help: la acción",
-          "template reference X from another record message: reference X from another record: {me} referencia {first it.0} desde un registro suyo",
+          "template reference X from another record message: {me} referencia {first it.0} desde un registro suyo",
           "template register a thing: dar de alta una cosa",
           "template register a thing param thing label: cosa",
           "template register a thing param thing help: la identidad de la cosa nueva (un nombre sin alta en este eje)",
@@ -5492,7 +5694,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template register a thing message: {last ev.3.1}",
           "template second factor: segundo factor",
           "template second factor param family label: familia o serie",
-          "template second factor param family help: lo que lo dispara: una familia (E, P, R o T: «si mueve E») o una serie concreta (E:casa/EUR); si son varias, una por ocupante",
+          "template second factor param family help: lo que lo dispara: una familia (E, P, R o T: «si mueve E») o una serie concreta (euros de casa); si son varias, una por ocupante",
           "template second factor param amount label: cantidad",
           "template second factor param amount help: el umbral: desde esta cantidad (lo que muevo de esa familia o serie en un registro, sumando lo que cuesta escribirlo y lo que mueve la plantilla) la ejecución espera el segundo factor; 0 es «si lo mueve, aunque sea poco»",
           "template second factor param holder label: titular",
@@ -5511,7 +5713,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template reposition P toward X param criteria help: la plantilla de cerrado del registro",
           "template reposition P toward X param who label: quién",
           "template reposition P toward X param who help: quién escribe",
-          "template reposition P toward X message: reposition P toward X: {me} mueve {first ev.1.1} P un paso hacia {first it.0}",
+          "template reposition P toward X message: {me} mueve {first ev.1.1} P un paso hacia {first it.0}",
           "template return R (ask for attention): devolver R (pedir atención)",
           "template return R (ask for attention) param text label: texto",
           "template return R (ask for attention) param text help: lo que pido",
@@ -5523,7 +5725,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template return R (ask for attention) param who help: quién pide y a quién se pide",
           "template return R (ask for attention) param actions label: acción",
           "template return R (ask for attention) param actions help: la acción",
-          "template return R (ask for attention) message: return R (ask for attention): {me} devuelve {first ev.1} R a {first it.3} y pide atención",
+          "template return R (ask for attention) message: {me} devuelve {first ev.1} R a {first it.3} y pide atención",
           "template set a group price: fijar el precio de un grupo",
           "template set a group price param token label: token",
           "template set a group price param token help: en qué paga el grupo: their R (su R), my R (mi R), E, P, open record (registro abierto), nothing (nada)",
@@ -5531,11 +5733,11 @@ export const EPOCA_0_BTML_DATOS = [
           "template set a group price param amount help: cuánto",
           "template set a group price param zone label: zona",
           "template set a group price param zone help: la zona cuyo precio se fija (0 desconocidos … 5 vetados): donde ancla el registro, 3.<zona>.2 de mi alta",
-          "template set a group price message: set a group price: {me} fija el precio de un grupo de su atención",
+          "template set a group price message: {me} fija el precio de un grupo de su atención",
           "template view the whole tutorial: ver el tutorial entero",
-          "template view the whole tutorial message: view the whole tutorial: todos los pasos del camino de {first it.0}",
+          "template view the whole tutorial message: todos los pasos del camino de {first it.0}",
           "template view thread: ver el hilo",
-          "template view thread message: view thread: el hilo de {first it.0} hasta el génesis",
+          "template view thread message: el hilo de {first it.0} hasta el génesis",
           "template write to X: escribir a X",
           "template write to X param text label: texto",
           "template write to X param text help: el mensaje",
@@ -5547,9 +5749,13 @@ export const EPOCA_0_BTML_DATOS = [
           "template write to X param who help: quién escribe y quién recibe",
           "template write to X param actions label: acción",
           "template write to X param actions help: la acción",
-          "template write to X message: write to X: {me} escribe a {first it.3} sobre {first it.0}",
+          "template write to X message: {me} escribe a {first it.3} sobre {first it.0}",
           "template all announced movements happened: todos los movimientos anunciados ocurrieron",
           "template closed with error: cerrado con error",
+          "template weighted sum: suma ponderada",
+          "template weighted mean: media ponderada",
+          "template threshold: umbral",
+          "template one per person: uno por persona",
           "template expired: caducado",
           "template closed by decision: cerrado por decisión",
           "launch mode person: persona",
@@ -5661,8 +5867,15 @@ export const EPOCA_0_BTML_DATOS = [
           "size full: pantalla completa",
           "legible price: {amount} {series} por unidad",
           "legible amount: {amount} {series}",
+          "legible announced movement: {from} da {amount} a {to}",
+          "legible announced movement from: {from} da {amount}",
           "legible record: registro de {n} posiciones",
-          "legible series E: {denomination}",
+          "legible series E: {denomination} de {issuer}",
+          "denomination EUR: euros",
+          "denomination USD: dólares",
+          "denomination hora: horas",
+          "denomination vale: vales",
+          "legible nobody: nadie",
           "legible series P: P sobre {record}",
           "legible series P view: P sobre {record}, mirada {view}",
           "legible series R: R de {issuer}",
@@ -5703,6 +5916,10 @@ export const EPOCA_0_BTML_DATOS = [
           "reason no series: {name}: no hay serie para un movimiento de {amount}",
           "reason second factor missing: falta la autorización de {holder}: lo que mueves ({family}, {amount} o más) lo protege tu segundo factor; hasta que {holder} lo autorice desde StateArk, se queda en autorizado (pendiente de segundo factor)",
           "reason second factor not by the holder: la autorización la escribe {author} y la firma {signer}, y solo vale la que escribe y firma el titular, {holder}; sigue pendiente de segundo factor",
+          "reason second factor unreadable: la lectura «{rule}» no se ha podido hacer ({why}): {author} tiene {n} criterios de segundo factor y la lectura pasa del presupuesto de cálculo; no se sabe si esto espera la autorización de su titular",
+          "reason stage unreadable: no se ha podido comprobar si llega a {stages} ({why}): se queda en «{current}» sin saber si avanza",
+          "reason authorization without T: la cosa {thing} no tiene T para escribir la autorización: la propuesta transfirió {transferred} y hace falta {needed}",
+          "reason authorization transfer short: la propuesta transfiere {transferred} a {thing}, menos de lo que cuesta escribir su autorización ({needed})",
           "reason unknown template: plantilla de transacción desconocida: {template}",
           "reason X not in ledger: {name}: X no es un registro del libro",
           "reason who launches: {name}: quien la lanza (yo) tiene que ser una identidad",
@@ -5715,6 +5932,32 @@ export const EPOCA_0_BTML_DATOS = [
           "guide question 3: ¿Qué significa esta posición?",
           "guide answer: Cómo responder desde fuera de AGRAM. Este archivo es el contexto de una pantalla de AGRAM más estas instrucciones; lo puedes leer en cualquier sitio. Si solo explicas, responde en texto plano. Si quieres proponer cambios, responde con un único objeto JSON y nada más (también se acepta un único bloque ```json):\n{ \"propuestas\": [ { \"accion\": \"<nombre de una acción del aro>\", \"sobre\": \"<id (bastan los ocho primeros caracteres) o el 0 del registro del que trata>\", \"parametros\": { \"<nombre o etiqueta de un parámetro>\": <valor>, ... }, \"porque\": \"<una frase: por qué>\" } ] }\naccion es el nombre de una de las acciones que figuran en este archivo (el inglés canónico o el del idioma de la persona). sobre es el registro del que trata la acción; si es el foco, usa su id. parametros: solo los que pide la acción, por su nombre o su etiqueta, con el valor como se lee en pantalla (texto, número, una fecha como 2026-11-20, un registro por su id o su 0). porque se le enseña a la persona junto a tu propuesta.\nTu respuesta no escribe nada: la persona ve cada propuesta en el camino de AGRAM y la acepta, la rechaza o la cambia antes de que se escriba nada, y cada escritura la firma ella y la comprueban las reglas. No inventes ids, registros ni acciones que no estén en este archivo; si no estás seguro, no lo propongas.",
           "template guide settings: ajustes de la guía",
+          "template format settings: ajustes de formato",
+          "template format settings param date format label: formato de fecha",
+          "template format settings param date format help: cómo se escriben las fechas: legible (la de siempre), larga, corta o iso (ISO 8601)",
+          "template format settings param date format placeholder: legible",
+          "template format settings param date format option legible: legible",
+          "template format settings param date format option larga: larga",
+          "template format settings param date format option corta: corta",
+          "template format settings param date format option iso: ISO 8601",
+          "template format settings param number format label: formato de números",
+          "template format settings param number format help: cómo se escriben los números: tal cual (lo de siempre) o agrupados por miles",
+          "template format settings param number format placeholder: tal cual",
+          "template format settings param number format option tal-cual: tal cual",
+          "template format settings param number format option agrupados: agrupados",
+          "template format settings param editor style label: estilo del editor",
+          "template format settings param editor style help: cómo dispone el editor de BTML de la cara 5 un registro: expandido (lo de siempre) o compacto",
+          "template format settings param editor style placeholder: expandido",
+          "template format settings param editor style option expandido: expandido",
+          "template format settings param editor style option compacto: compacto",
+          "template format settings param editor view label: vista del editor",
+          "template format settings param editor view help: cómo se abre el editor de BTML de la cara 5: crudo (el BTML tal cual, lo de siempre) o formateado (ya con estos criterios)",
+          "template format settings param editor view placeholder: crudo",
+          "template format settings param editor view option crudo: crudo",
+          "template format settings param editor view option formateado: formateado",
+          "template format settings param format settings label: tipo",
+          "template format settings param format settings help: su tipo: esta plantilla, nombrada en el 5 del registro (B4: el 5 es el tipo)",
+          "template format settings param format settings placeholder: ajustes de formato",
           "template guide settings param guide settings label: ajustes de la guía",
           "template guide settings param guide settings help: los ajustes de la guía: qué modelo contesta y cómo se le llama",
           "template guide settings param guide settings placeholder: ajustes de la guía",
@@ -5744,7 +5987,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template exterior settings param seal url help: la dirección base del servicio de sello (el sello de tiempo, X.6.8.2: solo salen ids); vacío, no se sella nada",
           "template exterior settings param seal url placeholder: http://127.0.0.1:8787",
           "template exterior settings param pay url label: pagos",
-          "template exterior settings param pay url help: reservado para el servicio de pagos (StateArk, §5 del contrato con el exterior); nada lo lee todavía",
+          "template exterior settings param pay url help: la dirección del servicio de pagos (StateArk): la carta le pide los recibos de pago y firma con la clave del titular lo que le pide",
           "template exterior settings param observer keys label: claves del observador",
           "template exterior settings param observer keys help: las claves x-only (hex, separadas por espacios) de los observadores de cabeceras de StateArk: un sello solo cuenta si una de ellas firmó su cabecera (SIP 0); se leen de la cuenta raíz del eje, la identidad del génesis; vacío, ninguna declarada",
           "template exterior settings param observer keys placeholder: 4f1a… 9c2e…",
@@ -5792,10 +6035,27 @@ export const EPOCA_0_BTML_DATOS = [
         ],
         [
           "template preferences param render option animated: all",
+          "template format settings param date format option legible: readable",
+          "template format settings param date format option larga: long",
+          "template format settings param date format option corta: short",
+          "template format settings param date format option iso: ISO 8601",
+          "template format settings param number format option tal-cual: as is",
+          "template format settings param number format option agrupados: grouped",
+          "template format settings param editor style option expandido: expanded",
+          "template format settings param editor style option compacto: compact",
+          "template format settings param editor view option crudo: raw",
+          "template format settings param editor view option formateado: formatted",
           "legible price: {amount} {series} per unit",
           "legible amount: {amount} {series}",
+          "legible announced movement: {from} gives {amount} to {to}",
+          "legible announced movement from: {from} gives {amount}",
           "legible record: record of {n} positions",
-          "legible series E: {denomination}",
+          "legible series E: {issuer} {denomination}",
+          "denomination EUR: euros",
+          "denomination USD: dollars",
+          "denomination hora: hours",
+          "denomination vale: vouchers",
+          "legible nobody: nobody",
           "legible series P: P on {record}",
           "legible series P view: P on {record}, view {view}",
           "legible series R: R of {issuer}",
@@ -5820,6 +6080,10 @@ export const EPOCA_0_BTML_DATOS = [
           "reason no series: {name}: no series for a movement of {amount}",
           "reason second factor missing: the authorization of {holder} is missing: what you move ({family}, {amount} or more) is protected by your second factor; until {holder} authorizes it from StateArk, it stays authorized (second factor pending)",
           "reason second factor not by the holder: the authorization is written by {author} and signed by {signer}, and only the one written and signed by the holder, {holder}, counts; the second factor is still pending",
+          "reason second factor unreadable: the reading «{rule}» could not be done ({why}): {author} has {n} second factor criteria and the reading goes over the computation budget; it is unknown whether this awaits the authorization of its holder",
+          "reason stage unreadable: it could not be checked whether it reaches {stages} ({why}): it stays in «{current}» without knowing whether it moves on",
+          "reason authorization without T: {thing} has no T to write the authorization: the proposal transferred {transferred} and it takes {needed}",
+          "reason authorization transfer short: the proposal transfers {transferred} to {thing}, less than writing its authorization costs ({needed})",
           "reason unknown template: unknown transaction template: {template}",
           "reason X not in ledger: {name}: X is not a record of the ledger",
           "reason who launches: {name}: who launches it (yo) is an identity",
@@ -6011,7 +6275,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "b40303bc43dc30509c33bc4059a4cc818fc86816f74a1dee1ee944f70d62e7f8"
         },
         {
-          "ref": "5406df02fbad0393dc5af250b2dcb3ec7ff8550c95abdd4b5726548005e1a436"
+          "ref": "7754f8dd704dfdb115ef89a306e8b00824e9869b2c87a47cc80cf673bb56bda1"
         },
         {
           "ref": "f75da136da35d13e0cda76d5cde3daa342b32248f85af6f0c4dc29b4e47650d3"
@@ -6589,7 +6853,7 @@ export const EPOCA_0_DATOS = {
       "digito": 0,
       "nombre": "representación",
       "significado": "PV0: la lente libre sobre el registro en foco (nombre, cifra, imagen, HTML). Puede engañar; no garantiza verdad.",
-      "ejemplo": "compra 0 = 'Compra del menú del día'; =LOCAL(0) lo devuelve."
+      "ejemplo": "compra 0 = 'Compra del menú del día'; con it = la compra, =first (payload(it)).0 lo devuelve (payload(it): lo escrito, sin lo que el libro junta en sus posiciones)."
     },
     {
       "profundidad": 0,
@@ -6602,7 +6866,7 @@ export const EPOCA_0_DATOS = {
       "profundidad": 0,
       "digito": 2,
       "nombre": "criterios",
-      "significado": "PV2, jardín: lo que distingue cosas aparentemente iguales; decisiones y preferencias; BUSCAR, FILTRAR, ORDENAR, ELEGIR.",
+      "significado": "PV2, jardín: lo que distingue cosas aparentemente iguales; decisiones y preferencias; buscar, filtrar (where), ordenar (by) y elegir (first, last, nth).",
       "ejemplo": "menú 2 = ['sin gluten', 'vegetariano']; compra 2 = [ref menú:2]."
     },
     {
@@ -6659,21 +6923,21 @@ export const EPOCA_0_DATOS = {
       "digito": 0,
       "nombre": "qué es",
       "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): qué es la parte; su nombre o cara, lo que se ve si no se desarrolla.",
-      "ejemplo": "compra 1.0 = [ref menú:1]: qué es lo comprado; =LOCAL(1, 0, 0) lee su ocupante (la referencia, seguida); x.0 ocupa la misma dirección que x (colisión por ceros)."
+      "ejemplo": "compra 1.0 = [ref menú:1]: qué es lo comprado; =first (payload(it)).1.0 lee su ocupante (la referencia, seguida); x.0 ocupa la misma dirección que x (colisión por ceros)."
     },
     {
       "profundidad": 1,
       "digito": 1,
       "nombre": "cuánto",
-      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): cuánto; su magnitud (número con unidad, veces, duración), donde SUMAR y el producto tienen sentido.",
-      "ejemplo": "compra 1.1 = 1 (un menú): =LOCAL(1, 1) * 12 EUR da 12 EUR."
+      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): cuánto; su magnitud (número con unidad, veces, duración), donde la suma (sum) y el producto tienen sentido.",
+      "ejemplo": "compra 1.1 = 1 (un menú): =first (payload(it)).1.1 * (first (payload(it)).1.2).1 da 12 (los EUR, en (first (payload(it)).1.2).2: el BQL mínimo solo opera números)."
     },
     {
       "profundidad": 1,
       "digito": 2,
       "nombre": "con qué condición",
       "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): con qué condición; el criterio que la distingue o la condiciona: precio, requisito, límite.",
-      "ejemplo": "compra 1.2 = 'EUR 12': =REF(compra, \"1200000000\") da 12 EUR; una corrección escrita en '1200000000' es otro ocupante."
+      "ejemplo": "compra 1.2 = 'EUR 12': =(first (payload(it)).1.2).1 da 12 y =(first (payload(it)).1.2).2 da EUR; lo que se escribe después anclado en '1200000000' es otro ocupante (=last it.1.2)."
     },
     {
       "profundidad": 1,
@@ -6693,7 +6957,7 @@ export const EPOCA_0_DATOS = {
       "profundidad": 1,
       "digito": 5,
       "nombre": "dónde encaja",
-      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): dónde encaja; la dirección o referencia donde encaja en el árbol, lo que BUSCAR(LOCAL(5)) recibiría.",
+      "significado": "Aplicado al nodo de arriba (la mirada de la profundidad 0, el PV del registro en foco): dónde encaja; la dirección o referencia donde encaja en el árbol, la que sirve para buscarlo y situarlo.",
       "ejemplo": "Un escrito en la 1.5 de una reserva de Booking = { ref: calendario, dir: '7000000000' }: dónde encajan sus recursos."
     },
     {
@@ -6757,7 +7021,7 @@ export const EPOCA_0_DATOS = {
       "digito": 4,
       "nombre": "qué se hace",
       "significado": "Aplicado al nodo de arriba (la parte, el nodo de la profundidad 1): qué se hace; la operación que lo produjo: suma, producto, elección, consolidación.",
-      "ejemplo": "Los 14 EUR de la cuenta nacen de una suma: =REF(compra, \"1200000000\") + 2 EUR."
+      "ejemplo": "Los 14 EUR de la cuenta nacen de una suma: =(first (payload(it)).1.2).1 + 2, con it = la compra (los EUR, en su 1.2)."
     },
     {
       "profundidad": 2,
@@ -6792,7 +7056,7 @@ export const EPOCA_0_DATOS = {
       "digito": 9,
       "nombre": "cómo",
       "significado": "Aplicado al nodo de arriba (la parte, el nodo de la profundidad 1): cómo; el camino de cálculo, la fórmula o la instrucción que lo obtiene.",
-      "ejemplo": "La fórmula '=REF(…) + 2 EUR'; con '==' se guarda como texto sin evaluarse."
+      "ejemplo": "La fórmula '=(first (payload(it)).1.2).1 + 2'; con '==' se guarda como texto sin evaluarse."
     },
     {
       "profundidad": 3,
@@ -7286,7 +7550,7 @@ export const EPOCA_0_DATOS = {
     }
   ],
   "dudas": [
-    "1 · [X] decidir VG. Profundidad 2: ¿posiciones consultables (LOCAL(1, 2, 2) = 'EUR') o lectura de BQL sobre los campos que ya guarda el valor (unidad, desglose, dependencias)? En el registro de salida de la fábrica ya está decidido: el tercer dígito es la clase de modificación.",
+    "1 · [X] decidir VG. Profundidad 2: ¿posiciones consultables ((first (payload(it)).1.2).2 = \"EUR\", hoy el despliegue D-VALOR del BQL mínimo) o lectura de BQL sobre los campos que ya guarda el valor (unidad, desglose, dependencias)? En el registro de salida de la fábrica ya está decidido: el tercer dígito es la clase de modificación.",
     "2 · [X] decidir VG. Más de diez (mesas de doce, grupos grandes): ¿registro propio referenciado o vista BQL? Una lista ya es de n (VG, 7-11 noche: por hojas): el límite de diez queda por evento y por décupla.",
     "3 · [X] decidir VG. Una referencia BTML es una dirección y una dirección no entra en una lista: ¿cómo se referencia un ocupante concreto de una lista (el guiso del menú)? Hoy se referencia la lista entera.",
     "4 · [X] decidir VG. La convención para que un grupo de hojas sea décupla (envolver su 0: [[qué], cuánto, …]) es de los ejemplos; ¿se fija como forma canónica u otra (por ejemplo, envolver todas)?"
@@ -12232,7 +12496,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "second-factor.json",
-    "id": "5406df02fbad0393dc5af250b2dcb3ec7ff8550c95abdd4b5726548005e1a436",
+    "id": "7754f8dd704dfdb115ef89a306e8b00824e9869b2c87a47cc80cf673bb56bda1",
     "registro": [
       [
         "second factor"
@@ -12267,7 +12531,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             1
           ],
           [
-            "what triggers it: a family (E, P, R or T: «if it moves E») or a concrete series (E:casa/EUR); several, one per occupant"
+            "what triggers it: a family (E, P, R or T: «if it moves E») or a concrete series (casa euros); several, one per occupant"
           ]
         ],
         [
@@ -18395,7 +18659,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "0411807f91f2278eb8e023e465fff6b54a7e1305d074341150c566cffac715a9";
+export const EPOCA_0_BTML_ID = "f2e034a703cd7fbe8ea316e1dc8e48ab68436532d1e89f52a68eae6b2cb222a8";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

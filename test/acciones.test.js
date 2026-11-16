@@ -139,7 +139,7 @@ test('transaccion: los motivos legibles, en el idioma de quien lanza (los parám
   assert.equal(C.configuracion(eje, 'cocina').language, 'es');
   const emite = await A.transaccion(eje, 'issue E tied to X', { X: menu.id, denomination: 'racion', quantity: 5 }, 'cocina', { t: T1 });
   assert.equal(emite.ok, false);
-  assert.ok(emite.motivos.some((m) => m.regla === 'only persons mint' && m.mensaje === 'only persons mint: cocina es una cosa (su alta la escribió casa), y solo acuñan las personas'), JSON.stringify(emite.motivos));
+  assert.ok(emite.motivos.some((m) => m.regla === 'only persons mint' && m.mensaje === 'cocina es una cosa (su alta la escribió casa), y solo acuñan las personas'), JSON.stringify(emite.motivos));
   assert.ok(emite.motivos.some((m) => m.regla === 'minting E needs own R issued' && /nunca ha emitido R propia/.test(m.mensaje)));
   // El mismo motivo en inglés si se pide.
   const en = await A.transaccion(eje, 'issue E tied to X', { X: menu.id, denomination: 'racion', quantity: 5 }, 'cocina', { t: T1, idioma: 'en' });
@@ -333,7 +333,7 @@ test('stage (X.4.8): lo anunciado y pendiente, por estación (E pagar, P decidir
   // El camino de la huésped: tres pasos suyos, uno por estación, con la plantilla que la cumple.
   const c = await A.camino(eje, encargo.id, 'huesped', { t: T1 });
   assert.deepEqual(c.pasos.map((p) => [p.fuente, p.regla, p.hacer?.plantilla, p.espera]), [['reglas', 'stage', 'pay', null], ['reglas', 'stage', 'deliver', null], ['reglas', 'stage', 'deliver', null]]);
-  assert.ok(c.pasos.every((p) => /^stage: /.test(p.falta)), 'lo que falta se lee con el 9 de la lectura');
+  assert.ok(c.pasos.every((p) => p.falta.startsWith(C.mensaje(eje, 'stage', 'es') + ' · ')), 'lo que falta se lee con el 9 de la lectura (en español, sin su nombre delante)');
   // Pagar: la plantilla «pay» mueve lo anunciado; después la estación E está hecha.
   const pago = await A.transaccion(eje, 'pay', { X: encargo.id, announcement: { ref: aE.id } }, 'huesped', { t: T1 });
   assert.deepEqual([pago.ok, movs(pago.evento)[1]], [true, ['E', 5, 'huesped', 'cocina']]);
@@ -378,8 +378,8 @@ test('camino: la reserva dice a la huésped lo que le falta (pagar) y lo que esp
   const esperas = h.pasos.filter((p) => p.espera);
   // VG 12-11 (decisión 8): las tres noches van en un anuncio de la casa: una espera, con las tres.
   assert.deepEqual([mios.length, mios[0].hacer.plantilla, esperas.length, [...new Set(esperas.map((p) => p.espera))]], [1, 'pay', 1, ['casa']]);
-  assert.match(mios[0].falta, /^stage: .* · pagar 165 E:casa\/EUR huesped → casa$/);
-  assert.equal(esperas[0].falta.match(/1 E:casa\/1100000000@2026-11-2\d@/g).length, 3);
+  assert.match(mios[0].falta, /^lo que el registro anunció .* · pagar: Alta de huesped da 165 euros de Casa rural de ejemplo a Casa rural de ejemplo$/);
+  assert.equal(esperas[0].falta.match(/Casa rural de ejemplo da 1 1100000000@2026-11-2\d de Casa rural de ejemplo a Alta de huesped/g).length, 3, 'cada plaza por su código de denominación y su emisor, de la casa a la huésped');
   assert.equal(h.niveles, undefined, 'la reserva ya tiene madurez: no hace falta ubicarse');
   // La casa ve lo contrario: un paso suyo (las tres plazas, en una transacción sobre su anuncio) y la espera del pago.
   const c = await A.camino(eje, reserva.id, 'casa', { t });
@@ -431,7 +431,7 @@ test('el tutorial del alta sale del 9 de la plantilla de identidad: la clave (la
   const c = await A.camino(eje, alta, 'nueva', { t: T1 });
   const tutorial = c.pasos.filter((p) => p.fuente === 'tutorial');
   assert.deepEqual(tutorial.map((p) => [p.regla ?? p.hacer.plantilla, p.hecho]), [['a key is declared at its alta', false], ['set a group price', false], ['anchor here', false]]);
-  assert.match(tutorial[0].falta, /^a key is declared at its alta: /);
+  assert.match(tutorial[0].falta, /ya tiene cuenta, o ni escribe ni recibe nada aquí$/, 'el 9 de la regla en español, sin su nombre delante');
   assert.deepEqual(tutorial[1].hacer.parametros, { token: 'my R', amount: 1, zone: 0 });
   assert.equal(tutorial[2].hacer.parametros.title, undefined, 'el primer registro pide un título');
   // Autoejecutar: pone el precio de su primer grupo y se para en el registro, que pide un título.
@@ -674,7 +674,7 @@ test('el anuncio es un movimiento anunciado del libro: no toca saldos, lo lee mo
   assert.equal(A.estacionDeAnuncio(eje, a.id), 'propuesta');
   const [paso] = (await A.camino(eje, encargo.id, 'huesped', { t: T1 })).pasos.filter((p) => p.regla === 'stage');
   assert.deepEqual([paso.hacer.plantilla, paso.anuncio], ['pay', a.id]);
-  assert.match(paso.falta, /pagar la cena 7 E:casa\/EUR huesped → cocina$/);
+  assert.match(paso.falta, /pagar la cena: Alta de huesped da 7 euros de Casa de ejemplo a cocina$/);
   const pago = await A.transaccion(eje, 'pay', { X: encargo.id }, 'huesped', { t: T1 });
   assert.deepEqual([pago.ok, pago.evento.sobre, movs(pago.evento)[1]], [true, a.id, ['E', 7, 'huesped', 'cocina']], JSON.stringify(pago.motivos));
   await eje.anadir(pago.evento);

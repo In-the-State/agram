@@ -11,7 +11,7 @@
       ["VG 12/13-11 (#66, #70): parámetro de «second factor»"],
       ["required"],
       [1],
-      ["what triggers it: a family (E, P, R or T: «if it moves E») or a concrete series (E:casa/EUR); several, one per occupant"]
+      ["what triggers it: a family (E, P, R or T: «if it moves E») or a concrete series (casa euros); several, one per occupant"]
     ],
     [
       ["amount"],

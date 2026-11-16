@@ -90,7 +90,7 @@ test('las diez lecturas son reglas largas de epoch.2, una por PV («point of vie
     assert.ok(!EPOCA_0_BTML.condiciones.includes(x.regla) && !EPOCA_0_BTML.lecturas.includes(x.regla), x.nombre + ': ni condición ni lectura materializada');
     assert.equal(x.regla.length, 10);
     const es = C.mensaje(null, x.regla, 'es');
-    assert.ok(es.startsWith(x.nombre + ': ') && es !== x.regla[9].at(-1), x.nombre + ': su texto en español, distinto del canónico');
+    assert.ok(!es.startsWith(x.nombre + ': ') && es !== x.regla[9].at(-1), x.nombre + ': su texto en español, distinto del canónico y sin su nombre delante');
   }
 });
 

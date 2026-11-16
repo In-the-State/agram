@@ -49,7 +49,7 @@ test('las reglas están en el 2 de la época: «sealed» en X.6.8.5, «received�
     assert.deepEqual(r[3], [donde]);
     assert.deepEqual(r[4], ['read']);
     assert.ok(!EPOCA_0_BTML.condiciones.includes(r), 'no es una condición de la transacción');
-    assert.match(contrato.mensaje(null, r, 'es'), /^(sealed|received): /, 'su 9 en español (epoch.9.4)');
+    assert.ok(contrato.mensaje(null, r, 'es') !== r[9].at(-1) && !/^(sealed|received): /.test(contrato.mensaje(null, r, 'es')), 'su 9 en español (epoch.9.4), sin su nombre delante');
   }
   assert.deepEqual(regla('paid')[3], ['X.6.8.6'], '«paid» en X.6.8.6, junto al recibo de pago copiado en X.6.8.3');
   assert.deepEqual(regla('paid')[4], ['read']);

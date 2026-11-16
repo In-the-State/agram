@@ -60,7 +60,8 @@ test('las 46 plantillas de transacción tienen en es su nombre, la etiqueta y la
     // un mensaje que es solo un hueco (el nombre de la cosa, «register a thing»: es el 0 de lo que escribe, VG 13-11, #75) no se traduce
     const soloHuecos = original.replace(/\{[^{}]*\}/g, '').trim() === '';
     const mensaje = tiene(C.claves.mensaje(nombre), soloHuecos ? undefined : original);
-    if (!soloHuecos) assert.ok(mensaje.startsWith(nombre + ': '), nombre + ': el mensaje traducido empieza por el nombre canónico');
+    // Época 0 final (#83): el nombre es el 0 de la plantilla; el mensaje traducido no lo lleva delante.
+    if (!soloHuecos) assert.ok(!mensaje.startsWith(nombre + ': '), nombre + ': el mensaje traducido no empieza por el nombre canónico');
     assert.deepEqual(huecos(mensaje), huecos(original), nombre + ': los mismos huecos');
   }
   // Las plantillas de datos (purchase, booking, preferences): cada posición descrita, con su etiqueta y su ayuda.
@@ -86,13 +87,13 @@ test('legible: precio, serie, instante, identidad, referencia, décupla, lista, 
   assert.equal(L([['E'], [1]], 'tenfold', { idioma: 'en' }).texto, '1 E per unit');
   assert.equal(L([['E'], [1]], 'tenfold', { idioma: 'fr' }).texto, '1 E per unit', 'sin el idioma, el canónico');
   const precio = L([['E:casa/EUR'], [12]], 'tenfold');
-  assert.equal(precio.texto, '12 EUR por unidad');
+  assert.equal(precio.texto, '12 euros de Casa de ejemplo por unidad');
   assert.deepEqual([precio.partes.precio.cuanto, precio.partes.precio.serie.denominacion, precio.partes.precio.serie.registroTexto], [12, 'EUR', 'Casa de ejemplo']);
   // Una lista de precios.
-  assert.equal(L([[['E:casa/EUR'], [12]], [['T'], [1]]]).texto, '12 EUR por unidad · 1 T por unidad');
-  // Una serie: E por su denominación con su registro; T por su escala (el nombre de epoch.1.3); P por su registro; R por su emisor.
+  assert.equal(L([[['E:casa/EUR'], [12]], [['T'], [1]]]).texto, '12 euros de Casa de ejemplo por unidad · 1 T por unidad');
+  // Una serie: E por el nombre de su denominación y su emisor por su 0 (#83); T por su escala (el nombre de epoch.1.3); P por su registro; R por su emisor.
   const serie = L('E:casa/EUR');
-  assert.equal(serie.texto, 'EUR');
+  assert.equal(serie.texto, 'euros de Casa de ejemplo');
   assert.equal(serie.partes.registro, eje.genesisId);
   assert.equal(serie.partes.registroTexto, 'Casa de ejemplo');
   assert.equal(L('T:hora').texto, 'hora');
@@ -126,7 +127,7 @@ test('legible: precio, serie, instante, identidad, referencia, décupla, lista, 
   assert.equal(L(['huesped', 'cocina'], 'identity').texto, 'Alta de huesped · cocina');
   assert.equal(L(['pagar', 'servir']).texto, 'pagar · servir');
   // Una cantidad de token (un asiento): cuánto y la serie.
-  assert.equal(L({ primitiva: 'transferir', serie: 'E:casa/EUR', cantidad: 12 }).texto, '12 EUR');
+  assert.equal(L({ primitiva: 'transferir', serie: 'E:casa/EUR', cantidad: 12 }).texto, '12 euros de Casa de ejemplo');
   assert.equal(L({ serie: 'T:hora', cantidad: 1 }).texto, '1 hora');
   // Un nombre de acción, de plantilla de datos o de nivel: su traducción; un número, él; nada, vacío.
   assert.equal(L('apply a resource').texto, 'aplicar un recurso');
@@ -186,7 +187,7 @@ test('etiqueta, ayuda, marcador, madurez, validar y los parámetros del aro habl
   assert.deepEqual(r.motivos.map((m) => m.mensaje), ['cantidad: cuántas unidades']);
   // El mensaje de una lectura y de un paso del camino, en el idioma; el 0 del registro escrito sigue en inglés (dato canónico).
   const lectura = await A.transaccion(eje, 'view thread', { X: menu.id }, 'huesped', { t: T1, idioma: 'es' });
-  assert.equal(lectura.lectura.mensaje, 'view thread: el hilo de Menú del día hasta el génesis');
+  assert.equal(lectura.lectura.mensaje, 'el hilo de Menú del día hasta el génesis', 'sin el nombre de la plantilla delante (#83)');
   const bien = await A.transaccion(eje, 'apply a resource', { X: menu.id, quantity: 1, price: [['E:casa/EUR'], [12]] }, 'huesped', { t: T1, idioma: 'es' });
   assert.ok(bien.ok, JSON.stringify(bien.motivos));
   assert.match(bien.evento.payload[0], /^apply a resource: huesped gives 12 E:casa\/EUR to /);
@@ -222,7 +223,7 @@ test('el árbol de la carta para la compra en es no lleva ninguna cadena que emp
   assert.ok(hueco.otras.some((o) => o.nombre === 'bloquear E como puja por una cuota'));
   const seis = a.laterales.find((n) => n.pv === 6);
   const laCompra = seis.diario.entradas.find((e) => e.id === X.id); // el diario del 6, lo más reciente arriba (#18): la compra, por su id
-  assert.ok(laCompra.movimientos.some((x) => x === 'transferir 12 EUR'), JSON.stringify(laCompra.movimientos));
+  assert.ok(laCompra.movimientos.some((x) => x === 'transferir 12 euros de Casa de ejemplo'), JSON.stringify(laCompra.movimientos));
   // El formulario: el nombre traducido, la acción por id, cada campo con su etiqueta, su legible y si es simple.
   const f = a.formulario;
   assert.equal(f.nombre, 'aplicar un recurso');

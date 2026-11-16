@@ -76,7 +76,7 @@ test('sin T de segundo del día, ver y tocar devuelven el motivo de la regla de 
   await eje.escribir({ autor: 'huesped', sobre: eje.alta('huesped').id, en: '9000000000', t: '2026-11-07T18:00:00Z', movimientos: [pagaElCoste('huesped')], payload: agram.contrato.registroDeAjustes('preferences', { step: 10, render: 'sober', language: 'es', sizes: [1, 2, 3] }, { quien: 'huesped' }) });
   const otro = new LibroLocal(eje, 'huesped', { epoca: epocaCon((e) => { e[1][3][1][0][1] = [1]; }) });
   otro.ver(menu.id, { t: T(0) });
-  assert.match(otro.ver(menu.id, { t: T(1) }).motivo, /^writing burns today's T: huesped quema menos T del que cuesta escribir \(60 segundos\), o más del que le queda hoy/);
+  assert.match(otro.ver(menu.id, { t: T(1) }).motivo, /^huesped quema menos T del que cuesta escribir \(60 segundos\), o más del que le queda hoy/);
 });
 
 test('englobar escribe UN solo registro de escala minuto en el eje: quema 1 T de minuto, su 6 ancla el recorrido, su 7 dice la escala, y queda anclado a lo anterior', async () => {

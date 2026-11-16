@@ -189,7 +189,7 @@ test('enviar: una transacción mal formada devuelve los motivos sin asentar nada
   assert.equal(C.configuracion(eje, 'cocina').language, 'es');
   const es = await enviar(eje, menu.id, 'issue E tied to X', { denomination: 'racion', quantity: 5 }, 'cocina', undefined, { t: T1 });
   assert.equal(es.ok, false);
-  assert.ok(es.motivos.some((m) => m.regla === 'only persons mint' && m.mensaje === 'only persons mint: cocina es una cosa (su alta la escribió casa), y solo acuñan las personas'), JSON.stringify(es.motivos));
+  assert.ok(es.motivos.some((m) => m.regla === 'only persons mint' && m.mensaje === 'cocina es una cosa (su alta la escribió casa), y solo acuñan las personas'), JSON.stringify(es.motivos));
   // Una buena: la huésped da E al menú; «firmar» recibe el evento (aquí lo marca) y el eje lo guarda.
   let firmado = null;
   const bien = await enviar(eje, menu.id, 'apply a resource', { quantity: 1, price: [['E:casa/EUR'], [12]] }, 'huesped', async (ev) => { firmado = ev; return ev; }, { t: T1 });
