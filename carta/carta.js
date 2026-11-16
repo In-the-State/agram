@@ -169,6 +169,20 @@ function marcaDeVerificado(eje, X, opciones) {
   return { verificado: true, ...(v.profundidad !== null ? { confirmaciones: v.profundidad } : {}), ...(v.enFirme ? { enFirme: true, minimas: exterior.ajustesDelEje(eje, opciones).confirmaciones } : {}), ...segundo };
 }
 
+/**
+ * El pago de un registro en su reverso (encargo «carta: pagos», 16-11), o null si no hay nada que enseñar: `buscar`, la
+ * acción «buscar su recibo de pago», si mi configuración dice «pay url» (exterior settings), y `estado`: 'pagado' si la
+ * lectura «paid» (contrato.verificado, X.6.8.6) es verdadera, 'pendiente' si la sincronía de la cuenta espera su recibo
+ * (estadoDePago), 'noVale' si «paid» es falsa; sin recibo ni espera, null. Nunca una pantalla de pagar.
+ */
+function pagoDelRegistro(eje, X, ctx) {
+  const buscar = Boolean(ctx.yo && exterior.exterior(eje, ctx.yo, ctx.opciones).pago);
+  const v = eje.pago?.(X) ? contrato.verificado(eje, X, ctx.opciones) : null;
+  const espera = ctx.estado?.sincronia?.estadoDePago?.(X);
+  const estado = v?.pago === true ? 'pagado' : espera?.esperando ? 'pendiente' : v?.pago === false ? 'noVale' : null;
+  return buscar || estado ? { buscar, estado } : null;
+}
+
 function tamanoQueCabe(px, medidas, opciones) {
   const lista = contrato.tamanos(opciones);
   let elegido = lista[0] ?? null;
@@ -670,6 +684,8 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
       tLegible: ev?.t ? fechaDelRegistro(ev.t, ctx.estado.formato, { eje, idioma: ctx.opciones.idioma, opciones: { epoca: ctx.opciones.epoca } }) : null,
       // «verificado» (los tres relojes, contrato.verificado): solo si lo está; una marca discreta, nunca un dato de la carta.
       ...marcaDeVerificado(eje, X, ctx.opciones),
+      // El recibo de pago (X.6.8.3): «pagado», «pago pendiente de bloque» o «no vale», y «buscar su recibo de pago» con «pay url».
+      pago: pagoDelRegistro(eje, X, ctx),
     };
   }
   // Un PV lateral abierto como foco: su lista entera (paginada), con la disposición que dice la época para este hueco.

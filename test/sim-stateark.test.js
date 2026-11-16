@@ -1,4 +1,5 @@
 // Pruebas de la simulación de StateArk (§3 sello de tiempo, anclado por Taproot), copiadas tal cual del commit 0ddd6e7 de InTheState/stateark/sim con las rutas adaptadas a servidor/sim/stateark/ (y los vectores de rust-miniscript de taproot, de test/vectores-miniscript.js).
+// El describe del servidor, al día con abc5e84 (S33 y S54: /pagos/saldos, /pagos/recibo-pago/:txid y /pagos/recibo-pago/puntero/:id, y la firma NIP-98 del titular): la sim exige la firma y estas pruebas FIRMAN (no la desactivan, como hace la copia de Core StateArk con firmaTitular: false), con claves de PRUEBA; el caso de cada ruta está en test/sim-stateark-nip98.test.js.
 // Cada archivo original es un describe. (§5, §6 y §8 están en sim-stateark-pagos / -custodia / -candado; el observador y el recibo «pago», en sim-stateark-observador / -recibo-pago.)
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
@@ -8,6 +9,8 @@ import { arbol, raizDesde, hoja } from '../servidor/sim/stateark/merkle.js';
 import { Sellador } from '../servidor/sim/stateark/sello.js';
 import { Cadena } from '../servidor/sim/stateark/cadena.js';
 import { crearServidor } from '../servidor/sim/stateark/servidor.js';
+import { firmarNip98, publicaDe } from '../servidor/sim/stateark/nip98.js';
+import { createHash } from 'node:crypto';
 import { claveDeSalida, arbolTaproot, raizDesdeHermanos, scriptDeCompromiso, anclar, scriptDeSalida } from '../servidor/sim/stateark/taproot.js';
 import { liftX } from '../servidor/sim/stateark/secp.js';
 import { NUMS, hoja as hojaTapscript } from '../servidor/sim/stateark/miniscript.js';
@@ -246,8 +249,16 @@ describe("sim stateark: servidor", () => {
   });
   after(() => new Promise((r) => servidor.close(r)));
 
-  const post = (ruta, cuerpo) =>
-    fetch(base + ruta, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(cuerpo ?? {}) });
+  // Con `clave` (la privada de PRUEBA del titular), firmado NIP-98 como la carta: u = base + ruta, payload = el cuerpo exacto, un content por petición (S54).
+  let serie = 0;
+  const post = async (ruta, cuerpo, clave) => {
+    const body = JSON.stringify(cuerpo ?? {});
+    const headers = { 'content-type': 'application/json' };
+    if (clave) headers.authorization = (await firmarNip98(clave, { url: base + ruta, metodo: 'POST', cuerpo: body, content: String(++serie) })).cabecera;
+    return fetch(base + ruta, { method: 'POST', headers, body });
+  };
+  /** Una clave privada de PRUEBA (la forma de la sim: SHA-256 de «titular de PRUEBA «semilla»»). */
+  const claveDePrueba = (semilla) => createHash('sha256').update(`titular de PRUEBA «${semilla}»`).digest('hex');
 
   test('recorrido completo por HTTP: sellar, 202 pendiente, minar, 200 prueba, verificar', async () => {
     const id = await sha256Texto('evento por http');
@@ -287,10 +298,12 @@ describe("sim stateark: servidor", () => {
   test('§5 por HTTP: cartera, grifo, preparar, autorizar, ejecutar, minar, recibo y verificación', async () => {
     const { firmaSimulada, mensajeAutorizacion } = await import('../servidor/sim/stateark/pagos.js');
     const { huella } = await import('../servidor/sim/stateark/canon.js');
-    const titular = await sha256Texto('titular http');
+    const k = claveDePrueba('http');
+    const titular = publicaDe(k);
     const ok = async (r) => { assert.equal(r.status, 200, await r.clone().text()); return r.json(); };
-    await ok(await post('/pagos/cartera', { nombre: 'casa', titular }));
-    const { direccion } = await ok(await post('/pagos/direccion', { nombre: 'casa' }));
+    assert.equal((await post('/pagos/cartera', { nombre: 'casa', titular })).status, 401, 'sin la firma del titular, no');
+    await ok(await post('/pagos/cartera', { nombre: 'casa', titular }, k));
+    const { direccion } = await ok(await post('/pagos/direccion', { nombre: 'casa' }, k));
     await ok(await post('/pagos/acunar', { direccion, sat: 500_000 }));
     await ok(await post('/minar'));
     const instruccion = {
@@ -298,7 +311,7 @@ describe("sim stateark: servidor", () => {
       amount: { valor: 200_000, unidad: 'sat' }, destino: { clase: 'agram/serie', valor: 'E:casa/cama-1@*' },
       correlation_id: 'HTTP-1',
     };
-    const plan = await ok(await post('/pagos/preparar', { nombre: 'casa', instruccion }));
+    const plan = await ok(await post('/pagos/preparar', { nombre: 'casa', instruccion }, k));
     const firma = await firmaSimulada(titular, await mensajeAutorizacion(await huella(plan)));
     const autorizacion = await ok(await post('/pagos/autorizar', { plan, titular, firma }));
     const recibo = await ok(await post('/pagos/ejecutar', { nombre: 'casa', instruccion, plan, autorizacion }));
@@ -308,7 +321,7 @@ describe("sim stateark: servidor", () => {
     const f = await ok(await post('/pagos/verificar-fondos', { serie: 'E:casa/cama-1@*', recibo: r }));
     assert.deepEqual([f.ok, f.sat], [true, 200_000]);
 
-    const caducada = await post('/pagos/preparar', { nombre: 'casa', instruccion: { ...instruccion, rail: 'ark' } });
+    const caducada = await post('/pagos/preparar', { nombre: 'casa', instruccion: { ...instruccion, rail: 'ark' } }, k);
     assert.equal(caducada.status, 422);
     assert.equal((await caducada.json()).codigo, 'rail_unknown');
     assert.equal((await fetch(`${base}/pagos/recibo/${'0'.repeat(64)}`)).status, 404);
@@ -324,18 +337,19 @@ describe("sim stateark: servidor", () => {
     const { firmaSimulada, mensajeAutorizacion } = await import('../servidor/sim/stateark/pagos.js');
     const { huella } = await import('../servidor/sim/stateark/canon.js');
     const ok = async (r) => { assert.equal(r.status, 200, await r.clone().text()); return r.json(); };
-    const [tc, th] = [await sha256Texto('casa §8'), await sha256Texto('huesped §8')];
-    await ok(await post('/pagos/cartera', { nombre: 'casa8', titular: tc }));
-    await ok(await post('/pagos/cartera', { nombre: 'huesped8', titular: th }));
-    await ok(await post('/pagos/acunar', { direccion: (await ok(await post('/pagos/direccion', { nombre: 'huesped8' }))).direccion, sat: 300_000 }));
+    const [kc, kh] = [claveDePrueba('casa §8'), claveDePrueba('huesped §8')];
+    const [tc, th] = [publicaDe(kc), publicaDe(kh)];
+    await ok(await post('/pagos/cartera', { nombre: 'casa8', titular: tc }, kc));
+    await ok(await post('/pagos/cartera', { nombre: 'huesped8', titular: th }, kh));
+    await ok(await post('/pagos/acunar', { direccion: (await ok(await post('/pagos/direccion', { nombre: 'huesped8' }, kh))).direccion, sat: 300_000 }));
     const { altura } = await ok(await post('/minar'));
     const { preimagen, hash } = await ok(await post('/pagos/secreto'));
-    const cobra = (await ok(await post('/pagos/direccion', { nombre: 'casa8' }))).direccion;
+    const cobra = (await ok(await post('/pagos/direccion', { nombre: 'casa8' }, kc))).direccion;
     const instruccion = {
       schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain', amount: { valor: 100_000, unidad: 'sat' },
       destino: { clase: 'htlc/sha256', valor: hash, cobra, vence: altura + 10 }, correlation_id: 'HTTP-8',
     };
-    const plan = await ok(await post('/pagos/preparar', { nombre: 'huesped8', instruccion }));
+    const plan = await ok(await post('/pagos/preparar', { nombre: 'huesped8', instruccion }, kh));
     const firma = await firmaSimulada(th, await mensajeAutorizacion(await huella(plan)));
     const autorizacion = await ok(await post('/pagos/autorizar', { plan, titular: th, firma }));
     await ok(await post('/pagos/ejecutar', { nombre: 'huesped8', instruccion, plan, autorizacion }));
@@ -350,6 +364,148 @@ describe("sim stateark: servidor", () => {
     const rc = await ok(await fetch(`${base}/pagos/candado/${hash}`));
     assert.equal(rc.estado, 'cobrado');
     assert.equal((await ok(await post('/pagos/verificar-candado', { recibo: rc }))).motivo, 'en firme');
+  });
+
+
+  test('§5 por HTTP: /pagos/saldos por madurez y /pagos/recibo-pago/:txid firmado, con sus rechazos', async () => {
+    const { firmaSimulada, mensajeAutorizacion } = await import('../servidor/sim/stateark/pagos.js');
+    const { huella } = await import('../servidor/sim/stateark/canon.js');
+    const { verificarReciboComun } = await import('../servidor/sim/stateark/index.js');
+    const ks = claveDePrueba('saldos');
+    const titular = publicaDe(ks);
+    const ko = claveDePrueba('otra');
+    const ok = async (r) => { assert.equal(r.status, 200, await r.clone().text()); return r.json(); };
+    await ok(await post('/pagos/cartera', { nombre: 'saldos', titular }, ks));
+    const { direccion } = await ok(await post('/pagos/direccion', { nombre: 'saldos' }, ks));
+    const otra = await ok(await post('/pagos/cartera', { nombre: 'otra', titular: publicaDe(ko) }, ko));
+    assert.equal(otra.nombre, 'otra');
+    const dest = (await ok(await post('/pagos/direccion', { nombre: 'otra' }, ko))).direccion;
+
+    const vacio = await ok(await post('/pagos/saldos', { nombre: 'saldos' }, ks));
+    assert.deepEqual(Object.keys(vacio), ['altura', 'n', 'pendiente', 'con_fondos_en_sats', 'en_firme']);
+    assert.deepEqual([vacio.n, vacio.pendiente, vacio.con_fondos_en_sats, vacio.en_firme], [6, 0, 0, 0]);
+
+    await ok(await post('/pagos/acunar', { direccion, sat: 500_000 }));
+    assert.equal((await ok(await post('/pagos/saldos', { nombre: 'saldos' }, ks))).pendiente, 500_000);
+    await ok(await post('/minar'));
+    const s1 = await ok(await post('/pagos/saldos', { nombre: 'saldos' }, ks));
+    assert.deepEqual([s1.pendiente, s1.con_fondos_en_sats, s1.en_firme], [0, 500_000, 0]);
+    for (let i = 0; i < 5; i++) await ok(await post('/minar'));
+    const s2 = await ok(await post('/pagos/saldos', { nombre: 'saldos' }, ks));
+    assert.deepEqual([s2.pendiente, s2.con_fondos_en_sats, s2.en_firme], [0, 0, 500_000]);
+    assert.equal(s2.altura, (await ok(await fetch(base + '/'))).altura);
+
+    const instruccion = {
+      schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
+      amount: { valor: 100_000, unidad: 'sat' }, destino: { clase: 'bitcoin/address', valor: dest },
+      correlation_id: 'HTTP-RP',
+    };
+    const plan = await ok(await post('/pagos/preparar', { nombre: 'saldos', instruccion }, ks));
+    const firma = await firmaSimulada(titular, await mensajeAutorizacion(await huella(plan)));
+    const autorizacion = await ok(await post('/pagos/autorizar', { plan, titular, firma }));
+    const recibo = await ok(await post('/pagos/ejecutar', { nombre: 'saldos', instruccion, plan, autorizacion }));
+    const txid = recibo.posicion.txid;
+
+    const sinBloque = await fetch(`${base}/pagos/recibo-pago/${txid}`);
+    assert.equal(sinBloque.status, 422, await sinBloque.clone().text());
+    assert.equal((await sinBloque.json()).codigo, 'unconfirmed');
+    const mid = await ok(await post('/pagos/saldos', { nombre: 'saldos' }, ks));
+    assert.equal(mid.en_firme, 0, 'el pago gastó la moneda en firme: queda solo la vuelta, pendiente');
+    assert.equal(mid.pendiente, 500_000 - 100_000 - plan.comision_sat);
+
+    await ok(await post('/minar'));
+    const rp = await ok(await fetch(`${base}/pagos/recibo-pago/${txid}`));
+    assert.equal(rp.schema, 'stateark.recibo@1');
+    assert.deepEqual(rp.recibo[0], ['recibo', 'pago']);
+    assert.deepEqual(rp.recibo[1], [txid]);
+    assert.equal((await verificarReciboComun(rp)).ok, true);
+
+    assert.equal((await fetch(`${base}/pagos/recibo-pago/${'0'.repeat(64)}`)).status, 404);
+    assert.equal((await fetch(`${base}/pagos/recibo-pago/no-es-txid`)).status, 404);
+    const sinCartera = await post('/pagos/saldos', { nombre: 'nadie' }, ks); // con firma válida, una cartera que no existe la responde el carril
+    assert.equal(sinCartera.status, 400);
+    assert.equal((await post('/pagos/saldos', {}, ks)).status, 400);
+  });
+
+  test('§5 por HTTP: /pagos/recibo-pago/puntero/:id, el recibo por el id de AGRAM (bueno, 404, 422, varios, mal formado)', async () => {
+    const { firmaSimulada, mensajeAutorizacion } = await import('../servidor/sim/stateark/pagos.js');
+    const { huella } = await import('../servidor/sim/stateark/canon.js');
+    const { verificarReciboComun } = await import('../servidor/sim/stateark/index.js');
+    const kp = claveDePrueba('puntero');
+    const titular = publicaDe(kp);
+    const kd = claveDePrueba('ptr-dest');
+    const ok = async (r) => { assert.equal(r.status, 200, await r.clone().text()); return r.json(); };
+    await ok(await post('/pagos/cartera', { nombre: 'ptr', titular }, kp));
+    await ok(await post('/pagos/cartera', { nombre: 'ptr-dest', titular: publicaDe(kd) }, kd));
+    const dest = (await ok(await post('/pagos/direccion', { nombre: 'ptr-dest' }, kd))).direccion;
+    const { direccion } = await ok(await post('/pagos/direccion', { nombre: 'ptr' }, kp));
+    for (let i = 0; i < 3; i++) await ok(await post('/pagos/acunar', { direccion, sat: 500_000 }));
+    await ok(await post('/minar'));
+    const puntero = await sha256Texto('registro de AGRAM por puntero');
+    const pagar = async (correlation_id, conPuntero) => {
+      const instruccion = {
+        schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
+        amount: { valor: 50_000, unidad: 'sat' }, destino: { clase: 'bitcoin/address', valor: dest },
+        correlation_id, ...(conPuntero ? { puntero } : {}),
+      };
+      const plan = await ok(await post('/pagos/preparar', { nombre: 'ptr', instruccion }, kp));
+      const firma = await firmaSimulada(titular, await mensajeAutorizacion(await huella(plan)));
+      const autorizacion = await ok(await post('/pagos/autorizar', { plan, titular, firma }));
+      return (await ok(await post('/pagos/ejecutar', { nombre: 'ptr', instruccion, plan, autorizacion }))).posicion.txid;
+    };
+    const ruta = (id) => `${base}/pagos/recibo-pago/puntero/${id}`;
+
+    assert.equal((await fetch(ruta(puntero))).status, 404, 'aún no hay pago con ese puntero');
+    const t1 = await pagar('PTR-1', true);
+    const sin = await fetch(ruta(puntero));
+    assert.equal(sin.status, 422);
+    assert.equal((await sin.json()).codigo, 'unconfirmed');
+
+    await ok(await post('/minar'));
+    const r1 = await ok(await fetch(ruta(puntero)));
+    assert.equal(r1.schema, 'stateark.recibo@1');
+    assert.deepEqual(r1.recibo[0], ['recibo', 'pago']);
+    assert.deepEqual(r1.recibo[1], [t1]);
+    assert.equal((await verificarReciboComun(r1)).ok, true);
+    assert.deepEqual(r1.recibo, (await ok(await fetch(`${base}/pagos/recibo-pago/${t1}`))).recibo, 'el mismo recibo que por txid');
+
+    // varios con el mismo puntero: gana el más antiguo con bloque (por altura)
+    const t2 = await pagar('PTR-2', true);
+    const t3 = await pagar('PTR-3', true);
+    assert.deepEqual((await ok(await fetch(ruta(puntero)))).recibo[1], [t1], 't2 y t3 sin bloque: sigue ganando t1');
+    await ok(await post('/minar'));
+    const r = await ok(await fetch(ruta(puntero)));
+    assert.deepEqual(r.recibo[1], [t1], 'a más altura, no desbanca al más antiguo');
+    assert.notEqual(t2, t3);
+
+    // a igual altura, gana la posición en el bloque: dos pagos con otro puntero que entran en el mismo bloque
+    const doble = await sha256Texto('otro registro de AGRAM, dos pagos en un bloque');
+    const pagarA = async (correlation_id) => {
+      const instruccion = {
+        schema: 'stateark.payment-instruction@2', rail: 'bitcoin.onchain',
+        amount: { valor: 40_000, unidad: 'sat' }, destino: { clase: 'bitcoin/address', valor: dest },
+        correlation_id, puntero: doble,
+      };
+      const plan = await ok(await post('/pagos/preparar', { nombre: 'ptr', instruccion }, kp));
+      const firma = await firmaSimulada(titular, await mensajeAutorizacion(await huella(plan)));
+      const autorizacion = await ok(await post('/pagos/autorizar', { plan, titular, firma }));
+      return (await ok(await post('/pagos/ejecutar', { nombre: 'ptr', instruccion, plan, autorizacion }))).posicion.txid;
+    };
+    const d1 = await pagarA('PTR-D1');
+    const d2 = await pagarA('PTR-D2');
+    await ok(await post('/minar'));
+    const bloqueDe = async (t) => (await ok(await fetch(`${base}/pagos/recibo-pago/${t}`))).recibo[3][1];
+    assert.equal(await bloqueDe(d1), await bloqueDe(d2), 'los dos, en el mismo bloque');
+    assert.deepEqual((await ok(await fetch(ruta(doble)))).recibo[1], [d1], 'a igual altura, el primero del bloque');
+
+    // sin puntero: no se encuentra por ese id
+    await pagar('PTR-4', false);
+    assert.equal((await fetch(ruta(await sha256Texto('otro id')))).status, 404);
+
+    // mal formado: 404, como el txid malo
+    for (const malo of ['no-es-id', puntero.toUpperCase(), puntero.slice(1), puntero + '0']) {
+      assert.equal((await fetch(ruta(malo))).status, 404, malo);
+    }
   });
 });
 

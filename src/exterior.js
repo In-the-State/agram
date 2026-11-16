@@ -1,20 +1,20 @@
 // Los servicios de fuera (docs/CONTRATO.md §16.2 bis, decisión #58 de VG): dónde viaja el libro (relé: eventos y recibo de
-// llegada), dónde están los archivos (Blossom) y dónde se sella (StateArk). Son los ajustes de una plantilla de la época,
+// llegada), dónde están los archivos (Blossom), dónde se sella y dónde se piden los recibos de pago (StateArk). Son los ajustes de una plantilla de la época,
 // «exterior settings», como «guide settings»: un registro más anclado en el 9 del alta por su dueño. Elegir Supabase o la
 // simulación (servidor/sim/) es solo configuración: sin `relay url` los eventos y el recibo van por `sync url` de las
 // preferencias (el mismo eje, la misma clave de lectura); sin `blossom url`, los archivos también; sin `seal url`, nada se
-// sella. El nombre de la plantilla y de sus claves se leen aquí, no en src/contrato.js (que no lleva ninguna palabra de la
+// sella; sin `pay url`, no se pide ningún recibo de pago. El nombre de la plantilla y de sus claves se leen aquí, no en src/contrato.js (que no lleva ninguna palabra de la
 // época); sus etiquetas y ayudas, en es y en, son datos de la época.
 //
-//   AJUSTES                    { plantilla, relevo, archivos, sello, observadores, confirmaciones, guia }: el nombre de la plantilla y las claves de sus ajustes («relay url», «blossom url»…): un registro de ajustes lleva sus claves en el 1 y sus valores, en paralelo, en el 2 (VG 13-11, #77: sin huecos ni rellenos)
-//   exterior(eje, yo)          → { relevo, archivos, sello, guia, observadores, confirmaciones }: cada url (http o https, sin la barra final) o null; las claves de los observadores (hex x-only, [] si no hay); las confirmaciones (6 por defecto)
+//   AJUSTES                    { plantilla, relevo, archivos, sello, pago, observadores, confirmaciones, guia }: el nombre de la plantilla y las claves de sus ajustes («relay url», «blossom url»…): un registro de ajustes lleva sus claves en el 1 y sus valores, en paralelo, en el 2 (VG 13-11, #77: sin huecos ni rellenos)
+//   exterior(eje, yo)          → { relevo, archivos, sello, pago, guia, observadores, confirmaciones }: cada url (http o https, sin la barra final) o null; las claves de los observadores (hex x-only, [] si no hay); las confirmaciones (6 por defecto)
 //   ajustesDelEje(eje)         lo mismo, leído en el registro de la cuenta RAÍZ del eje (la identidad del génesis): lo que se usa para VERIFICAR (docs/CONTRATO.md §4.4)
 
 import { configuracionDe } from './contrato.js';
 import { fijarLectorDelExterior } from './contexto-eje.js';
 
-/** El nombre de la plantilla de los ajustes del exterior y las claves de sus ajustes (la 4.ª, «pay url», reservada a los pagos): el nombre y las etiquetas son de la época; las claves son el contrato. */
-export const AJUSTES = Object.freeze({ plantilla: 'exterior settings', relevo: 'relay url', archivos: 'blossom url', sello: 'seal url', observadores: 'observer keys', confirmaciones: 'confirmations', guia: 'guide url' });
+/** El nombre de la plantilla de los ajustes del exterior y las claves de sus ajustes (la 4.ª, «pay url», la del servicio de pagos de StateArk: src/pago.js): el nombre y las etiquetas son de la época; las claves son el contrato. */
+export const AJUSTES = Object.freeze({ plantilla: 'exterior settings', relevo: 'relay url', archivos: 'blossom url', sello: 'seal url', pago: 'pay url', observadores: 'observer keys', confirmaciones: 'confirmations', guia: 'guide url' });
 
 /** Cuántas confirmaciones hacen «en firme» si el registro (o la plantilla) no lo dice: la convención de Bitcoin. */
 export const CONFIRMACIONES = 6;
@@ -39,7 +39,8 @@ export function url(x) {
 
 /**
  * Dónde están los servicios de fuera de `quien`, según su registro «exterior settings» (el último, anclado en el 9 de su
- * alta): { relevo, archivos, sello }, cada uno la url o null si no la ha dicho o no es una url.
+ * alta): { relevo, archivos, sello, pago, guia }, cada uno la url o null si no la ha dicho o no es una url; las claves de los
+ * observadores y las confirmaciones.
  */
 export function exterior(eje, quien, opciones = {}) {
   const c = configuracionDe(eje, quien, AJUSTES.plantilla, opciones);
@@ -48,6 +49,7 @@ export function exterior(eje, quien, opciones = {}) {
     relevo: url(c[AJUSTES.relevo]),
     archivos: url(c[AJUSTES.archivos]),
     sello: url(c[AJUSTES.sello]),
+    pago: url(c[AJUSTES.pago]),
     guia: url(c[AJUSTES.guia]),
     observadores: claves(c[AJUSTES.observadores]),
     confirmaciones: Number.isInteger(n) && n > 0 ? n : CONFIRMACIONES,

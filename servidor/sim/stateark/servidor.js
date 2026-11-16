@@ -12,6 +12,9 @@
 //   POST /pagos/autorizar        { plan, titular, firma }                    → 200 autorizacion
 //   POST /pagos/ejecutar         { nombre, instruccion, plan, autorizacion } → 200 recibo
 //   GET  /pagos/recibo/:txid                                                 → 200 recibo | 404
+//   GET  /pagos/recibo-pago/puntero/:id                                      → lo mismo, por el puntero «agram:<id>» del pago (el más antiguo con bloque)
+//   GET  /pagos/recibo-pago/:txid                                            → 200 recibo único stateark.recibo@1 «pago», firmado | 404 | 422 unconfirmed
+//   POST /pagos/saldos           { nombre }                                  → 200 { altura, n, pendiente, con_fondos_en_sats, en_firme }
 //   POST /pagos/verificar-recibo { recibo, confirmaciones? }                 → 200 { ok, motivo, ... }
 //   POST /pagos/verificar-fondos { serie, recibo }                           → 200 { ok, motivo, sat? }
 // §8 candado por hash (la pata de pago)
@@ -26,6 +29,13 @@
 //   POST /pagos/acunar { direccion, sat }        → 200 { txid, pendiente }
 //   GET  /                                       → 200 { servicio, simulado: true, altura }
 //
+// Firma del titular (S54, como el backend): NIP-98 (`Authorization: Nostr <base64>`) obligatoria en
+// /pagos/cartera (firma el `titular` del cuerpo), /pagos/direccion, /pagos/preparar y /pagos/saldos (firma el titular
+// registrado de la cartera `nombre`); en /pagos/autorizar y /pagos/ejecutar solo si llega la cabecera (y entonces se
+// verifica). 401 { error, codigo: titular_signature_missing | titular_signature_invalid | replay }, 403 not_titular.
+// La `u` del evento es STATEARK_SIM_URL_PUBLICA + ruta o, sin ella, http://<Host de la petición> + ruta.
+// STATEARK_SIM_FIRMA_TITULAR=no la desactiva. La sim no tiene cookie (X-StateArk-Cookie): no la inventa.
+//
 // Opción `minarCada` (ms): mina solo cada tanto, como haría la red.
 // Opción `custodia` (F1 paso 5): una `Custodia` o la `CustodiaRemota` del guardián real; el observador del sello
 // y el verificador de firmas del carril la usan. Al arrancar directo, con STATEARK_GUARDIAN_URL y
@@ -36,6 +46,7 @@ import { pathToFileURL } from 'node:url';
 import { Simulacion } from './index.js';
 import { RechazoPago, nuevoSecreto } from './pagos.js';
 import { RechazoCustodia } from './custodia.js';
+import { Verificador, FalloFirma, esNostr, noEsElTitular } from './nip98.js';
 
 const TOPE = 1 << 20; // 1 MB por petición
 
@@ -44,12 +55,12 @@ function responder(res, estado, cuerpo) {
     'content-type': 'application/json; charset=utf-8',
     'access-control-allow-origin': '*', // la beta de AGRAM corre en el navegador; esto solo escucha en local
     'access-control-allow-methods': 'GET, POST, OPTIONS',
-    'access-control-allow-headers': 'content-type',
+    'access-control-allow-headers': 'content-type, authorization',
   });
   res.end(JSON.stringify(cuerpo));
 }
 
-function leerJSON(req) {
+function leerCuerpo(req) {
   return new Promise((resolver, rechazar) => {
     let n = 0;
     const trozos = [];
@@ -58,23 +69,38 @@ function leerJSON(req) {
       if (n > TOPE) { rechazar(Object.assign(new Error('petición demasiado grande'), { estado: 413 })); req.destroy(); return; }
       trozos.push(t);
     });
-    req.on('end', () => {
-      try { resolver(trozos.length ? JSON.parse(Buffer.concat(trozos).toString('utf8')) : {}); }
-      catch { rechazar(Object.assign(new Error('el cuerpo no es JSON'), { estado: 400 })); }
-    });
+    req.on('end', () => resolver(Buffer.concat(trozos)));
     req.on('error', rechazar);
   });
 }
+
+function aJSON(bytes) {
+  try { return bytes.length ? JSON.parse(bytes.toString('utf8')) : {}; }
+  catch { throw Object.assign(new Error('el cuerpo no es JSON'), { estado: 400 }); }
+}
+
+/** Qué firma del titular (NIP-98) pide cada ruta, como el backend: 'titular' = obligatoria, 'si-llega' = si llega, se verifica. */
+const EXIGE = {
+  '/pagos/cartera': 'titular', '/pagos/direccion': 'titular', '/pagos/preparar': 'titular', '/pagos/saldos': 'titular',
+  '/pagos/autorizar': 'si-llega', '/pagos/ejecutar': 'si-llega',
+};
 
 /**
  * @param {object} [opciones]
  * @param {Simulacion} [opciones.simulacion]
  * @param {number} [opciones.minarCada] ms entre bloques automáticos (sin ella, solo POST /minar)
  * @param {object} [opciones.custodia] quién firma (sin `simulacion`): `Custodia` o `CustodiaRemota` (el guardián)
+ * @param {boolean} [opciones.firmaTitular] exigir la firma NIP-98 del titular (S54). Por defecto sí; con
+ *        STATEARK_SIM_FIRMA_TITULAR=no, no.
+ * @param {string} [opciones.urlPublica] el origen con el que firma el cliente (por defecto STATEARK_SIM_URL_PUBLICA;
+ *        sin ella, http://<cabecera Host>)
  */
 export async function crearServidor(opciones = {}) {
   const simulacion = opciones.simulacion ?? (await Simulacion.crear(opciones.custodia ? { custodia: opciones.custodia } : {}));
   const { sellador, carril } = simulacion;
+  const firmaTitular = opciones.firmaTitular ?? process.env.STATEARK_SIM_FIRMA_TITULAR !== 'no';
+  const urlPublica = (opciones.urlPublica ?? process.env.STATEARK_SIM_URL_PUBLICA ?? '').trim().replace(/\/+$/, '');
+  const verificador = new Verificador();
 
   const post = {
     '/sellar': (b) => sellador.sellar(b.ids),
@@ -86,12 +112,23 @@ export async function crearServidor(opciones = {}) {
     '/pagos/preparar': (b) => carril.preparar(b.nombre, b.instruccion),
     '/pagos/autorizar': (b) => carril.autorizar(b.plan, { titular: b.titular, firma: b.firma }),
     '/pagos/ejecutar': (b) => carril.ejecutar(b.nombre, b.instruccion, b.plan, b.autorizacion),
+    '/pagos/saldos': (b) => carril.saldos(b.nombre),
     '/pagos/verificar-recibo': (b) => carril.verificarRecibo(b.recibo, { confirmaciones: b.confirmaciones ?? 1 }),
     '/pagos/verificar-fondos': (b) => carril.verificarFondos(b.serie, b.recibo),
     '/pagos/secreto': () => nuevoSecreto(),
     '/pagos/reclamar': (b) => carril.reclamar(b.nombre, b.hash, b.preimagen),
     '/pagos/reembolsar': (b) => carril.reembolsar(b.nombre, b.hash),
     '/pagos/verificar-candado': (b) => carril.verificarCandado(b.recibo),
+  };
+
+  // El recibo único lo firma una clave de servicio «carril» (dominio nostr) de la custodia, como en el backend.
+  const EMISOR = 'carril';
+  const firmante = simulacion.custodia ?? sellador.observador.custodia;
+  const reciboPagoFirmado = async (txid) => {
+    const campos = await carril.reciboPago(txid);
+    if (campos === null) return null;
+    try { await firmante.crearClave('nostr', EMISOR); } catch (e) { if (e?.codigo !== 'key_exists') throw e; }
+    return firmante.firmarRecibo(EMISOR, campos, { t: new Date(simulacion.cadena.reloj()).toISOString() });
   };
 
   const servidor = createServer(async (req, res) => {
@@ -103,7 +140,23 @@ export async function crearServidor(opciones = {}) {
         return responder(res, 200, { servicio: 'stateark-sim §3 §5 §8', simulado: true, altura: simulacion.cadena.altura, ...guardian });
       }
       if (req.method === 'POST' && post[url.pathname]) {
-        return responder(res, 200, await post[url.pathname](await leerJSON(req)));
+        const crudo = await leerCuerpo(req);
+        // La firma del titular, antes de mirar el cuerpo (como el backend). `req.url` lleva el `?…` tal como llega.
+        const pide = firmaTitular ? EXIGE[url.pathname] : undefined;
+        const cab = req.headers.authorization;
+        let firmante = null;
+        if (pide === 'titular' || (pide === 'si-llega' && esNostr(cab))) {
+          const base = urlPublica || `http://${req.headers.host ?? ''}`;
+          firmante = await verificador.verificar(cab, 'POST', req.url, crudo, { base });
+        }
+        const cuerpo = aJSON(crudo);
+        if (firmante !== null) {
+          const texto = (k) => (typeof cuerpo?.[k] === 'string' ? cuerpo[k] : '');
+          const titular = url.pathname === '/pagos/cartera' || url.pathname === '/pagos/autorizar'
+            ? texto('titular') : carril.carteras.get(texto('nombre'))?.titular; // sin cartera: responde el carril (400)
+          if (titular !== undefined && titular !== firmante) throw noEsElTitular();
+        }
+        return responder(res, 200, await post[url.pathname](cuerpo));
       }
       let m = url.pathname.match(/^\/prueba\/([^/]+)$/);
       if (req.method === 'GET' && m) {
@@ -121,6 +174,17 @@ export async function crearServidor(opciones = {}) {
         const p = await carril.preimagenDe(m[1]);
         return p ? responder(res, 200, p) : responder(res, 404, { error: 'esa preimagen aún no se ha revelado en un bloque' });
       }
+      m = url.pathname.match(/^\/pagos\/recibo-pago\/puntero\/([^/]+)$/);
+      if (req.method === 'GET' && m) {
+        const txid = /^[0-9a-f]{64}$/.test(m[1]) ? carril.txidPorPuntero(m[1]) : null;
+        const r = txid ? await reciboPagoFirmado(txid) : null;
+        return r ? responder(res, 200, r) : responder(res, 404, { error: 'no hay ningún pago con ese puntero' });
+      }
+      m = url.pathname.match(/^\/pagos\/recibo-pago\/([^/]+)$/);
+      if (req.method === 'GET' && m) {
+        const r = await reciboPagoFirmado(m[1]);
+        return r ? responder(res, 200, r) : responder(res, 404, { error: 'no hay ningún pago con ese txid' });
+      }
       m = url.pathname.match(/^\/pagos\/recibo\/([^/]+)$/);
       if (req.method === 'GET' && m) {
         const r = carril.recibo(m[1]);
@@ -128,6 +192,7 @@ export async function crearServidor(opciones = {}) {
       }
       return responder(res, 404, { error: 'no existe esa llamada' });
     } catch (e) {
+      if (e instanceof FalloFirma) return responder(res, e.estado, e.cuerpo());
       if (e instanceof RechazoPago || e instanceof RechazoCustodia) return responder(res, 422, { error: e.message, codigo: e.codigo });
       const estado = e.estado ?? (e instanceof TypeError || e instanceof RangeError ? 400 : 500);
       return responder(res, estado, { error: e.message });

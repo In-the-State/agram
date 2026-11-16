@@ -470,6 +470,16 @@ export const TEXTOS = Object.freeze({
     verificadoTitulo: 'verificado: su sello de tiempo está en un bloque comprobado, el transporte dio su recibo de llegada y los tres relojes van en orden',
     pendienteDeSello: 'pendiente de sello',
     pendienteDeSelloTitulo: 'movido, pero sin verificar: el eje tiene sello de tiempo y a lo que lo cumple aún le falta su sello comprobado; se queda en autorizado hasta que lo tenga (no se rechaza nada)',
+    // el recibo de pago de un registro, en su reverso (encargo «carta: pagos», 16-11)
+    buscarPago: 'buscar su recibo de pago',
+    buscarPagoTitulo: 'pide al servicio de pagos el recibo del pago de este registro; llega al sincronizar, cuando el pago esté en un bloque',
+    pagado: 'pagado',
+    pagadoTitulo: 'pagado: su recibo de pago está en un bloque comprobado y paga lo que dice',
+    pagoPendiente: 'pago pendiente de bloque',
+    pagoPendienteTitulo: 'se está buscando su recibo de pago: llega cuando el pago esté en un bloque',
+    pagoNoVale: 'el recibo de pago no vale',
+    pagoNoValeTitulo: 'tiene un recibo de pago, pero no se puede comprobar o no cuadra con el bloque',
+    pagoSinLibro: 'para buscar el recibo de pago, esta cuenta tiene que compartir su libro (el servidor, el eje compartido y la clave de lectura)',
     // el segundo factor (VG 12/13-11, #66, #70): la app de StateArk autoriza lo que pasa del umbral de mi 2.4
     pendienteDeSegundoFactor: 'pendiente de segundo factor',
     pendienteDeSegundoFactorTitulo: 'movido, pero lo que mueve pasa del umbral de tu segundo factor: se queda en autorizado hasta que tu cosa titular lo autorice desde StateArk (no se rechaza nada)',
