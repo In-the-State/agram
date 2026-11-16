@@ -422,6 +422,28 @@ export const TEXTOS = Object.freeze({
     guardar: 'guardar',
     claveLectura: 'clave de lectura',
     claveLecturaAyuda: 'la del eje compartido en el servidor: se guarda solo en este navegador, para esta cuenta, nunca en el eje (va cifrada en la copia de seguridad); vacía, este eje no se comparte',
+    // retocar un texto en su sitio (A20 escalón 1, docs/notas/RETOQUES.md): solo para quien puede retocar en este libro
+    retocarModo: 'Retocar los textos de este libro',
+    retocarModoAyuda: 'Encendido, los textos que puedes cambiar llevan un subrayado de puntos: tócalos para retocarlos (el toque no hace nada más). Apagado, la carta es la de siempre.',
+    retoqueTitulo: 'Retocar un texto',
+    retoqueIdioma: 'idioma',
+    retoqueTexto: 'texto de hoy',
+    retoqueNacimiento: 'texto de nacimiento:',
+    retoqueHuecos: 'Lo que va entre llaves se rellena solo: déjalo tal cual ({huecos}). Puedes quitar alguno, no añadir otros.',
+    retoqueCoste: 'Guardarlo escribe un registro en tu libro, firmado: cuesta {t} de T ({paga}).',
+    retoqueOriginal: 'volver al texto original',
+    retoqueGuardado: 'texto retocado: {id}',
+    retoqueRetirado: 'vuelve el texto original: {id}',
+    retoqueHuecoNuevo: 'No se guarda: {huecos} no está en el texto de nacimiento. Deja los huecos tal cual.',
+    retoqueVacio: 'No se guarda un texto vacío: para volver al de nacimiento, «volver al texto original».',
+    retoqueIgual: 'Es el mismo texto de hoy: no hay nada que guardar.',
+    retoqueSignos: 'Los textos propios de la carta no llevan estos signos: {signos}. Quítalos para guardar.',
+    retoqueNoExiste: 'Este texto no se puede retocar: su clave no está en la época.',
+    retoqueSinRetoque: 'Este texto no está retocado en este idioma: ya es el original.',
+    retoqueNoPuede: 'Solo quien puede retocar en este libro (hoy, su dueño) cambia sus textos.',
+    retoquesLista: 'Textos retocados',
+    retoquesNinguno: 'No hay ningún texto retocado en este libro.',
+    retoqueQuienCuando: '{quien} · {cuando}',
     // el libro compartido (la línea de estado)
     sincroniaTitulo: 'el libro compartido: lo que falta por subir, lo que no entró y los errores del servidor',
     porSubir: '{cuantos} por subir',
@@ -747,8 +769,62 @@ export function etiquetaLlana(clave, idioma) {
   return typeof x === 'string' ? x : null;
 }
 
-/** Un texto de la carta por su clave, con los huecos {nombre} rellenos; si falta la clave, la clave misma. */
+/**
+ * Los retoques de los textos de la carta (A20 escalón 1, docs/notas/RETOQUES.md «Para la carta»): el dueño de un libro
+ * retoca un texto de aquí con la clave «carta <clave>»; el núcleo lo guarda y lo devuelve tal cual, y los huecos los
+ * comprueba la carta. La carta (carta.js arbol, en cada pintado) instala los vigentes de su libro con usarRetoques y `t`
+ * los lee en el idioma pedido o, sin él, en el de quien mira. Muchos sitios de la carta ponen un t() sin escapar (en un
+ * atributo o entre etiquetas), así que un retoque de la carta solo vale si es texto plano: sin SIGNOS_DE_MARCADO.
+ */
+export const PREFIJO_DE_LA_CARTA = 'carta ';
+export const SIGNOS_DE_MARCADO = Object.freeze(['<', '>', '&', '"', "'"]);
+let retoquesDeLaCarta = new Map(); // idioma → Map(clave sin «carta » → texto)
+let idiomaDeQuienMira = null;
+
+/** Los huecos {…} de un texto, tal cual (carácter a carácter), como los cuenta el núcleo. */
+export const huecosDe = (s) => [...new Set(String(s ?? '').match(/\{[^{}]+\}/g) ?? [])];
+
+/** El texto de nacimiento de una clave de la carta (sin «carta »): el del idioma de la interfaz; undefined si la clave no existe. */
+export function textoDeLaCarta(clave, idioma) {
+  const x = TEXTOS[idiomaDeInterfaz(idioma)]?.[clave];
+  return typeof x === 'string' ? x : undefined;
+}
+
+/**
+ * ¿Vale `texto` como retoque de la clave de la carta `clave` (sin «carta »)? → null si vale; si no, { motivo }: 'noExiste'
+ * (no es un texto de la carta), 'signos' (lleva SIGNOS_DE_MARCADO; `signos`) o 'hueco' (un hueco que el texto de nacimiento
+ * no tiene; `huecos`: la misma regla que el núcleo aplica a los de la época, un subconjunto exacto).
+ */
+export function retoqueDeLaCartaNoVale(clave, texto, idioma) {
+  const nacimiento = textoDeLaCarta(clave, idioma);
+  if (nacimiento === undefined) return { motivo: 'noExiste' };
+  const signos = SIGNOS_DE_MARCADO.filter((s) => String(texto).includes(s));
+  if (signos.length) return { motivo: 'signos', signos };
+  const permitidos = new Set(huecosDe(nacimiento));
+  const nuevos = huecosDe(texto).filter((h) => !permitidos.has(h));
+  return nuevos.length ? { motivo: 'hueco', huecos: nuevos } : null;
+}
+
+/**
+ * Instala los retoques vigentes del libro que se pinta (contrato.retoques: [{ idioma, clave, texto }]) y el idioma de quien
+ * mira. Solo cuentan los de la carta («carta <clave>») que valen (retoqueDeLaCartaNoVale). Sin lista (o null), ninguno.
+ */
+export function usarRetoques(lista, idioma = null) {
+  const mapa = new Map();
+  for (const r of Array.isArray(lista) ? lista : []) {
+    if (typeof r?.clave !== 'string' || !r.clave.startsWith(PREFIJO_DE_LA_CARTA) || typeof r.texto !== 'string' || r.texto === '') continue;
+    const clave = r.clave.slice(PREFIJO_DE_LA_CARTA.length);
+    if (retoqueDeLaCartaNoVale(clave, r.texto, r.idioma)) continue;
+    if (!mapa.has(r.idioma)) mapa.set(r.idioma, new Map());
+    mapa.get(r.idioma).set(clave, r.texto);
+  }
+  retoquesDeLaCarta = mapa;
+  idiomaDeQuienMira = typeof idioma === 'string' && idioma ? idioma : null;
+}
+
+/** Un texto de la carta por su clave, con los huecos {nombre} rellenos; si falta la clave, la clave misma. Encima, el retoque del libro, si lo hay (usarRetoques). */
 export function t(clave, partes = {}, idioma) {
-  const plantilla = TEXTOS[idiomaDeInterfaz(idioma)][clave] ?? clave;
+  const retocado = retoquesDeLaCarta.size ? retoquesDeLaCarta.get(idioma ?? idiomaDeQuienMira ?? idiomaDeInterfaz())?.get(clave) : undefined;
+  const plantilla = retocado ?? TEXTOS[idiomaDeInterfaz(idioma)][clave] ?? clave;
   return plantilla.replace(/\{([^{}]+)\}/g, (_, k) => (partes[k] === undefined || partes[k] === null ? '' : String(partes[k])));
 }

@@ -48,6 +48,8 @@ const UMBRAL_ARRASTRE = 24;
  *   cerrar()                 cerrar el aro, el formulario o la configuración
  *   enviar(form)             enviar el formulario de una acción
  *   configurar(form | null, parte)  abrir la configuración de una parte (null, '2' mis criterios y preferencias | '9' guía y exterior) o guardarla (el formulario)
+ *   retocarTexto(clave, idioma)  el modo «retocar textos» (A20): tocar un texto marcado (data-retocar) abre su retoque y no hace lo suyo
+ *   retoqueIdioma(idioma) · guardarRetoque(form) · retoqueOriginal(clave, idioma) · modoRetocar(encendido)  la hoja del retoque, la lista y el interruptor
  *   campo(X, pv, texto, { nuevo })  escribir un ocupante nuevo en la posición pv de X (nuevo: desde el aro de un hueco: crea el elemento y abre su aro)
  *   aroNuevo(X, pv, { ancla })  mantener sobre un hueco (data-hueco-x, data-hueco-pv; issue #22): el aro con un input nuevo que crea el elemento en X.pv
  *   cargarMas(pv)            una página más de ocupantes del PV
@@ -183,6 +185,9 @@ export function instalar(raiz, m) {
     const b = (sel) => t.closest(sel);
     let el;
     if ((el = b('[data-cerrar]')) && (t === el || t.closest('.cerrar'))) { e.preventDefault(); m.cerrar?.(); return; }
+    // El modo «retocar textos» (A20): un texto marcado abre su retoque y nada más (ni lanza, ni enfoca, ni despliega).
+    if ((el = b('[data-retocar]'))) { e.preventDefault(); m.retocarTexto?.(el.dataset.retocar, el.dataset.retocarIdioma || null); return; }
+    if ((el = b('[data-retoque-original]'))) { e.preventDefault(); m.retoqueOriginal?.(el.dataset.clave, el.dataset.idioma); return; }
     // Dentro del aro: un valor de una lista se escribe; un clic en el centro (sin editarlo) entra en el elemento.
     if ((el = b('.aro [data-opcion]'))) { e.preventDefault(); m.opcion?.(el.dataset.x ?? el.closest('.aro')?.dataset.x, Number(el.dataset.opcion), el.dataset.valor); return; }
     if ((el = b('.aro:not(.editando) [data-aro-centro]'))) { e.preventDefault(); m.aroEntrar?.(el.dataset.x ?? el.closest('.aro')?.dataset.x); return; }
@@ -489,6 +494,7 @@ export function instalar(raiz, m) {
     e.preventDefault();
     if (f.matches('[data-formulario]')) m.enviar?.(f);
     else if (f.matches('[data-configuracion]')) m.configurar?.(f);
+    else if (f.matches('[data-retoque]')) m.guardarRetoque?.(f);
     else if (f.matches('[data-crear]')) m.crear?.(f);
     else if (f.matches('[data-restaurar]')) m.restaurar?.(f);
     else if (f.matches('[data-copia-form]')) m.copia?.(f);
@@ -506,6 +512,9 @@ export function instalar(raiz, m) {
       if (otro) input.focus?.();
       return;
     }
+    // El interruptor «retocar los textos de este libro» y el idioma de la hoja de un retoque (A20).
+    if (t.matches('[data-retocar-modo]')) { m.modoRetocar?.(Boolean(t.checked)); return; }
+    if (t.matches('[data-retoque-idioma]')) { m.retoqueIdioma?.(t.value); return; }
     // La escala de la que parte la T que se quema al ejecutar (VG 12-11, decisión 7): la denominación se recalcula.
     if (t.matches('[data-denominacion]')) { m.denominacion?.(t.value, t.form ?? t.closest?.('form') ?? null); return; }
     if (t.matches('[data-formato]')) { m.formato?.(t.dataset.formato, t.value); return; }

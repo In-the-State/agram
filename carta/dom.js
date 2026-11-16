@@ -9,12 +9,26 @@
 // que salen de pantalla se pausan.
 
 import { NIVEL, LATERALES, ANIMAR, GEOMETRIA } from './carta.js';
-import { t } from './textos.js';
+import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { cssSeguro } from '../src/contrato.js';
 
 export const escapar = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const corto = (id) => String(id ?? '').slice(0, 8);
 const attr = (s) => escapar(s).replace(/'/g, '&#39;');
+
+/**
+ * El modo «retocar textos» (A20 escalón 1, docs/notas/RETOQUES.md): con él encendido (el árbol trae `retocar`: { idioma },
+ * solo para quien puede retocar en este libro), cada texto cuya clave se sabe (`k`: { clave, idioma }, de contrato.conClaves)
+ * va en un <span class="retocable" data-retocar="<clave>" data-retocar-idioma="<idioma>"> (un subrayado de puntos):
+ * tocarlo abre su retoque y no hace lo suyo (gestos.js). Apagado, el texto escapado y nada más: el mismo HTML de siempre.
+ * El texto es un dato: siempre escapado.
+ */
+let retocando = null;
+const retocable = (texto, k, modo = retocando) => (modo && k?.clave
+  ? `<span class="retocable" data-retocar="${attr(k.clave)}" data-retocar-idioma="${attr(k.idioma ?? modo.idioma ?? '')}">${escapar(texto)}</span>`
+  : escapar(texto));
+/** Un texto propio de la carta (t), retocable por su clave «carta <clave>» en el idioma de quien mira. */
+const tr = (clave, partes, modo = retocando) => retocable(t(clave, partes), modo ? { clave: PREFIJO_DE_LA_CARTA + clave, idioma: modo.idioma } : null, modo);
 
 /**
  * Los atributos de clasificación de un elemento (para el botón «opinar», carta/opinar.js clasificar): data-nodo es el
@@ -1257,13 +1271,13 @@ function htmlAro(aro) {
     const alternativas = h.alternativas ?? h.otras ?? [];
     const opciones = h.opciones ?? [];
     const conLista = alternativas.length > 0 || opciones.length > 0;
-    const nombre = a ? `${escapar(a.nombre)}${a.faltan.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}` : '';
+    const nombre = a ? `${retocable(a.nombre, a.retocar)}${a.faltan.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}` : '';
     const cuantas = conLista ? ` <small class="cuantas" aria-hidden="true">${alternativas.length + opciones.length}</small>` : '';
     const defecto = a
       ? `<button type="button" class="accion por-defecto"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${aro.X}" title="${attr(h.etiqueta)}: ${attr(a.nombre)}"><span class="numero">${h.pv}</span>${h.icono?.recurso ? htmlPieza(h.icono, { alt: h.etiqueta }) : ''}<span class="nombre">${nombre}</span>${cuantas}</button>`
       : `<span class="accion vacia" title="${attr(h.etiqueta)}: ${attr(t(conLista ? 'aroMantenerLista' : 'nadaQueHacer'))}"><span class="numero">${h.pv}</span><span class="nombre">${conLista ? escapar(h.etiqueta) : '—'}</span>${cuantas}</span>`;
     const lista = h.abierto && conLista
-      ? `<ul class="otras"><li class="otras-titulo">${escapar(h.etiqueta)}</li>${alternativas.map((x) => `<li><button type="button"${nodo('accion')} data-lanzar="${attr(x.id)}" data-x="${aro.X}">${escapar(x.nombre)}${x.faltan.length ? ` <small>[${escapar(x.faltan.join(', '))}]</small>` : ''}</button></li>`).join('')}${opciones.length ? `<li class="otras-titulo otras-valores">${escapar(t('aroEscribir'))}</li>${opciones.map((o) => `<li><button type="button" class="opcion"${nodo('opcion')} data-opcion="${h.pv}" data-valor="${attr(o.valor)}" data-x="${aro.X}" title="${attr(o.texto)}">${escapar(o.texto)}</button></li>`).join('')}` : ''}</ul>`
+      ? `<ul class="otras"><li class="otras-titulo">${escapar(h.etiqueta)}</li>${alternativas.map((x) => `<li><button type="button"${nodo('accion')} data-lanzar="${attr(x.id)}" data-x="${aro.X}">${retocable(x.nombre, x.retocar)}${x.faltan.length ? ` <small>[${escapar(x.faltan.join(', '))}]</small>` : ''}</button></li>`).join('')}${opciones.length ? `<li class="otras-titulo otras-valores">${escapar(t('aroEscribir'))}</li>${opciones.map((o) => `<li><button type="button" class="opcion"${nodo('opcion')} data-opcion="${h.pv}" data-valor="${attr(o.valor)}" data-x="${aro.X}" title="${attr(o.texto)}">${escapar(o.texto)}</button></li>`).join('')}` : ''}</ul>`
       : '';
     return `<li class="hueco hueco-${h.pv} lado-${h.lado ?? ''}${a || conLista ? '' : ' apagado'}${h.abierto ? ' desplegado' : ''}"${nodo('hueco')} data-pv="${h.pv}" data-fila="${h.celda[0]}" data-columna="${h.celda[1]}"${conLista ? ' data-con-lista' : ''}><span class="sitio">${defecto}</span>${lista}</li>`;
   }).join('');
@@ -1318,9 +1332,9 @@ function htmlFormulario(f) {
       ? `<select class="param-opciones" data-otro-de="${id}" aria-label="${attr(c.etiqueta)}"${c.requerido ? ' required' : ''}>${elegida || otro ? '' : '<option value="" selected></option>'}${opciones.map((o) => `<option value="${attr(o.valor)}"${o === elegida ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}<option value="${attr(t('otro'))}" data-otro${otro ? ' selected' : ''}>${escapar(t('otro'))}</option></select>`
       : '';
     const valorDelInput = valor; // el legible, como siempre (el crudo en data-crudo); elegir otra opción pone su valor
-    return `<div class="campo ${c.falta ? 'falta' : ''}"><label for="${id}">${escapar(c.etiqueta)}${c.requerido ? ` <abbr title="${attr(t('requerido'))}">*</abbr>` : ''}</label>
+    return `<div class="campo ${c.falta ? 'falta' : ''}"><label for="${id}">${retocable(c.etiqueta, c.retocar?.etiqueta)}${c.requerido ? ` <abbr title="${attr(t('requerido'))}">*</abbr>` : ''}</label>
       ${select}<input id="${id}" name="${attr(c.nombre)}" type="${tipoInput}" ${tipoInput === 'number' ? 'step="any"' : ''} value="${attr(valorDelInput)}" ${c.requerido && !opciones.length ? 'required' : ''} data-tipo="${attr(c.tipo)}" data-etiqueta="${attr(c.etiqueta)}" data-simple="${c.simple ? 1 : 0}" data-crudo="${attr(crudo)}" data-legible="${attr(valorDelInput)}" data-validacion="${attr(c.validacion ?? '')}" title="${attr(c.ayuda)}" autocomplete="off"${opciones.length && !otro ? ' hidden' : ''}>
-      <small class="ayuda">${escapar(c.ayuda)}</small></div>`;
+      <small class="ayuda">${retocable(c.ayuda, c.retocar?.ayuda)}</small></div>`;
   };
   // El reverso de un campo: su tipo, su fórmula de validación y el valor en BTML.
   const campoReverso = (c) => {
@@ -1332,21 +1346,21 @@ function htmlFormulario(f) {
   const aparte = f.ejecucion ? (c) => !(c.requerido && c.falta) : (c) => !c.requerido;
   const opcionales = f.campos.filter(aparte);
   const campos = f.campos.filter((c) => !aparte(c)).map(campo).join('')
-    + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t(f.ejecucion ? 'yaResueltoTitulo' : 'masParametrosTitulo'))}">${t(f.ejecucion ? 'yaResuelto' : 'masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
-  const motivos = f.motivos?.length ? `<ul class="motivos" role="alert">${f.motivos.map((m) => `<li>${escapar(m.mensaje)}</li>`).join('')}</ul>` : '';
+    + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t(f.ejecucion ? 'yaResueltoTitulo' : 'masParametrosTitulo'))}">${tr(f.ejecucion ? 'yaResuelto' : 'masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
+  const motivos = f.motivos?.length ? `<ul class="motivos" role="alert">${f.motivos.map((m) => `<li>${retocable(m.mensaje, m.retocar)}</li>`).join('')}</ul>` : '';
   const resultado = f.resultado ? `<p class="exito" role="status">${escapar(f.resultado)}</p>` : '';
   const reverso = Boolean(f.reverso);
   const pie = reverso
     ? `<button type="button"${nodo('control')} data-voltear-formulario title="${attr(t('formularioVolverTitulo'))}">${t('formularioVolver')}</button>`
-    : f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${t('ejecutar')}</button>` : `<button type="submit">${t(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`;
+    : f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${tr('ejecutar')}</button>` : `<button type="submit">${tr(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`;
   return `<div class="formulario-fondo" data-cerrar><form class="formulario" data-formulario${nodo('formulario')} data-x="${f.X}" data-accion="${attr(f.accion)}"${reverso ? ' data-reverso' : ''} aria-label="${attr(f.nombre)}">
-    <header><h2>${escapar(f.nombre)}</h2><button type="button" class="voltear-formulario" data-voltear-formulario aria-pressed="${reverso}" aria-label="${attr(t('formularioVoltear'))}" title="${attr(t('formularioVoltear'))}">↻</button><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <header><h2>${retocable(f.nombre, f.retocar)}</h2><button type="button" class="voltear-formulario" data-voltear-formulario aria-pressed="${reverso}" aria-label="${attr(t('formularioVoltear'))}" title="${attr(t('formularioVoltear'))}">↻</button><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
     <div class="cara cara-anverso"${reverso ? ' hidden' : ''}>
-    ${f.ofrecida ? '' : `<p class="aviso">${t('noSeOfrece')}</p>`}
+    ${f.ofrecida ? '' : `<p class="aviso">${tr('noSeOfrece')}</p>`}
     ${htmlBotonApagado(f.ejecucion)}${campos}${htmlEjecucion(f.ejecucion)}${motivos}${resultado}
     </div>
     <div class="cara cara-reverso"${reverso ? '' : ' hidden'}>
-      <h3>${escapar(t('reversoTitulo'))}</h3><ul class="campos-reverso">${f.campos.map(campoReverso).join('')}</ul>${htmlEjecucionReverso(f.ejecucion)}
+      <h3>${tr('reversoTitulo')}</h3><ul class="campos-reverso">${f.campos.map(campoReverso).join('')}</ul>${htmlEjecucionReverso(f.ejecucion)}
     </div>
     <footer>${reverso ? '' : htmlQuienGuarda(f.quienGuarda)}${pie}</footer>
   </form></div>`;
@@ -1400,8 +1414,9 @@ const DE_LA_PARTE_9 = new Set(['sync url', 'sync ledger']);
  * de lectura del libro compartido: sin `name` (no entra en el registro de preferencias: la app lo lee por
  * data-clave-lectura y lo guarda en el almacén local de la cuenta, nunca en el eje).
  */
-export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterior, segundoFactor, parte = '2' } = {}) {
+export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterior, segundoFactor, parte = '2', retocar = null } = {}) {
   if (!p) return '';
+  const modo = retocar?.activo ? { idioma: retocar.idioma } : null; // el modo «retocar textos» (A20), si está encendido
   // Un campo con opciones (el modelo, #4) es un desplegable con ellas; los demás, texto.
   const control = (c) => (c.opciones
     ? `<select id="pref-${c.pv}" name="${attr(c.clave)}" title="${attr(c.ayuda)}">${c.opciones.map((o) => `<option value="${attr(o.valor)}"${o.valor === c.valor ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}</select>`
@@ -1412,12 +1427,50 @@ export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterio
   const esDelNueve = (c) => DE_LA_PARTE_9.has(c.clave);
   const campos = p.campos.filter((c) => esDelNueve(c) === del9).map((c) => `<div class="campo"><label for="pref-${c.pv}">${escapar(c.etiqueta)}</label>${control(c)}<small class="ayuda">${escapar(c.ayuda)}</small></div>`).join('')
     + (del9 && typeof claveLectura === 'string' ? `<div class="campo"><label for="pref-clave-lectura">${t('claveLectura')}</label><input id="pref-clave-lectura" data-clave-lectura type="password" value="${attr(claveLectura)}" title="${attr(t('claveLecturaAyuda'))}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(t('claveLecturaAyuda'))}</small></div>` : '')
-    + (del9 ? htmlAjustesGuia(guia) + htmlAjustesExterior(exterior) : htmlSegundoFactor(segundoFactor));
+    + (del9 ? htmlAjustesGuia(guia) + htmlAjustesExterior(exterior) : htmlSegundoFactor(segundoFactor) + htmlRetocarTextos(retocar));
   return `<div class="formulario-fondo" data-cerrar><form class="formulario configuracion"${nodo('configuracion')} data-configuracion data-parte="${del9 ? 9 : 2}" aria-label="${attr(t(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios'))}">
-    <header><h2><span class="numero">${del9 ? 9 : 2}</span> ${t(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios')}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
-    <p class="ayuda">${escapar(t(del9 ? 'configuracionAyuda9' : 'configuracionAyuda2'))}</p>
+    <header><h2><span class="numero">${del9 ? 9 : 2}</span> ${tr(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios', {}, modo)}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <p class="ayuda">${tr(del9 ? 'configuracionAyuda9' : 'configuracionAyuda2', {}, modo)}</p>
     ${campos}${motivos.length ? `<ul class="motivos" role="alert">${motivos.map((m) => `<li>${escapar(m.mensaje ?? m)}</li>`).join('')}</ul>` : ''}
-    <footer><button type="submit">${t('guardar')}</button></footer>
+    <footer><button type="submit">${tr('guardar', {}, modo)}</button></footer>
+  </form></div>`;
+}
+
+/**
+ * «Retocar los textos de este libro» en la configuración (A20 escalón 1), solo para quien puede retocar (`r`, de
+ * carta.textosRetocados más `activo`; sin él, nada: ni botón ni rastro): el interruptor llano del modo (sin `name`: no
+ * entra en el registro de preferencias; la app lo lee por data-retocar-modo) y la lista «Textos retocados»: los vigentes
+ * del libro con su clave en pequeño, el idioma, el texto, quién y cuándo, y «volver al texto original» en cada uno.
+ */
+function htmlRetocarTextos(r) {
+  if (!r) return '';
+  const lista = r.lista?.length
+    ? `<ul class="retoques-lista">${r.lista.map((x) => `<li class="retoque-item"><small class="retoque-clave"><code>${escapar(x.clave)}</code> · ${escapar(x.idioma)}</small> <span class="retoque-texto">${escapar(x.texto)}</span> <small class="retoque-quien">${escapar(t('retoqueQuienCuando', { quien: x.quien ?? '', cuando: x.cuando ?? '' }))}</small> <button type="button"${nodo('control')} data-retoque-original data-clave="${attr(x.clave)}" data-idioma="${attr(x.idioma)}">${escapar(t('retoqueOriginal'))}</button></li>`).join('')}</ul>`
+    : `<p class="ayuda">${escapar(t('retoquesNinguno'))}</p>`;
+  return `<fieldset class="retocar-textos"${nodo('control')}><legend>${escapar(t('retoquesLista'))}</legend><label class="retocar-modo"><input type="checkbox" data-retocar-modo${r.activo ? ' checked' : ''}> ${escapar(t('retocarModo'))}</label><small class="ayuda">${escapar(t('retocarModoAyuda'))}</small>${lista}</fieldset>`;
+}
+
+/**
+ * La hoja «retocar un texto» (A20 escalón 1; carta.retoqueDeTexto), pensada para el móvil: el texto de hoy en un campo
+ * editable, el idioma en que se retoca (el de quien mira, y los demás del libro), el texto de nacimiento en gris debajo,
+ * los huecos {…} que hay que conservar, lo que cuesta guardarlo (en T, como cualquier acción) y «volver al texto
+ * original» si está retocado. Todo texto, escapado: el retoque es un dato, nunca HTML ni estilo.
+ */
+export function htmlRetoque(r) {
+  if (!r) return '';
+  const idiomas = r.idiomas.map((i) => `<option value="${attr(i)}"${i === r.idioma ? ' selected' : ''}>${escapar(i)}</option>`).join('');
+  const huecos = r.huecos?.length ? `<p class="ayuda retoque-huecos">${escapar(t('retoqueHuecos', { huecos: r.huecos.join(' ') }))}</p>` : '';
+  const coste = r.coste ? `<p class="retoque-coste"><small>${escapar(t('retoqueCoste', { t: textoDeSegundos(r.coste.exigido), paga: textoDePiezas(r.coste.denominacion) }))}</small></p>` : '';
+  const avisos = [...(r.aviso ? [r.aviso] : []), ...(r.motivos ?? []).map((m) => m?.mensaje ?? m)];
+  const original = r.vigente ? `<button type="button"${nodo('control')} data-retoque-original data-clave="${attr(r.clave)}" data-idioma="${attr(r.idioma)}">${escapar(t('retoqueOriginal'))}</button>` : '';
+  return `<div class="formulario-fondo" data-cerrar><form class="formulario retoque"${nodo('formulario')} data-retoque data-clave="${attr(r.clave)}" aria-label="${attr(t('retoqueTitulo'))}">
+    <header><h2>${escapar(t('retoqueTitulo'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <p class="retoque-clave"><small><code>${escapar(r.clave)}</code></small></p>
+    <div class="campo"><label for="retoque-idioma">${escapar(t('retoqueIdioma'))}</label><select id="retoque-idioma" data-retoque-idioma>${idiomas}</select></div>
+    <div class="campo"><label for="retoque-texto">${escapar(t('retoqueTexto'))}</label><textarea id="retoque-texto" data-retoque-texto rows="3" autocomplete="off"${r.existe ? '' : ' disabled'}>${escapar(r.texto)}</textarea></div>
+    ${huecos}<p class="retoque-nacimiento"><small>${escapar(t('retoqueNacimiento'))}</small> <span>${escapar(r.nacimiento ?? '')}</span></p>${coste}
+    ${avisos.length ? `<ul class="motivos" role="alert">${avisos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : ''}
+    <footer>${original}<button type="submit"${r.existe ? '' : ' disabled'}>${escapar(t('guardar'))}</button></footer>
   </form></div>`;
 }
 
@@ -1599,6 +1652,7 @@ export function html(arbol, extra = {}) {
   archivoDe = typeof extra.archivo === 'function' ? extra.archivo : () => null; // los archivos adjuntos de esta pestaña (htmlRepresentacion)
   conAnfitrion = extra.anfitrion === true; // la app que lleva la carta firma: lo por autorizar lleva «autorizar» (htmlPorAutorizar)
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
+  retocando = arbol?.retocar ?? null; // el modo «retocar textos» (A20): solo lo trae el árbol de quien puede retocar
   // Sin eje (nadie ha elegido aún cuenta ni ejemplo): la pantalla de arranque entera.
   if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false })}</div>`;
   if (!arbol || arbol.vacio) return `<div class="carta vacia"><p class="aviso">${escapar(arbol?.avisos?.join(' · ') ?? t('sinRegistro'))}</p></div>`;
@@ -1631,7 +1685,7 @@ export function html(arbol, extra = {}) {
     ${htmlAro(a.aro)}
     ${htmlSitio(a.sitio, a, extra)}
     ${htmlFormulario(a.formulario)}
-    ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion }) : ''}
+    ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos }) : ''}${htmlRetoque(a.retoque)}
     ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true }) : ''}
     ${htmlCopia(extra.copia)}
   </div>`;
