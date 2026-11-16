@@ -93,6 +93,18 @@
         "conversation with an agent",
         "the type of the record: a conversation with an agent, a context of the agent"
       ]
+    ],
+    [
+      ["give"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["6"],
+      ["Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «open a conversation»"],
+      ["optional"],
+      [8],
+      ["how much of my R I give to the agent so that it can write to me first (optional; without it, one unit); the service, its own"]
     ]
   ],
   ["=\"agent\" in (payload(it)).5 and count ((it.9) where \"declare agent\" in it2.4 and first it2.3 = first it.3) > 0 and (first it.3 = me or count (me.1 where R in it2.0.0.0 and it2.0.0.1 = first it.3 and it2.1 > 0) > 0)"],
@@ -100,11 +112,15 @@
     ["me"],
     ["person"]
   ],
-  ["=first it.3 != me and transfer first (first ev.6).2.1 R.(first it.3) from me to first it.3"],
+  [
+    "=first it.3 != me and transfer first (first ev.6).2.1 R.(first it.3) from me to first it.3",
+    "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.6 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first memo.1 or count memo.6 > 0 and first memo.6 > 0 and put first memo.6 at me.1.(R.(me)).1 and transfer first memo.6 R.(me) from me to first memo.1) or not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.6 = 0 and transfer 1 R.(first (first me.6).3) from me to first memo.1 or count memo.6 > 0 and first memo.6 > 0 and transfer first memo.6 R.(first (first me.6).3) from me to first memo.1)"
+  ],
   ["1.5"],
   [
     "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A.1: el tipo de contexto «conversation with an agent», en cuatro niveles como el caso 2 de AARPIA (APPS_PARA_AGRAM.md): la persona, el espacio del agente (su alta), la conversación (el activo: este registro) y su estado (activa o archivada, una lectura). Se lanza sobre el alta de un agente declarado (X: una pieza «agent» con «declare agent» en su 9) y ancla en su 1.5, donde encajan los contextos (como «declare a context» en el 1.5 del nodo). 0 el título (opcional), 1 el agente, 2 el criterio de cierre, 3.0 quien la abre, 3.1 su interlocutor (quien la abre o, si es de fuera, una identidad cuya alta escribió quien la abre: el servicio la abre en nombre del interlocutor), 4 la acción y 5 el tipo",
     "Quién la lanza, como «ask for an anchor»: el dueño del agente (quien escribió su alta) o quien tiene R suya (el servicio de Telegram, una persona de la casa). El alta del agente es una pieza, así que quien no es su dueño paga el precio de su grupo en la atención del dueño («attention has a price» de esta época): el 4 le devuelve la R que dice ese precio (first (first ev.6).2.1), como «write to X» con «my R» o «their R»; el dueño no paga. La regla «who opens, renames and archives a conversation» lo exige también a lo escrito a mano",
+    "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), C: abrir la conversación da al agente su primera R, en el mismo registro: quien la abre le da R suya (una persona: pone en mano lo que le falte; el servicio, la suya, cuando abre en nombre de un interlocutor de fuera); si la abre una cosa (otro agente, con «open a conversation as an agent»), le pasa R de su propio dueño, de la que guarda. Cuánta va en el 6, opcional: sin él, una unidad, y el registro pesa lo mismo que antes. Lo de antes sigue igual: quien no es el dueño paga al dueño el precio de su grupo (la primera sentencia del 4). Lo exige también a lo escrito a mano «who opens, renames and archives a conversation»: una persona, al menos una unidad suya al agente; nada de R a otro sitio que al agente o a su dueño",
     "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
   ],
   ["state 0"],

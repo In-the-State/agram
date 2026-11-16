@@ -108,15 +108,28 @@
       ["required"],
       [9],
       ["sip", "the path from the header asked to the mother: a short free text (today, «sip»)"]
+    ],
+    [
+      ["give"],
+      ["number"],
+      ["=it >= 0"],
+      ["me"],
+      ["payload"],
+      ["6.4"],
+      ["Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11): parámetro de «anchor served»"],
+      ["optional"],
+      [10],
+      ["how much of my R I give back to who asked, so that it can ask again (optional; without it, one unit; with 0, none): it is my R and no rule demands it"]
     ]
   ],
   ["=\"ask for an anchor\" in (payload(it)).4 and first (first (payload(it)).2).3 = me"],
   [["me"], ["person"]],
-  ["write"],
+  ["=first it.3 != me and (count memo.6.4 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first it.3 or count memo.6.4 > 0 and first memo.6.4 > 0 and put first memo.6.4 at me.1.(R.(me)).1 and transfer first memo.6.4 R.(me) from me to first it.3)"],
   ["4"],
   [
     "VG 17-11 (por Core State; encargo «ancla servida»): un pedido de ancla («ask for an anchor») tiene que poder leerse como servido. Lo escribe quien sirve, la identidad de servicio del nodo: el dueño del nodo (quien escribió su alta, el operador; su R es la llave del servicio y su clave es la del nodo). Hoy la época no tiene otra identidad que sirva: el nodo es una cosa sin clave y el sellador no tiene identidad en este libro. Se lanza sobre el pedido y ancla en su 4 (lo que se hace con él); escrito por otro no cuenta para la lectura «anchors asked»",
-    "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1; el pedido o uno de encima, que lo cubre: la validación lo exige y la lectura no da por servido uno menor) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). No mueve tokens más allá del T de escribir",
+    "Datos, no referencias (la cascada vive fuera de este libro): 6.0 la cabecera pedida (el mismo hash que el 6.3 del pedido: por defecto, ese; la validación lo exige y la lectura solo da por servido el que coincide), 6.1 la cabecera madre que la incluye, 6.2 el nivel de la madre (de epoch.7.6.1; el pedido o uno de encima, que lo cubre: la validación lo exige y la lectura no da por servido uno menor) y 6.3 el camino, un texto corto (hoy «sip»). Los hashes, 64 hexadecimales en minúsculas (=hex(slice(bytes(it), 0, 32)) = it, como el pedido). Mueve, además del T de escribir, la R que da (la nota de «la R en los canales»)",
+    "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), F: la vuelta del buzón entre nodos. Quien sirve (el dueño del nodo) da R suya a quien pidió (el autor del pedido, el 3 de X), en el mismo registro: pone en mano lo que le falte y la transfiere. Así quien pidió puede volver a pedir con ella. Cuánta va en el 6.4, opcional: sin él, una unidad, y el registro pesa lo mismo que antes; con 0, ninguna (es su R y no la exige ninguna regla). Escrita por quien pidió, sobre su propio pedido, no da nada",
     "Molde (el de la época 0, 9.6.0): 0 nombre; 1 los parámetros (cada uno una décupla: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza y su modo; 4 lo que mueve; 5 dónde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
   ],
   ["state 0"],
