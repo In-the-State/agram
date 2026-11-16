@@ -44,7 +44,10 @@ function entrada(e) {
   return e.txid + leHex(e.vout, 4) + '00' + 'fdffffff';
 }
 
+// Una entrada puede llevar `firma` (64 bytes en hex): el testigo de un gasto P2TR por la ruta de la clave (S37),
+// con el que se mide el peso real de una transacción del carril. Sin ella ni preimagen, testigo vacío.
 function testigo(e) {
+  if (e.firma) return '01' + '40' + e.firma;
   return e.preimagen ? '01' + '20' + e.preimagen : '00';
 }
 
@@ -57,7 +60,7 @@ export async function serializar(tx) {
   const salidas = tx.salidas.map((s, i) => leHex(s.sat, 8) + compacto(scripts[i].length / 2) + scripts[i]);
   const cuerpo = compacto(entradas.length) + entradas.join('') + compacto(salidas.length) + salidas.join('');
   const sinTestigo = '02000000' + cuerpo + '00000000';
-  const conTestigo = tx.entradas.some((e) => e.preimagen);
+  const conTestigo = tx.entradas.some((e) => e.preimagen || e.firma);
   const cruda = conTestigo ? '02000000' + '0001' + cuerpo + tx.entradas.map(testigo).join('') + '00000000' : sinTestigo;
   return { cruda, txid: await sha256d(sinTestigo), scripts };
 }

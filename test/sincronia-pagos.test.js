@@ -1,6 +1,6 @@
 // El recibo de pago entra al sincronizar (src/sincronia.js, opción `pago`; encargo «carta: pagos», 16-11): lo que espera
 // su recibo de pago (`esperarPago`) se pide en cada sincronización al servicio de pagos (src/pago.js contra el servidor
-// HTTP de la simulación de StateArk abc5e84, con la firma del titular exigida), por txid o por puntero; pendiente hasta
+// HTTP de la simulación de StateArk 108f888, con la firma del titular exigida), por txid o por puntero; pendiente hasta
 // el bloque, anotado después (eje.marcarPago, X.6.8.3) y «paid» verdadero; un SEGUNDO lector que solo conoce el id del
 // registro lo recibe por el puntero; se guarda y se restaura (también lo guardado de antes, sin `pagos`); un fallo del
 // servicio no rompe la sincronización. Claves de PRUEBA, generadas en cada ejecución.

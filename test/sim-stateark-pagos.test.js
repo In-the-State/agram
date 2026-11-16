@@ -1,4 +1,4 @@
-// Pruebas de la simulación de StateArk (§5 pagos), copiadas tal cual del commit 0ddd6e7 de InTheState/stateark/sim con las rutas adaptadas.
+// Pruebas de la simulación de StateArk (§5 pagos), copiadas tal cual del commit 0ddd6e7 de InTheState/stateark/sim con las rutas adaptadas. [Al día con 108f888: ver LEEME de servidor/sim/stateark/.]
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Simulacion, firmaSimulada, mensajeAutorizacion, RechazoPago } from '../servidor/sim/stateark/index.js';
@@ -150,7 +150,7 @@ test('autorizar y ejecutar: la autorización no vale para otro plan, ni la firma
   const codigo = (c) => (e) => e instanceof RechazoPago && e.codigo === c;
 
   // Firma que no verifica.
-  await assert.rejects(ctx.c.autorizar(plan, { titular: ctx.vg, firma: '00'.repeat(32) }), codigo('signature_invalid'));
+  await assert.rejects(ctx.c.autorizar(plan, { titular: ctx.vg, firma: '00'.repeat(32) }), codigo('authorization_invalid'));
   // Autorización firmada por otro titular: verifica, pero no es el de la cartera.
   const ajena = await ctx.c.autorizar(plan, await firmar(plan, ctx.aina));
   await assert.rejects(ctx.c.ejecutar('vg', ins, plan, ajena), codigo('authorization_not_holder'));
@@ -241,7 +241,7 @@ test('el verificador de firma se puede inyectar (AGRAM puede pasar BIP-340 real)
   await c.acunar(await c.direccion('t'), 50_000);
   await sim.minar();
   const plan = await c.preparar('t', orden({ clase: 'bitcoin/address', valor: await c.direccion('t') }, { amount: { valor: 10_000, unidad: 'sat' } }));
-  await assert.rejects(c.autorizar(plan, { titular: t, firma: 'mala' }), (e) => e.codigo === 'signature_invalid');
+  await assert.rejects(c.autorizar(plan, { titular: t, firma: 'mala' }), (e) => e.codigo === 'authorization_invalid');
   const aut = await c.autorizar(plan, { titular: t, firma: 'firma-buena' });
   assert.equal(llamadas.at(-1)[1], await mensajeAutorizacion(await huella(plan)));
   assert.equal(aut.firma, 'firma-buena');

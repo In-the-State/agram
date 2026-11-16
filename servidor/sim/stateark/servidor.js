@@ -128,7 +128,7 @@ export async function crearServidor(opciones = {}) {
     const campos = await carril.reciboPago(txid);
     if (campos === null) return null;
     try { await firmante.crearClave('nostr', EMISOR); } catch (e) { if (e?.codigo !== 'key_exists') throw e; }
-    return firmante.firmarRecibo(EMISOR, campos, { t: new Date(simulacion.cadena.reloj()).toISOString() });
+    return firmante.firmarRecibo(EMISOR, campos, { t: new Date(simulacion.cadena.reloj()).toISOString(), dominio: 'nostr' });
   };
 
   const servidor = createServer(async (req, res) => {

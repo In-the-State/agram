@@ -1,7 +1,7 @@
 // El cliente del servicio de pagos de StateArk (src/pago.js; encargo «carta: pagos», 16-11): el evento NIP-98 con el id
 // del vector compartido con el backend (test/vectores/nip98.json, copiado de stateark-sim abc5e84), la cabecera, el
 // cuerpo firmado = el enviado, el contador en `content`, y las rutas contra el servidor HTTP de la simulación
-// (servidor/sim/stateark/ abc5e84) CON la firma del titular exigida: sin firma 401, con otra clave 403, repetida
+// (servidor/sim/stateark/ 108f888) CON la firma del titular exigida: sin firma 401, con otra clave 403, repetida
 // `replay`; los recibos por txid y por puntero (404 → null, 422 unconfirmed → pendiente); `deConfiguracion` sin
 // «pay url». Claves de PRUEBA: la del vector y otra derivada igual; nada real.
 

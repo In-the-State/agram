@@ -1,5 +1,5 @@
 // El servicio de pagos de StateArk (§5 del contrato AGRAM ↔ exterior; encargo «carta: pagos», 16-11): un adaptador,
-// gemelo de src/sello.js, con las rutas /pagos/* del servicio (la simulación, servidor/sim/stateark/ abc5e84, o el
+// gemelo de src/sello.js, con las rutas /pagos/* del servicio (la simulación, servidor/sim/stateark/ 108f888, o el
 // backend de StateArk), todo asíncrono:
 //
 //   pago.raiz()                                                → { servicio, … }                    GET /                              sin firma

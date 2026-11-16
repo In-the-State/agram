@@ -1,9 +1,10 @@
-// Pruebas de la simulación de StateArk (§6 custodia), copiadas del commit 0ddd6e7 de InTheState/stateark/sim; el repo de AGRAM es este.
+// Pruebas de la simulación de StateArk (§6 custodia), copiadas del commit 0ddd6e7 de InTheState/stateark/sim; el repo de AGRAM es este. [Al día con 108f888: ver LEEME de servidor/sim/stateark/.]
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { existsSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { pathToFileURL, fileURLToPath } from 'node:url';
-import { Custodia, RechazoCustodia, esquemaNoble, esquemaSimulado, verificarVinculo, Simulacion } from '../servidor/sim/stateark/index.js';
+import { Custodia, RechazoCustodia, esquemaNoble, esquemaSimulado, verificarVinculo, verificarPruebaVinculo, mensajePruebaVinculo, Simulacion } from '../servidor/sim/stateark/index.js';
 import { sha256Texto } from '../servidor/sim/stateark/hash.js';
 
 const codigo = (c) => (e) => e instanceof RechazoCustodia && e.codigo === c;
@@ -123,4 +124,66 @@ test('BIP-340 real con la noble de AGRAM: AGRAM verifica lo que firma la custodi
   const v = await k.vincular('ana', 'ana');
   assert.equal((await verificarVinculo(v, esquemaNoble(schnorr))).ok, true);
   assert.equal((await verificarVinculo(v)).ok, false);
+});
+
+test('S33: firmarRecibo sin t o sin dominio, y revocarSesion con una sesión que no es x-only, dan error (como el guardián)', async () => {
+  const k = new Custodia();
+  await k.crearClave('nostr', 'carril');
+  const ev = await sha256Texto('ev-s33');
+  const campos = { clase: 'aceptación', sujeto: [ev], ata: [['evento', ev]], universo: 'relé aarpia-sim', nucleo: 'abc123', epoca: 'e0', noAfirma: ['NO afirma nada'] };
+  const codigoDe = (c) => (e) => e.codigo === c;
+  await assert.rejects(k.firmarRecibo('carril', campos, { t: '2026-11-12T00:00:00Z' }), codigoDe('domain_unknown'));
+  await assert.rejects(k.firmarRecibo('carril', campos, { dominio: 'nostr' }), codigoDe('time_invalid'));
+  await assert.rejects(k.firmarRecibo('carril', campos, { t: '2026-11-12', dominio: 'nostr' }), codigoDe('time_invalid'));
+  await assert.rejects(k.firmarRecibo('carril', campos, { t: '2026-11-12T00:00:00+01:00', dominio: 'nostr' }), codigoDe('time_invalid'));
+  await assert.rejects(k.firmarRecibo('nadie', campos, { t: '2026-11-12T00:00:00Z', dominio: 'nostr' }), codigoDe('key_unknown'));
+  assert.ok((await k.firmarRecibo('carril', campos, { t: '2026-11-12T00:00:00.5Z', dominio: 'nostr' })).firma);
+  for (const mala of ['no-es-clave', '', 'AB'.repeat(32), 'ab'.repeat(31), undefined]) {
+    await assert.rejects(k.revocarSesion('carril', mala), codigoDe('session_invalid'), String(mala));
+  }
+  await assert.rejects(k.revocarSesion('nadie', 'no-es-clave'), codigoDe('key_unknown'));
+  assert.ok((await k.revocarSesion('carril', 'ab'.repeat(32))).firma);
+});
+
+// S45: la prueba del vínculo nuevo (opción c). La fórmula, copiada literal de `pruebaDe` de sip/ejemplo/generar.mjs y de
+// stateark-guardian/tests/paridad/vinculo.mjs, con node:crypto (sin pasar por el código de la sim).
+const mensajeDelSip = (identidad, claveHex) => {
+  const t = createHash('sha256').update('StateArk/Vinculo/AgramCartera/v1', 'utf8').digest();
+  return createHash('sha256').update(t).update(t).update(Buffer.concat([Buffer.from(identidad, 'utf8'), Buffer.from(claveHex, 'hex')])).digest('hex');
+};
+
+test('S45: probarVinculo da { clave, prueba } con el mensaje del SIP; otra identidad o clave no verifica', async () => {
+  const k = new Custodia();
+  const { publica } = await k.crearClave('cartera', 'casa');
+  const identidad = await sha256Texto('identidad-de-vg');
+  const p = await k.probarVinculo('casa', identidad);
+  assert.deepEqual(Object.keys(p), ['clave', 'prueba']);
+  assert.equal(p.clave, publica, 'la clave de gasto x-only');
+  assert.equal(await mensajePruebaVinculo(identidad, publica), mensajeDelSip(identidad, publica), 'el mensaje es el del SIP');
+  assert.equal(await verificarPruebaVinculo(p, identidad), true);
+  assert.equal(await verificarPruebaVinculo(p, `${identidad}x`), false, 'otra identidad');
+  assert.equal(await verificarPruebaVinculo({ ...p, clave: 'ab'.repeat(32) }, identidad), false, 'otra clave');
+  assert.equal(await verificarPruebaVinculo({ ...p, prueba: 'ab'.repeat(64) }, identidad), false, 'prueba falsa');
+  // Los códigos del guardián: primero la clave, luego la identidad.
+  await assert.rejects(k.probarVinculo('nadie', identidad), codigo('key_unknown'));
+  await assert.rejects(k.probarVinculo('casa', ''), codigo('identity_missing'));
+  await assert.rejects(k.probarVinculo('casa'), codigo('identity_missing'));
+  await assert.rejects(k.probarVinculo('nadie', ''), codigo('key_unknown'));
+  // Una clave de AGRAM no es una cartera: la entrada es del dominio `cartera`.
+  await k.crearClave('agram', 'vg');
+  await assert.rejects(k.probarVinculo('vg', identidad), codigo('key_unknown'));
+});
+
+test('S45: con BIP-340 real, la prueba la verifica el schnorr de la noble de AGRAM sobre el mensaje del SIP', { skip: !hayAgram && 'no está AGRAM' }, async () => {
+  const { schnorr } = await deAgram('vendor/noble-secp256k1.js');
+  const esquema = esquemaNoble(schnorr);
+  const k = new Custodia({ esquema });
+  await k.crearClave('cartera', 'casa');
+  const identidad = await sha256Texto('identidad-de-vg');
+  const p = await k.probarVinculo('casa', identidad);
+  const mensaje = Uint8Array.from(Buffer.from(mensajeDelSip(identidad, p.clave), 'hex'));
+  assert.equal(schnorr.verify(Buffer.from(p.prueba, 'hex'), mensaje, Buffer.from(p.clave, 'hex')), true);
+  assert.equal(await verificarPruebaVinculo(p, identidad, esquema), true);
+  assert.equal(await verificarPruebaVinculo(p, `${identidad}x`, esquema), false);
+  assert.equal(schnorr.verify(Buffer.from(p.prueba, 'hex'), Uint8Array.from(Buffer.from(mensajeDelSip(`${identidad}x`, p.clave), 'hex')), Buffer.from(p.clave, 'hex')), false);
 });
