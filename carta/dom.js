@@ -982,6 +982,23 @@ function htmlDigitos(s) {
   return `<nav class="digitos"${nodo('control')} aria-label="${attr(t('digitosTitulo'))}">${s.digitos.map((d) => `<button type="button" class="digito" data-digito="${d.pv}" data-color="${d.pv}" title="${attr(d.pv + ' · ' + (d.etiqueta ?? ''))}" aria-label="${attr(d.pv + ' · ' + (d.etiqueta ?? ''))}">${d.pv}</button>`).join('')}</nav>`;
 }
 
+/**
+ * El reverso como editor de código (VG, 14-11, #93): el BTML del registro como TEXTO en una <pre><code> de solo lectura, con
+ * una línea por fila numerada, sangrada por nivel y un color por tipo de valor (las clases t-*); «formatear» alterna el BTML
+ * crudo y el formateado para leer y, formateado, enseña los criterios de formato para que quien mira los establezca. Todo
+ * lo que viene del BTML se escapa: nada de él es HTML ni se ejecuta.
+ */
+function htmlBtml(b) {
+  if (!b) return '';
+  const lineas = b.lineas.map((l) => `<span class="btml-linea" data-nivel="${l.nivel}"><span class="btml-n" aria-hidden="true">${l.n}</span>${l.trozos.map((z) => `<span class="t-${z.k}">${escapar(z.v)}</span>`).join('')}</span>`).join('\n');
+  const criterios = b.criterios.length ? `<fieldset class="btml-criterios"><legend>${t('btmlCriterios')}</legend>${b.criterios.map((c) => `<label class="btml-criterio"><span>${escapar(c.etiqueta)}</span><select data-formato="${attr(c.clave)}">${c.opciones.map((o) => `<option value="${attr(o.valor)}"${o.valor === c.valor ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}</select></label>`).join('')}<small class="ayuda">${t('btmlCriteriosAyuda')}</small></fieldset>` : '';
+  return `<div class="btml-editor${b.formateado ? ' formateado' : ''}"${nodo('control')}>
+    <div class="btml-barra"><span class="btml-titulo">${t('btmlTitulo')}</span><button type="button" class="btml-formatear" data-formatear aria-pressed="${b.formateado}" title="${attr(t('btmlFormatearTitulo'))}">${t('btmlFormatear')}</button></div>
+    ${criterios}
+    ${b.lineas.length ? `<pre class="btml-codigo" tabindex="0" aria-label="${attr(t('btmlTitulo'))}"><code>${lineas}</code></pre>` : `<p class="ayuda">${t('btmlSinDatos')}</p>`}
+  </div>`;
+}
+
 /** El centro: el anverso (0), el reverso (5) o un PV abierto como foco. */
 function htmlCentro(c, arbol, { leidoTexto } = {}) {
   const voltear = `<button type="button" class="voltear" data-voltear aria-label="${attr(t('voltear'))} (${attr(t(c.cara === 'anverso' ? 'voltearAnverso' : 'voltearReverso'))})" title="${attr(t('voltear'))}">⟲</button>`;
@@ -1005,16 +1022,17 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   }
   if (c.cara === 'reverso') {
     const ancla = c.ancla ? `<p class="ancla">${t('sobre')} <button type="button" class="enlace" data-abrir="${attr(c.ancla.sobre ?? '')}" ${c.ancla.sobre ? '' : 'disabled'}>${escapar(c.ancla.sobreTexto ?? t('laRaiz'))}</button>${c.ancla.en ? ` · ${t('en')} ${escapar(c.ancla.en)}` : ''}</p>` : '';
-    const pasos = c.pasos ? `<ul class="pasos">${Object.values(c.pasos.porPv).concat(c.pasos.comun ? [c.pasos.comun] : []).map((p) => `<li><b>${escapar(p.nombre)}</b> ${p.k === null ? '—' : escapar(p.k)}${p.de ? `<small>/${escapar(p.de)}</small>` : ''}</li>`).join('')}</ul>` : '';
+    // Sin los pasos que no dicen nada (un «cuando —/10»: sin valor no hay paso que contar).
+    const pasos = c.pasos ? Object.values(c.pasos.porPv).concat(c.pasos.comun ? [c.pasos.comun] : []).filter((p) => p.k !== null && p.k !== undefined) : [];
+    const pasosHtml = pasos.length ? `<ul class="pasos">${pasos.map((p) => `<li><b>${escapar(p.nombre)}</b> ${escapar(p.k)}${p.de ? `<small>/${escapar(p.de)}</small>` : ''}</li>`).join('')}</ul>` : '';
     const validacion = c.validacion?.length ? `<ul class="motivos">${c.validacion.map((v) => `<li>${escapar(v.motivo)}</li>`).join('')}</ul>` : '';
     return `<section class="nucleo reverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'reverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
       <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
-      <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time>${escapar(c.t)}</time>` : ''}</p>
+      <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
       ${ancla}${c.verificado ? `<p class="verificado-linea">${htmlVerificado(c)}</p>` : c.pendienteDeSello ? `<p class="verificado-linea">${htmlPendienteDeSello()}</p>` : ''}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}
-      ${htmlOcupantes(c.ocupantes, { pv: c.pv })}
-      <label class="campo campo-5"${nodo('campo', { d: 5 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(c.plantilla ?? '')}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>
-      ${pasos}${validacion}${efectos}${marco}
+      ${htmlBtml(c.btml)}
+      ${pasosHtml}${validacion}${efectos}${marco}
     </section>`;
   }
   // A pantalla completa, el escenario y el marco del centro son capas de la rejilla (htmlRejilla); sin tarjeta central, la etapa va en la cabecera.
@@ -1036,17 +1054,31 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
  */
 function htmlRoseton(r, { enSuSitio = false } = {}) {
   const sitio = enSuSitio && r.sitio ? ` sitio-f${r.sitio.fila} sitio-c${r.sitio.columna}${r.sitio.centro ? ' sitio-centro' : ''}` : '';
-  return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${r.nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[r.nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('deMiAlta', { que: r.etiqueta }))}">
+  // A pantalla completa (nivel 3) el rosetón se queda comprimido en su sitio: lo grande es la hoja de htmlRosetonPantalla.
+  const nivel = r.nivel >= NIVEL.bloque ? NIVEL.comprimido : r.nivel;
+  const ampliado = nivel >= NIVEL.tarjeta && r.ocupantes;
+  // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
+  return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
     <span class="numero">${r.pv}</span><span class="dato">${escapar(r.comprimido.dato)}</span>
-    ${r.nivel >= NIVEL.tarjeta && r.ocupantes ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>` : ''}
+    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>` : ''}
   </button>`;
+}
+/** El doble toque: la misma vista del rosetón ampliado a pantalla completa, con lo que el núcleo da de esa posición de mi alta. */
+function htmlRosetonPantalla(lista) {
+  const r = lista.find((x) => x.nivel >= NIVEL.bloque && x.ocupantes);
+  if (!r) return '';
+  const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
+  return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
+    <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span><small>${escapar(r.ocupantes.total)}</small><button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
+    <ul>${filas}</ul>
+  </section>`;
 }
 const nav = (lista, clase, enSuSitio = false) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio })).join('')}</nav>`;
 const ARRIBA = [1, 2, 0, 3, 4];
 function htmlRosetones(lista, { apilada = false, parte } = {}) {
   if (!lista?.length) return '';
   // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa).
-  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) : '';
+  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista) : '';
   const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
   return mias.length ? nav(mias, `rosetones-${parte}`) : '';
 }

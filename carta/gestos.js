@@ -51,7 +51,11 @@ const UMBRAL_ARRASTRE = 24;
  *   campo(X, pv, texto, { nuevo })  escribir un ocupante nuevo en la posición pv de X (nuevo: desde el aro de un hueco: crea el elemento y abre su aro)
  *   aroNuevo(X, pv, { ancla })  mantener sobre un hueco (data-hueco-x, data-hueco-pv; issue #22): el aro con un input nuevo que crea el elemento en X.pv
  *   cargarMas(pv)            una página más de ocupantes del PV
- *   roseton(pv)              un paso en un rosetón de identidad
+ *   roseton(pv)              un rosetón de identidad (los míos): pulsarlo lo amplía (flota); pulsar el mismo lo cierra
+ *   rosetonCompleto(pv)      doble toque en un rosetón: su vista ampliada a pantalla completa
+ *   cerrarRoseton()          pulsar fuera del rosetón ampliado, o su «cerrar» de la pantalla completa
+ *   formatear()              el reverso (la cara 5) como editor de BTML: alternar el BTML crudo y el formateado
+ *   formato(clave, valor)    un criterio de formato del BTML (fecha, números, estilo o idioma)
  *   leido()                  alternar la lente «leído»
  *   englobar()               guardar este rato (englobar el libro local)
  *   guiaExportar() · guiaImportar()  la salida externa del PV9 (carta/externa.js): descargar el contexto, elegir el archivo de propuestas
@@ -154,6 +158,7 @@ export function instalar(raiz, m) {
 
   // ---- toques y clics ----
   let ultimoToque = { t: 0, el: null };
+  let ultimoRoseton = { pv: null, t: 0 }; // el último rosetón pulsado: el doble toque lo lleva a pantalla completa
   let arrastrado = 0; // tras arrastrar un asa, el clic que sigue no cuenta
   /**
    * El elemento bajo el primer clic de un doble clic (#23): el primero ya entra (y repinta), así que el doble clic se lee
@@ -167,6 +172,8 @@ export function instalar(raiz, m) {
   on('click', (e) => {
     const t = e.target;
     if (t.closest('input, textarea, select, option, pre')) return;
+    // Un rosetón ampliado (VG, 14-11, #91) se cierra al pulsar fuera de él (o su «cerrar» a pantalla completa): ese clic no hace nada más.
+    if (raiz.querySelector?.('.roseton.nivel-2, .roseton-pantalla') && !t.closest('.roseton, .roseton-pantalla')) { e.preventDefault(); m.cerrarRoseton?.(); return; }
     if (Date.now() - primerClic.t > DOBLE_MS && !t.closest('.aro, .formulario, .guia')) primerClic = { t: Date.now(), X: elementoDe(t), centro: !!t.closest('[data-centro]') };
     if (Date.now() - arrastrado < 400) { e.preventDefault(); return; }
     if (Date.now() - ultimoMantener < TRAS_MANTENER_MS) { e.preventDefault(); return; } // el clic de soltar tras mantener
@@ -214,6 +221,8 @@ export function instalar(raiz, m) {
     if ((el = b('[data-copia]'))) { e.preventDefault(); m.copia?.(null); return; }
     if ((el = b('[data-olvidar]'))) { e.preventDefault(); m.olvidar?.(); return; }
     if ((el = b('[data-leido]'))) { e.preventDefault(); m.leido?.(); return; }
+    if (b('[data-roseton-cerrar]')) { e.preventDefault(); m.cerrarRoseton?.(); return; }
+    if (b('[data-formatear]')) { e.preventDefault(); m.formatear?.(); return; }
     if ((el = b('[data-girar]'))) {
       // La tarjeta central flotante de la rejilla: girarla entre su cara 0 y su cara 5 es solo cosa de la pantalla (no cambia el estado).
       e.preventDefault();
@@ -245,7 +254,15 @@ export function instalar(raiz, m) {
     if ((el = b('[data-subir]'))) { e.preventDefault(); m.subir?.(Number(el.dataset.subir)); return; }
     if ((el = b('[data-abrir]'))) { e.preventDefault(); if (el.dataset.abrir) m.foco?.(el.dataset.abrir, 0); return; }
     if ((el = b('[data-foco-pv]'))) { e.preventDefault(); m.foco?.(el.dataset.x ?? xDe(el), Number(el.dataset.focoPv)); return; }
-    if ((el = b('[data-roseton]'))) { e.preventDefault(); m.roseton?.(Number(el.dataset.roseton)); return; }
+    if ((el = b('[data-roseton]'))) {
+      e.preventDefault();
+      // El segundo clic de un doble toque no es otro pulsar (cerraría lo que el primero abrió): el doble toque llega después, a pantalla completa.
+      const pv = Number(el.dataset.roseton);
+      const doble = ultimoRoseton.pv === pv && Date.now() - ultimoRoseton.t < DOBLE_MS;
+      ultimoRoseton = { pv, t: Date.now() };
+      if (!doble) m.roseton?.(pv);
+      return;
+    }
     if ((el = pvDe(t)) && !t.closest('button') && !t.closest('.secuencia')) {
       // Toque sobre un PV lateral: un paso de tamaño; el doble toque sobre el centro, editar. En Sequenced, lo de dentro de
       // una fila abierta o del hilo no cambia nada al tocarlo (la fila se abre y se cierra por su cabeza).
@@ -268,6 +285,11 @@ export function instalar(raiz, m) {
     const primero = Date.now() - primerClic.t <= DOBLE_MS ? primerClic : null;
     primerClic = { t: 0, X: null, centro: false };
     if (t.closest('input, textarea, select, pre, .aro, .formulario, .guia')) return;
+    // Doble toque en un rosetón (VG, 14-11, #91): su vista ampliada a pantalla completa, no ponerlo como foco.
+    // (el primer clic repinta y el doble clic puede llegar a un ancestro: vale también el último rosetón pulsado hace un instante)
+    const roseton = t.closest('[data-roseton]');
+    const pvRoseton = roseton ? Number(roseton.dataset.roseton) : ultimoRoseton.pv !== null && Date.now() - ultimoRoseton.t <= DOBLE_MS ? ultimoRoseton.pv : null;
+    if (pvRoseton !== null) { e.preventDefault(); ultimoRoseton = { pv: null, t: 0 }; m.rosetonCompleto?.(pvRoseton); return; }
     if (primero?.X && !primero.centro) { e.preventDefault(); m.foco?.(primero.X, 0); return; }
     const centro = t.closest('[data-centro]');
     if (centro && !t.closest('button')) { e.preventDefault(); m.editar?.(centro.dataset.x, Number(centro.dataset.centro)); return; }
@@ -467,6 +489,7 @@ export function instalar(raiz, m) {
     }
     // La escala de la que parte la T que se quema al ejecutar (VG 12-11, decisión 7): la denominación se recalcula.
     if (t.matches('[data-denominacion]')) { m.denominacion?.(t.value, t.form ?? t.closest?.('form') ?? null); return; }
+    if (t.matches('[data-formato]')) { m.formato?.(t.dataset.formato, t.value); return; }
     if (t.matches('[data-quien]')) m.quien?.(t.value);
     else if (t.matches('[data-ejemplo]')) m.ejemplo?.(t.value);
     else if (t.matches('[data-campo]')) {

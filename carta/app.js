@@ -18,7 +18,8 @@
 // sincronizan nunca. Nada de esto bloquea: se escribe en local y la cola sube lo pendiente.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { leerFormato, guardarFormato, formatoValido } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
@@ -338,6 +339,7 @@ async function pintar() {
   pintando = marca;
   marca.promesa = (async () => {
     let a = null;
+    estado.formato = formatoDe(); // los criterios de formato del BTML del reverso
     if (estado.eje) {
       try {
         a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarCon(estado.identidad) });
@@ -647,6 +649,13 @@ async function escribirPreferencias(valores) {
   await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: p.sobre, en: p.en, payload: p.payload }, privadaDe(estado.identidad));
 }
 
+/** Los criterios de formato del BTML (el reverso) de quien mira: guardados en este navegador, por cuenta o «ejemplo». */
+const formatoDe = () => leerFormato(almacenLocal(), estado.cuenta ? estado.cuenta.alta : null);
+function cambiarFormato(cambio) {
+  guardarFormato(almacenLocal(), estado.cuenta ? estado.cuenta.alta : null, formatoValido({ ...formatoDe(), ...cambio }));
+  pintar();
+}
+
 const manejadores = {
   nivel(pv, delta, X) {
     if (enMapped()) {
@@ -907,7 +916,8 @@ const manejadores = {
     pintar();
   },
   cerrar() {
-    if (estado.copia) estado.copia = null;
+    if (hayRosetonAmpliado(estado.rosetones)) estado.rosetones = {};
+    else if (estado.copia) estado.copia = null;
     else if (estado.arranque && estado.eje) estado.arranque = null;
     else if (estado.config) { estado.config = false; estado.motivosPreferencias = []; }
     else if (estado.formulario) estado.formulario = null;
@@ -1040,13 +1050,34 @@ const manejadores = {
     tocar(estado.foco.X, 'cargar más ' + pv);
     pintar();
   },
+  /** Un rosetón (los míos, VG 14-11, #91): pulsarlo lo amplía, flotando sobre la carta; pulsar el mismo lo cierra. */
   roseton(pv) {
     const alta = estado.eje.alta(estado.identidad)?.id;
-    const actual = estado.rosetones[pv] ?? NIVEL.comprimido;
-    if (actual >= NIVEL.tarjeta) { estado.rosetones = {}; if (alta) irA(alta, pv); return; } // el segundo toque lo hace foco
-    estado.rosetones = { [pv]: NIVEL.tarjeta };
-    if (alta) tocar(alta, 'rosetón ' + pv);
+    const abierto = hayRosetonAmpliado(estado.rosetones);
+    estado.rosetones = alternarRoseton(estado.rosetones, pv);
+    if (alta && !abierto) tocar(alta, 'rosetón ' + pv);
     pintar();
+  },
+  /** Doble toque en un rosetón: su vista ampliada a pantalla completa (la configuración de la cartera, por ahora la misma vista). */
+  rosetonCompleto(pv) {
+    const alta = estado.eje.alta(estado.identidad)?.id;
+    estado.rosetones = rosetonAPantallaCompleta(pv);
+    if (alta) tocar(alta, 'rosetón ' + pv + ' completa');
+    pintar();
+  },
+  /** Pulsar fuera del rosetón ampliado, o su «cerrar»: se cierra. */
+  cerrarRoseton() {
+    estado.rosetones = {};
+    pintar();
+  },
+  /** El reverso como editor de BTML (#93): alternar el BTML crudo y el formateado; la elección se guarda en este navegador. */
+  formatear() {
+    cambiarFormato({ formateado: !formatoDe().formateado });
+  },
+  /** Un criterio de formato del BTML: fecha, números y estilo, en este navegador; el idioma, en mi configuración (la preferencia «language» del núcleo). */
+  formato(clave, valor) {
+    if (clave === 'idioma') return manejadores.preferencia('language', valor);
+    cambiarFormato({ [clave]: valor });
   },
   leido() {
     estado.leido = alternarLeido();
