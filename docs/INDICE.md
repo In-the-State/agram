@@ -53,6 +53,7 @@ Son notas de lectura y de resultados, con fecha y con su base (el commit de `mai
 | `CUENTA_BANCO.md` | La cuenta del banco (VG 16-11): una E única con el saldo como dato, el permiso, quién ordena; lo que pone StateArk y lo que queda | rama `beta-banco`, sin aceptar |
 | `PADRES.md` | Padres y copias (VG 16-11, A19) y quién puede leer (VG 17-11, V11 y V7): quién guarda cada elemento (add a parent, remove a parent, set the kind of owner, set a custody default), las bases de `epoch.7.7`, las ramas, custodia, ramasDelLibro y quienGuarda, la línea de antes de firmar; lo que leerán el nodo y StateArk y lo que queda | ramas `beta-padres` y `beta-leer`, sin aceptar |
 | `LIBRO_PRIVADO.md` | El libro privado (VG 17-11): el enlace entre un elemento del libro grande y el génesis de un libro pequeño, como dato en los dos lados (open a private book here, this book hangs from), librosPrivados, cuelgaDe y enlaceReciproco; qué se ve desde fuera y lo que falta | rama `beta-privado`, sin aceptar |
+| `GOBIERNO.md` | El gobierno del cambio de reglas (A21, la época): la fila 7.9 «governance», las seis plantillas (proponer, apoyar, retirar el apoyo, aprobar, poner en vigor y retirar), las lecturas («support of», «support», «missing support», «approved», «change state», «changes»), las reglas de validez, el suelo como dato, el coste y lo que queda para el motor | rama `beta-gobierno`, sin aceptar; el motor, en el encargo siguiente |
 
 ## Dónde está cada cosa en el código
 

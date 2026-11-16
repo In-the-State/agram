@@ -1,0 +1,66 @@
+[
+  ["withdraw a change"],
+  [
+    [
+      ["change"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["encargo A21 (gobierno): parámetro de «withdraw a change»"],
+      ["required"],
+      [1],
+      ["=it", "the proposal that is withdrawn"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["encargo A21 (gobierno): parámetro de «withdraw a change»"],
+      ["required"],
+      [2],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["encargo A21 (gobierno): parámetro de «withdraw a change»"],
+      ["required"],
+      [3],
+      ["=me", "who withdraws it: who proposed it"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["encargo A21 (gobierno): parámetro de «withdraw a change»"],
+      ["required"],
+      [4],
+      ["withdraw a change", "the action"]
+    ]
+  ],
+  ["=\"propose a change\" in (payload(it)).4 and first it.3 = me and count (down it where \"enact a change\" in (payload(it2)).4 or \"withdraw a change\" in (payload(it2)).4) = 0"],
+  [["me"], ["person"]],
+  ["=me.1 where P in it2.0.0.0 and count it2.2.(it) > 0 and release (first it2.2.(it).1) it2.0 from me exit it"],
+  ["4"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §3.5: la escribe quien propuso, antes de aprobarse (la regla «only who proposed withdraws a change»). Devuelve los apoyos: dejan de contar y la propia retirada libera el P que quien propone tenía bloqueado con ella; el de los demás lo recupera cada uno con «withdraw support» (nadie mueve el P de otro). Ancla en el 4 de la propuesta",
+    "[4, 20]: detrás de «enact a change»"
+  ],
+  ["epoch 0"],
+  [4, 20],
+  ["withdraw a change: {me} withdraws {first it.0}"]
+]

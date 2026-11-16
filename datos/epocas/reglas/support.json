@@ -1,0 +1,16 @@
+[
+  ["support"],
+  ["X.2.4.7", "epoch.7.9.5", "epoch.9.0.0.4"],
+  ["=sum (((first it.2).4) each 7) / ((first epoch.9.0.0.4) * count (epoch.7.9.5 where it2 != 0 and not (count it2.2 > 0 and count it2.6 = 0)) + sum ((epoch.7.9.5 where it2 != 0 and count it2.2 > 0 and count it2.6 = 0) each 1) + (first epoch.9.0.0.4) * count (epoch where count (epoch.7.9.5 where it3 != 0) = 0))"],
+  ["X.2.6"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "El apoyo de una propuesta X: la suma de lo que cuenta cada compromiso con X («support of», X.2.4.7) ÷ la suma de las presiones de los nombres de epoch.7.9.5 (vacío, el 0: el dueño del libro con la presión máxima). Va de 0 a 1, la unidad del umbral de epoch.9.0.0.2. No depende de quién propuso ni de cuánto ha escrito cada uno: cuenta la parte de su P, no la cantidad. Una lista cuyas presiones suman 0 da ERROR (división por cero): el núcleo no ha de dejarla entrar",
+    "Se materializa en X.2.6 y no en X.2.5: hay fórmulas que miran el 5 de cada ocupante del 2 de un registro («weight», motor.js) y lo evaluarían en todos"
+  ],
+  ["epoch 0"],
+  ["after support of"],
+  ["support: the part of the pressure of the names of epoch.7.9.5 that backs a proposed change with its locked P"]
+]

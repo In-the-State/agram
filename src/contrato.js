@@ -3405,8 +3405,8 @@ export function retoques(eje, opciones = {}) {
 
 /**
  * ¿Puede `identidad` retocar un texto en el libro de `eje` (A20 escalón 1)? Solo el dueño del libro, el autor de su
- * génesis (la regla «only the owner of the book retouches a text»). La fila epoch.7.9 está reservada y no tiene efecto:
- * las piezas de la época «nacen con el dueño y se amplían por nombre» (VG 17-11), y eso aún no se lee.
+ * génesis (la regla «only the owner of the book retouches a text»). La fila epoch.7.9 es, desde el encargo A21, el
+ * gobierno del cambio de reglas («governance», docs/notas/GOBIERNO.md) y no abre el retoque.
  */
 export function puedeRetocar(eje, identidad) {
   const g = eje?.genesisId;

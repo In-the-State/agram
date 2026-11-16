@@ -1,0 +1,17 @@
+[
+  ["support of"],
+  ["X.2.4", "A.2.1", "epoch.7.9.5", "epoch.9.0.0.4", "before.5"],
+  ["=count (epoch where P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1))) * ((first epoch.9.0.0.4) * count (epoch.7.9.5 where it2 = first it.3) + sum ((epoch.7.9.5 where it2 != first it.3 and it2 != 0 and count it2.6 = 0 and count it2.2 > 0 and first it2.2 = first it.3) each 1) + (first epoch.9.0.0.4) * count (epoch where count (epoch.7.9.5 where it3 != 0) = 0 and first it.3 = first (first before.5).3)) * it.1 / ((sum ((first it.3).2.1 each 1) - sum (((first it.3).2.1 where first it2.0 = first it.5 or first it.5 in up (first it2.0)) each 1)) + count (epoch where not (P in it.0.0.0 and not (first it.0.0.1 = first it.5 or first it.5 in up (first it.0.0.1)))))"],
+  ["X.2.4.7"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "En cada compromiso con X (X.2.4: lo bloqueado con la salida = X, por titular y serie): lo que cuenta para X. Solo P, y no el situado sobre la propia propuesta o sobre lo anclado en ella: lo demás da 0. La presión de su titular entre los nombres de epoch.7.9.5 (un nombre suelto, la presión máxima epoch.9.0.0.4; «nombre k», una magnitud, k; el 0, ningún nombre: cuenta el dueño del libro, el autor del génesis, con la presión máxima) × lo que bloquea ÷ todo su P en el libro, esté donde esté (A.2.1, su P posicionado: lo disponible y lo bloqueado de cada registro o mirada, de cualquier origen, también el P que le dio recibir R en la raíz de su emisor). Quien no está en la lista da 0. Sumado sobre las series de un titular da su presión × la parte de su P que tiene bloqueada con X: como mucho su presión entera, porque lo bloqueado con X es parte de su P",
+    "Core AGRAM 17-11 (decisión del agente de la época): el P situado sobre la propia propuesta o sobre un registro anclado en ella no cuenta, ni bloqueado ni en el total: es el que dan escribirla, apoyarla o retirar el apoyo («writing a record gives ten P on it»). Si contara, apoyar diluiría al que apoya, escribir más antes de apoyar daría más peso y quien propone pesaría distinto que los demás (el resultado dependería de quién propuso)",
+    "Se materializa en X.2.4.7, al lado del peso de «weight» (X.2.4.8): «quién apoya una propuesta y con cuánto» es la lista X.2.4 con su titular (3), lo bloqueado (1) y lo que cuenta (7)"
+  ],
+  ["epoch 0"],
+  ["after only the owner of the book retouches a text"],
+  ["support of: what a commitment of P with a proposed change counts for it: the pressure of its holder among the names of epoch.7.9.5 × what it locks ÷ all its P in the book"]
+]

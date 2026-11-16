@@ -1,0 +1,105 @@
+[
+  ["propose a change"],
+  [
+    [
+      ["title"],
+      ["text"],
+      ["=it != \"\""],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["required"],
+      [1],
+      ["a short title of the change"]
+    ],
+    [
+      ["explanation"],
+      ["text"],
+      ["=it != \"\""],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["required"],
+      [2],
+      ["what changes and why, in plain words"]
+    ],
+    [
+      ["change"],
+      ["tenfold"],
+      ["=count it.0 > 0"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["required"],
+      [3],
+      ["the change: the root of a child epoch of the epoch in force, as an epoch that inherits is written today (its 6 says «hereda» with the id of that epoch; where nothing changes, the mark { ref } to it)"]
+    ],
+    [
+      ["records"],
+      ["tenfold"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["optional"],
+      [4],
+      ["the records of the change (rules or templates) that its root references, if it brings new ones (up to ten)"]
+    ],
+    [
+      ["class"],
+      ["text"],
+      ["=it = \"ordinary\" or it = \"governance\""],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["required"],
+      [5],
+      [
+        "ordinary",
+        "ordinary or governance: a change that touches a piece of governance (epoch.7.9.7) is governance and asks the high threshold (epoch.7.9.2) and its level of firmness (epoch.7.9.4)"
+      ]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["required"],
+      [6],
+      ["=me", "who proposes"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["encargo A21 (gobierno): parámetro de «propose a change»"],
+      ["required"],
+      [7],
+      ["propose a change", "the action"]
+    ]
+  ],
+  ["=first it.5 = first before.5 and count me.6 > 0"],
+  [["me"], ["person"]],
+  ["write"],
+  ["9.7"],
+  [
+    "Core AGRAM 17-11, encargo A21 (tramo 2, paso 1; agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md, decidido por VG en state/REPLANTEO_CASCADA.md, 17-11): un cambio de regla es una época hija escrita en el libro; lo aprueban los nombres de epoch.7.9.5 con su P bloqueado, nunca quien propone ni un recuento abierto, y entra en vigor con la prueba de sello de su aprobación. docs/notas/GOBIERNO.md",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Diseño §3.1: se lanza sobre el génesis del libro y ancla en su 9.7, «changes» (libre: en el génesis anclan el 9, el 9.1, el 9.2, el 9.3, el 9.4, el 9.5 y el 9.6; «configure a place» puede escribir en cualquier posición de un sitio y no se cuenta: las lecturas buscan la acción en el 4). La escribe cualquiera con alta en el libro y paga su T como todo registro (y, si no es el dueño, el precio de atención del grupo en que el dueño lo pone: el génesis es su alta, «attention has a price»). Lleva el título (0), la explicación (1.0), el cambio (1.1: la raíz de una época hija; 1.2 sus registros, si trae) y la clase (2). Su 4 es «write»",
+    "[0, 5]: la configuración del libro (PV 0, la abre el interrogante), detrás de «retouch a text» [0, 4]"
+  ],
+  ["epoch 0"],
+  [0, 5],
+  ["propose a change: {me} proposes {first memo.0}, a change of class {first memo.2}"]
+]
