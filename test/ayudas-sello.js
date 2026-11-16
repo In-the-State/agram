@@ -115,12 +115,13 @@ export function reciboFirmado(rele, { instante = '2026-11-10T10:30:00.000Z', sem
 
 /**
  * La cuenta raíz del eje (el autor del génesis) declara en sus ajustes del exterior las «observer keys» y, si se da, la
- * «seal url» (con ella el eje tiene sello configurado: «sin verificar no se ejecuta»). `privada` es la de la raíz (en un
+ * «seal url» (con ella el eje tiene sello configurado: «sin verificar no se ejecuta») y, si se dan, las «line keys» (las claves de
+ * línea que sellan el libro: la regla «firm» solo cuenta el eslabón cuya clave está declarada; VG 17-11). `privada` es la de la raíz (en un
  * eje de demostración, ninguna).
  */
-export async function declararExterior(eje, { observadores = [], sello, privada, t } = {}) {
+export async function declararExterior(eje, { observadores = [], lineas = [], sello, privada, t } = {}) {
   const raiz = eje.obtener(eje.genesisId).autor;
-  const valores = { 'observer keys': observadores.join(' '), ...(sello ? { 'seal url': sello } : {}) };
+  const valores = { 'observer keys': observadores.join(' '), ...(lineas.length ? { 'line keys': lineas.join(' ') } : {}), ...(sello ? { 'seal url': sello } : {}) };
   const a = G.ajustesEditablesDe('exterior settings', eje, raiz, valores);
   const cuando = t ?? new Date(eje.tMaximo() + 60_000).toISOString();
   return salida.escribirDesde(eje, { modo: 'sequenced', autor: raiz, sobre: a.sobre, en: a.en, payload: a.payload, t: cuando }, privada);

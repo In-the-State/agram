@@ -175,7 +175,7 @@
     {"ref":"cd8c375175c656c4c902ebc420b043e942d15779825914a349b7103af3dd35cb"},
     {"ref":"a787f172195bcdb8aab325702d7068aa596df552b5ffec8753e0816b002abd0b"},
     {"ref":"c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"},
-    {"ref":"279aee2b215027c1a5f15f855f686bfdd1bcbcf6b5a03b6564f6a9509d16ef7e"},
+    {"ref":"b92923d963f23aec17b8d443e29a5fc734c1ca6d279d3303a7a57ae450894f85"},
     {"ref":"a4a7ee336d00e8f8ac80e00c3091581e00e2eb4427a13330256ab00c948d6f65"},
     {"ref":"8ea6617c4b2c38dbfd21bb08d73942853d0b4ab49bf9c36e3ed95e7905ff6f83"},
     {"ref":"8122ff9f971064ac80ccd3fa0501b47b645f482fa5757ef574020c4e48f57e42"},
@@ -854,11 +854,14 @@
     [
       [
         "layers",
-        "the levels of the cascade (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 and §7; SIP 0, «El sello en cascada»), from the bottom up: 1 the levels, numbers (the order is the rank, and a level above covers the ones below); which technology fulfils each level, and with which grade, is data of each link of the seal (X.6.8.2: 9.k.1 its level, 9.k.4 its grade), not of the epoch; 2 the fastest rhythm of the seals of each level, as a scale of T of 7.0 (its index: 0 the second, 1 the minute, 2 the hour, 3 the day), not seconds copied: at most one seal (one batch header) per unit of that scale; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm at that level (a token can be used before: it needs the seal of its level to be firm). The reading «firm» (X.6.8.9) reads this row"
+        "the levels of the cascade (VG 16-11, state/ANCLAJE_EN_CASCADA.md §3 and §7; SIP 0, «El sello en cascada»), from the bottom up: 1 the levels, numbers (the order is the rank, and a level above covers the ones below); which technology fulfils each level is data of each link of the seal (X.6.8.2: 9.k.1 is [level], [level, grade] or [level, grade, network], the grade and the network as numbers, their positions in 4 and 6), not of the epoch; 2 the fastest rhythm of the seals of each level, as a scale of T of 7.0 (its index: 0 the second, 1 the minute, 2 the hour, 3 the day), not seconds copied: at most one seal (one batch header) per unit of that scale; it counts seals, not records, and it is data for the sealer, not a rule of validity: nothing rejects a record for going faster; 3 the family of token that becomes firm at that level (a token can be used before: it needs the seal of its level to be firm); 4 the grades, from lowest to highest (VG 17-11: «the level is the rhythm; the grade says who answers»): local (whoever keeps the line answers alone), shared (several answer together), provider (a provider answers); the number a link carries is the position in this list (0, 1, 2); 5 the grade demanded at each level, by position (the same as 1): a link reaches its level only if its grade is that or higher (0, no grade is demanded, and a link without grade counts as 0); the base demands none, a child epoch sets its own; 6 the networks a link can reach (test, main), as data apart: where it arrives, not who answers; nothing compares them, they are for showing. The reading «firm» (X.6.8.9) reads this row"
       ],
       [1, 2, 3, 4],
       [0, 1, 2, 3],
-      ["T", "R", "P", "E"]
+      ["T", "R", "P", "E"],
+      ["local", "shared", "provider"],
+      [0, 0, 0, 0],
+      ["test", "main"]
     ],
     [
       [
@@ -1879,6 +1882,18 @@
           ["optional"],
           ["arrival"],
           ["the base url of the guide (the AARPIA gateway: POST {url}/guia); empty, the guide is asked at the sync url of the preferences (the Supabase function)"]
+        ],
+        [
+          ["line keys"],
+          ["text"],
+          ["any"],
+          ["owner"],
+          ["write"],
+          ["9"],
+          ["«exterior settings»: dónde viaja, se guarda y se sella el libro (docs/CONTRATO.md §16.2 bis); sus ajustes viven en un registro de este tipo en el 9 del alta, junto al de preferencias y al de la guía. Sin url, nada va por ese camino"],
+          ["optional"],
+          ["arrival"],
+          ["the x-only keys (hex, separated by spaces) of the lines that seal this ledger, one per occupant: first the own keys of each level, in the order of the levels (epoch.7.6.1), then the others (those of a parent that seals, the rotated ones); a link of a seal in cascade reaches its level only if the key of its header is one of these or an observer key (VG 17-11, «firm»); read from the root account of the ledger, the identity of the genesis; empty, none is declared"]
         ]
       ],
       [
@@ -3043,6 +3058,9 @@
           "template exterior settings param guide url label: guía",
           "template exterior settings param guide url help: la dirección base de la guía (la pasarela de AARPIA: POST {dirección}/guia); vacío, la guía se pide al servidor de las preferencias (la función de Supabase)",
           "template exterior settings param guide url placeholder: http://127.0.0.1:8788",
+          "template exterior settings param line keys label: claves de línea",
+          "template exterior settings param line keys help: las claves x-only (hex, separadas por espacios) de las líneas que sellan este libro: primero las propias de cada nivel, en el orden de los niveles, y detrás las demás (las de un padre que sella, las rotadas); un eslabón de un sello en cascada solo alcanza su nivel si la clave de su cabecera es una de estas o la de un observador; se leen de la cuenta raíz del eje, la identidad del génesis; vacío, ninguna declarada",
+          "template exterior settings param line keys placeholder: 7d3b… 1e8a…",
           "template opinion: opinión",
           "template opinion param opinion label: opinión",
           "template opinion param opinion help: lo que la persona dice sobre lo que estaba mirando",

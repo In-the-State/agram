@@ -32,7 +32,7 @@
 //   relojesFueraDeOrden(eje, id)           si los tres relojes de un registro (X.6.8) van fuera de orden: la lectura «clocks out of order»
 //   verificado(eje, id)                    { ok, sello, recibo, relojes, altura, profundidad, enFirme, pendiente, pendienteDeSello }: lo que dicen las reglas «sealed» y «received»
 //                                          de la época, relojes en orden, cuántas confirmaciones tiene y lo que falta para comprobarlo (§4.4)
-//   firmeza(eje, id, { ahora })            { capas: [{ nivel, estado, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme, pedidos, plazo }: hasta qué
+//   firmeza(eje, id, { ahora })            { capas: [{ nivel, ritmo, estado, clave?, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme, pedidos, plazo }: hasta qué
 //                                          nivel del sello en cascada ha llegado (la regla «firm», X.6.8.9), si está en duda por una bifurcación y
 //                                          lo pedido por la escala del T que se quema (propio, colgado y suelo), con su plazo y su estado (encargo A18)
 //   pedidoDeLote(eje, ids)                 { nivel, plazo }: el nivel más alto que pide alguno de esos registros y el plazo más corto de los que lo piden
@@ -67,6 +67,7 @@ import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla } from './bqlm.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
+import { eslabonesValidos, GRADOS_DE_LA_FORMULA } from './sello.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
 import { ocupantes as ocupantesDe } from './encaje.js';
 import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken, movimientosReales } from './tokens.js';
@@ -1842,6 +1843,38 @@ export function cascadaDe(epoca = EPOCA_0_BTML) {
   };
 }
 
+/** Dónde pone la época, en su 7.6, los grados (4), el grado exigido en cada nivel (5) y las redes (6) (VG 17-11, encargo «firm lee grados»). */
+const GRADOS = Object.freeze({ grados: 4, exigidos: 5, redes: 6 });
+
+/**
+ * Los grados de la época (VG 17-11: «el nivel es el ritmo; el grado dice quién responde»): de epoch.7.6, `grados` los
+ * nombres de menor a mayor (4), `exigidos` el grado exigido en cada nivel, por posición (5; null donde no es un número) y
+ * `redes` los nombres de las redes (6). Lee la época dada, como cascadaDe.
+ */
+function gradosDe(epoca = EPOCA_0_BTML) {
+  const fila = en(raizDe(epoca ?? EPOCA_0_BTML), CASCADA.capas);
+  return {
+    grados: hojas(fila?.[GRADOS.grados]).map(texto).filter(Boolean),
+    exigidos: hojas(fila?.[GRADOS.exigidos]).map((x) => (typeof x === 'number' ? x : null)),
+    redes: hojas(fila?.[GRADOS.redes]).map(texto).filter(Boolean),
+  };
+}
+
+/**
+ * ¿Llega el grado de un eslabón (el segundo ocupante de su 9.k.1) al exigido? Lo mismo que «firm» (formulaDeFirmeza): lo
+ * exigido es 0, o el grado es un NÚMERO igual al exigido o a uno de los de encima (los que despliega la fórmula,
+ * GRADOS_DE_LA_FORMULA - 1) y es una posición de los grados de la época. Un grado que falta o es un texto (aunque sea el
+ * nombre canónico) no llega a nada mayor que 0.
+ */
+function gradoLlega(grado, exigido, grados) {
+  if (exigido === 0) return true;
+  if (typeof exigido !== 'number' || typeof grado !== 'number') return false;
+  return Array.from({ length: GRADOS_DE_LA_FORMULA - 1 }, (_, d) => exigido + d).includes(grado) && grado < grados.length;
+}
+
+/** El nombre canónico de un grado o una red (la posición en su lista de la época, o el propio nombre); si no lo es, tal cual (null si no lo hay). */
+const canonicoDe = (x, nombres) => (x === undefined || x === null ? null : Number.isInteger(x) && x >= 0 && x < nombres.length ? nombres[x] : x);
+
 /** Dónde pone la época los estados del futuro (VG 12-11, estudio BQL-transacciones): 0 la cabecera, 1… [[nombre], [cuándo], [su fecha]]. */
 const ESTADOS_DEL_FUTURO = [7, 4];
 
@@ -1929,12 +1962,16 @@ function familiasSentenciadas(ev) {
 /**
  * La firmeza de un registro (VG 16-11: «la carta enseña, en el 5, hasta qué capa ha llegado»; encargo «firmeza»; la
  * fachada de la regla «firm», X.6.8.9, como verificado() lo es de «sealed»). Los niveles son los de la época (cascadaDe, 7.6).
- * → { capas: [{ nivel, estado, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme } o null si el registro no está:
- *   capas      uno por nivel de 7.6, en su orden, con su estado: «alcanzada» (la prueba pasa por él; el primero, también
- *              con su recibo de llegada; el último, Bitcoin, con «sealed»), «saltada» (por debajo del más alto alcanzado,
- *              y la prueba no pasa por él) o «pendiente» (por encima); en cada nivel alcanzado por un eslabón de la cadena,
- *              `grado` y `red`: los que dice ese eslabón detrás de su nivel (9.k.1 = [nivel, grado, red]; opacos: nada
- *              los compara) o null; sin grado no hay red;
+ * → { capas: [{ nivel, ritmo, estado, clave?, grado?, red? }], alcanzada, exigida, firme, enDuda, confirmaciones, enFirme } o null si el registro no está:
+ *   capas      uno por nivel de 7.6, en su orden, con `ritmo` (el nombre de la escala de T de su 7.6.2: «segundo»… «dia»)
+ *              y su estado, el mismo que dice «firm» nivel a nivel (VG 17-11, encargo «firm lee grados»): «alcanzada» (por
+ *              la cadena: un eslabón de ese nivel, con todos los de debajo válidos, su grado a la altura del exigido en
+ *              7.6.5 y la clave de su cabecera declarada en «line keys» u «observer keys» de la cuenta raíz; el primero,
+ *              también con su recibo de llegada si no se le exige grado; el último, también con «sealed»), «saltada» (por
+ *              debajo del más alto alcanzado, y no alcanzado) o «pendiente» (por encima); en cada nivel alcanzado por la
+ *              cadena, `clave` (la de la cabecera que lo alcanza), `grado` y `red` (los que dice ese eslabón detrás de su
+ *              nivel, 9.k.1 = [nivel, grado, red], como el nombre canónico de 7.6.4 y 7.6.6 si traen una posición válida o
+ *              ese nombre; si no, tal cual; null si no los trae; sin grado no hay red);
  *   alcanzada  el número del nivel más alto alcanzado, o null;
  *   exigida    el del nivel de la familia más alta que el registro mueve con sus propias sentencias (sin el coste de
  *              escribir ni el P que da el libro); el primero si no mueve nada;
@@ -1963,23 +2000,35 @@ export function firmeza(eje, id, opciones = {}) {
   const recibido = eje.recibo?.(id) ? comprobar(COMPRUEBA.recibo, ctx, id).valor === true : false;
   const sello = eje.sello?.(id)?.decupla;
   const cadena = Array.isArray(sello) && sello[6] === 'cascada' && Array.isArray(sello[9]) ? sello[9].filter(Array.isArray) : [];
-  // El nivel de cada eslabón y, detrás, su grado y su red (9.k.1 = [nivel, grado, red]), los del primer eslabón de ese nivel.
-  const gradoDeNivel = new Map();
-  for (const e of cadena) {
-    const nivel = hoja(e[1]);
-    if (Number.isSafeInteger(nivel) && !gradoDeNivel.has(nivel)) gradoDeNivel.set(nivel, { grado: hojas(e[1])[1] ?? null, red: hojas(e[1])[1] === undefined ? null : hojas(e[1])[2] ?? null });
-  }
+  // Los niveles que dice algún eslabón (9.k.1 = [nivel, grado, red]): los lee lo pedido (anclas.js, «on time»), que no cambia.
+  const niveles = new Set(cadena.map((e) => hoja(e[1])).filter(Number.isSafeInteger));
   const ultima = tabla.length - 1;
-  const alcanza = tabla.map((c, k) => (k === ultima ? v.sello : k === 0 ? gradoDeNivel.has(c.nivel) || recibido : v.sello && gradoDeNivel.has(c.nivel)));
+  // Lo que dice «firm» (VG 17-11, encargo «firm lee grados»; formulaDeFirmeza), nivel a nivel. Por la cadena: el primer
+  // eslabón j, de los que valen seguidos desde abajo (sello.eslabonesValidos), que dice ese nivel, con su grado a la altura
+  // del exigido y la clave de su cabecera declarada (before.8.9 o before.8.6 de la cuenta raíz).
+  const { grados, exigidos, redes } = gradosDe(epoca);
+  const exterior = ajustesDelEje(eje, opciones);
+  const declaradas = new Set([...exterior.lineas, ...exterior.observadores]);
+  const porCadena = new Map();
+  for (const e of cadena.slice(0, eslabonesValidos(sello, id))) {
+    const k = tabla.findIndex((c) => c.nivel === hoja(e[1]));
+    const clave = Array.isArray(e[0]) ? e[0][5] : null;
+    const [, grado, red] = hojas(e[1]);
+    if (k < 0 || porCadena.has(k) || !declaradas.has(clave) || !gradoLlega(grado, exigidos[k], grados)) continue;
+    porCadena.set(k, { clave, grado: canonicoDe(grado, grados), red: grado === undefined ? null : canonicoDe(red, redes) });
+  }
+  const alcanza = tabla.map((c, k) => porCadena.has(k) || (k === 0 && recibido && exigidos[0] === 0) || (k === ultima && v.sello === true));
+  // Lo pedido sigue leyendo los niveles como la lectura «on time» (src/anclas.js), que este encargo no cambia.
+  const alcanzaPedido = tabla.map((c, k) => (k === ultima ? v.sello : k === 0 ? niveles.has(c.nivel) || recibido : v.sello && niveles.has(c.nivel)));
   const alto = alcanza.lastIndexOf(true);
   const familias = familiasSentenciadas(ev);
   const exigida = Math.max(0, ...tabla.map((c, k) => (familias.includes(c.familia) ? k : -1)));
   const cabeceras = cadena.map((e) => e[0]).filter(Array.isArray).map((c) => ({ numero: c[1], clave: c[5], libro: c[8] }));
   const enDuda = (typeof eje.bifurcaciones === 'function' ? eje.bifurcaciones() : []).some((b) => cabeceras.some((c) => c.clave === b.acusado && c.libro === b.libro && Number.isSafeInteger(c.numero) && c.numero >= b.numero));
   // T, el sistema de las anclas (encargo A18): lo pedido (propio, colgado y suelo), con su plazo y su estado.
-  const { pedidos, plazo } = pedidosDe(eje, ev, { epoca, tabla, alcanza, cadena, recibido, sellado: v.sello, sello: eje.sello?.(id), ctx, ahora: ahoraDe(eje, opciones) });
+  const { pedidos, plazo } = pedidosDe(eje, ev, { epoca, tabla, alcanza: alcanzaPedido, cadena, recibido, sellado: v.sello, sello: eje.sello?.(id), ctx, ahora: ahoraDe(eje, opciones) });
   return {
-    capas: tabla.map((c, k) => ({ nivel: c.nivel, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente', ...(alcanza[k] && gradoDeNivel.has(c.nivel) ? gradoDeNivel.get(c.nivel) : {}) })),
+    capas: tabla.map((c, k) => ({ nivel: c.nivel, ritmo: ESCALAS_REALES[c.escala] ?? null, estado: alcanza[k] ? 'alcanzada' : k < alto ? 'saltada' : 'pendiente', ...(porCadena.get(k) ?? {}) })),
     alcanzada: alto < 0 ? null : tabla[alto].nivel,
     exigida: tabla[exigida]?.nivel ?? null,
     firme: comprobar(COMPRUEBA.firmeza, ctx, id).valor === true,

@@ -22,7 +22,7 @@
 // época (X.6.8.5; encargo «verificado-regla», #67), sin salir del libro; `verificar` de aquí ya no decide nada.
 
 import { AJUSTES, exterior } from './exterior.js';
-import { sha256, hashEtiquetado, concatenar, deHex, aHex, verificarBip340 } from './cripto.js';
+import { sha256, hashEtiquetado, concatenar, deHex, aHex, verificarBip340, raizMerkle } from './cripto.js';
 import { canonico } from './evento.js';
 
 /** La clave de la configuración («exterior settings», docs/CONTRATO.md §16.2 bis) que dice dónde está el servicio de sello. */
@@ -298,6 +298,9 @@ export const POSICIONES_DEL_SELLO = Object.freeze({
   // demás (1, 2, 4, 5, 7 y 8), como en la vía «taproot».
   cascada: 'cascada', compromisoCascada: '3', cadena: '9',
   eslabon: Object.freeze({ cabecera: '0', nivel: '1', lados: '2', hermanos: '3' }),
+  // Dentro del 9.k.1, el orden de sus ocupantes (VG 17-11, encargo «firm lee grados»): el nivel, el grado (un número, su
+  // posición en epoch.7.6.4) y la red (un número, su posición en epoch.7.6.6). «firm» lee el nivel y el grado.
+  enElNivel: Object.freeze({ nivel: 0, grado: 1, red: 2 }),
   // Las posiciones de una cabecera de lote v2 (SIP 0, «El sello en cascada» §1), dentro de su eslabón (9.k.0): `version`
   // es lo que su 0 lleva además de la marca; el 8 el libro y el 9 las referencias (van dentro de lo firmado).
   cabeceraDeLote: Object.freeze({ marca: 'cabecera de lote', version: 'v2', clase: '0', numero: '1', anterior: '2', raiz: '3', hora: '4', clave: '5', firma: '6', numeroLe: '7.0', horaLe: '7.1', libro: '8', referencias: '9' }),
@@ -348,16 +351,7 @@ export function formulaDeSellado(p = POSICIONES_DEL_SELLO) {
  * claves de las capas de abajo no se miran. Sin primitivas nuevas.
  */
 function formulaCascada(p) {
-  const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
-  const en = (k) => S + '.' + p[k];
-  const E = (k) => S + '.' + p.cadena + '.' + k;
-  const c = (k, campo) => E(k) + '.' + p.eslabon.cabecera + '.' + p.cabeceraDeLote[campo];
-  const H = (k) => 'hash(cat(' + ['numeroLe', 'anterior', 'raiz', 'horaLe', 'clave', 'libro', 'referencias'].map((x) => 'bytes(first ' + c(k, x) + ')').join(', ') + '), "' + ETIQUETA_DE_CABECERA + '")';
-  const eslabon = (k) => '"' + p.cabeceraDeLote.marca + '" in ' + c(k, 'clase') + ' and "' + p.cabeceraDeLote.version + '" in ' + c(k, 'clase')
-    + ' and le(bytes(first ' + c(k, 'numeroLe') + ')) = first ' + c(k, 'numero')
-    + ' and le(bytes(first ' + c(k, 'horaLe') + ')) = first ' + c(k, 'hora')
-    + ' and merkle(' + (k === 0 ? 'bytes(first ' + en('id') + ')' : H(k - 1)) + ', ' + E(k) + '.' + p.eslabon.lados + ', ' + E(k) + '.' + p.eslabon.hermanos + ', "sip") = bytes(first ' + c(k, 'raiz') + ')'
-    + ' and signed(bytes(first ' + c(k, 'firma') + '), ' + H(k) + ', bytes(first ' + c(k, 'clave') + '))';
+  const { S, en, E, c, H, eslabon } = piezasDeCascada(p);
   const con = (n) => '(count ' + E(n - 1) + ' > 0' + (n < 10 ? ' and count ' + E(n) + ' = 0' : '')
     + Array.from({ length: n }, (_, k) => ' and ' + eslabon(k)).join('')
     + ' and ' + H(n - 1) + ' = bytes(first ' + en('compromisoCascada') + ') and first ' + c(n - 1, 'clave') + ' in before.8.6)';
@@ -375,48 +369,123 @@ function formulaCascada(p) {
     + ' and (' + Array.from({ length: ESLABONES_DE_LA_FORMULA }, (_, k) => con(k + 1)).join(' or ') + '))';
 }
 
+/**
+ * Las piezas de la vía «cascada» que comparten «sealed» (formulaCascada) y «firm» (formulaDeFirmeza), escritas con el mapa:
+ * S el sello copiado en el 6.8.2 del registro, en(k) una posición suya, E(k) el eslabón k de su cadena, c(k, campo) un campo
+ * de la cabecera de ese eslabón, H(k) el hash de esa cabecera (los 176 bytes firmados) y eslabon(k), que esa cabecera está
+ * bien formada y es la v2, que su camino «sip» desde el id (k = 0) o desde el hash de la de abajo llega a su raíz y que su
+ * firma vale con su propia clave. Sin el «=».
+ */
+function piezasDeCascada(p) {
+  const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
+  const en = (k) => S + '.' + p[k];
+  const E = (k) => S + '.' + p.cadena + '.' + k;
+  const c = (k, campo) => E(k) + '.' + p.eslabon.cabecera + '.' + p.cabeceraDeLote[campo];
+  const H = (k) => 'hash(cat(' + ['numeroLe', 'anterior', 'raiz', 'horaLe', 'clave', 'libro', 'referencias'].map((x) => 'bytes(first ' + c(k, x) + ')').join(', ') + '), "' + ETIQUETA_DE_CABECERA + '")';
+  const eslabon = (k) => '"' + p.cabeceraDeLote.marca + '" in ' + c(k, 'clase') + ' and "' + p.cabeceraDeLote.version + '" in ' + c(k, 'clase')
+    + ' and le(bytes(first ' + c(k, 'numeroLe') + ')) = first ' + c(k, 'numero')
+    + ' and le(bytes(first ' + c(k, 'horaLe') + ')) = first ' + c(k, 'hora')
+    + ' and merkle(' + (k === 0 ? 'bytes(first ' + en('id') + ')' : H(k - 1)) + ', ' + E(k) + '.' + p.eslabon.lados + ', ' + E(k) + '.' + p.eslabon.hermanos + ', "sip") = bytes(first ' + c(k, 'raiz') + ')'
+    + ' and signed(bytes(first ' + c(k, 'firma') + '), ' + H(k) + ', bytes(first ' + c(k, 'clave') + '))';
+  return { S, en, E, c, H, eslabon };
+}
+
+/**
+ * Cuántos eslabones de la cadena de un sello en cascada (su décupla, la de decuplaDeSello) valen seguidos desde abajo, con
+ * los pasos de eslabon(k) de piezasDeCascada, los que mira «firm»: el sello es de vía «cascada», su hoja es `id`, y cada
+ * eslabón, hasta ESLABONES_DE_LA_FORMULA, es una cabecera de lote v2 bien formada cuyo camino «sip» desde el id (el
+ * primero) o desde el hash de la de abajo llega a su raíz y cuya firma vale con su propia clave. 0 si no hay ninguno.
+ * La lectura de JS de lo mismo que la fórmula (contrato.firmeza la usa para decir lo mismo que la regla).
+ */
+export function eslabonesValidos(decupla, id) {
+  const q = POSICIONES_DEL_SELLO;
+  if (!Array.isArray(decupla) || ![].concat(decupla[Number(q.via)]).includes(q.cascada) || decupla[Number(q.id)] !== id || !hexO(id, 64)) return 0;
+  const cadena = Array.isArray(decupla[Number(q.cadena)]) ? decupla[Number(q.cadena)] : [];
+  let anterior = deHex(id);
+  let n = 0;
+  for (; n < Math.min(cadena.length, ESLABONES_DE_LA_FORMULA); n++) {
+    const e = cadena[n];
+    const c = Array.isArray(e) ? leerCabeceraDeLote(e[Number(q.eslabon.cabecera)]) : null;
+    if (!c) break;
+    const lados = [].concat(e[Number(q.eslabon.lados)] ?? []);
+    const hermanos = [].concat(e[Number(q.eslabon.hermanos)] ?? []);
+    if (lados.length !== hermanos.length || !lados.every((l) => l === 'i' || l === 'd') || !hermanos.every((h) => hexO(h, 64))) break;
+    const raiz = aHex(raizMerkle(anterior, lados.map((l, k) => [l, deHex(hermanos[k])]), 'sip'));
+    if (raiz !== c.raiz || !verificarBip340(deHex(c.firma), deHex(c.hash), deHex(c.clave))) break;
+    anterior = deHex(c.hash);
+  }
+  return n;
+}
+
 /** Las familias de token del núcleo (los símbolos del BQL mínimo): las que nombra el 3 de epoch.7.6. */
 const FAMILIAS = Object.freeze(['T', 'R', 'P', 'E']);
 
 /** Cuántas capas despliega la fórmula de «firm» (las de epoch.7.6 de la época 0; una prueba lo vigila). */
 export const CAPAS_DE_LA_FORMULA = 4;
 
+/** Cuántos grados despliega la fórmula de «firm» (los de epoch.7.6.4 de la época 0; una prueba lo vigila). */
+export const GRADOS_DE_LA_FORMULA = 3;
+
 /**
- * La fórmula del 2 de la regla «firm» (X.6.8.9, VG 16-11, encargo «firmeza»): ¿ha llegado el registro al nivel que exige?
- * Lee los niveles de la época, epoch.7.6 (1 los niveles, números de abajo arriba, 3 la familia que queda en firme en cada
- * uno), por posición (nth k), desplegada para CAPAS_DE_LA_FORMULA niveles (BQL no tiene bucles; el primero es la casa y el
- * último Bitcoin). Un nivel está alcanzado (del 9.k.1 solo se lee el primer ocupante, el nivel; el grado y la red, no):
- *   el primero (la casa): su sello en cascada lleva un eslabón con ese nivel, o su recibo de llegada vale («received», X.6.8.4);
- *   los de en medio: su sello en cascada lleva un eslabón con ese nivel (9.k.1) y vale («sealed», X.6.8.5);
- *   la última (Bitcoin): «sealed» vale, por cualquiera de las dos vías.
- * Exige la capa de la familia más alta que mueve con sus propias sentencias (it.1, lo declarado y no anunciado): lo que
+ * La fórmula del 2 de la regla «firm» (X.6.8.9; VG 16-11, encargo «firmeza»; VG 17-11, encargo «firm lee grados»: «el
+ * nivel es el ritmo; el grado dice quién responde»): ¿ha llegado el registro al nivel que exige? Lee la época por posición
+ * (nth k): epoch.7.6.1 los niveles (números, de abajo arriba), .3 la familia que queda en firme en cada uno, .4 los grados
+ * (de menor a mayor), .5 el grado exigido en cada nivel; desplegada para CAPAS_DE_LA_FORMULA niveles, ESLABONES_DE_LA_FORMULA
+ * eslabones y GRADOS_DE_LA_FORMULA grados (BQL no tiene bucles). Un nivel k está alcanzado:
+ *   por la cadena: el sello es de vía «cascada», su hoja es el propio registro y hay un eslabón j tal que los eslabones de
+ *     0 a j valen (eslabon(k) de piezasDeCascada, el de «sealed»), el j dice ese nivel (el primer ocupante de su 9.j.1),
+ *     su grado (el segundo, un NÚMERO: la posición en 7.6.4) llega al exigido (lo exigido es 0, o el grado es una posición
+ *     de 7.6.4 igual o mayor: con «in», que no da ERROR con un texto ni con un hueco: «no alcanzado»), y la clave de su
+ *     cabecera está declarada (before.8.9, las «line keys», o before.8.6, las «observer keys», de la cuenta raíz); las
+ *     claves de los eslabones de debajo de j no se miran, como en «sealed»;
+ *   el primero, además, con su recibo de llegada («received», X.6.8.4), si lo exigido en él es 0;
+ *   el último, además, con «sealed» (X.6.8.5), por cualquiera de las dos vías, sea cual sea el grado exigido.
+ * Exige el nivel de la familia más alta que mueve con sus propias sentencias (it.1, lo declarado y no anunciado): lo que
  * cambia de manos, se acuña, se quema por decisión o se bloquea. NO cuenta lo automático de escribir: la quema de T real
  * de su autor (el coste de escribir, el mismo criterio que «writing burns today's T») ni el P que da el libro (los diez P
- * por escribir, por recibir E o R: no son sentencias del registro, no están en su 1). Sin nada, la primera.
- * «firm» es verdadera si alguna capa alcanzada está a la altura de la exigida o por encima (una de arriba cubre las de abajo,
- * se pueden saltar). Se mira de arriba abajo. Sin sello ni recibo, falsa; lo que solo se lee si hay sello o recibo y le
- * falta un dato («sealed» o «received» PENDIENTE) la deja PENDIENTE.
+ * por escribir, por recibir E o R: no son sentencias del registro, no están en su 1). Sin nada, el primero.
+ * «firm» es verdadera si algún nivel alcanzado está a la altura del exigido o por encima (uno de arriba cubre los de abajo).
+ * La cadena se recorre UNA vez, de abajo arriba (cada firma se verifica una sola vez): `e0 and (vale(0) or e1 and (vale(1)
+ * or …))`, con vale(j) lo barato (la clave declarada, y que el nivel que dice j, con su grado, llega al exigido o por
+ * encima). Primero «sealed» (lo que le falta un dato la deja PENDIENTE, como antes), luego la cadena, luego el recibo.
+ * Sin sello ni recibo, falsa.
  */
 export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
-  const S = '(first ((first it.6).8.2 where "' + p.marca + '" in it2.' + p.clase + '))';
+  const { en, E, c, eslabon } = piezasDeCascada(p);
   const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
   const familia = (j) => '(nth ' + j + ' epoch.7.6.3)';
-  // El nivel de cada eslabón, el primer ocupante de 9.j.1, de uno en uno (j de 0 a 9: una décupla no tiene más): `S.9 each 1`
-  // no sirve, porque S.9 es un solo ocupante (la cadena) y daría su posición 1, el segundo eslabón entero. `first` y no el
-  // 9.j.1 entero: detrás del nivel pueden ir el grado y la red, que son opacos y podrían valer lo mismo que un nivel.
-  const enCadena = (k) => '"' + p.cascada + '" in ' + S + '.' + p.via + ' and (' + Array.from({ length: 10 }, (_, j) => capa(k) + ' in (first ' + S + '.' + p.cadena + '.' + j + '.' + p.eslabon.nivel + ')').join(' or ') + ')';
+  const exigido = (k) => '(nth ' + k + ' epoch.7.6.5)';
   const sellado = 'count (first it.6).8.2 > 0 and first (first it.6).8.5';
   const recibido = 'count (first it.6).8.1 > 0 and first (first it.6).8.4';
   const ultima = CAPAS_DE_LA_FORMULA - 1;
-  const alcanzada = (k) => (k === ultima ? '(' + sellado + ')' : k === 0 ? '(' + enCadena(k) + ' or ' + recibido + ')' : '(' + enCadena(k) + ' and ' + sellado + ')');
   const coste = 'T in it2.0.0.0 and burn in it2.4 and count epoch.7.0.(it2.0.0.1) = 1 and it2.3.0 = first it.3';
   const mueve = (j) => 'count (it.1 where not (' + coste + ') and (' + FAMILIAS.map((f) => familia(j) + ' = "' + f + '" and ' + f + ' in it2.0.0.0').join(' or ') + ')) > 0';
-  const ramas = [];
-  for (let k = ultima; k >= 0; k--) {
-    const encima = Array.from({ length: ultima - k }, (_, i) => ' and not (' + mueve(k + 1 + i) + ')').join('');
-    ramas.push(k === ultima ? alcanzada(k) : '(' + alcanzada(k) + encima + ')');
-  }
-  return '=' + ramas.join(' or ');
+  // Ningún nivel de encima de k hace falta: el exigido es k o uno de debajo.
+  const encima = (k) => Array.from({ length: ultima - k }, (_, i) => ' and not (' + mueve(k + 1 + i) + ')').join('');
+  // El 9.j.1 del eslabón j: [nivel], [nivel, grado] o [nivel, grado, red].
+  const nivelDe = (j) => '(first ' + E(j) + '.' + p.eslabon.nivel + ')';
+  const gradoDe = (j) => '(nth ' + p.enElNivel.grado + ' ' + E(j) + '.' + p.eslabon.nivel + ')';
+  // El grado llega al exigido: lo exigido es 0, o el grado es el exigido o uno de los de encima (exigido + 1…), y es una
+  // posición de 7.6.4. Con «in»: un grado que falta o que es un texto no es ninguno de esos números (falso, no ERROR).
+  const llega = (k, j) => '(' + exigido(k) + ' = 0 or (' + Array.from({ length: GRADOS_DE_LA_FORMULA - 1 }, (_, d) => gradoDe(j) + ' in ' + (d === 0 ? exigido(k) : '(' + exigido(k) + ' + 1'.repeat(d) + ')')).join(' or ') + ') and ' + gradoDe(j) + ' < count epoch.7.6.4)';
+  const declarada = (j) => '(first ' + c(j, 'clave') + ' in before.8.9 or first ' + c(j, 'clave') + ' in before.8.6)';
+  // vale(j): su clave está declarada y el nivel que dice, con su grado, está a la altura del exigido o por encima. Los niveles,
+  // de arriba abajo: `A(último) or not (mueve último) and (A(penúltimo) or not (mueve penúltimo) and (…))`, así cada «mueve»
+  // sale una vez por eslabón.
+  const niveles = (j) => {
+    let x = '';
+    for (let k = 0; k <= ultima; k++) {
+      const a = '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + llega(k, j) + ')';
+      x = k === 0 ? a : a + ' or not (' + mueve(k) + ') and (' + x + ')';
+    }
+    return x;
+  };
+  const vale = (j) => declarada(j) + ' and (' + niveles(j) + ')';
+  let cadena = '';
+  for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + ' and (' + vale(j) + (cadena ? ' or ' + cadena : '') + ')';
+  const porLaCadena = '("' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first it.5) and ' + cadena + ')';
+  const porElRecibo = '(' + recibido + ' and ' + exigido(0) + ' = 0' + encima(0) + ')';
+  return '=(' + sellado + ') or ' + porLaCadena + ' or ' + porElRecibo;
 }
 
 /** La vía «taproot», la de antes del 16-11, intacta (sin el «=»): ver formulaDeSellado. */

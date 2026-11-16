@@ -120,7 +120,7 @@ export function avisosDeAjustes(campos, valores, { positivo = true } = {}) {
     const malos = c.numero ? dado.split(/\s+/).filter((x) => !(Number.isFinite(Number(x)) && (!positivo || Number(x) > 0))) : [];
     if (malos.length) {
       avisos.push(t(positivo ? 'ajusteNoEsNumero' : 'ajusteNoEsNumeroSimple', { ajuste: c.etiqueta ?? c.clave, valor: malos.join(' ') }));
-    } else if (c.clave === 'observer keys') {
+    } else if (c.clave === 'observer keys' || c.clave === 'line keys') {
       const mal = dado.split(/\s+/).filter((x) => !RE_CLAVE_X.test(x));
       if (mal.length) avisos.push(t('ajusteNoEsClave', { ajuste: c.etiqueta ?? c.clave, valor: mal.join(' ') }));
     }

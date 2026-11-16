@@ -6,15 +6,15 @@
 // sella; sin `pay url`, no se pide ningún recibo de pago. El nombre de la plantilla y de sus claves se leen aquí, no en src/contrato.js (que no lleva ninguna palabra de la
 // época); sus etiquetas y ayudas, en es y en, son datos de la época.
 //
-//   AJUSTES                    { plantilla, relevo, archivos, sello, pago, observadores, confirmaciones, guia }: el nombre de la plantilla y las claves de sus ajustes («relay url», «blossom url»…): un registro de ajustes lleva sus claves en el 1 y sus valores, en paralelo, en el 2 (VG 13-11, #77: sin huecos ni rellenos)
-//   exterior(eje, yo)          → { relevo, archivos, sello, pago, guia, observadores, confirmaciones }: cada url (http o https, sin la barra final) o null; las claves de los observadores (hex x-only, [] si no hay); las confirmaciones (6 por defecto)
+//   AJUSTES                    { plantilla, relevo, archivos, sello, pago, observadores, confirmaciones, guia, lineas }: el nombre de la plantilla y las claves de sus ajustes («relay url», «blossom url»…): un registro de ajustes lleva sus claves en el 1 y sus valores, en paralelo, en el 2 (VG 13-11, #77: sin huecos ni rellenos)
+//   exterior(eje, yo)          → { relevo, archivos, sello, pago, guia, observadores, lineas, confirmaciones }: cada url (http o https, sin la barra final) o null; las claves de los observadores y las de línea (hex x-only, [] si no hay); las confirmaciones (6 por defecto)
 //   ajustesDelEje(eje)         lo mismo, leído en el registro de la cuenta RAÍZ del eje (la identidad del génesis): lo que se usa para VERIFICAR (docs/CONTRATO.md §4.4)
 
 import { configuracionDe } from './contrato.js';
 import { fijarLectorDelExterior } from './contexto-eje.js';
 
 /** El nombre de la plantilla de los ajustes del exterior y las claves de sus ajustes (la 4.ª, «pay url», la del servicio de pagos de StateArk: src/pago.js): el nombre y las etiquetas son de la época; las claves son el contrato. */
-export const AJUSTES = Object.freeze({ plantilla: 'exterior settings', relevo: 'relay url', archivos: 'blossom url', sello: 'seal url', pago: 'pay url', observadores: 'observer keys', confirmaciones: 'confirmations', guia: 'guide url' });
+export const AJUSTES = Object.freeze({ plantilla: 'exterior settings', relevo: 'relay url', archivos: 'blossom url', sello: 'seal url', pago: 'pay url', observadores: 'observer keys', confirmaciones: 'confirmations', guia: 'guide url', lineas: 'line keys' });
 
 /** Cuántas confirmaciones hacen «en firme» si el registro (o la plantilla) no lo dice: la convención de Bitcoin. */
 export const CONFIRMACIONES = 6;
@@ -40,7 +40,8 @@ export function url(x) {
 /**
  * Dónde están los servicios de fuera de `quien`, según su registro «exterior settings» (el último, anclado en el 9 de su
  * alta): { relevo, archivos, sello, pago, guia }, cada uno la url o null si no la ha dicho o no es una url; las claves de los
- * observadores y las confirmaciones.
+ * observadores, las de línea (las que sellan este libro: las propias de cada nivel primero, en el orden de los niveles) y
+ * las confirmaciones.
  */
 export function exterior(eje, quien, opciones = {}) {
   const c = configuracionDe(eje, quien, AJUSTES.plantilla, opciones);
@@ -52,6 +53,8 @@ export function exterior(eje, quien, opciones = {}) {
     pago: url(c[AJUSTES.pago]),
     guia: url(c[AJUSTES.guia]),
     observadores: claves(c[AJUSTES.observadores]),
+    // VG 17-11 (encargo «firm lee grados»): las claves de línea que sellan este libro, la 9 de «exterior settings».
+    lineas: claves(c[AJUSTES.lineas]),
     confirmaciones: Number.isInteger(n) && n > 0 ? n : CONFIRMACIONES,
   };
 }
