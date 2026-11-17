@@ -2874,7 +2874,10 @@ function enlaceDe(r, niveles) {
  * la regla «a record is brought from a linked book» (encargo «arreglos del puente», PH4): no vale si su autor lo retiró
  * («withdraw a link» colgado de él) ni si escribió después, para el mismo libro, un «this book hangs from» (o un enlace
  * del otro tipo) en el 9.5 del génesis; y un enlace en otro elemento no lo retira (no se mira el libro entero). →
- *   [{ id, libro, claves: [{ nivel, clave }], direccion, quien, t }], por instante; [] si el elemento no está.
+ *   [{ id, libro, claves: [{ nivel, clave }], direccion, quien, t }], por instante; [] si el elemento no está. Con
+ * `{ puente: true }` (encargo «el puente, segunda vuelta»), cada uno lleva además su grado para el puente: `grado`,
+ * `cuenta` y `delDueno` (gradoDelEnlace; el límite (b): con un enlace del dueño a ese libro con otras claves, el de otra
+ * persona no cuenta, y `delDueno` da el del dueño).
  * `libro`, el id del génesis del pequeño; `claves`, sus claves de línea con su nivel (las que declara en sus ajustes: quien
  * sella este libro sabe por ellas qué cabeceras del pequeño anclar); `direccion`, dónde publica sus cabeceras o null;
  * `quien` y `t`, quién lo abrió y cuándo (el autor y el instante del registro vigente); `id`, el del registro.
@@ -2904,13 +2907,71 @@ export function librosPrivados(eje, id, opciones = {}) {
   // El último de cada libro, si su autor no lo retiró ni lo dejó atrás con otro enlace en el 9.5 del génesis.
   const enElGenesis = eje.genesisId ? eje.sobre(eje.genesisId, LIBRO_PRIVADO.cuelgaEn) : [];
   const vigentes = [...porLibro.values()].filter((l) => !retirado(eje, l.id, l.quien) && !hayPosterior(enElGenesis, l.quien, l.libro, l));
-  return vigentes.sort((a, b) => (despuesDe(a, b) ? 1 : -1));
+  const ordenados = vigentes.sort((a, b) => (despuesDe(a, b) ? 1 : -1));
+  if (!opciones.puente) return ordenados;
+  // Con { puente: true } (encargo «el puente, segunda vuelta»): el grado de cada uno para el puente (gradoDelEnlace).
+  return ordenados.map((l) => {
+    const { grado, cuenta, delDueno } = gradoDelEnlace(eje, l.id) ?? {};
+    return { ...l, grado: grado ?? null, cuenta: cuenta === true, delDueno: delDueno ?? null };
+  });
+}
+
+/** Las claves de línea de un enlace de cualquiera de los dos tipos, como texto ordenado «nivel:clave» (para compararlas). */
+const clavesDelEnlace = (r) => {
+  const pares = accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir) ? r?.payload?.[2] : r?.payload?.[1]?.[1];
+  return (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2).map(([n, k]) => n + ':' + k).sort().join(',');
+};
+
+/** ¿Es `r` un enlace entre libros (de cualquiera de los dos tipos) de `quien`, para `libro`, vigente como lo mira la regla? */
+function enlaceVigente(eje, r, libro) {
+  const abre = accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir);
+  if (!abre && !accionesDelRegistro(r).includes(LIBRO_PRIVADO.cuelga)) return false;
+  if (libroDelEnlace(r) !== libro || retirado(eje, r.id, r.autor)) return false;
+  const l = { id: r.id, t: r.t };
+  const genesis = eje.genesisId;
+  if (abre && r.en !== LIBRO_PRIVADO.en) return false;
+  if (!abre && (r.sobre !== genesis || r.en !== LIBRO_PRIVADO.cuelgaEn)) return false;
+  const mismo = abre ? eje.sobre(r.sobre, LIBRO_PRIVADO.en) : eje.sobre(genesis, LIBRO_PRIVADO.en);
+  return !hayPosterior(mismo, r.autor, libro, l) && !hayPosterior(eje.sobre(genesis, LIBRO_PRIVADO.cuelgaEn), r.autor, libro, l);
+}
+
+/**
+ * El grado de un enlace entre libros para el puente (encargo «el puente, segunda vuelta», VG 17-11, límites (b) y (c)):
+ * { enlace, quien, grado, cuenta, delDueno } o null si `id` no es un enlace. `grado`: «del dueño» (lo escribió el autor
+ * del génesis de este libro); «de quien creó el libro» (un «open a private book here» de otra persona que lleva en su 5
+ * el génesis del libro que enlaza, sobre un elemento suyo: la regla comprueba ese génesis al escribirlo y al usarlo); «de
+ * quien creó el libro, avalado por el dueño» (además, el dueño tiene un enlace vigente a ese mismo libro con las mismas
+ * claves de línea); null, un anuncio que no cuenta para el puente (de otra persona, sin génesis). `cuenta`: si vale para el
+ * puente según la lectura. Límite (b), en la lectura y no en la regla (mirarlo pide recorrer el libro): si el dueño
+ * tiene un enlace vigente a ese libro con otras claves, el de quien lo creó no cuenta, y `delDueno` da el del dueño.
+ * Recorre el libro (es lectura, no regla).
+ */
+export function gradoDelEnlace(eje, id) {
+  const r = eje?.obtener?.(id);
+  const abre = accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir);
+  if (!r || (!abre && !accionesDelRegistro(r).includes(LIBRO_PRIVADO.cuelga))) return null;
+  const libro = libroDelEnlace(r);
+  const dueno = eje.obtener(eje.genesisId)?.autor;
+  const fuera = { enlace: r.id, quien: r.autor };
+  let delDueno = null;
+  for (const otro of eje.orden ?? []) {
+    const x = eje.obtener(otro);
+    if (x?.autor !== dueno || !enlaceVigente(eje, x, libro)) continue;
+    if (!delDueno || despuesDe({ id: x.id, t: x.t }, { id: delDueno.id, t: delDueno.t })) delDueno = x;
+  }
+  if (r.autor === dueno) return { ...fuera, grado: 'del dueño', cuenta: enlaceVigente(eje, r, libro), delDueno: delDueno?.id ?? null };
+  const conGenesis = abre && Array.isArray(r.payload?.[5]) && eje.obtener(r.sobre)?.autor === r.autor;
+  if (!conGenesis) return { ...fuera, grado: null, cuenta: false, delDueno: delDueno?.id ?? null };
+  if (!delDueno) return { ...fuera, grado: 'de quien creó el libro', cuenta: enlaceVigente(eje, r, libro), delDueno: null };
+  const avalado = clavesDelEnlace(delDueno) === clavesDelEnlace(r);
+  return { ...fuera, grado: avalado ? 'de quien creó el libro, avalado por el dueño' : 'de quien creó el libro', cuenta: avalado && enlaceVigente(eje, r, libro), delDueno: delDueno.id };
 }
 
 /**
  * De qué cuelga este libro: el registro «this book hangs from» del 9.5 de su génesis, escrito por el autor del génesis (la
  * plantilla solo se ofrece a él; escrito a mano por otro, aquí no cuenta), el último por instante y, a igualdad, por id. →
- * { libro, elemento, id, t } (los dos, ids de 64 hex del otro libro, que este no lee) o null. Como la regla «a record is
+ * { libro, elemento, id, t, punto? } (los dos, ids de 64 hex del otro libro, que este no lee; `punto`, si el enlace lo dice: el
+ * registro que puso en vigor el último cambio del libro de arriba cuando nació este) o null. Como la regla «a record is
  * brought from a linked book» (encargo «arreglos del puente», PH4): null si ese último lo retiró su autor («withdraw a
  * link» colgado de él) o si el autor del génesis escribió después, para el mismo libro, un enlace del otro tipo en el 9.1
  * o el 9.5 del génesis.
@@ -2925,7 +2986,10 @@ export function cuelgaDe(eje) {
     const libro = texto(hoja(hoja(r.payload?.[1])));
     const elemento = texto(hoja(r.payload?.[2]));
     if (!RE_ID.test(libro ?? '') || !RE_ID.test(elemento ?? '')) continue;
-    const l = { libro, elemento, id: r.id, t: r.t };
+    // El punto (encargo «el puente, segunda vuelta», punto 5): el 5, opcional, el id del registro que puso en vigor el
+    // último cambio del libro de arriba cuando nació este. Solo se da si está.
+    const punto = texto(hoja(r.payload?.[5]));
+    const l = { libro, elemento, id: r.id, t: r.t, ...(RE_ID.test(punto ?? '') ? { punto } : {}) };
     if (!fuera || despuesDe(l, fuera)) fuera = l;
   }
   if (!fuera) return null;

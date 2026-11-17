@@ -1,6 +1,6 @@
 # El puente entre libros (A15, tramo 3, paso 2: la época)
 
-Core AGRAM, 17-11. Diseño cerrado con VG: `agram-equipo/DISENO_PUENTE.md` (§3, §4, §5 y lo que contestó Core StateArk en el §7 bis). Este paso construye **la época 0**: cuatro plantillas, trece reglas de validez, la fila 8.9 y el origen de la línea en los enlaces; del núcleo, solo dos primitivas del BQL mínimo y el nombre de la serie forastera. El §6 (R, P y T como tokens) **no** se construye. Pruebas: `test/puente.test.js`. Ejemplo: `node ejemplos/puente.mjs`. Las fórmulas largas salen de `datos/epocas/puente.mjs` (`node datos/epocas/puente.mjs --escribir` y `npm run epocas`; una prueba vigila que cada regla lleva la suya). **Estado:** en la beta, sin aceptar. **Arreglos tras la revisión de seguridad** (encargo «arreglos del puente», Core AGRAM 17-11; `test/revision-puente.test.js`, PH1 a PH6): la primera cabecera de la prueba la firma la clave que el enlace anota para su nivel, lo enviado a otro libro no se declara aquí, la declaración es verdad también tras su propio registro, un enlace se retira (§2 bis) y lo traído cuyo contexto o movimientos no son su JSON canónico se lee «no fiable» (§7).
+Core AGRAM, 17-11. Diseño cerrado con VG: `agram-equipo/DISENO_PUENTE.md` (§3, §4, §5 y lo que contestó Core StateArk en el §7 bis). Este paso construye **la época 0**: cuatro plantillas, trece reglas de validez, la fila 8.9 y el origen de la línea en los enlaces; del núcleo, solo dos primitivas del BQL mínimo y el nombre de la serie forastera. El §6 (R, P y T como tokens) **no** se construye. Pruebas: `test/puente.test.js`. Ejemplo: `node ejemplos/puente.mjs`. Las fórmulas largas salen de `datos/epocas/puente.mjs` (`node datos/epocas/puente.mjs --escribir` y `npm run epocas`; una prueba vigila que cada regla lleva la suya). **Estado:** en la beta, sin aceptar. **Arreglos tras la revisión de seguridad** (encargo «arreglos del puente», Core AGRAM 17-11; `test/revision-puente.test.js`, PH1 a PH6): la primera cabecera de la prueba la firma la clave que el enlace anota para su nivel, lo enviado a otro libro no se declara aquí, la declaración es verdad también tras su propio registro, un enlace se retira (§2 bis) y lo traído cuyo contexto o movimientos no son su JSON canónico se lee «no fiable» (§7). **Segunda vuelta** (encargo «el puente, segunda vuelta», VG 17-11; `test/puente-2.test.js`): la vuelta libera a favor de otra persona, quien creó un libro lo enlaza con su génesis y las reglas que guardan el puente pasan al suelo (§10).
 
 ## 1. La idea
 
@@ -35,7 +35,7 @@ Todas pagan su T (el coste de escribir, por posición). Los tres últimos parám
 |---|---|---|---|---|---|---|
 | **bring a record from another book** | un enlace del dueño del libro | el **9.8 del génesis** | `[6, 5]` | person | 1.0 el libro de origen (por defecto, el del enlace) · 1.1 el registro: 0 id, 1 autor, 2 sobre, 3 en, 4 t, 5 movimientos (su JSON canónico, texto), 6 su payload tal cual, 7 contexto (JSON canónico), 8 su firma si la lleva · 1.2 la prueba de sello (la décupla de la vía «cascada») · 1.3 el enlace (por defecto, X) | `write` |
 | **send to another book** | un enlace | su 4 | `[4, 26]` | person | 1.0 el libro de destino (el del enlace) · 1.1 la serie: 0 su clave, 1 su emisor, 2 su denominación (si la tiene), 3 su registro atado en el libro donde nació · 1.2 cuánto · 1.3 a quién: su clave pública x-only | `lock` cuánto, de la serie, de quien envía, con la salida = el enlace |
-| **receive from another book** | un «bring a record» que trajo un envío a este libro | su 4 | `[4, 27]` | person | 1 el envío traído (`=it`) | la ida: `mint` cuánto de la serie forastera para quien recibe; la vuelta: `release` cuánto de la serie de aquí, de quien recibe, con la salida = el enlace por el que se trajo |
+| **receive from another book** | un «bring a record» que trajo un envío a este libro | su 4 | `[4, 27]` | person | 1.0 el envío traído (`=it`) · 1.1 (la vuelta) de qué bloqueos saca: hasta diez ternas [quién lo bloqueó, el enlace de su salida, cuánto] | la ida: `mint` cuánto de la serie forastera para quien recibe; la vuelta (§10): por cada bloqueo, `transfer` desde quien lo bloqueó hacia quien recibe con esa salida (si no es él) y `release` |
 | **declare a balance** | su propia alta | su 8 | `[8, 4]` | person | 1.0 la serie (su clave aquí) · 1.1 cuánto (por defecto, lo que tiene aquí: disponible y bloqueado, sin lo bloqueado para otro libro) | `write` |
 | **withdraw a link** | un enlace suyo («open a private book here» o «this book hangs from»), sin retirar | su 4 | `[4, 28]` | person | 0 la nota («withdrawn») · 1 el enlace (`=it`) | `write` |
 
@@ -50,7 +50,7 @@ Trece reglas nuevas, en la cadena del 8 detrás de «a change comes into force w
 
 | Regla | Qué pide |
 |---|---|
-| **a record is brought from a linked book** | cuelga del 9.8 del génesis; su enlace (1.3) es un registro de este libro **del dueño** (el autor del génesis), nombra el libro de origen (1.0), es el último de los suyos (ningún enlace suyo para ese libro, **de cualquiera de los dos tipos**, igual o posterior, en el mismo elemento ni en el 9.5 del génesis: §2 bis) y **no está retirado** |
+| **a record is brought from a linked book** | cuelga del 9.8 del génesis; su enlace (1.3) **cuenta** (§10: del dueño, el autor del génesis, o el «open» de quien creó el libro, con su génesis comprobado), es un registro de este libro, nombra el libro de origen (1.0), es el último de los suyos (ningún enlace suyo para ese libro, **de cualquiera de los dos tipos**, igual o posterior, en el mismo elemento ni en el 9.5 del génesis: §2 bis) y **no está retirado** |
 | **bringing needs the line keys of the book** | el enlace anota una clave **para el nivel de la primera cabecera** de la prueba (su eslabón 0) |
 | **a brought record is its body** | el id (1.1.0) es el SHA-256 de su cuerpo canónico (`src/evento.js`: autor, contexto, en, movimientos, payload, sobre, t), rehecho con `json` y `cat` |
 | **a brought record comes with its proof** | la prueba es de la vía «cascada», su hoja es el id, su primera cabecera es del libro de origen (su 8) y hay un eslabón j, con los de 0 a j válidos (cabecera v2, camino «sip», firma con su propia clave: las piezas de «sealed»), que dice un nivel k ≥ `epoch.8.9.2`, con su grado a la altura del exigido en k (`epoch.7.6.5`, como «firm»), firmado por la clave que el enlace anota **para ese nivel k**. Y por debajo (PH1): **el eslabón 0** (la cabecera cuyo libro es el de origen) lo firma la clave que el enlace anota para su nivel; **cada eslabón intermedio**, si el enlace anota clave para su nivel, esa clave. «sealed» entero no basta: sus claves de abajo no se miran y la prueba de otra línea pasaría |
@@ -111,8 +111,8 @@ La prueba con cuatro eslabones (el vector `prueba-cuatro-eslabones.json` de Core
 - **Ninguna regla lee el contexto ni los movimientos de un registro traído** (1.1.7 y 1.1.5; comprobado en todas las del puente: solo «a brought record is its body» los usa, para rehacer el hash), y ninguna debe hacerlo mientras viajen como texto: el mismo id admite otra partición de esos bytes (PH6). Lo que lee lo traído es su payload (`.1.1.6`) y su id (`.1.1.0`).
 - **Un enlace en otro elemento no retira el anterior** (§2 bis): se retira con «withdraw a link». Mirar «el último enlace de su autor para ese libro en todo el libro» pediría recorrer el libro.
 
-- **La vuelta suelta lo de quien lo bloqueó.** «Recibir» en el origen lo escribe quien nombra la vuelta y libera **lo suyo**: el suelo («nobody moves tokens of others») no deja soltar lo bloqueado de otro. Si la vuelta nombra a otra persona que la que envió, no hay nada suyo que soltar y no se recibe. Que lo bloqueado de ana pase a otro al volver tocaría el suelo: **pregunta abierta para VG**.
-- **Solo enlaces del dueño.** Se trae solo por un enlace escrito por el dueño del libro de destino (decisión de Core AGRAM en el encargo): con los de cualquiera, alguien que abre un libro privado sobre un elemento suyo y anota sus propias claves fabricaría registros «de» un libro que ya está enlazado. El libro privado que abre otra persona necesita que el dueño escriba también el enlace. Si VG quiere otra cosa, es la regla «a record is brought from a linked book».
+- **(Superado por §10)** ~~La vuelta suelta lo de quien lo bloqueó.~~ «Recibir» en el origen lo escribe quien nombra la vuelta y libera **lo suyo**: el suelo («nobody moves tokens of others») no deja soltar lo bloqueado de otro. Si la vuelta nombra a otra persona que la que envió, no hay nada suyo que soltar y no se recibe. Que lo bloqueado de ana pase a otro al volver tocaría el suelo: **pregunta abierta para VG**.
+- **(Superado por §10)** ~~Solo enlaces del dueño.~~ Se trae solo por un enlace escrito por el dueño del libro de destino (decisión de Core AGRAM en el encargo): con los de cualquiera, alguien que abre un libro privado sobre un elemento suyo y anota sus propias claves fabricaría registros «de» un libro que ya está enlazado. El libro privado que abre otra persona necesita que el dueño escriba también el enlace. Si VG quiere otra cosa, es la regla «a record is brought from a linked book».
 - **A igualdad de instante**, dos enlaces del dueño para el mismo libro se anulan (el BQL mínimo no ordena textos); `contrato.librosPrivados` desempata por id.
 - **No se trae**: el génesis (no tiene «sobre»), un registro cuyo payload lleva referencias `{ ref }` (el suelo de las referencias ausentes rechaza el registro que lo trae) ni uno cuyo payload es solo una lista de hojas (anidado se lee como lista y `json` no rehace su forma).
 - **La firma del registro traído no se comprueba**: la clave de su autor está en el otro libro; lo que dice que el otro libro lo aceptó es la prueba de sello de su línea.
@@ -123,3 +123,86 @@ La prueba con cuatro eslabones (el vector `prueba-cuatro-eslabones.json` de Core
 - **La seguridad de un token que cruza es la del sello del libro de origen** (diseño §9): con grado local o en la red de pruebas, vale para enseñarlo y no para dinero. Un saldo declarado es verdad en su fecha.
 - **Los textos de los rechazos nuevos**, en español (epoch.9.4): «{quien} trae del libro {libro} por {enlace}, que no es el último enlace del dueño de este libro con ese libro (en su elemento o en el 9.5 del génesis), o está retirado, o no desde el 9.8 del génesis»; «{quien} trae de un libro cuyo enlace no anota la clave de línea del nivel de la primera cabecera de la prueba: no hay con qué comprobar esa cabecera»; «{quien} trae {id} sin una prueba de su libro que lo cubra al nivel que pide el puente (epoch.8.9.2) con las claves de línea que nombra su enlace (también su primera cabecera, firmada por la clave de su nivel)»; «{quien} envía a {libro} algo que no es un bloqueo de lo que dice el envío, con la salida en el enlace con ese libro, o por un enlace retirado»; «{quien} declara más {serie} de lo que tiene aquí después de este registro (lo bloqueado para otro libro se declara allí)»; y «a declared balance is only that» añade «o fechado más de un año después del mayor instante del libro».
 - **Falta** (paso 3 del plan): enviar, traer y recibir desde la carta, entre los libros abiertos; la sincronía que traiga los registros y sus sellos de un libro a otro.
+
+## 10. Segunda vuelta (encargo «el puente, segunda vuelta», VG 17-11)
+
+Diseño: `agram-equipo/DISENO_PUENTE_2.md`. Pruebas: `test/puente-2.test.js`. Lo de §9 sobre «la vuelta suelta lo de quien lo bloqueó» y «solo enlaces del dueño» queda superado aquí.
+
+### 10.1 La vuelta libera a favor de otra persona
+
+Bloquear «con salida» en un enlace es consentir que se libere según lo que vuelva. Quien recibe la vuelta (a quien nombra el envío, por su clave) escribe dentro de un «receive from another book» transferencias **desde quien bloqueó hacia sí**, con la salida en el enlace, y su liberación. La mecánica del núcleo no cambia: una transferencia con salida solo saca lo bloqueado con esa salida.
+
+- **El fondo**: lo bloqueado de una serie con la salida en un enlace **de un autor** a un libro. Una vuelta traída por un enlace de ese autor saca de ese fondo (también de lo bloqueado por un enlace suyo ya retirado). El fondo de un enlace nunca sale por el de otro autor, ni hacia otra serie u otro libro.
+- **El registro nombra de qué bloqueos saca** (su 1.1: [quién lo bloqueó, el enlace de su salida, cuánto], hasta diez). «what is received is what was sent» pide: cada transferencia, desde otro hacia quien escribe, de la serie de aquí, con la salida en un enlace del fondo; cada liberación, de quien escribe, igual; lo liberado suma lo que vuelve; lo que entra por cada salida se libera en el mismo registro (nada cambia de manos dentro del fondo); no acuña ni bloquea. El orden (el más antiguo primero) lo pone la ayuda `bloqueosDeLaVuelta` de `datos/epocas/puente.mjs`, no la regla: el fondo es fungible.
+- **El suelo**: segunda excepción de «nobody moves tokens of others», calcada de la invitación: una transferencia desde otro, hacia quien escribe, con la salida en un enlace entre libros, dentro de un «receive from another book». `src/validez.js` (`recibeLaVuelta`) la repite.
+- **Enviar** pide un enlace que cuente: el mismo predicado que traer (`enlaceQueCuenta`), con la retirada. No se envía por un enlace por el que nunca podrá traerse la vuelta.
+- **Límite llano**: quien escribió el enlace puede dejar parado lo que se mandó por él mientras no lo reponga. Un fondo bloqueado por un enlace que su autor retira solo vuelve si ese mismo autor escribe otro enlace a ese libro (por él se trae la vuelta, que libera lo bloqueado por el retirado). Probado: retirar, enlazar de nuevo, traer la vuelta y liberar.
+
+### 10.2 Quien creó un libro lo enlaza
+
+«open a private book here» cuenta para el puente si es del dueño de este libro o de **quien creó el libro que enlaza**. La prueba va en el enlace, en su **5** (opcional; en el 5 del payload y no junto al libro, para no dejar huecos): las piezas del génesis del libro enlazado, una décupla.
+
+| 5.k | Qué |
+|---|---|
+| 0 | el autor del génesis |
+| 1 | su instante |
+| 2 | su payload, como JSON canónico (un texto) |
+| 3 | el id de su época (`contexto.epoca`) |
+| 4 | la clave que declara para su autor (`contexto.claves`) |
+| 5 | su firma |
+| 6 | cuántos registros de época escribe (`contexto.epocaEscrita`); 0 si no lo dice |
+| 7 | (opcional) un 1 si es de demostración |
+
+`genesisComoDecupla(g)` la da. La regla **«who created a book links it with its genesis»** (suelo) rehace el cuerpo canónico del génesis
+
+`{"autor":A,"contexto":{"claves":{A:K}[,"demostracion":true],"epoca":E[,"epocaEscrita":N],"genesis":true},"en":"0000000000","movimientos":[],"payload":F,"sobre":null,"t":T}`
+
+(`json` de cada pieza y `utf8` del payload; las cuatro formas, según diga época escrita o demostración) y pide: su SHA-256 es el libro que nombra el enlace (1.0.0); la firma vale (`signed`) con la clave K que ese cuerpo declara; K es una de las que quien escribe el enlace tiene en su alta de este libro (la de su titular); el instante del enlace no es anterior al del génesis; y quien no es el dueño lo escribe sobre un elemento suyo. Cada pieza es un solo valor JSON y las separaciones son fijas, así que el mismo id no admite otra partición: la clave sale del cuerpo. **Al usar el enlace** (traer, enviar y, por traer, la vuelta: `enlaceQueCuenta`) la prueba se vuelve a mirar entera (`pruebaDelGenesis`; revisión automática del 17-11): no se fía de que la regla rigiera cuando se escribió.
+
+- **Un alta no declara una clave sin su prueba de posesión**: la propia, por la firma del alta misma (quien entra firma su aceptación con la clave que declara); la de otra identidad, por su «posesion». Probado: aceptar una invitación con la clave de otra persona no entra. Y quien tiene clave firma todo lo suyo con ella («who has a key signs»), así que el enlace mismo va firmado con K.
+- **Lo que no cabe**: un génesis con campos propios en su contexto, o de demostración sin clave, no lo enlaza su creador (no se rehace su cuerpo); queda el enlace del dueño.
+- **Sin el 5**, el «open a private book here» de quien no es el dueño sigue siendo un anuncio (`docs/notas/LIBRO_PRIVADO.md`: lo escribe quien puede escribir sobre X) y **no cuenta** para el puente.
+- **(a)** El fondo es por autor de enlace (10.1). **(b)** Con un enlace del dueño a ese libro con otras claves, el de otra persona no cuenta: **por lectura y no por regla** (mirarlo pide recorrer el libro). `contrato.gradoDelEnlace`, `contrato.librosPrivados(eje, X, { puente: true })` y `leerTraido` lo dicen (`cuenta: false`) y dan el del dueño (`delDueno`); la regla sigue dejando traer por él. **(c)** Lo traído dice por qué enlace vino: `leerTraido` da `enlace`, `quien`, `grado` («del dueño», «de quien creó el libro, avalado por el dueño» si el dueño tiene un enlace vigente al mismo libro con las mismas claves de línea, o «de quien creó el libro»), `cuenta` y `delDueno`.
+- «this book hangs from» no cambia: cuenta solo el del dueño del libro pequeño.
+
+### 10.3 Las reglas que guardan el puente, en el suelo (7.9.6)
+
+Si dos tercios pudieran quitarlas, podrían llevarse lo bloqueado para otro libro. Entran:
+
+| Pieza | Por qué |
+|---|---|
+| a record is brought from a linked book | sin ella se traería por cualquier enlace: registros «de» otro libro que nadie escribió |
+| a brought record comes with its proof | sin ella lo traído no necesita el sello de la línea del otro libro |
+| a brought record is its body | sin ella el id de lo traído no ata lo que dice |
+| a record is brought once | sin ella el mismo envío se trae y se recibe dos veces |
+| bringing needs the line keys of the book | sin ella la primera cabecera de la prueba no se compara con ninguna clave de la línea |
+| what is locked for another book is released only by its return | sin ella lo bloqueado para otro libro se suelta aquí sin vuelta |
+| a send is received once by whom it names | sin ella la vuelta la recibe cualquiera, o dos veces |
+| what is received is what was sent | sin ella la vuelta saca más del fondo o de otro fondo, y la ida acuña lo que quiera |
+| a send locks what it names | sin ella un envío no bloquea lo que dice: allí se acuña lo que aquí sigue libre |
+| only a receive mints a foreign series | sin ella cualquiera acuña la serie forastera y la «devuelve» |
+| who created a book links it with its genesis | sin ella un enlace con un génesis falso entraría (al usarlo se vuelve a mirar, pero es la puerta) |
+| las plantillas bring a record from another book, send to another book, receive from another book, open a private book here, this book hangs from, withdraw a link | son los nombres que esas reglas leen |
+
+«only the families of the bridge cross» y «the tied record of E crossed before» no entran: su falta no deja sacar lo bloqueado ni traer lo que nadie escribió (la fila 8.9 sigue siendo pieza de gobierno). **Ninguna alcanza una declaración**: cada una empieza por «no nombra su acción», o solo mira movimientos que una declaración no tiene; probado. El motor rechaza un cambio, de cualquier clase, que sustituya cualquiera de ellas o las quite de 7.9.6.
+
+### 10.4 Lo que la carta tendrá que decir
+
+- **Antes de enviar**, con el grado del enlace y la red: «Lo que mandas a otro libro queda en manos de ese libro. Si ese libro hiciera trampa, podría fabricar una vuelta a su favor, hasta lo que se haya mandado por este enlace.»
+- **El grado de un enlace**: `contrato.gradoDelEnlace(eje, id)` → { enlace, quien, grado, cuenta, delDueno } (y `librosPrivados(eje, X, { puente: true })` por elemento). **El fondo bloqueado por él**: `eje.bloqueado(quien, serie, enlace)` de cada quien que envió por ese enlace (los enlaces del mismo autor al mismo libro hacen un fondo); `bloqueosDeLaVuelta(eje, idTraido)` da de qué bloqueos saca una vuelta.
+- Para que un miembro enlace como creador el libro que abre, la carta tendrá que mandar el génesis (`genesisComoDecupla`) en el 5 y escribir sobre un elemento suyo.
+
+### 10.5 El punto en «this book hangs from»
+
+Su 5, opcional, «point»: el id del registro que puso en vigor el último cambio en el libro de arriba cuando nació este (o nada). Es un dato para leer, ninguna regla lo juzga; `contrato.cuelgaDe` lo da como `punto` (solo si está).
+
+### 10.6 Coste (medido en `test/puente-2.test.js`, dos eslabones)
+
+| Regla | Pasos | Ocupantes | Bytes |
+|---|---|---|---|
+| what is received is what was sent (la vuelta de 1, un bloqueo) | 204 | 274 | 6 692 |
+| who created a book links it with its genesis | 67 | 116 | 66 990 |
+| a record is brought from a linked book, por el enlace de quien creó el libro (con la prueba otra vez) | 125 | 268 | 66 990 |
+| a send locks what it names, por ese enlace | 168 | 318 | 67 134 |
+
+Por el enlace del dueño, el coste de traer no cambia (39 pasos: la prueba del génesis no se mira). Validar el registro entero: unos 20-30 ms.

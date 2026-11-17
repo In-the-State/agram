@@ -476,7 +476,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "74b23f3705ffa44dd59fa213c14638ac912c07fdf59ae040f1715f56f8ccecf9"
     },
     {
-      "ref": "fa86f970c3193930517d8aab763c4ab662dcfb29b32c593be64d3442e9e894b2"
+      "ref": "2330bdbbcddfa96666b3da5fb27f2cae03f7c341ecb6e3f65175e1b34a09fd39"
     },
     {
       "ref": "48d6ec72345c79d4b5d6ffd89df8ebd8966480798c862c7152d845f2306540b0"
@@ -665,7 +665,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "02fb7e952496cfe9afc8913b907a890f2731aee278d4aeddaeaaf8ec2728c7bb"
     },
     {
-      "ref": "2fb105aa488e9abc1b25c96a56604066c695e3d45b78d8a1a85838556e87d7ac"
+      "ref": "9d725362d5e2b93314e1a841fa178408702272bd12a0a6c4b1b8cf9f97c40b95"
     },
     {
       "ref": "5a49c67b9f805d2c678b44450cefc99b326cc9f1f66b591c1b81e4abadf58f9c"
@@ -683,7 +683,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "3e37fd9a3d70406abd099388ad8e7bb99a933b027c09a4ba1a88e2376fee75d3"
     },
     {
-      "ref": "eaed4b27a0304ad9a9eb20807fafdb16cbd587e0f39998e669f4627438afef71"
+      "ref": "f74ef0d81bb7c45229ec48daf18919679984ab48fc646f35ba24bcedf1d5ec14"
     },
     {
       "ref": "e60a71de48939b900b6077ee1fa9626e4c720b6ed9cc2d30ef3a7ffd5fde3aad"
@@ -692,7 +692,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "90aca5f357dcd30293219704b70d747b7bc1d68833ae7ab3988b0c9001142491"
     },
     {
-      "ref": "1433c49461c17fe476a2b0cba5349fe557cd0428cbf4c463dfcaa785658c7d43"
+      "ref": "d9ac64bcd376013ede575a437e58386f93f273e15d485d98399ec55136d7033e"
     },
     {
       "ref": "2df4c5ca447902e823f67686efbdc44ef66abf65ef87abc818260ab9e99ef2d2"
@@ -705,6 +705,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "07014ad67799088890818ea8e416256dc418096be1ebb1e3a6fb79eb1e3dba12"
+    },
+    {
+      "ref": "35f4cbcb9b7f6375804d7e3aad052ea8d67b7e16366d7e203174bbfffdf07e74"
     }
   ],
   [
@@ -2347,7 +2350,7 @@ export const EPOCA_0_BTML_DATOS = [
     [
       [
         "governance",
-        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules, readings and templates (by their name) and the positions of the epoch that no change removes or replaces; a record that names «declare a balance» is judged only by the rules of the floor (the way out with what is yours, VG 17-11); 7 the pieces of governance: what only a governance change changes, adds or removes (the bridge row, epoch.8.9, among them). The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
+        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules, readings and templates (by their name) and the positions of the epoch that no change removes or replaces; a record that names «declare a balance» is judged only by the rules of the floor (the way out with what is yours, VG 17-11); the rules and templates that keep what is locked for another book and what is brought from it are floor too (the bridge, second round, VG 17-11); 7 the pieces of governance: what only a governance change changes, adds or removes (the bridge row, epoch.8.9, among them). The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
       ],
       [
         0.5
@@ -2394,6 +2397,23 @@ export const EPOCA_0_BTML_DATOS = [
         "a declared balance is true",
         "a declared balance is only that",
         "declare a balance",
+        "a record is brought from a linked book",
+        "a brought record comes with its proof",
+        "a brought record is its body",
+        "a record is brought once",
+        "bringing needs the line keys of the book",
+        "what is locked for another book is released only by its return",
+        "a send is received once by whom it names",
+        "what is received is what was sent",
+        "a send locks what it names",
+        "only a receive mints a foreign series",
+        "who created a book links it with its genesis",
+        "bring a record from another book",
+        "send to another book",
+        "receive from another book",
+        "open a private book here",
+        "this book hangs from",
+        "withdraw a link",
         "epoch.7.0",
         "epoch.1.3.1",
         "epoch.7.2"
@@ -6835,6 +6855,8 @@ export const EPOCA_0_BTML_DATOS = [
           "template open a private book here param headers url label: dirección de las cabeceras",
           "template open a private book here param headers url help: dónde publica el libro privado sus cabeceras de lote: una dirección http o https, comprobada como las de los ajustes del exterior; sin ella, no se dice",
           "template open a private book here message: {me} abre el libro privado {first memo.1.0.0} en {first it.0}",
+          "template open a private book here param genesis label: génesis",
+          "template open a private book here param genesis help: el génesis del libro privado, cuando quien escribe este enlace creó ese libro y no es el dueño de este: 0 su autor, 1 su instante, 2 su payload (su JSON canónico, como texto), 3 el id de su época, 4 la clave que declara para su autor, 5 su firma, 6 cuántos registros de su época escribe (0 si no lo dice) y 7 un 1 si es de demostración (datos/epocas/puente.mjs, genesisComoDecupla); su clave ha de ser una de mi alta aquí, y va sobre un elemento mío. Sin él, el enlace de quien no es el dueño es un anuncio y no cuenta para el puente",
           "template this book hangs from: este libro cuelga de",
           "template this book hangs from param book label: libro",
           "template this book hangs from param book help: el libro del que cuelga este: el id de su génesis (64 caracteres hexadecimales en minúsculas); un dato, no una referencia: este libro no lo lee",
@@ -6845,6 +6867,8 @@ export const EPOCA_0_BTML_DATOS = [
           "template this book hangs from param actions label: acción",
           "template this book hangs from param actions help: la acción",
           "template this book hangs from message: {me} dice que este libro cuelga de {first memo.2} del libro {first memo.1.0}",
+          "template this book hangs from param point label: punto",
+          "template this book hangs from param point help: el punto del libro de arriba cuando nació este: el id del registro que puso en vigor su último cambio (64 caracteres hexadecimales en minúsculas), o nada; un dato para leer, ninguna regla lo juzga",
           "a thing of mine is one whose alta I wrote: {first ev.3} da T con «dar T a una cosa mía» a {(ev.1 where T in it.0.0.0 and transfer in it.4) each 3.1}, que no es una cosa cuya alta escribió",
           "template set a custody default: decidir cómo se guarda aquí",
           "template set a custody default param key label: qué se decide",
@@ -6967,7 +6991,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template bring a record from another book param proof label: prueba",
           "template bring a record from another book param proof help: la prueba de sello de ese registro en su libro: la décupla del sello por la vía «cascada», la que su libro guarda en su 6.8.2",
           "template bring a record from another book param link label: enlace",
-          "template bring a record from another book param link help: el enlace de este libro con el otro («abrir aquí un libro privado» o «este libro cuelga de», del dueño de este libro): sus claves de línea son las que comprueban la prueba",
+          "template bring a record from another book param link help: el enlace de este libro con el otro («abrir aquí un libro privado» o «este libro cuelga de», del dueño de este libro, o «abrir aquí un libro privado» de quien creó ese libro, con su génesis): sus claves de línea son las que comprueban la prueba",
           "template bring a record from another book param criteria label: criterio",
           "template bring a record from another book param criteria help: la plantilla de cerrado del registro",
           "template bring a record from another book param who label: quién",
@@ -7006,7 +7030,9 @@ export const EPOCA_0_BTML_DATOS = [
           "template receive from another book param who help: quién recibe: a quien nombra el envío",
           "template receive from another book param actions label: acción",
           "template receive from another book param actions help: la acción",
-          "template receive from another book message: {me} recibe el envío {first memo.1}",
+          "template receive from another book message: {me} recibe el envío {first memo.1.0}",
+          "template receive from another book param locks label: bloqueos",
+          "template receive from another book param locks help: de qué bloqueos saca la vuelta, cuando vuelve a este libro: hasta diez ternas [quién lo bloqueó, el enlace de su salida, cuánto], el más antiguo primero (datos/epocas/puente.mjs, bloqueosDeLaVuelta), del fondo de la serie, el libro de origen y el autor del enlace por el que se trajo; la regla comprueba que suman lo que vuelve",
           "template withdraw a link: retirar un enlace",
           "template withdraw a link param text label: texto",
           "template withdraw a link param text help: la nota de la retirada",
@@ -7037,16 +7063,17 @@ export const EPOCA_0_BTML_DATOS = [
           "template this book hangs from param anchor origin help: el origen de la línea de ese libro: el outpoint de su ancla 0 (su txid, 64 caracteres hexadecimales en minúsculas, «:» y su salida); una prueba de ese libro cuyas anclas no descienden de él es otra línea. Comprobarlo contra Bitcoin no es una regla del libro: es un grado de la prueba; sin él, lo que llega de ese libro se lee «sin comprobar el origen»",
           "template this book hangs from param line keys label: claves de línea",
           "template this book hangs from param line keys help: las claves de línea del libro del que cuelga este: hasta cuatro pares [nivel, clave], como en «abrir aquí un libro privado», o 0: ninguna (por defecto); con ellas este libro comprueba lo que trae de él",
-          "a record is brought from a linked book: {first ev.3} trae del libro {first (payload(ev)).1.0} por {first (payload(ev)).1.3}, que no es el último enlace del dueño de este libro con ese libro (en su elemento o en el 9.5 del génesis), o está retirado, o no desde el 9.8 del génesis",
+          "a record is brought from a linked book: {first ev.3} trae del libro {first (payload(ev)).1.0} por {first (payload(ev)).1.3}, que no es el último enlace de su autor con ese libro (en su elemento o en el 9.5 del génesis), o está retirado, o no es del dueño de este libro ni de quien creó ese libro (con su génesis, sobre un elemento suyo), o no desde el 9.8 del génesis",
           "bringing needs the line keys of the book: {first ev.3} trae de un libro cuyo enlace no anota la clave de línea del nivel de la primera cabecera de la prueba: no hay con qué comprobar esa cabecera",
           "a brought record is its body: {first ev.3} trae {first (payload(ev)).1.1.0}, que no es el hash del cuerpo que trae",
           "a brought record comes with its proof: {first ev.3} trae {first (payload(ev)).1.1.0} sin una prueba de su libro que lo cubra al nivel que pide el puente (epoch.8.9.2) con las claves de línea que nombra su enlace (también su primera cabecera, firmada por la clave de su nivel)",
           "a record is brought once: {first ev.3} trae otra vez {first (payload(ev)).1.1.0}: ya se trajo",
           "only the families of the bridge cross: {first ev.3} envía una serie de la familia {first (payload(ev)).1.1.1}, que no cruza como token (epoch.8.9.1)",
-          "a send locks what it names: {first ev.3} envía a {first (payload(ev)).1.0} algo que no es un bloqueo de lo que dice el envío, con la salida en el enlace con ese libro, o por un enlace retirado",
+          "a send locks what it names: {first ev.3} envía a {first (payload(ev)).1.0} algo que no es un bloqueo de lo que dice el envío, con la salida en el enlace con ese libro, o por un enlace que no cuenta para traer de ese libro (no es el último de su autor, está retirado, o no es del dueño ni de quien creó ese libro)",
           "what is locked for another book is released only by its return: {first ev.3} libera o pasa lo bloqueado para otro libro, que solo libera su vuelta",
           "a send is received once by whom it names: {first ev.3} recibe {first ev.6.5}, que no es un envío a este libro para una clave de su alta, o ya se recibió",
-          "what is received is what was sent: {first ev.3} recibe algo que no es lo que dice el envío (su familia, su serie, cuánto, para quién)",
+          "what is received is what was sent: {first ev.3} recibe algo que no es lo que dice el envío (su familia, su serie, cuánto, para quién), o una vuelta que saca de bloqueos fuera del fondo del autor de ese enlace, más de lo que vuelve, o deja bloqueado algo que pasó en ella",
+          "who created a book links it with its genesis: {first ev.3} enlaza el libro {first (payload(ev)).1.0.0} con un génesis que no es el de ese libro, sin la firma de la clave que declara, con una clave que no es del alta de {first ev.3} aquí, posterior al enlace, o sobre un elemento que no es suyo",
           "only a receive mints a foreign series: {first ev.3} acuña una serie forastera fuera de un recibir",
           "the tied record of E crossed before: {first ev.3} recibe E cuyo registro atado no se trajo antes de su libro",
           "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene aquí después de este registro (lo bloqueado para otro libro se declara allí)",
@@ -7396,7 +7423,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "30878e4ab69a12d04012fe7f7cd50db65b46ccf59a3e9c54c2d4b6690ff16704"
         },
         {
-          "ref": "a030814fb1d8be133225dda73a42b547ea88a74aee0951262c307404e2166562"
+          "ref": "628521e6f1f398afa4ede4a64e1550ca09e5b32e1052e72549c9e84a7d6da048"
         },
         {
           "ref": "fefa505f3cc340032562d13c60a3190bcccd484444b6ea88dab28a1a7fc59fa8"
@@ -7414,7 +7441,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "0b5aebbeca779e601a05f2a408e5d8176b1ec15c10c8e6f7da197a78db3b9b17"
         },
         {
-          "ref": "5da867ae7ae6f389c915f026a2e1eb035355d86c8463086a41734dfaa9466bc2"
+          "ref": "8a00a07fdf8a451cd600f784a50713b9848c7fde16e558584b2225dc11d57f23"
         },
         {
           "ref": "8b033881f62c40393928f34f161616b33c894d866609720820648f743c2d39a5"
@@ -7468,10 +7495,10 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "fce6cac82d91c1aa26033459717f8d029c35237666592c03fd0e14bcb2048e2f"
         },
         {
-          "ref": "17f90319cede232f2b4a1569bbe87de2f9d8b66b864605014d8f24f297d1e3a3"
+          "ref": "e391025508c8c5f1cc8123ccc4b93f672cb01f84e953f64f808c7372b0e73c0c"
         },
         {
-          "ref": "9ea9c71a0237b55567212046cc4f97fdb72cdf79e2009c514abbe6582373ec93"
+          "ref": "575f718e78f2e4a458a4fa5eb603f69fd648b3440629229e4bb5d8ca660b2ac0"
         }
       ]
     ],
@@ -9100,7 +9127,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-record-is-brought-from-a-linked-book.json",
-    "id": "2fb105aa488e9abc1b25c96a56604066c695e3d45b78d8a1a85838556e87d7ac",
+    "id": "9d725362d5e2b93314e1a841fa178408702272bd12a0a6c4b1b8cf9f97c40b95",
     "registro": [
       [
         "a record is brought from a linked book"
@@ -9110,10 +9137,11 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "9800000000",
         "9100000000",
         "9500000000",
-        "\"withdraw a link\""
+        "\"withdraw a link\"",
+        "5"
       ],
       [
-        "=not (\"bring a record from another book\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9800000000\" and count (first (payload(ev)).1.3).5 > 0 and first (first (payload(ev)).1.3).3 = first (first before.5).3 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 and nth 1 (first (payload(ev)).1.3).6.5 = \"9100000000\" and first (payload((first (payload(ev)).1.3))).1.0.0 = first (payload(ev)).1.0 and count ((down (up (first (payload(ev)).1.3))) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4 and first (first (payload(ev)).1.3).6.5 = first before.5 and nth 1 (first (payload(ev)).1.3).6.5 = \"9500000000\" and first (payload((first (payload(ev)).1.3))).1.0 = first (payload(ev)).1.0 and count (((first before.5).9.1) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0) and count (((first before.5).9.5) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 and count ((down (first (payload(ev)).1.3)) where \"withdraw a link\" in (payload(it)).4 and first it.3 = first (first (payload(ev)).1.3).3) = 0"
+        "=not (\"bring a record from another book\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9800000000\" and count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 and (first (first (payload(ev)).1.3).3 = first (first before.5).3 or count (payload((first (payload(ev)).1.3))).5 > 0 and first (up (first (payload(ev)).1.3)).3 = first (first (payload(ev)).1.3).3 and count (payload((first (payload(ev)).1.3))).5.0 = 1 and count (payload((first (payload(ev)).1.3))).5.1 = 1 and count (payload((first (payload(ev)).1.3))).5.2 = 1 and count (payload((first (payload(ev)).1.3))).5.3 = 1 and count (payload((first (payload(ev)).1.3))).5.4 = 1 and count (payload((first (payload(ev)).1.3))).5.5 = 1 and count (payload((first (payload(ev)).1.3))).5.6 = 1 and ((first (payload((first (payload(ev)).1.3))).5.6 = 0 and not (count (payload((first (payload(ev)).1.3))).5.7 > 0 and first (payload((first (payload(ev)).1.3))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"3a\"), json(first (payload((first (payload(ev)).1.3))).5.4), bytes(\"7d\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first (payload(ev)).1.3))).5.3), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first (payload(ev)).1.3))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first (payload(ev)).1.3))).5.1), bytes(\"7d\")))) = first (payload((first (payload(ev)).1.3))).1.0.0) or (first (payload((first (payload(ev)).1.3))).5.6 > 0 and not (count (payload((first (payload(ev)).1.3))).5.7 > 0 and first (payload((first (payload(ev)).1.3))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"3a\"), json(first (payload((first (payload(ev)).1.3))).5.4), bytes(\"7d\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first (payload(ev)).1.3))).5.3), bytes(\"2c2265706f636145736372697461223a\"), json(first (payload((first (payload(ev)).1.3))).5.6), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first (payload(ev)).1.3))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first (payload(ev)).1.3))).5.1), bytes(\"7d\")))) = first (payload((first (payload(ev)).1.3))).1.0.0) or (first (payload((first (payload(ev)).1.3))).5.6 = 0 and (count (payload((first (payload(ev)).1.3))).5.7 > 0 and first (payload((first (payload(ev)).1.3))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"3a\"), json(first (payload((first (payload(ev)).1.3))).5.4), bytes(\"7d\"), bytes(\"2c2264656d6f7374726163696f6e223a74727565\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first (payload(ev)).1.3))).5.3), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first (payload(ev)).1.3))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first (payload(ev)).1.3))).5.1), bytes(\"7d\")))) = first (payload((first (payload(ev)).1.3))).1.0.0) or (first (payload((first (payload(ev)).1.3))).5.6 > 0 and (count (payload((first (payload(ev)).1.3))).5.7 > 0 and first (payload((first (payload(ev)).1.3))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first (payload(ev)).1.3))).5.0), bytes(\"3a\"), json(first (payload((first (payload(ev)).1.3))).5.4), bytes(\"7d\"), bytes(\"2c2264656d6f7374726163696f6e223a74727565\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first (payload(ev)).1.3))).5.3), bytes(\"2c2265706f636145736372697461223a\"), json(first (payload((first (payload(ev)).1.3))).5.6), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first (payload(ev)).1.3))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first (payload(ev)).1.3))).5.1), bytes(\"7d\")))) = first (payload((first (payload(ev)).1.3))).1.0.0)) and signed(bytes(first (payload((first (payload(ev)).1.3))).5.5), bytes(first (payload((first (payload(ev)).1.3))).1.0.0), bytes(first (payload((first (payload(ev)).1.3))).5.4)) and first (payload((first (payload(ev)).1.3))).5.4 in (((first (first (first (payload(ev)).1.3).3).6).5 where it != first (first (first (first (payload(ev)).1.3).3).6).5 and first it.3 = first (first (payload(ev)).1.3).3) each 2) and (first (first (payload(ev)).1.3).6).0.0 >= first (first (payload((first (payload(ev)).1.3))).5.1).0) and nth 1 (first (payload(ev)).1.3).6.5 = \"9100000000\" and first (payload((first (payload(ev)).1.3))).1.0.0 = first (payload(ev)).1.0 and count ((down (up (first (payload(ev)).1.3))) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4 and first (first (payload(ev)).1.3).3 = first (first before.5).3 and first (first (payload(ev)).1.3).6.5 = first before.5 and nth 1 (first (payload(ev)).1.3).6.5 = \"9500000000\" and first (payload((first (payload(ev)).1.3))).1.0 = first (payload(ev)).1.0 and count (((first before.5).9.1) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0) and count (((first before.5).9.5) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 and count ((down (first (payload(ev)).1.3)) where \"withdraw a link\" in (payload(it)).4 and first it.3 = first (first (payload(ev)).1.3).3) = 0"
       ],
       [
         "ev.3"
@@ -9131,7 +9159,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
         "Diseño §3: solo se trae de un libro con el que hay enlace, el que anota el dueño de este libro (el autor del génesis) y el último de los suyos para ese libro (al rotar una clave): un «open a private book here» sin otro posterior del mismo autor para el mismo libro en el mismo elemento, o un «this book hangs from» en el 9.5 del génesis sin otro posterior. Decisión de Core AGRAM en el encargo: solo los enlaces del dueño, porque con los de cualquiera otro (que puede abrir un libro privado sobre un elemento suyo y anotar sus propias claves) se fabricarían registros «de» un libro con claves que ese libro no tiene. A igualdad de instante, ninguno de los dos vale (el BQL mínimo no ordena textos). Lo traído cuelga del 9.8 del génesis",
-        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH4: el posterior se mira cruzando los dos tipos de enlace, en el mismo elemento (para «open a private book here», lo que cuelga de su elemento; para «this book hangs from», el 9.1 del génesis) y en el 9.5 del génesis: un enlace del dueño para el mismo libro, de cualquiera de los dos tipos, con instante igual o posterior, retira el anterior. Un enlace en otro elemento no lo retira: no se recorre el libro. Y un enlace retirado (de él cuelga un «withdraw a link» de su autor) no vale"
+        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH4: el posterior se mira cruzando los dos tipos de enlace, en el mismo elemento (para «open a private book here», lo que cuelga de su elemento; para «this book hangs from», el 9.1 del génesis) y en el 9.5 del génesis: un enlace del dueño para el mismo libro, de cualquiera de los dos tipos, con instante igual o posterior, retira el anterior. Un enlace en otro elemento no lo retira: no se recorre el libro. Y un enlace retirado (de él cuelga un «withdraw a link» de su autor) no vale",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta»), punto 2 (VG 17-11): el enlace cuenta si es del dueño de este libro o, si es un «open a private book here» de otra persona, de quien creó el libro que enlaza: lleva en su 5 el génesis de ese libro (lo comprueba al escribirlo «who created a book links it with its genesis», que es suelo) y su elemento es suyo. El último y la retirada se miran por su autor, como antes. Si el libro ya tiene un enlace del dueño, el de otra persona no deja de contar por regla (mirarlo pide recorrer el libro): lo dicen la lectura (contrato.librosPrivados con la opción «puente», leerTraido) y la nota (docs/notas/PUENTE.md). El predicado es enlaceQueCuenta de datos/epocas/puente.mjs, el mismo que pide enviar"
       ],
       [
         "epoch 0"
@@ -9140,7 +9169,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after support is released by withdrawing it"
       ],
       [
-        "a record is brought from a linked book: {first ev.3} brings from the book {first (payload(ev)).1.0} through {first (payload(ev)).1.3}, which is not the last link of the owner of this book with that book (in its element or in the 9.5 of the genesis), or is withdrawn, or not from the 9.8 of the genesis"
+        "a record is brought from a linked book: {first ev.3} brings from the book {first (payload(ev)).1.0} through {first (payload(ev)).1.3}, which is not the last link of its author with that book (in its element or in the 9.5 of the genesis), or is withdrawn, or is neither the owner's of this book nor that of who created that book (with its genesis, on an element of theirs), or not from the 9.8 of the genesis"
       ]
     ]
   },
@@ -9229,17 +9258,19 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-send-locks-what-it-names.json",
-    "id": "eaed4b27a0304ad9a9eb20807fafdb16cbd587e0f39998e669f4627438afef71",
+    "id": "f74ef0d81bb7c45229ec48daf18919679984ab48fc646f35ba24bcedf1d5ec14",
     "registro": [
       [
         "a send locks what it names"
       ],
       [
         "9100000000",
-        "9500000000"
+        "9500000000",
+        "5",
+        "\"withdraw a link\""
       ],
       [
-        "=not (\"send to another book\" in ev.4) or (\"open a private book here\" in (payload((first ev.6.5))).4 or \"this book hangs from\" in (payload((first ev.6.5))).4) and (\"open a private book here\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0) and count ((down (first ev.6.5)) where \"withdraw a link\" in (payload(it)).4 and first it.3 = first (first ev.6.5).3) = 0 and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.1 and first it.0.0.2 = first (payload(ev)).1.1.2 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.3 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.3 = first (payload(first it.5)).1.1.0)) = 1"
+        "=not (\"send to another book\" in ev.4) or count (first ev.6.5).5 > 0 and (\"open a private book here\" in (payload((first ev.6.5))).4 and (first (first ev.6.5).3 = first (first before.5).3 or count (payload((first ev.6.5))).5 > 0 and first (up (first ev.6.5)).3 = first (first ev.6.5).3 and count (payload((first ev.6.5))).5.0 = 1 and count (payload((first ev.6.5))).5.1 = 1 and count (payload((first ev.6.5))).5.2 = 1 and count (payload((first ev.6.5))).5.3 = 1 and count (payload((first ev.6.5))).5.4 = 1 and count (payload((first ev.6.5))).5.5 = 1 and count (payload((first ev.6.5))).5.6 = 1 and ((first (payload((first ev.6.5))).5.6 = 0 and not (count (payload((first ev.6.5))).5.7 > 0 and first (payload((first ev.6.5))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first ev.6.5))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first ev.6.5))).5.0), bytes(\"3a\"), json(first (payload((first ev.6.5))).5.4), bytes(\"7d\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first ev.6.5))).5.3), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first ev.6.5))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first ev.6.5))).5.1), bytes(\"7d\")))) = first (payload((first ev.6.5))).1.0.0) or (first (payload((first ev.6.5))).5.6 > 0 and not (count (payload((first ev.6.5))).5.7 > 0 and first (payload((first ev.6.5))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first ev.6.5))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first ev.6.5))).5.0), bytes(\"3a\"), json(first (payload((first ev.6.5))).5.4), bytes(\"7d\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first ev.6.5))).5.3), bytes(\"2c2265706f636145736372697461223a\"), json(first (payload((first ev.6.5))).5.6), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first ev.6.5))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first ev.6.5))).5.1), bytes(\"7d\")))) = first (payload((first ev.6.5))).1.0.0) or (first (payload((first ev.6.5))).5.6 = 0 and (count (payload((first ev.6.5))).5.7 > 0 and first (payload((first ev.6.5))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first ev.6.5))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first ev.6.5))).5.0), bytes(\"3a\"), json(first (payload((first ev.6.5))).5.4), bytes(\"7d\"), bytes(\"2c2264656d6f7374726163696f6e223a74727565\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first ev.6.5))).5.3), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first ev.6.5))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first ev.6.5))).5.1), bytes(\"7d\")))) = first (payload((first ev.6.5))).1.0.0) or (first (payload((first ev.6.5))).5.6 > 0 and (count (payload((first ev.6.5))).5.7 > 0 and first (payload((first ev.6.5))).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload((first ev.6.5))).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload((first ev.6.5))).5.0), bytes(\"3a\"), json(first (payload((first ev.6.5))).5.4), bytes(\"7d\"), bytes(\"2c2264656d6f7374726163696f6e223a74727565\"), bytes(\"2c2265706f6361223a\"), json(first (payload((first ev.6.5))).5.3), bytes(\"2c2265706f636145736372697461223a\"), json(first (payload((first ev.6.5))).5.6), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload((first ev.6.5))).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload((first ev.6.5))).5.1), bytes(\"7d\")))) = first (payload((first ev.6.5))).1.0.0)) and signed(bytes(first (payload((first ev.6.5))).5.5), bytes(first (payload((first ev.6.5))).1.0.0), bytes(first (payload((first ev.6.5))).5.4)) and first (payload((first ev.6.5))).5.4 in (((first (first (first ev.6.5).3).6).5 where it != first (first (first (first ev.6.5).3).6).5 and first it.3 = first (first ev.6.5).3) each 2) and (first (first ev.6.5).6).0.0 >= first (first (payload((first ev.6.5))).5.1).0) and nth 1 (first ev.6.5).6.5 = \"9100000000\" and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 and count ((down (up (first ev.6.5))) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first ev.6.5).3 and it != (first ev.6.5) and first (first it.6).0.0 >= first (first (first ev.6.5).6).0.0) = 0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (first ev.6.5).3 = first (first before.5).3 and first (first ev.6.5).6.5 = first before.5 and nth 1 (first ev.6.5).6.5 = \"9500000000\" and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0 and count (((first before.5).9.1) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first ev.6.5).3 and it != (first ev.6.5) and first (first it.6).0.0 >= first (first (first ev.6.5).6).0.0) = 0) and count (((first before.5).9.5) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first ev.6.5).3 and it != (first ev.6.5) and first (first it.6).0.0 >= first (first (first ev.6.5).6).0.0) = 0 and count ((down (first ev.6.5)) where \"withdraw a link\" in (payload(it)).4 and first it.3 = first (first ev.6.5).3) = 0 and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.1 and first it.0.0.2 = first (payload(ev)).1.1.2 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.3 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.3 = first (payload(first it.5)).1.1.0)) = 1"
       ],
       [
         "ev.3"
@@ -9257,7 +9288,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
         "Diseño §4.2 y §4.4: el envío se ancla en un enlace con el libro de destino y bloquea, una vez y sin otro movimiento que su coste, lo que dice de la serie que dice, con la salida en ese enlace. Una serie forastera solo vuelve a su libro de origen",
-        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH4: un enlace retirado (de él cuelga un «withdraw a link» de su autor) no vale para enviar"
+        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH4: un enlace retirado (de él cuelga un «withdraw a link» de su autor) no vale para enviar",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta»), punto 1: el envío pide un enlace que cuente, el mismo predicado que traer (enlaceQueCuenta: del dueño o de quien creó el libro, el último de su autor y sin retirar). No se envía por un enlace por el que nunca podrá traerse la vuelta"
       ],
       [
         "epoch 0"
@@ -9266,7 +9298,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after only the families of the bridge cross"
       ],
       [
-        "a send locks what it names: {first ev.3} sends to {first (payload(ev)).1.0} something that is not one lock of what the send names, with the link with that book as its exit, or through a withdrawn link"
+        "a send locks what it names: {first ev.3} sends to {first (payload(ev)).1.0} something that is not one lock of what the send names, with the link with that book as its exit, or through a link that does not count to bring from that book (not the last of its author, withdrawn, or neither the owner's nor that of who created that book)"
       ]
     ]
   },
@@ -10861,17 +10893,18 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "nobody-moves-tokens-of-others.json",
-    "id": "fa86f970c3193930517d8aab763c4ab662dcfb29b32c593be64d3442e9e894b2",
+    "id": "2330bdbbcddfa96666b3da5fb27f2cae03f7c341ecb6e3f65175e1b34a09fd39",
     "registro": [
       [
         "nobody moves tokens of others"
       ],
       [
         0,
-        "\"invitation\""
+        "\"invitation\"",
+        "\"receive from another book\""
       ],
       [
-        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1)) = 0"
+        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1) and not (transfer in it.4 and it.3.1 = first ev.3 and \"receive from another book\" in (payload(ev)).4 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0)) = 0"
       ],
       [
         "ev.3"
@@ -10891,7 +10924,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "VG, 8-11 (mapa §15): cada uno solo mueve lo suyo, sin paso de autorizar",
         "VG, 9-11 (mapa §16 [D] «El árbol mínimo es la invitación»): «1 lo que te doy para empezar (mínimo mi propia R, que te permite escribirme)»: quien invita lo bloquea con la salida = quien invita, y la aceptación lo recoge con una transferencia con esa salida (encargo 3b); no es mover lo ajeno: la salida nombra a quien lo recibe",
         "Revisión de seguridad (encargo 3b): la excepción es exactamente «aceptar mi invitación»: quien escribe aún no tiene alta, ancla sobre la invitación, que lo nombra como invitado en su 3.1, y transfiere desde quien la escribió hacia sí mismo con la salida = él (el libro solo deja sacar lo bloqueado con esa salida: lo que la invitación le guarda); src/validez.js lo repite en el suelo",
-        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige"
+        "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11: «¿Confirmas que la vuelta pueda liberar a favor de otra persona? Sí»): segunda excepción, calcada de la invitación: una transferencia desde otro, hacia quien escribe, con la salida en un enlace entre libros («open a private book here» o «this book hangs from» de este libro), dentro de un «receive from another book». El consentimiento se lee en la salida del bloqueo: quien bloqueó con la salida en un enlace consintió que se libere según lo que vuelva. Lo que saca y para quién lo juzgan «what is received is what was sent» y las demás reglas del puente, que son suelo; src/validez.js lo repite"
       ],
       [
         "epoch 0"
@@ -12413,7 +12447,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "what-is-received-is-what-was-sent.json",
-    "id": "1433c49461c17fe476a2b0cba5349fe557cd0428cbf4c463dfcaa785658c7d43",
+    "id": "d9ac64bcd376013ede575a437e58386f93f273e15d485d98399ec55136d7033e",
     "registro": [
       [
         "what is received is what was sent"
@@ -12423,7 +12457,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "before.5"
       ],
       [
-        "=not (\"receive from another book\" in ev.4) or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) in epoch.8.9.1 and (slice(cat(utf8(first (payload((first ev.6.5))).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count (ev.1 where mint in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where release in it.4) = 1 and count (ev.1 where release in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.0 = first ev.3 and (text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.2 and first it.5 = first (payload((first ev.6.5))).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it.0.0.1)) = utf8(first (payload((first ev.6.5))).1.1.6.1.1.1) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0.0 = first (payload((first ev.6.5))).1.0 or \"this book hangs from\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0 = first (payload((first ev.6.5))).1.0)) > 0) = 1 or hex(slice(cat(utf8(first (payload((first ev.6.5))).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) != \"3a\" and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1 and count (ev.1 where mint in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.1 = first ev.3 and (text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.2 and utf8(first it.0.0.1) = cat(utf8(first (payload((first ev.6.5))).1.0), bytes(\"3a\"), utf8(first (payload((first ev.6.5))).1.1.6.1.1.1))) = 1)"
+        "=not (\"receive from another book\" in ev.4) or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) in epoch.8.9.1 and (slice(cat(utf8(first (payload((first ev.6.5))).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count (ev.1 where mint in it.4 or lock in it.4) = 0 and count (ev.1 where (transfer in it.4 or release in it.4) and not ((text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.2 and first it.5 = first (payload((first ev.6.5))).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it.0.0.1)) = utf8(first (payload((first ev.6.5))).1.1.6.1.1.1) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0.0 = first (payload((first ev.6.5))).1.0 or \"this book hangs from\" in (payload((text(utf8(it2))))).4 and first (payload((text(utf8(it2))))).1.0 = first (payload((first ev.6.5))).1.0) and first (text(utf8(it2))).3 = first (first (payload((first ev.6.5))).1.3).3) > 0 and (transfer in it.4 and it.3.1 = first ev.3 and it.3.0 != first ev.3 or release in it.4 and it.3.0 = first ev.3))) = 0 and sum ((ev.1 where release in it.4) each 1) = first (payload((first ev.6.5))).1.1.6.1.2 and count (ev.1 where transfer in it.4 and sum ((ev.1 where release in it2.4 and count (it2.2 where first (text(utf8(it3))).5 = (text(utf8(it3))) and it3 in it.2) > 0) each 1) < sum ((ev.1 where transfer in it2.4 and count (it2.2 where first (text(utf8(it3))).5 = (text(utf8(it3))) and it3 in it.2) > 0) each 1)) = 0 or hex(slice(cat(utf8(first (payload((first ev.6.5))).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) != \"3a\" and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1 and count (ev.1 where mint in it.4 and it.1 = first (payload((first ev.6.5))).1.1.6.1.2 and it.3.1 = first ev.3 and (text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"E\" and E in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"P\" and P in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"R\" and R in it.0.0.0 or text(slice(utf8(first (payload((first ev.6.5))).1.1.6.1.1.0), 0, 1)) = \"T\" and T in it.0.0.0) and first it.0.0.2 = first (payload((first ev.6.5))).1.1.6.1.1.2 and utf8(first it.0.0.1) = cat(utf8(first (payload((first ev.6.5))).1.0), bytes(\"3a\"), utf8(first (payload((first ev.6.5))).1.1.6.1.1.1))) = 1)"
       ],
       [
         "ev.3"
@@ -12440,7 +12474,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-        "Diseño §4.3 y §4.4: la ida crea la serie forastera (la misma serie, nombrada con el libro de origen) para quien nombra el envío, cuánto se envió; la vuelta no crea nada: suelta lo bloqueado, cuánto vuelve, de la serie de aquí cuyo nombre forastero era el del envío. Nunca se suelta más de lo que se bloqueó: cada envío se recibe una vez y el libro no suelta más de lo bloqueado con esa salida"
+        "Diseño §4.3 y §4.4: la ida crea la serie forastera (la misma serie, nombrada con el libro de origen) para quien nombra el envío, cuánto se envió; la vuelta no crea nada: suelta lo bloqueado, cuánto vuelve, de la serie de aquí cuyo nombre forastero era el del envío. Nunca se suelta más de lo que se bloqueó: cada envío se recibe una vez y el libro no suelta más de lo bloqueado con esa salida",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta»), punto 1 (VG 17-11: «¿Confirmas que la vuelta pueda liberar a favor de otra persona? Sí»): la vuelta saca del fondo de la serie, el libro de origen y el autor del enlace por el que se trajo (también de lo bloqueado con la salida en un enlace retirado de ese autor: así vuelve lo que se mandó por un enlace que su autor retiró y repuso). Cada transferencia va desde quien bloqueó hacia quien recibe, con esa salida, y cada liberación es de quien recibe, con esa salida; lo liberado suma lo que vuelve; lo que entra por cada salida se libera en el mismo registro; no acuña ni bloquea. Nunca se libera más de lo bloqueado con esa salida (el núcleo). El fondo de un enlace no sale por el de otro autor. El orden (el más antiguo primero) lo pone la ayuda de datos/epocas/puente.mjs (bloqueosDeLaVuelta), no la regla"
       ],
       [
         "epoch 0"
@@ -12449,7 +12484,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after a send is received once by whom it names"
       ],
       [
-        "what is received is what was sent: {first ev.3} receives something that is not what the send says (its family, its series, how much, for whom)"
+        "what is received is what was sent: {first ev.3} receives something that is not what the send says (its family, its series, how much, for whom), or a return that takes from locks outside the fund of that link's author, more than comes back, or leaves something transferred in it locked"
       ]
     ]
   },
@@ -12570,6 +12605,53 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "where it fits: the record it is anchored on"
+      ]
+    ]
+  },
+  {
+    "archivo": "who-created-a-book-links-it-with-its-genesis.json",
+    "id": "35f4cbcb9b7f6375804d7e3aad052ea8d67b7e16366d7e203174bbfffdf07e74",
+    "registro": [
+      [
+        "who created a book links it with its genesis"
+      ],
+      [
+        "before.5",
+        "A.6",
+        "5",
+        "src/evento.js canonico",
+        "\"open a private book here\""
+      ],
+      [
+        "=not (\"open a private book here\" in (payload(ev)).4 and count (payload(ev)).5 > 0) or (first ev.3 = first (first before.5).3 or first (first ev.6.5).3 = first ev.3) and count (payload(ev)).5.0 = 1 and count (payload(ev)).5.1 = 1 and count (payload(ev)).5.2 = 1 and count (payload(ev)).5.3 = 1 and count (payload(ev)).5.4 = 1 and count (payload(ev)).5.5 = 1 and count (payload(ev)).5.6 = 1 and ((first (payload(ev)).5.6 = 0 and not (count (payload(ev)).5.7 > 0 and first (payload(ev)).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload(ev)).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload(ev)).5.0), bytes(\"3a\"), json(first (payload(ev)).5.4), bytes(\"7d\"), bytes(\"2c2265706f6361223a\"), json(first (payload(ev)).5.3), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload(ev)).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload(ev)).5.1), bytes(\"7d\")))) = first (payload(ev)).1.0.0) or (first (payload(ev)).5.6 > 0 and not (count (payload(ev)).5.7 > 0 and first (payload(ev)).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload(ev)).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload(ev)).5.0), bytes(\"3a\"), json(first (payload(ev)).5.4), bytes(\"7d\"), bytes(\"2c2265706f6361223a\"), json(first (payload(ev)).5.3), bytes(\"2c2265706f636145736372697461223a\"), json(first (payload(ev)).5.6), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload(ev)).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload(ev)).5.1), bytes(\"7d\")))) = first (payload(ev)).1.0.0) or (first (payload(ev)).5.6 = 0 and (count (payload(ev)).5.7 > 0 and first (payload(ev)).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload(ev)).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload(ev)).5.0), bytes(\"3a\"), json(first (payload(ev)).5.4), bytes(\"7d\"), bytes(\"2c2264656d6f7374726163696f6e223a74727565\"), bytes(\"2c2265706f6361223a\"), json(first (payload(ev)).5.3), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload(ev)).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload(ev)).5.1), bytes(\"7d\")))) = first (payload(ev)).1.0.0) or (first (payload(ev)).5.6 > 0 and (count (payload(ev)).5.7 > 0 and first (payload(ev)).5.7 = 1) and hex(sha256(cat(bytes(\"7b226175746f72223a\"), json(first (payload(ev)).5.0), bytes(\"2c22636f6e746578746f223a7b22636c61766573223a7b\"), json(first (payload(ev)).5.0), bytes(\"3a\"), json(first (payload(ev)).5.4), bytes(\"7d\"), bytes(\"2c2264656d6f7374726163696f6e223a74727565\"), bytes(\"2c2265706f6361223a\"), json(first (payload(ev)).5.3), bytes(\"2c2265706f636145736372697461223a\"), json(first (payload(ev)).5.6), bytes(\"2c2267656e65736973223a747275657d2c22656e223a2230303030303030303030222c226d6f76696d69656e746f73223a5b5d2c227061796c6f6164223a\"), utf8(first (payload(ev)).5.2), bytes(\"2c22736f627265223a6e756c6c2c2274223a\"), json(first (payload(ev)).5.1), bytes(\"7d\")))) = first (payload(ev)).1.0.0)) and signed(bytes(first (payload(ev)).5.5), bytes(first (payload(ev)).1.0.0), bytes(first (payload(ev)).5.4)) and first (payload(ev)).5.4 in (((first (first ev.3).6).5 where it != first (first (first ev.3).6).5 and first it.3 = first ev.3) each 2) and (first ev.6).0.0 >= first (first (payload(ev)).5.1).0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 (agram-equipo/DISENO_PUENTE_2.md, «Decisiones tras la revisión»): quien creó un libro puede enlazarlo, además del dueño de este. La prueba va en el enlace, sin sello: el génesis de ese libro (su id es el hash de su cuerpo) y su firma, que vale con una clave que quien escribe el enlace declara en su alta de este libro. Sin carreras ni suplantación. docs/notas/PUENTE.md",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», punto 2): un «open a private book here» que lleva en su 5 el génesis del libro que enlaza (0 su autor, 1 su instante, 2 su payload como JSON canónico, 3 el id de su época, 4 la clave que declara para su autor, 5 su firma, 6 cuántos registros de época escribe, 0 si no lo dice, y 7 un 1 si es de demostración) rehace el cuerpo canónico del génesis (sobre nulo, en la raíz, sin movimientos, su contexto con las claves, en el orden canónico) y pide: que su hash sea el libro que nombra el enlace (1.0.0); que la firma valga con la clave que ese cuerpo declara; que esa clave sea una de las que quien escribe el enlace tiene en su alta de este libro (la de su titular); y que el instante del enlace no sea anterior al del génesis. Quien no es el dueño de este libro solo lo escribe sobre un elemento suyo",
+        "La clave sale del cuerpo del génesis: si no, cualquiera firmaría con la suya el id de un libro ajeno. Un alta no declara una clave sin su prueba de posesión (la suya, por la firma del propio alta; la de otra identidad, por su «posesion»), y quien tiene clave firma cada registro suyo con ella («who has a key signs»): el propio enlace va firmado con esa clave",
+        "Lo que no cabe: un génesis con campos propios en su contexto, o de demostración sin clave, no lo enlaza su creador (no se rehace su cuerpo); queda el enlace del dueño. Sin el 5, esta regla no mira nada: el «open a private book here» de quien no es el dueño sin génesis es un anuncio (docs/notas/LIBRO_PRIVADO.md) y no cuenta para el puente (enlaceQueCuenta, datos/epocas/puente.mjs). La fórmula sale de datos/epocas/puente.mjs (formulaDelCreador). Es suelo (epoch.7.9.6): si un cambio pudiera quitarla, un enlace con un génesis falso contaría para traer y enviar"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after a declared balance is only that"
+      ],
+      [
+        "who created a book links it with its genesis: {first ev.3} links the book {first (payload(ev)).1.0.0} with a genesis that is not that book's, not signed by the key it declares, with a key that is not one of {first ev.3}'s alta here, dated after the link, or on an element that is not theirs"
       ]
     ]
   },
@@ -21995,7 +22077,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "receive-from-another-book.json",
-    "id": "a030814fb1d8be133225dda73a42b547ea88a74aee0951262c307404e2166562",
+    "id": "628521e6f1f398afa4ede4a64e1550ca09e5b32e1052e72549c9e84a7d6da048",
     "registro": [
       [
         "receive from another book"
@@ -22018,7 +22100,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "payload"
           ],
           [
-            "1"
+            "1.0"
           ],
           [
             "Core AGRAM 17-11 (encargo «el puente entre libros», A15): parámetro de «receive from another book»"
@@ -22132,6 +22214,38 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "receive from another book",
             "the action"
           ]
+        ],
+        [
+          [
+            "locks"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=count it.0 = 3 and (count it.0 = 0 or count it.0 = 3 and hex(slice(bytes(nth 1 it.0), 0, 32)) = nth 1 it.0 and last it.0 > 0) and (count it.1 = 0 or count it.1 = 3 and hex(slice(bytes(nth 1 it.1), 0, 32)) = nth 1 it.1 and last it.1 > 0) and (count it.2 = 0 or count it.2 = 3 and hex(slice(bytes(nth 1 it.2), 0, 32)) = nth 1 it.2 and last it.2 > 0) and (count it.3 = 0 or count it.3 = 3 and hex(slice(bytes(nth 1 it.3), 0, 32)) = nth 1 it.3 and last it.3 > 0) and (count it.4 = 0 or count it.4 = 3 and hex(slice(bytes(nth 1 it.4), 0, 32)) = nth 1 it.4 and last it.4 > 0) and (count it.5 = 0 or count it.5 = 3 and hex(slice(bytes(nth 1 it.5), 0, 32)) = nth 1 it.5 and last it.5 > 0) and (count it.6 = 0 or count it.6 = 3 and hex(slice(bytes(nth 1 it.6), 0, 32)) = nth 1 it.6 and last it.6 > 0) and (count it.7 = 0 or count it.7 = 3 and hex(slice(bytes(nth 1 it.7), 0, 32)) = nth 1 it.7 and last it.7 > 0) and (count it.8 = 0 or count it.8 = 3 and hex(slice(bytes(nth 1 it.8), 0, 32)) = nth 1 it.8 and last it.8 > 0) and (count it.9 = 0 or count it.9 = 3 and hex(slice(bytes(nth 1 it.9), 0, 32)) = nth 1 it.9 and last it.9 > 0)"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11): parámetro de «receive from another book»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            5
+          ],
+          [
+            "the locks the return takes from, when it comes back to this book: up to ten triples [who locked it, the link of its exit, how much], the oldest first (datos/epocas/puente.mjs, bloqueosDeLaVuelta), from the fund of the series, the book of origin and the author of the link it was brought through; the rule checks that they add up to what comes back"
+          ]
         ]
       ],
       [
@@ -22146,7 +22260,27 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and release first (payload(it)).1.1.6.1.2 (first ((me.1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit first (payload(it)).1.3 or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) > 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2).(first ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3)) to me or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) = 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2) to me"
+        "=not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) > 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2).(first ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3)) to me or not (slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\"))) and count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first (payload(it)).1.1.6.1.1.3) = 0 and mint first (payload(it)).1.1.6.1.2 E.(text(cat(utf8(first (payload(it)).1.0), bytes(\"3a\"), utf8(first (payload(it)).1.1.6.1.1.1)))).(first (payload(it)).1.1.6.1.1.2) to me",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.0 = 3 and (first memo.1.1.0) != me and transfer (last memo.1.1.0) (first (((first memo.1.1.0).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.0) to me exit (nth 1 memo.1.1.0)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.0 = 3 and release (last memo.1.1.0) (first (((first memo.1.1.0).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.0)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.1 = 3 and (first memo.1.1.1) != me and transfer (last memo.1.1.1) (first (((first memo.1.1.1).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.1) to me exit (nth 1 memo.1.1.1)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.1 = 3 and release (last memo.1.1.1) (first (((first memo.1.1.1).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.1)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.2 = 3 and (first memo.1.1.2) != me and transfer (last memo.1.1.2) (first (((first memo.1.1.2).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.2) to me exit (nth 1 memo.1.1.2)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.2 = 3 and release (last memo.1.1.2) (first (((first memo.1.1.2).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.2)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.3 = 3 and (first memo.1.1.3) != me and transfer (last memo.1.1.3) (first (((first memo.1.1.3).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.3) to me exit (nth 1 memo.1.1.3)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.3 = 3 and release (last memo.1.1.3) (first (((first memo.1.1.3).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.3)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.4 = 3 and (first memo.1.1.4) != me and transfer (last memo.1.1.4) (first (((first memo.1.1.4).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.4) to me exit (nth 1 memo.1.1.4)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.4 = 3 and release (last memo.1.1.4) (first (((first memo.1.1.4).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.4)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.5 = 3 and (first memo.1.1.5) != me and transfer (last memo.1.1.5) (first (((first memo.1.1.5).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.5) to me exit (nth 1 memo.1.1.5)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.5 = 3 and release (last memo.1.1.5) (first (((first memo.1.1.5).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.5)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.6 = 3 and (first memo.1.1.6) != me and transfer (last memo.1.1.6) (first (((first memo.1.1.6).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.6) to me exit (nth 1 memo.1.1.6)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.6 = 3 and release (last memo.1.1.6) (first (((first memo.1.1.6).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.6)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.7 = 3 and (first memo.1.1.7) != me and transfer (last memo.1.1.7) (first (((first memo.1.1.7).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.7) to me exit (nth 1 memo.1.1.7)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.7 = 3 and release (last memo.1.1.7) (first (((first memo.1.1.7).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.7)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.8 = 3 and (first memo.1.1.8) != me and transfer (last memo.1.1.8) (first (((first memo.1.1.8).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.8) to me exit (nth 1 memo.1.1.8)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.8 = 3 and release (last memo.1.1.8) (first (((first memo.1.1.8).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.8)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.9 = 3 and (first memo.1.1.9) != me and transfer (last memo.1.1.9) (first (((first memo.1.1.9).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from (first memo.1.1.9) to me exit (nth 1 memo.1.1.9)",
+        "=slice(cat(utf8(first (payload(it)).1.1.6.1.1.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 0, 65) = cat(utf8(first before.5), bytes(\"3a\")) and count memo.1.1.9 = 3 and release (last memo.1.1.9) (first (((first memo.1.1.9).1 where E in it2.0.0.0 and first it2.0.0.2 = first (payload(it)).1.1.6.1.1.2 and first it2.0.5 = first (payload(it)).1.1.6.1.1.3 and cat(utf8(first before.5), bytes(\"3a\"), utf8(first it2.0.0.1)) = utf8(first (payload(it)).1.1.6.1.1.1)) each 0)) from me exit (nth 1 memo.1.1.9)"
       ],
       [
         "4"
@@ -22156,7 +22290,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Diseño §4.3 y §4.4: en el destino, sobre el envío ya traído. Si la serie nació en el libro de origen, crea la serie forastera: la misma serie nombrada con el libro de origen (su emisor es «<libro de origen>:<emisor>», src/tokens.js esEmisorForastero), atada al registro traído del registro al que estaba atada allí (el requisito de E, epoch.8.9.3), para quien nombra el envío; se comporta como cualquier serie de su familia. Si nació aquí (la vuelta), no crea nada: suelta lo que se bloqueó al enviarla, de quien lo bloqueó, con la salida en el enlace por el que se trajo el envío",
         "Lo deciden «a send is received once by whom it names» (lo escribe quien declara en su alta la clave que nombra el envío, una vez), «what is received is what was sent», «only a receive mints a foreign series» y los requisitos de su familia (epoch.8.9.3). Se ancla en el 4 del registro traído",
-        "[4, 27]: lo que mueve (PV 4), detrás de «send to another book»"
+        "[4, 27]: lo que mueve (PV 4), detrás de «send to another book»",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11): la vuelta puede liberar a favor de otra persona. Bloquear con la salida en un enlace es consentir que se libere según lo que vuelva: quien recibe la vuelta nombra en su 1.1 de qué bloqueos saca ([quién lo bloqueó, el enlace de su salida, cuánto]; el más antiguo primero lo pone la ayuda, no la regla) y, por cada uno, transfiere desde quien lo bloqueó hacia sí con esa salida (si no es él mismo) y lo libera. El envío pasa a 1.0. Lo juzga «what is received is what was sent»: del fondo de la serie, el libro de origen y el autor del enlace por el que se trajo, lo liberado suma lo que vuelve y nada más sale del fondo. Las sentencias de su 4 salen de datos/epocas/puente.mjs (sentenciasDeRecibir)"
       ],
       [
         "epoch 0"
@@ -22166,7 +22301,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         27
       ],
       [
-        "receive from another book: {me} receives the send {first memo.1}"
+        "receive from another book: {me} receives the send {first memo.1.0}"
       ]
     ]
   },
@@ -23213,7 +23348,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "bring-a-record-from-another-book.json",
-    "id": "5da867ae7ae6f389c915f026a2e1eb035355d86c8463086a41734dfaa9466bc2",
+    "id": "8a00a07fdf8a451cd600f784a50713b9848c7fde16e558584b2225dc11d57f23",
     "registro": [
       [
         "bring a record from another book"
@@ -23347,7 +23482,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           ],
           [
             "=it",
-            "the link of this book with the other one (an «open a private book here» or a «this book hangs from» of the owner of this book): its line keys are the ones that check the proof"
+            "the link of this book with the other one (an «open a private book here» or a «this book hangs from» of the owner of this book, or an «open a private book here» of who created that book, with its genesis): its line keys are the ones that check the proof"
           ]
         ],
         [
@@ -23451,7 +23586,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         ]
       ],
       [
-        "=(\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and first it.3 = first (first before.5).3"
+        "=(\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (first it.3 = first (first before.5).3 or \"open a private book here\" in (payload(it)).4 and count (payload(it)).5 > 0 and first (up it).3 = first it.3)"
       ],
       [
         [
@@ -23473,7 +23608,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Diseño §4.1: lleva el registro de origen entero (su cuerpo, su id y su firma), el libro de origen y su prueba de sello. Lo deciden cinco reglas: «a record is brought from a linked book» (el enlace es del dueño de este libro, el último, y nombra el libro), «bringing needs the line keys of the book» (el enlace anota claves de línea: sin ellas no hay con qué comprobar cabeceras), «a brought record is its body» (el id es el hash de su cuerpo), «a brought record comes with its proof» (la prueba cubre ese id, su primera cabecera es del libro de origen y una cabecera firmada por una clave de línea que el enlace anota para su nivel llega al nivel de epoch.8.9.2) y «a record is brought once». Lo traído es un dato leíble: quién lo escribió allí (1.1.1), qué decía (1.1.6), cuándo quedó en firme (la hora de esa cabecera)",
         "Se lanza sobre el enlace y se ancla en el 9.8 del génesis («brought from other books»): así «no se trae dos veces» mira solo lo traído. Su 4 es «write»: no mueve más que el coste de escribir, que crece con lo que trae (una prueba de cuatro eslabones son unas ochenta posiciones)",
-        "[6, 5]: el pasado (PV 6), de dónde viene, detrás de «put a change in force»"
+        "[6, 5]: el pasado (PV 6), de dónde viene, detrás de «put a change in force»",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», punto 2): se ofrece también sobre el «open a private book here» de quien creó el libro que enlaza (lleva su génesis en su 5, sobre un elemento suyo); decide la regla «a record is brought from a linked book»"
       ],
       [
         "epoch 0"
@@ -26408,7 +26544,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "open-a-private-book-here.json",
-    "id": "17f90319cede232f2b4a1569bbe87de2f9d8b66b864605014d8f24f297d1e3a3",
+    "id": "e391025508c8c5f1cc8123ccc4b93f672cb01f84e953f64f808c7372b0e73c0c",
     "registro": [
       [
         "open a private book here"
@@ -26608,6 +26744,38 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           [
             "the origin of the line of that book: the outpoint of its anchor 0 (its txid, 64 hexadecimal characters in lower case, «:» and its output); a proof of that book whose anchors do not descend from it is another line. Checking it against Bitcoin is not a rule of the book: it is a grade of the proof; without it, what comes from that book reads «origin not checked»"
           ]
+        ],
+        [
+          [
+            "genesis"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=count it.0 = 1 and count it.1 = 1 and count it.2 = 1 and count it.3 = 1 and hex(slice(bytes(first it.4), 0, 32)) = first it.4 and hex(slice(bytes(first it.5), 0, 64)) = first it.5 and count it.6 = 1 and (count it.7 = 0 or first it.7 = 1) and count it.8 = 0 and count it.9 = 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11): parámetro de «open a private book here»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "the genesis of the private book, when who writes this link created that book and is not the owner of this one: 0 its author, 1 its instant, 2 its payload (its canonical JSON, as text), 3 the id of its epoch, 4 the key it declares for its author, 5 its signature, 6 how many records of its epoch it writes (0 if it does not say) and 7 a 1 if it is a demonstration (datos/epocas/puente.mjs, genesisComoDecupla); its key has to be one of my alta here, and it goes on an element of mine. Without it, a link by who is not the owner is an announcement and does not count for the bridge"
+          ]
         ]
       ],
       [
@@ -26634,7 +26802,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Quién puede: quien puede escribir sobre X con las reglas que ya hay; sin regla de validez nueva. Su 4 es «write»: no mueve nada más que el coste de escribir. Sobre el alta de otra identidad no se ofrece, como «anchor here»: allí pide el precio de la atención («attention has a price»), que esta plantilla no paga; se escribe a mano con el pago en la misma transacción",
         "Vale el último: si sobre el mismo elemento hay más de un registro para el mismo libro (al rotar una clave), contrato.librosPrivados da el último por instante y, a igualdad, por id. La época no tiene una forma general de quitar el enlace",
         "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el libro pasa a 1.0.0 y su 1.0.1, opcional, es el origen de la línea del libro privado («anchor origin», el outpoint de su ancla 0), junto al libro (cierra su propia décupla: sin huecos); las claves de línea admiten 0, ninguna (acordado con Core StateArk). Un registro escrito antes, con el libro en 1.0, se sigue leyendo (contrato.librosPrivados) pero no sirve para traer: el puente lee el libro en 1.0.0",
-        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo"
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11), punto 2: quien creó el libro que enlaza puede escribir el enlace además del dueño de este libro. La prueba va en su 5, opcional: las piezas del génesis de ese libro (autor, instante, payload como JSON canónico, id de época, época escrita, demostración, clave y firma). Lo juzga «who created a book links it with its genesis» (rehace el cuerpo canónico del génesis y comprueba su hash, su firma con la clave que declara, que esa clave es del alta de quien escribe y que el enlace no es anterior), y quien no es el dueño solo lo escribe sobre un elemento suyo. Va en el 5 del payload (no junto al libro): así no deja huecos. Sin el 5, el de quien no es el dueño es un anuncio, como en docs/notas/LIBRO_PRIVADO.md, y no cuenta para el puente"
       ],
       [
         "epoch 0"
@@ -26650,7 +26819,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "this-book-hangs-from.json",
-    "id": "9ea9c71a0237b55567212046cc4f97fdb72cdf79e2009c514abbe6582373ec93",
+    "id": "575f718e78f2e4a458a4fa5eb603f69fd648b3440629229e4bb5d8ca660b2ac0",
     "registro": [
       [
         "this book hangs from"
@@ -26850,6 +27019,38 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           [
             "the origin of the line of that book: the outpoint of its anchor 0 (its txid, 64 hexadecimal characters in lower case, «:» and its output); a proof of that book whose anchors do not descend from it is another line. Checking it against Bitcoin is not a rule of the book: it is a grade of the proof; without it, what comes from that book reads «origin not checked»"
           ]
+        ],
+        [
+          [
+            "point"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=hex(slice(bytes(it), 0, 32)) = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11), punto 5 (pedido por el tramo 4, la época por referencia): parámetro de «this book hangs from»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "the point of the book above when this one was born: the id of the record that put in force its last change (64 hexadecimal characters in lower case), or nothing; a datum to read, no rule judges it"
+          ]
         ]
       ],
       [
@@ -26875,7 +27076,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Se lanza sobre el génesis y solo se ofrece a su dueño (el autor del génesis): es de la oferta de la plantilla, sin regla de validez. Escrito a mano por otro, la época no lo rechaza; contrato.cuelgaDe solo cuenta los del autor del génesis. Ancla en el 9.5 del génesis: no choca con el 9 de la custodia, el 9.2, el 9.3 y el 9.6 de los ajustes, las preferencias y las revisiones, el 9.4 de los retoques de textos, ni con el 9.1 de «open a private book here»",
         "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir",
         "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el enlace del pequeño anota también del grande sus claves de línea (1.1; 0 si ninguna, por defecto) y el origen de su línea (1.2, opcional, «anchor origin»), para traer de él; el libro pasa a 1.0 (lo opcional cierra su décupla). Un registro escrito antes, con el libro en 1, se sigue leyendo (contrato.cuelgaDe) pero no sirve para traer",
-        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo"
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo",
+        "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11), punto 5: el 5, opcional, «point», es el id del registro que puso en vigor el último cambio en el libro de arriba cuando nació este (o nada). Es un dato para leer: ninguna regla lo juzga; contrato.cuelgaDe lo da como «punto»"
       ],
       [
         "epoch 0"
@@ -26931,7 +27133,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "3725d9713454bbeecc0bd2c4d6fde7a6e6db18058346f6a86e7b92f98219af43";
+export const EPOCA_0_BTML_ID = "742cff671bc6135319b645296d618fdf3ec2788f962e24dde5f0f0f20aa7269b";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
