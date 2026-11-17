@@ -75,6 +75,18 @@
       ["optional"],
       [6],
       ["the origin of the line of that book: the outpoint of its anchor 0 (its txid, 64 hexadecimal characters in lower case, «:» and its output); a proof of that book whose anchors do not descend from it is another line. Checking it against Bitcoin is not a rule of the book: it is a grade of the proof; without it, what comes from that book reads «origin not checked»"]
+    ],
+    [
+      ["genesis"],
+      ["text"],
+      ["=count it.0 = 1 and count it.1 = 1 and count it.2 = 1 and count it.3 = 1 and hex(slice(bytes(first it.4), 0, 32)) = first it.4 and hex(slice(bytes(first it.5), 0, 64)) = first it.5 and count it.6 = 1 and (count it.7 = 0 or first it.7 = 1) and count it.8 = 0 and count it.9 = 0"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11): parámetro de «open a private book here»"],
+      ["optional"],
+      [7],
+      ["the genesis of the private book, when who writes this link created that book and is not the owner of this one: 0 its author, 1 its instant, 2 its payload (its canonical JSON, as text), 3 the id of its epoch, 4 the key it declares for its author, 5 its signature, 6 how many records of its epoch it writes (0 if it does not say) and 7 a 1 if it is a demonstration (datos/epocas/puente.mjs, genesisComoDecupla); its key has to be one of my alta here, and it goes on an element of mine. Without it, a link by who is not the owner is an announcement and does not count for the bridge"]
     ]
   ],
   ["=not (first it.3 != me and count (first it.3).6 > 0 and first (first it.3).6 = first it.5)"],
@@ -88,7 +100,8 @@
     "Quién puede: quien puede escribir sobre X con las reglas que ya hay; sin regla de validez nueva. Su 4 es «write»: no mueve nada más que el coste de escribir. Sobre el alta de otra identidad no se ofrece, como «anchor here»: allí pide el precio de la atención («attention has a price»), que esta plantilla no paga; se escribe a mano con el pago en la misma transacción",
     "Vale el último: si sobre el mismo elemento hay más de un registro para el mismo libro (al rotar una clave), contrato.librosPrivados da el último por instante y, a igualdad, por id. La época no tiene una forma general de quitar el enlace",
     "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el libro pasa a 1.0.0 y su 1.0.1, opcional, es el origen de la línea del libro privado («anchor origin», el outpoint de su ancla 0), junto al libro (cierra su propia décupla: sin huecos); las claves de línea admiten 0, ninguna (acordado con Core StateArk). Un registro escrito antes, con el libro en 1.0, se sigue leyendo (contrato.librosPrivados) pero no sirve para traer: el puente lee el libro en 1.0.0",
-    "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo"
+    "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo",
+    "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11), punto 2: quien creó el libro que enlaza puede escribir el enlace además del dueño de este libro. La prueba va en su 5, opcional: las piezas del génesis de ese libro (autor, instante, payload como JSON canónico, id de época, época escrita, demostración, clave y firma). Lo juzga «who created a book links it with its genesis» (rehace el cuerpo canónico del génesis y comprueba su hash, su firma con la clave que declara, que esa clave es del alta de quien escribe y que el enlace no es anterior), y quien no es el dueño solo lo escribe sobre un elemento suyo. Va en el 5 del payload (no junto al libro): así no deja huecos. Sin el 5, el de quien no es el dueño es un anuncio, como en docs/notas/LIBRO_PRIVADO.md, y no cuenta para el puente"
   ],
   ["epoch 0"],
   [9, 9],

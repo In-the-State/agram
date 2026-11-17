@@ -15,6 +15,8 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA } from '../../src/sello.js';
 import { canonico } from '../../src/evento.js';
+import { claveToken } from '../../src/tokens.js';
+import { gradoDelEnlace } from '../../src/contrato.js';
 import { formatear } from './generar.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -52,6 +54,59 @@ export const REGLAS_DEL_PUENTE = Object.freeze({
   requisitoE: REQUISITO_DE_E,
   saldo: 'a declared balance is true',
 });
+
+/**
+ * La regla del enlace de quien creó el libro (encargo «el puente, segunda vuelta», VG 17-11): un «open a private book
+ * here» que lleva en su 5 el génesis del libro que enlaza lo prueba con él. No va en REGLAS_DEL_PUENTE (su sitio en la
+ * cadena del 8 es detrás de «a declared balance is only that»).
+ */
+export const REGLA_DEL_CREADOR = 'who created a book links it with its genesis';
+
+/**
+ * RP2 (arreglos de la segunda revisión del puente): solo un envío bloquea con la salida en un enlace. Detrás de la del
+ * creador en la cadena del 8; es suelo.
+ */
+export const REGLA_DEL_BLOQUEO = 'only a send locks for another book';
+
+/** Dónde lleva un «open a private book here» el génesis del libro que enlaza (su 5) y un «this book hangs from» el punto (su 5). */
+export const GENESIS_EN = 5;
+export const PUNTO_EN = 5;
+
+/**
+ * Cuántos bloqueos puede nombrar un «receive from another book» de una vuelta (su 1.1). Arreglos de la segunda revisión,
+ * RP8 y RP9: cinco por registro (así la regla coteja por salida y por persona con margen en el presupuesto de cálculo); una
+ * vuelta que pide más se recibe en varios registros.
+ */
+export const BLOQUEOS_DE_LA_VUELTA = 5;
+
+/** Hasta dónde puede llegar el 1.1 de un recibir (una décupla): las ternas más allá del tope han de ir vacías. */
+const SITIOS_DEL_1_1 = 10;
+
+/**
+ * Lo que va a 7.9.6 (el suelo) con el puente (encargo «el puente, segunda vuelta», punto 3): las reglas que guardan lo
+ * bloqueado para otro libro y lo traído, y las plantillas cuyo nombre leen. Ninguna alcanza una declaración de saldo.
+ */
+export const SUELO_DEL_PUENTE = Object.freeze([
+  'a record is brought from a linked book',
+  'a brought record comes with its proof',
+  'a brought record is its body',
+  'a record is brought once',
+  'bringing needs the line keys of the book',
+  'what is locked for another book is released only by its return',
+  'a send is received once by whom it names',
+  'what is received is what was sent',
+  'a send locks what it names',
+  'only a receive mints a foreign series',
+  REGLA_DEL_CREADOR,
+  REGLA_DEL_BLOQUEO,
+  'only a receive hangs on the 4 of a brought record',
+  'bring a record from another book',
+  'send to another book',
+  'receive from another book',
+  'open a private book here',
+  'this book hangs from',
+  'withdraw a link',
+]);
 
 const P = PLANTILLAS_DEL_PUENTE;
 const L_ = ENLACES;
@@ -115,14 +170,33 @@ const noTraer = 'not ("' + P.traer + '" in ev.4)';
  * cuelga un «withdraw a link» de su autor. A igualdad de instante, ninguno de los dos vale (el BQL mínimo no ordena textos).
  */
 export function formulaDeEnlazado() {
-  const L = ENLACE;
+  return '=' + noTraer + ' or first ev.6.5 = first before.5 and nth 1 ev.6.5 = "' + ANCLA_DE_LO_TRAIDO + '" and ' + enlaceQueCuenta(ENLACE, B);
+}
+
+/**
+ * ¿Cuenta el enlace L (una expresión de un registro) para el libro B? El predicado de traer y, desde la segunda vuelta,
+ * también el de enviar. L es un registro de este libro y:
+ * - un «open a private book here» en el 9.1 de su elemento que nombra B, **del dueño** (el autor del génesis) o **de
+ *   quien creó B** (VG 17-11): no es el dueño, lleva en su 5 el génesis de B, que se vuelve a comprobar entero aquí
+ *   (pruebaDelGenesis; también lo comprueba al escribirlo «who created a book links it with its genesis», que es suelo), y
+ *   su elemento es suyo;
+ * - o un «this book hangs from» del dueño en el 9.5 del génesis que nombra B;
+ * y es el último de su autor (ningún enlace suyo para B, de cualquiera de los dos tipos, igual o posterior, en el mismo
+ * elemento ni en el 9.5 del génesis: PH4) y no está retirado. A igualdad de instante, ninguno de los dos vale.
+ */
+export function enlaceQueCuenta(L, B_) {
   const G = '(first before.5)';
-  const sinPosterior = (lista) => 'count ((' + lista + ') where ' + esEnlace('it') + ' and ' + libroEs('it', B) + ' and first it.3 = first ' + L + '.3 and it != ' + L + ' and ' + t('it') + ' >= ' + t(L) + ') = 0';
-  return '=' + noTraer + ' or first ev.6.5 = first before.5 and nth 1 ev.6.5 = "' + ANCLA_DE_LO_TRAIDO + '"'
-    + ' and count ' + L + '.5 > 0 and first ' + L + '.3 = first ' + G + '.3'
-    + ' and ("' + L_.abrir + '" in (payload(' + L + ')).4 and nth 1 ' + L + '.6.5 = "9100000000" and first (payload(' + L + ')).1.0.0 = ' + B
+  const sinPosterior = (lista) => 'count ((' + lista + ') where ' + esEnlace('it') + ' and ' + libroEs('it', B_) + ' and first it.3 = first ' + L + '.3 and it != ' + L + ' and ' + t('it') + ' >= ' + t(L) + ') = 0';
+  const delDueno = 'first ' + L + '.3 = first ' + G + '.3';
+  // La prueba del génesis se vuelve a mirar al consumir el enlace (revisión automática, 17-11): no se fía de que la regla
+  // del creador rigiera cuando se escribió (un libro que la recibe después por un cambio, o cualquier otro camino).
+  const deQuienLoCreo = 'count (payload(' + L + ')).' + GENESIS_EN + ' > 0 and first (up ' + L + ').3 = first ' + L + '.3 and ' + pruebaDelGenesis(L);
+  // RP10 (tercera tanda): nada más allá del cuarto par [nivel, clave] (las reglas miran los pares 0 a 3).
+  const cuatroPares = (d) => Array.from({ length: 6 }, (_, i) => 'count (payload(' + L + ')).' + d + '.' + (4 + i) + ' = 0').join(' and ');
+  return 'count ' + L + '.5 > 0'
+    + ' and ("' + L_.abrir + '" in (payload(' + L + ')).4 and ' + cuatroPares('2') + ' and (' + delDueno + ' or ' + deQuienLoCreo + ') and nth 1 ' + L + '.6.5 = "9100000000" and first (payload(' + L + ')).1.0.0 = ' + B_
     + ' and ' + sinPosterior('down (up ' + L + ')')
-    + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and first ' + L + '.6.5 = first before.5 and nth 1 ' + L + '.6.5 = "9500000000" and first (payload(' + L + ')).1.0 = ' + B
+    + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and ' + cuatroPares('1.1') + ' and ' + delDueno + ' and first ' + L + '.6.5 = first before.5 and nth 1 ' + L + '.6.5 = "9500000000" and first (payload(' + L + ')).1.0 = ' + B_
     + ' and ' + sinPosterior(G + '.9.1') + ')'
     + ' and ' + sinPosterior(G + '.9.5') + ' and ' + noRetirado(L);
 }
@@ -133,12 +207,24 @@ const NIVEL_DEL_ESLABON_0 = (p = POSICIONES_DEL_SELLO) => '(first ' + SELLO + '.
 /**
  * «bringing needs the line keys of the book» (PH1, arreglos del puente): el enlace (si lo es) anota una clave para el
  * nivel de la primera cabecera de la prueba (su eslabón 0, la única cuyo libro se mira); sin ella no hay con qué
- * comprobar que esa cabecera la firmó el otro libro.
+ * comprobar que esa cabecera la firmó el otro libro. Y (RP7) ese nivel es el más bajo que el enlace anota: la prueba
+ * empieza en la casa del libro; una sola cabecera de un sellador de arriba no basta si el enlace anota la casa.
  */
 export function formulaDeConClaves() {
   const L = ENLACE;
-  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or ' + anotaNivel(L, NIVEL_DEL_ESLABON_0());
+  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or (' + anotaNivel(L, NIVEL_DEL_ESLABON_0()) + ') and ' + nivelMasBajo(L, NIVEL_DEL_ESLABON_0());
 }
+
+/**
+ * RP7 (arreglos de la segunda revisión, segunda tanda): ningún par [nivel, clave] del enlace L dice un nivel por debajo de
+ * N (`N` el nivel de la primera cabecera de la prueba): la prueba empieza en el nivel más bajo que el enlace anota, la casa
+ * del libro, y no en un sellador de arriba. Los pares van en el 2 de «open a private book here» y en el 1.1 de «this book
+ * hangs from».
+ */
+const nivelMasBajo = (L, N) => {
+  const todos = (d) => Array.from({ length: 4 }, (_, p) => '(count (payload(' + L + ')).' + d + '.' + p + ' = 0 or first (payload(' + L + ')).' + d + '.' + p + ' >= ' + N + ')').join(' and ');
+  return '("' + L_.abrir + '" in (payload(' + L + ')).4 and ' + todos('2') + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and ' + todos('1.1') + ')';
+};
 
 /**
  * «a brought record is its body»: el id que trae (1.1.0) es el SHA-256 de su cuerpo canónico (src/evento.js, cuerpo y
@@ -235,7 +321,9 @@ export function formulaDeFamilias() {
 }
 
 /**
- * «a send locks what it names»: se ancla en un enlace no retirado que nombra el libro de destino (1.0, otro libro); bloquea una sola
+ * «a send locks what it names»: se ancla en un enlace que cuenta para el libro de destino (1.0, otro libro): el mismo
+ * predicado que traer (enlaceQueCuenta; encargo «el puente, segunda vuelta»: no se envía por un enlace por el que nunca
+ * podrá traerse la vuelta, ni por uno retirado); bloquea una sola
  * vez, cuánto dice (1.2), con la salida en el enlace, de la serie cuyas partes dice (1.1.1 su emisor, 1.1.2 su
  * denominación), y nada más que su coste. Su registro atado (1.1.3): si la serie es de aquí, el suyo; si es forastera,
  * solo vuelve a su libro de origen (su emisor empieza por él) y es el registro que trajo aquí el registro al que está
@@ -247,7 +335,7 @@ export function formulaDelEnvio() {
   const atado = 'not ' + forasteraMov('it') + ' and first ' + SP(3) + ' = first it.5'
     + ' or ' + forasteraMov('it') + ' and slice(utf8(first it.0.0.1), 0, 64) = utf8(' + D + ')'
     + ' and "' + P.traer + '" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = ' + D + ' and first ' + SP(3) + ' = first (payload(first it.5)).1.1.0';
-  return '=' + noEnviar + ' or ' + esEnlace(L) + ' and ' + libroEs(L, D) + ' and ' + noRetirado(L) + ' and ' + D + ' != first before.5'
+  return '=' + noEnviar + ' or ' + enlaceQueCuenta(L, D) + ' and ' + D + ' != first before.5'
     + ' and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0'
     + ' and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first ' + SP(1) + ' and first it.0.0.2 = first ' + SP(2) + ' and (' + atado + ')) = 1';
 }
@@ -272,18 +360,49 @@ const noRecibir = 'not ("' + P.recibir + '" in ev.4)';
 
 /**
  * «a send is received once by whom it names»: se ancla en un registro traído que es un envío a este libro, quien lo
- * escribe declara en su alta la clave a la que va (1.3 del envío) y no se ha recibido antes.
+ * escribe declara en su alta la clave a la que va (1.3 del envío) y no se ha recibido antes. La vuelta (RP9) se recibe en
+ * una o varias veces: otro recibir sobre ella vale si aún queda algo (lo ya liberado por los de antes no llega a su
+ * cantidad) y lo ya liberado más lo que libera este no pasa de ella. La ida, una vez.
  */
 export function formulaDeRecibir() {
+  const E_ = 'first ' + SND('1.1.1');
+  const esVuelta = 'slice(cat(utf8(' + E_ + '), bytes("' + CEROS + '")), 0, 65) = cat(utf8(first before.5), bytes("3a"))';
   return '=' + noRecibir + ' or "' + P.traer + '" in ' + BP + '.4 and "' + P.enviar + '" in ' + SND('4') + ' and first ' + SND('1.0') + ' = first before.5'
     + ' and first ' + SND('1.3') + ' in ((first (first ev.3).6).5 each 2)'
-    + ' and count (down ' + X + ' where "' + P.recibir + '" in (payload(it)).4) = 0';
+    + ' and (count ' + recibosDe(X) + ' = 0'
+    + ' or ' + esVuelta + ' and ' + yaRecibido(X) + ' < first ' + SND('1.2') + ' and ' + yaRecibido(X) + ' + sum ((ev.1 where release in it.4) each 1) <= first ' + SND('1.2') + ')';
 }
 
 /**
+ * RP9 (arreglos de la segunda revisión, segunda tanda): lo ya recibido de la vuelta traída X (una expresión): lo liberado
+ * por los «receive from another book» que cuelgan de ella, en su 4 (RP11). Solo mira eso, no el libro.
+ */
+export const yaRecibido = (X_) => 'sum (((' + recibosDe(X_) + ' each 1) where release in it.4) each 1)';
+
+/**
+ * RP11 (arreglos de la segunda revisión, tercera tanda): los «receive from another book» de un registro traído X (una
+ * expresión): lo que cuelga en su 4, la posición del recibir, y no todo lo que cuelga de X (lo que otros cuelguen en
+ * otras posiciones no cuesta nada). En ese 4 solo entra un recibir («only a receive hangs on the 4 of a brought record»).
+ */
+const recibosDe = (X_) => '((' + X_ + '.4) where first it.5 = it and "' + P.recibir + '" in (payload(it)).4)';
+
+/**
+ * «only a receive hangs on the 4 of a brought record» (RP11): en el 4 de un «bring a record from another book», donde se
+ * ancla su recibir, no se escribe otra cosa. Así lo ya recibido y el «una vez» se leen ahí sin que nadie los encarezca.
+ */
+export function formulaDelCuatroDelTraido() {
+  return '=not ("' + P.traer + '" in (payload(first ev.6.5)).4 and nth 1 ev.6.5 = "4000000000") or "' + P.recibir + '" in (payload(ev)).4';
+}
+
+/** El nombre de esa regla (RP11). */
+export const REGLA_DEL_CUATRO = 'only a receive hangs on the 4 of a brought record';
+
+/**
  * «what is received is what was sent»: la familia (la de la clave de la serie) cruza aquí (epoch.8.9.1). Si el emisor que
- * dice el envío es «<este libro>:<emisor>» (la vuelta), libera una vez, cuánto se envió, de la serie de aquí de ese
- * emisor, esa denominación y ese registro atado, con la salida en un enlace al libro de origen, y no mueve nada más; si el
+ * dice el envío es «<este libro>:<emisor>» (la vuelta; encargo «el puente, segunda vuelta»), saca del fondo de la serie
+ * de aquí de ese emisor, denominación y registro atado, el libro de origen y el autor del enlace por el que se trajo:
+ * transferencias desde quien bloqueó hacia quien recibe y liberaciones de quien recibe, con la salida en un enlace de ese
+ * fondo, que liberan cuánto se envió y nada más (ver dentro); si el
  * emisor es de allí (sin «:»), acuña una vez, cuánto se envió, para quien recibe, la serie forastera: el emisor
  * «<origen>:<emisor>» y la misma denominación (su registro atado lo mira el requisito de E).
  */
@@ -291,17 +410,88 @@ export function formulaDeLoEnviado() {
   const q = 'first ' + SND('1.2');
   const F = familiaDe('first ' + SND('1.1.0'));
   const E_ = 'first ' + SND('1.1.1');
+  // La vuelta (encargo «el puente, segunda vuelta», VG 17-11: bloquear con la salida en un enlace es consentir que se
+  // libere según lo que vuelva): saca del FONDO de la serie, el libro de origen y el autor del enlace por el que se trajo
+  // (Lb): lo bloqueado de esa serie con la salida en un enlace de ese autor a ese libro (también uno retirado). Cada
+  // transferencia va desde quien bloqueó hacia quien recibe, con esa salida; cada liberación, de quien recibe, con esa
+  // salida; lo liberado suma lo que vuelve, y el 1.1 dice cada bloqueo del que saca (RP6). El fondo de un enlace no sale
+  // por el de otro autor ni por uno de otras claves (RP1).
+  const A = 'first (first ' + BP + '.1.3).3';
+  // RP1 (arreglos de la segunda revisión): el fondo tampoco cambia de claves. La salida ha de anotar, para el nivel de la
+  // primera cabecera de la prueba con que se trajo la vuelta, la misma clave que firmó esa cabecera (la que «a brought
+  // record comes with its proof» ya cotejó con el enlace por el que se trajo).
+  const NK = clavePrimeraDeLoTraido(BP);
+  const S = (v) => '(text(utf8(' + v + ')))';
+  const deLaSerie = (m) => familiaEs(F, m) + ' and first ' + m + '.0.0.2 = first ' + SND('1.1.2') + ' and first ' + m + '.5 = first ' + SND('1.1.3')
+    + ' and cat(utf8(first before.5), bytes("3a"), utf8(first ' + m + '.0.0.1)) = utf8(' + E_ + ')';
+  // Un enlace del fondo: de este libro, al libro de origen, de ese autor y con esas claves. Se mira una vez por terna del
+  // 1.1 (cinco como mucho), no por movimiento: cada movimiento ha de llevar la salida de una terna (ternasVerdaderas).
+  const delFondo = (L) => 'first ' + L + '.5 = ' + L + ' and ' + libroEs(L, O) + ' and first ' + L + '.3 = ' + A + ' and (' + claveEnNivel(L, NK.nivel, NK.clave) + ')';
   const vuelta = deLibro(E_, 'first before.5')
-    + ' and count (ev.1 where mint in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where release in it.4) = 1'
-    + ' and count (ev.1 where release in it.4 and it.1 = ' + q + ' and it.3.0 = first ev.3 and ' + familiaEs(F, 'it')
-    + ' and first it.0.0.2 = first ' + SND('1.1.2') + ' and first it.5 = first ' + SND('1.1.3')
-    + ' and cat(utf8(first before.5), bytes("3a"), utf8(first it.0.0.1)) = utf8(' + E_ + ')'
-    + ' and count (it.2 where first ' + SALIDA + '.5 = ' + SALIDA + ' and ' + libroEs(SALIDA, O) + ') > 0) = 1';
-  const ida = sinDosPuntos(E_)
+    + ' and count (ev.1 where mint in it.4 or lock in it.4) = 0'
+    + ' and count (ev.1 where (transfer in it.4 or release in it.4) and not (' + deLaSerie('it')
+    + ' and (transfer in it.4 and it.3.1 = first ev.3 and it.3.0 != first ev.3 or release in it.4 and it.3.0 = first ev.3))) = 0'
+    // RP9: se recibe en una o varias veces; esta libera algo y, con lo ya recibido, no pasa de lo que vuelve.
+    + ' and sum ((ev.1 where release in it.4) each 1) > 0 and ' + yaRecibido(X) + ' + sum ((ev.1 where release in it.4) each 1) <= ' + q
+    // El 1.1 dice de qué bloqueos saca y lo dice de verdad (RP6 y RP8).
+    + ' and ' + ternasVerdaderas((Lk) => delFondo(S(Lk)));
+  const ida = sinDosPuntos(E_) + ' and count (payload(ev)).1.1.0 = 0'
     + ' and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1'
     + ' and count (ev.1 where mint in it.4 and it.1 = ' + q + ' and it.3.1 = first ev.3 and ' + familiaEs(F, 'it')
     + ' and first it.0.0.2 = first ' + SND('1.1.2') + ' and utf8(first it.0.0.1) = cat(utf8(' + O + '), bytes("3a"), utf8(' + E_ + '))) = 1';
   return '=' + noRecibir + ' or ' + F + ' in epoch.8.9.1 and (' + vuelta + ' or ' + ida + ')';
+}
+
+/**
+ * El nivel y la clave de la primera cabecera (el eslabón 0) de la prueba con que se trajo un registro, dado el payload
+ * del «bring a record from another book» `BP` (una expresión): { nivel, clave }, dos expresiones.
+ */
+function clavePrimeraDeLoTraido(BP, p = POSICIONES_DEL_SELLO) {
+  const E0 = '(first ' + BP + '.1.2).' + p.cadena + '.0';
+  return { nivel: '(first ' + E0 + '.' + p.eslabon.nivel + ')', clave: '(first ' + E0 + '.' + p.eslabon.cabecera + '.' + p.cabeceraDeLote.clave + ')' };
+}
+
+/**
+ * RP6 y RP8 (arreglos de la segunda revisión): el 1.1 de una vuelta dice la verdad. Cada terna [quién, enlace, cuánto]
+ * lleva tres hojas, cuánto es positivo y su enlace es del fondo (`delFondo`, una función del enlace). Por cada terna:
+ * lo transferido desde quién con esa salida suma lo que dicen las ternas de ese quién y esa salida (si quién no es el que
+ * recibe); lo liberado con esa salida suma lo que dicen todas las ternas con esa salida; y lo transferido con esa salida
+ * no pasa de lo liberado con ella (nada queda bloqueado con la salida en un enlace a nombre de quien recibe). Y nada queda
+ * fuera de las ternas: cada transferencia es de un quién y una salida de una terna, y cada liberación, de una salida de
+ * una terna. Cinco ternas como mucho (BLOQUEOS_DE_LA_VUELTA); las demás posiciones del 1.1, vacías.
+ */
+function ternasVerdaderas(delFondo) {
+  const T = (k) => '(payload(ev)).1.1.' + k;
+  const K = BLOQUEOS_DE_LA_VUELTA;
+  // Lo que dicen las ternas que cumplen `cond(j)` (it es quién, it2 el enlace): la suma de su cuánto.
+  const dicen = (cond) => Array.from({ length: K }, (_, j) => 'sum ((last ' + T(j) + ') where ' + cond(j) + ')').join(' + ');
+  const suma = (cond) => 'sum ((ev.1 where ' + cond + ') each 1)';
+  const porTerna = Array.from({ length: K }, (_, k) => {
+    // Quién y enlace se leen una vez (cada where da el siguiente it: it quién, it2 el enlace, it3 cada movimiento).
+    const conEllos = '(it = first ev.3 or ' + suma('transfer in it3.4 and it3.3.0 = it and it2 in it3.2') + ' = ' + dicen((j) => 'first ' + T(j) + ' = it and nth 1 ' + T(j) + ' = it2') + ')'
+      + ' and ' + suma('transfer in it3.4 and it2 in it3.2') + ' <= ' + suma('release in it3.4 and it2 in it3.2')
+      + ' and ' + suma('release in it3.4 and it2 in it3.2') + ' = ' + dicen((j) => 'nth 1 ' + T(j) + ' = it2');
+    // Tres hojas, dicho sin escribir el número (A3: ninguna regla lleva un número que la época tenga): primera, segunda y última.
+    return '(count ' + T(k) + ' = 0 or count ' + T(k) + ' = count (first ' + T(k) + ') + count (nth 1 ' + T(k) + ') + count (last ' + T(k) + ') and last ' + T(k) + ' > 0 and ' + delFondo('nth 1 ' + T(k))
+      + ' and count ((first ' + T(k) + ') where count ((nth 1 ' + T(k) + ') where ' + conEllos + ') > 0) > 0)';
+  }).join(' and ');
+  const vacias = Array.from({ length: SITIOS_DEL_1_1 - K }, (_, i) => 'count ' + T(K + i) + ' = 0').join(' and ');
+  const enAlguna = (cond) => '(' + Array.from({ length: K }, (_, k) => cond(k)).join(' or ') + ')';
+  const fuera = 'count (ev.1 where transfer in it.4 and not ' + enAlguna((k) => 'first ' + T(k) + ' = it.3.0 and nth 1 ' + T(k) + ' in it.2')
+    + ' or release in it.4 and not ' + enAlguna((k) => 'nth 1 ' + T(k) + ' in it.2') + ') = 0';
+  return vacias + ' and ' + porTerna + ' and ' + fuera;
+}
+
+/**
+ * «only a send locks for another book» (RP2): un registro que deja algo bloqueado con la salida en un enlace entre libros
+ * («open a private book here» o «this book hangs from» de este libro), por un bloqueo o por una transferencia con salida,
+ * es un «send to another book» (el bloqueo) o un «receive from another book» (la transferencia, que su regla obliga a
+ * liberar en el mismo registro). El enlace en la salida se reconoce como en las demás reglas del puente.
+ */
+export function formulaDelBloqueo() {
+  const S = '(text(utf8(it2)))';
+  return '=count (ev.1 where (lock in it.4 or transfer in it.4) and count (it.2 where first ' + S + '.5 = ' + S + ' and ' + esEnlace(S) + ') > 0'
+    + ' and not (lock in it.4 and "' + P.enviar + '" in (payload(ev)).4 or transfer in it.4 and "' + P.recibir + '" in (payload(ev)).4)) = 0';
 }
 
 /** «only a receive mints a foreign series»: nadie acuña una serie forastera fuera de un «receive from another book». */
@@ -318,6 +508,167 @@ export function formulaDelRequisitoDeE() {
   return '=' + noRecibir + ' or not ("' + REQUISITO_DE_E + '" in lookup(epoch.8.9.1, epoch.8.9.3, "E"))'
     + ' or count (ev.1 where mint in it.4 and ' + forasteraMov('it') + ' and not (count it.5 > 0 and "' + P.traer + '" in (payload(first it.5)).4'
     + ' and first (payload(first it.5)).1.0 = ' + O + ' and first (payload(first it.5)).1.1.0 = first ' + SND('1.1.3') + ')) = 0';
+}
+
+// ---------- el enlace de quien creó el libro ----------
+
+/**
+ * «who created a book links it with its genesis» (encargo «el puente, segunda vuelta», punto 2; VG 17-11): un «open a
+ * private book here» que lleva en su 5 el génesis del libro que enlaza (1.0.0, B) lo prueba con él. El 5: 0 el autor del
+ * génesis, 1 su instante, 2 su payload (su JSON canónico, un texto), 3 el id de su época (contexto.epoca), 4 la clave que
+ * declara para su autor, 5 su firma, 6 cuántos registros de época escribe (contexto.epocaEscrita; 0 si no lo dice) y,
+ * opcional, 7 un 1 si es de demostración. La regla:
+ * 1. rehace el cuerpo canónico del génesis con esas piezas (sobre nulo, en la raíz, sin movimientos, su contexto con las
+ *    claves, en el orden canónico: src/evento.js, cuerpo y canonico) y comprueba que su hash es B;
+ * 2. comprueba que la firma vale con la clave que ese cuerpo declara;
+ * 3. comprueba que esa clave es una de las que quien escribe el enlace tiene en su alta de este libro (la de su titular);
+ * 4. comprueba que el instante del enlace no es anterior al del génesis;
+ * y quien no es el dueño de este libro solo lo escribe sobre un elemento suyo. Sin el 5, nada que mirar.
+ * Lo que no cabe: un génesis con campos propios en su contexto, o de demostración sin clave (no se rehace su cuerpo).
+ */
+export function formulaDelCreador() {
+  return '=not ("' + L_.abrir + '" in (payload(ev)).4 and count (payload(ev)).' + GENESIS_EN + ' > 0)'
+    + ' or (first ev.3 = first (first before.5).3 or first (first ev.6.5).3 = first ev.3) and ' + pruebaDelGenesis('ev');
+}
+
+/**
+ * La prueba del génesis que lleva en su 5 el enlace X (una expresión de un registro: la candidata `ev` al escribirlo, o
+ * el enlace que se consume al traer, enviar o recibir la vuelta: enlaceQueCuenta la vuelve a mirar entera, revisión
+ * automática del 17-11, para no fiarse de que la regla rigiera cuando se escribió). Las piezas 1 a 4 de
+ * formulaDelCreador; el libro es el que X nombra en su 1.0.0, quien enlaza su autor (X.3) y su instante el de X.
+ */
+export function pruebaDelGenesis(X) {
+  const GP = '(payload(' + X + ')).' + GENESIS_EN;
+  const g = (k) => 'first ' + GP + '.' + k;
+  const libro = 'first (payload(' + X + ')).1.0.0';
+  const pieza = (texto) => 'bytes("' + hexDe(texto) + '")';
+  const demo = '(count ' + GP + '.7 > 0 and ' + g(7) + ' = 1)';
+  const cuerpo = (conEscrita, conDemo) => 'hex(sha256(cat(' + [
+    pieza('{"autor":'), 'json(' + g(0) + ')',
+    pieza(',"contexto":{"claves":{'), 'json(' + g(0) + ')', pieza(':'), 'json(' + g(4) + ')', pieza('}'),
+    ...(conDemo ? [pieza(',"demostracion":true')] : []),
+    pieza(',"epoca":'), 'json(' + g(3) + ')',
+    ...(conEscrita ? [pieza(',"epocaEscrita":'), 'json(' + g(6) + ')'] : []),
+    pieza(',"genesis":true},"en":"0000000000","movimientos":[],"payload":'), 'utf8(' + g(2) + ')',
+    pieza(',"sobre":null,"t":'), 'json(' + g(1) + ')', pieza('}'),
+  ].join(', ') + '))) = ' + libro;
+  const variantes = [[false, false], [true, false], [false, true], [true, true]].map(([e, d]) => '(' + g(6) + (e ? ' > 0' : ' = 0') + ' and ' + (d ? '' : 'not ') + demo + ' and ' + cuerpo(e, d) + ')').join(' or ');
+  const ALTA = '(first (first ' + X + '.3).6)';
+  const suyas = '((' + ALTA + '.5 where it != first ' + ALTA + '.5 and first it.3 = first ' + X + '.3) each 2)';
+  return 'count ' + GP + '.0 = 1 and count ' + GP + '.1 = 1 and count ' + GP + '.2 = 1 and count ' + GP + '.3 = 1 and count ' + GP + '.4 = 1 and count ' + GP + '.5 = 1 and count ' + GP + '.6 = 1'
+    + ' and (' + variantes + ')'
+    + ' and signed(bytes(' + g(5) + '), bytes(' + libro + '), bytes(' + g(4) + '))'
+    + ' and ' + g(4) + ' in ' + suyas
+    + ' and (first ' + X + '.6).0.0 >= first (' + g(1) + ').0';
+}
+
+/**
+ * El génesis `g` de un libro (un evento) como lo lleva el 5 de «open a private book here» para que lo enlace quien lo
+ * creó (formulaDelCreador). null si no cabe: sin clave o sin firma, con movimientos, o con campos propios en su contexto.
+ */
+export function genesisComoDecupla(g) {
+  const c = g?.contexto ?? {};
+  const propios = Object.keys(c).filter((k) => !['genesis', 'epoca', 'epocaEscrita', 'demostracion', 'claves'].includes(k));
+  const clave = c.claves?.[g?.autor];
+  if (!g || g.sobre !== null || (g.en ?? '0000000000') !== '0000000000' || (g.movimientos ?? []).length || c.genesis !== true || propios.length) return null;
+  if (typeof clave !== 'string' || Object.keys(c.claves).length !== 1 || typeof g.firma !== 'string' || typeof c.epoca !== 'string') return null;
+  if (c.epocaEscrita !== undefined && !(Number.isInteger(c.epocaEscrita) && c.epocaEscrita > 0)) return null;
+  if (c.demostracion !== undefined && c.demostracion !== true) return null;
+  const d = [[g.autor], [g.t], [canonico(g.payload)], [c.epoca], [clave], [g.firma], [c.epocaEscrita ?? 0]];
+  if (c.demostracion === true) d.push([1]);
+  return d;
+}
+
+// ---------- la vuelta: de qué bloqueos saca ----------
+
+/**
+ * Las sentencias del 4 de «receive from another book» (encargo «el puente, segunda vuelta»): la ida acuña la serie
+ * forastera (atada al registro traído de su registro atado, si se trajo; si no, sin él: lo para el requisito de E); la
+ * vuelta, por cada bloqueo que nombra su 1.1 ([quién lo bloqueó, el enlace de su salida, cuánto saca]), transfiere desde
+ * quien lo bloqueó hacia quien recibe con esa salida (si no es él mismo) y lo libera. Decide la regla, no la plantilla.
+ */
+export function sentenciasDeRecibir() {
+  const S = (k) => '(payload(it)).1.1.6.1.' + k;
+  const EMI = 'first ' + S('1.1');
+  const vuelta = 'slice(cat(utf8(' + EMI + '), bytes("' + CEROS + '")), 0, 65) = cat(utf8(first before.5), bytes("3a"))';
+  const traidoDelAtado = '((first before.5).9.8 where "' + P.traer + '" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first ' + S('1.3') + ')';
+  const forastera = 'E.(text(cat(utf8(first (payload(it)).1.0), bytes("3a"), utf8(' + EMI + ')))).(first ' + S('1.2') + ')';
+  const ida = 'not (' + vuelta + ') and count ' + traidoDelAtado + ' > 0 and mint first ' + S(2) + ' ' + forastera + '.(first ' + traidoDelAtado + ') to me'
+    + ' or not (' + vuelta + ') and count ' + traidoDelAtado + ' = 0 and mint first ' + S(2) + ' ' + forastera + ' to me';
+  const H = (k) => '(first memo.1.1.' + k + ')';
+  const serie = (k) => '(first ((' + H(k) + '.1 where E in it2.0.0.0 and first it2.0.0.2 = first ' + S('1.2') + ' and first it2.0.5 = first ' + S('1.3')
+    + ' and cat(utf8(first before.5), bytes("3a"), utf8(first it2.0.0.1)) = utf8(' + EMI + ')) each 0))';
+  const sentencias = ['=' + ida];
+  for (let k = 0; k < BLOQUEOS_DE_LA_VUELTA; k++) {
+    const hay = vuelta + ' and count memo.1.1.' + k + ' = 3';
+    sentencias.push('=' + hay + ' and ' + H(k) + ' != me and transfer (last memo.1.1.' + k + ') ' + serie(k) + ' from ' + H(k) + ' to me exit (nth 1 memo.1.1.' + k + ')');
+    sentencias.push('=' + hay + ' and release (last memo.1.1.' + k + ') ' + serie(k) + ' from me exit (nth 1 memo.1.1.' + k + ')');
+  }
+  return sentencias;
+}
+
+/**
+ * De qué bloqueos saca el próximo recibir de la vuelta traída `idTraido` (un «bring a record from another book» de un envío que vuelve) en
+ * `eje`: el 1.1 de «receive from another book», [[quién lo bloqueó, el enlace de su salida, cuánto saca], …], el más
+ * antiguo primero (por el primer envío que bloqueó con esa salida), hasta cubrir lo que queda (lo que vuelve menos lo ya
+ * recibido por los recibir que cuelgan de ella: RP9) o el tope de un registro (BLOQUEOS_DE_LA_VUELTA): una vuelta grande
+ * se recibe en varios registros, y esta ayuda da la parte siguiente; del fondo de la serie, el
+ * libro de origen y el autor del enlace por el que se trajo (también los enlaces retirados de ese autor), cuyas salidas
+ * anotan, para el nivel de la primera cabecera de la prueba, la clave que la firmó (RP1). null si no es
+ * una vuelta, si ya se recibió entera o si el fondo está vacío. Es ayuda, no regla: la regla mira lo que nombra.
+ */
+export function bloqueosDeLaVuelta(eje, idTraido) {
+  const r = eje?.obtener?.(idTraido);
+  const p = r?.payload;
+  if (!Array.isArray(p) || ![].concat(p[4] ?? []).includes(P.traer)) return null;
+  const hoja = (x) => (Array.isArray(x) ? hoja(x[0]) : x);
+  const origen = hoja(p[1]?.[0]);
+  const enlace = eje.obtener(hoja(p[1]?.[3]));
+  const envio = p[1]?.[1]?.[6];
+  if (!enlace || !Array.isArray(envio) || !Array.isArray(envio[1])) return null;
+  const emisor = hoja(envio[1]?.[1]?.[1]);
+  const denominacion = hoja(envio[1]?.[1]?.[2]);
+  const registro = hoja(envio[1]?.[1]?.[3]);
+  let falta = hoja(envio[1]?.[2]);
+  const accionesDe = (x) => [].concat(x?.payload?.[4] ?? []);
+  // RP9: lo que queda es lo que vuelve menos lo ya liberado por los «receive from another book» que cuelgan de ella.
+  for (const h of eje.sobre(idTraido, '4000000000')) {
+    if (accionesDe(h).includes(P.recibir)) for (const m of h.movimientos ?? []) if (m.estado === 'liberacion') falta -= m.cantidad;
+  }
+  if (typeof emisor !== 'string' || !emisor.startsWith(eje.genesisId + ':') || !(falta > 0)) return null;
+  const suyo = emisor.slice(eje.genesisId.length + 1);
+  const libroDe = (l) => (accionesDe(l).includes(L_.abrir) ? hoja(l.payload?.[1]) : accionesDe(l).includes(L_.cuelga) ? hoja(l.payload?.[1]) : undefined);
+  // RP1: y que su salida anote, para el nivel de la primera cabecera de la prueba, la clave que la firmó (como la regla).
+  const q = POSICIONES_DEL_SELLO;
+  const eslabon0 = p[1]?.[2]?.[Number(q.cadena)]?.[0];
+  const nivel = hoja(eslabon0?.[Number(q.eslabon.nivel)]);
+  const clave = hoja(eslabon0?.[Number(q.eslabon.cabecera)]?.[Number(q.cabeceraDeLote.clave)]);
+  const paresDe = (l) => (accionesDe(l).includes(L_.abrir) ? l.payload?.[2] : l.payload?.[1]?.[1]);
+  const conLaClave = (l) => (Array.isArray(paresDe(l)) ? paresDe(l) : []).some((x) => Array.isArray(x) && x[0] === nivel && x[1] === clave);
+  const delFondo = (l) => l && l.autor === enlace.autor && libroDe(l) === origen && conLaClave(l);
+  const vistos = new Map();
+  let serie = null;
+  for (const id of eje.orden) {
+    const ev = eje.obtener(id);
+    if (!accionesDe(ev).includes(P.enviar)) continue;
+    for (const m of ev.movimientos ?? []) {
+      if (m.token !== 'E' || m.estado !== 'bloqueo' || m.emisor !== suyo || (m.denominacion ?? undefined) !== (denominacion ?? undefined) || m.registro !== registro) continue;
+      if (!delFondo(eje.obtener(m.salida))) continue;
+      serie ??= claveToken(m);
+      const llave = m.de + '\u0000' + m.salida;
+      if (!vistos.has(llave)) vistos.set(llave, [m.de, m.salida]);
+    }
+  }
+  const bloqueos = [];
+  for (const [quien, salida] of vistos.values()) {
+    if (falta <= 0 || bloqueos.length === BLOQUEOS_DE_LA_VUELTA) break;
+    const hay = eje.bloqueado(quien, serie, salida);
+    if (!(hay > 0)) continue;
+    const saca = Math.min(hay, falta);
+    bloqueos.push([quien, salida, saca]);
+    falta -= saca;
+  }
+  return bloqueos.length ? bloqueos : null;
 }
 
 // ---------- declarar un saldo ----------
@@ -380,6 +731,14 @@ export const FORMULAS = Object.freeze({
   'e-is-minted-by-and-to-its-issuer.json': formulaDeEmiteSuEmisor,
   'minting-e-needs-own-r-issued.json': formulaDeRPropia,
   'minting-e-needs-p-on-its-record.json': formulaDePEnSuRegistro,
+  'who-created-a-book-links-it-with-its-genesis.json': formulaDelCreador,
+  'only-a-send-locks-for-another-book.json': formulaDelBloqueo,
+  'only-a-receive-hangs-on-the-4-of-a-brought-record.json': formulaDelCuatroDelTraido,
+});
+
+/** Cada archivo de plantillas/ con las sentencias de su 4 (lo que mueve) que salen de aquí. */
+export const SENTENCIAS = Object.freeze({
+  'receive-from-another-book.json': sentenciasDeRecibir,
 });
 
 // ---------- ayudas de JS (no son núcleo) ----------
@@ -409,7 +768,8 @@ function esCanonicoDeUnValor(texto) {
 /**
  * Lo traído, leído (diseño §4.1: quién lo escribió allí, qué decía, cuándo quedó en firme): el registro «bring a record
  * from another book» `id` de `eje` → { libro, id, autor, t, payload, contexto, movimientos, fiable, causa, firme, enlace,
- * origen } o null. `firme` es la hora (ISO) de la cabecera del primer eslabón que dice un nivel a la altura del que pide
+ * origen, quien, grado, cuenta, delDueno, nivelMasBajo } o null (quien, grado, cuenta y delDueno: por qué enlace vino,
+ * porQueEnlace; nivelMasBajo: el nivel más bajo que anota ese enlace, donde empieza la prueba, RP7). `firme` es la hora (ISO) de la cabecera del primer eslabón que dice un nivel a la altura del que pide
  * la época (epoch.8.9.2), la que da por buena la regla; `origen`, el «anchor origin» que anota el enlace (null: «sin
  * comprobar el origen»).
  *
@@ -443,7 +803,34 @@ export function leerTraido(eje, id) {
     causa: fiable ? null : 'no fiable: ' + malos.join(' y ') + ' que trae no ' + (malos.length > 1 ? 'son' : 'es') + ' el JSON canónico de un solo valor, así que el mismo id podría leerse partido de otra forma; no se enseña' + (malos.length > 1 ? 'n' : ''),
     firme: Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
     enlace: enlace?.id ?? null, origen: typeof origen === 'string' ? origen : null,
+    ...porQueEnlace(eje, enlace?.id),
+    nivelMasBajo: nivelMasBajoDe(enlace),
   };
+}
+
+/**
+ * Por qué enlace vino lo traído (encargo «el puente, segunda vuelta», límites (b) y (c)): quién escribió el enlace
+ * (`quien`), su grado («del dueño», «de quien creó el libro, avalado por el dueño» o «de quien creó el libro»), si cuenta
+ * según la lectura (`cuenta`: con un enlace del dueño a ese libro con otras claves, el de otra persona no cuenta) y el del
+ * dueño, si lo hay (`delDueno`). src/contrato.js, gradoDelEnlace.
+ */
+function porQueEnlace(eje, id) {
+  const g = id ? gradoDelEnlace(eje, id) : null;
+  return { quien: g?.quien ?? null, grado: g?.grado ?? null, cuenta: g?.cuenta === true, delDueno: g?.delDueno ?? null };
+}
+
+/**
+ * RP7: el nivel más bajo que anota un enlace (sus pares [nivel, clave]: el 2 de «open a private book here», el 1.1 de
+ * «this book hangs from»), donde ha de empezar toda prueba de lo que se trae por él; null si no anota ninguno. Si es el
+ * de un sellador de arriba (el libro no tiene línea propia), quien trae por él se fía de ese sellador.
+ */
+export function nivelMasBajoDe(enlace) {
+  const a = [].concat(enlace?.payload?.[4] ?? []);
+  const pares = a.includes(L_.abrir) ? enlace.payload[2] : a.includes(L_.cuelga) ? enlace.payload[1]?.[1] : null;
+  // RP10: un enlace con más de cuatro pares no cuenta para el puente (como la regla): sin nivel.
+  if (Array.isArray(pares) && pares.length > 4) return null;
+  const niveles = (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number').map((x) => x[0]);
+  return niveles.length ? Math.min(...niveles) : null;
 }
 
 /** El archivo de cada regla del puente. */
@@ -458,5 +845,12 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.arg
     writeFileSync(ruta + '.nuevo', formatear(regla) + '\n');
     renameSync(ruta + '.nuevo', ruta);
   }
-  console.log('escritas ' + Object.keys(FORMULAS).length + ' fórmulas del puente');
+  for (const [archivo, f] of Object.entries(SENTENCIAS)) {
+    const ruta = join(AQUI, 'plantillas', archivo);
+    const plantilla = JSON.parse(readFileSync(ruta, 'utf8'));
+    plantilla[4] = f();
+    writeFileSync(ruta + '.nuevo', formatear(plantilla) + '\n');
+    renameSync(ruta + '.nuevo', ruta);
+  }
+  console.log('escritas ' + Object.keys(FORMULAS).length + ' fórmulas del puente y las sentencias de ' + Object.keys(SENTENCIAS).length + ' plantilla');
 }

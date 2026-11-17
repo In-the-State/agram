@@ -1,7 +1,7 @@
 [
   ["nobody moves tokens of others"],
-  [0, "\"invitation\""],
-  ["=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1)) = 0"],
+  [0, "\"invitation\"", "\"receive from another book\""],
+  ["=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1) and not (transfer in it.4 and it.3.1 = first ev.3 and \"receive from another book\" in (payload(ev)).4 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0)) = 0"],
   ["ev.3"],
   ["transfer", "lock", "release", "burn"],
   ["*"],
@@ -11,7 +11,8 @@
     "VG, 8-11 (mapa §15): cada uno solo mueve lo suyo, sin paso de autorizar",
     "VG, 9-11 (mapa §16 [D] «El árbol mínimo es la invitación»): «1 lo que te doy para empezar (mínimo mi propia R, que te permite escribirme)»: quien invita lo bloquea con la salida = quien invita, y la aceptación lo recoge con una transferencia con esa salida (encargo 3b); no es mover lo ajeno: la salida nombra a quien lo recibe",
     "Revisión de seguridad (encargo 3b): la excepción es exactamente «aceptar mi invitación»: quien escribe aún no tiene alta, ancla sobre la invitación, que lo nombra como invitado en su 3.1, y transfiere desde quien la escribió hacia sí mismo con la salida = él (el libro solo deja sacar lo bloqueado con esa salida: lo que la invitación le guarda); src/validez.js lo repite en el suelo",
-    "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige"
+    "Core AGRAM 17-11 (arreglos de la revisión del gobierno, anexo H; S2 de test/revision-suelo.test.js): lo que se lee de la invitación (su 0, su 3.1, su 3.5 y su 7) es su payload, lo que firmó quien invita (payload(…)), y no lo que otros anclan en esas posiciones: una nota ajena anclada en la invitación ni la bloquea ni da permiso a nadie. No cambia lo que exige",
+    "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11: «¿Confirmas que la vuelta pueda liberar a favor de otra persona? Sí»): segunda excepción, calcada de la invitación: una transferencia desde otro, hacia quien escribe, con la salida en un enlace entre libros («open a private book here» o «this book hangs from» de este libro), dentro de un «receive from another book». El consentimiento se lee en la salida del bloqueo: quien bloqueó con la salida en un enlace consintió que se libere según lo que vuelva. Lo que saca y para quién lo juzgan «what is received is what was sent» y las demás reglas del puente, que son suelo; src/validez.js lo repite"
   ],
   ["epoch 0"],
   ["after locked P backing live E is not released"],

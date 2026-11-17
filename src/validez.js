@@ -400,6 +400,20 @@ function aceptaSuInvitacion(eje, ev, m, conAlta) {
   return Boolean(inv) && inv.autor === m.de && Array.isArray(p) && [p[0]].flat().includes('invitation') && [p[3]?.[1]].flat().includes(ev.autor);
 }
 
+/**
+ * Si `m` (una transferencia con salida desde otro titular) es la vuelta de otro libro (encargo «el puente, segunda
+ * vuelta», VG 17-11; la segunda excepción de «nobody moves tokens of others», calcada de la invitación): va hacia
+ * `ev.autor`, su salida es un enlace entre libros de este libro («open a private book here» o «this book hangs from») y
+ * `ev` es un «receive from another book». Lo que saca y para quién lo juzgan las reglas del puente, que son suelo.
+ */
+function recibeLaVuelta(eje, ev, m) {
+  if (m.a !== ev.autor || typeof m.salida !== 'string') return false;
+  const acciones = (r) => [r?.payload?.[4]].flat(2);
+  if (!acciones(ev).includes('receive from another book')) return false;
+  const enlace = acciones(eje.obtener(m.salida));
+  return enlace.includes('open a private book here') || enlace.includes('this book hangs from');
+}
+
 function capaAcreditacion(eje, ev, libro) {
   const r = motivos();
   const esGenesis = ev.contexto?.genesis === true;
@@ -473,7 +487,9 @@ function capaAcreditacion(eje, ev, libro) {
       // esa salida y llega bloqueado con ella, o libre si la salida nombra a quien lo recibe. Desde otro titular, solo
       // aceptando la propia invitación (el suelo de «nobody moves tokens of others»): quien escribe no tiene alta,
       // ancla sobre una invitación de `de` que lo nombra en su 3.1 y lo recoge para sí, con la salida = él.
-      if (m.de !== ev.autor && !aceptaSuInvitacion(libro.eje, ev, m, conAlta)) return mal('falla', 'nadie mueve lo ajeno: ' + ev.autor + ' saca lo bloqueado de ' + m.de + ' sin aceptar una invitación suya que lo nombre');
+      // O recibiendo la vuelta de otro libro (encargo «el puente, segunda vuelta»): hacia sí, con la salida en un enlace,
+      // en un «receive from another book».
+      if (m.de !== ev.autor && !aceptaSuInvitacion(libro.eje, ev, m, conAlta) && !recibeLaVuelta(libro.eje, ev, m)) return mal('falla', 'nadie mueve lo ajeno: ' + ev.autor + ' saca lo bloqueado de ' + m.de + ' sin aceptar una invitación suya que lo nombre ni recibir la vuelta de otro libro');
       if (verB(m.de, k, m.salida) < m.cantidad) return mal('falla', 'bloqueado de ' + k + ' en ' + m.de + ' con la salida «' + m.salida + '»: hay ' + verB(m.de, k, m.salida) + ', transfiere ' + m.cantidad);
       ponerB(m.de, k, m.salida, verB(m.de, k, m.salida) - m.cantidad);
       if (m.a !== m.salida) {

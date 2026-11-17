@@ -1,0 +1,15 @@
+[
+  ["only a receive hangs on the 4 of a brought record"],
+  ["\"bring a record from another book\"", "\"receive from another book\"", "4000000000"],
+  ["=not (\"bring a record from another book\" in (payload(first ev.6.5)).4 and nth 1 ev.6.5 = \"4000000000\") or \"receive from another book\" in (payload(ev)).4"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "Core AGRAM 17-11 (encargo «arreglos de la segunda revisión del puente», tercera tanda, RP11, tras test/revision-puente-2.test.js): lo ya recibido de una vuelta y el «una vez» de la ida se leían en todo lo que cuelga del registro traído, y cualquiera podía colgar de él miles de registros hasta que la vuelta no se recibiera nunca. Ahora se leen solo en el 4 del registro traído, donde se ancla su «receive from another book», y en ese 4 no se escribe otra cosa: así solo entra ahí un recibir de quien el envío nombra («a send is received once by whom it names»), y lo que otros cuelguen en otras posiciones no cuesta nada",
+    "La fórmula sale de datos/epocas/puente.mjs (formulaDelCuatroDelTraido). Es suelo (epoch.7.9.6): sin ella, colgar registros en ese 4 volvería a encarecer la vuelta hasta pararla"
+  ],
+  ["epoch 0"],
+  ["after only a send locks for another book"],
+  ["only a receive hangs on the 4 of a brought record: {first ev.3} writes on the 4 of a record brought from another book something that is not a «receive from another book»"]
+]

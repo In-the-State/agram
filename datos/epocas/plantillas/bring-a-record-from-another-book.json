@@ -53,7 +53,7 @@
       [4],
       [
         "=it",
-        "the link of this book with the other one (an «open a private book here» or a «this book hangs from» of the owner of this book): its line keys are the ones that check the proof"
+        "the link of this book with the other one (an «open a private book here» or a «this book hangs from» of the owner of this book, or an «open a private book here» of who created that book, with its genesis): its line keys are the ones that check the proof"
       ]
     ],
     [
@@ -93,7 +93,7 @@
       ["bring a record from another book", "the action"]
     ]
   ],
-  ["=(\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and first it.3 = first (first before.5).3"],
+  ["=(\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (first it.3 = first (first before.5).3 or \"open a private book here\" in (payload(it)).4 and count (payload(it)).5 > 0 and first (up it).3 = first it.3)"],
   [["me"], ["person"]],
   ["write"],
   ["9.8", "=first before.5"],
@@ -102,7 +102,8 @@
     "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
     "Diseño §4.1: lleva el registro de origen entero (su cuerpo, su id y su firma), el libro de origen y su prueba de sello. Lo deciden cinco reglas: «a record is brought from a linked book» (el enlace es del dueño de este libro, el último, y nombra el libro), «bringing needs the line keys of the book» (el enlace anota claves de línea: sin ellas no hay con qué comprobar cabeceras), «a brought record is its body» (el id es el hash de su cuerpo), «a brought record comes with its proof» (la prueba cubre ese id, su primera cabecera es del libro de origen y una cabecera firmada por una clave de línea que el enlace anota para su nivel llega al nivel de epoch.8.9.2) y «a record is brought once». Lo traído es un dato leíble: quién lo escribió allí (1.1.1), qué decía (1.1.6), cuándo quedó en firme (la hora de esa cabecera)",
     "Se lanza sobre el enlace y se ancla en el 9.8 del génesis («brought from other books»): así «no se trae dos veces» mira solo lo traído. Su 4 es «write»: no mueve más que el coste de escribir, que crece con lo que trae (una prueba de cuatro eslabones son unas ochenta posiciones)",
-    "[6, 5]: el pasado (PV 6), de dónde viene, detrás de «put a change in force»"
+    "[6, 5]: el pasado (PV 6), de dónde viene, detrás de «put a change in force»",
+    "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», punto 2): se ofrece también sobre el «open a private book here» de quien creó el libro que enlaza (lleva su génesis en su 5, sobre un elemento suyo); decide la regla «a record is brought from a linked book»"
   ],
   ["epoch 0"],
   [6, 5],

@@ -1,0 +1,22 @@
+[
+  ["only a send locks for another book"],
+  [
+    "ev.1",
+    "\"send to another book\"",
+    "\"receive from another book\"",
+    "\"open a private book here\"",
+    "\"this book hangs from\""
+  ],
+  ["=count (ev.1 where (lock in it.4 or transfer in it.4) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0 and not (lock in it.4 and \"send to another book\" in (payload(ev)).4 or transfer in it.4 and \"receive from another book\" in (payload(ev)).4)) = 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "Core AGRAM 17-11 (encargo «arreglos de la segunda revisión del puente», RP2, tras test/revision-puente-2.test.js): «lock E as a bid for a quota» o «commit P» sobre un enlace bloqueaban con la salida en él; «what is locked for another book is released only by its return» no dejaba soltarlo y «what is received is what was sent» lo contaba en el fondo de una vuelta: quedaba congelado o lo elegía quien recibía una vuelta. Solo un envío bloquea con la salida en un enlace",
+    "Un registro que deja algo bloqueado con la salida en un enlace entre libros de este libro («open a private book here» o «this book hangs from»), por un bloqueo o por una transferencia con salida, es un «send to another book» (el bloqueo) o un «receive from another book» (la transferencia: su regla pide liberarla en el mismo registro). El enlace en la salida se reconoce como en las demás reglas del puente (la salida, como texto, es un registro de este libro que nombra una de las dos acciones). No alcanza una declaración (no bloquea) ni la invitación (su salida es una persona)",
+    "La fórmula sale de datos/epocas/puente.mjs (formulaDelBloqueo). Es suelo (epoch.7.9.6): sin ella, lo bloqueado sobre un enlace por otra plantilla entraría en el fondo de las vueltas"
+  ],
+  ["epoch 0"],
+  ["after who created a book links it with its genesis"],
+  ["only a send locks for another book: {first ev.3} locks something with a link between books as its exit in a record that is not a «send to another book» (or a «receive from another book» that releases it)"]
+]

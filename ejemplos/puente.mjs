@@ -24,7 +24,7 @@ import { Eje } from '../src/eje.js';
 import * as A from '../src/acciones.js';
 import { generarClaves, firmar } from '../src/autoridad.js';
 import { selloEnCascada } from './ikisai/sellos.mjs';
-import { PLANTILLAS_DEL_PUENTE as P, ENLACES, registroComoDecupla, leerTraido } from '../datos/epocas/puente.mjs';
+import { PLANTILLAS_DEL_PUENTE as P, ENLACES, registroComoDecupla, leerTraido, bloqueosDeLaVuelta } from '../datos/epocas/puente.mjs';
 
 /** Calendario inventado: el martes 17 de noviembre de 2026 (UTC). */
 export const T0 = '2026-11-17T09:00:00Z';
@@ -42,7 +42,9 @@ export async function dosLibros({ clavesDelGrande = true, clavesDelPequeno = tru
   const firmarDe = (ev) => firmar(ev, (ev.autor === 'ana' ? claves.ana : claves.bea).privada);
   const grande = await Eje.genesis({ identidad: 'ana', foco: ['el libro grande'], t: T0, clave: claves.ana.publica, privada: claves.ana.privada, emision: [{ token: 'R', cantidad: 10 }] });
   const pequeno = await Eje.genesis({ identidad: 'bea', foco: ['el libro pequeño'], t: T0, clave: claves.bea.publica, privada: claves.bea.privada, emision: [{ token: 'R', cantidad: 10 }] });
-  const intenta = (eje, cual, params, yo, opciones = {}) => A.transaccion(eje, cual, params, yo, { t: t(), firmar: firmarDe, ...opciones });
+  // Recibir una vuelta nombra de qué bloqueos saca (su 1.1): la ayuda los pone, el más antiguo primero, si no se dan.
+  const conBloqueos = (eje, cual, params) => (cual === P.recibir && params.locks === undefined && bloqueosDeLaVuelta(eje, params.X)?.length ? { ...params, locks: bloqueosDeLaVuelta(eje, params.X) } : params);
+  const intenta = (eje, cual, params, yo, opciones = {}) => A.transaccion(eje, cual, conBloqueos(eje, cual, params), yo, { t: t(), firmar: firmarDe, ...opciones });
   const lanza = async (eje, cual, params, yo, opciones) => {
     const r = await intenta(eje, cual, params, yo, opciones);
     if (!r.ok) throw new Error(cual + ' de ' + yo + ': ' + r.motivos.map((x) => x.mensaje).join('; '));

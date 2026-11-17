@@ -75,6 +75,18 @@
       ["optional"],
       [6],
       ["the origin of the line of that book: the outpoint of its anchor 0 (its txid, 64 hexadecimal characters in lower case, «:» and its output); a proof of that book whose anchors do not descend from it is another line. Checking it against Bitcoin is not a rule of the book: it is a grade of the proof; without it, what comes from that book reads «origin not checked»"]
+    ],
+    [
+      ["point"],
+      ["text"],
+      ["=hex(slice(bytes(it), 0, 32)) = it"],
+      ["me"],
+      ["payload"],
+      ["5"],
+      ["Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11), punto 5 (pedido por el tramo 4, la época por referencia): parámetro de «this book hangs from»"],
+      ["optional"],
+      [7],
+      ["the point of the book above when this one was born: the id of the record that put in force its last change (64 hexadecimal characters in lower case), or nothing; a datum to read, no rule judges it"]
     ]
   ],
   ["=first it.5 = first (first before.1).5 and first (first before.1).3 = me"],
@@ -87,7 +99,8 @@
     "Se lanza sobre el génesis y solo se ofrece a su dueño (el autor del génesis): es de la oferta de la plantilla, sin regla de validez. Escrito a mano por otro, la época no lo rechaza; contrato.cuelgaDe solo cuenta los del autor del génesis. Ancla en el 9.5 del génesis: no choca con el 9 de la custodia, el 9.2, el 9.3 y el 9.6 de los ajustes, las preferencias y las revisiones, el 9.4 de los retoques de textos, ni con el 9.1 de «open a private book here»",
     "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir",
     "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el enlace del pequeño anota también del grande sus claves de línea (1.1; 0 si ninguna, por defecto) y el origen de su línea (1.2, opcional, «anchor origin»), para traer de él; el libro pasa a 1.0 (lo opcional cierra su décupla). Un registro escrito antes, con el libro en 1, se sigue leyendo (contrato.cuelgaDe) pero no sirve para traer",
-    "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo"
+    "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo",
+    "Core AGRAM 17-11 (encargo «el puente, segunda vuelta», VG 17-11), punto 5: el 5, opcional, «point», es el id del registro que puso en vigor el último cambio en el libro de arriba cuando nació este (o nada). Es un dato para leer: ninguna regla lo juzga; contrato.cuelgaDe lo da como «punto»"
   ],
   ["epoch 0"],
   [9, 12],
