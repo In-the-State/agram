@@ -2296,16 +2296,26 @@ const manejadores = {
     pintarEnsayo();
     try {
       const { copia, frase } = await r.ensayoCuenta();
-      const rc = await cuentas.restaurarCuenta(copia, frase);
-      const destino = rc.claveLectura ? sincronia.destino(rc.eje, rc.cuenta.identidad) : null;
+      // La copia puede ser la de los dos libros de la dueña (el roadmap y la guía de ensayo, cuentas.exportarTodos): se
+      // guardan todos, cada uno con su libro compartido, y se entra en el del roadmap.
+      const todos = cuentas.esCopiaDeTodos(copia) ? await cuentas.restaurarTodos(copia, frase) : null;
+      const lista = todos ? todos.restaurados : [await cuentas.restaurarCuenta(copia, frase)];
+      let rc = null;
       let delLibro = null;
+      let guardada = true;
       let aviso = '';
-      if (destino) {
-        const d = await sinc.ejeDelServidor({ cuenta: rc.cuenta, url: destino.url, eje: destino.eje, claveLectura: rc.claveLectura, foto: rc.eje });
-        if (d.eje) { rc.eje = d.eje; delLibro = d.sincronia; } else aviso = t('noBajaDelServidor', { motivo: d.motivo });
+      for (const x of lista) {
+        const destino = x.claveLectura ? sincronia.destino(x.eje, x.cuenta.identidad) : null;
+        let suyo = null;
+        if (destino) {
+          const d = await sinc.ejeDelServidor({ cuenta: x.cuenta, url: destino.url, eje: destino.eje, claveLectura: x.claveLectura, foto: x.eje });
+          if (d.eje) { x.eje = d.eje; suyo = d.sincronia; } else aviso = t('noBajaDelServidor', { motivo: d.motivo });
+        }
+        guardada = (await cuentas.guardarCuenta(x)) && guardada;
+        if (suyo) cuentas.guardarEstadoSincronia(x.cuenta.alta, suyo.serializar());
+        if (!rc || x.cuenta.alta === estado.core.ensayo?.alta) { rc = x; delLibro = suyo; }
       }
-      const guardada = await cuentas.guardarCuenta(rc);
-      if (delLibro) cuentas.guardarEstadoSincronia(rc.cuenta.alta, delLibro.serializar());
+      if (!rc) throw new Error((todos?.fallidos ?? []).map((f) => f.motivo).join(' · '));
       entrarCon(rc);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: rc.eje.orden.length }) : t('sinAlmacenamiento');
       estado.exito = t('cuentaRestaurada', { nombre: rc.cuenta.nombre, cuantos: rc.eje.orden.length }) + (delLibro ? ' · ' + t('ejeDelServidor', { cuantos: rc.eje.orden.length }) : '');
