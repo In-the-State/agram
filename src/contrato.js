@@ -3965,3 +3965,4 @@ export { configuracionDeFormato, AJUSTES_DE_FORMATO } from './acciones.js';
 // Las zonas de la cara y la guía mínima (§12.8; VG 17-11 por Core State, DISENO_ZONAS_GUIA pieza 1): sus lecturas viven en
 // guia-libro.js y se exponen aquí con el resto de lo que lee la carta (el ciclo con guia-libro solo vale en tiempo de llamada).
 export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_LA_GUIA, TOPES_DE_ZONA } from './guia-libro.js';
+export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)

@@ -12,7 +12,8 @@
     "bench": "node bench/eje.mjs",
     "epocas": "node datos/epocas/generar.mjs",
     "epoca:state": "node datos/epocas/state/generar.mjs",
-    "epoca:guia-libro": "node datos/epocas/guia-libro/generar.mjs"
+    "epoca:guia-libro": "node datos/epocas/guia-libro/generar.mjs",
+    "epoca:roadmap": "node datos/epocas/roadmap/generar.mjs"
   },
   "license": "UNLICENSED"
 }

@@ -1,0 +1,23 @@
+{
+  "epoca": "50fbac2fee8f81cdc3390c03ba28546f7a2a88cf363b36db10540a8cb12fbbe3",
+  "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
+  "registrosAlPublicar": 4,
+  "reglas": [
+    {
+      "nombre": "a task does not go after itself",
+      "archivo": "a-task-does-not-go-after-itself.json",
+      "id": "a526aaad70fd7ef03e873b289de9281004ad9e07d716fd551520543197f0167f"
+    }
+  ],
+  "plantillas": [
+    {
+      "nombre": "this goes after",
+      "archivo": "this-goes-after.json",
+      "id": "d5d8eab002698e70fd38126e1a6f50b1f7294d7658bf5b692b5209cc0f9a10cf",
+      "ocho": [
+        7,
+        6
+      ]
+    }
+  ]
+}

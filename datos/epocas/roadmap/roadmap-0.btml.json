@@ -1,0 +1,972 @@
+{
+  "id": "50fbac2fee8f81cdc3390c03ba28546f7a2a88cf363b36db10540a8cb12fbbe3",
+  "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
+  "raiz": [
+    [
+      "época del roadmap 0",
+      "roadmap epoch 0"
+    ],
+    {
+      "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+    },
+    [
+      {
+        "ref": "a526aaad70fd7ef03e873b289de9281004ad9e07d716fd551520543197f0167f"
+      }
+    ],
+    {
+      "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+    },
+    {
+      "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+    },
+    {
+      "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+    },
+    [
+      [
+        "VG 17-11 (por Core State; decidido por Core AGRAM): en el libro del roadmap, los pasos que se esperan unos a otros se ven en el 7 como cadenas, una por secuencia, y los independientes aparte. Va en una época propia del libro, hija de la 0 (la 0 no se toca hasta congelar). Hereda de la época 0 definitiva y no la cambia",
+        "Core AGRAM 17-11: la plantilla «this goes after» (en el 2.6 de la tarea que depende), la regla «a task does not go after itself», las plantillas de datos «task» y «previous tasks» en un grupo en la posición 8 del 9.2 (la regla del grupo: su cabecera dice «domain templates») y su propia fila del 7 en el 8.7.1 (forma «cadenas»: sustituye a la de la 0 por su nombre, el 7). La lectura, pura, en src/cadenas.js"
+      ],
+      [
+        "hereda"
+      ],
+      [
+        "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      ]
+    ],
+    {
+      "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+    },
+    [
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      [
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        [
+          [
+            [
+              7
+            ],
+            [
+              1
+            ],
+            [
+              "el futuro de un libro de tareas: una fila por cadena de tareas que se esperan unas a otras, de izquierda a derecha en su orden, y las independientes aparte (src/cadenas.js)"
+            ],
+            [
+              "sequenced form",
+              "mapped form",
+              "measures"
+            ],
+            [
+              "cadenas",
+              "cadenas",
+              "this goes after"
+            ]
+          ]
+        ]
+      ]
+    ],
+    [
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      [
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        [
+          [
+            [
+              "domain templates"
+            ]
+          ],
+          [
+            [
+              [
+                "task"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "0"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "write the guide of the roadmap",
+                "the task, in plain words"
+              ]
+            ],
+            [
+              [
+                "data"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "1"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "id: R12",
+                "its data as «label: value» (the id of its row in the table and what the table says)"
+              ]
+            ],
+            [
+              [
+                "criteria"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "2"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "all announced movements happened",
+                "the closing template, as in any anchored record"
+              ]
+            ],
+            [
+              [
+                "who"
+              ],
+              [
+                "identity"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "3"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the house that does it"
+              ]
+            ],
+            [
+              [
+                "actions"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "template",
+                "write"
+              ],
+              [
+                "4"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "anchor here",
+                "how it was written"
+              ]
+            ],
+            [
+              [
+                "type"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "5"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "task",
+                "the template of the record: a task of the roadmap; the tasks it goes after hang from its 2.6 («this goes after»)"
+              ]
+            ]
+          ],
+          [
+            [
+              [
+                "previous tasks"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "0"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "goes after",
+                "the title of the record"
+              ]
+            ],
+            [
+              [
+                "count"
+              ],
+              [
+                "number"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "1"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "2",
+                "how many tasks it goes after"
+              ]
+            ],
+            [
+              [
+                "criteria"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "2"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "all announced movements happened",
+                "the closing template, as in any anchored record"
+              ]
+            ],
+            [
+              [
+                "who"
+              ],
+              [
+                "identity"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "3"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the author of the task"
+              ]
+            ],
+            [
+              [
+                "actions"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "template",
+                "write"
+              ],
+              [
+                "4"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "this goes after",
+                "how it was written"
+              ]
+            ],
+            [
+              [
+                "type"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "5"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "previous tasks",
+                "the template of the record"
+              ]
+            ],
+            [
+              [
+                "previous"
+              ],
+              [
+                "ref"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "6"
+              ],
+              [
+                "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the tasks it goes after, one reference each (at most 30); without it, it no longer depends on anything"
+              ]
+            ]
+          ]
+        ]
+      ],
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      [
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        [
+          [
+            "es",
+            "español"
+          ],
+          [
+            "template this goes after: va después de",
+            "template this goes after param title label: título",
+            "template this goes after param title help: el título del registro, en llano",
+            "template this goes after param previous label: anteriores",
+            "template this goes after param previous help: las tareas de las que va después: referencias a tareas de este libro (de cualquier autor), como mucho 30; ninguna: ya no depende de nada",
+            "template this goes after param count label: cuántas",
+            "template this goes after param count help: de cuántas tareas va después: el número de referencias de su 6",
+            "template this goes after param criteria label: criterio de cierre",
+            "template this goes after param criteria help: la plantilla de cerrado, como en todo registro anclado",
+            "template this goes after param who label: quién",
+            "template this goes after param who help: quién lo escribe: el autor de la tarea",
+            "template this goes after param actions label: acción",
+            "template this goes after param actions help: la acción que escribe el registro",
+            "template this goes after param type label: tipo",
+            "template this goes after param type help: la plantilla del registro: tareas anteriores",
+            "template this goes after message: va después de: {me} dice que {first it.0} va después de {first memo.1} tareas",
+            "template task: tarea",
+            "template task param task label: tarea",
+            "template task param task help: la tarea, en llano",
+            "template task param task placeholder: escribir la guía del roadmap",
+            "template task param data label: datos",
+            "template task param data help: sus datos como «etiqueta: valor» (el id de su fila en la tabla y lo que dice la tabla)",
+            "template task param data placeholder: id: R12",
+            "template task param criteria label: criterio de cierre",
+            "template task param criteria help: la plantilla de cerrado, como en todo registro anclado",
+            "template task param criteria placeholder: all announced movements happened",
+            "template task param who label: quién",
+            "template task param who help: la casa que la hace",
+            "template task param actions label: acción",
+            "template task param actions help: cómo se escribió",
+            "template task param actions placeholder: anchor here",
+            "template task param type label: tipo",
+            "template task param type help: la plantilla del registro: una tarea del roadmap; las tareas de las que va después cuelgan de su 2.6 («va después de»)",
+            "template task param type placeholder: task",
+            "template previous tasks: tareas anteriores",
+            "template previous tasks param previous tasks label: tareas anteriores",
+            "template previous tasks param previous tasks help: el título del registro",
+            "template previous tasks param previous tasks placeholder: va después de",
+            "template previous tasks param count label: cuántas",
+            "template previous tasks param count help: de cuántas tareas va después",
+            "template previous tasks param count placeholder: 2",
+            "template previous tasks param criteria label: criterio de cierre",
+            "template previous tasks param criteria help: la plantilla de cerrado, como en todo registro anclado",
+            "template previous tasks param criteria placeholder: all announced movements happened",
+            "template previous tasks param who label: quién",
+            "template previous tasks param who help: el autor de la tarea",
+            "template previous tasks param actions label: acción",
+            "template previous tasks param actions help: cómo se escribió",
+            "template previous tasks param actions placeholder: this goes after",
+            "template previous tasks param type label: tipo",
+            "template previous tasks param type help: la plantilla del registro",
+            "template previous tasks param type placeholder: previous tasks",
+            "template previous tasks param previous label: anteriores",
+            "template previous tasks param previous help: las tareas de las que va después, una referencia cada una (como mucho 30); sin ellas, ya no depende de nada",
+            "a task does not go after itself: una tarea no va después de sí misma: {first ev.3} dice que una tarea va después de sí misma"
+          ]
+        ],
+        [
+          [
+            "en",
+            "English"
+          ],
+          [
+            "a task does not go after itself: a task does not go after itself: {first ev.3} says that a task goes after itself"
+          ]
+        ]
+      ],
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      [
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        [
+          {
+            "ref": "d5d8eab002698e70fd38126e1a6f50b1f7294d7658bf5b692b5209cc0f9a10cf"
+          }
+        ]
+      ]
+    ]
+  ],
+  "registros": [
+    [
+      [
+        "a task does not go after itself"
+      ],
+      [
+        "this goes after",
+        "ev.6"
+      ],
+      [
+        "=not (\"this goes after\" in (payload(ev)).4) or count ((payload(ev)).6 where it = first ev.6.5) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): una tarea no va después de sí misma: un registro «this goes after» no nombra en su 6 la tarea sobre la que se ancla. Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)"
+      ],
+      [
+        "roadmap epoch 0"
+      ],
+      [
+        "after a reserve is spent as it says"
+      ],
+      [
+        "a task does not go after itself: {first ev.3} says that a task goes after itself"
+      ]
+    ],
+    [
+      [
+        "this goes after"
+      ],
+      [
+        [
+          [
+            "title"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it != \"\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "goes after",
+            "the title of the record, in plain words"
+          ]
+        ],
+        [
+          [
+            "previous"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "6"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            2
+          ],
+          [
+            "the tasks this one goes after: references to tasks of this book (of any author), at most 30; none: it no longer depends on anything"
+          ]
+        ],
+        [
+          [
+            "count"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=floor it = it and it >= 0 and it <= 30 and it = count memo.6"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=count memo.6",
+            "how many tasks it goes after: the number of references in its 6"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template, as in any anchored record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "=it = me"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=me",
+            "who writes it: the author of the task"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"this goes after\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "this goes after",
+            "the action that wrote it"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"previous tasks\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "previous tasks",
+            "the template of the record: previous tasks"
+          ]
+        ]
+      ],
+      [
+        "=\"task\" in (payload(it)).5 and first it.3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "2.6"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): «esta tarea va después de aquellas» es una precondición para empezar, la condición de la tarea que viene de otros registros: se ancla en su 2.6 (2, con qué condición; 6, de dónde viene). La escribe el autor de la tarea que depende, sobre ella; la anterior puede ser de otro autor (la condición es suya, no del otro). Manda la última: un registro lleva todas las anteriores (sin su 6, ya no depende de nada). Se ofrece solo al autor de una tarea (el tipo «task» en su 5), en modo persona. Su 4 es «write»: no mueve nada más que el coste de escribir. Otro libro, fuera: una referencia solo vale dentro del libro (el suelo de referencias)",
+        "La décupla del registro: 0 el título; 1 cuántas anteriores (las referencias de su 6); 2 el criterio de cierre; 3 quién; 4 «this goes after»; 5 el tipo, «previous tasks»; 6 las anteriores, una referencia por tarea (como mucho 30), al final: sin huecos ni rellenos (VG 13-11, #77). La regla «a task does not go after itself» rechaza la que se nombra a sí misma; los ciclos no los comprueba una regla (el BQL mínimo no recorre): la lectura descarta la arista que cierra el ciclo y lo dice (src/cadenas.js)"
+      ],
+      [
+        "roadmap epoch 0"
+      ],
+      [
+        7,
+        6
+      ],
+      [
+        "this goes after: {me} says that {first it.0} goes after {first memo.1} tasks"
+      ]
+    ]
+  ]
+}

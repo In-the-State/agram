@@ -1024,6 +1024,25 @@ Por qué no la colocación del diseño (0 título, 1 parámetros, 4 la acción, 
 
 **Lo que hay que saber del núcleo tal como está.** Un paso anclado en el 4 de la guía es, para la matriz del 4 (`ejecuciones`, §4.2 bis), un registro de su fábrica; una zona anclada en el 0 es un hijo más del elemento (como lo que ancla «anchor here»), y `representaciones` no la toma por una representación rica (su 1 no es [tamaño, formato]).
 
+### 12.10 Las dependencias como cadenas en el 7: `cadenas(eje, X)` (Core AGRAM 17-11, decidido con VG)
+
+En el libro del roadmap, las tareas que se esperan unas a otras se ven en el 7 como cadenas, una fila por secuencia, y las independientes aparte. Va en la **época hija del libro del roadmap** (`datos/epocas/roadmap/`, su `LEEME.md`; `npm run epoca:roadmap`), no en la 0. Código: `src/cadenas.js` (puro, sin DOM), expuesto también por `contrato`. Pruebas: `test/cadenas.test.js`. Diseño: `docs/notas/CADENAS.md`.
+
+**Qué es una tarea**: un registro con el tipo **«task»** en su 5 (la plantilla de datos «task», en un grupo en la posición 8 del 9.2 de la época del roadmap, junto a «previous tasks»).
+
+**La relación, «this goes after»** («va después de», [7, 6]): la escribe el **autor de la tarea que depende**, sobre ella, anclada en su **2.6** (2, con qué condición; 6, de dónde viene: una precondición que viene de otros registros). Se ofrece solo al autor de una tarea, en modo persona; su 4 es `write`. El registro: 0 el título; 1 cuántas anteriores; 2 el criterio de cierre; 3 quién (quien escribe); 4 «this goes after»; 5 «previous tasks»; 6 las anteriores, una referencia por tarea (como mucho 30), al final. **Manda la última**; sin 6, ya no depende de nada. La anterior puede ser de otro autor (la condición es de quien depende). La regla de la época **«a task does not go after itself»** rechaza la que se nombra a sí misma. Otro libro, fuera: una referencia solo vale dentro del libro.
+
+**La lectura**: `cadenas(eje, X)` → `{ cadenas: [{ sale, pasos, primeroSinHacer }], independientes: [paso], descartadas: [{ de, a, relacion, motivo }] }`, con cada paso `{ id, estado, fin, estacion, espera, une, fuera }`.
+
+- **Qué entra**: las tareas que cuelgan de X a cualquier profundidad (X un proyecto, el alta de una casa o el génesis: el libro) y sus aristas: de cada una, la última relación de su autor (la de otro no cuenta). Una anterior que no cuelga de X entra como contexto, `fuera: true` (no se siguen sus anteriores); una siguiente que no cuelga de X no entra.
+- **Descartadas, y dichas**: la arista a sí misma, a lo que no es una tarea y la que cierra un ciclo escrito a mano (las aristas se añaden por llegada de su relación y, dentro de ella, en su orden: se descarta la que llega cuando ya hay camino de vuelta). `motivo`: «a sí misma», «no está», «no es una tarea», «ciclo» (`MOTIVOS_DE_DESCARTE`).
+- **El reparto, estable**: orden por dependencias con los empates por llegada al libro; cada tarea continúa la cadena de su primera anterior (por llegada) que todavía termina en ella; si ninguna, abre una cadena nueva que dice de cuál `sale` (una bifurcación). Las demás anteriores van en su `une` (una unión). Independiente: sin anteriores ni siguientes.
+- **El estado**: «hecho» si su autor escribió un cierre en su 4 («close», «close with error», «expire», «close by decision») y `motor.cerrado` la da por cerrada (`fin` dice cómo; sin cierre escrito no lo está, porque el motor da por cerrado lo que no anuncia nada); «espera» si alguna anterior no está hecha con un final de **`FINES_QUE_DESBLOQUEAN`** (`espera` dice cuáles); «en curso» si tiene un anuncio en su 4.1 (`estacion`, la suya); si no, «listo». **`FINES_QUE_DESBLOQUEAN` = cumplido y decidido**: una anterior cerrada con error o caducada no desbloquea (valor por defecto de Core AGRAM que VG puede cambiar ahí, en un solo sitio).
+- **`primeroSinHacer`**, por cadena: el índice del primer paso que no está hecho (null si todos): lo que la carta enseña al compactar una cadena larga a 400 px.
+- En un libro cuya época no tiene «this goes after» (la 0 a secas), vacío.
+
+**El 7**: la época del roadmap trae su propia fila del 7 en `epoch.8.7.1` (una colección: sustituye a la de la 0 por su nombre, el 7), con forma **`cadenas`** en sequenced y mapped y `measures` = «this goes after»; `divisionDelMundo(eje, 7)` da `forma: 'cadenas'` y ninguna banda. El 7 de los demás libros sigue siendo `franjas`. Pintarla es de la carta (una fila por cadena, de izquierda a derecha, las independientes aparte; compactada por `primeroSinHacer`).
+
 ## 13. Para decidir VG
 
 Del encargo 3c-2a:
