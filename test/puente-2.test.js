@@ -93,7 +93,7 @@ test('vuelta: ana envía 3 a bea, cruzan, bea devuelve 1 para su clave del grand
   // Lo mismo dice la capa de acreditación (src/validez.js repite la excepción del suelo).
   const v = await validez(grande, recibo.id);
   assert.equal(v.acreditacion.estado, 'ok', v.acreditacion.resumen);
-  assert.deepEqual(reglas(await m.intenta(grande, P.recibir, { X: traida.id, locks: [['ana', abre.id, 1]] }, 'bea')), [N.recibir], 'dos veces, no');
+  assert.deepEqual(reglas(await m.intenta(grande, P.recibir, { X: traida.id, locks: [['ana', abre.id, 1]] }, 'bea')), [N.recibir, N.loEnviado], 'dos veces, no (ya entera: lo que libera pasa de lo que vuelve)');
 });
 
 test('vuelta: la de algo que no se envió no entra; una transferencia desde otro fuera de un «receive», o con la salida en algo que no es un enlace, tampoco (el suelo sigue en pie)', async () => {
@@ -144,9 +144,9 @@ test('vuelta: una mayor que el fondo de su enlace no entra, y no saca del fondo 
   payload[1][2] = [3];
   const falsa = await crearEvento({ autor: 'bea', sobre: m.cuelga.id, en: '4000000000', t: m.t(), movimientos: deVerdad.evento.movimientos, payload });
   const traida = await m.traer(grande, pequeno, falsa);
-  assert.equal(bloqueosDeLaVuelta(grande, traida.id), null, 'la ayuda no la cubre: el fondo tiene 2');
+  assert.deepEqual(bloqueosDeLaVuelta(grande, traida.id), [['ana', abre.id, 2]], 'la ayuda da la parte que el fondo cubre: 2 (RP9: el resto, cuando haya)');
   const plantilla = await m.intenta(grande, P.recibir, { X: traida.id, locks: [['ana', abre.id, 2]] }, 'bea');
-  assert.deepEqual(reglas(plantilla), [N.loEnviado], 'libera 2 de las 3 que dice');
+  assert.deepEqual(reglas(plantilla), [], 'libera 2 de las 3 que dice: una parte, entra (RP9; no se añade)');
   const mov = (extra) => ({ token: 'E', emisor: 'ana', denominacion: 'plato', registro: menu.id, ...extra });
   const de = (quien, salida, cantidad, otra = {}) => [mov({ de: quien, a: 'bea', salida, cantidad, ...otra }), mov({ de: 'bea', a: 'bea', estado: 'liberacion', salida, cantidad, ...otra })].filter((x) => x.de !== x.a || x.estado);
   const recibe = (movimientos) => aMano(grande, 'bea', claves.bea.privada, { sobre: traida.id, en: '4000000000', t: m.t(), payload: plantilla.evento.payload, movimientos });
@@ -216,6 +216,7 @@ test('creador: bea enlaza en el grande, sobre un elemento suyo y con su génesis
   assert.deepEqual(C.librosPrivados(grande, elemento.id, { puente: true }).map((l) => [l.id, l.grado, l.cuenta]), [[enlace.id, 'de quien creó el libro, avalado por el dueño', true]]);
   assert.deepEqual(Object.keys(C.librosPrivados(grande, elemento.id)[0]).sort(), ['claves', 'direccion', 'id', 'libro', 'quien', 't'], 'sin { puente: true }, lo de siempre');
   assert.equal(leerTraido(m.pequeno, m.menuTraido.id).grado, 'del dueño');
+  assert.equal(leerTraido(m.pequeno, m.menuTraido.id).nivelMasBajo, 1, 'RP7: la lectura dice dónde empieza la prueba: la casa del libro, nivel 1');
   // Un libro de bea que ana no enlaza: «de quien creó el libro», sin aval.
   const otro = await Eje.genesis({ identidad: 'bea', foco: ['otro libro de bea'], t: m.t(), clave: claves.bea.publica, privada: claves.bea.privada });
   const solo = await enlaceDeCreadora(m, { libro: otro, elemento });
@@ -440,10 +441,10 @@ test('coste: la vuelta a otra persona, la regla del creador y traer y enviar por
   await enviaYRecibe(m, 1);
   const traidaDiez = await devuelve(m, 13);
   const reciboDiez = await m.intenta(m.grande, P.recibir, { X: traidaDiez.id }, 'bea');
-  assert.equal(reciboDiez.evento.payload[1][1].length, 10, 'diez ternas');
+  assert.equal(reciboDiez.evento.payload[1][1].length, 5, 'cinco ternas: el tope por registro (RP8 y RP9)');
   const casos = [
     ['what is received is what was sent (la vuelta, un bloqueo)', formulaDeLoEnviado, recibo],
-    ['what is received is what was sent (la vuelta, diez bloqueos)', formulaDeLoEnviado, reciboDiez],
+    ['what is received is what was sent (la vuelta, cinco bloqueos: el tope por registro)', formulaDeLoEnviado, reciboDiez],
     [REGLA_DEL_CREADOR, formulaDelCreador, enlace],
     ['a record is brought from a linked book (enlace de la creadora)', formulaDeEnlazado, trae],
     ['a send locks what it names (enlace de la creadora)', formulaDelEnvio, envia],

@@ -431,7 +431,7 @@ test('aguanta (6): la excepción del suelo no se usa fuera de un recibir de verd
   assert.deepEqual([saldoDe(grande, 'ana', serie), saldoDe(grande, 'bea', serie)], [{ libre: 1, bloqueado: 2 }, { libre: 2, bloqueado: 0 }]);
 });
 
-test('aguanta, con su límite (7): diez bloqueos por vuelta es límite de la plantilla, de la ayuda y, desde RP6, de la regla: a mano no se recibe una vuelta que saca de once con diez ternas; quien recibe elige de quién saca, y quien pierde el bloqueo no pierde nada que pudiera recuperar', async () => {
+test('aguanta, con su límite (7): desde RP8 y RP9, cinco bloqueos por registro (la plantilla, la ayuda y la regla) y la vuelta se recibe en varias veces: a mano no se recibe en un solo registro una vuelta que saca de once con diez ternas, y por partes sí; quien recibe elige de quién saca, y quien pierde el bloqueo no pierde nada que pudiera recuperar', async () => {
   const m = await mundo();
   const { grande, claves, abre, serie } = m;
   await m.lanza(grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 10 }, 'ana');
@@ -439,7 +439,7 @@ test('aguanta, con su límite (7): diez bloqueos por vuelta es límite de la pla
   for (let k = 1; k < 11; k++) enlaces.push(await otroEnlaceDeAna(m, [[1, claves.casaP.publica], [4, claves.sellador.publica]], 'sala ' + k));
   for (const L of enlaces) await m.lanza(grande, P.enviar, { X: L.id, series: serie, quantity: 1, to: claves.bea.publica }, 'ana');
   const traida = await grande.anadir((await vueltaFalsa(m, { cuanto: 11, para: claves.bea.publica, enlace: abre })).evento);
-  assert.equal(bloqueosDeLaVuelta(grande, traida.id), null, 'la ayuda no pasa de diez');
+  assert.equal(bloqueosDeLaVuelta(grande, traida.id).length, 5, 'la ayuda da la primera parte: cinco bloqueos');
   assert.match(await recibeAMano(m, traida, enlaces.flatMap((L) => saca(m, 'ana', L.id, 1)), { ternas: enlaces.slice(0, 10).map((L) => ['ana', L.id, 1]) }), new RegExp(N.loEnviado), 'a mano, once con diez ternas: la undécima queda fuera de las ternas (RP6)');
   assert.equal(grande.saldo('bea', serie), 0);
   // Elegir: carla manda 2 a una clave que nadie tiene en el pequeño (no se recibirá nunca: no hay forma de echarlo atrás) y
@@ -570,7 +570,8 @@ async function vueltaSoloNivel4(m, { cuanto, para }) {
 
 // ---------- RP7 (crítico si el sellador de arriba sella lo que le den): una prueba de un solo eslabón, de nivel 4 ----------
 
-test('RP7: con una prueba de un solo eslabón (una cabecera de nivel 4 firmada por el sellador, sin la casa del libro), cualquiera trae un envío que el grande nunca escribió y acuña 1000 forasteras en el pequeño, y en el grande saca por el enlace de ana lo que carla mandó', { todo: 'HALLAZGO RP7 (crítico si el sellador de nivel 4 sella, para un libro, un hash que le da cualquiera; el ejemplo lo simula así: «firma el lote de hashes que se le da»): PH1 pide que el eslabón 0 lo firme la clave que el enlace anota PARA SU NIVEL, pero no que el eslabón 0 sea el de abajo (la casa del libro). Una prueba cuyo único eslabón es de nivel 4 (el sellador, que los dos enlaces anotan en su 4 y que es el mismo para los dos libros) pasa «bringing needs the line keys» y «comes with its proof»; y el arreglo de RP1 mira justo esa pareja (nivel 4, sellador), que el enlace de ana anota. No hace falta la clave de la casa de ningún libro' }, async () => {
+// Arreglado (encargo «arreglos de la segunda revisión del puente»): HALLAZGO RP7 (crítico si el sellador de nivel 4 sella, para un libro, un hash que le da cualquiera; el ejemplo lo simula así: «firma el lote de hashes que se le da»): PH1 pide que el eslabón 0 lo firme la clave que el enlace anota PARA SU NIVEL, pero no que el eslabón 0 sea el de abajo (la casa del libro). Una prueba cuyo único eslabón es de nivel 4 (el sellador, que los dos enlaces anotan en su 4 y que es el mismo para los dos libros) pasa «bringing needs the line keys» y «comes with its proof»; y el arreglo de RP1 mira justo esa pareja (nivel 4, sellador), que el enlace de ana anota. No hace falta la clave de la casa de ningún libro
+test('RP7: con una prueba de un solo eslabón (una cabecera de nivel 4 firmada por el sellador, sin la casa del libro), cualquiera trae un envío que el grande nunca escribió y acuña 1000 forasteras en el pequeño, y en el grande saca por el enlace de ana lo que carla mandó', async () => {
   const m = await mundo();
   const { grande, pequeno, claves, abre, serie, cuelga } = m;
   // (a) Al pequeño: un envío de 1000 que ana nunca escribió, con la cabecera de nivel 4 del sellador como único eslabón.
@@ -603,7 +604,8 @@ test('RP7: con una prueba de un solo eslabón (una cabecera de nivel 4 firmada p
 
 // ---------- RP8 (bajo): una vuelta saca de una persona más de lo que vuelve, y lo de más queda bloqueado en el enlace ----------
 
-test('RP8: bea recibe una vuelta de 2 sacando 3 de carla (con una terna suya de 1): 1 queda bloqueado a nombre de bea con la salida en el enlace y le sirve en otra vuelta; y con ternas que comparten salida saca de carla 5 diciendo 4', { todo: 'HALLAZGO RP8 (bajo): al quitar «lo que entra por cada salida se libera en el mismo registro» y «lo transferido con una salida no pasa de lo liberado con ella», el cotejo de ternas casa cada liberación con una terna por cantidad y salida, no por quién. Una terna de quien recibe ([bea, enlace, 1]) deja que lo transferido supere lo liberado: lo de más queda bloqueado en el enlace a nombre de quien recibe, fuera de un envío (contra lo que dice «only a send locks for another book»: «un receive que lo libera»). El fondo no pierde nada (sigue bloqueado y sale por otra vuelta), pero quien recibe vacía a una persona concreta más allá de lo que vuelve y se queda un adelanto; y el 1.1 dice de menos (4 dichas, 5 sacadas)' }, async () => {
+// Arreglado (encargo «arreglos de la segunda revisión del puente»): HALLAZGO RP8 (bajo): al quitar «lo que entra por cada salida se libera en el mismo registro» y «lo transferido con una salida no pasa de lo liberado con ella», el cotejo de ternas casa cada liberación con una terna por cantidad y salida, no por quién. Una terna de quien recibe ([bea, enlace, 1]) deja que lo transferido supere lo liberado: lo de más queda bloqueado en el enlace a nombre de quien recibe, fuera de un envío (contra lo que dice «only a send locks for another book»: «un receive que lo libera»). El fondo no pierde nada (sigue bloqueado y sale por otra vuelta), pero quien recibe vacía a una persona concreta más allá de lo que vuelve y se queda un adelanto; y el 1.1 dice de menos (4 dichas, 5 sacadas)
+test('RP8: bea recibe una vuelta de 2 sacando 3 de carla (con una terna suya de 1): 1 queda bloqueado a nombre de bea con la salida en el enlace y le sirve en otra vuelta; y con ternas que comparten salida saca de carla 5 diciendo 4', async () => {
   const m = await mundo();
   const { grande, claves, abre, serie } = m;
   await m.lanza(grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 10 }, 'ana');
@@ -623,7 +625,8 @@ test('RP8: bea recibe una vuelta de 2 sacando 3 de carla (con una terna suya de 
 
 // ---------- RP9 (medio): una vuelta legítima que pide más de diez bloqueos no entra nunca, y otro puede provocarlo ----------
 
-test('RP9: el fondo de ana tiene 6 en un enlace y 1 en cada uno de otros diez; dan recibe antes su vuelta de 5 eligiendo el bloqueo de 6, y la vuelta de 11 de bea ya pide once bloqueos: no entra nunca (antes cabía en seis)', { todo: 'HALLAZGO RP9 (medio): desde RP6 la regla también tiene el tope de diez ternas, y una vuelta se recibe una sola vez y entera. Una vuelta cuyo importe solo cubren más de diez bloqueos no entra nunca: lo que quien la envió bloqueó en el pequeño y lo bloqueado aquí quedan parados para siempre. Quien recibe otra vuelta antes elige de qué bloqueos saca y puede dejar el fondo en trozos (aquí, dan). El tamaño: la vuelta entera' }, async () => {
+// Arreglado (encargo «arreglos de la segunda revisión del puente»): HALLAZGO RP9 (medio): desde RP6 la regla también tiene el tope de diez ternas, y una vuelta se recibe una sola vez y entera. Una vuelta cuyo importe solo cubren más de diez bloqueos no entra nunca: lo que quien la envió bloqueó en el pequeño y lo bloqueado aquí quedan parados para siempre. Quien recibe otra vuelta antes elige de qué bloqueos saca y puede dejar el fondo en trozos (aquí, dan). El tamaño: la vuelta entera
+test('RP9: el fondo de ana tiene 6 en un enlace y 1 en cada uno de otros diez; dan recibe antes su vuelta de 5 eligiendo el bloqueo de 6, y la vuelta de 11 de bea ya pide once bloqueos: no entra nunca (antes cabía en seis)', async () => {
   const m = await mundo();
   const { grande, claves, abre, serie } = m;
   await m.lanza(grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 11 }, 'ana');
@@ -635,12 +638,28 @@ test('RP9: el fondo de ana tiene 6 en un enlace y 1 en cada uno de otros diez; d
   const dan = await miembro(m, 'dan');
   const paraDan = await grande.anadir((await vueltaFalsa(m, { cuanto: 5, para: dan.k.publica, enlace: abre })).evento);
   const paraBea = await grande.anadir((await vueltaFalsa(m, { cuanto: 11, para: claves.bea.publica, enlace: abre })).evento);
-  assert.equal(bloqueosDeLaVuelta(grande, paraBea.id)?.length, 6, 'antes, la de bea cabe en seis bloqueos');
+  assert.equal(bloqueosDeLaVuelta(grande, paraBea.id)?.length, 5, 'antes, la primera parte de la de bea: cinco bloqueos (el tope por registro)');
   await dan.lanza(grande, P.recibir, { X: paraDan.id, locks: [['ana', abre.id, 5]] });
-  const ayuda = bloqueosDeLaVuelta(grande, paraBea.id);
-  const r = await m.intenta(grande, P.recibir, { X: paraBea.id, ...(ayuda ? { locks: ayuda } : {}) }, 'bea');
-  if (r.ok) await grande.anadir(r.evento);
+  // Arreglado (RP9): la vuelta se recibe en varias veces; la ayuda da cada parte, y se ofrece mientras quede algo.
+  let partes = 0;
+  for (let ayuda = bloqueosDeLaVuelta(grande, paraBea.id); ayuda; ayuda = bloqueosDeLaVuelta(grande, paraBea.id)) {
+    assert.ok(A.acciones(grande, paraBea.id, 4, 'bea').some((a) => a.nombre === P.recibir), 'se le sigue ofreciendo');
+    const r = await m.intenta(grande, P.recibir, { X: paraBea.id, locks: ayuda }, 'bea');
+    assert.equal(r.ok, true, JSON.stringify(r.motivos));
+    await grande.anadir(r.evento);
+    partes++;
+  }
+  assert.equal(partes, 3, 'once bloqueos en tres registros: 5, 5 y 1');
   assert.equal(grande.saldo('bea', serie), 11, 'la vuelta de bea sigue pudiendo recibirse');
+  assert.equal(A.acciones(grande, paraBea.id, 4, 'bea').some((a) => a.nombre === P.recibir), false, 'entera: ya no se ofrece');
+  assert.match(await recibeAMano(m, paraBea, saca(m, 'ana', abre.id, 1)), new RegExp(N.recibir), 'ni a mano, una vez entera');
+  // Restaurar y reordenar dan los mismos veredictos.
+  const huella = (eje) => [eje.orden.length, eje.saldo('bea', serie), eje.saldo('dan', serie)];
+  assert.deepEqual(huella(await restaurar(serializar(grande))), huella(grande), 'restaurado');
+  const otro = await Eje.desde(grande.orden.map((id) => grande.obtener(id)));
+  const { rechazados } = await otro.reordenar([...grande.orden]);
+  assert.deepEqual(rechazados, []);
+  assert.deepEqual(huella(otro), huella(grande), 'reordenado');
 });
 
 // ---------- Lo que aguanta en la segunda pasada ----------
@@ -660,10 +679,8 @@ test('aguanta (13), RP1: un enlace de ana que anota la clave buena del nivel 1 y
   const falsa = await crearEvento({ autor: 'bea', sobre: m.cuelga.id, en: '4000000000', t: m.t(), movimientos: [quemaDelCoste('bea', payload, 'minuto', { eje: pequeno })], payload });
   const proof = (await selloEnCascada(falsa.id, { observador: f4, capas: [{ nivel: 2, grado: 0, claves: f2, libro: pequeno.genesisId }, { nivel: 4, grado: 2, red: 0, libro: pequeno.genesisId }] })).decupla;
   const tr = await m.traerCon(grande, pequeno, falsa, { link: L2.id, proof });
-  assert.equal(tr.ok, true, 'se trae: el eslabón 0 (nivel 2) lo firma la clave que L2 anota para el 2');
-  const x = await grande.anadir(tr.evento);
-  assert.equal(bloqueosDeLaVuelta(grande, x.id), null);
-  assert.match(await recibeAMano(m, x, saca(m, 'carla', abre.id, 2, 'ana'), { quien: 'ana', privada: claves.ana.privada, ternas: [['carla', abre.id, 2]] }), new RegExp(N.loEnviado), 'abre no anota (2, f2)');
+  // Desde RP7 ya no se trae: la prueba empieza en el nivel 2 y L2 anota el 1 (la casa del pequeño).
+  assert.ok(reglas(tr).includes(N.conClaves), 'la prueba no empieza en el nivel más bajo que anota el enlace: ' + JSON.stringify(reglas(tr)));
   // Mismo libro, mismas claves, distinto autor: ni la creadora saca del fondo de ana, ni ana del de la creadora.
   const porBea = await grande.anadir((await vueltaFalsa(m, { cuanto: 1, para: claves.bea.publica, enlace: deBea })).evento);
   assert.match(await recibeAMano(m, porBea, saca(m, 'carla', abre.id, 1), { ternas: [['carla', abre.id, 1]] }), new RegExp(N.loEnviado));

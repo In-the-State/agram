@@ -186,8 +186,8 @@ test('puente: la vuelta suelta lo bloqueado y no más; lo bloqueado para el otro
   const { grande, pequeno, claves, serie, forastera, abre, cuelga, menu } = e;
   assert.deepEqual(saldoDe(grande, 'ana', serie), { libre: 3, bloqueado: 2 });
   assert.deepEqual(e.reciboDeVuelta.movimientos.filter((x) => x.token === 'E').map((x) => [x.estado, x.cantidad, x.salida]), [['liberacion', 1, abre.id]], 'no crea nada: suelta 1');
-  // La misma vuelta no se recibe dos veces.
-  assert.deepEqual(reglas(await e.intenta(grande, P.recibir, { X: e.vueltaTraida.id }, 'ana')), [N.recibir]);
+  // La misma vuelta no se recibe dos veces (ya se recibió entera: tampoco libera nada, RP9).
+  assert.deepEqual(reglas(await e.intenta(grande, P.recibir, { X: e.vueltaTraida.id }, 'ana')), [N.recibir, N.loEnviado]);
   // Lo bloqueado para el pequeño no se suelta a mano en el grande, ni se pasa con esa salida.
   for (const [m, que] of [[{ estado: 'liberacion', de: 'ana', a: 'ana', salida: abre.id }, 'soltar'], [{ de: 'ana', a: 'ana', salida: abre.id, estado: 'liberacion', cantidad: 2 }, 'soltar todo']]) {
     const payload = ['a mano: ' + que];

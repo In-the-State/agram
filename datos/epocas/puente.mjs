@@ -72,8 +72,15 @@ export const REGLA_DEL_BLOQUEO = 'only a send locks for another book';
 export const GENESIS_EN = 5;
 export const PUNTO_EN = 5;
 
-/** Cuántos bloqueos puede nombrar una vuelta («receive from another book», su 1.1): una décupla. */
-export const BLOQUEOS_DE_LA_VUELTA = 10;
+/**
+ * Cuántos bloqueos puede nombrar un «receive from another book» de una vuelta (su 1.1). Arreglos de la segunda revisión,
+ * RP8 y RP9: cinco por registro (así la regla coteja por salida y por persona con margen en el presupuesto de cálculo); una
+ * vuelta que pide más se recibe en varios registros.
+ */
+export const BLOQUEOS_DE_LA_VUELTA = 5;
+
+/** Hasta dónde puede llegar el 1.1 de un recibir (una décupla): las ternas más allá del tope han de ir vacías. */
+const SITIOS_DEL_1_1 = 10;
 
 /**
  * Lo que va a 7.9.6 (el suelo) con el puente (encargo «el puente, segunda vuelta», punto 3): las reglas que guardan lo
@@ -197,12 +204,24 @@ const NIVEL_DEL_ESLABON_0 = (p = POSICIONES_DEL_SELLO) => '(first ' + SELLO + '.
 /**
  * «bringing needs the line keys of the book» (PH1, arreglos del puente): el enlace (si lo es) anota una clave para el
  * nivel de la primera cabecera de la prueba (su eslabón 0, la única cuyo libro se mira); sin ella no hay con qué
- * comprobar que esa cabecera la firmó el otro libro.
+ * comprobar que esa cabecera la firmó el otro libro. Y (RP7) ese nivel es el más bajo que el enlace anota: la prueba
+ * empieza en la casa del libro; una sola cabecera de un sellador de arriba no basta si el enlace anota la casa.
  */
 export function formulaDeConClaves() {
   const L = ENLACE;
-  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or ' + anotaNivel(L, NIVEL_DEL_ESLABON_0());
+  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or (' + anotaNivel(L, NIVEL_DEL_ESLABON_0()) + ') and ' + nivelMasBajo(L, NIVEL_DEL_ESLABON_0());
 }
+
+/**
+ * RP7 (arreglos de la segunda revisión, segunda tanda): ningún par [nivel, clave] del enlace L dice un nivel por debajo de
+ * N (`N` el nivel de la primera cabecera de la prueba): la prueba empieza en el nivel más bajo que el enlace anota, la casa
+ * del libro, y no en un sellador de arriba. Los pares van en el 2 de «open a private book here» y en el 1.1 de «this book
+ * hangs from».
+ */
+const nivelMasBajo = (L, N) => {
+  const todos = (d) => Array.from({ length: 4 }, (_, p) => '(count (payload(' + L + ')).' + d + '.' + p + ' = 0 or first (payload(' + L + ')).' + d + '.' + p + ' >= ' + N + ')').join(' and ');
+  return '("' + L_.abrir + '" in (payload(' + L + ')).4 and ' + todos('2') + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and ' + todos('1.1') + ')';
+};
 
 /**
  * «a brought record is its body»: el id que trae (1.1.0) es el SHA-256 de su cuerpo canónico (src/evento.js, cuerpo y
@@ -338,13 +357,24 @@ const noRecibir = 'not ("' + P.recibir + '" in ev.4)';
 
 /**
  * «a send is received once by whom it names»: se ancla en un registro traído que es un envío a este libro, quien lo
- * escribe declara en su alta la clave a la que va (1.3 del envío) y no se ha recibido antes.
+ * escribe declara en su alta la clave a la que va (1.3 del envío) y no se ha recibido antes. La vuelta (RP9) se recibe en
+ * una o varias veces: otro recibir sobre ella vale si aún queda algo (lo ya liberado por los de antes no llega a su
+ * cantidad) y lo ya liberado más lo que libera este no pasa de ella. La ida, una vez.
  */
 export function formulaDeRecibir() {
+  const E_ = 'first ' + SND('1.1.1');
+  const esVuelta = 'slice(cat(utf8(' + E_ + '), bytes("' + CEROS + '")), 0, 65) = cat(utf8(first before.5), bytes("3a"))';
   return '=' + noRecibir + ' or "' + P.traer + '" in ' + BP + '.4 and "' + P.enviar + '" in ' + SND('4') + ' and first ' + SND('1.0') + ' = first before.5'
     + ' and first ' + SND('1.3') + ' in ((first (first ev.3).6).5 each 2)'
-    + ' and count (down ' + X + ' where "' + P.recibir + '" in (payload(it)).4) = 0';
+    + ' and (count (down ' + X + ' where "' + P.recibir + '" in (payload(it)).4) = 0'
+    + ' or ' + esVuelta + ' and ' + yaRecibido(X) + ' < first ' + SND('1.2') + ' and ' + yaRecibido(X) + ' + sum ((ev.1 where release in it.4) each 1) <= first ' + SND('1.2') + ')';
 }
+
+/**
+ * RP9 (arreglos de la segunda revisión, segunda tanda): lo ya recibido de la vuelta traída X (una expresión): lo liberado
+ * por los «receive from another book» que cuelgan de ella. Solo mira lo que cuelga de X, no el libro.
+ */
+export const yaRecibido = (X_) => 'sum (((((down ' + X_ + ') where "' + P.recibir + '" in (payload(it)).4) each 1) where release in it.4) each 1)';
 
 /**
  * «what is received is what was sent»: la familia (la de la clave de la serie) cruza aquí (epoch.8.9.1). Si el emisor que
@@ -374,14 +404,15 @@ export function formulaDeLoEnviado() {
   const deLaSerie = (m) => familiaEs(F, m) + ' and first ' + m + '.0.0.2 = first ' + SND('1.1.2') + ' and first ' + m + '.5 = first ' + SND('1.1.3')
     + ' and cat(utf8(first before.5), bytes("3a"), utf8(first ' + m + '.0.0.1)) = utf8(' + E_ + ')';
   // Un enlace del fondo: de este libro, al libro de origen, de ese autor y con esas claves. Se mira una vez por terna del
-  // 1.1 (diez como mucho), no por movimiento: cada movimiento ha de llevar la salida de una terna (ternasVerdaderas).
+  // 1.1 (cinco como mucho), no por movimiento: cada movimiento ha de llevar la salida de una terna (ternasVerdaderas).
   const delFondo = (L) => 'first ' + L + '.5 = ' + L + ' and ' + libroEs(L, O) + ' and first ' + L + '.3 = ' + A + ' and (' + claveEnNivel(L, NK.nivel, NK.clave) + ')';
   const vuelta = deLibro(E_, 'first before.5')
     + ' and count (ev.1 where mint in it.4 or lock in it.4) = 0'
     + ' and count (ev.1 where (transfer in it.4 or release in it.4) and not (' + deLaSerie('it')
     + ' and (transfer in it.4 and it.3.1 = first ev.3 and it.3.0 != first ev.3 or release in it.4 and it.3.0 = first ev.3))) = 0'
-    + ' and sum ((ev.1 where release in it.4) each 1) = ' + q
-    // El 1.1 dice de qué bloqueos saca y lo dice de verdad (RP6).
+    // RP9: se recibe en una o varias veces; esta libera algo y, con lo ya recibido, no pasa de lo que vuelve.
+    + ' and sum ((ev.1 where release in it.4) each 1) > 0 and ' + yaRecibido(X) + ' + sum ((ev.1 where release in it.4) each 1) <= ' + q
+    // El 1.1 dice de qué bloqueos saca y lo dice de verdad (RP6 y RP8).
     + ' and ' + ternasVerdaderas((Lk) => delFondo(S(Lk)));
   const ida = sinDosPuntos(E_) + ' and count (payload(ev)).1.1.0 = 0'
     + ' and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1'
@@ -400,36 +431,34 @@ function clavePrimeraDeLoTraido(BP, p = POSICIONES_DEL_SELLO) {
 }
 
 /**
- * RP6 (arreglos de la segunda revisión): el 1.1 de una vuelta dice la verdad. Cada terna [quién, enlace, cuánto] lleva tres
- * hojas y cuánto es positivo; la de otra persona es una transferencia de esa persona, con esa salida y esa cantidad, y la
- * de quien recibe, una liberación con esa salida y esa cantidad; y nada queda fuera de las ternas: cada transferencia y
- * cada liberación es una terna (quién, salida y cantidad), y hay tantas transferencias como ternas de otras personas y
- * tantas liberaciones como ternas. Y el enlace de cada terna es del fondo (`delFondo`, una función del enlace): así
- * cada salida de la vuelta lo es. Las ternas se miran una a una (una décupla: diez como mucho). Lo que no coteja: si
- * varias ternas con la misma salida y distintas cantidades se reparten de otra forma entre las transferencias (el total
- * liberado sigue siendo lo que vuelve y todo sale del mismo fondo).
+ * RP6 y RP8 (arreglos de la segunda revisión): el 1.1 de una vuelta dice la verdad. Cada terna [quién, enlace, cuánto]
+ * lleva tres hojas, cuánto es positivo y su enlace es del fondo (`delFondo`, una función del enlace). Por cada terna:
+ * lo transferido desde quién con esa salida suma lo que dicen las ternas de ese quién y esa salida (si quién no es el que
+ * recibe); lo liberado con esa salida suma lo que dicen todas las ternas con esa salida; y lo transferido con esa salida
+ * no pasa de lo liberado con ella (nada queda bloqueado con la salida en un enlace a nombre de quien recibe). Y nada queda
+ * fuera de las ternas: cada transferencia es de un quién y una salida de una terna, y cada liberación, de una salida de
+ * una terna. Cinco ternas como mucho (BLOQUEOS_DE_LA_VUELTA); las demás posiciones del 1.1, vacías.
  */
 function ternasVerdaderas(delFondo) {
   const T = (k) => '(payload(ev)).1.1.' + k;
   const K = BLOQUEOS_DE_LA_VUELTA;
+  // Lo que dicen las ternas que cumplen `cond(j)` (it es quién, it2 el enlace): la suma de su cuánto.
+  const dicen = (cond) => Array.from({ length: K }, (_, j) => 'sum ((last ' + T(j) + ') where ' + cond(j) + ')').join(' + ');
+  const suma = (cond) => 'sum ((ev.1 where ' + cond + ') each 1)';
   const porTerna = Array.from({ length: K }, (_, k) => {
-    const H = 'first ' + T(k);
-    const L = 'nth 1 ' + T(k);
-    const Q = 'last ' + T(k);
-    // Quién, enlace y cuánto se leen una vez (cada where da el siguiente it: it quién, it2 el enlace, it3 cuánto, it4 el
-    // movimiento): leer la terna dentro de la vuelta por los movimientos costaba diez veces más.
-    const mov = '(it != first ev.3 and count (ev.1 where transfer in it4.4 and it4.1 = it3 and it4.3.0 = it and it2 in it4.2) > 0'
-      + ' or it = first ev.3 and count (ev.1 where release in it4.4 and it4.1 = it3 and it2 in it4.2) > 0)';
+    // Quién y enlace se leen una vez (cada where da el siguiente it: it quién, it2 el enlace, it3 cada movimiento).
+    const conEllos = '(it = first ev.3 or ' + suma('transfer in it3.4 and it3.3.0 = it and it2 in it3.2') + ' = ' + dicen((j) => 'first ' + T(j) + ' = it and nth 1 ' + T(j) + ' = it2') + ')'
+      + ' and ' + suma('transfer in it3.4 and it2 in it3.2') + ' <= ' + suma('release in it3.4 and it2 in it3.2')
+      + ' and ' + suma('release in it3.4 and it2 in it3.2') + ' = ' + dicen((j) => 'nth 1 ' + T(j) + ' = it2');
     // Tres hojas, dicho sin escribir el número (A3: ninguna regla lleva un número que la época tenga): primera, segunda y última.
-    return '(count ' + T(k) + ' = 0 or count ' + T(k) + ' = count (first ' + T(k) + ') + count (nth 1 ' + T(k) + ') + count (last ' + T(k) + ') and ' + Q + ' > 0 and ' + delFondo(L)
-      + ' and count ((' + H + ') where count ((' + L + ') where count ((' + Q + ') where ' + mov + ') > 0) > 0) > 0)';
+    return '(count ' + T(k) + ' = 0 or count ' + T(k) + ' = count (first ' + T(k) + ') + count (nth 1 ' + T(k) + ') + count (last ' + T(k) + ') and last ' + T(k) + ' > 0 and ' + delFondo('nth 1 ' + T(k))
+      + ' and count ((first ' + T(k) + ') where count ((nth 1 ' + T(k) + ') where ' + conEllos + ') > 0) > 0)';
   }).join(' and ');
-  const cuantas = 'count (ev.1 where transfer in it.4) = ' + Array.from({ length: K }, (_, k) => 'count (first ' + T(k) + ' where it != first ev.3)').join(' + ')
-    + ' and count (ev.1 where release in it.4) = ' + Array.from({ length: K }, (_, k) => 'count (first ' + T(k) + ')').join(' + ');
+  const vacias = Array.from({ length: SITIOS_DEL_1_1 - K }, (_, i) => 'count ' + T(K + i) + ' = 0').join(' and ');
   const enAlguna = (cond) => '(' + Array.from({ length: K }, (_, k) => cond(k)).join(' or ') + ')';
-  const fuera = 'count (ev.1 where transfer in it.4 and not ' + enAlguna((k) => 'last ' + T(k) + ' = it.1 and first ' + T(k) + ' = it.3.0 and nth 1 ' + T(k) + ' in it.2')
-    + ' or release in it.4 and not ' + enAlguna((k) => 'last ' + T(k) + ' = it.1 and nth 1 ' + T(k) + ' in it.2') + ') = 0';
-  return cuantas + ' and ' + porTerna + ' and ' + fuera;
+  const fuera = 'count (ev.1 where transfer in it.4 and not ' + enAlguna((k) => 'first ' + T(k) + ' = it.3.0 and nth 1 ' + T(k) + ' in it.2')
+    + ' or release in it.4 and not ' + enAlguna((k) => 'nth 1 ' + T(k) + ' in it.2') + ') = 0';
+  return vacias + ' and ' + porTerna + ' and ' + fuera;
 }
 
 /**
@@ -558,12 +587,14 @@ export function sentenciasDeRecibir() {
 }
 
 /**
- * De qué bloqueos saca la vuelta traída `idTraido` (un «bring a record from another book» de un envío que vuelve) en
+ * De qué bloqueos saca el próximo recibir de la vuelta traída `idTraido` (un «bring a record from another book» de un envío que vuelve) en
  * `eje`: el 1.1 de «receive from another book», [[quién lo bloqueó, el enlace de su salida, cuánto saca], …], el más
- * antiguo primero (por el primer envío que bloqueó con esa salida), hasta cubrir lo que vuelve; del fondo de la serie, el
+ * antiguo primero (por el primer envío que bloqueó con esa salida), hasta cubrir lo que queda (lo que vuelve menos lo ya
+ * recibido por los recibir que cuelgan de ella: RP9) o el tope de un registro (BLOQUEOS_DE_LA_VUELTA): una vuelta grande
+ * se recibe en varios registros, y esta ayuda da la parte siguiente; del fondo de la serie, el
  * libro de origen y el autor del enlace por el que se trajo (también los enlaces retirados de ese autor), cuyas salidas
  * anotan, para el nivel de la primera cabecera de la prueba, la clave que la firmó (RP1). null si no es
- * una vuelta o el fondo no alcanza (o pide más de diez bloqueos). Es ayuda, no regla: la regla mira lo que nombra.
+ * una vuelta, si ya se recibió entera o si el fondo está vacío. Es ayuda, no regla: la regla mira lo que nombra.
  */
 export function bloqueosDeLaVuelta(eje, idTraido) {
   const r = eje?.obtener?.(idTraido);
@@ -578,9 +609,13 @@ export function bloqueosDeLaVuelta(eje, idTraido) {
   const denominacion = hoja(envio[1]?.[1]?.[2]);
   const registro = hoja(envio[1]?.[1]?.[3]);
   let falta = hoja(envio[1]?.[2]);
+  const accionesDe = (x) => [].concat(x?.payload?.[4] ?? []);
+  // RP9: lo que queda es lo que vuelve menos lo ya liberado por los «receive from another book» que cuelgan de ella.
+  for (const h of eje.sobre(idTraido)) {
+    if (accionesDe(h).includes(P.recibir)) for (const m of h.movimientos ?? []) if (m.estado === 'liberacion') falta -= m.cantidad;
+  }
   if (typeof emisor !== 'string' || !emisor.startsWith(eje.genesisId + ':') || !(falta > 0)) return null;
   const suyo = emisor.slice(eje.genesisId.length + 1);
-  const accionesDe = (x) => [].concat(x?.payload?.[4] ?? []);
   const libroDe = (l) => (accionesDe(l).includes(L_.abrir) ? hoja(l.payload?.[1]) : accionesDe(l).includes(L_.cuelga) ? hoja(l.payload?.[1]) : undefined);
   // RP1: y que su salida anote, para el nivel de la primera cabecera de la prueba, la clave que la firmó (como la regla).
   const q = POSICIONES_DEL_SELLO;
@@ -605,14 +640,14 @@ export function bloqueosDeLaVuelta(eje, idTraido) {
   }
   const bloqueos = [];
   for (const [quien, salida] of vistos.values()) {
-    if (falta <= 0) break;
+    if (falta <= 0 || bloqueos.length === BLOQUEOS_DE_LA_VUELTA) break;
     const hay = eje.bloqueado(quien, serie, salida);
     if (!(hay > 0)) continue;
     const saca = Math.min(hay, falta);
     bloqueos.push([quien, salida, saca]);
     falta -= saca;
   }
-  return falta > 0 || bloqueos.length > BLOQUEOS_DE_LA_VUELTA ? null : bloqueos;
+  return bloqueos.length ? bloqueos : null;
 }
 
 // ---------- declarar un saldo ----------
@@ -711,7 +746,8 @@ function esCanonicoDeUnValor(texto) {
 /**
  * Lo traído, leído (diseño §4.1: quién lo escribió allí, qué decía, cuándo quedó en firme): el registro «bring a record
  * from another book» `id` de `eje` → { libro, id, autor, t, payload, contexto, movimientos, fiable, causa, firme, enlace,
- * origen, quien, grado, cuenta, delDueno } o null (las cuatro últimas: por qué enlace vino, porQueEnlace). `firme` es la hora (ISO) de la cabecera del primer eslabón que dice un nivel a la altura del que pide
+ * origen, quien, grado, cuenta, delDueno, nivelMasBajo } o null (quien, grado, cuenta y delDueno: por qué enlace vino,
+ * porQueEnlace; nivelMasBajo: el nivel más bajo que anota ese enlace, donde empieza la prueba, RP7). `firme` es la hora (ISO) de la cabecera del primer eslabón que dice un nivel a la altura del que pide
  * la época (epoch.8.9.2), la que da por buena la regla; `origen`, el «anchor origin» que anota el enlace (null: «sin
  * comprobar el origen»).
  *
@@ -746,6 +782,7 @@ export function leerTraido(eje, id) {
     firme: Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
     enlace: enlace?.id ?? null, origen: typeof origen === 'string' ? origen : null,
     ...porQueEnlace(eje, enlace?.id),
+    nivelMasBajo: nivelMasBajoDe(enlace),
   };
 }
 
@@ -758,6 +795,18 @@ export function leerTraido(eje, id) {
 function porQueEnlace(eje, id) {
   const g = id ? gradoDelEnlace(eje, id) : null;
   return { quien: g?.quien ?? null, grado: g?.grado ?? null, cuenta: g?.cuenta === true, delDueno: g?.delDueno ?? null };
+}
+
+/**
+ * RP7: el nivel más bajo que anota un enlace (sus pares [nivel, clave]: el 2 de «open a private book here», el 1.1 de
+ * «this book hangs from»), donde ha de empezar toda prueba de lo que se trae por él; null si no anota ninguno. Si es el
+ * de un sellador de arriba (el libro no tiene línea propia), quien trae por él se fía de ese sellador.
+ */
+export function nivelMasBajoDe(enlace) {
+  const a = [].concat(enlace?.payload?.[4] ?? []);
+  const pares = a.includes(L_.abrir) ? enlace.payload[2] : a.includes(L_.cuelga) ? enlace.payload[1]?.[1] : null;
+  const niveles = (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number').map((x) => x[0]);
+  return niveles.length ? Math.min(...niveles) : null;
 }
 
 /** El archivo de cada regla del puente. */
