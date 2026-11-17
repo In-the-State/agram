@@ -756,7 +756,8 @@ async function cuelgaConPares(m, pares) {
 
 // ---------- RP10 (bajo): un enlace con más de cuatro pares ----------
 
-test('RP10: un «this book hangs from» escrito a mano con cinco pares (cuatro del sellador y la casa en el quinto) entra; las reglas solo miran los cuatro primeros, así que trae con una sola cabecera del sellador y no con la prueba de la casa, mientras nivelMasBajoDe lee 1', { todo: 'HALLAZGO RP10 (bajo): ninguna regla limita a cuatro los pares [nivel, clave] de un enlace escrito a mano, y las fórmulas (anotaNivel, claveEnNivel, nivelMasBajo) solo miran los pares 0 a 3, mientras la lectura (nivelMasBajoDe, gradoDelEnlace) los mira todos. Quien escribe el enlace puede hacer que la lectura diga «empieza en la casa del libro» (nivel 1) y que la regla admita una sola cabecera del sellador de arriba (el caso de RP7). Hace falta escribir el enlace: lo puede su autor' }, async () => {
+// Arreglado (encargo «arreglos de la segunda revisión del puente»): HALLAZGO RP10 (bajo): ninguna regla limita a cuatro los pares [nivel, clave] de un enlace escrito a mano, y las fórmulas (anotaNivel, claveEnNivel, nivelMasBajo) solo miran los pares 0 a 3, mientras la lectura (nivelMasBajoDe, gradoDelEnlace) los mira todos. Quien escribe el enlace puede hacer que la lectura diga «empieza en la casa del libro» (nivel 1) y que la regla admita una sola cabecera del sellador de arriba (el caso de RP7). Hace falta escribir el enlace: lo puede su autor
+test('RP10: un «this book hangs from» escrito a mano con cinco pares (cuatro del sellador y la casa en el quinto) entra; las reglas solo miran los cuatro primeros, así que trae con una sola cabecera del sellador y no con la prueba de la casa, mientras nivelMasBajoDe lee 1', async () => {
   const m = await mundo();
   const { grande, pequeno, claves } = m;
   const S = claves.sellador.publica;
@@ -873,7 +874,7 @@ test('aguanta (19), RP8 con cinco ternas: lo transferido por persona y salida es
   assert.deepEqual([grande.bloqueado('carla', serie, abre.id), grande.saldo('bea', serie), grande.bloqueado('bea', serie, abre.id)], [1, 5, 0]);
 });
 
-test('aguanta, con su coste (20): una parte con cinco ternas de cinco personas por cinco enlaces cabe en el presupuesto; lo que cuelga del traído lo encarece (unos 2 ocupantes por registro en cada regla), y eso lo puede colgar cualquiera', async () => {
+test('aguanta, con su coste (20): una parte con cinco ternas de cinco personas por cinco enlaces cabe en el presupuesto; desde RP11, lo que un tercero cuelga del traído (100 registros) no encarece ninguna de las dos reglas de recibir, y en el 4 del traído no cuelga nada que no sea un recibir', async () => {
   const m = await mundo();
   const { grande, claves, abre, serie } = m;
   await m.lanza(grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 5 }, 'ana');
@@ -908,5 +909,8 @@ test('aguanta, con su coste (20): una parte con cinco ternas de cinco personas p
   const despues = await medir();
   const crece = Object.fromEntries(Object.keys(antes).map((n) => [n, (despues[n].ocupantes - antes[n].ocupantes) / 100]));
   console.log('# una parte con cinco ternas: ' + JSON.stringify(antes) + '\n# con 100 registros de carla colgados del traído: ' + JSON.stringify(despues) + '\n# ocupantes por registro colgado: ' + JSON.stringify(crece));
-  assert.ok(Object.values(crece).every((x) => x > 0), 'lo colgado del traído encarece las dos reglas');
+  // Arreglado (RP11): lo ya recibido y el «una vez» se leen solo en el 4 del traído; lo colgado en otras posiciones no cuesta nada.
+  assert.deepEqual(despues, antes, 'con 100 registros de un tercero colgados del traído, el coste de las dos reglas de recibir es el mismo');
+  // Y en ese 4 solo entra un recibir: carla no cuelga allí una nota, ni a mano.
+  assert.match(await aMano(grande, 'carla', carla.k.privada, { sobre: traida.id, en: '4000000000', t: m.t(), payload: [['ruido en el 4']] }), /only a receive hangs on the 4 of a brought record/, 'una nota en el 4 del traído');
 });

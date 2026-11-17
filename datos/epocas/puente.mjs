@@ -99,6 +99,7 @@ export const SUELO_DEL_PUENTE = Object.freeze([
   'only a receive mints a foreign series',
   REGLA_DEL_CREADOR,
   REGLA_DEL_BLOQUEO,
+  'only a receive hangs on the 4 of a brought record',
   'bring a record from another book',
   'send to another book',
   'receive from another book',
@@ -190,10 +191,12 @@ export function enlaceQueCuenta(L, B_) {
   // La prueba del génesis se vuelve a mirar al consumir el enlace (revisión automática, 17-11): no se fía de que la regla
   // del creador rigiera cuando se escribió (un libro que la recibe después por un cambio, o cualquier otro camino).
   const deQuienLoCreo = 'count (payload(' + L + ')).' + GENESIS_EN + ' > 0 and first (up ' + L + ').3 = first ' + L + '.3 and ' + pruebaDelGenesis(L);
+  // RP10 (tercera tanda): nada más allá del cuarto par [nivel, clave] (las reglas miran los pares 0 a 3).
+  const cuatroPares = (d) => Array.from({ length: 6 }, (_, i) => 'count (payload(' + L + ')).' + d + '.' + (4 + i) + ' = 0').join(' and ');
   return 'count ' + L + '.5 > 0'
-    + ' and ("' + L_.abrir + '" in (payload(' + L + ')).4 and (' + delDueno + ' or ' + deQuienLoCreo + ') and nth 1 ' + L + '.6.5 = "9100000000" and first (payload(' + L + ')).1.0.0 = ' + B_
+    + ' and ("' + L_.abrir + '" in (payload(' + L + ')).4 and ' + cuatroPares('2') + ' and (' + delDueno + ' or ' + deQuienLoCreo + ') and nth 1 ' + L + '.6.5 = "9100000000" and first (payload(' + L + ')).1.0.0 = ' + B_
     + ' and ' + sinPosterior('down (up ' + L + ')')
-    + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and ' + delDueno + ' and first ' + L + '.6.5 = first before.5 and nth 1 ' + L + '.6.5 = "9500000000" and first (payload(' + L + ')).1.0 = ' + B_
+    + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and ' + cuatroPares('1.1') + ' and ' + delDueno + ' and first ' + L + '.6.5 = first before.5 and nth 1 ' + L + '.6.5 = "9500000000" and first (payload(' + L + ')).1.0 = ' + B_
     + ' and ' + sinPosterior(G + '.9.1') + ')'
     + ' and ' + sinPosterior(G + '.9.5') + ' and ' + noRetirado(L);
 }
@@ -366,15 +369,33 @@ export function formulaDeRecibir() {
   const esVuelta = 'slice(cat(utf8(' + E_ + '), bytes("' + CEROS + '")), 0, 65) = cat(utf8(first before.5), bytes("3a"))';
   return '=' + noRecibir + ' or "' + P.traer + '" in ' + BP + '.4 and "' + P.enviar + '" in ' + SND('4') + ' and first ' + SND('1.0') + ' = first before.5'
     + ' and first ' + SND('1.3') + ' in ((first (first ev.3).6).5 each 2)'
-    + ' and (count (down ' + X + ' where "' + P.recibir + '" in (payload(it)).4) = 0'
+    + ' and (count ' + recibosDe(X) + ' = 0'
     + ' or ' + esVuelta + ' and ' + yaRecibido(X) + ' < first ' + SND('1.2') + ' and ' + yaRecibido(X) + ' + sum ((ev.1 where release in it.4) each 1) <= first ' + SND('1.2') + ')';
 }
 
 /**
  * RP9 (arreglos de la segunda revisión, segunda tanda): lo ya recibido de la vuelta traída X (una expresión): lo liberado
- * por los «receive from another book» que cuelgan de ella. Solo mira lo que cuelga de X, no el libro.
+ * por los «receive from another book» que cuelgan de ella, en su 4 (RP11). Solo mira eso, no el libro.
  */
-export const yaRecibido = (X_) => 'sum (((((down ' + X_ + ') where "' + P.recibir + '" in (payload(it)).4) each 1) where release in it.4) each 1)';
+export const yaRecibido = (X_) => 'sum (((' + recibosDe(X_) + ' each 1) where release in it.4) each 1)';
+
+/**
+ * RP11 (arreglos de la segunda revisión, tercera tanda): los «receive from another book» de un registro traído X (una
+ * expresión): lo que cuelga en su 4, la posición del recibir, y no todo lo que cuelga de X (lo que otros cuelguen en
+ * otras posiciones no cuesta nada). En ese 4 solo entra un recibir («only a receive hangs on the 4 of a brought record»).
+ */
+const recibosDe = (X_) => '((' + X_ + '.4) where first it.5 = it and "' + P.recibir + '" in (payload(it)).4)';
+
+/**
+ * «only a receive hangs on the 4 of a brought record» (RP11): en el 4 de un «bring a record from another book», donde se
+ * ancla su recibir, no se escribe otra cosa. Así lo ya recibido y el «una vez» se leen ahí sin que nadie los encarezca.
+ */
+export function formulaDelCuatroDelTraido() {
+  return '=not ("' + P.traer + '" in (payload(first ev.6.5)).4 and nth 1 ev.6.5 = "4000000000") or "' + P.recibir + '" in (payload(ev)).4';
+}
+
+/** El nombre de esa regla (RP11). */
+export const REGLA_DEL_CUATRO = 'only a receive hangs on the 4 of a brought record';
 
 /**
  * «what is received is what was sent»: la familia (la de la clave de la serie) cruza aquí (epoch.8.9.1). Si el emisor que
@@ -611,7 +632,7 @@ export function bloqueosDeLaVuelta(eje, idTraido) {
   let falta = hoja(envio[1]?.[2]);
   const accionesDe = (x) => [].concat(x?.payload?.[4] ?? []);
   // RP9: lo que queda es lo que vuelve menos lo ya liberado por los «receive from another book» que cuelgan de ella.
-  for (const h of eje.sobre(idTraido)) {
+  for (const h of eje.sobre(idTraido, '4000000000')) {
     if (accionesDe(h).includes(P.recibir)) for (const m of h.movimientos ?? []) if (m.estado === 'liberacion') falta -= m.cantidad;
   }
   if (typeof emisor !== 'string' || !emisor.startsWith(eje.genesisId + ':') || !(falta > 0)) return null;
@@ -712,6 +733,7 @@ export const FORMULAS = Object.freeze({
   'minting-e-needs-p-on-its-record.json': formulaDePEnSuRegistro,
   'who-created-a-book-links-it-with-its-genesis.json': formulaDelCreador,
   'only-a-send-locks-for-another-book.json': formulaDelBloqueo,
+  'only-a-receive-hangs-on-the-4-of-a-brought-record.json': formulaDelCuatroDelTraido,
 });
 
 /** Cada archivo de plantillas/ con las sentencias de su 4 (lo que mueve) que salen de aquí. */
@@ -805,6 +827,8 @@ function porQueEnlace(eje, id) {
 export function nivelMasBajoDe(enlace) {
   const a = [].concat(enlace?.payload?.[4] ?? []);
   const pares = a.includes(L_.abrir) ? enlace.payload[2] : a.includes(L_.cuelga) ? enlace.payload[1]?.[1] : null;
+  // RP10: un enlace con más de cuatro pares no cuenta para el puente (como la regla): sin nivel.
+  if (Array.isArray(pares) && pares.length > 4) return null;
   const niveles = (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number').map((x) => x[0]);
   return niveles.length ? Math.min(...niveles) : null;
 }

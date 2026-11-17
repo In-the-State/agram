@@ -74,6 +74,8 @@ export const DE_LA_BETA = Object.freeze([
   'who created a book links it with its genesis',
   // Los arreglos de la segunda revisión del puente (17-11): solo un envío bloquea con la salida en un enlace (test/revision-puente-2.test.js, RP2).
   'only a send locks for another book',
+  // RP11 (tercera tanda): en el 4 de un registro traído solo cuelga un recibir.
+  'only a receive hangs on the 4 of a brought record',
 ]);
 /** Las trece del puente entre libros (A15, 17-11): nacen en BQL y no traducen ninguna condición JS (test/puente.test.js). */
 export const DEL_PUENTE = Object.freeze(Object.values(REGLAS_DEL_PUENTE));
@@ -207,11 +209,11 @@ async function repasar(eje, cuenta) {
 
 // ---------- la época ----------
 
-test('las reglas de economía: 60 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
+test('las reglas de economía: 61 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
   // #137 (encargo «recuentos»): 31 + las siete de la beta (DE_LA_BETA: el banco, A19, V10, VG 17-11, V6, y A20 escalón 1), sin condición JS;
   // las cuatro del gobierno (A21, 17-11) y las dos de sus arreglos (el apoyo fijado en su punto); las trece del puente (A15, 17-11);
   // y la de la salida con lo propio (VG 17-11), en DE_LA_BETA.
-  assert.equal(EPOCA_0_BTML.condiciones.length, 60);
+  assert.equal(EPOCA_0_BTML.condiciones.length, 61);
   assert.deepEqual(DEL_PUENTE.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_PUENTE], 'las del puente están en la época, sin condición JS');
   assert.deepEqual(DE_71.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_71], 'la de #71.2 está en la época, sin condición JS');
   assert.deepEqual(DE_LA_BETA.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_LA_BETA], 'las de la beta del 16-11 están en la época, sin condición JS');

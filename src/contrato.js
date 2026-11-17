@@ -2930,6 +2930,9 @@ function enlaceVigente(eje, r, libro) {
   // RP5 (arreglos de la segunda revisión del puente): como la regla, el libro en 1.0.0 («open…») o en 1.0 («this book…»):
   // un enlace de antes del puente (el libro en 1.0 o en 1) se lee como anuncio, pero no cuenta para el puente.
   if (!Array.isArray(r.payload?.[1]?.[0])) return false;
+  // RP10: como la regla, un enlace con más de cuatro pares [nivel, clave] no cuenta para el puente.
+  const pares = abre ? r.payload?.[2] : r.payload?.[1]?.[1];
+  if (Array.isArray(pares) && pares.length > 4) return false;
   const l = { id: r.id, t: r.t };
   const genesis = eje.genesisId;
   if (abre && r.en !== LIBRO_PRIVADO.en) return false;
