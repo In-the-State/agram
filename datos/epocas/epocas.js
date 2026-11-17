@@ -7369,7 +7369,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "d48977fddf2db7440fc12be34b410704cbffc34b58aa49e0a9b8c0dbd359d571"
         },
         {
-          "ref": "e8e7317d0b882db3401500489c0cea62b41ac308cc974dd12df05b1bec57a62c"
+          "ref": "e7c673154ab7efe37b51fe61bd3234ce19967685a473ed6faf07c800f662b50a"
         },
         {
           "ref": "a2b5ba5987bb33f9b5ea263bd6ede6d506baf9b735fd7e973ccd9e7d0d5130f6"
@@ -14307,7 +14307,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "issue-e-tied-to-x.json",
-    "id": "e8e7317d0b882db3401500489c0cea62b41ac308cc974dd12df05b1bec57a62c",
+    "id": "e7c673154ab7efe37b51fe61bd3234ce19967685a473ed6faf07c800f662b50a",
     "registro": [
       [
         "issue E tied to X"
@@ -14557,7 +14557,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "=mint first memo.1.1 E.(me).(first memo.1.0).(it) to me price first memo.1.2",
-        "=count memo.1.3 > 0 and lock first memo.1.3 (first ((me.1 where P in it2.0.0.0 and it2.1 >= first memo.1.3 and first it2.0.0.1 = first it.5 and (count it2.0.0.5 = 0 or first it2.0.0.5 = 1)) each 0)) from me exit E.(me).(first memo.1.0).(it)"
+        "=count memo.1.3 > 0 and (count (me.1 where P in it2.0.0.0 and it2.1 >= first memo.1.3 and first it2.0.0.1 = first it.5 and (count it2.0.0.5 = 0 or first it2.0.0.5 = 1) and first it2.0.0.2 = first it.3) > 0 and lock first memo.1.3 (first ((me.1 where P in it2.0.0.0 and it2.1 >= first memo.1.3 and first it2.0.0.1 = first it.5 and (count it2.0.0.5 = 0 or first it2.0.0.5 = 1) and first it2.0.0.2 = first it.3) each 0)) from me exit E.(me).(first memo.1.0).(it) or count (me.1 where P in it2.0.0.0 and it2.1 >= first memo.1.3 and first it2.0.0.1 = first it.5 and (count it2.0.0.5 = 0 or first it2.0.0.5 = 1) and first it2.0.0.2 = first it.3) = 0 and lock first memo.1.3 (first ((me.1 where P in it2.0.0.0 and it2.1 >= first memo.1.3 and first it2.0.0.1 = first it.5 and (count it2.0.0.5 = 0 or first it2.0.0.5 = 1)) each 0)) from me exit E.(me).(first memo.1.0).(it))"
       ],
       [
         "1"
@@ -14568,7 +14568,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Si tengo P en X o en X.1 (la regla «minting E needs P on its record» lo exige igual); la emisión lleva el precio de la serie (su 2.2)",
         "VG 12-11 (estudio BQL-transacciones, decisiones 5 a 7 y 10; #49): su 4 mueve con sentencias del BQL mínimo, una por ocupante, evaluadas en orden con it = X, me = quien la lanza y memo = el payload de la candidata (bqlm.evaluarPlantilla): los cinco símbolos como verbos (mint transfer lock release burn) con from, to, exit, when y price, la serie como posición de su familia (T.1, R.(me)…) o leída del libro (before.4.(…)), el condicional con el and perezoso y el nivel en mano put v at A.1.(S).1. La candidata la firma quien la lanza y la validan después las reglas, que solo leen (invariante del núcleo). La lista de antes (un movimiento por décupla) convivió con las sentencias mientras duró la migración y se retiró al fundir con PV3, cuando todas las plantillas dieron el mismo evento por las dos vías (doble ejecución; lo que movía la lista quedó en test/doble-ejecucion-esperada.json). Sin el minuto copiado: el coste de escribir lo cobra a toda candidata la regla de la época «the cost of writing», por posición",
         "Core AGRAM 16-11 (encargo «cuenta del banco», ajuste; la cuota del tope, D1 y F1 de VG del 9-11, src/condiciones/tope.js): en un registro con capacidad, acuñar pide P comprometido con la serie. La segunda sentencia del 4 bloquea «commitment» (1.3) de mi P sobre X o sobre su mirada 1 (el que ya exige su 2, con su origen) con la salida = la serie que acuña. El defecto es 1 solo si el 2 de X es un número entero positivo (la capacidad, tokens.capacidadDe); si el 2 es un texto, el defecto no se resuelve (el léxico no tiene prueba de tipo: floor de un texto es ERROR), «commitment» queda sin poner y no se bloquea nada: la plantilla queda como antes. La capacidad que declara solo un antepasado de X no se lee aquí (path recorrería textos y daría ERROR): se pone «commitment» a mano",
-        "VG 17-11 (V6, por Core State; encargo «V6»): «la E de una cuenta no se puede pasar a otra persona» (la regla «the E of an account stays with its owner»). Sobre una cuenta del banco (X dice «connect an account» en su 4) solo se ofrece a quien la escribió: quien gane P sobre una cuenta ajena no acuña su E, porque la tendría otra persona"
+        "VG 17-11 (V6, por Core State; encargo «V6»): «la E de una cuenta no se puede pasar a otra persona» (la regla «the E of an account stays with its owner»). Sobre una cuenta del banco (X dice «connect an account» en su 4) solo se ofrece a quien la escribió: quien gane P sobre una cuenta ajena no acuña su E, porque la tendría otra persona",
+        "Core AGRAM 17-11 (hallazgo 1 de la revisión de la reserva; VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva): en la cuota solo cuenta el P cuyo origen es quien escribió el registro (src/condiciones/tope.js), así que lo que se bloquea es, si lo hay, P de X de origen su dueño (el que el dueño pasó a quien emite); si no hay, el primero de X como antes"
       ],
       [
         "epoch 0"
@@ -28067,7 +28068,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "1cf57b6b66380a40dfd3902cb59bed2ad77dae15a8b034b9eef2bcc6f7f412ce";
+export const EPOCA_0_BTML_ID = "b84e13658f2cacc7577318621a184b8495c3efb4c0822e3970c7e79f9c1974c5";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

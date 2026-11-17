@@ -152,7 +152,8 @@ test('«attach a file» (PV2, no preferente): escribe una representación rica a
   const adjuntar = lista.find((a) => a.nombre === 'attach a file');
   assert.ok(adjuntar, 'en el sitio 2 del elemento');
   assert.equal(adjuntar.porDefecto, false, 'no preferente');
-  assert.equal(lista[lista.length - 1], adjuntar, 'la última de la lista');
+  // Detrás solo queda el sí del dueño («let P come down here», VG 17-11): el elemento es de quien lo acaba de escribir.
+  assert.deepEqual(lista.slice(-2).map((a) => a.nombre), ['attach a file', 'let P come down here'], 'al final de la lista');
   const pide = A.parametros(adjuntar.plantilla).filter((p) => A.archivoDe(p)).map((p) => [p.nombre, A.archivoDe(p)]);
   assert.deepEqual(pide, [['file', 'ref'], ['format', 'format']]);
   const ref = modelos.referenciaDeArchivo(sha(HTML));

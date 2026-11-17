@@ -8,8 +8,10 @@
 //   3. cada emisor emite en proporción al P que compromete (bloquea con la
 //      salida de su serie) frente a todo el P comprometido con las series del
 //      registro, contando el P posicionado en su subárbol (VG, 9-11, D1 y F1;
-//      encargo 3b: ya no hay P emitido sobre X ni P del génesis, mapa §15), y
-//      ese bloqueo no se libera mientras viva la E;
+//      encargo 3b: ya no hay P emitido sobre X ni P del génesis, mapa §15) cuyo
+//      origen es quien escribió el registro (el de otro origen es voz y no ocupa
+//      capacidad; quien no es el dueño emite con P que el dueño le pasó; VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva), y ese bloqueo no se libera mientras
+//      viva la E;
 //   4. el redondeo: emisión conjunta y fracciones solo en series divisibles.
 
 import { test } from 'node:test';
@@ -253,16 +255,20 @@ test('R2·2: partir el recurso en subregistros no esquiva el tope del ancestro (
   const { eje, A } = await mundo({ capacidad: 4 });
   // La socia escribe dentro del alojamiento un subregistro suyo con capacidad 100: obtiene diez P sobre él (N1).
   const Y = await eje.escribir({ autor: 'socia', sobre: A, t: T0, movimientos: [minuto('socia')], payload: ['Mi rincón', ['camas'], 100] });
-  const conY = (cantidad) => emision('socia', { A: Y.id, denominacion: 'cama@n1', cantidad, bloquea: 10 });
-  // Con todo el P del rincón comprometido, la cuota (F1: el subárbol cuenta también en el alojamiento) da 4 en A, pero
-  // el tope del alojamiento es 4 por noche, declare lo que declare el rincón.
+  // En la cuota de cada registro solo cuenta el P cuyo origen es quien lo escribió (Core AGRAM 17-11, hallazgo 1 de la
+  // revisión de la reserva; VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva): en A, el de la casa; en el rincón,
+  // el de la socia. La casa le pasa 5 de su P:A, y la socia compromete con su serie esos 5 y sus diez del rincón.
+  await delega(eje, A, 'socia', 5);
+  const conY = (cantidad) => emision('socia', { A: Y.id, denominacion: 'cama@n1', cantidad, bloquea: 10, otros: [{ token: 'P', ambito: A, origen: 'casa', cantidad: 5, de: 'socia', a: 'socia', estado: 'bloqueo', salida: serieE('socia', 'cama@n1', Y.id) }] });
+  // Con todo comprometido, la cuota (F1: el subárbol cuenta también en el alojamiento) da 4 en A, pero el tope del
+  // alojamiento es 4 por noche, declare lo que declare el rincón.
   await assert.rejects(eje.escribir(conY(5)), /tope de E del registro [0-9a-f]{8} en la franja «n1».*llegaría a 5 y su capacidad es 4/);
   await eje.escribir(conY(2));
-  // La casa compromete su P:A frente al de la socia (D1: la cuota es frente al total comprometido): con 3 de 13, ⌊12/13⌋ = 0.
-  await assert.rejects(eje.escribir(emision('casa', { A, denominacion: 'cama@n1', cantidad: 2, bloquea: 3 })), /cuota de E:casa\/cama@n1@.* en el registro .*compromete 3 de P .* de 13 comprometido.*da 0 de 4/);
-  // Con sus diez, ⌊10·4/20⌋ = 2: el E del rincón cuenta en el tope de A, así que la tercera no cabe.
-  await assert.rejects(eje.escribir(emision('casa', { A, denominacion: 'cama@n1', cantidad: 3, bloquea: 10 })), /tope de E del registro .* en la franja «n1».*llegaría a 5 y su capacidad es 4/);
-  await eje.escribir(emision('casa', { A, denominacion: 'cama@n1', cantidad: 2, bloquea: 10 }));
+  // La casa compromete su P:A frente al de la socia (D1: la cuota es frente al total comprometido de su origen): con 3 de 8, ⌊12/8⌋ = 1.
+  await assert.rejects(eje.escribir(emision('casa', { A, denominacion: 'cama@n1', cantidad: 2, bloquea: 3 })), /cuota de E:casa\/cama@n1@.* en el registro .*compromete 3 de P .* de 8 comprometido.*da 1 de 4/);
+  // Con los cinco que le quedan, ⌊5·4/10⌋ = 2: el E del rincón cuenta en el tope de A, así que la tercera no cabe.
+  await assert.rejects(eje.escribir(emision('casa', { A, denominacion: 'cama@n1', cantidad: 3, bloquea: 5 })), /tope de E del registro .* en la franja «n1».*llegaría a 5 y su capacidad es 4/);
+  await eje.escribir(emision('casa', { A, denominacion: 'cama@n1', cantidad: 2, bloquea: 5 }));
   await assert.rejects(eje.escribir(emision('casa', { A, denominacion: 'sofa@n1', cantidad: 1, bloquea: 0 })), /tope de E del registro .* en la franja «n1».*llegaría a 5 y su capacidad es 4/);
   assert.deepEqual(eje.topes(Y.id, T0).map((x) => [x.registro, x.capacidad, x.franja, x.vivo]), [[Y.id, 100, 'n1', 2], [A, 4, 'n1', 4]]);
 });

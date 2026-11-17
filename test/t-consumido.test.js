@@ -131,7 +131,7 @@ test('T de cosa a cosa (VG, 8-11): solo entre cosas del mismo dueño, o si el au
   // Otra cosa de g (el mismo dueño que el robot) y una cosa de ana.
   await eje.escribir({ autor: 'g', sobre: alta.id, t: T0, payload: 'el horno', movimientos: [gasta('g'), daT('g', 'horno', 2)] });
   const deAna = await eje.escribir({ autor: 'ana', sobre: alta.id, t: T0, payload: 'mi tostadora', movimientos: [gasta('ana'), daT('ana', 'tostadora', 2)] });
-  assert.deepEqual(eje.alta('tostadora'), { id: deAna.id, t: T0 });
+  assert.deepEqual(eje.alta('tostadora'), { id: deAna.id, t: T0, autor: 'ana' });
   // Del mismo dueño: sí.
   await eje.escribir({ autor: 'robot', sobre: alta.id, t: T0, payload: 'al horno', movimientos: [gasta('robot'), daT('robot', 'horno', 3)] });
   assert.equal(eje.saldoT('horno', 'minuto'), 5);

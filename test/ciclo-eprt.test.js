@@ -28,6 +28,14 @@ const T0 = '2026-11-07T10:00:00Z';
  * asignación de T del día (VG, 8-11: asignación diaria).
  */
 const ALTA = '2026-10-08T10:00:00Z';
+/**
+ * El sí del dueño de una cosa para que alguien deje P en ella («let P come down here», VG 17-11, CH1): su último registro
+ * colgado de la cosa, anclado en su 2.1, que nombra a quién.
+ */
+const SIN_EL_SI = /P comes down to a thing of another with its owner's yes/;
+const dejaBajar = (eje, dueno, cosa, quien, t = T0) => eje.escribir({ autor: dueno, sobre: cosa, en: '2100000000', t,
+  payload: [['sí a ' + quien], [['yes']], ['sin cierre'], [[dueno], [quien]], ['let P come down here']], movimientos: [gasta(dueno)] });
+
 const gasta = (de, cantidad) => (cantidad === undefined ? pagaElCoste(de) : { token: 'T', escala: 'minuto', cantidad, de, a: null });
 const daT = (de, a, cantidad) => ({ token: 'T', escala: 'minuto', cantidad, de, a });
 /** Ceder minutos a otro (VG, 7-11 noche: T no cruza de persona): E de la serie de tiempo de `emisor`. */
@@ -210,7 +218,12 @@ test('P no se acuña a mano: escribir un registro da diez P sobre él; quien sol
   await assert.rejects(eje.escribir({ autor: 'bea', sobre: reg.id, t: T0, payload: 'x', movimientos: [gasta('bea'), { token: 'P', ambito: reg.id, origen: 'ana', cantidad: 2, de: 'bea', a: 'raiz' }] }), /saldo insuficiente de P/);
   // Sin decir el origen, bea movería P suyo, que no tiene (encargo 3b-bis).
   await assert.rejects(eje.escribir({ autor: 'bea', sobre: reg.id, t: T0, payload: 'x', movimientos: [gasta('bea'), { token: 'P', ambito: reg.id, cantidad: 1, de: 'bea', a: 'raiz' }] }), /saldo insuficiente de P/);
-  await eje.escribir({ autor: 'bea', sobre: reg.id, t: T0, payload: 'bea delega', movimientos: [gasta('bea'), { token: 'P', ambito: reg.id, origen: 'ana', cantidad: 1, de: 'bea', a: 'raiz' }] });
+  // Y a quien ana deje (VG 17-11, CH1): el P que bea pasa se queda en una cosa de ana, y eso pide el sí de ana para quien
+  // lo recibe. Sin él, no entra.
+  const delega = () => eje.escribir({ autor: 'bea', sobre: reg.id, t: T0, payload: 'bea delega', movimientos: [gasta('bea'), { token: 'P', ambito: reg.id, origen: 'ana', cantidad: 1, de: 'bea', a: 'raiz' }] });
+  await assert.rejects(delega(), SIN_EL_SI);
+  await dejaBajar(eje, 'ana', reg.id, 'raiz');
+  await delega();
   assert.deepEqual([eje.poderSobre('raiz', reg.id), eje.poderSobre('bea', reg.id), eje.poderSobre('ana', reg.id), eje.poderSobre('raiz', reg.id, 'ana')], [1, 0, 9, 1]);
 });
 
@@ -574,7 +587,11 @@ test('NEU-04 (revisión de la #62) el delegado que acuña: quien solo tiene P lo
   // seguridad, encargo 3b).
   // P por mirada (encargo 3c-2a): el P propio de bea por la R y los minutos está en las miradas 3 y 1 del génesis; el que
   // baja un paso al registro de las altas es el que le delegó la raíz (de origen raiz, que se conserva).
-  await eje.escribir({ autor: 'bea', sobre: altas.id, t: T0, payload: 'bajo', movimientos: [gasta('bea'), { token: 'P', ambito: g, origen: 'raiz', cantidad: 1, de: 'bea', a: null }, { ...emiteP('bea', altas.id, 1.1), origen: 'raiz' }] });
+  // Bajar a una cosa de otro pide su sí (VG 17-11, CH1): el registro de las altas es de la raíz, y sin su sí para bea no entra.
+  const baja = () => eje.escribir({ autor: 'bea', sobre: altas.id, t: T0, payload: 'bajo', movimientos: [gasta('bea'), { token: 'P', ambito: g, origen: 'raiz', cantidad: 1, de: 'bea', a: null }, { ...emiteP('bea', altas.id, 1.1), origen: 'raiz' }] });
+  await assert.rejects(baja(), SIN_EL_SI);
+  await dejaBajar(eje, 'raiz', altas.id, 'bea');
+  await baja();
   assert.deepEqual([antes - eje.poderSobre('bea', g), eje.poderSobre('bea', altas.id)], [1, 1.1]);
 });
 

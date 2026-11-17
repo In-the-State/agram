@@ -246,12 +246,14 @@ export async function ejemploReserva({ claves = {}, confirmar = true, temporada:
     payload: 'Recepción atiende las reservas',
   }, priv('recepcion'));
 
-  // La casa publica la disponibilidad (la habitación con sus plazas) sobre el dominio.
+  // La casa publica la disponibilidad (la habitación con sus plazas) sobre el dominio y, en el mismo registro, pasa a
+  // recepción P suyo sobre el Alojamiento para que respalde plazas (lo que respalda: RESPALDA_RECEPCION).
+  const respaldaEnTotal = Object.values(RESPALDA_RECEPCION).reduce((x, y) => x + y, 0);
   const habitacion = await escribirPagando(eje, {
     autor: CASA,
     sobre: alojamiento.id,
     t,
-    movimientos: [minutos(CASA)],
+    movimientos: [minutos(CASA), { token: 'P', ambito: alojamiento.id, origen: CASA, cantidad: respaldaEnTotal, de: CASA, a: 'recepcion' }],
     payload: structuredClone(HABITACION), // copia: el payload de un evento no comparte arrays con nadie
   }, priv('casa'));
 
@@ -266,9 +268,12 @@ export async function ejemploReserva({ claves = {}, confirmar = true, temporada:
     payload: 'cualquiera',
   }, priv('casa'));
 
-  // Recepción respalda con su P la cama individual y la litera, todas las noches (R2): será coemisora de sus
-  // series. Ese P queda comprometido mientras vivan sus noches.
-  const respaldo = await respaldarPlazas(eje, habitacion, { identidad: 'recepcion', plazas: RESPALDA_RECEPCION, ambito: atiende.id, t, privada: priv('recepcion') });
+  // Recepción respalda la cama individual y la litera, todas las noches (R2): será coemisora de sus series. En la cuota
+  // solo cuenta el P cuyo origen es quien escribió el registro que declara la capacidad (la casa; src/condiciones/tope.js,
+  // VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva), así que la casa le pasó P suyo sobre el
+  // Alojamiento al publicar la habitación (pasar no cambia el origen) y recepción compromete ese. Queda comprometido
+  // mientras vivan sus noches.
+  const respaldo = await respaldarPlazas(eje, habitacion, { identidad: 'recepcion', plazas: RESPALDA_RECEPCION, ambito: alojamiento.id, origen: CASA, t, privada: priv('recepcion') });
 
   const temporada = await abrirTemporada(eje, habitacion, { noches, t, privada: priv('casa') });
 
@@ -287,13 +292,13 @@ export async function ejemploReserva({ claves = {}, confirmar = true, temporada:
 }
 
 /**
- * Quien tiene P en el dominio (aquí, recepción, sobre su propio registro, que cuelga del Alojamiento) respalda
+ * Quien tiene P en el dominio de origen su dueño (aquí, recepción, con el que la casa le pasó sobre el Alojamiento) respalda
  * plazas de la habitación: bloquea ese P con la salida = la familia de cada plaza (todas sus noches), `plazas` = { k:
  * cantidad }. Va en un registro suyo, firmado por él: es su firma de coemisor de esas series (R2, emisión conjunta).
  * Ese P no se libera mientras viva alguna noche de la plaza, y es su compromiso con ella (mapa §15 [D] (5)).
  */
-export async function respaldarPlazas(eje, habitacion, { identidad, plazas, ambito, t, privada }) {
-  const bloqueos = Object.entries(plazas).map(([k, cantidad]) => ({ token: 'P', ambito, cantidad, de: identidad, a: identidad, estado: 'bloqueo', salida: familiaPlaza(habitacion.id, Number(k)) }));
+export async function respaldarPlazas(eje, habitacion, { identidad, plazas, ambito, origen, t, privada }) {
+  const bloqueos = Object.entries(plazas).map(([k, cantidad]) => ({ token: 'P', ambito, ...(origen ? { origen } : {}), cantidad, de: identidad, a: identidad, estado: 'bloqueo', salida: familiaPlaza(habitacion.id, Number(k)) }));
   return escribirPagando(eje, {
     autor: identidad,
     sobre: habitacion.sobre,

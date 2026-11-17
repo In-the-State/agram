@@ -78,7 +78,10 @@ const validosDe = (ev) => (Array.isArray(ev.movimientos) ? ev.movimientos : [])
  *    la misma cama todas las noches, porque la capacidad se repite en cada
  *    franja), y cuenta el P posicionado en A o en lo que cuelga de A (F1: el
  *    subárbol en el numerador y en el denominador; encargo 3b: ya no hay P
- *    emitido sobre A ni P del génesis, mapa §15).
+ *    emitido sobre A ni P del génesis, mapa §15) CUYO ORIGEN ES QUIEN ESCRIBIÓ
+ *    A: el P de otro origen es voz y no ocupa capacidad (ni da cuota ni diluye
+ *    la de nadie); quien no es el dueño emite con P que el dueño le pasó.
+ *    VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva.
  * 4. Ese bloqueo no se libera (EE-8): un P bloqueado con la salida = la clave
  *    de una serie de E no se libera mientras quede E vivo de esa serie, ni
  *    con la de una familia mientras quede E vivo en alguna de sus franjas.
@@ -311,20 +314,24 @@ function topeYCuota(ev, ctx, a) {
         const registro = p.registro ?? ctx.serie(salida)?.registro ?? ctx.alta(p.emisor)?.id;
         return ctx.dentro(registro, A);
       };
+      // Solo cuenta el P cuyo ORIGEN es quien escribió A, en el numerador y en el denominador. El P de otro origen
+      // posicionado en el subárbol (el que nace por escribir un hijo, por conseguir E o por subir) es voz y no ocupa
+      // capacidad: ni da cuota ni diluye la de nadie. Quien no es el dueño emite dentro de la capacidad con P que el
+      // dueño le pasó (delegar no cambia el origen; R2·2 de test/e-atada.test.js). VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva.
+      const dueno = ctx.registro(A)?.autor;
+      const delDueno = (clave) => (partirClave(clave).origen ?? null) === dueno;
       let bloqueado = 0;
       let total = 0;
       for (const b of compromisosP()) {
-        if (!enSubarbol(b.clave) || !atadaAlSubarbol(b.salida)) continue;
+        if (!enSubarbol(b.clave) || !atadaAlSubarbol(b.salida) || !delDueno(b.clave)) continue;
         total += b.cantidad;
-        // El P que respalda es el que tiene el emisor, de cualquier origen (encargo 3b-bis: el delegado de un grupo
-        // emite con lo que le delegan; [X] VG).
         if (emisores.includes(b.titular) && (b.salida === k || b.salida === familia)) bloqueado += b.cantidad;
       }
       const exacta = total > 0 ? (bloqueado * capacidad) / total : 0;
       const cuota = s.divisible ? exacta : Math.floor(exacta + MARGEN);
       if (vivoSerie > cuota + MARGEN) {
         errores.push({ i, capa: 4, texto: 'cuota de ' + k + ' en el registro ' + corto(A) + ': ' + emisores.join(' + ') + ' compromete' + (emisores.length > 1 ? 'n ' : ' ') + bloqueado + ' de P con la salida de la serie, de ' + total +
-          ' comprometido con las series de su subárbol; da ' + cuota + ' de ' + capacidad + (s.divisible ? '' : ' (hacia abajo)') + ' y el E vivo de la serie llegaría a ' + vivoSerie });
+          ' comprometido con las series de su subárbol (solo cuenta el P de origen ' + dueno + ', quien escribió el registro); da ' + cuota + ' de ' + capacidad + (s.divisible ? '' : ' (hacia abajo)') + ' y el E vivo de la serie llegaría a ' + vivoSerie });
       }
     }
   }

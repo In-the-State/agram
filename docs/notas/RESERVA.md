@@ -57,7 +57,7 @@ El dueño retira lo no gastado **liberando su propio bloqueo**, cuando quiera (t
 
 - **La T no se bloquea** («T is not locked», suelo): **no hay reserva de T**. Límite; no se ha tocado.
 - **Lo reservado sigue siendo de su dueño**: `saldosDe` lo da como bloqueado y la declaración de saldo («declare a balance», «a declared balance is true») lo cuenta. No se ha cambiado.
-- **Reservar P**: el P que sale en modo `pay` hacia otro pasa por «P comes down to a thing of another with its owner's yes» como cualquier otro (sin el sí del dueño del registro para quien lo recibe, no entra).
+- **Reservar P**: el P que sale en modo `pay` hacia otro pasa por «P comes down to a thing of another with its owner's yes» como cualquier otro (sin el sí del dueño del registro para quien lo recibe, no entra). Y en la cuota de un registro con capacidad solo cuenta el P cuyo origen es quien lo escribió (`src/condiciones/tope.js`; hallazgo 1 de la revisión: el P de otro origen, también el que alguien sube desde un hijo suyo, no ocupa capacidad). **VG 17-11: sí, tras el hallazgo 1 de la revisión de la reserva.**
 - «**locked P backing live E is not released**» y «**what is locked for another book is released only by its return**» siguen diciendo lo mismo: un bloqueo con otra salida (la serie de una E, un enlace) no es de ninguna reserva y quien gasta no lo toca; la reserva no es un enlace.
 - **Quien gasta no gana P por lo que gasta**: no recibe nada (ni R ni P).
 - Un cambio corriente o de gobierno que quita o cambia la excepción o la guarda, o las quita de 7.9.6: rechazado por el suelo.

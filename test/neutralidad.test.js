@@ -300,7 +300,24 @@ async function comprometenTodo(m, D, ids) {
 }
 
 /** `de` pasa a `a` `cantidad` de su P en el dominio de C de origen `origen` sobre `ambito`, escribiendo en su propia alta. */
+/**
+ * Pasar P posicionado en una cosa de otro pide el sí de su dueño para quien lo recibe («let P come down here», VG 17-11,
+ * CH1): aquí el dueño lo da antes, una vez por cosa y por quien recibe. La neutralidad se mira con ese sí dado: lo que se
+ * comprueba es que repartir el P entre identidades no cambia el recuento, no quién puede recibirlo.
+ */
+const SIES = new WeakMap();
+/** Los síes dados en un mundo, como «cosa quien» (para repetirlos en otro: el sí es un registro más de su dueño). */
+const siesDe = (m) => SIES.get(m.eje) ?? SIES.set(m.eje, new Set()).get(m.eje);
+async function daElSi(m, cosa, a) {
+  const dueno = m.eje.obtener(cosa)?.autor;
+  if (!dueno || dueno === a || siesDe(m).has(cosa + ' ' + a)) return;
+  await m.eje.escribir({ autor: dueno, sobre: cosa, en: '2100000000', t: T0, movimientos: [minuto(dueno)],
+    payload: [[unico('sí a ' + a)], [['yes']], ['sin cierre'], [[dueno], [a]], ['let P come down here']] });
+  siesDe(m).add(cosa + ' ' + a);
+}
 async function pasaP(m, de, a, ambito, origen, cantidad) {
+  const cosa = String(ambito).split('.')[0];
+  if (m.eje.obtener(cosa)?.autor !== de) await daElSi(m, cosa, a);
   return m.eje.escribir({ autor: de, sobre: m.eje.alta(de).id, t: T0, payload: unico('paso P'), movimientos: [minuto(de), { token: 'P', ambito, origen, cantidad, de, a }] });
 }
 
@@ -516,10 +533,12 @@ test('propiedad: dividir o fundir identidades no cambia ningún recuento, abiert
     // de comprometerlo no cambia el recuento, para la lista que sea (salvo lo que el dueño nombre, que es lo que cuenta).
     const listas = [['cualquiera'], [g.pick(ids)], ids.filter(() => si(0.5)).map((id) => (si(0.5) ? id + ' ' + g.int(1, 9) : id))];
     for (const lista of listas) {
-      const base = async (mover) => {
+      const base = async (mover, sies = []) => {
         const m = await mundo(ids);
         const D = await decisionDeC(m, lista.length ? lista : ['nadie'], plantilla);
         await vende(m, Object.fromEntries(ids.map((id, i) => [id, reparto[i]])), { que: 'plaza' });
+        // Los síes del mundo movido se repiten en el quieto: son registros de su dueño en el dominio y cuentan en él.
+        for (const s of sies) await daElSi(m, ...s.split(' '));
         if (mover) {
           for (let i = 0; i < 4; i++) {
             const de = g.pick(ids);
@@ -529,10 +548,10 @@ test('propiedad: dividir o fundir identidades no cambia ningún recuento, abiert
             await pasaP(m, de, g.pick(ids.filter((id) => id !== de)), x.ambito, x.origen, si(0.5) ? x.cantidad : x.cantidad / 2);
           }
         }
-        return (await comprometenTodo(m, D, ids))[0];
+        return { valor: (await comprometenTodo(m, D, ids))[0], sies: [...siesDe(m)] };
       };
-      const quieto = await base(false);
-      const movido = await base(true);
+      const { valor: movido, sies } = await base(true);
+      const { valor: quieto } = await base(false, sies);
       assert.ok(cerca(movido, quieto), msg + ': lista ' + JSON.stringify(lista) + ': ' + movido + ' frente a ' + quieto);
     }
   }

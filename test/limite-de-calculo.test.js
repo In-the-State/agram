@@ -112,12 +112,13 @@ test('una época no sube el techo: un 8.8 mayor se queda en LIMITES y la regla d
   assert.equal(m.causa, 'limit_exhausted');
   assert.equal(m.estado, 'pendiente');
   assert.equal(m.texto, 'a test rule walks the epoch: PENDIENTE: límite de cálculo: expresión anidada más de 100 niveles');
-  // Y bajarlo sí cuenta: la misma regla con 50 niveles pasa en la base y se para con un 8.8 de 10.
+  // Y bajarlo sí cuenta: la misma regla con 50 niveles pasa en la base y se para con un 8.8 de 30.
   const cincuenta = await ejeCon(epoca({ condicion: anidada(50) }));
-  const corto = await ejeCon(epoca({ condicion: anidada(50), limites: [[100000], [10000], [10], [10], [2000000]] }));
+  const corto = await ejeCon(epoca({ condicion: anidada(50), limites: [[100000], [10000], [30], [10], [2000000]] }));
   assert.ok(!(await cincuenta.motivos(await nota(cincuenta))).some((x) => x.regla === 'a test rule walks the epoch'));
-  const [c] = await corto.motivos(await nota(corto));
-  assert.deepEqual([c.regla, c.causa, c.texto], ['a test rule walks the epoch', 'limit_exhausted', 'a test rule walks the epoch: PENDIENTE: límite de cálculo: expresión anidada más de 10 niveles']);
+  // (Un techo de 10 pararía antes reglas de la 0, que anidan más que eso: con 30 pasan y se para la de la prueba.)
+  const c = (await corto.motivos(await nota(corto))).find((x) => x.regla === 'a test rule walks the epoch');
+  assert.deepEqual([c.regla, c.causa, c.texto], ['a test rule walks the epoch', 'limit_exhausted', 'a test rule walks the epoch: PENDIENTE: límite de cálculo: expresión anidada más de 30 niveles']);
 });
 
 test('un dato mal formado, cero o negativo cuenta como la constante', async () => {
