@@ -1,7 +1,7 @@
 [
   ["current connections"],
   ["before.3", "A.6", "A.1", "X.6.2", "invitation", "X.6.8.7", "X.6.8.8"],
-  ["=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (first (first (up (first it2.6))).6).8.7 = count (first (first (up (first it2.6))).6).8.8 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and (first (first it2.6).6.2.0 != \"nothing\" or count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2) > 0 and count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2 and count (first it3.6).8.7 = count (first it3.6).8.8) = 0)"],
+  ["=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count ((first (first (up (first it2.6))).6).8.7 where not (it3 in (first (first (up (first it2.6))).6).8.8)) = 0 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and (first (first it2.6).6.2.0 != \"nothing\" or count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2) > 0 and count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0) = 0)"],
   ["X"],
   ["read"],
   ["*"],

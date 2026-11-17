@@ -22,7 +22,7 @@ import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 
 /** El id de la época 0 definitiva (no cambia con esta época). */
-const ID_DE_LA_0 = 'bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0';
+const ID_DE_LA_0 = 'cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580';
 const CAMINO = ['register the node', 'register the authority', 'register the relay', 'register the archive', 'declare a context', 'put in service'];
 const PAPELES = ['authority', 'container', 'relay', 'gate', 'archive', 'deployment', 'worker', 'agent', 'context', 'served ledger'];
 
@@ -31,7 +31,7 @@ let completo = null;
 const ejemplo = () => (completo ??= ejemploNodo());
 const leer = (eje, formula, sujeto) => evaluar(formula, new ContextoEje(eje, { epoch: eje.epoca() }), { sujeto });
 const estacion = (eje, id) => A.ejecuciones(eje, eje.obtener(id).sobre).find((x) => x.ocupante.ref === id)?.estacion ?? null;
-const HECHA = 'count (first it2.6).8.7 = count (first it2.6).8.8 and not (it2 in (first it.4).8)';
+const HECHA = 'count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) = 0 and not (it2 in (first it.4).8)';
 /** Una lectura con nombre de la época (una regla con «read» en su 4 y su 3 en X), sobre un registro: sus valores. */
 const lectura = (eje, nombre, id) => {
   const regla = eje.epoca().lecturas.find((r) => r[0][0] === nombre);
@@ -184,7 +184,7 @@ test('un cambio de núcleo que falla la revalidación se cierra con error y no c
 test('umbral (con autorización), vencimiento con su renovación y medidas del vigía, leídos por máquina', async () => {
   const { eje, ids } = await ejemplo();
   assert.ok(A.segundoFactor(eje, ids.umbral).exige, 'fijar un umbral requiere autorización');
-  const umbral = leer(eje, `(payload(last ((down it) where last (first it2.6).5 = "2800000000" and "set a threshold" in (payload(it2)).4 and count (first it2.6).8.7 = count (first it2.6).8.8 and first (payload(it2)).1.0 = "disco"))).1`, ids.contenedor);
+  const umbral = leer(eje, `(payload(last ((down it) where last (first it2.6).5 = "2800000000" and "set a threshold" in (payload(it2)).4 and count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) = 0 and first (payload(it2)).1.0 = "disco"))).1`, ids.contenedor);
   assert.deepEqual(umbral.valor[0].v, [['disco'], [80], ['%']]);
   const medida = leer(eje, `(payload(last ((down it) where last (first it2.6).5 = "8000000000" and first (payload(it2)).0 = "disco"))).1`, ids.contenedor);
   assert.deepEqual(medida.valor, [42]);

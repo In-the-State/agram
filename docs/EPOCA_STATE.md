@@ -94,11 +94,11 @@ Es una tercera rama de la lectura «second factor» de esta época, no una regla
 
 ## 6. Leer por máquina (BQLM)
 
-Cada consulta se evalúa con el núcleo sobre el eje del nodo, `bqlm.evaluar(formula, new ContextoEje(eje, { epoch: eje.epoca() }), { sujeto: <id> })`; con `it` = el registro que se dice. «Hecha» es ejecutada y firmada: `count (first it2.6).8.7 = count (first it2.6).8.8 and not (it2 in (first it.4).8)` (lo llamamos HECHA abajo).
+Cada consulta se evalúa con el núcleo sobre el eje del nodo, `bqlm.evaluar(formula, new ContextoEje(eje, { epoch: eje.epoca() }), { sujeto: <id> })`; con `it` = el registro que se dice. «Hecha» es ejecutada y firmada: `count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) = 0 and not (it2 in (first it.4).8)` (lo llamamos HECHA abajo).
 
 | Qué | `it` | Fórmula |
 |---|---|---|
-| el umbral vigente de «disco» (1.0 qué, 1.1 límite, 1.2 unidad) | la pieza | `(payload(last ((down it) where last (first it2.6).5 = "2800000000" and "set a threshold" in (payload(it2)).4 and count (first it2.6).8.7 = count (first it2.6).8.8 and first (payload(it2)).1.0 = "disco"))).1` |
+| el umbral vigente de «disco» (1.0 qué, 1.1 límite, 1.2 unidad) | la pieza | `(payload(last ((down it) where last (first it2.6).5 = "2800000000" and "set a threshold" in (payload(it2)).4 and count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) = 0 and first (payload(it2)).1.0 = "disco"))).1` |
 | la última medida de «disco» | la pieza | `(payload(last ((down it) where last (first it2.6).5 = "8000000000" and first (payload(it2)).0 = "disco"))).1` |
 | el vencimiento vigente del «certificado TLS» | la pieza | `(payload(last ((down it) where last (first it2.6).5 = "7000000000" and first (payload(it2)).1.0 = "certificado TLS"))).1.1` |
 | ¿vencido? (con el reloj del libro) | la pieza | `(first (payload(last (…lo de arriba…))).1.1).0 < first before.6.0.0` |
@@ -113,7 +113,7 @@ Cada consulta se evalúa con el núcleo sobre el eje del nodo, `bqlm.evaluar(for
 | lo que lo sirve (SERVIDO abajo) | el pedido | `(down it) where "anchor served" in (payload(it2)).4 and first it2.3 = first (first (payload(it)).2).3 and first (payload(it2)).6.0 = first (payload(it)).6.3 and first (payload(it2)).6.2 >= first (payload(it)).6.2`: un «anchor served» del dueño del nodo que nombra el pedido, con la cabecera pedida y un nivel que cubre el pedido |
 | ¿servido? | el pedido | `count (SERVIDO) > 0`: verdadero, servido; falso, pendiente |
 | del servido: la madre, su nivel, el camino | el pedido | `(payload(first (SERVIDO))).6.1`, `.6.2`, `.6.3` (solo si está servido) |
-| ¿espera la firma del titular? (una invitación, un grupo, un precio, un veto) | el registro | `count (first it.6).8.7 != count (first it.6).8.8` (o `acciones.segundoFactor(eje, id).pendiente`) |
+| ¿espera la firma del titular? (una invitación, un grupo, un precio, un veto) | el registro | `count ((first it.6).8.7 where not (it2 in (first it.6).8.8)) > 0` (o `acciones.segundoFactor(eje, id).pendiente`) |
 
 **Lecturas con nombre.** Son reglas de esta época con «read» en su 4 y su 3 en `X` (no se materializan, como «asked» y «on time» de la 0), en el 2 de la época; se leen con `leerRegla(regla, id, new ContextoEje(eje, { epoch: eje.epoca() }))` (`src/bqlm.js`), con la regla de `eje.epoca().lecturas` por su nombre, e `it` = el alta del nodo:
 

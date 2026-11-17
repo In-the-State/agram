@@ -943,7 +943,7 @@ export const EPOCA_0_BTML_DATOS = [
           "autorizada"
         ],
         [
-          "=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) > 0"
+          "=not (it in (first (first (up it)).4).8) and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) > 0"
         ]
       ],
       [
@@ -951,7 +951,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ejecutada"
         ],
         [
-          "=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"
+          "=not (it in (first (first (up it)).4).8) and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) = 0"
         ]
       ],
       [
@@ -959,7 +959,7 @@ export const EPOCA_0_BTML_DATOS = [
           "verificada"
         ],
         [
-          "=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"
+          "=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) = 0"
         ]
       ]
     ]
@@ -28059,7 +28059,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0";
+export const EPOCA_0_BTML_ID = "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

@@ -599,3 +599,61 @@ test('carta: el formulario de ejecutar muestra la parte «autorización» en lo 
   await m.eje.anadir((await A.autorizar(m.eje, pago.id, 'cartera', m.cosa.privada, { t: T1 })).evento);
   assert.equal([...(await seis('huesped', m.altaH)).matchAll(/data-por-autorizar=/g)].length, 1, 'queda la compra de antes');
 });
+
+// ---------- las estaciones no cuentan a ciegas el 8.8 (Core AGRAM 17-11) ----------
+// El núcleo junta en X.6.8.8 lo que dan TODAS las lecturas que materializan ahí, y una época hija puede poner otra (una
+// SIP pone la suya). «Espera su segundo factor» es «algún criterio del 8.7 no está en el 8.8», no «cuentan distinto».
+
+/** Un libro de ana en una época hija de la 0 con una lectura más en X.6.8.8: los registros anclados en X que dicen «marca». */
+async function conOtraLecturaEnEl88() {
+  const { Eje } = await import('../src/eje.js');
+  const { idDeRegistro } = await import('../src/epocas.js');
+  const M0 = { ref: EPOCA_0_BTML.id };
+  const ultima = EPOCA_0_BTML.reglasConId[EPOCA_0_BTML.reglasConId.length - 1].regla[0][0];
+  const marcas = [['marks'], ['"marca"'], ['=(down it) where "marca" in (payload(it2)).0'], ['X.6.8.8'], ['read'], ['*'], ['prueba: otra lectura que materializa en X.6.8.8'], ['epoch 0'], ['after ' + ultima], ['marks: the records anchored on it that say «marca»']];
+  const raiz = [['con marcas'], M0, [{ ref: idDeRegistro(marcas) }], M0, M0, M0, [['hija de prueba'], ['hereda'], [EPOCA_0_BTML.id]]];
+  const eje = await Eje.genesis({ identidad: 'ana', foco: ['ana'], t: T0, demostracion: true, epoca: { raiz, registros: [marcas] } });
+  await eje.aceptar(await eje.invitar({ autor: 'ana', invitado: 'bea', da: [{ token: 'R', cantidad: 3 }], t: T0 }), {}, { t: T0 });
+  const altaB = eje.alta('bea').id;
+  const cosa = await generarClaves();
+  const r = await A.transaccion(eje, 'register a thing', { X: altaB, thing: 'cartera', minutes: 60, key: cosa.publica }, 'bea', { t: T1 });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  await eje.anadir(await firmarPosesion(r.evento, 'cartera', cosa.privada));
+  /** ana abre un encargo y anuncia que bea le dará una R de ana; bea paga. → el anuncio y el pago. */
+  const anunciarYPagar = async (titulo) => {
+    const encargo = await eje.escribir({ autor: 'ana', sobre: eje.alta('ana').id, t: T1, payload: [titulo, ['x'], ['all announced movements happened'], ['ana', 'bea']], movimientos: [pagaElCoste('ana')] });
+    const anuncio = await eje.escribir({ autor: 'ana', sobre: encargo.id, en: ANUNCIO, t: T1, payload: 'dame una', movimientos: [pagaElCoste('ana'), { token: 'R', emisor: 'ana', cantidad: 1, de: 'bea', a: 'ana', estado: 'anunciado', refiere: '2026-11-20T10:00:00Z' }] });
+    // Lo que hace «pay» (que es de E), escrito a mano para la R: en el 4 del anuncio, lo anunciado.
+    const pago = await eje.escribir({ autor: 'bea', sobre: anuncio.id, en: '4000000000', t: T1, payload: ['pay: bea paga', [{ ref: anuncio.id }], ['all announced movements happened'], ['bea'], ['pay']], movimientos: [pagaElCoste('bea'), { token: 'R', emisor: 'ana', cantidad: 1, de: 'bea', a: 'ana' }] });
+    return { anuncio, pago };
+  };
+  /** Una marca (el ocupante de más del 8.8) anclada en el pago, escrita por ana. */
+  const marcar = (id) => eje.escribir({ autor: 'ana', sobre: id, t: T1, payload: ['marca'], movimientos: [pagaElCoste('ana')] });
+  const ctx = () => new ContextoEje(eje, { epoch: eje.epoca() });
+  const ocho = (id, d) => evaluar('(first it.6).8.' + d, ctx(), { sujeto: id }).valor.map((x) => x?.id ?? x);
+  return { eje, cosa, anunciarYPagar, marcar, ocho, altaB };
+}
+
+test('estaciones: un ocupante de más en X.6.8.8 (otra lectura de una época hija) no deja el anuncio en «autorizada» si no espera ningún criterio; con un criterio sin autorizar, sigue en «autorizada» aunque lo haya', async () => {
+  const m = await conOtraLecturaEnEl88();
+  // Sin criterio: el pago se ejecuta; con la marca, el 8.8 tiene un ocupante y el 8.7 ninguno, y sigue «ejecutada».
+  const a = await m.anunciarYPagar('sin criterio');
+  assert.equal(A.estacionDeAnuncio(m.eje, a.anuncio.id), 'ejecutada');
+  const marca = await m.marcar(a.pago.id);
+  assert.deepEqual([m.ocho(a.pago.id, 7), m.ocho(a.pago.id, 8)], [[], [marca.id]], 'el 8.8 lleva la marca (otra lectura) y el 8.7 nada');
+  assert.equal(A.estacionDeAnuncio(m.eje, a.anuncio.id), 'ejecutada', 'contar a ciegas la dejaba en «autorizada» para siempre');
+  // Con un criterio de verdad (el segundo factor de bea sobre R), sin autorizar: «autorizada», con la marca o sin ella.
+  const c = await A.transaccion(m.eje, 'second factor', { X: m.altaB, family: 'R', amount: 1, holder: 'cartera' }, 'bea', { t: T1 });
+  assert.ok(c.ok, JSON.stringify(c.motivos));
+  await m.eje.anadir(c.evento);
+  const b = await m.anunciarYPagar('con criterio');
+  assert.equal(A.estacionDeAnuncio(m.eje, b.anuncio.id), 'autorizada');
+  const otra = await m.marcar(b.pago.id);
+  assert.deepEqual([m.ocho(b.pago.id, 7).length, m.ocho(b.pago.id, 8)], [1, [otra.id]], 'un criterio en el 8.7 y solo la marca en el 8.8: cuentan lo mismo');
+  assert.equal(A.estacionDeAnuncio(m.eje, b.anuncio.id), 'autorizada', 'contar a ciegas la daba por «ejecutada»');
+  // La cartera autoriza: «ejecutada».
+  const ok = await A.autorizar(m.eje, b.pago.id, 'cartera', m.cosa.privada, { t: T1 });
+  assert.ok(ok.ok, JSON.stringify(ok.motivos));
+  await m.eje.anadir(ok.evento);
+  assert.equal(A.estacionDeAnuncio(m.eje, b.anuncio.id), 'ejecutada');
+});

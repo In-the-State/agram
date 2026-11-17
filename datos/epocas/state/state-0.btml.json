@@ -1,13 +1,13 @@
 {
-  "id": "b88d6c740b931068587f5ba5685ed4417232a820f9bfecb684d650860ef46aca",
-  "hereda": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0",
+  "id": "6ccd224cb91bb5c564577f0fc3ed8daf70adbcd75bbcdffc2e54540c75404d5d",
+  "hereda": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580",
   "raiz": [
     [
       "época state 0",
       "state epoch 0"
     ],
     {
-      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
     },
     [
       {
@@ -29,13 +29,13 @@
         "ref": "f2d2a07e502ffb783248b0162f322df179c4894538587a96955053b4db71402e"
       },
       {
-        "ref": "a354167b92b3255a435601be3563047f5e49088d193a4548adaafb1bba7f800d"
+        "ref": "c3a676d5e3564645ba82c543ab0a31fab528eb94a09ce17cad5ee60a884c9527"
       },
       {
         "ref": "9ed8491e4e3f4399bee4521cf886bbdef52355897c6474090141fa969813f713"
       },
       {
-        "ref": "e2ddc254144f553a71441191e13c6182db69d5861719998af1398fd872e46a73"
+        "ref": "1cb1534be702cc01010b89eec972af834f08819533038bd9266b61153478ef29"
       },
       {
         "ref": "a64c0cddc2c7b1db6d147942caf009eb31f7460cf8767f2770c66acddd59bce6"
@@ -50,7 +50,7 @@
         "ref": "eafee87cf7420f334a32f45e29c961f9ef80c33b5b2ba1f2b40b8ae0d5bd7f5b"
       },
       {
-        "ref": "ed7d8649de8cbb2a3ec7ca708239a08aaba03054f7c4cd09d1fb4d9b3401b61f"
+        "ref": "867271e492eeadfa84ca9bb7b82b141d45bf3cd186abe8f4814671e372dd32e7"
       },
       {
         "ref": "4ff7ebb39a80ff19d6d286ec933f6a8a8ad65a719181886027a0c8b8ead8a8f5"
@@ -78,17 +78,17 @@
       }
     ],
     {
-      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
     },
     [
       {
-        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       },
       {
-        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       },
       {
-        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       },
       [
         [
@@ -108,7 +108,7 @@
             "autorizada"
           ],
           [
-            "=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) > 0"
+            "=not (it in (first (first (up it)).4).8) and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) > 0"
           ]
         ],
         [
@@ -116,7 +116,7 @@
             "autorizada"
           ],
           [
-            "=count (first it.6).8.7 > 0 and count (first it.6).8.7 = count (first it.6).8.8"
+            "=count (first it.6).8.7 > 0 and count ((first it.6).8.7 where not (it2 in (first it.6).8.8)) = 0"
           ]
         ],
         [
@@ -124,7 +124,7 @@
             "autorizada"
           ],
           [
-            "=count (first it.6).8.7 != count (first it.6).8.8"
+            "=count ((first it.6).8.7 where not (it2 in (first it.6).8.8)) > 0"
           ]
         ],
         [
@@ -132,7 +132,7 @@
             "ejecutada"
           ],
           [
-            "=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0 and count (first it.6).8.7 = count (first it.6).8.8"
+            "=not (it in (first (first (up it)).4).8) and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) = 0 and count ((first it.6).8.7 where not (it2 in (first it.6).8.8)) = 0"
           ]
         ],
         [
@@ -140,13 +140,13 @@
             "verificada"
           ],
           [
-            "=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0 and count (first it.6).8.7 = count (first it.6).8.8"
+            "=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) = 0 and count ((first it.6).8.7 where not (it2 in (first it.6).8.8)) = 0"
           ]
         ]
       ]
     ],
     {
-      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
     },
     [
       [
@@ -162,31 +162,31 @@
         "hereda"
       ],
       [
-        "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       ]
     ],
     {
-      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
     },
     {
-      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
     },
     [
       [
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         [
           [
@@ -205,29 +205,29 @@
         ]
       ],
       {
-        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       },
       [
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         [
           [
@@ -1096,17 +1096,17 @@
         ]
       ],
       {
-        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       },
       [
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         [
           [
@@ -1870,11 +1870,11 @@
         ]
       ],
       {
-        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
       },
       [
         {
-          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
+          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
         },
         [
           {
@@ -2258,7 +2258,7 @@
         "epoch.9.0.2.1"
       ],
       [
-        "=sum ((last ((first (first it.6.5).3).3 where first it.3 in it2.3 and count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and first it.3 in (payload(it3)).0 and le(bytes(last (first it3.6).5)) = 12336 + it2.1 and count (first it3.6).8.7 = count (first it3.6).8.8) > 0)) each 1) + sum ((last (first up first (first it.3).6).8) where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count (first it4.6).8.7 = count (first it4.6).8.8) > 0) = 0 and count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0) + count (epoch where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count (first it4.6).8.7 = count (first it4.6).8.8) > 0) = 0 and not (count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0)) * first epoch.9.0.2.1"
+        "=sum ((last ((first (first it.6.5).3).3 where first it.3 in it2.3 and count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and first it.3 in (payload(it3)).0 and le(bytes(last (first it3.6).5)) = 12336 + it2.1 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0) > 0)) each 1) + sum ((last (first up first (first it.3).6).8) where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count ((first it4.6).8.7 where not (it5 in (first it4.6).8.8)) = 0) > 0) = 0 and count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0) + count (epoch where count ((first (first it.6.5).3).3 where first it.3 in it3.3 and count ((down (first (first (first it.6.5).3).6)) where first it4.3 = (first (first it.6.5).3) and first it.3 in (payload(it4)).0 and le(bytes(last (first it4.6).5)) = 12336 + it3.1 and count ((first it4.6).8.7 where not (it5 in (first it4.6).8.8)) = 0) > 0) = 0 and not (count (first it.3).6 > 0 and count up first (first it.3).6 > 0 and first (first up first (first it.3).6).3 = (first (first it.6.5).3) and \"invitation\" in (first up first (first it.3).6).0)) * first epoch.9.0.2.1"
       ],
       [
         "X.6.3"
@@ -2347,7 +2347,7 @@
         "epoch.1.2.1"
       ],
       [
-        "=last (((first (first it.6.5).3).3 where it2.1 = first it.6.3).2 where first it2.0 = first epoch.1.2.1.(first it.6.3).2.0 and first it2.1 = first epoch.1.2.1.(first it.6.3).2.1 and count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count (first it3.6).8.7 = count (first it3.6).8.8) = 0 or count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count (first it3.6).8.7 = count (first it3.6).8.8) > 0 and first it2.0 = first (payload(last ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count (first it3.6).8.7 = count (first it3.6).8.8))).0 and first it2.1 = first (payload(last ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count (first it3.6).8.7 = count (first it3.6).8.8))).1)"
+        "=last (((first (first it.6.5).3).3 where it2.1 = first it.6.3).2 where first it2.0 = first epoch.1.2.1.(first it.6.3).2.0 and first it2.1 = first epoch.1.2.1.(first it.6.3).2.1 and count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0) = 0 or count ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0) > 0 and first it2.0 = first (payload(last ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0))).0 and first it2.1 = first (payload(last ((down (first (first (first it.6.5).3).6)) where first it3.3 = (first (first it.6.5).3) and le(bytes(last (first it3.6).5)) >= 8240 and le(bytes(last (first it3.6).5)) <= 8249 and le(bytes(last (first it3.6).5)) = 8240 + first it.6.3 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0))).1)"
       ],
       [
         "X.6.2"
@@ -2518,7 +2518,7 @@
         "X.6.8.8"
       ],
       [
-        "=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count (first (first (up (first it2.6))).6).8.7 = count (first (first (up (first it2.6))).6).8.8 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and (first (first it2.6).6.2.0 != \"nothing\" or count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2) > 0 and count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2 and count (first it3.6).8.7 = count (first it3.6).8.8) = 0)"
+        "=before.3 where count it2.6 > 0 and count (up (first it2.6)) > 0 and \"invitation\" in (payload(first (up (first it2.6)))).0 and first (payload(first (up (first it2.6)))).5 = it and first (first (up (first it2.6))).3 = first it.3 and count ((first (first (up (first it2.6))).6).8.7 where not (it3 in (first (first (up (first it2.6))).6).8.8)) = 0 and count (it2.1 where R in it3.0.0.0 and it3.0.0.1 = first it.3 and it3.1 > 0) > 0 and (first (first it2.6).6.2.0 != \"nothing\" or count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2) > 0 and count ((down (first (first it.3).6)) where last (first it3.6).5 = \"3530000000\" and first (payload(it3)).0 = it2 and count ((first it3.6).8.7 where not (it4 in (first it3.6).8.8)) = 0) = 0)"
       ],
       [
         "X"

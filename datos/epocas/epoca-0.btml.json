@@ -286,15 +286,15 @@
       [["autorizada"], ["epoch.9.0.0"]],
       [
         ["autorizada"],
-        ["=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) > 0"]
+        ["=not (it in (first (first (up it)).4).8) and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) > 0"]
       ],
       [
         ["ejecutada"],
-        ["=not (it in (first (first (up it)).4).8) and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"]
+        ["=not (it in (first (first (up it)).4).8) and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) = 0"]
       ],
       [
         ["verificada"],
-        ["=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count (first it2.6).8.7 != count (first it2.6).8.8) = 0"]
+        ["=not (it in (first (first (up it)).4).8) and count (down it) > 0 and count ((down it) where not first (first it2.6).8.9) = 0 and count ((down it) where count ((first it2.6).8.7 where not (it3 in (first it2.6).8.8)) > 0) = 0"]
       ]
     ]
   ],

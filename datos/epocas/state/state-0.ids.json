@@ -1,6 +1,6 @@
 {
-  "epoca": "b88d6c740b931068587f5ba5685ed4417232a820f9bfecb684d650860ef46aca",
-  "hereda": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0",
+  "epoca": "6ccd224cb91bb5c564577f0fc3ed8daf70adbcd75bbcdffc2e54540c75404d5d",
+  "hereda": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580",
   "registrosAlPublicar": 66,
   "reglas": [
     {
@@ -36,7 +36,7 @@
     {
       "nombre": "attention group",
       "archivo": "attention-group.json",
-      "id": "a354167b92b3255a435601be3563047f5e49088d193a4548adaafb1bba7f800d"
+      "id": "c3a676d5e3564645ba82c543ab0a31fab528eb94a09ce17cad5ee60a884c9527"
     },
     {
       "nombre": "attention has a price",
@@ -46,7 +46,7 @@
     {
       "nombre": "attention price",
       "archivo": "attention-price.json",
-      "id": "e2ddc254144f553a71441191e13c6182db69d5861719998af1398fd872e46a73"
+      "id": "1cb1534be702cc01010b89eec972af834f08819533038bd9266b61153478ef29"
     },
     {
       "nombre": "conversation archived",
@@ -71,7 +71,7 @@
     {
       "nombre": "current connections",
       "archivo": "current-connections.json",
-      "id": "ed7d8649de8cbb2a3ec7ca708239a08aaba03054f7c4cd09d1fb4d9b3401b61f"
+      "id": "867271e492eeadfa84ca9bb7b82b141d45bf3cd186abe8f4814671e372dd32e7"
     },
     {
       "nombre": "delivery",
