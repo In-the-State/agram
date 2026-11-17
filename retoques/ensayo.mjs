@@ -36,7 +36,7 @@ import { crearApi, hashDeClave, ORIGENES } from '../servidor/supabase/funciones/
 import { crearArchivos } from '../servidor/supabase/funciones/archivos/api.js';
 import { generarClaves, publicaDe } from '../src/autoridad.js';
 import { sincronia, salida } from '../src/index.js';
-import { volcar, correspondenciaDe } from '../ejemplos/volcado/volcar.mjs';
+import { volcar, correspondenciaDe, comprobarTabla } from '../ejemplos/volcado/volcar.mjs';
 import * as cuentas from '../carta/cuentas.js';
 import { preferencias } from '../carta/carta.js';
 import { epocaGuiaLibro } from '../datos/epocas/guia-libro/generar.mjs';
@@ -99,6 +99,7 @@ export async function clavesDelEnsayo(ruta, tabla, corr) {
     const bruto = f?.[corr.columnas.cosa];
     if (bruto === undefined || bruto === null || String(bruto).trim() === '') continue;
     const c = String(corr.nombres[bruto] ?? bruto);
+    if (c === corr.duena) continue; // la casa de la dueña firma con la clave de la dueña
     if (!claves.cosas[c]?.privada) { claves.cosas[c] = await generarClaves(); cambia = true; }
   }
   if (cambia) escribirJson(ruta, claves);
@@ -168,7 +169,10 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
   let S;
   let ultimo;
   const yaHay = Boolean(await almacen.eje(EJE)) && !(await almacen.vacio(EJE));
+  // Las comprobaciones de la tabla (dependencias y topes del detalle, VG 17-11): si fallan, no se vuelca nada.
+  const errores = comprobarTabla(tabla, corr);
   if (!yaHay) {
+    if (errores.length) throw new Error('ensayo: la tabla no se vuelca: ' + errores.join('; '));
     if ((await almacen.eje(EJE)) && !estado.claveLectura) throw new Error('ensayo: el almacén tiene el eje sin su clave de lectura: borra compartido.json de la carpeta del ensayo');
     if (!(await almacen.eje(EJE))) {
       const r = await dentro(new Request(BASE_INTERNA + '/ejes', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Crear-Ejes': secreto }, body: JSON.stringify({ eje: EJE }) }));
@@ -235,9 +239,12 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
       await subir(S, eje);
     }
     ultimo = { pasadas: 0, escritos: 0, avisos: 0, filas: [] };
-    if (estado.tabla !== sha(textoTabla)) {
+    if (errores.length) decir('ensayo: la tabla no se vuelca (' + errores.length + ' errores): ' + errores.join('; ') + '; el libro sigue como estaba');
+    else if (estado.tabla !== sha(textoTabla)) {
       const cambiadas = tabla.map((f) => idDe(f)).filter((id) => id !== undefined && id !== null).map(String)
         .filter((id) => estado.filas?.[id] !== huellaDeFila(tabla.find((f) => String(idDe(f)) === id)));
+      // Las filas que dependen de una cambiada: su nota de detalle copia el texto de aquella (VG 17-11).
+      if (corr.columnas.depende) for (const f of tabla) if (idDe(f) !== undefined && !cambiadas.includes(String(idDe(f))) && [].concat(f?.[corr.columnas.depende] ?? []).some((d) => cambiadas.includes(String(d)))) cambiadas.push(String(idDe(f)));
       if (cambiadas.length) {
         const sim = await volcar(eje, tabla, opcionesVolcado(iso(ahora().getTime()), { filas: cambiadas, simular: true }));
         const t = Math.floor(ahora().getTime() / 1000) * 1000 - (sim.escritos.length + sim.noPuede.length + 10) * 1000;

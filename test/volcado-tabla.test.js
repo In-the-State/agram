@@ -9,7 +9,7 @@ import { Eje } from '../src/eje.js';
 import { cerrado } from '../src/motor.js';
 import * as A from '../src/acciones.js';
 import { generarClaves } from '../src/autoridad.js';
-import { volcar, leerLibro, estacionDe, correspondenciaDe, pintar, PLANTILLAS } from '../ejemplos/volcado/volcar.mjs';
+import { volcar, leerLibro, estacionDe, correspondenciaDe, pintar, PLANTILLAS, notaDeDetalle, comprobarTabla, NOTA, TOPES } from '../ejemplos/volcado/volcar.mjs';
 
 const CORR = {
   columnas: { id: 'ref', cosa: 'equipo', proyecto: 'bloque', texto: 'que', fase: 'etapa', datos: ['ronda', 'nota'] },
@@ -142,6 +142,9 @@ test('volcar: la correspondencia del roadmap se lee y una fase que lleva a otro 
   const c = correspondenciaDe(JSON.parse(readFileSync(new URL('../ejemplos/volcado/correspondencia-roadmap.json', import.meta.url), 'utf8')));
   assert.deepEqual(Object.values(c.fases), ['propuesta', 'autorizada', 'ejecutada', 'cerrada']);
   assert.equal(c.como, 'personas', 'el roadmap: las casas como personas invitadas (VG 17-11)');
+  assert.equal(c.duena, 'VG', 'el roadmap: la casa de la dueña');
+  assert.deepEqual(['base', 'pasos', 'detalle', 'quien', 'depende'].map((k) => c.columnas[k]), ['base', 'pasos', 'detalle', 'quien', 'depende']);
+  assert.throws(() => correspondenciaDe({ ...CORR, columnas: { ...CORR.columnas, id: 'base' } }), /etiqueta de la nota/);
   assert.equal(correspondenciaDe(CORR).como, 'cosas', 'el defecto sigue siendo cosas');
   assert.throws(() => correspondenciaDe({ ...CORR, como: 'grupos' }), /«como» es cosas o personas/);
   assert.throws(() => correspondenciaDe({ ...CORR, fases: { hecho: 'terminada' } }), /no es un paso/);
@@ -303,4 +306,135 @@ test('volcar como personas (seguridad): una persona ajena con el nombre de una c
   // Sin clave conocida de Alfa (simulación): la invitó vg, ni la dueña ni el autor del génesis.
   const sim = await volcar(eje, TABLA, { claves: { duena: claves.duena, cosas: {} }, correspondencia: PERSONAS, t: DIA(1, 10), simular: true });
   assert.ok(sim.noPuede.some((x) => x.paso.cosa === 'Alfa' && x.motivo === 'el nombre Alfa ya es de otra persona en este libro'));
+});
+
+// ---------- la casa de la dueña y la nota de detalle (VG 17-11) ----------
+
+const DETALLE = { ...PERSONAS, duena: 'Jefa', columnas: { ...CORR.columnas, base: 'base', pasos: 'pasos', detalle: 'detalle', quien: 'quien', depende: 'depende' } };
+const conDetalle = (f, extra) => ({ ...f, ...extra });
+const PASOS_J1 = [{ hace: 'Arrancar el servidor inventado', comando: 'node servidor.mjs --puerto 9999 {sin hueco}', ruta: 'retoques/', ve: 'la portada' }, { hace: 'Abrir la tarea' }];
+const TABLA_D = [
+  ...TABLA,
+  conDetalle(fila('j1', 'Jefa', 'Lo mío', 'Probar la carta inventada', 'lista'), { base: 'Lo pide la dueña', pasos: PASOS_J1, quien: 'Core Inventado', depende: ['a1', 'b1'] }),
+  conDetalle(fila('j2', 'Jefa', 'Lo mío', 'Revisar la nota', 'pendiente'), { detalle: 'primera línea\nsegunda línea', depende: ['j1'] }),
+];
+
+test('la casa de la dueña: no se invita; sus proyectos cuelgan del alta de la dueña y sus filas las escribe ella con su clave; repetir no escribe', async () => {
+  const { eje, claves } = await preparar();
+  const uno = await volcar(eje, TABLA_D, { claves, correspondencia: DETALLE, t: DIA(1) });
+  assert.deepEqual([uno.noPuede, uno.paraLaDuena], [[], []]);
+  assert.ok(!uno.escritos.some((e) => e.cosa === 'Jefa' && (e.tipo === 'invitacion' || e.tipo === 'alta')), 'ni invitación ni alta');
+  assert.ok(!eje.alta('Jefa'));
+  const libro = leerLibro(eje, 'duena', correspondenciaDe(DETALLE));
+  for (const [ref, estacion] of [['j1', 'ejecutada'], ['j2', 'propuesta']]) {
+    const t = libro.tareas.get(ref);
+    const ev = eje.obtener(t.id);
+    assert.deepEqual([t.cosa, ev.autor, ev.firmante, eje.obtener(ev.sobre).sobre], ['Jefa', 'duena', 'duena', eje.genesisId], ref + ': de la dueña, colgada de su alta');
+    assert.equal(estacionDe(eje, t.id), estacion, ref);
+  }
+  assert.ok(uno.escritos.filter((e) => e.cosa === 'Jefa').every((e) => e.quien === 'duena'));
+  const antes = eje.orden.length;
+  const dos = await volcar(eje, TABLA_D, { claves, correspondencia: DETALLE, t: DIA(2) });
+  assert.deepEqual([dos.escritos.length, eje.orden.length], [0, antes]);
+  // Sin la clave de la dueña: sus filas no se firman; quedan para ella.
+  const otro = await preparar();
+  const sin = await volcar(otro.eje, TABLA_D, { claves: { cosas: otro.claves.cosas }, correspondencia: DETALLE, t: DIA(1) });
+  assert.ok(sin.paraLaDuena.includes('volcar las filas de Jefa (la casa de la dueña) con su clave'), JSON.stringify(sin.paraLaDuena));
+  const deJefa = sin.noPuede.filter((x) => x.paso.cosa === 'Jefa');
+  assert.ok(deJefa.length > 0 && deJefa.every((x) => x.motivo === 'sin la clave de la dueña'));
+  assert.ok(!sin.escritos.some((e) => e.cosa === 'Jefa'));
+});
+
+test('la nota de detalle: una por fila con detalle, escrita por su casa; la lectura pura la parte; no es una corrección; repetir no escribe; un cambio escribe otra; retirarla escribe una vacía', async () => {
+  const { eje, claves } = await preparar();
+  const corr = correspondenciaDe(DETALLE);
+  const uno = await volcar(eje, TABLA_D, { claves, correspondencia: DETALLE, t: DIA(1) });
+  assert.deepEqual(uno.escritos.filter((e) => e.tipo === 'nota').map((e) => e.fila + ' ' + e.quien + ' ' + e.plantilla), ['j1 duena anchor here', 'j2 duena anchor here']);
+  const libro = leerLibro(eje, 'duena', corr);
+  const tarea = libro.tareas.get('j1');
+  const nota = eje.sobre(tarea.id, '0000000000').find((h) => h.payload[0][0] === NOTA.titulo);
+  assert.deepEqual(nota.payload[1], [
+    'nota de detalle: j1',
+    'base: Lo pide la dueña',
+    'paso 1: Arrancar el servidor inventado',
+    'paso 1 comando: node servidor.mjs --puerto 9999 {sin hueco}',
+    'paso 1 ruta: retoques/',
+    'paso 1 ve: la portada',
+    'paso 2: Abrir la tarea',
+    'quien: Core Inventado',
+    'depende a1: Escribir la guía',
+    'depende b1: Preparar la red',
+  ]);
+  const esperada = { fila: 'j1', base: 'Lo pide la dueña', pasos: PASOS_J1, detalle: [], quien: 'Core Inventado', depende: [{ id: 'a1', texto: 'Escribir la guía' }, { id: 'b1', texto: 'Preparar la red' }] };
+  assert.deepEqual(notaDeDetalle(eje, 'j1', { correspondencia: DETALLE }), esperada, 'por el id de la fila');
+  assert.deepEqual(notaDeDetalle(eje, tarea.id), esperada, 'por el registro de la tarea');
+  assert.deepEqual(notaDeDetalle(eje, 'j2', { columna: 'ref' }).detalle, ['primera línea', 'segunda línea']);
+  assert.equal(notaDeDetalle(eje, 'a1', { columna: 'ref' }), null, 'una fila sin detalle no tiene nota');
+  // No es una corrección: el texto y los datos de la tarea siguen siendo los de la tabla.
+  assert.deepEqual([tarea.texto, tarea.datos.ref], ['Probar la carta inventada', 'j1']);
+  // Repetir: nada.
+  const antes = eje.orden.length;
+  assert.equal((await volcar(eje, TABLA_D, { claves, correspondencia: DETALLE, t: DIA(2) })).escritos.length, 0);
+  assert.equal(eje.orden.length, antes);
+  // Cambia el detalle de j1 y el texto de j2 (su nota no cambia: depende de j1, cuyo texto no cambia): una nota y una corrección.
+  const cambiada = TABLA_D.map((f) => (f.ref === 'j1' ? { ...f, quien: 'Core Otro' } : f.ref === 'j2' ? { ...f, que: 'Revisar la nota otra vez' } : f));
+  const dos = await volcar(eje, cambiada, { claves, correspondencia: DETALLE, t: DIA(2, 10) });
+  assert.deepEqual(dos.escritos.map((e) => e.fila + ' ' + e.tipo), ['j1 nota', 'j2 correccion']);
+  assert.equal(notaDeDetalle(eje, 'j1', { columna: 'ref' }).quien, 'Core Otro', 'manda la última');
+  const l2 = leerLibro(eje, 'duena', corr);
+  assert.equal(l2.tareas.get('j2').texto, 'Revisar la nota otra vez', 'la corrección se lee; la nota no la tapa');
+  assert.equal(l2.tareas.get('j1').texto, 'Probar la carta inventada', 'la nota posterior no cuenta como corrección');
+  // Cambia el texto de a1: la nota de j1 (que depende de a1) se reescribe con el texto nuevo.
+  const conA1 = cambiada.map((f) => (f.ref === 'a1' ? { ...f, que: 'Escribir la guía entera' } : f));
+  const tres = await volcar(eje, conA1, { claves, correspondencia: DETALLE, t: DIA(2, 11) });
+  assert.deepEqual(tres.escritos.map((e) => e.fila + ' ' + e.tipo), ['a1 correccion', 'j1 nota']);
+  assert.deepEqual(notaDeDetalle(eje, 'j1', { columna: 'ref' }).depende[0], { id: 'a1', texto: 'Escribir la guía entera' });
+  // Retirada: la tabla quita todo el detalle de j1 (y j2 deja de depender): una nota vacía que lo dice; la lectura da null; repetir no escribe.
+  const sinDetalle = conA1.map((f) => (f.ref === 'j1' ? fila('j1', 'Jefa', 'Lo mío', 'Probar la carta inventada', 'lista') : f));
+  const cuatro = await volcar(eje, sinDetalle, { claves, correspondencia: DETALLE, t: DIA(2, 12) });
+  assert.deepEqual(cuatro.escritos.map((e) => e.fila + ' ' + e.tipo), ['j1 nota']);
+  const vacia = eje.obtener(cuatro.escritos[0].id);
+  assert.deepEqual(vacia.payload[1], ['nota de detalle: j1', 'sin detalle: la tabla ya no da detalle de esta fila']);
+  assert.equal(notaDeDetalle(eje, 'j1', { columna: 'ref' }), null);
+  assert.equal((await volcar(eje, sinDetalle, { claves, correspondencia: DETALLE, t: DIA(2, 13) })).escritos.length, 0);
+});
+
+test('las comprobaciones de la tabla: un id de «depende» que no existe, una fila que depende de sí misma, un ciclo y un tope: no se escribe nada y el aviso lo dice', async () => {
+  const corr = correspondenciaDe(DETALLE);
+  const base = (extra) => [fila('x1', 'Alfa', 'Uno', 'Uno', 'pendiente'), conDetalle(fila('x2', 'Alfa', 'Uno', 'Dos', 'pendiente'), extra), fila('x3', 'Alfa', 'Uno', 'Tres', 'pendiente')];
+  assert.deepEqual(comprobarTabla(base({ depende: ['x1'] }), corr), []);
+  assert.deepEqual(comprobarTabla(base({ depende: ['x9'] }), corr), ['fila x2: depende de «x9», que no está en la tabla']);
+  assert.deepEqual(comprobarTabla(base({ depende: ['x2'] }), corr), ['fila x2: depende de sí misma']);
+  const ciclo = [conDetalle(fila('x1', 'Alfa', 'Uno', 'Uno', 'pendiente'), { depende: ['x3'] }), conDetalle(fila('x2', 'Alfa', 'Uno', 'Dos', 'pendiente'), { depende: ['x1'] }), conDetalle(fila('x3', 'Alfa', 'Uno', 'Tres', 'pendiente'), { depende: ['x2'] })];
+  assert.deepEqual(comprobarTabla(ciclo, corr), ['un ciclo de dependencias: x1 → x3 → x2 → x1']);
+  assert.deepEqual(comprobarTabla(base({ base: 'b'.repeat(TOPES.base + 1) }), corr), ['fila x2: la base pasa de ' + TOPES.base + ' caracteres']);
+  assert.deepEqual(comprobarTabla(base({ pasos: [{ comando: 'ls' }] }), corr), ['fila x2: el paso 1 no dice qué hace («hace»)']);
+  const { eje, claves } = await preparar();
+  for (const mala of [base({ depende: ['x9'] }), base({ depende: ['x2'] }), ciclo]) {
+    const antes = eje.orden.length;
+    const inf = await volcar(eje, mala, { claves, correspondencia: DETALLE, t: DIA(1) });
+    assert.deepEqual([inf.escritos.length, eje.orden.length], [0, antes], 'no se escribe nada');
+    assert.ok(inf.avisos.length > 0 && inf.avisos.every((a) => a.startsWith('la tabla no se vuelca: ')));
+    assert.match(pintar(inf), /^LA TABLA NO SE VUELCA/);
+  }
+});
+
+test('un libro volcado antes de este cambio: la tabla vieja con la correspondencia nueva no escribe nada; con detalle y filas de la dueña, solo lo nuevo', async () => {
+  const { eje, claves } = await preparar();
+  await volcar(eje, TABLA, { claves, correspondencia: PERSONAS, t: DIA(1) });
+  const antes = eje.orden.length;
+  const ids = [...eje.orden];
+  // La tabla de antes, sin columnas nuevas, con la correspondencia nueva: nada.
+  const igual = await volcar(eje, TABLA, { claves, correspondencia: DETALLE, t: DIA(2) });
+  assert.deepEqual([igual.escritos.length, eje.orden.length], [0, antes]);
+  // Con detalle en a2 y las filas de la dueña: solo la nota de a2 y lo de la dueña; lo escrito sigue igual.
+  const nueva = [...TABLA.map((f) => (f.ref === 'a2' ? { ...f, base: 'La guía la pidió alguien inventado', depende: ['a1'] } : f)), ...TABLA_D.slice(TABLA.length)];
+  const inf = await volcar(eje, nueva, { claves, correspondencia: DETALLE, t: DIA(2, 10) });
+  assert.ok(inf.escritos.every((e) => e.cosa === 'Jefa' || (e.fila === 'a2' && e.tipo === 'nota')), JSON.stringify(inf.escritos.map((e) => e.cosa + ' ' + e.tipo)));
+  assert.equal(inf.escritos.filter((e) => e.tipo === 'nota').length, 3);
+  assert.deepEqual(eje.orden.slice(0, antes), ids, 'lo de antes, igual y en su orden');
+  assert.equal(notaDeDetalle(eje, 'a2', { columna: 'ref' }).base, 'La guía la pidió alguien inventado');
+  // Un nombre de la dueña que ya tiene alta propia (volcado antes como otra casa): no se vuelca encima.
+  const conAlfa = await volcar(eje, nueva, { claves, correspondencia: { ...DETALLE, duena: 'Alfa' }, t: DIA(2, 11), simular: true });
+  assert.ok(conAlfa.noPuede.some((x) => x.motivo === 'el nombre Alfa ya tiene alta propia en este libro: la casa de la dueña no se vuelca encima'));
 });

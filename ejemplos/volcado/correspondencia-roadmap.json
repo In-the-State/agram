@@ -5,7 +5,15 @@
     "proyecto": "linea",
     "texto": "tarea",
     "fase": "fase",
-    "datos": ["sprint", "estado"]
+    "datos": [
+      "sprint",
+      "estado"
+    ],
+    "base": "base",
+    "pasos": "pasos",
+    "detalle": "detalle",
+    "quien": "quien",
+    "depende": "depende"
   },
   "fases": {
     "falta": "propuesta",
@@ -14,5 +22,6 @@
     "comprobado": "cerrada"
   },
   "minutosAnunciados": 1,
-  "como": "personas"
+  "como": "personas",
+  "duena": "VG"
 }
