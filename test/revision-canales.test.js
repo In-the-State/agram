@@ -49,8 +49,11 @@ async function nodo(desde = 6000) {
   return { eje, ids, t, intentar, hecho, aMano, persona, pSobre };
 }
 
-/** Un movimiento de P del agente (su origen). */
-const P_ = (ambito, cantidad, de, a, extra = {}) => ({ token: 'P', ambito, origen: AG, cantidad, de, a, ...extra });
+/** Un movimiento de P de `origen` (por defecto el agente). */
+const P_ = (ambito, cantidad, de, a, extra = {}, origen = AG) => ({ token: 'P', ambito, origen, cantidad, de, a, ...extra });
+
+/** El ancla del sí del dueño («let P come down here»): el 2.1 de la cosa. */
+const EN_EL_21 = '2100000000';
 
 /** p con una casa de 4 plazas (capacidad 4 en su 2), colgada de su alta, y una conversación con el agente de la casa. */
 async function casaDeP({ give } = {}) {
@@ -59,52 +62,143 @@ async function casaDeP({ give } = {}) {
   const alta = await n.persona(p);
   const conv = await n.hecho('open a conversation', n.ids.agenteCasa, { title: 'hola', ...(give ? { give } : {}) }, p);
   const casa = await escribirPagando(n.eje, { autor: p, sobre: alta, en: '1000000000', t: n.t(), movimientos: [pagaElCoste(p)], payload: [['casa'], ['de p'], [4]] }, claveDe(p).privada);
-  /** El agente lleva su P de la mirada 3 del alta de p a la casa: dos pasos (sube al alta, una décima; baja a la casa, una décima más). */
-  const llevarALaCasa = async () => {
-    const q = n.pSobre(AG, p);
-    assert.equal(await n.aMano(AG, conv.id, [['subo']], [P_(alta + '.3', q, AG, null), P_(alta, q / 10, null, AG)]), 'entra', 'sube');
-    assert.equal(await n.aMano(AG, conv.id, [['bajo']], [P_(alta, q / 10, AG, null), P_(casa.id, (q / 10) * 1.1, null, AG)]), 'entra', 'baja');
-    return n.eje.poderSobre(AG, casa.id);
+  /** `quien` (el agente u otro con P de la mirada 3 del alta de p, de origen `origen`) sube su P al alta: una décima. */
+  const subir = async (quien = AG, origen = quien, sobre = conv.id) => {
+    const q = n.eje.poderSobre(quien, alta); // todo en la mirada 3 del alta de p, donde nació
+    assert.equal(await n.aMano(quien, sobre, [['subo']], [P_(alta + '.3', q, quien, null, {}, origen), P_(alta, q / 10, null, quien, {}, origen)]), 'entra', 'subir no pide nada');
+    return q / 10;
   };
+  /** Baja `cuanto` de su P del alta de p a la casa (una décima más): 'entra' o el motivo del rechazo. */
+  const bajar = (cuanto, quien = AG, origen = quien, sobre = conv.id) => n.aMano(quien, sobre, [['bajo']], [P_(alta, cuanto, quien, null, {}, origen), P_(casa.id, cuanto * 1.1, null, quien, {}, origen)]);
+  /** El agente lleva su P de la mirada 3 del alta de p a la casa: sube (entra siempre) y baja (lo que diga la regla). */
+  const llevarALaCasa = async () => bajar(await subir());
+  /** El sí (o el no) del dueño `quien` sobre `X` para `whom`, con la plantilla. */
+  const si = (whom, answer = 'yes', X = casa.id, quien = p) => n.hecho('let P come down here', X, { whom, answer }, quien);
   /** Cuántas E puede emitir p sobre su casa, una a una (cada una bloquea 1 de su P sobre la casa, la cuota del tope). */
   const emiteP = async () => {
     let k = 0;
     while (k < 6 && (await n.intentar('issue E tied to X', casa.id, { denomination: 'noche', quantity: 1 }, p)).ok) k++;
     return k;
   };
-  return { ...n, p, alta, conv, casa, llevarALaCasa, emiteP };
+  return { ...n, p, alta, conv, casa, subir, bajar, llevarALaCasa, si, emiteP };
 }
+
+const SIN_SI = /P comes down to a thing of another with its owner's yes/;
+
+/** Quién tiene sí sobre una cosa (it = la cosa): los «let P come down here» vigentes de su dueño, el último por identidad, que dicen «yes». */
+const QUIEN_TIENE_SI = '(down it) where "let P come down here" in (payload(it2)).4 and first it2.3 = first it.3 and it2 = last ((down it) where "let P come down here" in (payload(it3)).4 and first it3.3 = first it.3 and first (payload(it3)).3.1 = first (payload(it2)).3.1) and "yes" in (payload(it2)).1.0 and not ("no" in (payload(it2)).1.0)';
 
 // ================================ HALLAZGOS ================================
 
 // ---------- CH1 (alto): el P de una conversación pesa sobre las cosas de quien la abrió ----------
+// Arreglado (VG 17-11, encargo «el P baja con el sí del dueño»): el P que nace de recibir R se queda en la mirada 3 del
+// alta de quien dio la R; solo baja a una cosa de otro con el sí de su dueño («let P come down here»), y lo mismo para
+// pasar P de una cosa de otro a otro titular (regla «P comes down to a thing of another with its owner's yes», época 0).
 
 test('CH1: control: sin agente de por medio, p emite las 4 plazas de su casa', async () => {
   const { emiteP } = await casaDeP();
   assert.equal(await emiteP(), 4);
 });
 
-test('CH1: con la R de abrir la conversación (una unidad), el agente lleva su P a la casa de p, se lo pasa a su dueño, el dueño emite E atada a la casa de p y p solo emite 2 de sus 4 plazas', {
-  todo: 'HALLAZGO CH1 (alto): «receiving R gives ten P on the root of its issuer» pone el P en la mirada 3 del alta de quien da la R, y «P is repositioned one step at a time» deja llevarlo a cualquier registro colgado de esa alta (sube al alta: 1; baja a la casa: 1,1). Con él, el agente (escribiendo a mano: «reposition P toward X» es de modo persona, la regla no) bloquea P en la casa o lo pasa a su dueño, y el dueño emite E atada a la casa de p («minting E needs P on its record» admite P de cualquier origen); las dos cosas entran en el tope y en la cuota de la casa (src/condiciones/tope.js: el total comprometido cuenta el P bloqueado de cualquiera con la salida en una serie atada al subárbol). Basta abrir una conversación. Arreglo mínimo (decide VG): que el P que nace de recibir R no salga de la mirada 3 del alta del emisor (no se reposiciona), o que la cuota y «minting E needs P on its record» solo cuenten P cuyo origen es quien escribió el registro o lo obtuvo escribiéndolo',
-}, async () => {
+test('CH1: con la R de abrir la conversación (una unidad), el agente intenta llevar su P a la casa de p, pasárselo a su dueño y que el dueño emita E atada a la casa: sin el sí de p no baja, y p emite sus 4 plazas', async () => {
   const c = await casaDeP();
-  assert.equal(c.pSobre(AG, c.p), 10, 'abrir: diez P sobre el alta de p');
-  assert.equal(await c.llevarALaCasa(), 1.1, 'el P de la conversación, en la casa de p');
-  assert.equal(await c.aMano(AG, c.conv.id, [['te lo paso']], [P_(c.casa.id, 1.1, AG, N.operador)]), 'entra', 'se lo pasa a su dueño (sigue siendo de origen el agente)');
+  assert.equal(c.pSobre(AG, c.p), 10, 'abrir: diez P sobre el alta de p (el P de la R se queda como está)');
+  assert.match(await c.llevarALaCasa(), SIN_SI, 'sin sí de p, no baja a la casa');
+  assert.equal(c.eje.poderSobre(AG, c.casa.id), 0);
+  assert.notEqual(await c.aMano(AG, c.conv.id, [['te lo paso']], [P_(c.casa.id, 1.1, AG, N.operador)]), 'entra', 'no tiene P en la casa que pasar');
   const r = await c.intentar('issue E tied to X', c.casa.id, { denomination: 'noche', quantity: 2, commitment: 1.1 }, N.operador);
-  assert.equal(r.ok, true, 'el operador emite 2 E atadas a la casa de p: ' + JSON.stringify(r.motivos?.map((x) => x.mensaje)));
+  assert.equal(r.ok, false, 'el operador no emite E atada a la casa de p');
   assert.equal(await c.emiteP(), 4, 'p sigue pudiendo emitir sus 4 plazas');
 });
 
-test('CH1: con «le doy 100» al abrir, el agente solo, bloqueando en la casa el P de la conversación (sin emitir nada), deja a p sin poder emitir ni una plaza', {
-  todo: 'HALLAZGO CH1 (alto), variante sin el dueño: el agente es una cosa y no emite («only persons mint»), pero su P bloqueado con la salida en una serie atada a la casa cuenta en el denominador de la cuota de p (1100 contra el 1 de p: cuota 0 de 4). El mismo arreglo que CH1',
-}, async () => {
+test('CH1: con el sí de p que nombra al agente, baja; pasárselo a su dueño pide un sí que nombre al dueño (sin él no entra, con él entra)', async () => {
+  const c = await casaDeP();
+  await c.si(AG);
+  assert.equal(await c.llevarALaCasa(), 'entra', 'con el sí que nombra al agente, baja');
+  assert.equal(c.eje.poderSobre(AG, c.casa.id), 1.1);
+  const pasar = () => c.aMano(AG, c.conv.id, [['te lo paso']], [P_(c.casa.id, 1.1, AG, N.operador)]);
+  assert.match(await pasar(), SIN_SI, 'sin un sí que nombre al dueño, no se lo pasa');
+  await c.si(N.operador);
+  assert.equal(await pasar(), 'entra', 'con el sí que nombra al dueño, entra');
+  assert.equal(c.eje.poderSobre(N.operador, c.casa.id), 1.1);
+});
+
+test('CH1: con «le doy 100» al abrir, el agente solo, intentando bloquear en la casa el P de la conversación: sin el sí de p no baja y p emite sus 4 plazas', async () => {
   const c = await casaDeP({ give: 100 });
   assert.equal(c.pSobre(AG, c.p), 1000, '«le doy 100» al abrir: mil P sobre el alta de p');
-  const enLaCasa = await c.llevarALaCasa();
-  assert.ok(Math.abs(enLaCasa - 110) < 1e-9, 'en la casa: ' + enLaCasa);
-  assert.equal(await c.aMano(AG, c.conv.id, [['bloqueo']], [P_(c.casa.id, enLaCasa, AG, AG, { estado: 'bloqueo', salida: 'E:' + c.p + '/noche@' + c.casa.id })]), 'entra', 'lo bloquea con la salida de la serie de p');
+  const arriba = await c.subir();
+  assert.match(await c.bajar(arriba), SIN_SI, 'sin sí, no baja a la casa');
+  assert.notEqual(await c.aMano(AG, c.conv.id, [['bloqueo']], [P_(c.casa.id, 110, AG, AG, { estado: 'bloqueo', salida: 'E:' + c.p + '/noche@' + c.casa.id })]), 'entra', 'no tiene P en la casa que bloquear');
   assert.equal(await c.emiteP(), 4, 'p sigue pudiendo emitir sus 4 plazas');
+});
+
+test('CH1: retirado el sí («no», del mismo dueño), el paso siguiente no entra y lo ya bajado sigue', async () => {
+  const c = await casaDeP({ give: 2 });
+  // La lectura de quién tiene sí sobre una cosa (docs/notas/R_EN_CANALES.md): los sí vigentes, el último del dueño por identidad.
+  const conSi = () => evaluar(QUIEN_TIENE_SI, new ContextoEje(c.eje, { epoch: c.eje.epoca() }), { sujeto: c.casa.id }).valor.map((r) => c.eje.obtener(r?.id ?? r).payload[3][1][0]);
+  assert.deepEqual(conSi(), []);
+  await c.si(AG);
+  await c.si(N.visita);
+  assert.deepEqual(conSi(), [AG, N.visita]);
+  const arriba = await c.subir();
+  assert.equal(await c.bajar(arriba / 2), 'entra', 'con el sí, baja la mitad');
+  const abajo = c.eje.poderSobre(AG, c.casa.id);
+  assert.ok(Math.abs(abajo - (arriba / 2) * 1.1) < 1e-9);
+  await c.si(AG, 'no');
+  assert.deepEqual(conSi(), [N.visita]);
+  assert.match(await c.bajar(arriba / 2), SIN_SI, 'retirado el sí, la otra mitad no baja');
+  assert.equal(c.eje.poderSobre(AG, c.casa.id), abajo, 'lo ya bajado sigue');
+  await c.si(AG, 'yes');
+  assert.deepEqual(conSi(), [N.visita, AG]);
+  assert.equal(await c.bajar(arriba / 2), 'entra', 'cuenta el último: otro sí lo vuelve a dejar');
+});
+
+test('CH1: una persona (no un agente) con P por R recibida de p, igual: sin el sí de p no baja a la casa, con él baja', async () => {
+  const c = await casaDeP();
+  const q = 'persona-q';
+  const altaQ = await c.persona(q);
+  await c.hecho('give own R', altaQ, { amount: 2 }, c.p);
+  assert.equal(c.pSobre(q, c.p), 20, 'q recibe R de p: veinte P sobre el alta de p');
+  // El P en la raíz donde nació (la mirada 3 del alta de p) se queda como está: pasarlo a otro no pide sí.
+  assert.equal(await c.aMano(q, altaQ, [['te paso voz']], [P_(c.alta + '.3', 5, q, N.operador, {}, q)]), 'entra', 'en su raíz, sin sí');
+  const arriba = await c.subir(q, q, altaQ);
+  assert.match(await c.bajar(arriba, q, q, altaQ), SIN_SI, 'sin sí, no baja');
+  await c.si(q);
+  assert.equal(await c.bajar(arriba, q, q, altaQ), 'entra', 'con el sí que nombra a q, baja');
+});
+
+test('CH1: un sí escrito por quien no es dueño de la cosa, o colgado de otra cosa, o que nombra a otro, no vale; tampoco una nota ajena colgada del sí', async () => {
+  const c = await casaDeP();
+  const delDueno = await c.si(N.visita);
+  // El operador copia a mano el sí de p, nombrando al agente, colgado de la casa: no es el dueño.
+  const copia = JSON.parse(JSON.stringify(delDueno.payload));
+  copia[3] = [[N.operador], [AG]];
+  assert.equal(await c.aMano(N.operador, c.casa.id, copia, [], EN_EL_21), 'entra', 'escribirlo, cualquiera lo escribe');
+  // p da el sí al agente, pero colgado de su alta (otra cosa).
+  await c.si(AG, 'yes', c.alta);
+  assert.match(await c.llevarALaCasa(), SIN_SI, 'ni el del operador ni el colgado del alta valen para la casa; el de la visita nombra a otro');
+  // Una nota del agente anclada en el 3 del sí de p a la visita, que «dice» yes y nombra al agente: no es el payload del sí.
+  assert.equal(await c.aMano(AG, delDueno.id, [['nota'], [['yes']], ['x'], [[AG], [AG]], ['let P come down here']], [], '3000000000'), 'entra');
+  assert.match(await c.bajar(c.eje.poderSobre(AG, c.alta)), SIN_SI, 'una nota ajena no da permiso');
+});
+
+test('CH1: restaurar, rehacer desde los eventos y reordenar dan los mismos veredictos', async () => {
+  const c = await casaDeP();
+  const siAG = await c.si(AG);
+  const arriba = await c.subir();
+  assert.equal(await c.bajar(arriba / 2), 'entra');
+  const bajada = c.eje.orden[c.eje.orden.length - 1];
+  const foto = (e) => [e.poderSobre(AG, c.casa.id), e.poderSobre(AG, c.alta)];
+  const esperada = foto(c.eje);
+  assert.deepEqual(foto(await restaurar(serializar(c.eje))), esperada, 'restaurado');
+  const desde = await Eje.desde(c.eje.orden.map((id) => c.eje.obtener(id)), { exigirFirmas: true });
+  assert.deepEqual(foto(desde), esperada, 'desde sus eventos');
+  // Con el paso de bajar delante del sí, el paso no entra (el sí aún no está).
+  const sinElSi = c.eje.orden.filter((id) => id !== siAG.id && id !== bajada);
+  const { rechazados } = await desde.reordenar([...sinElSi, bajada, siAG.id]);
+  assert.deepEqual(rechazados.map((x) => x.id), [bajada], 'reordenado: sin el sí delante, el paso de bajar se rechaza');
+  assert.match(rechazados[0].motivo, SIN_SI);
+  assert.equal(desde.poderSobre(AG, c.casa.id), 0);
 });
 
 // ---------- CH2 (medio, conocido): sin tope por conversación ----------
@@ -228,7 +322,8 @@ test('aguanta: el P del agente sobre p no alcanza una cuenta: en el libro del no
 
 test('aguanta: el agente no emite E con el P de la conversación (es una cosa), ni en la casa de p ni en ninguna parte', async () => {
   const c = await casaDeP();
-  await c.llevarALaCasa();
+  await c.si(AG); // con el sí de p (encargo «el P baja con el sí del dueño»): el P de la conversación, en la casa
+  assert.equal(await c.llevarALaCasa(), 'entra');
   const r = await c.aMano(AG, c.conv.id, [['acuño']], [{ token: 'E', emisor: AG, denominacion: 'noche', registro: c.casa.id, cantidad: 1, de: null, a: AG }]);
   assert.match(r, /only persons mint/);
 });

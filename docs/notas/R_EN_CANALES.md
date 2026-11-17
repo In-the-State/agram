@@ -37,5 +37,24 @@ En los mensajes, si se escribe el 1.5, el 1.3 y el 1.4 que falten van como `-` (
 ## Límites conocidos
 
 - **No hay tope por conversación.** La R es de una persona o de un servicio, no de un chat: lo que un agente acumula con diez chats de Telegram (todos con R del servicio) lo puede gastar en uno solo. Hacerlo por conversación pediría una regla que cuente dentro de cada conversación (entradas menos salidas); no se ha construido.
-- **La R recibida sigue dando P** (VG, sin excepción). Medido: el P del agente sobre quien le da R no crece con las vueltas (diez vueltas en la casa: 10; «le doy 3»: 40); agente con agente, 0 sobre el dueño del otro. Dato para la revisión de seguridad.
+- **La R recibida sigue dando P** (VG, sin excepción). Medido: el P del agente sobre quien le da R no crece con las vueltas (diez vueltas en la casa: 10; «le doy 3»: 40); agente con agente, 0 sobre el dueño del otro. Dato para la revisión de seguridad. Ese P ya no baja a las cosas de quien dio la R sin su sí: el apartado siguiente.
 - La carta no cambia: «hablas con el agente de tal persona» es un dato que ya está (quien escribió el alta del agente).
+
+## El P de la R solo baja a una cosa de otro con el sí de su dueño (VG 17-11; CH1)
+
+La revisión de los canales (CH1 de `test/revision-canales.test.js`) encontró que con la R de abrir una conversación el agente llevaba su P a una cosa de quien la abrió (su casa de cuatro plazas), se lo pasaba a su dueño y el dueño emitía E atada a esa casa, quitándole plazas a la persona. Decidido por VG: el P que nace de recibir R se queda como está (en la mirada 3 del alta de quien dio la R, donde es voz y no ocupa nada); **solo baja a una cosa de otro con el sí de su dueño**, igual para personas y para agentes. Es de la época 0 (no es suelo).
+
+- **La regla** «P comes down to a thing of another with its owner's yes» (época 0, la última de la cadena del 8). Un registro que deja P en un registro X, sea por un paso de bajar (acuñar en X quemando en su padre, o en una mirada de X quemando en X entero) o por una transferencia de P posicionado en X a otro titular (con salida o sin ella), solo entra si quien queda con ese P es el dueño de X, o quien lo mueve es el dueño de X, o hay un sí vigente del dueño de X, colgado de X, que nombra a quien queda con él. El dueño de una cosa es **quien escribió su registro** (comprobado contra `src/condiciones/tope.js`: la capacidad que se ocupa es la que declara el registro de quien lo escribió, y «minting E needs P on its record» mira el P que quien acuña tiene en ese registro). Subir no pide nada. Tampoco la mirada 3 del alta de una persona: es la raíz donde nace el P de recibir su R (se puede pasar a otro ahí mismo, y sigue sin ocupar nada).
+- **Lo ya bajado se queda.** Retirar el sí corta los pasos nuevos; lo que ya está abajo sigue hasta que se libere. Que el dueño pueda echar ese P de vuelta a la raíz queda fuera (VG).
+- **Sin excepciones por tipo de identidad**: vale para cualquiera que tenga P sobre otro, persona o cosa con clave, y para lo escrito a mano.
+- **Coste acotado**: la regla se para en su primera comprobación si el registro no acuña ni transfiere P; si lo hace, mira solo lo que cuelga de X (`down X`) y el payload firmado de cada sí, nunca recorre el libro.
+
+**El gesto del dueño** (para la carta, que no se ha tocado): la plantilla **let P come down here** [2, 9] de la época 0, que se ofrece al dueño de X (su 2: `first it.3 = me`), en modo persona. Ancla en el **2.1** de X (donde se posiciona el P) y escribe: **1.0** `yes` o `no`, **2** el criterio, **3.0** quien responde (el dueño), **3.1 a quién deja bajar** (una identidad con alta: una persona o una cosa con clave, también un agente), **4** «let P come down here». No mueve nada salvo el coste de escribir. Para retirarlo, otro con `no` para la misma identidad: cuenta el último. `acciones.transaccion(eje, 'let P come down here', { X: cosa, whom: agente, answer: 'yes' }, dueño)`.
+
+**Quién tiene sí sobre una cosa** (con `it` = la cosa; da los registros del sí vigentes; la identidad es el 3.1 de su payload): no hay lectura con nombre en la época; esta expresión, que comprueba la prueba «retirado el sí», es la que la carta puede leer con `evaluar(…, ctx, { sujeto: cosa })`:
+
+```text
+(down it) where "let P come down here" in (payload(it2)).4 and first it2.3 = first it.3 and it2 = last ((down it) where "let P come down here" in (payload(it3)).4 and first it3.3 = first it.3 and first (payload(it3)).3.1 = first (payload(it2)).3.1) and "yes" in (payload(it2)).1.0 and not ("no" in (payload(it2)).1.0)
+```
+
+Pruebas: los casos CH1 de `test/revision-canales.test.js` (los dos que eran `todo` afirman ahora lo arreglado) y el modelo de `test/propiedades-2.test.js`.

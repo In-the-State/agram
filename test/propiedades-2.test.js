@@ -119,6 +119,15 @@ class Modelo {
   persona(id) {
     return this.existe.has(id) && this.autorDe.get(this.alta.get(id)) === id;
   }
+  /**
+   * ¿Puede quedar P en el ámbito `ambito` con `queda` por mano de `mueve`, sin el sí de su dueño (VG 17-11)? Si el dueño
+   * del registro (quien lo escribió) es quien queda con él o quien lo mueve, o si es la mirada 3 del alta de una persona.
+   */
+  bajaSinSi(ambito, queda, mueve) {
+    const raiz = raizDeAmbito(ambito);
+    const dueno = this.autorDe.get(raiz);
+    return dueno === queda || dueno === mueve || (ambito === raiz + '.3' && this.alta.get(dueno) === raiz);
+  }
   formaMov(m) {
     if (!['E', 'P', 'R', 'T'].includes(m.token) || !(Number.isFinite(m.cantidad) && m.cantidad > 0)) return false;
     if (m.token === 'T' && (!ESCALAS.includes(m.escala) || !Number.isSafeInteger(m.cantidad))) return false;
@@ -198,7 +207,12 @@ class Modelo {
       const sube = this.padre.get(B[0].ambito) === M[0].ambito && cerca(sM, sB * 0.1);
       const baja = this.padre.get(M[0].ambito) === B[0].ambito && cerca(sM, sB * 1.1);
       if (!sube && !baja) return false;
+      // P comes down to a thing of another with its owner's yes (VG 17-11): bajar a un registro de otro pide su sí (aquí
+      // nadie lo escribe), salvo a la mirada 3 del alta de una persona, la raíz donde nace el P de recibir su R.
+      if (!sube && !this.bajaSinSi(M[0].ambito, autor, autor)) return false;
     }
+    // Y transferir P posicionado en un registro de otro a otro titular, igual.
+    if (P.some((m) => m.de !== null && m.a !== null && m.estado === undefined && !this.bajaSinSi(m.ambito, m.a, autor))) return false;
     return true;
   }
   /** null si se rechaza; si no, la función que lo aplica. */

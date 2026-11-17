@@ -714,6 +714,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "251a9578f570b8e6bf6e0f80d5d67ad24c6af39f46d8cb3376f338e893d0d1cb"
+    },
+    {
+      "ref": "099363780e531b5004bb12249ba49f7019aa0150836c69c64e17b7d15512eaf6"
     }
   ],
   [
@@ -5897,6 +5900,7 @@ export const EPOCA_0_BTML_DATOS = [
           "not before the writer joined: {first ev.3} escribe en {first ev.6.0}, antes de entrar ({first (first (first ev.3).6).6.0})",
           "obligation: cuánta R de esta identidad tienen otros, disponible o bloqueada",
           "only persons mint: {first ev.3} es una cosa (su alta la escribió {first (first ev.3).6.3}), y solo acuñan las personas",
+          "P comes down to a thing of another with its owner's yes: {first ev.3} deja P en un registro de otro sin el sí de su dueño para quien se queda con él («let P come down here»)",
           "P is repositioned one step at a time: {first ev.3} acuña P que no es un paso de su propio P hacia arriba (una décima) o hacia abajo (una décima más), de un registro a su padre o a un hijo, conservando su origen",
           "P moves within a known scope: {first ((ev.1 where P in it.0.0.0 and not (it.0.0.1 in it.0.0.1.5)) each 0)} no nombra ningún registro del libro",
           "present: el registro quema T real de su autor (una escala que el calendario mide), o es el génesis",
@@ -6393,6 +6397,18 @@ export const EPOCA_0_BTML_DATOS = [
           "template reposition P toward X param who label: quién",
           "template reposition P toward X param who help: quién escribe",
           "template reposition P toward X message: {me} mueve {first ev.1.1} P un paso hacia {first it.0}",
+          "template let P come down here: dejar bajar P aquí",
+          "template let P come down here param whom label: a quién",
+          "template let P come down here param whom help: a quién dejo bajar P a X: una identidad con alta (una persona o una cosa con clave, también un agente)",
+          "template let P come down here param answer label: respuesta",
+          "template let P come down here param answer help: «yes» le deja; «no» retira un sí dado antes (cuenta el último; lo que ya bajó se queda)",
+          "template let P come down here param criteria label: criterio",
+          "template let P come down here param criteria help: la plantilla de cerrado del registro",
+          "template let P come down here param who label: quién",
+          "template let P come down here param who help: quién responde: el dueño de X",
+          "template let P come down here param actions label: acción",
+          "template let P come down here param actions help: la acción",
+          "template let P come down here message: {me} responde {first ev.1.0} a {last ev.3.1} para bajar P a {first it.0}",
           "template return R (ask for attention): devolver R (pedir atención)",
           "template return R (ask for attention) param text label: texto",
           "template return R (ask for attention) param text help: lo que pido",
@@ -7365,6 +7381,9 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "23c680184635442c34ecda01a0400852be6a3e697891b19487455f0bfcef4b54"
+        },
+        {
+          "ref": "46721c1e99cd9d3458ca177f61ebece770cd188c4b406e576983ac12aabf080b"
         },
         {
           "ref": "e42b5ccff63c250a2141612c893f7f9ee57bd468eebad887ed2b297721a936cb"
@@ -11489,6 +11508,48 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "only who proposed withdraws a change: {first ev.3} withdraws {first ev.6.5}, which is not an open proposed change of its own"
+      ]
+    ]
+  },
+  {
+    "archivo": "p-comes-down-to-a-thing-of-another-with-its-owner-s-yes.json",
+    "id": "099363780e531b5004bb12249ba49f7019aa0150836c69c64e17b7d15512eaf6",
+    "registro": [
+      [
+        "P comes down to a thing of another with its owner's yes"
+      ],
+      [
+        "\"let P come down here\"",
+        "\"yes\"",
+        "\"no\"",
+        "\"3\""
+      ],
+      [
+        "=count (ev.1 where P in it.0.0.0 and (mint in it.4 or transfer in it.4) and not (mint in it.4 and count (ev.1 where P in it2.0.0.0 and burn in it2.4 and it2.3.0 = first ev.3 and (first it.0.0.1 in up (first it2.0.0.1) or first it.0.0.1 = first it2.0.0.1 and count it.0.0.5 = 0 and count it2.0.0.5 > 0)) > 0) and not (count it.0.0.5 > 0 and text(json(first it.0.0.5)) = \"3\" and first (first (first (first it.0.0.1).3).6).5 = first it.0.0.1) and first (first it.0.0.1).3 != it.3.1 and first (first it.0.0.1).3 != first ev.3 and not (count ((down (first it.0.0.1)) where \"let P come down here\" in (payload(it2)).4 and first it2.3 = first (first it.0.0.1).3 and first (payload(it2)).3.1 = it.3.1) > 0 and \"yes\" in (payload(last ((down (first it.0.0.1)) where \"let P come down here\" in (payload(it2)).4 and first it2.3 = first (first it.0.0.1).3 and first (payload(it2)).3.1 = it.3.1))).1.0 and not (\"no\" in (payload(last ((down (first it.0.0.1)) where \"let P come down here\" in (payload(it2)).4 and first it2.3 = first (first it.0.0.1).3 and first (payload(it2)).3.1 = it.3.1))).1.0))) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 (encargo «el P baja con el sí del dueño», CH1 de test/revision-canales.test.js): el P que nace de recibir R se queda como está (nace en la mirada 3 del alta de quien dio la R y ahí es voz, no ocupa nada); lo que cambia es que solo baja a una cosa de otro con el sí de su dueño, igual para personas y para agentes, y también a lo escrito a mano. Época 0, no es suelo",
+        "Core AGRAM 17-11: el dueño de una cosa es quien escribió su registro (su 3, el primero). Un registro que deja P posicionado en un registro X (un paso de bajar de «P is repositioned one step at a time»: acuñar P en X quemándolo en su padre o en el registro entero, si X es una mirada; o una transferencia de P posicionado en X a otro titular, con salida o sin ella) solo entra si quien queda con ese P es el dueño de X, o quien lo mueve es el dueño de X, o hay un sí vigente del dueño de X colgado de X («let P come down here») que nombra en su 3.1 a quien queda con él: el último de ese dueño para esa identidad, que dice «yes» en su 1.0 (uno que dice «no» lo retira). Subir no pide nada (acuñar en el padre, o en el registro entero desde una mirada suya). La mirada 3 del alta de una persona (su alta la escribió ella), donde nace el P de recibir su R, tampoco: es la raíz donde ese P nació",
+        "Coste acotado: solo mira lo que cuelga de X (down X) y el payload firmado de cada registro (payload(…)), nunca recorre el libro; se para en su primera comprobación si el registro no acuña ni transfiere P. Lo ya bajado se queda: retirar el sí corta los pasos nuevos; lo que está abajo sigue hasta que se libere (que el dueño pueda echarlo de vuelta a la raíz queda fuera, VG). Regla aparte de «P is repositioned one step at a time» (más clara y más barata: aquella es larga y mira la forma del paso; esta, solo quién queda con el P)"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after only a receive hangs on the 4 of a brought record"
+      ],
+      [
+        "P comes down to a thing of another with its owner's yes: {first ev.3} leaves P on a record of another without the yes of its owner for whoever keeps it («let P come down here»)"
       ]
     ]
   },
@@ -17731,6 +17792,212 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "withdraw support: {me} withdraws its support from {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "let-p-come-down-here.json",
+    "id": "46721c1e99cd9d3458ca177f61ebece770cd188c4b406e576983ac12aabf080b",
+    "registro": [
+      [
+        "let P come down here"
+      ],
+      [
+        [
+          [
+            "whom"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "=it != me and count it.6 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el P baja con el sí del dueño», VG 17-11): parámetro de «let P come down here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "whom I let bring P down to X: an identity with an alta (a person or a thing with a key, an agent too)"
+          ]
+        ],
+        [
+          [
+            "answer"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"yes\" or it = \"no\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el P baja con el sí del dueño», VG 17-11): parámetro de «let P come down here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "yes",
+            "«yes» lets them; «no» withdraws a yes given before (the last one counts; what already came down stays)"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el P baja con el sí del dueño», VG 17-11): parámetro de «let P come down here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el P baja con el sí del dueño», VG 17-11): parámetro de «let P come down here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who answers: the owner of X"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «el P baja con el sí del dueño», VG 17-11): parámetro de «let P come down here»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "let P come down here",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «el P baja con el sí del dueño», VG 17-11; CH1 de test/revision-canales.test.js): el sí del dueño de una cosa para que alguien baje P a ella. Lo escribe el dueño de X (quien escribió su registro), colgado de X (en su 2.1, donde se posiciona el P), y nombra en su 3.1 a quién deja bajar (una identidad: una persona o una cosa con clave, también un agente); su 1.0 dice «yes» o «no». Retirarlo es escribir otro con «no» para la misma identidad: cuenta el último. Lo lee la regla «P comes down to a thing of another with its owner's yes», que solo mira lo que cuelga de X. No mueve nada (solo el coste de escribir)",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve o «write» si solo escribe; 5 el dígito (o camino) de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        "let P come down here: {me} answers {first ev.1.0} to {last ev.3.1} bringing P down to {first it.0}"
       ]
     ]
   },
@@ -27230,7 +27497,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "980e81336bf0290f12afb574c577286ea48f92a8cd26f51b6152b75ff31b6f6a";
+export const EPOCA_0_BTML_ID = "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
