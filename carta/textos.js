@@ -907,6 +907,9 @@ export const TEXTOS = Object.freeze({
     emparejarFirmaEnLaApp: 'Cada registro se confirma en la app del móvil.',
     emparejarTerminado: 'El emparejamiento con la app terminó. Vuelve a emparejar para escribir.',
     emparejarSeguir: 'Seguir',
+    // la confirmación dentro de la página (carta/confirmar.js: olvidar una cuenta, vaciar las opiniones)
+    confirmarSeguir: 'Seguir',
+    confirmarCancelar: 'Cancelar',
     emparejarTitulo: 'Emparejar con la app',
     emparejarAyuda: 'En la app, pide emparejar un navegador: enseña un QR. Léelo con la cámara o pega aquí su texto. Tu clave se queda en la app: desde aquí solo se proponen registros, y la app los firma.',
     emparejarUsarCamara: 'Leer el QR con la cámara',

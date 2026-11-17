@@ -13,7 +13,7 @@
 //                                               → «open a private book here» en el grande, con las claves de línea
 //   librosParaCopia(entradas, { guardian })     → mis libros abiertos, para la copia de todos
 
-import { Eje, contrato, acciones, autoridad } from '../src/index.js';
+import { Eje, contrato, acciones, autoridad, epocaEscritaDe } from '../src/index.js';
 import * as cuentas from './cuentas.js';
 import { enviar, motivosEnLlano, ceroDe } from './carta.js';
 import { clavesDeLinea } from './anfitrion.js';
@@ -103,7 +103,8 @@ export async function previaDelLibroPrivado(eje, X, yo, opciones = {}) {
  * Crea el libro pequeño con mi clave (crearCuenta con `conClave`: la misma persona, la misma identidad) y escribe en él
  * «this book hangs from» con el libro grande y el elemento X (su T, en su libro; por el camino de siempre: carta.js
  * enviar). Lo guarda en este navegador sin cambiar el libro abierto (`recordar: false`), con el nombre del elemento en su
- * entrada. Pide después al anfitrión las claves de línea del libro nuevo (anfitrion.clavesDeLinea; sin anfitrión que las
+ * entrada. Nace con las reglas que rigen en el grande (la época por referencia, docs/notas/LIBRO_PRIVADO.md): con la 0 del
+ * código sin cambios no escribe nada; con cambios, solo los cambios; con una época escrita, la escribe. Pide después al anfitrión las claves de línea del libro nuevo (anfitrion.clavesDeLinea; sin anfitrión que las
  * dé, ninguna). Con guardián, cada firma abre su diálogo (`dialogo`).
  *
  * `grande`: { eje, cuenta (la entrada abierta), privada } (camino A) o { eje, cuenta } con `guardian` (camino B).
@@ -115,7 +116,7 @@ export async function abrirLibroPrivado({ grande, X, nombre, guardian = null, t,
   const { eje, cuenta, privada } = grande ?? {};
   if (!eje || !cuenta || !eje.obtener(X)) throw new Error('no hay elemento del que colgar el libro');
   const conClave = guardian ? { publica: cuenta.publica } : { publica: cuenta.publica, privada };
-  const creado = await cuentas.crearCuenta({ nombre, idioma: idioma ?? cuenta.idioma, conClave, identidad: cuenta.identidad, ...(guardian ? { guardian, dialogo: true } : {}), ...(t ? { t } : {}) });
+  const creado = await cuentas.crearCuenta({ nombre, idioma: idioma ?? cuenta.idioma, conClave, epoca: epocaEscritaDe(eje.epoca(), { porReferencia: true }), identidad: cuenta.identidad, ...(guardian ? { guardian, dialogo: true } : {}), ...(t ? { t } : {}) });
   const p = creado.eje;
   const yo = creado.cuenta.identidad;
   const firmar = guardian ? autoridad.firmanteDeEventos(creado.firmante, { publica: creado.publica }) : cuentas.firmarCon(creado.privada);

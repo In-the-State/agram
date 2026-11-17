@@ -38,6 +38,7 @@ import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio
 import { Emparejamiento, almacenIndexedDB } from './emparejamiento.js';
 import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas } from './guardian-emparejado.js';
 import { instalar as instalarEmparejar } from './emparejar.js';
+import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
@@ -706,7 +707,7 @@ async function entrarEnCuenta(alta, { foco = null } = {}) {
     const nombre = r.cuenta?.nombre ?? alta.slice(0, 8);
     estado.aviso = r.antigua ? t('cuentaDeFirmasAntiguas', { nombre }) : t('cuentaNoAbre', { nombre, motivo: r.motivo });
     // Una cuenta de antes de las firmas BIP-340 no se abrirá nunca: se ofrece borrarla (con su confirmación).
-    if (r.antigua && globalThis.confirm?.(t('olvidarAntiguaConfirmar', { nombre }))) {
+    if (r.antigua && (await confirmarEnPagina(t('olvidarAntiguaConfirmar', { nombre })))) {
       cuentas.olvidarCuenta(alta, [r.cuenta.identidad]);
       estado.aviso = t('cuentaOlvidada', { nombre });
     }
@@ -2068,7 +2069,7 @@ const manejadores = {
   async olvidar() {
     const c = estado.cuenta;
     if (!c) return;
-    if (!globalThis.confirm(t('olvidarConfirmar', { nombre: c.nombre }))) return;
+    if (!(await confirmarEnPagina(t('olvidarConfirmar', { nombre: c.nombre })))) return;
     const ids = estado.eje?.identidades?.() ?? [c.identidad];
     estado.local = null; // su libro local no se vuelve a guardar
     cambiarDeEje(null, null);

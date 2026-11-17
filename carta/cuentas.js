@@ -170,6 +170,10 @@ export function camposDelAlta({ idioma, epoca } = {}) {
  * que ya tengo (§4.2): no se genera clave ni se pide cuenta nueva al guardián; el génesis lo firma esa clave. `identidad`:
  * la mía en el libro de donde vengo (la misma persona en los dos libros); sin ella, la que sale del nombre. `dialogo`
  * (con guardián): su diálogo se abre en cada firma. La cuenta lleva `libro`, el id de su génesis.
+ *
+ * `epoca` (opcional): la época con que nace el libro, en su forma escrita (la de `epocaEscritaDe`, también con `cambios` o
+ * `{ base, cambios }`: la época por referencia, docs/notas/VERSIONES.md §11); Eje.genesis la valida y la escribe. Sin ella,
+ * el génesis nombra la 0 que trae el código.
  */
 export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false, guardian = null, conClave = null, identidad = null, dialogo = false } = {}) {
   const limpio = String(nombre ?? '').trim();
@@ -207,10 +211,11 @@ async function crearEnGuardian({ guardian, nombre, publica: yaTengo = null, dial
 /** Lo común a los dos caminos: el génesis y lo que nace con él, firmado con `privada` (una clave o un firmante) y `firmar`. */
 async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar, alNacer = () => {}, identidad: propia = null }) {
   const identidad = propia ?? identidadDe(limpio, publica);
-  const eje = await Eje.genesis({ identidad, foco: limpio, t, clave: publica, privada });
+  const eje = await Eje.genesis({ identidad, foco: limpio, t, clave: publica, privada, ...(epoca ? { epoca } : {}) });
   alNacer(eje);
   const alta = eje.alta(identidad).id;
-  const o = epoca ? { epoca } : {};
+  // La época que se dio (escrita) ya vive en el eje: las lecturas de abajo la toman de él.
+  const o = {};
   // Los defectos del sitio (carta/sitio.js, `ajustes`: { <clave del ajuste>: valor }) nacen con la cuenta, en los mismos
   // registros de ajustes que escribiría la persona: las preferencias (con el idioma) y, aparte, «exterior settings».
   const propios = Object.fromEntries(Object.entries(ajustes ?? {}).filter(([k]) => esDePreferencias(k)));

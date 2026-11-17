@@ -236,11 +236,17 @@ export function libroDeLaFirma(eje, { canonico, id } = {}) {
  * decirlo en llano.
  */
 export function firmanteDeCuenta(g, publica, { eje = () => null, dialogo = false } = {}) {
+  // El libro que este firmante acaba de ver nacer: mientras aún no hay eje (un libro que nace escribiendo su época), los
+  // registros que siguen al génesis se firman diciendo ese libro, no «ninguno».
+  let nacido = null;
   const firmar = async ({ canonico, id }) => {
     firmar.error = null;
     try {
       const e = eje();
-      const r = await g.firmar({ publica, libro: libroDeLaFirma(e, { canonico, id }), canonico, id, segundoFactor: dialogo === true || segundoFactorDe(e, { canonico, id }) });
+      const delRegistro = libroDeLaFirma(e, { canonico, id });
+      if (!e?.genesisId && delRegistro) nacido = delRegistro;
+      const libro = delRegistro ?? (e?.genesisId ? null : nacido);
+      const r = await g.firmar({ publica, libro, canonico, id, segundoFactor: dialogo === true || segundoFactorDe(e, { canonico, id }) });
       // Lo que vuelve se comprueba aquí también (el núcleo lo vuelve a hacer), para que un fallo del guardián lleve `code`
       // y la carta lo diga en llano: otro id, id_mismatch; una firma que no es o no verifica con la cuenta, invalid_signature.
       const objeto = r !== null && typeof r === 'object';

@@ -12,13 +12,15 @@
 //   8. un «this book hangs from» escrito por quien no es el autor del génesis no cuenta;
 //   9. olvidar un libro no toca los otros;
 //  10. la copia de todos se restaura entera y, con una entrada rota, restaura las demás;
-//  11. al cambiar de libro, la sincronía de antes queda suelta.
+//  11. al cambiar de libro, la sincronía de antes queda suelta;
+//  12. el pequeño nace con las reglas del grande: con la 0 sin cambios no escribe época; con cambios, el mismo id y las mismas reglas.
 // Claves de PRUEBA, generadas en cada prueba; nada real.
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
-import { Eje, autoridad, persistencia, salida, acciones, contrato, sincronia } from '../src/index.js';
+import { Eje, autoridad, persistencia, salida, acciones, contrato, sincronia, epocaEscritaDe, EPOCA_0_BTML, idDeRegistro } from '../src/index.js';
+import * as V from '../src/versiones.js';
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { aHex, deHex } from '../src/cripto.js';
 import { quemaDelCoste } from '../src/escritura.js';
@@ -512,4 +514,127 @@ test('un libro privado sin claves de línea se abre y se dice llano que de él n
   const hecho = htmlLibroPrivado({ X: 'x'.repeat(64), nombre: 'Sala privada', elemento: 'sala', fase: 'hecho', sinClaves: true, entrar: 'a'.repeat(64), libro: 'b'.repeat(64) });
   assert.ok(hecho.includes(frase) && hecho.includes('data-falta'));
   assert.ok(hecho.includes('Creado el libro «Sala privada».'), 'creado, sin más');
+});
+
+// ---------- 12. el pequeño nace con las reglas del grande ----------
+
+/** Un cambio sobre la 0 del código (como test/epoca-por-referencia.test.js): más margen en la fila 7.3. */
+function cambioDePrueba() {
+  const B = EPOCA_0_BTML.id;
+  const m = { ref: B };
+  const cambio = { raiz: [['más margen'], m, m, m, m, m, [['propuesto en la prueba'], ['hereda'], [B]], [m, m, m, [[900], [7200]]]], registros: [] };
+  const fundida = V.fundirCambio(EPOCA_0_BTML, cambio);
+  assert.deepEqual(V.erroresDelSuelo(EPOCA_0_BTML, fundida.version), []);
+  return { cambio, fundida: fundida.version };
+}
+
+/** Lo que rige en una época: lo que se compara entre el libro grande y el pequeño. */
+const loQueRige = (e) => ({ id: e.id, reglas: e.reglasConId.map((x) => x.id), plantillas: e.transacciones.map((x) => x.id), registro: JSON.stringify(e.registro) });
+
+test('el libro pequeño nace con las reglas del grande: con la 0 sin cambios no escribe registros de época y su época es la 0', async () => {
+  await conAlmacen(async () => {
+    const g = await miLibro();
+    await Q.guardarCuenta(g);
+    assert.equal(g.eje.epoca(), EPOCA_0_BTML);
+    const r = await L.abrirLibroPrivado({ grande: { eje: g.eje, cuenta: g.cuenta, privada: g.privada }, X: g.sala.id, nombre: 'Sala privada', t: T(5) });
+    assert.equal(r.falta, undefined, JSON.stringify(r.motivos));
+    const p = r.pequeno.eje;
+    assert.equal(p.registrosDeLaEpoca.length, 0, 'ningún registro de época');
+    assert.equal(p.obtener(p.genesisId).contexto.epocaEscrita, undefined);
+    assert.equal(p.obtener(p.genesisId).contexto.epoca, EPOCA_0_BTML.id);
+    assert.equal(p.epoca().id, g.eje.epoca().id, 'el id de la 0');
+    assert.equal(p.epoca(), EPOCA_0_BTML);
+  });
+});
+
+test('el libro pequeño nace con las reglas del grande: un grande con una época con cambios da un pequeño con el mismo id de época y las mismas reglas, y solo escribe los cambios', async () => {
+  await conAlmacen(async () => {
+    const { cambio, fundida } = cambioDePrueba();
+    const escrita = epocaEscritaDe(fundida);
+    const c = await Q.crearCuenta({ nombre: 'Ana', t: T1, epoca: escrita });
+    assert.equal(c.eje.epoca().id, EPOCA_0_BTML.id, 'el grande nace con la 0 y un cambio');
+    assert.equal(c.eje.registrosDeLaEpoca.length, 1, 'el grande escribe su cambio');
+    const tx = await acciones.transaccion(c.eje, 'anchor here', { X: c.cuenta.alta, title: 'sala' }, c.cuenta.identidad, { t: T1, firmar: Q.firmarCon(c.privada) });
+    assert.equal(tx.ok, true, JSON.stringify(tx.motivos));
+    const sala = await c.eje.anadir(tx.evento);
+    await Q.guardarCuenta(c);
+    assert.deepEqual(loQueRige(c.eje.epoca()).registro.includes('900'), true, 'rige el cambio en el grande');
+    const previa = await L.previaDelLibroPrivado(c.eje, sala.id, c.cuenta.identidad, ES);
+    const r = await L.abrirLibroPrivado({ grande: { eje: c.eje, cuenta: c.cuenta, privada: c.privada }, X: sala.id, nombre: 'Sala privada', t: T(5) });
+    assert.equal(r.falta, undefined, JSON.stringify(r.motivos));
+    const p = r.pequeno.eje;
+    assert.equal(p.epoca().id, c.eje.epoca().id, 'el mismo id de época');
+    assert.deepEqual(loQueRige(p.epoca()), loQueRige(c.eje.epoca()), 'las mismas reglas');
+    assert.deepEqual(epocaEscritaDe(p.epoca()), epocaEscritaDe(c.eje.epoca()), 'y quien nazca de él, lo mismo');
+    assert.equal(p.registrosDeLaEpoca.length, 1, 'solo el cambio: la 0 no se escribe');
+    assert.equal(p.obtener(p.registrosDeLaEpoca[0]).contexto.raizDelCambio, true);
+    assert.equal(p.obtener(p.genesisId).contexto.epoca, EPOCA_0_BTML.id);
+    assert.equal(p.versiones().length, 1);
+    // El enlace sigue siendo el de siempre.
+    assert.deepEqual(contrato.cuelgaDe(p), { libro: c.eje.genesisId, elemento: sala.id, id: r.cuelga.id, t: T(5) });
+    // Lo que cuesta: la previa mide sobre un libro de prueba y lo pagado de verdad es lo que dijo la previa.
+    const pagado = r.cuelga.movimientos.filter((m) => m.token === 'T' && m.a === null).map((m) => ({ escala: m.escala, cantidad: m.cantidad }));
+    assert.deepEqual(pagado, previa.cuelga.denominacion, 'lo que se enseña antes es lo que se paga');
+    assert.equal((await Q.abrirCuenta(r.pequeno.cuenta.alta)).eje.epoca().id, c.eje.epoca().id, 'y al reabrirlo desde lo guardado, la misma época');
+  });
+});
+
+test('el libro pequeño con guardián (camino B): escribir la época con cambios añade una firma por registro de época, y cada una pide diálogo', async () => {
+  await conAlmacen(async () => {
+    const firmas = async (epoca) => {
+      const g = guardianDePrueba({ claves: [{ nivel: 1, clave: K1 }] });
+      const grande = await Q.crearCuenta({ nombre: 'Ana', t: T1, guardian: g, ...(epoca ? { epoca } : {}) });
+      const firmar = autoridad.firmanteDeEventos(firmanteDeCuenta(g, grande.publica, { eje: () => grande.eje }), { publica: grande.publica });
+      const tx = await acciones.transaccion(grande.eje, 'anchor here', { X: grande.cuenta.alta, title: 'sala' }, grande.cuenta.identidad, { t: T1, firmar });
+      const sala = await grande.eje.anadir(tx.evento);
+      await Q.guardarCuenta(grande);
+      const antes = g.llamadas.firmar.length;
+      const r = await L.abrirLibroPrivado({ grande: { eje: grande.eje, cuenta: grande.cuenta }, X: sala.id, nombre: 'Sala privada', guardian: g, t: T(5) });
+      assert.equal(r.falta, undefined, JSON.stringify(r.motivos));
+      const delPequeno = g.llamadas.firmar.slice(antes);
+      // Todas pasan por el diálogo, y todas dicen el libro que nace: también la de un registro de época, que se firma
+      // cuando aún no hay eje (el firmante recuerda el génesis que acaba de firmar).
+      assert.ok(delPequeno.every((f) => f.segundoFactor === true));
+      assert.ok(delPequeno.every((f) => f.libro === r.pequeno.eje.genesisId), 'cada firma dice el libro pequeño');
+      return { n: delPequeno.length, registros: r.pequeno.eje.registrosDeLaEpoca.length };
+    };
+    const sin = await firmas(null);
+    const con = await firmas(epocaEscritaDe(cambioDePrueba().fundida));
+    assert.deepEqual([sin.registros, con.registros], [0, 1]);
+    assert.equal(con.n - sin.n, 1, 'una firma más por cada registro de época que se escribe');
+    assert.deepEqual([sin.n, con.n], [2, 3], 'génesis y «this book hangs from»; con un cambio, además la raíz del cambio');
+  });
+});
+
+// ---------- 13. retirar un enlace ----------
+
+test('retirar un enlace: «withdraw a link» se ofrece solo a su autor, en el aro del enlace y en español; retirado, la carta deja de dar ese libro por enlazado', async () => {
+  const { grande, pequeno, sala, lanzar, entradaGrande, entradaPequeno } = await grandeYPequeno();
+  const enlace = grande.sobre(sala.id).find((h) => String(Array.isArray(h.payload?.[0]) ? h.payload[0][0] : h.payload?.[0]).startsWith('open a private book here'));
+  assert.ok(enlace, 'el anuncio está en el grande');
+  // En el aro del enlace (PV 4, donde ancla), con su nombre en español; solo a su autor.
+  const delAro = (eje, id, yo) => arbol({ foco: { X: id, pv: 0 }, aro: { X: id, pv: 4 } }, eje, yo, ORDENADOR, ES).then((a) => html(a));
+  const propio = await delAro(grande, enlace.id, 'ana');
+  assert.match(propio, /retirar un enlace/);
+  assert.deepEqual(acciones.acciones(grande, enlace.id, 4, 'ana', ES).filter((a) => a.nombre === 'withdraw a link').map((a) => a.etiqueta), ['retirar un enlace']);
+  assert.deepEqual(acciones.acciones(grande, enlace.id, 4, 'bea', ES).filter((a) => a.nombre === 'withdraw a link'), [], 'a otra persona no se le ofrece');
+  assert.doesNotMatch(await delAro(grande, enlace.id, 'bea'), /retirar un enlace/);
+  // El otro lado: «this book hangs from», en el 4 de su registro, también es de su autor.
+  const cuelga = pequeno.sobre(pequeno.genesisId).find((h) => String(Array.isArray(h.payload?.[0]) ? h.payload[0][0] : h.payload?.[0]).startsWith('this book hangs from'));
+  assert.deepEqual(acciones.acciones(pequeno, cuelga.id, 4, 'ana', ES).filter((a) => a.nombre === 'withdraw a link').map((a) => a.etiqueta), ['retirar un enlace']);
+  // Antes: enlazado y con «Entrar».
+  assert.equal(contrato.librosPrivados(grande, sala.id).length, 1);
+  const antes = await reverso(grande, sala.id, 'ana', { propios: [entradaGrande, entradaPequeno] });
+  assert.match(antes, /data-libro-entrar/);
+  assert.match(antes, /custodia-privado/);
+  // Retirado: el contrato lo deja fuera y la carta no lo da por enlazado (ni ajena ni propia).
+  const w = await lanzar(grande, 'withdraw a link', enlace.id, {}, 'ana', T(200));
+  assert.ok(w.id);
+  assert.deepEqual(contrato.librosPrivados(grande, sala.id), []);
+  assert.doesNotMatch(await reverso(grande, sala.id, 'bea', { propios: [] }), /custodia-privado|un libro privado/);
+  const despues = await reverso(grande, sala.id, 'ana', { propios: [entradaGrande, entradaPequeno] });
+  assert.doesNotMatch(despues, /un libro privado \(/, 'ya no consta en el grande');
+  assert.deepEqual(acciones.acciones(grande, enlace.id, 4, 'ana', ES).filter((a) => a.nombre === 'withdraw a link'), [], 'y no se retira dos veces');
+  assert.match(despues, /data-sin-anunciar/, 'mi libro sigue siendo mío, pero se dice sin anunciar (no enlazado)');
+  assert.doesNotMatch(despues, /data-no-reciproco/);
 });
