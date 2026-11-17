@@ -87,6 +87,27 @@ async function escribir(eje, X, nombre, valores, yo, firmar, opciones = {}) {
   return { ...r, motivos: motivosEnLlano(r.motivos, eje) };
 }
 
+// ---------- la prueba para traer, en memoria ----------
+
+/**
+ * Lo que da pruebaParaTraer, guardado por libro de origen (su eje), id del registro y tamaño del eje de origen, con las
+ * claves y el nivel pedidos: verificar las firmas de la cadena es lo caro, y la hoja se repinta a menudo. Solo vale
+ * mientras el sello del registro sea el mismo (eje.sello(id) da el mismo objeto hasta que llega otro).
+ */
+const PRUEBAS = new WeakMap();
+export function pruebaGuardada(origen, id, { lineas, nivel }) {
+  if (!origen || typeof origen !== 'object') return { prueba: null, falta: 'sello' };
+  let delLibro = PRUEBAS.get(origen);
+  if (!delLibro) PRUEBAS.set(origen, (delLibro = new Map()));
+  const llave = id + '|' + (origen.orden?.length ?? 0) + '|' + nivel + '|' + JSON.stringify(lineas ?? null);
+  const sello = origen.sello?.(id) ?? null;
+  const antes = delLibro.get(llave);
+  if (antes && antes.sello === sello) return antes.r;
+  const r = pruebaParaTraer(origen, id, { lineas, nivel });
+  delLibro.set(llave, { sello, r });
+  return r;
+}
+
 // ---------- los sellos guardados (sección 0) ----------
 
 /**
@@ -118,10 +139,32 @@ function sellosDe(eje, plan, claves) {
   const sellos = new Map();
   for (const p of plan.pasos) {
     if (p.que !== 'declarar' || p.estado !== 'hecho' || !p.id) continue;
-    const { prueba } = pruebaParaTraer(eje, p.id, { lineas: claves, nivel: nivelDelPuente(eje) });
+    const { prueba } = pruebaGuardada(eje, p.id, { lineas: claves, nivel: nivelDelPuente(eje) });
     if (prueba) sellos.set(p.id, prueba);
   }
   return sellos;
+}
+
+/** Lo que identifica una época cargada: su raíz fundida y los ids de sus registros (la misma versión da lo mismo). */
+const huellaDeEpoca = (e) => (e ? JSON.stringify(e.registro ?? null) + '|' + [...(e.registros?.keys?.() ?? [])].sort().join(',') : null);
+
+/**
+ * Con qué versión del libro viejo `eje` nació mi libro nuevo `nuevo`: si ya escribe de qué cuelga, el punto que anota (el
+ * registro que puso en vigor esa versión; sin punto, la de nacimiento); si no, la versión del viejo cuya época es la de
+ * nacimiento del nuevo. → 'vigente' (la última), 'antes' (la anterior), el número de otra versión, o null si no se sabe.
+ */
+export function puntoDelNuevo(eje, nuevo) {
+  const versiones = typeof eje?.versiones === 'function' ? eje.versiones() : [];
+  if (!nuevo || !versiones.length) return null;
+  let k = -1;
+  const c = contrato.cuelgaDe(nuevo);
+  if (c?.libro === eje.genesisId) k = c.punto ? versiones.findIndex((v) => v.registro === c.punto) : 0;
+  if (k < 0) {
+    const huella = huellaDeEpoca(nuevo.versiones?.()[0]?.version ?? nuevo.epoca?.());
+    k = versiones.findLastIndex((v) => huellaDeEpoca(v.version) === huella);
+  }
+  if (k < 0) return null;
+  return k === versiones.length - 1 ? 'vigente' : k === versiones.length - 2 ? 'antes' : k;
 }
 
 /**
@@ -137,7 +180,9 @@ export function salidaDe(eje, yo, { punto = 'vigente', nuevo = null, nombre, idi
   const o = { idioma: idiomaDe(eje, yo, { idioma }) };
   const versiones = typeof eje.versiones === 'function' ? eje.versiones() : [];
   const puntos = versiones.length > 1 ? ['vigente', 'antes'] : ['vigente'];
-  const elegido = puntos.includes(punto) ? punto : 'vigente';
+  // Con el libro nuevo ya nacido, el punto es el suyo (puntoDelNuevo), no el que diga la hoja.
+  const delNuevo = nuevo ? puntoDelNuevo(eje, nuevo) : null;
+  const elegido = delNuevo ?? (puntos.includes(punto) ? punto : 'vigente');
   const claves = clavesDeLineaDe(eje);
   const pedir = (sellos) => planDeSalida(eje, yo, { punto: elegido, claves: claves.length ? claves : 0, nuevo, sellos, ...(nombre ? { foco: nombre } : {}) });
   const plan = pedir(sellosDe(eje, pedir(new Map()), claves));
@@ -158,32 +203,35 @@ export function salidaDe(eje, yo, { punto = 'vigente', nuevo = null, nombre, idi
 
 /**
  * Mi libro nuevo de la salida del libro `libro`, entre las entradas de este dispositivo (cuentas.cuentas()): el de mi clave
- * que cuelga de ese libro desde mi alta (`elemento`), o, si todavía no escribe de qué cuelga, el que se llama `nombre` (el
- * foco con que nació). El más reciente si hay varios. → la entrada o null.
+ * cuya entrada lleva la marca de esta salida (`salidaDe`: el génesis del viejo, que pone abrirLibroDeSalida) o, si no la
+ * lleva (una entrada restaurada de antes), el que cuelga de ese libro desde mi alta (`elemento`). No se busca por nombre:
+ * cambiarlo no hace nacer otro. El más reciente si hay varios. → la entrada o null.
  */
-export function entradaDeLaSalida(entradas, { publica, libro, elemento, nombre } = {}) {
+export function entradaDeLaSalida(entradas, { publica, libro, elemento } = {}) {
   const mias = (Array.isArray(entradas) ? entradas : []).filter((e) => e && typeof e.alta === 'string' && cuentas.mismaClave(e.publica, publica) && e.libro !== libro);
-  const colgado = mias.filter((e) => e.cuelga?.libro === libro && e.cuelga?.elemento === elemento).at(-1);
-  return colgado ?? mias.filter((e) => !e.cuelga && nombre && e.nombre === nombre).at(-1) ?? null;
+  return mias.filter((e) => e.salidaDe === libro).at(-1) ?? mias.filter((e) => e.cuelga?.libro === libro && e.cuelga?.elemento === elemento).at(-1) ?? null;
 }
 
 /**
  * El paso del génesis: abre el libro nuevo con mi clave y la época que da el plan (la del viejo por referencia en el punto
  * elegido), por el camino de abrirLibroPrivado (cuentas.crearCuenta con `conClave`, la misma identidad) y lo guarda como otro
- * libro de esta cuenta, sin cambiar el abierto («Tus libros»). Con guardián, su firmante. → { cuenta, eje, privada?,
+ * libro de esta cuenta, sin cambiar el abierto («Tus libros»), con la marca `salidaDe` (el génesis del viejo, `viejo`) en su
+ * entrada: por ella se encuentra después (entradaDeLaSalida). Con guardián, su firmante. → { cuenta, eje, privada?,
  * firmante? }; si crear falla, lanza (nada se guarda).
  *
  * Sin idioma: nace sin ningún registro de ajustes. Un registro anclado en el 9 de su génesis (las preferencias con el
  * idioma, «exterior settings») hace que «a record is brought from a linked book» rechace traer a él (encontrado en este
  * encargo, sin tocar la época): la salida acabaría en el último paso. El idioma se cambia después, en su configuración.
  */
-export async function abrirLibroDeSalida({ cuenta, privada, guardian = null, paso, t } = {}) {
+export async function abrirLibroDeSalida({ cuenta, privada, guardian = null, paso, viejo, t } = {}) {
   if (paso?.que !== 'genesis' || paso.estado !== 'listo') throw new Error('el paso no es abrir el libro nuevo');
+  if (typeof viejo !== 'string' || !/^[0-9a-f]{64}$/.test(viejo)) throw new Error('falta el libro del que se sale');
   const { identidad, foco, epoca } = paso.params;
   const conClave = guardian ? { publica: cuenta.publica } : { publica: cuenta.publica, privada };
   const creado = await cuentas.crearCuenta({ nombre: String(hoja(foco)), conClave, epoca, identidad, ...(guardian ? { guardian, dialogo: true } : {}), ...(t ? { t } : {}) });
-  await cuentas.guardarCuenta({ cuenta: creado.cuenta, eje: creado.eje, privada: creado.privada }, { recordar: false });
-  return { cuenta: cuentas.entradaDe(creado.cuenta, creado.eje), eje: creado.eje, ...(guardian ? { firmante: creado.firmante } : { privada: creado.privada }) };
+  const marcada = { ...creado.cuenta, salidaDe: viejo };
+  await cuentas.guardarCuenta({ cuenta: marcada, eje: creado.eje, privada: creado.privada }, { recordar: false });
+  return { cuenta: cuentas.entradaDe(marcada, creado.eje), eje: creado.eje, ...(guardian ? { firmante: creado.firmante } : { privada: creado.privada }) };
 }
 
 /** Lo que cuesta un paso de escribir de la salida en su libro (`eje`), a la vista antes de confirmar, o null. */
@@ -272,6 +320,15 @@ export function loQueCruza(eje, yo, { idioma } = {}) {
   });
 }
 
+/**
+ * A qué libros se puede enviar `c` (una fila de loQueCruza) entre `enlaces` (los de enlacesDelLibro): los que ofrecen enviar
+ * y, para una serie forastera, solo el de su libro de origen. → [{ enlace, libro, nombre, grado, quien }].
+ */
+export function destinosDeEnvio(enlaces, c) {
+  if (!c) return [];
+  return (enlaces ?? []).filter((l) => l.enviar && (!c.soloA || l.libro === c.soloA)).map((l) => ({ enlace: l.id, libro: l.libro, nombre: l.nombre, grado: l.grado, quien: l.quienTexto || l.quien }));
+}
+
 /** Lo que cuesta enviar `cantidad` de `serie` por `enlace` a la clave `publica`, o null. */
 export function costeDelEnvio(eje, yo, { enlace, serie, cantidad, publica }, o = {}) {
   return costeDe(eje, enlace, PL.enviar, { series: serie, quantity: Number(cantidad), to: publica }, yo, o);
@@ -303,7 +360,7 @@ export function traibles(destino, enlace, origen, { max = 30, idioma } = {}) {
   let esperan = 0;
   for (const id of [...(origen.orden ?? [])].reverse()) {
     if (id === origen.genesisId || ya.has(id)) continue;
-    const { prueba } = pruebaParaTraer(origen, id, { lineas, nivel });
+    const { prueba } = pruebaGuardada(origen, id, { lineas, nivel });
     if (!prueba) { esperan += 1; continue; }
     if (lista.length >= max) continue;
     const ev = origen.obtener(id);
@@ -315,7 +372,7 @@ export function traibles(destino, enlace, origen, { max = 30, idioma } = {}) {
 /** «bring a record from another book»: el registro `id` de `origen`, con su prueba de sello, por `enlace`. → lo que da enviar. */
 export function traerDeOtroLibro(destino, yo, { enlace, origen, id, firmar, t } = {}) {
   const ev = origen?.obtener?.(id);
-  const { prueba } = ev ? pruebaParaTraer(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
+  const { prueba } = ev ? pruebaGuardada(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
   if (!ev || !prueba) return Promise.resolve({ ok: false, asentado: null, motivos: [], sinPrueba: true });
   return escribir(destino, enlace, PL.traer, { record: registroComoDecupla(ev), proof: prueba }, yo, firmar, { t });
 }
@@ -323,7 +380,7 @@ export function traerDeOtroLibro(destino, yo, { enlace, origen, id, firmar, t } 
 /** Lo que cuesta traer `id` de `origen` por `enlace`, o null. */
 export function costeDeTraer(destino, yo, { enlace, origen, id }, o = {}) {
   const ev = origen?.obtener?.(id);
-  const { prueba } = ev ? pruebaParaTraer(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
+  const { prueba } = ev ? pruebaGuardada(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
   return prueba ? costeDe(destino, enlace, PL.traer, { record: registroComoDecupla(ev), proof: prueba }, yo, o) : null;
 }
 

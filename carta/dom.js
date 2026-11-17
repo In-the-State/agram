@@ -1749,7 +1749,7 @@ export const textoDelPasoDeSalida = (p, nombre) => t('salidaPaso_' + p.que, { se
  */
 function htmlSalida(s) {
   const v = s.vista;
-  if (!v) return '';
+  if (!v) return s.error ? `<p class="aviso" role="alert" data-salida-error>${escapar(t('salidaNoSeLee', { motivo: s.error }))}</p>` : '';
   const lista = (xs, f) => `<ul class="salida-lista">${xs.map(f).join('')}</ul>`;
   const lleva = v.lleva.length ? lista(v.lleva, (x) => `<li data-serie="${attr(x.serie)}">${escapar(x.texto)}</li>`) : `<p class="ayuda">${escapar(t('salidaNada'))}</p>`;
   const noSeLleva = v.noSeLleva.length ? `<h3>${escapar(t('salidaNoSeLleva'))}</h3>${lista(v.noSeLleva, (x) => `<li data-serie="${attr(x.serie)}">${escapar(x.texto)} <small class="salida-causa">${escapar(x.causa)}</small></li>`)}` : '';
@@ -1760,7 +1760,7 @@ function htmlSalida(s) {
   const pasos = v.pasos.map((p) => `<li class="salida-paso" data-estado="${attr(p.estado)}" data-que="${attr(p.que)}"><span>${escapar(textoDelPasoDeSalida(p, s.nombre))}</span> <small>${escapar(t('salidaEnLibro_' + p.libro))}</small> · <small class="salida-estado">${escapar(t('salidaEstado_' + p.estado))}</small>${p.espera ? `<br><small class="salida-espera">${escapar(p.espera)}</small>` : ''}</li>`).join('');
   const todo = v.pasos.length && v.pasos.every((p) => p.estado === 'hecho');
   const siguiente = v.siguiente && !s.sinCuenta
-    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado ? 'disabled' : ''}>${escapar(s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
+    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado || s.buscando ? 'disabled' : ''}>${escapar(s.buscando ? t('salidaBuscando') : s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
     : '';
   return `<article class="salida"${nodo('reglas')} data-salida>
     <h3>${escapar(t('salidaAbrir'))}</h3>
@@ -1802,7 +1802,7 @@ function htmlEnlaceDelPuente(l) {
 /** Enviar algo mío a otro libro: la serie, a qué libro (entre los enlazados que cuentan) y cuánto, con el aviso antes de firmar. */
 function htmlEnviarDelPuente(e) {
   if (!e.destinos.length) return `<p class="aviso" data-sin-destino>${escapar(t('puenteSinDestino'))}</p>`;
-  const opciones = e.destinos.map((d) => `<option value="${attr(d.enlace)}"${d.enlace === e.elegido ? ' selected' : ''}>${escapar(d.nombre + (d.grado ? ' · ' + d.grado : ''))}</option>`).join('');
+  const opciones = e.destinos.map((d) => `<option value="${attr(d.enlace)}"${d.enlace === e.elegido ? ' selected' : ''}>${escapar(d.nombre + (d.grado ? ' · ' + d.grado : '') + (d.quien ? ' · ' + t('puenteDestinoQuien', { quien: d.quien }) : ''))}</option>`).join('');
   return `<form class="puente-enviar"${nodo('formulario')} data-puente-enviar-form>
     <input type="hidden" name="serie" value="${attr(e.serie)}">
     <p><b>${escapar(e.texto)}</b>${e.soloA ? ` <small>${escapar(t('puenteSoloVuelve', { libro: e.soloANombre ?? String(e.soloA).slice(0, 8) }))}</small>` : ''}</p>

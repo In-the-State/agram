@@ -6,7 +6,9 @@
 //      la carta pone en el eje las décuplas guardadas con la sincronía (sellosGuardados);
 //   1. «Irme con lo mío», recorrida paso a paso con dos libros de la misma cuenta; sin sello, la espera con su frase;
 //   2. el puente entre dos libros abiertos de la misma cuenta: el grado de cada enlace, traer, enviar y recibir; un enlace que
-//      no cuenta no ofrece nada; lo traído no fiable se dice y no se enseña; sin sello del otro libro, la espera con su frase.
+//      no cuenta no ofrece nada; lo traído no fiable se dice y no se enseña; sin sello del otro libro, la espera con su frase;
+//   3. los arreglos de la revisión: el punto vuelve del libro nuevo; la marca de la entrada no deja nacer un segundo libro;
+//      «sin destino» por el filtro de verdad; datos hostiles escapados; la prueba para traer, en memoria.
 // Claves y libros de PRUEBA, generados en cada prueba; nada real.
 
 import { test } from 'node:test';
@@ -16,6 +18,7 @@ import { Eje } from '../src/eje.js';
 import { generarClaves } from '../src/autoridad.js';
 import { PLANTILLAS_DEL_PUENTE as P, pruebaParaTraer, clavesDeLineaDe, paresDelEnlace, sinSello, porRecibir, registroComoDecupla, saldosDe, ESPERAS_DE_LA_SALIDA } from '../datos/epocas/puente.mjs';
 import { dosLibros } from '../ejemplos/puente.mjs';
+import { libroViejo, beaConLoSuyo, silenciarABea } from '../ejemplos/salida.mjs';
 import { selloEnCascada, declararExterior } from './ayudas-sello.js';
 import * as PU from '../carta/puente.js';
 import * as Q from '../carta/cuentas.js';
@@ -148,7 +151,7 @@ async function recorrerLaSalida(c, { sellar = true, punto } = {}) {
     const p = v.siguiente;
     if (!p) return { vista: v, nuevo };
     if (p.que === 'genesis') {
-      nuevo = await PU.abrirLibroDeSalida({ cuenta: c.cuenta, privada: c.privada, paso: p, t: reloj() });
+      nuevo = await PU.abrirLibroDeSalida({ cuenta: c.cuenta, privada: c.privada, paso: p, viejo: c.eje.genesisId, t: reloj() });
       continue;
     }
     const eje = p.libro === 'viejo' ? c.eje : nuevo.eje;
@@ -244,15 +247,15 @@ async function escribe(eje, X, nombre, valores, yo, firmar) {
  * línea: en A, «open a private book here» sobre la sala con las claves de B; en B, «this book hangs from» la sala de A con
  * las de A. Un «menú» en A con 5 E atadas a él.
  */
-async function dosLibrosMios() {
+async function dosLibrosMios({ nombreB = 'Ana privado', denominacion = 'plato' } = {}) {
   const A = await libroConSellador('Ana');
   const yo = A.cuenta.identidad;
   const firmarA = Q.firmarCon(A.privada);
   const sala = await escribe(A.eje, A.cuenta.alta, 'anchor here', { title: 'sala', content: 'la sala' }, yo, firmarA);
   const menu = await escribe(A.eje, sala.id, 'anchor here', { title: 'menú', content: 'el menú del sábado' }, yo, firmarA);
   await escribe(A.eje, A.cuenta.alta, 'give own R', { quantity: 1 }, yo, firmarA);
-  await escribe(A.eje, menu.id, 'issue E tied to X', { denomination: 'plato', quantity: 5 }, yo, firmarA);
-  const b = await Q.crearCuenta({ nombre: 'Ana privado', conClave: { publica: A.cuenta.publica, privada: A.privada }, identidad: yo, t: reloj() });
+  await escribe(A.eje, menu.id, 'issue E tied to X', { denomination: denominacion, quantity: 5 }, yo, firmarA);
+  const b = await Q.crearCuenta({ nombre: nombreB, conClave: { publica: A.cuenta.publica, privada: A.privada }, identidad: yo, t: reloj() });
   // Las claves de línea de B, anotadas en el enlace de A. B no declara «exterior settings»: un registro anclado en el 9 de su
   // génesis no deja traer a B (lo que se dice en el informe del encargo; sin tocar la época).
   const clavesB = { casa: await generarClaves(), sellador: await generarClaves() };
@@ -262,7 +265,7 @@ async function dosLibrosMios() {
   const cuelga = await escribe(b.eje, b.eje.genesisId, 'this book hangs from', { book: A.eje.genesisId, element: sala.id, 'line keys': A.lineas }, yo, firmarB);
   await Q.guardarCuenta({ cuenta: A.cuenta, eje: A.eje, privada: A.privada });
   await Q.guardarCuenta({ cuenta: b.cuenta, eje: b.eje, privada: b.privada }, { recordar: false });
-  return { A, B: b, yo, sala, menu, abre, cuelga, firmarA, firmarB, serie: 'E:' + yo + '/plato@' + menu.id };
+  return { A, B: b, yo, sala, menu, abre, cuelga, firmarA, firmarB, serie: 'E:' + yo + '/' + denominacion + '@' + menu.id };
 }
 
 test('puente: entre dos libros abiertos de la misma cuenta, cada enlace con su grado; traer, enviar, traer el envío y recibirlo', async () => {
@@ -366,4 +369,117 @@ test('puente: sin sello del otro libro, traer espera con su frase; un libro de d
   assert.ok(h.includes(t('puenteSinSello_sinSellador', { libro: 'el grande' })));
   const demo = await Eje.genesis({ identidad: 'ana', foco: ['demo'], t: T1, demostracion: true });
   assert.equal(PU.traibles(m.pequeno, m.cuelga.id, demo).sinSello, 'demostracion');
+});
+
+// ---------- 3. arreglos de la revisión del carril (Core AGRAM, 17-11) ----------
+
+test('salida: el punto vuelve del libro nuevo; reabrir la hoja (que dice «vigente») no cambia el punto que escribe «cuelga»', async () => {
+  const m = await libroViejo();
+  await beaConLoSuyo(m);
+  const puesta = await silenciarABea(m);
+  const versiones = m.viejo.versiones();
+  assert.equal(versiones.length, 2);
+  // bea elige «las de antes» y abre su libro nuevo con la época que da el plan.
+  const antes = PU.salidaDe(m.viejo, 'bea', { punto: 'antes' });
+  assert.deepEqual(antes.puntos, ['vigente', 'antes']);
+  const genesis = antes.plan.pasos.find((p) => p.que === 'genesis');
+  const nuevo = await Eje.genesis({ ...genesis.params, t: m.reloj(), demostracion: true });
+  assert.equal(PU.puntoDelNuevo(m.viejo, nuevo), 'antes', 'de la época de nacimiento del nuevo');
+  // Reabre la hoja: el estado dice «vigente», pero el punto sale del nuevo.
+  const otraVez = PU.salidaDe(m.viejo, 'bea', { punto: 'vigente', nuevo });
+  assert.equal(otraVez.punto, 'antes');
+  const cuelga = otraVez.plan.pasos.find((p) => p.que === 'cuelga');
+  assert.equal(cuelga.estado, 'listo');
+  assert.equal(cuelga.params.point, undefined, 'las de antes del único cambio: las de nacimiento, sin punto');
+  // Con las vigentes, el punto sería el registro que puso el cambio en vigor: lo que no debe escribirse aquí.
+  assert.equal(PU.salidaDe(m.viejo, 'bea', { punto: 'vigente' }).plan.pasos.find((p) => p.que === 'cuelga').params.point, puesta.id);
+  const r = await m.intenta(nuevo, cuelga.plantilla, cuelga.params, 'bea');
+  assert.ok(r.ev, JSON.stringify(r.motivos));
+  assert.equal(PU.puntoDelNuevo(m.viejo, nuevo), 'antes', 'y, ya colgado, del punto que anota su enlace');
+  assert.equal(PU.salidaDe(m.viejo, 'bea', { punto: 'vigente', nuevo }).punto, 'antes');
+});
+
+test('salida: con la marca de la entrada no nace un segundo libro aunque cambie el nombre', async () => {
+  await conAlmacen(async () => {
+    const c = await libroConSellador('Dani');
+    const yo = c.cuenta.identidad;
+    let v = PU.salidaDe(c.eje, yo, { nombre: 'Lo mío' });
+    while (v.siguiente?.que === 'declarar') {
+      const r = await PU.firmarPaso(c.eje, v.siguiente, Q.firmarCon(c.privada), { t: reloj() });
+      assert.ok(r.asentado, JSON.stringify(r.motivos));
+      v = PU.salidaDe(c.eje, yo, { nombre: 'Lo mío' });
+    }
+    assert.equal(v.siguiente.que, 'genesis');
+    await assert.rejects(PU.abrirLibroDeSalida({ cuenta: c.cuenta, privada: c.privada, paso: v.siguiente, t: reloj() }), /falta el libro/);
+    const nuevo = await PU.abrirLibroDeSalida({ cuenta: c.cuenta, privada: c.privada, paso: v.siguiente, viejo: c.eje.genesisId, t: reloj() });
+    const marcada = Q.cuentas().find((e) => e.alta === nuevo.cuenta.alta);
+    assert.equal(marcada.salidaDe, c.eje.genesisId, 'la entrada lleva la marca');
+    // Cambia el nombre: de la entrada guardada y del que pide la hoja. Se encuentra por la marca.
+    const lista = Q.cuentas().map((e) => (e.alta === nuevo.cuenta.alta ? { ...e, nombre: 'Otro nombre' } : e));
+    globalThis.localStorage.setItem(Q.CLAVES.cuentas, JSON.stringify(lista));
+    const hallada = PU.entradaDeLaSalida(Q.cuentas(), { publica: c.cuenta.publica, libro: c.eje.genesisId, elemento: c.cuenta.alta });
+    assert.equal(hallada?.alta, nuevo.cuenta.alta);
+    const abierto = await Q.abrirCuenta(hallada.alta);
+    assert.ok(abierto.eje, abierto.motivo);
+    const despues = PU.salidaDe(c.eje, yo, { nombre: 'Un nombre distinto', nuevo: abierto.eje });
+    assert.notEqual(despues.siguiente?.que, 'genesis', 'el génesis ya está hecho: no se ofrece otro');
+    assert.equal(despues.pasos.find((p) => p.que === 'genesis').estado, 'hecho');
+    assert.equal(Q.cuentas().filter((e) => e.salidaDe === c.eje.genesisId).length, 1, 'un solo libro nuevo');
+  });
+});
+
+test('puente: el aviso «sin destino» sale del filtro de destinos de verdad (un enlace retirado no se ofrece)', async () => {
+  await conAlmacen(async () => {
+    const m = await dosLibrosMios();
+    const { A, yo } = m;
+    const mios = Q.cuentas();
+    const cruza = PU.loQueCruza(A.eje, yo);
+    const antes = PU.destinosDeEnvio(PU.enlacesDelLibro(A.eje, yo, { mios }), cruza[0]);
+    assert.deepEqual(antes.map((d) => d.enlace), [m.abre.id], 'mientras cuenta, es el destino');
+    assert.ok(antes[0].quien, 'con quién escribió el enlace');
+    await escribe(A.eje, m.abre.id, 'withdraw a link', {}, yo, m.firmarA);
+    const enlaces = PU.enlacesDelLibro(A.eje, yo, { mios });
+    const destinos = PU.destinosDeEnvio(enlaces, cruza[0]);
+    assert.deepEqual(destinos, []);
+    const h = htmlPuente({ enlaces: enlaces.map((l) => ({ ...l, abierto: true })), cruza, enviar: { ...cruza[0], destinos, elegido: null }, traer: null, traidos: [], motivos: [] });
+    assert.match(h, /data-sin-destino/);
+    assert.ok(h.includes(t('puenteSinDestino')));
+  });
+});
+
+test('puente: con datos hostiles (el nombre del otro libro, el de la serie y quien escribió el enlace) todo se pinta como texto', async () => {
+  await conAlmacen(async () => {
+    // Sin «/», «:» ni «|»: la denominación de una serie no los admite.
+    const malo = '<script>alert("x")\'"';
+    const m = await dosLibrosMios({ nombreB: 'B ' + malo, denominacion: 'plato' + malo });
+    const { A, yo } = m;
+    const mios = Q.cuentas();
+    const enlaces = PU.enlacesDelLibro(A.eje, yo, { mios }).map((l) => ({ ...l, abierto: true, quienTexto: 'quien ' + malo }));
+    assert.ok(enlaces[0].nombre.includes('<script>'), 'el nombre del otro libro llega tal cual a la vista');
+    const cruza = PU.loQueCruza(A.eje, yo);
+    assert.ok(cruza[0].serie.includes('<script>'), 'la serie lleva el nombre hostil');
+    const destinos = PU.destinosDeEnvio(enlaces, cruza[0]);
+    assert.ok(destinos[0].quien.includes('<script>'));
+    const traido = { traido: 'x'.repeat(64), libro: m.B.eje.genesisId, libroNombre: 'B ' + malo, autor: 'a' + malo, firme: null, grado: malo, cuenta: true, delDueno: null, nivelMasBajo: 1, origen: null, fiable: true, causa: null, payload: [[malo]], contexto: { a: malo }, movimientos: [], envio: null, recibir: false };
+    const h = htmlPuente({ enlaces, cruza, enviar: { ...cruza[0], destinos, elegido: destinos[0].enlace }, traer: { enlace: enlaces[0].id, libro: enlaces[0].nombre, lista: [{ id: 'y'.repeat(64), autor: malo, quien: malo, cuando: malo, titulo: malo }], esperan: 0, sinSello: null }, traidos: [traido], motivos: [{ mensaje: malo }], aviso: malo });
+    assert.doesNotMatch(h, /<script>/);
+    assert.doesNotMatch(h, /alert\("x"\)/, 'las comillas, escapadas');
+    assert.ok(h.includes('&lt;script&gt;'));
+  });
+});
+
+test('puente: la prueba para traer se guarda en memoria por libro, registro y tamaño del libro de origen', async () => {
+  const m = await dosLibros();
+  const menu = await m.lanza(m.grande, 'anchor here', { X: m.sala.id, title: 'menú', content: 'el menú' }, 'ana');
+  const lineas = paresDelEnlace(m.cuelga);
+  const sinSelloAun = PU.pruebaGuardada(m.grande, menu.id, { lineas, nivel: 4 });
+  assert.equal(sinSelloAun.falta, 'sello');
+  assert.equal(m.grande.marcarSello(menu.id, await selloDelGrande(m, menu.id)), true);
+  const una = PU.pruebaGuardada(m.grande, menu.id, { lineas, nivel: 4 });
+  assert.equal(una.falta, null, 'llega un sello: se vuelve a mirar');
+  assert.equal(PU.pruebaGuardada(m.grande, menu.id, { lineas, nivel: 4 }), una, 'la misma, sin volver a verificar');
+  await m.lanza(m.grande, 'anchor here', { X: m.sala.id, title: 'otro', content: 'otro' }, 'ana');
+  const tras = PU.pruebaGuardada(m.grande, menu.id, { lineas, nivel: 4 });
+  assert.notEqual(tras, una, 'el libro de origen creció: se vuelve a mirar');
+  assert.deepEqual(tras, una);
 });

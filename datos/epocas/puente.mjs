@@ -802,13 +802,18 @@ export function leerTraido(eje, id) {
   const lp = enlace?.payload ?? [];
   const origen = [].concat(lp[4] ?? []).includes(L_.abrir) ? hoja(lp[1]?.[0]?.[1]) : hoja(lp[1]?.[2]);
   const malos = [['el contexto', reg[7]], ['los movimientos', reg[5]]].filter(([, x]) => !esCanonicoDeUnValor(hoja(x))).map(([que]) => que);
-  const fiable = malos.length === 0;
+  // La hora de la cabecera, en segundos: solo es una fecha si es finita y cabe en una fecha de JS (|ms| <= 8.64e15). Si la
+  // prueba trae otra cosa, lo traído se lee «no fiable» (revisión del carril de la carta, 17-11).
+  const horaMala = hora !== undefined && !(Number.isFinite(hora) && Math.abs(hora * 1000) <= 8.64e15);
+  const fiable = malos.length === 0 && !horaMala;
   return {
     libro: hoja(p[1]?.[0]), id: hoja(reg[0]), autor: hoja(reg[1]), t: hoja(reg[4]), payload: reg[6] ?? null,
     contexto: fiable ? JSON.parse(hoja(reg[7])) : null, movimientos: fiable ? JSON.parse(hoja(reg[5])) : null,
     fiable,
-    causa: fiable ? null : 'no fiable: ' + malos.join(' y ') + ' que trae no ' + (malos.length > 1 ? 'son' : 'es') + ' el JSON canónico de un solo valor, así que el mismo id podría leerse partido de otra forma; no se enseña' + (malos.length > 1 ? 'n' : ''),
-    firme: Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
+    causa: fiable ? null : malos.length
+      ? 'no fiable: ' + malos.join(' y ') + ' que trae no ' + (malos.length > 1 ? 'son' : 'es') + ' el JSON canónico de un solo valor, así que el mismo id podría leerse partido de otra forma; no se enseña' + (malos.length > 1 ? 'n' : '')
+      : 'no fiable: la hora de la cabecera de su prueba no es una fecha; no se enseñan ni su contexto ni sus movimientos',
+    firme: !horaMala && Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
     enlace: enlace?.id ?? null, origen: typeof origen === 'string' ? origen : null,
     ...porQueEnlace(eje, enlace?.id),
     nivelMasBajo: nivelMasBajoDe(enlace),
