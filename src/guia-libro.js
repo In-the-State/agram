@@ -35,7 +35,7 @@ const bytesDe = (s) => new TextEncoder().encode(s).length;
  * caracteres de control (\p{Cc}) ni de dirección del texto (U+061C, U+200E, U+200F, U+202A a U+202E, U+2066 a U+2069): con
  * ellos un texto puede hacerse pasar por otro. El resto de la clase Cf vale (el ZWJ de los emojis compuestos).
  */
-const RE_TEXTO_ENGANOSO = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
+export const RE_TEXTO_ENGANOSO = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
 const textoLimpio = (s) => typeof s === 'string' && !RE_TEXTO_ENGANOSO.test(s);
 /** Cuántos pasos da como mucho sugerenciasDeGuia (los del 9 de un registro), si no se pide otro tope. */
 export const TOPE_DE_SUGERENCIAS = 24;

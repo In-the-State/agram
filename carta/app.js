@@ -2327,6 +2327,26 @@ const manejadores = {
     limpiarMensajes();
     await entrarEnCuenta(entrada.alta, { foco: registro });
   },
+  /**
+   * «Copiar» el comando de un paso de la ficha de detalle: copia exactamente el texto que se ve en su caja. Si el
+   * navegador no deja, lo selecciona para copiarlo a mano. No escribe nada en el libro.
+   */
+  async copiar(boton) {
+    const code = boton?.closest?.('.ficha-comando-fila')?.querySelector('code.ficha-comando');
+    if (!code) return;
+    const texto = code.textContent;
+    try {
+      await globalThis.navigator.clipboard.writeText(texto);
+      boton.textContent = t('fichaCopiado');
+    } catch {
+      const rango = document.createRange();
+      rango.selectNodeContents(code);
+      const sel = globalThis.getSelection?.();
+      sel?.removeAllRanges();
+      sel?.addRange(rango);
+      boton.textContent = t('fichaSeleccionado');
+    }
+  },
   /** Tocar un paso de una de mis guías en el 9: seguirlo (el formulario de su acción, relleno). */
   guiaPaso(id) {
     if (!id) return;

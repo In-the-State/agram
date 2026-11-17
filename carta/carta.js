@@ -829,7 +829,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
   // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
-  if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
+  if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), ...fichaDe(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
     const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
@@ -1645,6 +1645,16 @@ async function caminoDe(eje, X, yo, ctx) {
  * carta pinta encima de su dibujo, { id, etiqueta, caja }. Lo que hace cada una lo decide la app al tocarla, volviendo a
  * leer la zona (nunca del DOM). Sin zonas, nada: el nodo no cambia de forma.
  */
+/**
+ * La ficha de detalle de X (contrato.notaDeDetalle, §12.9: la última nota de detalle que su autor ancló en su 0, partida;
+ * la escribe el volcado): lo que la carta pinta bajo su título al abrirlo. Sin nota, nada: el nodo no cambia de forma.
+ */
+function fichaDe(eje, X) {
+  let nota = null;
+  try { nota = contrato.notaDeDetalle(eje, X); } catch { nota = null; }
+  return nota ? { ficha: nota } : {};
+}
+
 function zonasDeLaCara(eje, X) {
   let lista = [];
   try { lista = contrato.zonas(eje, X); } catch { lista = []; }

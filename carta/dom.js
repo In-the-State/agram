@@ -218,6 +218,33 @@ function htmlCaraConZonas(cara, c) {
   return `<span class="cara-con-zonas">${cara}<span class="zonas-capa" role="group" aria-label="${attr(t('zonasDeLaCara'))}">${botones}</span></span>`;
 }
 
+/**
+ * La ficha de detalle de un registro (contrato.notaDeDetalle, §12.9; la escribe el volcado): en qué se basa, sus pasos
+ * (qué hace, el comando con «Copiar», la ruta y qué se verá), el detalle, a quién preguntar, de qué depende (solo texto)
+ * y, al pie, quién la escribió. Todo como texto escapado, nunca HTML de la nota. Una línea que traía caracteres que
+ * engañan sale sin ellos y marcada; un comando así no se ofrece para copiar. «Copiar» copia lo que se ve (app.js copiar).
+ */
+export function htmlFicha(f) {
+  if (!f) return '';
+  const marcadas = new Set(f.enganosas ?? []);
+  const sinCopiar = new Set(f.sinCopiar ?? []);
+  const marca = (sitio) => (marcadas.has(sitio) ? ` <small class="ficha-enganosa" title="${attr(t('fichaEnganosaTitulo'))}">${t('fichaEnganosa')}</small>` : '');
+  const base = f.base ? `<section class="ficha-base"><h4>${t('fichaBase')}</h4><p>${escapar(f.base)}${marca('base')}</p></section>` : '';
+  const paso = (p, i) => {
+    const n = i + 1;
+    const comando = p.comando ? `<div class="ficha-comando-fila"><code class="ficha-comando">${escapar(p.comando)}</code>${sinCopiar.has(n) ? '' : `<button type="button" class="ficha-copiar"${nodo('control')} data-copiar title="${attr(t('fichaCopiarTitulo'))}">${t('fichaCopiar')}</button>`}${marca('paso ' + n + ' comando')}</div>` : '';
+    const ruta = p.ruta ? `<div class="ficha-ruta-fila"><code class="ficha-ruta">${escapar(p.ruta)}</code>${marca('paso ' + n + ' ruta')}</div>` : '';
+    const ve = p.ve ? `<p class="ficha-ve">${escapar(t('fichaVeras', { que: p.ve }))}${marca('paso ' + n + ' ve')}</p>` : '';
+    return `<li class="ficha-paso"><p class="ficha-hace">${escapar(p.hace ?? '')}${marca('paso ' + n)}</p>${comando}${ruta}${ve}</li>`;
+  };
+  const pasos = f.pasos?.length ? `<section class="ficha-pasos"><h4>${t('fichaPasos')}</h4><ol>${f.pasos.map(paso).join('')}</ol></section>` : '';
+  const detalle = f.detalle?.length ? `<section class="ficha-detalle">${f.detalle.map((d, i) => `<p>${escapar(d)}${marca('detalle ' + (i + 1))}</p>`).join('')}</section>` : '';
+  const quien = f.quien ? `<p class="ficha-quien">${escapar(t('fichaPregunta', { quien: f.quien }))}${marca('quien')}</p>` : '';
+  const depende = f.depende?.length ? `<section class="ficha-depende"><h4>${t('fichaDepende')}</h4><ul>${f.depende.map((d) => `<li><code>${escapar(d.id)}</code> ${escapar(d.texto ?? '')}${marca('depende ' + d.id)}</li>`).join('')}</ul></section>` : '';
+  const pie = f.autor ? `<footer class="ficha-pie"><small>${escapar(t('fichaEscrita', { autor: f.autor }))}</small></footer>` : '';
+  return `<section class="ficha"${nodo('ficha')} aria-label="${attr(t('fichaTitulo'))}">${base}${pasos}${detalle}${quien}${depende}${pie}</section>`;
+}
+
 /** Una representación del 0 como HTML: texto, la imagen que cabe (solo llega con recurso en animado), la de un archivo adjunto (su URL local) o el HTML aislado. */
 function htmlRepresentacion(rep, { clase = 'rep', nombre = null } = {}) {
   if (!rep) return `<span class="${clase} rep-vacia">—</span>`;
@@ -1379,6 +1406,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}${c.zonas?.length ? ' con-zonas' : ''}">${c.zonas?.length ? htmlCaraConZonas(htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta }), c) : htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
+      ${htmlFicha(c.ficha)}
       ${htmlCuentaDelBanco(c.cuenta)}
       ${arbol.secuencia ? htmlFilas(arbol, c) : `<label class="campo campo-0 campo-unico"${nodo('campo', { d: 0 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(t('nuevoAquiMarcador', { que: c.textoDelFoco ?? c.representacion?.texto ?? '' }))}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>`}
       ${leido}

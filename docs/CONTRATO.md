@@ -1024,6 +1024,15 @@ Por qué no la colocación del diseño (0 título, 1 parámetros, 4 la acción, 
 
 **Lo que hay que saber del núcleo tal como está.** Un paso anclado en el 4 de la guía es, para la matriz del 4 (`ejecuciones`, §4.2 bis), un registro de su fábrica; una zona anclada en el 0 es un hijo más del elemento (como lo que ancla «anchor here»), y `representaciones` no la toma por una representación rica (su 1 no es [tamaño, formato]).
 
+### 12.9 La nota de detalle de un registro: `notaDeDetalle` y `partirNota` (VG 17-11)
+
+La escribe el volcado (`ejemplos/volcado/volcar.mjs`, `docs/notas/VOLCADO.md`): un registro con `anchor here` en el 0 de la tarea, título «nota de detalle», y en su 1 líneas «etiqueta: valor» (la primera, «nota de detalle: <id de la fila>»; `base`, `paso N`, `paso N comando|ruta|ve`, `detalle`, `quien`, `depende <id>`). La lectura vive en `src/nota-detalle.js` y se expone aquí. El volcado la importa; la búsqueda por el id de la fila sigue en el volcado.
+
+- `notaDeDetalle(eje, X)` → la última nota de detalle que **el autor de X** ancló en su 0, partida: `{ fila, base, pasos: [{ hace, comando?, ruta?, ve? }], detalle, quien, depende: [{ id, texto }], autor, id }`. Da `null` si X no está, si no tiene nota o si la última es la vacía («sin detalle: …»). Una nota de otra persona no cuenta nunca.
+- `partirNota(lineas)` → la nota partida, o `null` si es la vacía o no dice nada.
+- **Limpieza**: los textos pasan por la misma limpieza que la etiqueta de una zona (`RE_TEXTO_ENGANOSO` de `guia-libro.js`, §12.8). Una línea con caracteres de control o de dirección del texto se da sin ellos y su sitio va en `enganosas` («base», «paso 1 comando», «detalle 2», «depende a1»…). Un comando así va además en `sinCopiar` (el número de su paso): la carta no lo ofrece para copiar. Las dos listas solo salen si tienen algo.
+- **En la carta**: al abrir un registro con nota, la ficha se pinta bajo su título (`dom.js htmlFicha`), toda como texto.
+
 ## 13. Para decidir VG
 
 Del encargo 3c-2a:

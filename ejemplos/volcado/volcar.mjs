@@ -59,6 +59,10 @@ import { cerrado } from '../../src/motor.js';
 import { serializar, restaurar } from '../../src/persistencia.js';
 import { firmar, firmarPosesion, generarClaves, publicaDe } from '../../src/autoridad.js';
 import { esAnunciado, ESCALAS_REALES } from '../../src/tokens.js';
+// La nota de detalle (su forma y su lectura) vive en el núcleo (src/nota-detalle.js, CONTRATO §12.9): aquí se escribe.
+import { NOTA, partirNota, esNotaDeDetalle as esNota, ultimaNotaDeDetalle } from '../../src/nota-detalle.js';
+
+export { NOTA, partirNota };
 
 /** Los pasos del proceso de una tarea, en orden: la fase de una fila dice hasta cuál llega. */
 export const PASOS = Object.freeze(['propuesta', 'autorizada', 'ejecutada', 'cerrada']);
@@ -122,17 +126,6 @@ const datosDe = (fila, col) => [col.id, ...col.datos].map((k) => k + SEP + Strin
 
 // ---------- la nota de detalle (VG 17-11) ----------
 
-/** El título de la nota y las etiquetas de su 1, en el orden en que se escriben. */
-export const NOTA = Object.freeze({
-  titulo: 'nota de detalle',
-  marca: 'nota de detalle', // la primera línea: «nota de detalle: <id de la fila>»
-  base: 'base',
-  paso: 'paso', // «paso 1: …», «paso 1 comando: …», «paso 1 ruta: …», «paso 1 ve: …»
-  detalle: 'detalle',
-  quien: 'quien',
-  depende: 'depende', // «depende <id>: <texto de esa fila>»
-  vacia: 'sin detalle', // la nota que dice que la tabla retiró el detalle
-});
 const ETIQUETAS_DE_NOTA = new Set([NOTA.marca, NOTA.base, NOTA.detalle, NOTA.quien, NOTA.vacia, NOTA.paso, NOTA.depende]);
 const PARTES_DE_UN_PASO = Object.freeze(['comando', 'ruta', 've']);
 const TEXTO_DE_LA_NOTA_VACIA = 'la tabla ya no da detalle de esta fila';
@@ -257,41 +250,8 @@ const lineasDeNotaVacia = (fid) => [NOTA.marca + SEP + fid, NOTA.vacia + SEP + T
 /** Las líneas del 1 de un registro (las hojas de texto, en orden). */
 const lineasDe = (ev) => hojas(ev?.payload?.[1]).filter((x) => typeof x === 'string');
 
-/** ¿Es `ev` una nota de detalle (de la fila `fid`, si se da)? Su título y su primera línea lo dicen. */
-const esNota = (ev, fid = null) => {
-  if (!tiene(ev, PLANTILLAS.registro) || texto0(ev) !== NOTA.titulo) return false;
-  const primera = lineasDe(ev)[0] ?? '';
-  return fid === null ? primera.startsWith(NOTA.marca + SEP) : primera === NOTA.marca + SEP + fid;
-};
-
-/** La última nota de detalle de una tarea (de su autor, en su 0), o null. */
-const ultimaNota = (eje, tarea, fid = null) => eje.sobre(tarea.id, EN_0).filter((h) => h.autor === tarea.autor && esNota(h, fid)).at(-1) ?? null;
-
-/** Una nota partida: { fila, base, pasos: [{ hace, comando?, ruta?, ve? }], detalle: [líneas], quien, depende: [{ id, texto }] }, o null si está vacía. */
-export function partirNota(lineas) {
-  const nota = { fila: null, base: null, pasos: [], detalle: [], quien: null, depende: [] };
-  let algo = false;
-  for (const l of lineas) {
-    const i = l.indexOf(SEP);
-    if (i < 0) continue;
-    const etiqueta = l.slice(0, i);
-    const valor = l.slice(i + SEP.length);
-    if (etiqueta === NOTA.marca) { nota.fila = valor; continue; }
-    if (etiqueta === NOTA.vacia) return null;
-    algo = true;
-    let m;
-    if (etiqueta === NOTA.base) nota.base = valor;
-    else if (etiqueta === NOTA.detalle) nota.detalle.push(valor);
-    else if (etiqueta === NOTA.quien) nota.quien = valor;
-    else if ((m = /^paso (\d+)(?: (comando|ruta|ve))?$/.exec(etiqueta))) {
-      const k = Number(m[1]) - 1;
-      nota.pasos[k] ??= { hace: '' };
-      if (m[2]) nota.pasos[k][m[2]] = valor; else nota.pasos[k].hace = valor;
-    } else if (etiqueta.startsWith(NOTA.depende + ' ')) nota.depende.push({ id: etiqueta.slice(NOTA.depende.length + 1), texto: valor });
-  }
-  nota.pasos = nota.pasos.filter(Boolean);
-  return algo ? nota : null;
-}
+/** La última nota de detalle de una tarea (de su autor, en su 0; de la fila `fid`, si se da), o null (src/nota-detalle.js). */
+const ultimaNota = (eje, tarea, fid = null) => ultimaNotaDeDetalle(eje, tarea, fid);
 
 /**
  * Lectura pura (para la carta y las pruebas): la última nota de detalle de una fila, ya partida (partirNota), o null.

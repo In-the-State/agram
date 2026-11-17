@@ -213,6 +213,8 @@ export function instalar(raiz, m) {
     if ((el = b('[data-core-quitar]'))) { e.preventDefault(); m.coreQuitar?.(Number(el.dataset.coreQuitar)); return; }
     if ((el = b('[data-core-nueva]'))) { e.preventDefault(); if (!el.disabled) m.coreNueva?.(); return; }
     if ((el = b('[data-core-ensayo]'))) { e.preventDefault(); if (!el.disabled) m.coreEnsayo?.(); return; }
+    // «Copiar» el comando de un paso de la ficha de detalle: copia lo que se ve.
+    if ((el = b('[data-copiar]'))) { e.preventDefault(); m.copiar?.(el); return; }
     // Las zonas de la cara y los pasos de una guía (carta/guias.js): solo navegan o abren un formulario relleno.
     if ((el = b('[data-zona]'))) { e.preventDefault(); m.zona?.(el.dataset.x ?? xDe(el), el.dataset.zona); return; }
     if ((el = b('[data-guia-paso]'))) { e.preventDefault(); m.guiaPaso?.(el.dataset.guiaPaso); return; }
