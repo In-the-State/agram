@@ -62,12 +62,34 @@ function comoEsta(eje, t) {
 }
 
 /**
+ * Las anteriores de una tarea según la última relación «this goes after» de su autor (en su 2.6): { relacion, validas:
+ * [ids], malas: [{ de, motivo }] } (sin repetir, en su orden). Mala: a sí misma, lo que no está, lo que no es una tarea.
+ * Sin relación, { relacion: null, validas: [], malas: [] }.
+ */
+function anterioresDe(eje, t) {
+  const relacion = eje.sobreDe(t.id, EN_LA_CONDICION, new Set([t.autor])).filter((r) => dice(r, 4, NOMBRES_DE_LAS_CADENAS.relacion)).at(-1) ?? null;
+  const validas = [];
+  const malas = [];
+  const vistos = new Set();
+  for (const h of relacion ? hojas(relacion.payload[6]) : []) {
+    const de = esReferencia(h) ? h.ref : typeof h === 'string' && RE_ID.test(h) ? h : null;
+    if (!de || vistos.has(de)) continue;
+    vistos.add(de);
+    const anterior = eje.obtener(de);
+    const motivo = de === t.id ? MOTIVOS_DE_DESCARTE.aSiMisma : !anterior ? MOTIVOS_DE_DESCARTE.noEsta : !esTarea(anterior) ? MOTIVOS_DE_DESCARTE.noEsTarea : null;
+    if (motivo) malas.push({ de, motivo });
+    else validas.push(de);
+  }
+  return { relacion, validas, malas };
+}
+
+/**
  * Las cadenas de X (un proyecto, una casa, el libro: su génesis): las tareas que cuelgan de X, a cualquier profundidad,
  * y sus relaciones «this goes after», repartidas así:
  *
  * - el grafo: de cada tarea, la última relación de su autor en su 2.6; cada referencia de su 6 es una arista de la
  *   anterior a ella. Las anteriores que no cuelgan de X entran como contexto (`fuera: true`; de ellas no se siguen sus
- *   propias anteriores). Se descarta, y se dice en `descartadas`, la arista a sí misma, a lo que no es una tarea y la que
+ *   propias anteriores en el grafo: solo se leen, un salto, para su estado). Se descarta, y se dice en `descartadas`, la arista a sí misma, a lo que no es una tarea y la que
  *   cierra un ciclo (escrito a mano: las aristas se añaden por llegada de su relación y, dentro de ella, en su orden);
  * - el orden: por dependencias, con los empates por llegada al libro (estable);
  * - las cadenas: cada tarea continúa la cadena de su primera anterior (por llegada) que todavía termina en ella; si
@@ -97,18 +119,9 @@ export function cadenas(eje, X) {
   const descartadas = [];
   const candidatas = [];
   for (const t of dentro) {
-    const relacion = eje.sobreDe(t.id, EN_LA_CONDICION, new Set([t.autor])).filter((r) => dice(r, 4, NOMBRES_DE_LAS_CADENAS.relacion)).at(-1);
-    if (!relacion) continue;
-    const vistos = new Set();
-    for (const h of hojas(relacion.payload[6])) {
-      const de = esReferencia(h) ? h.ref : typeof h === 'string' && RE_ID.test(h) ? h : null;
-      if (!de || vistos.has(de)) continue;
-      vistos.add(de);
-      const anterior = eje.obtener(de);
-      const motivo = de === t.id ? MOTIVOS_DE_DESCARTE.aSiMisma : !anterior ? MOTIVOS_DE_DESCARTE.noEsta : !esTarea(anterior) ? MOTIVOS_DE_DESCARTE.noEsTarea : null;
-      if (motivo) descartadas.push({ de, a: t.id, relacion: relacion.id, motivo });
-      else candidatas.push({ de, a: t.id, relacion: relacion.id });
-    }
+    const { relacion, validas, malas } = anterioresDe(eje, t);
+    for (const m of malas) descartadas.push({ de: m.de, a: t.id, relacion: relacion.id, motivo: m.motivo });
+    for (const de of validas) candidatas.push({ de, a: t.id, relacion: relacion.id });
   }
   candidatas.sort((x, y) => porLlegada(x.relacion, y.relacion));
   const siguientes = new Map();
@@ -133,13 +146,20 @@ export function cadenas(eje, X) {
   }
   for (const [n, l] of anteriores) anteriores.set(n, [...l].sort(porLlegada));
 
-  // El estado de cada tarea por sí misma, una vez.
-  const estados = new Map([...nodos.keys()].map((n) => [n, comoEsta(eje, nodos.get(n).t)]));
-  const desbloquea = (n) => estados.get(n).hecho && FINES_QUE_DESBLOQUEAN.includes(estados.get(n).fin);
+  // El estado de cada tarea por sí misma, una vez (también el de las anteriores de una de fuera, que no son nodos).
+  const estados = new Map();
+  const estadoDe = (n) => {
+    if (!estados.has(n)) estados.set(n, comoEsta(eje, nodos.get(n)?.t ?? eje.obtener(n)));
+    return estados.get(n);
+  };
+  const desbloquea = (n) => estadoDe(n).hecho && FINES_QUE_DESBLOQUEAN.includes(estadoDe(n).fin);
   const paso = (n, une = []) => {
-    const e = estados.get(n);
+    const e = estadoDe(n);
     const fuera = nodos.get(n).fuera;
-    const espera = fuera ? [] : (anteriores.get(n) ?? []).filter((p) => !desbloquea(p));
+    // Una anterior de fuera dice su estado verdadero: se leen sus propias anteriores (un salto, solo para saber si
+    // espera; no entran en la cadena ni se sigue más allá), en el orden de llegada.
+    const suyas = fuera ? anterioresDe(eje, nodos.get(n).t).validas.sort(porLlegada) : anteriores.get(n) ?? [];
+    const espera = suyas.filter((p) => !desbloquea(p));
     const estado = e.hecho ? ESTADOS_DE_PASO.hecho : espera.length ? ESTADOS_DE_PASO.espera : e.estacion ? ESTADOS_DE_PASO.enCurso : ESTADOS_DE_PASO.listo;
     return { id: n, estado, fin: e.fin, estacion: e.estacion, espera, une, fuera };
   };
