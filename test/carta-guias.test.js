@@ -10,7 +10,7 @@ import { Eje } from '../src/eje.js';
 import * as A from '../src/acciones.js';
 import * as contrato from '../src/contrato.js';
 import { serializar } from '../src/persistencia.js';
-import { LibrosDelDispositivo, sugerenciasDeMisGuias, estadoDeLosPasos, pasoDelLibro, libroDeEntrada, TOPE_DE_LIBROS, TOPE_DE_PASOS } from '../carta/guias.js';
+import { LibrosDelDispositivo, sugerenciasDeMisGuias, estadoDeLosPasos, pasoDelLibro, esMiGuia, libroDeEntrada, TOPE_DE_LIBROS, TOPE_DE_PASOS } from '../carta/guias.js';
 import { arbol } from '../carta/carta.js';
 import { html, htmlCamino } from '../carta/dom.js';
 
@@ -42,7 +42,7 @@ async function dosLibros() {
   const w = await libro(null);
   const guia = await hacer(g, 'anchor here', g.genesisId, { title: 'Primeros pasos' });
   const destino = await hacer(g, 'anchor here', g.genesisId, { title: 'Un destino' });
-  const p1 = await hacer(g, PASO, guia.id, { title: 'Anota aquí', action: 'anchor here', parameters: ['title: mi nota'], why: 'el primero' });
+  const p1 = await hacer(g, PASO, guia.id, { title: 'Anota aquí', action: 'anchor here', parameters: ['title: mi nota'], why: 'el primero', record: destino.id });
   const p2 = await hacer(g, PASO, guia.id, { title: 'Un hito', action: 'anchor here', parameters: ['title: hito'], why: 'en el trabajo', book: w.genesisId });
   const p3 = await hacer(g, PASO, guia.id, { title: 'Imposible', action: ZONA, why: 'allí no existe', book: w.genesisId });
   const p4 = await hacer(g, PASO, guia.id, { title: 'Lejos', action: 'anchor here', why: 'en otro sitio', book: NO_ESTA });
@@ -50,7 +50,8 @@ async function dosLibros() {
   const z2 = await hacer(g, ZONA, guia.id, { label: 'Empieza', x: 50, y: 400, width: 300, height: 100, record: p1.id });
   const z3 = await hacer(g, ZONA, guia.id, { label: 'Al trabajo', x: 500, y: 700, width: 400, height: 200, book: w.genesisId, record: w.alta('lectora').id });
   const almacen = new Map([['eje.G', JSON.stringify(serializar(g))], ['eje.W', JSON.stringify(serializar(w))]]);
-  const entradas = [{ alta: 'G', nombre: 'La guía', identidad: 'lectora', libro: g.genesisId }, { alta: 'W', nombre: 'El trabajo', identidad: 'lectora' }];
+  // Mi identidad en cada libro (la de su entrada): en el de la guía soy vg, quien la escribió; en el de trabajo, la lectora.
+  const entradas = [{ alta: 'G', nombre: 'La guía', identidad: 'vg', libro: g.genesisId }, { alta: 'W', nombre: 'El trabajo', identidad: 'lectora' }];
   return { g, w, guia, destino, p1, p2, p3, p4, z1, z2, z3, almacen, entradas };
 }
 
@@ -80,6 +81,13 @@ test('mis otros libros se leen una vez mientras no cambien; lo que no está da n
   assert.equal(await libros.eje('NADA'), null);
   assert.equal(await libros.eje(null), null);
   assert.ok(TOPE_DE_LIBROS > 0 && TOPE_DE_PASOS > 0);
+  // Se compara el texto entero: uno del mismo largo con el medio cambiado también se vuelve a leer.
+  const texto = almacen.get('eje.W');
+  const medio = Math.floor(texto.length / 2);
+  const otro = texto.slice(0, medio) + (texto[medio] === 'a' ? 'b' : 'a') + texto.slice(medio + 1);
+  assert.equal(otro.length, texto.length);
+  almacen.set('eje.W', otro);
+  assert.notEqual(await libros.eje('W'), b, 'el mismo largo y los mismos extremos no bastan: se compara todo y no se da lo leído antes');
 });
 
 test('la entrada de un libro: por la que ya lo dice o leyendo su eje; el abierto; uno que no está, null; nada que no sea un id', async () => {
@@ -97,6 +105,11 @@ test('un paso de una guía se reconoce por su registro (solo los del autor de la
   const r = pasoDelLibro(g, p1.id);
   assert.equal(r.paso.titulo, 'Anota aquí');
   assert.deepEqual(r.guia, { id: guia.id, titulo: 'Primeros pasos' });
+  assert.equal(r.autor, 'vg', 'con el autor de su guía');
+  assert.equal(esMiGuia(r, 'vg'), true);
+  assert.equal(esMiGuia(r, 'lectora'), false);
+  assert.equal(esMiGuia(r, null), false, 'sin saber quién soy en ese libro, no');
+  assert.equal(esMiGuia(null, 'vg'), false);
   assert.equal(pasoDelLibro(g, destino.id), null);
   assert.equal(pasoDelLibro(g, NO_ESTA), null);
   assert.equal(pasoDelLibro(g, 'no-es-un-id'), null);
@@ -107,7 +120,7 @@ test('la tercera fuente del 9: en el libro de trabajo salen los pasos de mi guí
   const { libros } = dispositivo(almacen);
   const alta = w.alta('lectora').id;
   const vistos = new Map();
-  const hook = sugerenciasDeMisGuias({ entradas, libros, actual: { alta: 'W', eje: w }, idioma: 'es', deDonde: (id, alta) => vistos.set(id, alta) });
+  const hook = sugerenciasDeMisGuias({ entradas, libros, actual: { alta: 'W', eje: w, yo: 'lectora' }, idioma: 'es', deDonde: (id, alta) => vistos.set(id, alta) });
   const s = await hook(w, w.obtener(alta), 'lectora');
   assert.deepEqual(s.map((x) => x.id), [p2.id, p3.id]);
   assert.equal(s[0].guia, 'Primeros pasos');
@@ -128,18 +141,40 @@ test('la tercera fuente del 9: en el libro de trabajo salen los pasos de mi guí
   assert.ok(!h.includes(`data-guia-paso="${p3.id}"`) && h.includes('no existe'), 'el inválido, con su motivo y sin botón');
   assert.ok(!h.includes('data-propuesta-aceptar'), 'un paso de guía no es una propuesta importada: no hay aceptar ni rechazar');
   // Un libro de guía que no está en el dispositivo no aporta nada (ni falla).
-  assert.deepEqual(await sugerenciasDeMisGuias({ entradas: [{ alta: 'NADA' }], libros, actual: { alta: 'W', eje: w } })(w, w.obtener(alta), 'lectora'), []);
+  assert.deepEqual(await sugerenciasDeMisGuias({ entradas: [{ alta: 'NADA', identidad: 'vg' }], libros, actual: { alta: 'W', eje: w, yo: 'lectora' } })(w, w.obtener(alta), 'lectora'), []);
+  // Sin saber quién soy en el libro de la guía, ese libro no aporta pasos.
+  assert.deepEqual(await sugerenciasDeMisGuias({ entradas: [{ alta: 'G' }], libros, actual: { alta: 'W', eje: w, yo: 'lectora' } })(w, w.obtener(alta), 'lectora'), []);
+});
+
+test('solo mis guías: la guía que otro miembro escribe en el libro de la guía, con un paso hacia mi libro, no sale en mi 9 ni se sigue', async () => {
+  const { g, w, almacen, entradas, p2 } = await dosLibros();
+  // La lectora es miembro del libro de la guía: escribe su elemento y un paso que apunta a mi libro de trabajo.
+  const trampa = await hacer(g, 'anchor here', g.alta('lectora').id, { title: 'Trampa' }, 'lectora');
+  const malo = await hacer(g, PASO, trampa.id, { title: 'Firma esto', action: 'anchor here', parameters: ['title: dame'], why: 'confía', book: w.genesisId }, 'lectora');
+  almacen.set('eje.G', JSON.stringify(serializar(g)));
+  const { libros } = dispositivo(almacen);
+  const alta = w.alta('lectora').id;
+  const s = await sugerenciasDeMisGuias({ entradas, libros, actual: { alta: 'W', eje: w, yo: 'lectora' }, idioma: 'es' })(w, w.obtener(alta), 'lectora');
+  assert.ok(s.some((x) => x.id === p2.id), 'los de mi guía, sí');
+  assert.ok(!s.some((x) => x.id === malo.id), 'el de la guía de otra persona, no');
+  // Seguirlo (la decisión de app.js seguirPasoDeGuia, antes de cambiar de libro): es un paso, pero no de mi guía.
+  const hallado = pasoDelLibro(g, malo.id);
+  assert.equal(hallado.autor, 'lectora');
+  assert.equal(esMiGuia(hallado, 'vg'), false);
+  // Y la carta lo dice en llano, con su clave.
+  const { t } = await import('../carta/textos.js');
+  assert.equal(t('guiaPasoAjeno'), 'Ese paso es de la guía de otra persona. No se ha abierto nada.');
 });
 
 test('el camino de la guía en su libro: cada paso con su estado en su libro; el de un libro que no está, dicho; el inválido, con su motivo', async () => {
-  const { g, w, guia, almacen, entradas } = await dosLibros();
+  const { g, w, guia, destino, almacen, entradas } = await dosLibros();
   const { libros } = dispositivo(almacen);
   const decir = (k, p) => k + (p?.accion ? ':' + p.accion : '');
   const estado = async () => estadoDeLosPasos(g, guia.id, { entradas, libros, actual: { alta: 'G', eje: g }, yoDe: (e) => e.identidad, decir });
   const e = await estado();
   assert.deepEqual(e.map((x) => [x.titulo, x.estado, x.libro]), [['Anota aquí', 'pendiente', null], ['Un hito', 'pendiente', 'El trabajo'], ['Imposible', 'invalido', 'El trabajo'], ['Lejos', 'noEsta', null]]);
   assert.equal(e[2].motivo, 'guiaPasoSinAccion:' + ZONA);
-  await hacer(g, 'anchor here', g.alta('lectora').id, { title: 'mi nota' }, 'lectora');
+  await hacer(g, 'anchor here', destino.id, { title: 'mi nota' });
   await hacer(w, 'anchor here', w.alta('lectora').id, { title: 'hito' }, 'lectora');
   almacen.set('eje.W', JSON.stringify(serializar(w)));
   assert.deepEqual((await estado()).map((x) => x.estado), ['hecho', 'hecho', 'invalido', 'noEsta']);

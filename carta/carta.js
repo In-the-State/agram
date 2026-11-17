@@ -1074,7 +1074,9 @@ export function formulario(eje, X, accion, yo, valores = {}, { retocar = false, 
   // llevan los retoques del libro (A20); sin retoques, el mismo texto.
   const delLibro = (p, que, original) => leidoConClave(() => contrato.texto(eje, contrato.claves.parametro(canonico, p.nombre, que), o.idioma, { original, epoca: o.epoca }), original, o, retocar);
   const campos = acciones.parametros(plantilla, { ...o, eje }).map((p) => {
-    const valor = valores[p.nombre] !== undefined ? valores[p.nombre] : defectos.get(p.nombre);
+    // Solo los valores propios (Object.hasOwn): unos parámetros sin prototipo (los de un paso de guía) o con una clave
+    // «constructor» no heredan nada.
+    const valor = valores && Object.hasOwn(valores, p.nombre) && valores[p.nombre] !== undefined ? valores[p.nombre] : defectos.get(p.nombre);
     const etiqueta = delLibro(p, 'label', p.etiqueta);
     const ayuda = delLibro(p, 'help', p.ayuda);
     return {
