@@ -365,10 +365,13 @@ export function propio(eje, X, opciones = {}) {
   opciones = conEpoca(eje, opciones);
   const id = esReferencia(X) ? X.ref : X;
   const ev = typeof id === 'string' ? eje?.obtener?.(id) : null;
-  if (!ev || !Array.isArray(ev.payload)) return null;
+  if (!ev) return null;
+  // Un registro cuyo contenido es una hoja (el alta de una cuenta nueva es su nombre, un texto) no referencia piezas en
+  // sus posiciones, pero lleva igual las que su autor ancla en él: su arte propio cuenta como el de cualquier otro.
+  const registro = Array.isArray(ev.payload) ? ev.payload : [];
   const c = cabecera(opciones);
   const piezas = [];
-  for (const p of piezasDeModelo(ev.payload, { eje, id: ev.id, autor: ev.autor, cabecera: c, ...opciones })) {
+  for (const p of piezasDeModelo(registro, { eje, id: ev.id, autor: ev.autor, cabecera: c, ...opciones })) {
     const mundos = new Set([p.pv]);
     for (const m of p.mundos) {
       if (m === CUALQUIERA) MUNDOS.forEach((x) => mundos.add(x));
@@ -377,7 +380,7 @@ export function propio(eje, X, opciones = {}) {
     for (const pv of mundos) piezas.push({ ...p, pv });
   }
   if (!piezas.length) return null;
-  return { nombre: null, nivel: null, nota: null, donde: ev.id, registro: ev.payload, piezas, cabecera: c, propio: true };
+  return { nombre: null, nivel: null, nota: null, donde: ev.id, registro, piezas, cabecera: c, propio: true };
 }
 
 /** ¿Trae el modelo alguna pieza con recurso? El que no (el sobrio) es el respaldo de forma: va al final de la cadena. */

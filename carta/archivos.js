@@ -19,7 +19,7 @@
 import * as contrato from '../src/contrato.js';
 import { destinoDeArchivos } from '../src/sincronia.js';
 import { referenciaDeArchivo } from '../src/modelos.js';
-import { enviar } from './carta.js';
+import { enviar, validarSinFirmar, motivosEnLlano } from './carta.js';
 import { t, HOLA, holaInicial } from './textos.js';
 
 /** Tope de un archivo (el de la función). */
@@ -89,6 +89,26 @@ try {
  * escribe (o nada). Sirve para una cuenta nueva (cuentas.crearCuenta, con `htmlInicial`) y para una cosa dada de alta.
  * → el registro asentado, o null si no pasó (la alta ya existe: sin su HTML se ve como hasta ahora, su nombre).
  */
+/**
+ * Una acción que pide un archivo (un parámetro cuyo 4 es «file»: «adjuntar un archivo», «poner arte propio a este elemento»):
+ * prepara el archivo en local (su id, su referencia `archivo:<sha256>`, su formato), comprueba ANTES que la acción entraría
+ * con ellos (validarSinFirmar: todo menos la firma) y solo entonces lo sube y escribe la acción, firmada, por el camino de
+ * siempre (enviar). Si no entraría, no sube nada y da los motivos en llano. `campos`: los parámetros de archivo de la
+ * acción ({ nombre, archivo: 'ref' | 'format' }). → lo que da enviar más `adjunto` (lo de adjuntar), o { ok: false,
+ * motivos, sinSubir: true }. Lanza si el archivo no vale (tipo, tamaño) o no hay servidor.
+ */
+export async function adjuntarConAccion(archivos, { eje, X, accion, campos, archivo, yo, firmar, opciones = {} }) {
+  const p = await archivos.preparar(archivo);
+  const formato = formatoDeTipo(p.tipo, opciones);
+  if (!formato) throw new Error(t('archivoSinFormato', { tipo: p.tipo }));
+  const valores = Object.fromEntries((campos ?? []).map((c) => [c.nombre, c.archivo === 'format' ? formato : p.referencia]));
+  const v = await validarSinFirmar(eje, X, accion, valores, yo, opciones);
+  if (!v.ok) return { ok: false, asentado: null, sinSubir: true, motivos: motivosEnLlano(v.motivos, eje) };
+  const adjunto = await archivos.adjuntarPreparado(p);
+  const r = await enviar(eje, X, accion, valores, yo, firmar, opciones);
+  return { ...r, motivos: motivosEnLlano(r.motivos, eje), adjunto };
+}
+
 export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opciones = {}) {
   try {
     const x = await inicial(idioma);
@@ -163,9 +183,13 @@ export class Archivos {
    * rechaza (clave, tipo, tamaño), lanza con su motivo; sin red, queda pendiente (`sinRed`) y se sube después.
    */
   async adjuntar(archivo) {
+    return this.adjuntarPreparado(await this.preparar(archivo));
+  }
+
+  /** Guarda y sube un archivo ya preparado (preparar: su id calculado en local). → como adjuntar. */
+  async adjuntarPreparado(p) {
     const d = this.destino();
     if (!d) throw new Error(t('archivoSinServidor'));
-    const p = await this.preparar(archivo);
     const r = await this.subir(p.id, p.tipo, p.bytes, d);
     if (r.motivo) throw new Error(r.motivo);
     this.listo(p.id, p.tipo, p.bytes);

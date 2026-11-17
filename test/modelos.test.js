@@ -409,6 +409,13 @@ test('#25: el arte propio de un registro es su modelo parcial (piezas ancladas p
   // SEG-14 también aquí: el recurso acotado.
   await eje.escribir({ autor, sobre: menu.id, en: '5000000000', t: T, movimientos: [minuto(autor)], payload: [['marco'], [1, 'svg'], [4], ['centro'], ['once', 1], [5], ['javascript:alert(1)']] });
   assert.ok(!propio(eje, menu.id).piezas.some((x) => x.tipo === 'marco'), 'un recurso no admitido se descarta');
+  // Un registro cuyo contenido es un texto (como el alta de una cuenta nueva, que es su nombre) también lleva su arte.
+  const nota = await eje.escribir({ autor, sobre: menu.id, en: '9000000000', t: T, movimientos: [minuto(autor)], payload: 'una nota' });
+  assert.equal(propio(eje, nota.id), null, 'un texto sin piezas ancladas, nada');
+  await eje.escribir({ autor, sobre: nota.id, en: '5000000000', t: T, movimientos: [minuto(autor)], payload: [['elemento'], [0, 'svg'], ['*'], ['centro'], ['once', 1], ['*'], ['archivo:' + 'd'.repeat(64)]] });
+  const deLaNota = propio(eje, nota.id);
+  assert.deepEqual([deLaNota.propio, deLaNota.donde, deLaNota.registro], [true, nota.id, []], 'el arte anclado en un texto cuenta; su registro, sin posiciones');
+  assert.equal(pieza([deLaNota], 'elemento', 3, null, 'centro').recurso, 'archivo:' + 'd'.repeat(64), 'y sirve en todos los mundos');
 });
 
 test('#25, la plantilla «attach art to this element» (época 0): ancla el adjunto como pieza propia del elemento; de quien no es su autor no da pieza; html no', async () => {
