@@ -3,8 +3,12 @@
 // Por cada mensaje: un texto en dos trozos, un Edit de carta/estilo.css (lo escribe de verdad, para ver que el aviso
 // espera a que acabe), su resultado y el final. Si el mensaje dice LENTO, tarda 600 ms antes de acabar; si dice ROTO,
 // el proceso se cierra a medias.
+// La clave: el «init» dice ANTHROPIC_API_KEY si la recibe en su entorno (o lo que diga FALSO_FUENTE); con HUELLA
+// contesta solo la huella sha256 de la clave que recibió; con FUGA escribe la clave en stderr y se cierra; con FONDO
+// añade una entrada a retoques/.datos/fondo.md.
 
-import { appendFileSync } from 'node:fs';
+import { appendFileSync, mkdirSync } from 'node:fs';
+import { createHash } from 'node:crypto';
 import { join } from 'node:path';
 
 const args = process.argv.slice(2);
@@ -18,7 +22,8 @@ if (args.some((a) => /dangerously|bypassPermissions/i.test(a))) process.exit(4);
 
 const sesion = args.includes('--resume') ? args[args.indexOf('--resume') + 1] : '0f0f0f0f-1111-2222-3333-444455556666';
 const decir = (o) => process.stdout.write(JSON.stringify({ session_id: sesion, ...o }) + '\n');
-decir({ type: 'system', subtype: 'init', tools: ['Read', 'Edit', 'Write', 'Glob', 'Grep'] });
+const fuente = process.env.FALSO_FUENTE || (process.env.ANTHROPIC_API_KEY ? 'ANTHROPIC_API_KEY' : 'none');
+decir({ type: 'system', subtype: 'init', tools: ['Read', 'Edit', 'Write', 'Glob', 'Grep'], apiKeySource: fuente });
 
 let buf = '';
 let cola = Promise.resolve();
@@ -37,6 +42,19 @@ process.stdin.on('end', () => cola.then(() => process.exit(0)));
 const esperar = (ms) => new Promise((ok) => setTimeout(ok, ms));
 async function turno(texto) {
   const delta = (t) => decir({ type: 'stream_event', event: { type: 'content_block_delta', index: 0, delta: { type: 'text_delta', text: t } } });
+  if (texto.includes('HUELLA')) {
+    delta('huella:' + createHash('sha256').update(process.env.ANTHROPIC_API_KEY ?? '').digest('hex'));
+    decir({ type: 'result', subtype: 'success', is_error: false, result: 'huella' });
+    return;
+  }
+  if (texto.includes('FUGA')) {
+    process.stderr.write('fallo con la clave ' + (process.env.ANTHROPIC_API_KEY ?? '') + ' al llamar\n');
+    process.exit(5);
+  }
+  if (texto.includes('FONDO')) {
+    mkdirSync(join(process.cwd(), 'retoques', '.datos'), { recursive: true });
+    appendFileSync(join(process.cwd(), 'retoques', '.datos', 'fondo.md'), '\n## 2026-11-17 · mover una décupla\nclase: época\nestado: pendiente\npidió: muévela\ncontexto: foco abc\n');
+  }
   delta('Cambio ');
   delta('el color.');
   decir({ type: 'assistant', message: { content: [{ type: 'text', text: 'Cambio el color.' }] } });

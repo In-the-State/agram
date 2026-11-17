@@ -12,6 +12,7 @@ import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync, existsSync
 import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { crearServidor, segmentosDe, excluido, avisoDe, inyectar, SW_BAJA, COOKIE, CABECERA_LLAVE } from '../retoques/servidor.mjs';
 import { mensajeDe, argumentos } from '../retoques/agente.mjs';
@@ -27,7 +28,7 @@ function git(dir, ...args) {
 }
 
 /** Un árbol como el de la carta en una carpeta temporal, con su repositorio (rama beta) y un servidor sobre él. */
-async function montar({ rama = null, publico = null, vigilar = true } = {}) {
+async function montar({ rama = null, publico = null, vigilar = true, claveApi = null } = {}) {
   const dir = mkdtempSync(join(tmpdir(), 'agram-retoques-'));
   for (const d of ['carta', 'test', 'servidor', 'src', '.git-falso', 'retoques']) mkdirSync(join(dir, d), { recursive: true });
   writeFileSync(join(dir, 'index.html'), INDICE);
@@ -44,7 +45,7 @@ async function montar({ rama = null, publico = null, vigilar = true } = {}) {
   git(dir, 'config', 'user.email', 'prueba@ejemplo.test');
   git(dir, 'add', '-A');
   git(dir, 'commit', '-q', '-m', 'inicio');
-  const s = crearServidor({ raiz: dir, puerto: 0, rama, publico, vigilar, orden: { comando: process.execPath, args: [FALSO] } });
+  const s = crearServidor({ raiz: dir, puerto: 0, rama, publico, vigilar, claveApi, orden: { comando: process.execPath, args: [FALSO] } });
   const puerto = await s.escuchar();
   const fin = async () => { await s.cerrar(); rmSync(dir, { recursive: true, force: true, maxRetries: 10, retryDelay: 100 }); };
   return { dir, s, puerto, llave: s.llave, fin };
@@ -344,5 +345,91 @@ test('cara pública: tras varios fallos seguidos, espera (ni la llave buena entr
     assert.equal((await entrar(m.llave)).estado, 204, 'pasada la espera, la buena entra');
     for (let i = 0; i < 6; i++) await entrar(m.llave);
     assert.equal((await entrar(m.llave)).estado, 429, 'diez intentos por minuto');
+  } finally { await m.fin(); }
+});
+
+// ---------- la clave de API de VG (--clave-api) ----------
+
+const CLAVE_FALSA = 'sk-ant-falsa-de-prueba-0123456789';
+const huella = (x) => createHash('sha256').update(x).digest('hex');
+/** Un archivo con la clave en una carpeta temporal aparte (fuera de la raíz servida). */
+function archivoDeClave(contenido) {
+  const dir = mkdtempSync(join(tmpdir(), 'agram-clave-'));
+  const ruta = join(dir, 'clave.txt');
+  if (contenido !== null) writeFileSync(ruta, contenido);
+  return { ruta, borrar: () => rmSync(dir, { recursive: true, force: true }) };
+}
+/** Lo que se escribe en la consola mientras corre `fn`. */
+async function conConsola(fn) {
+  const dicho = [];
+  const antes = { log: console.log, error: console.error, warn: console.warn };
+  for (const k of Object.keys(antes)) console[k] = (...a) => dicho.push(a.join(' '));
+  try { await fn(dicho); } finally { Object.assign(console, antes); }
+  return dicho;
+}
+const mensaje = (m, texto) => pedir(m.puerto, '/retoques/core', { metodo: 'POST', cabeceras: conLlave(m.llave), cuerpo: { texto } }).then((r) => trozosDe(r.cuerpo));
+const nueva = (m) => pedir(m.puerto, '/retoques/core/nueva', { metodo: 'POST', cabeceras: conLlave(m.llave), cuerpo: {} });
+
+test('clave de VG: el hijo la recibe en su entorno; no sale en estado, ni en errores, ni en la consola; si el hijo no la usa, se le para', async () => {
+  const clave = archivoDeClave(CLAVE_FALSA + '\nlo de la segunda línea no cuenta\n');
+  let m;
+  const dicho = await conConsola(async () => {
+    m = await montar({ vigilar: false, claveApi: clave.ruta });
+    try {
+      const estado = await pedir(m.puerto, '/retoques/estado', { cabeceras: conLlave(m.llave) });
+      assert.equal(JSON.parse(estado.cuerpo).claveApi, true);
+      assert.ok(!estado.cuerpo.includes(CLAVE_FALSA));
+      const h = await mensaje(m, 'HUELLA');
+      assert.equal(h.find((t) => t.tipo === 'texto')?.texto, 'huella:' + huella(CLAVE_FALSA), 'el hijo tiene la clave (solo la primera línea) en ANTHROPIC_API_KEY');
+      assert.equal(h.at(-1).tipo, 'fin');
+      // Lo que el hijo escribe en stderr se enseña con la clave tachada.
+      const fuga = await mensaje(m, 'FUGA');
+      assert.equal(fuga.at(-1).tipo, 'error');
+      assert.match(fuga.at(-1).motivo, /\[clave tachada\]/);
+      assert.ok(!JSON.stringify(fuga).includes(CLAVE_FALSA));
+      assert.ok(!JSON.stringify(fuga).includes('sk-ant-'));
+      // Si el «init» dice que la clave no viene del entorno: se le para y el mensaje acaba en error.
+      process.env.FALSO_FUENTE = 'oauth';
+      try {
+        const otra = await mensaje(m, 'hola');
+        assert.equal(otra.at(-1).tipo, 'error');
+        assert.match(otra.at(-1).motivo, /Core no está usando la clave de VG/);
+        assert.ok(!otra.some((t) => t.tipo === 'fin'));
+      } finally { delete process.env.FALSO_FUENTE; }
+      assert.equal(m.s.agente.vivo, false);
+      const despues = await mensaje(m, 'hola');
+      assert.equal(despues.at(-1).tipo, 'fin', 'con el entorno bien, vuelve a arrancar');
+    } finally { await m.fin(); }
+  });
+  assert.ok(!dicho.join('\n').includes(CLAVE_FALSA), 'la consola no la dice');
+  for (const archivo of ['sesion.json', 'opiniones.jsonl']) assert.ok(!existsSync(join(m.dir, 'retoques', '.datos', archivo)) || !readFileSync(join(m.dir, 'retoques', '.datos', archivo), 'utf8').includes(CLAVE_FALSA));
+  clave.borrar();
+});
+
+test('clave de VG: archivo ausente o vacío, el mensaje acaba en error y Core no arranca; dentro de la raíz, el servidor no arranca', async () => {
+  for (const contenido of [null, '', '   \n']) {
+    const clave = archivoDeClave(contenido);
+    const m = await montar({ vigilar: false, claveApi: clave.ruta });
+    try {
+      const r = await mensaje(m, 'hola');
+      assert.equal(r.length, 1);
+      assert.equal(r[0].tipo, 'error');
+      assert.match(r[0].motivo, /clave de API de VG/);
+      assert.equal(m.s.agente.vivo, false, 'no arranca');
+      assert.ok(!existsSync(join(m.dir, 'carta', 'estilo.css')) || !readFileSync(join(m.dir, 'carta', 'estilo.css'), 'utf8').includes('retoque'), 'no hizo nada');
+    } finally { await m.fin(); clave.borrar(); }
+  }
+  const dir = mkdtempSync(join(tmpdir(), 'agram-raiz-'));
+  try {
+    writeFileSync(join(dir, 'clave.txt'), CLAVE_FALSA);
+    for (const ruta of [join(dir, 'clave.txt'), join(dir, 'retoques', '.datos', 'clave.txt'), join(dir, 'nada', '..', 'clave.txt')]) {
+      assert.throws(() => crearServidor({ raiz: dir, puerto: 0, vigilar: false, claveApi: ruta }), /FUERA del repositorio/, ruta);
+    }
+    if (process.platform === 'win32') assert.throws(() => crearServidor({ raiz: dir, puerto: 0, vigilar: false, claveApi: join(dir.toUpperCase(), 'clave.txt') }), /FUERA/);
+  } finally { rmSync(dir, { recursive: true, force: true }); }
+  // Sin --clave-api, como siempre: estado lo dice y el hijo arranca con el entorno de este equipo.
+  const m = await montar({ vigilar: false });
+  try {
+    assert.equal(JSON.parse((await pedir(m.puerto, '/retoques/estado', { cabeceras: conLlave(m.llave) })).cuerpo).claveApi, false);
   } finally { await m.fin(); }
 });

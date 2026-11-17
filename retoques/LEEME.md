@@ -5,8 +5,10 @@ Un servidor local para la aceptación de la carta: sirve la carta con recarga au
 ## Arrancar
 
 ```
-node retoques/servidor.mjs --rama beta-retoques [--puerto 8790] [--modelo <modelo>] [--publico <host>]
+node retoques/servidor.mjs --rama beta-retoques [--puerto 8790] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>]
 ```
+
+- `--clave-api <ruta>`: un archivo FUERA del repositorio cuya primera línea es la clave de API de VG. Core gasta de ella, no de la cuenta de Claude Code de este equipo. Si la ruta cae dentro de la raíz servida, el servidor no arranca. Sin esta opción, la consola avisa de que Core gasta de la cuenta del equipo.
 
 - Escucha solo en `127.0.0.1`. Escribe en la consola la dirección con la llave (`http://localhost:8790/#llave=…`): ábrela. La llave es nueva en cada arranque y no se guarda en ningún archivo; si se pierde, la carta enseña un campo pequeño «pega la llave».
 - `--rama`: la única rama en que «guardar» hace commit (de `carta/` e `index.html`). Nunca `beta`, `main` ni `master`; sin `--rama`, no guarda. Nunca empuja.
@@ -27,6 +29,14 @@ claude -p --restricted --strict-mcp-config --tools Read,Edit,Write,Glob,Grep --p
 - `dontAsk` + `--permission-prompts none`: lo que no está permitido de antemano se rechaza solo, sin preguntar a nadie.
 - `permisos.json`: permite leer y `Edit(./carta/**)`, `Edit(./index.html)`, `Edit(./retoques/.datos/fondo.md)` (Edit cubre también Write); niega Bash, PowerShell, WebFetch, WebSearch, NotebookEdit y leer `.git`, `.claude`, `.agram`, `.wrangler` y `be.config.json`.
 - Proceso vivo con entrada y salida en stream-json: el segundo mensaje no espera a arrancar. Si el proceso muere, el siguiente mensaje lo arranca con `--resume`. Nunca `--dangerously-skip-permissions` ni `bypassPermissions`.
+
+### Con `--clave-api`
+
+- La orden es la misma. La clave se lee del archivo al arrancar cada proceso y va solo en el entorno del hijo: `ANTHROPIC_API_KEY`, quitando antes del entorno del hijo `ANTHROPIC_AUTH_TOKEN`, `CLAUDE_CODE_OAUTH_TOKEN`, `ANTHROPIC_BASE_URL` y los `CLAUDE_CODE_USE_*`. No se guarda en el agente ni en `.datos`, no sale en la consola, ni en `estado` (solo `claveApi: true`), ni en los errores: lo que se enseña del hijo pasa por un filtro que la tacha (la clave exacta y cualquier `sk-ant-…`).
+- Archivo ausente, vacío o ilegible: el mensaje a Core acaba en error y el hijo no arranca. Nunca se cae a la cuenta del equipo.
+- Si el `init` del hijo no dice `apiKeySource: "ANTHROPIC_API_KEY"`, se le mata y el mensaje acaba en «Core no está usando la clave de VG».
+- Comprobado el 17-11 con una clave falsa (`sk-ant-falsa-de-prueba`), en una carpeta temporal vacía: el `init` dice `apiKeySource: "ANTHROPIC_API_KEY"` y la llamada falla por autenticación («Invalid API key · Fix external API key», `error: authentication_failed`) en vez de contestar con la cuenta. El hijo avisa en stderr de que los conectores de claude.ai quedan desactivados porque la clave del entorno gana a la sesión de claude.ai.
+- `--bare` (no leer la sesión de la cuenta: solo `ANTHROPIC_API_KEY`) NO se usa: con `--restricted` y `--tools Read,Edit,Write,Glob,Grep`, el `init` con `--bare` solo ofrece Edit y Read (sin Write, Glob ni Grep). La garantía es la comprobación del `init`.
 
 ## Lo comprobado de verdad (17-11, Claude Code 2.1.322, Windows)
 

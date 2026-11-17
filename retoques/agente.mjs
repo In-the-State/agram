@@ -11,6 +11,12 @@
 //   --settings permisos.json: escribir solo en carta/**, index.html y retoques/.datos/fondo.md
 // Nunca --dangerously-skip-permissions ni bypassPermissions.
 //
+// La clave de API de VG (--clave-api <ruta> del servidor): se lee del archivo al arrancar cada proceso y va SOLO en el
+// entorno del hijo (ANTHROPIC_API_KEY, sin las otras credenciales del entorno). No se guarda en el agente, no sale en
+// ningún trozo: lo que se enseña del hijo pasa por un filtro que la tacha. Si el archivo falta o está vacío, el mensaje
+// acaba en error y el hijo no arranca (nunca se cae en silencio a la cuenta de Claude Code del equipo); si el «init» del
+// hijo dice que la clave no viene del entorno, se le mata: «Core no está usando la clave de VG».
+//
 // Lo que sale hacia el servidor son «trozos»: { tipo: 'texto', texto } según llega, { tipo: 'archivo', ruta, herramienta }
 // cuando toca un archivo, { tipo: 'rechazo', ruta, herramienta, motivo } si una herramienta se lo niega, y al final
 // { tipo: 'fin', archivos, ms } o { tipo: 'error', motivo }. Sin dependencias.
@@ -40,6 +46,27 @@ export function argumentos({ modelo = null, sesion = null } = {}) {
   ];
 }
 
+/** Las credenciales del entorno que no pasan al hijo cuando va con la clave de VG (no deben ganarle a ANTHROPIC_API_KEY). */
+const OTRAS_CREDENCIALES = ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE_CODE_OAUTH_TOKEN', 'CLAUDE_CODE_USE_BEDROCK', 'CLAUDE_CODE_USE_VERTEX', 'CLAUDE_CODE_USE_FOUNDRY', 'ANTHROPIC_BASE_URL'];
+/** Lo que dice el «init» de Claude Code cuando la clave viene del entorno. */
+export const ORIGEN_DE_LA_CLAVE = 'ANTHROPIC_API_KEY';
+export const NO_USA_LA_CLAVE = 'Core no está usando la clave de VG';
+
+/** La clave de un archivo: su primera línea, sin espacios; null si no se puede leer o está vacía. */
+export function leerClave(ruta) {
+  try {
+    const v = readFileSync(ruta, 'utf8').split(/\r?\n/)[0].trim();
+    return v || null;
+  } catch { return null; }
+}
+
+/** Tacha en un texto la clave dada y cualquier cosa con forma de clave de Anthropic. */
+export function tachar(texto, clave = null) {
+  let s = String(texto ?? '');
+  if (clave) s = s.split(clave).join('[clave tachada]');
+  return s.replace(/sk-ant-[A-Za-z0-9_-]+/g, '[clave tachada]');
+}
+
 /** Lo que llega de la pantalla va marcado como DATOS: un cierre de etiqueta dentro no puede cerrar el bloque. */
 const neutro = (s) => String(s ?? '').replace(/<(\/?)(pantalla|senalado)\b/gi, '‹$1$2');
 
@@ -55,10 +82,12 @@ export class Agente {
   /**
    * `raiz`: la carpeta de trabajo (la raíz del worktree). `datos`: dónde se guarda el id de sesión. `modelo`: el de
    * --modelo o null. `orden`: { comando, args } para cambiar el ejecutable (las pruebas usan un agente falso de Node; sus
-   * `args` van delante de los de claude). `tiempoMaximo`: ms por mensaje.
+   * `args` van delante de los de claude). `tiempoMaximo`: ms por mensaje. `claveApi`: la RUTA del archivo con la clave
+   * de VG (nunca la clave), o null: la cuenta de Claude Code de este equipo.
    */
-  constructor({ raiz, datos = join(raiz, 'retoques', '.datos'), modelo = null, orden = null, tiempoMaximo = TIEMPO_MAXIMO } = {}) {
+  constructor({ raiz, datos = join(raiz, 'retoques', '.datos'), modelo = null, orden = null, tiempoMaximo = TIEMPO_MAXIMO, claveApi = null } = {}) {
     this.raiz = resolve(raiz);
+    this.claveApi = claveApi;
     this.datos = datos;
     this.modelo = modelo;
     this.orden = orden;
@@ -99,8 +128,19 @@ export class Agente {
   #arrancar() {
     const comando = this.orden?.comando ?? 'claude';
     const args = [...(this.orden?.args ?? []), ...argumentos({ modelo: this.modelo, sesion: this.sesion })];
-    const p = spawn(comando, args, { cwd: this.raiz, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true });
-    const vida = { p, buffer: '', errores: '', inicio: false, conResume: Boolean(this.sesion) };
+    let entorno = process.env;
+    let filtro = (x) => tachar(x);
+    if (this.claveApi) {
+      const clave = leerClave(this.claveApi);
+      if (!clave) throw new Error('No puedo leer la clave de API de VG (el archivo de --clave-api falta, está vacío o no se lee): Core no arranca');
+      entorno = { ...process.env };
+      for (const k of OTRAS_CREDENCIALES) delete entorno[k];
+      entorno.ANTHROPIC_API_KEY = clave;
+      filtro = (x) => tachar(x, clave);
+    }
+    const p = spawn(comando, args, { cwd: this.raiz, stdio: ['pipe', 'pipe', 'pipe'], windowsHide: true, env: entorno });
+    entorno = null;
+    const vida = { p, buffer: '', errores: '', inicio: false, conResume: Boolean(this.sesion), filtro, motivo: null };
     this.proceso = vida;
     p.stdout.setEncoding('utf8');
     p.stderr.setEncoding('utf8');
@@ -113,13 +153,14 @@ export class Agente {
         if (!linea) continue;
         let e;
         try { e = JSON.parse(linea); } catch { continue; }
+        if (this.proceso !== vida) return; // muerto a propósito: nada más de él
         this.#evento(e, vida);
       }
     });
     p.stderr.on('data', (d) => { vida.errores = (vida.errores + d).slice(-2000); });
     p.stdin.on('error', () => { /* el proceso se ha ido: lo dice 'exit' */ });
     p.on('error', (e) => this.#murio(vida, e.code === 'ENOENT' ? 'no encuentro «' + comando + '» (Claude Code)' : String(e.message ?? e)));
-    p.on('exit', (codigo) => this.#murio(vida, 'Core se ha cerrado (código ' + codigo + ')' + (vida.errores.trim() ? ': ' + vida.errores.trim().slice(-400) : '')));
+    p.on('exit', (codigo) => this.#murio(vida, vida.motivo ?? 'Core se ha cerrado (código ' + codigo + ')' + (vida.errores.trim() ? ': ' + vida.filtro(vida.errores.trim()).slice(-400) : '')));
   }
 
   #murio(vida, motivo) {
@@ -127,7 +168,7 @@ export class Agente {
     this.proceso = null;
     // Un --resume que no arranca (la sesión ya no existe): la próxima vez, una conversación nueva.
     if (vida.conResume && !vida.inicio) { this.#olvidarSesion(); motivo += ' · no se pudo retomar la conversación anterior: el próximo mensaje empieza una nueva'; }
-    this.#acabar({ tipo: 'error', motivo });
+    this.#acabar({ tipo: 'error', motivo: vida.filtro(motivo) });
   }
 
   #acabar(trozo) {
@@ -141,7 +182,16 @@ export class Agente {
 
   #evento(e, vida) {
     if (e.session_id) this.#guardarSesion(e.session_id);
-    if (e.type === 'system' && e.subtype === 'init') { vida.inicio = true; return; }
+    if (e.type === 'system' && e.subtype === 'init') {
+      vida.inicio = true;
+      // Con la clave de VG, el hijo tiene que decir que la usa; si no, se le mata y el mensaje acaba en error.
+      if (this.claveApi && e.apiKeySource !== ORIGEN_DE_LA_CLAVE) {
+        vida.motivo = NO_USA_LA_CLAVE + ' (dice: ' + String(e.apiKeySource ?? 'nada').slice(0, 40) + ')';
+        try { vida.p.kill(); } catch { /* nada */ }
+        this.#murio(vida, vida.motivo);
+      }
+      return;
+    }
     const turno = this.turno;
     if (!turno) return;
     if (e.type === 'stream_event') {
@@ -181,10 +231,10 @@ export class Agente {
     }
     if (e.type === 'result') {
       if (e.is_error || (e.subtype && e.subtype !== 'success')) {
-        this.#acabar({ tipo: 'error', motivo: String(e.result || e.subtype || 'error'), archivos: [...turno.cambiados] });
+        this.#acabar({ tipo: 'error', motivo: vida.filtro(String(e.result || e.subtype || 'error')), archivos: [...turno.cambiados] });
         return;
       }
-      if (!turno.deltas && typeof e.result === 'string' && e.result) turno.alTrozo({ tipo: 'texto', texto: e.result });
+      if (!turno.deltas && typeof e.result === 'string' && e.result) turno.alTrozo({ tipo: 'texto', texto: vida.filtro(e.result) });
       this.#acabar({ tipo: 'fin', archivos: [...turno.cambiados], ms: Date.now() - turno.desde });
     }
   }

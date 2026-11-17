@@ -3,6 +3,10 @@
 // dependencias. Cómo se usa y lo comprobado: retoques/LEEME.md.
 //
 //   node retoques/servidor.mjs [--puerto 8790] [--rama <rama de retoques>] [--modelo <modelo>] [--publico <host>]
+//                              [--clave-api <ruta>]
+//
+// --clave-api: un archivo FUERA del repositorio cuya primera línea es la clave de API de VG; Core gasta de ella y no de la
+// cuenta de Claude Code de este equipo (retoques/agente.mjs). Dentro de la raíz servida, el servidor no arranca.
 //
 // Seguridad (cualquier página abierta en el mismo navegador puede llamar a localhost):
 //   · escucha SOLO en 127.0.0.1; sin caché; sin atravesar carpetas; lo que la beta no publica, aquí tampoco se sirve;
@@ -17,11 +21,11 @@
 
 import http from 'node:http';
 import { createHash, randomBytes, timingSafeEqual } from 'node:crypto';
-import { appendFileSync, mkdirSync, readFileSync, realpathSync, statSync, watch } from 'node:fs';
+import { appendFileSync, existsSync, mkdirSync, readFileSync, realpathSync, statSync, watch } from 'node:fs';
 import { dirname, extname, join, relative, resolve, sep, isAbsolute } from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
-import { Agente } from './agente.mjs';
+import { Agente, leerClave } from './agente.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 export const RAIZ = resolve(AQUI, '..');
@@ -88,6 +92,13 @@ export const inyectar = (html) => (html.includes('</head>') ? html.replace('</he
 /** El aviso de unos archivos cambiados: solo CSS se aplica sin recargar; cualquier otro, recarga. */
 export const avisoDe = (rutas) => ({ tipo: rutas.length && rutas.every((r) => r.toLowerCase().endsWith('.css')) ? 'css' : 'recargar', rutas });
 
+/** ¿Está `ruta` dentro de `raiz` (o es ella)? Sin mirar mayúsculas en Windows. */
+export function dentroDe(raiz, ruta) {
+  const norm = (x) => (process.platform === 'win32' ? x.toLowerCase() : x);
+  const rel = relative(norm(resolve(raiz)), norm(resolve(ruta)));
+  return rel === '' || (!rel.startsWith('..') && !isAbsolute(rel));
+}
+
 const resumen = (s) => createHash('sha256').update(String(s)).digest();
 /** Comparación en tiempo constante (por el resumen: misma longitud siempre). */
 export const igual = (a, b) => typeof a === 'string' && typeof b === 'string' && timingSafeEqual(resumen(a), resumen(b));
@@ -128,15 +139,21 @@ if (h) { history.replaceState(null, '', location.pathname); l.value = h[1]; entr
  * ya hecho (si no, new Agente); `orden`: el ejecutable del agente (pruebas); `llave` (pruebas; si no, aleatoria).
  * → { escuchar(): Promise<puerto>, cerrar(): Promise, llave, agente, servidor, puerto() }.
  */
-export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo = null, publico = null, agente = null, orden = null, llave = null, vigilar = true } = {}) {
+export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo = null, publico = null, agente = null, orden = null, llave = null, vigilar = true, claveApi = null } = {}) {
   raiz = resolve(raiz);
   const raizReal = realpathSync.native(raiz);
+  if (claveApi) {
+    claveApi = resolve(String(claveApi));
+    if (dentroDe(raiz, claveApi) || dentroDe(raizReal, claveApi) || (existsSync(claveApi) && dentroDe(raizReal, realpathSync.native(claveApi)))) {
+      throw new Error('--clave-api: el archivo de la clave tiene que estar FUERA del repositorio (' + raiz + ')');
+    }
+  }
   if (rama && RAMAS_PROHIBIDAS.has(rama)) throw new Error('--rama no puede ser ' + rama + ': los retoques se guardan en su propia rama');
   const host = publico ? String(publico).toLowerCase().trim() : null;
   if (host && !/^[a-z0-9.-]+$/.test(host)) throw new Error('--publico: un nombre de host sin puerto ni esquema');
   const LLAVE = llave ?? randomBytes(32).toString('hex');
   const datos = join(raiz, 'retoques', '.datos');
-  const core = agente ?? new Agente({ raiz, datos, modelo, orden });
+  const core = agente ?? new Agente({ raiz, datos, modelo, orden, claveApi });
   const sesiones = new Map(); // resumen hex de la cookie → caduca (ms)
   const llamadas = []; // instantes de las llamadas del último minuto
   const entrar = { intentos: [], fallos: 0, hasta: 0 };
@@ -285,7 +302,7 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
     if (!igual(req.headers[CABECERA_LLAVE], LLAVE)) return vacia(res, 401);
     const m = req.method;
     if (ruta === '/retoques/estado' && m === 'GET') {
-      return json(res, 200, { agente: core.vivo, ocupado: core.ocupado, conversacion: Boolean(core.sesion), rama: ramaActual(), ramaDeRetoques: rama, sinGuardar: sinGuardar(), modelo: modelo ?? null });
+      return json(res, 200, { agente: core.vivo, ocupado: core.ocupado, conversacion: Boolean(core.sesion), rama: ramaActual(), ramaDeRetoques: rama, sinGuardar: sinGuardar(), modelo: modelo ?? null, claveApi: Boolean(claveApi) });
     }
     if (ruta === '/retoques/eventos' && m === 'GET') {
       res.writeHead(200, { ...cabecerasBase, 'content-type': 'text/event-stream; charset=utf-8', connection: 'keep-alive' });
@@ -416,7 +433,8 @@ function opciones(argv) {
     else if (a === '--rama') { o.rama = v; i++; }
     else if (a === '--modelo') { o.modelo = v; i++; }
     else if (a === '--publico') { o.publico = v; i++; }
-    else throw new Error('no conozco «' + a + '». Uso: node retoques/servidor.mjs [--puerto 8790] [--rama <rama>] [--modelo <modelo>] [--publico <host>]');
+    else if (a === '--clave-api') { o.claveApi = v; i++; }
+    else throw new Error('no conozco «' + a + '». Uso: node retoques/servidor.mjs [--puerto 8790] [--rama <rama>] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>]');
   }
   if (o.puerto !== undefined && !(Number.isInteger(o.puerto) && o.puerto > 0 && o.puerto < 65536)) throw new Error('--puerto: un número entre 1 y 65535');
   return o;
@@ -432,6 +450,8 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     console.log('Abre: http://localhost:' + puerto + '/#llave=' + s.llave);
     if (o.publico) console.log('Detrás del túnel: https://' + o.publico + '/#llave=' + s.llave);
     console.log(o.rama ? '«guardar» hace commit solo en la rama ' + o.rama + '.' : 'Sin --rama: «guardar» no hace commit.');
+    if (!o.claveApi) console.log('Aviso: sin --clave-api, Core gasta de la cuenta de Claude Code de este equipo.');
+    else console.log(leerClave(resolve(o.claveApi)) ? 'Core gasta de la clave de API de VG (--clave-api).' : 'Aviso: el archivo de --clave-api falta o está vacío: Core no arrancará hasta que esté.');
     console.log('Ctrl+C para parar (Core se cierra con él).');
   } catch (e) {
     console.error('retoques:', e?.message ?? e);
