@@ -3,7 +3,8 @@
 // libros de mi clave en este dispositivo y para seguir un paso o una zona.
 //
 //   LibrosDelDispositivo                     los ejes de mis otros libros, leídos del almacén local una vez mientras no cambien
-//   pasoDelLibro(eje, id)                    ¿es `id` un paso de una guía de ese libro? → { paso, guia } o null
+//   pasoDelLibro(eje, id)                    ¿es `id` un paso de una guía de ese libro? → { paso, guia, autor } o null
+//   esMiGuia(hallado, yo)                    ¿es mía la guía de ese paso (yo, mi identidad en el libro de la guía)?
 //   sugerenciasDeMisGuias(...)               el gancho de la tercera fuente del 9: los pasos de mis guías sobre el foco
 //   estadoDeLosPasos(...)                    el camino de una guía en su libro: cada paso con su estado leído en su libro
 //   libroDeEntrada(...)                      la entrada de «Tus libros» de un libro (por el id de su génesis), si está aquí
@@ -22,23 +23,18 @@ export const TOPE_DE_PASOS = 24;
 
 const RE_ID = /^[0-9a-f]{64}$/;
 
-/**
- * La huella del texto guardado de un libro, para saber si cambió sin compararlo entero en cada pintado: su largo y sus
- * dos extremos. Lo que se guarda de un libro crece al escribir (un registro más cambia el largo y el final).
- */
-const huellaDe = (texto) => texto.length + ':' + texto.slice(0, 256) + ':' + texto.slice(-512);
 
 /**
  * Los ejes de mis libros en este dispositivo, leídos del almacén local (la clave de cada uno: `clave(alta)`). Se guarda lo
- * leído por libro con el texto del que salió: mientras el texto guardado no cambie, no se vuelve a restaurar (restaurar
- * vuelve a comprobar todas las firmas). Lo que no se lee da null; nunca lanza.
+ * leído por libro con el texto entero del que salió: mientras el texto guardado sea el mismo (===), no se vuelve a
+ * restaurar (restaurar vuelve a comprobar todas las firmas). Lo que no se lee da null; nunca lanza.
  */
 export class LibrosDelDispositivo {
   constructor({ clave, restaurar, almacen = () => globalThis.localStorage } = {}) {
     this.clave = clave;
     this.restaurar = restaurar;
     this.almacen = almacen;
-    this.leidos = new Map(); // alta → { texto, eje, guias }
+    this.leidos = new Map(); // alta → { texto, eje, guias: Map(autor → guías) }
   }
 
   /** El texto guardado del libro de esa alta, o null. */
@@ -52,23 +48,22 @@ export class LibrosDelDispositivo {
     const texto = this.texto(alta);
     if (!texto) { this.leidos.delete(alta); return null; }
     const antes = this.leidos.get(alta);
-    const huella = huellaDe(texto);
-    if (antes && antes.huella === huella) return antes.eje;
+    if (antes && antes.texto === texto) return antes.eje;
     let eje = null;
     try { eje = await this.restaurar(JSON.parse(texto)); } catch { eje = null; }
-    this.leidos.set(alta, { huella, eje, guias: undefined });
+    this.leidos.set(alta, { texto, eje, guias: new Map() });
     return eje;
   }
 
-  /** Las guías del libro de esa alta (contrato.guias), contadas una vez por versión del texto. */
-  async guias(alta) {
+  /** Las guías de `autor` en el libro de esa alta (contrato.guias), contadas una vez por versión del texto. */
+  async guias(alta, autor) {
     const eje = await this.eje(alta);
-    if (!eje) return [];
+    if (!eje || typeof autor !== 'string' || !autor) return [];
     const l = this.leidos.get(alta);
-    if (l.guias === undefined) {
-      try { l.guias = contrato.guias(eje); } catch { l.guias = []; }
+    if (!l.guias.has(autor)) {
+      try { l.guias.set(autor, contrato.guias(eje, { autor })); } catch { l.guias.set(autor, []); }
     }
-    return l.guias;
+    return l.guias.get(autor);
   }
 }
 
@@ -91,7 +86,8 @@ export async function libroDeEntrada(libro, { entradas = [], libros, actual = nu
 
 /**
  * ¿Es `id` un paso de una guía de este libro? Un registro con «a step of the guide» anclado en el 4 de su guía que la
- * lectura del núcleo da por bueno (del autor de la guía, con forma válida). → { paso, guia: { id, titulo } } o null.
+ * lectura del núcleo da por bueno (del autor de la guía, con forma válida). → { paso, guia: { id, titulo }, autor (el de la
+ * guía) } o null. Que sea un paso no dice que sea mío: eso lo decide esMiGuia.
  */
 export function pasoDelLibro(eje, id) {
   if (typeof id !== 'string' || !RE_ID.test(id)) return null;
@@ -100,14 +96,22 @@ export function pasoDelLibro(eje, id) {
   const paso = contrato.pasosDeGuia(eje, r.sobre).find((p) => p.id === id);
   if (!paso) return null;
   const guia = contrato.guias(eje).find((g) => g.id === r.sobre) ?? { id: r.sobre, titulo: null };
-  return { paso, guia };
+  return { paso, guia, autor: eje.obtener(r.sobre)?.autor ?? null };
 }
+
+/**
+ * ¿Puedo seguir este paso? Solo si la guía de la que cuelga la escribí yo (`yo`: mi identidad en el libro de la guía).
+ * Un miembro de un libro con la época de la guía puede escribir su propia guía con pasos que apuntan a mis libros: esos
+ * no se me ofrecen ni se siguen (la carta lo dice y no abre nada). Sin saber quién soy en ese libro, no.
+ */
+export const esMiGuia = (hallado, yo) => Boolean(hallado) && typeof yo === 'string' && yo !== '' && hallado.autor === yo;
 
 /**
  * El gancho de la tercera fuente del camino (§12.5) con los pasos de mis guías: de cada libro de mi clave en este
  * dispositivo que tenga guías (los TOPE_DE_LIBROS primeros), los pasos cuyo libro es el abierto y cuyo registro es el
- * del foco (contrato.sugerenciasDeGuia). El libro abierto se lee de `actual.eje` (lo último, no lo guardado). Como mucho
- * TOPE_DE_PASOS pasos. `deDonde` (opcional) recibe, por cada paso, el alta del libro de su guía: con ella la carta sabe
+ * del foco (contrato.sugerenciasDeGuia). Solo los de MIS guías: las que escribí con mi identidad en el libro de la guía
+ * (la de su entrada; en el libro abierto, `actual.yo`); de un libro donde no sé quién soy, nada. El libro abierto se lee
+ * de `actual.eje` (lo último, no lo guardado). Como mucho TOPE_DE_PASOS pasos, cortando al recorrer. `deDonde` (opcional) recibe, por cada paso, el alta del libro de su guía: con ella la carta sabe
  * después a qué guía volver al tocarlo. → (eje, ev, yo) → [sugerencias].
  */
 export function sugerenciasDeMisGuias({ entradas = [], libros, actual = null, idioma, deDonde } = {}) {
@@ -116,12 +120,14 @@ export function sugerenciasDeMisGuias({ entradas = [], libros, actual = null, id
     for (const e of entradas.slice(0, TOPE_DE_LIBROS)) {
       if (fuera.length >= TOPE_DE_PASOS) break;
       const esActual = actual && e.alta === actual.alta;
+      const autor = esActual ? actual.yo : e.identidad;
+      if (typeof autor !== 'string' || !autor) continue;
       const ejeGuia = esActual ? actual.eje : await libros?.eje(e.alta);
       if (!ejeGuia) continue;
-      const tiene = esActual ? contrato.guias(ejeGuia).length > 0 : (await libros.guias(e.alta)).length > 0;
+      const tiene = esActual ? contrato.guias(ejeGuia, { autor }).length > 0 : (await libros.guias(e.alta, autor)).length > 0;
       if (!tiene) continue;
       let lista = [];
-      try { lista = contrato.sugerenciasDeGuia(ejeGuia, eje, ev, yo, { idioma }); } catch { lista = []; }
+      try { lista = contrato.sugerenciasDeGuia(ejeGuia, eje, ev, yo, { idioma, autor, tope: TOPE_DE_PASOS - fuera.length }); } catch { lista = []; }
       for (const s of lista.slice(0, TOPE_DE_PASOS - fuera.length)) {
         deDonde?.(s.id, e.alta);
         fuera.push(s);

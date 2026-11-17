@@ -938,8 +938,8 @@ const firmaLaCuenta = () => Boolean(estado.cuenta && (estado.cuenta.guardian ===
 const librosDelDispositivo = new guiasCarta.LibrosDelDispositivo({ clave: cuentas.CLAVES.eje, restaurar: persistencia.restaurar });
 /** De qué libro (el alta de su entrada; null: el abierto) es la guía de cada paso que salió en el 9: a ella se vuelve al tocarlo. */
 const guiaDePaso = new Map();
-/** El libro abierto como lo leen las guías: su alta (null en un ejemplo) y su eje, lo último y no lo guardado. */
-const libroAbierto = () => ({ alta: estado.cuenta?.alta ?? null, eje: estado.eje });
+/** El libro abierto como lo leen las guías: su alta (null en un ejemplo), su eje (lo último y no lo guardado) y quién soy en él. */
+const libroAbierto = () => ({ alta: estado.cuenta?.alta ?? null, eje: estado.eje, yo: estado.identidad ?? null });
 
 /**
  * El gancho `sugerencias` del camino: las propuestas importadas (carta/externa.js) y los pasos de mis guías (la tercera
@@ -974,6 +974,10 @@ async function seguirPasoDeGuia(guiaAlta, pasoId) {
   const ejeGuia = guiaAlta === null || guiaAlta === abierto.alta ? abierto.eje : await librosDelDispositivo.eje(guiaAlta);
   const hallado = ejeGuia ? guiasCarta.pasoDelLibro(ejeGuia, pasoId) : null;
   if (!hallado) { estado.aviso = t('guiaPasoNoEsta'); pintar(); return; }
+  // Solo mis guías (revisión de seguridad): quién soy en el libro de la guía, y que la guía sea mía. Antes de cambiar de
+  // libro o abrir nada; venga del 9, del camino de la guía o de una zona, todo pasa por aquí.
+  const yoEnLaGuia = guiaAlta === null || guiaAlta === abierto.alta ? abierto.yo : misEntradas().find((e) => e.alta === guiaAlta)?.identidad ?? null;
+  if (!guiasCarta.esMiGuia(hallado, yoEnLaGuia)) { estado.aviso = t('guiaPasoAjeno'); pintar(); return; }
   const { paso, guia: deLaGuia } = hallado;
   const libro = paso.libro ?? ejeGuia.genesisId;
   if (libro !== estado.eje.genesisId) {
@@ -986,7 +990,7 @@ async function seguirPasoDeGuia(guiaAlta, pasoId) {
   if (!X || !estado.eje.obtener(X)) { estado.aviso = t('guiaPasoInvalidoPor', { motivo: t('guiaPasoSinRegistro') }); pintar(); return; }
   // La guía, vista desde el libro donde se hace el paso (el mismo eje si es el mismo libro): sus parámetros, leídos con su tipo.
   const guiaEje = ejeGuia.genesisId === estado.eje.genesisId ? estado.eje : ejeGuia;
-  const s = contrato.sugerenciasDeGuia(guiaEje, estado.eje, X, yo, { idioma: idioma() }).find((x) => x.id === pasoId);
+  const s = contrato.sugerenciasDeGuia(guiaEje, estado.eje, X, yo, { idioma: idioma(), autor: hallado.autor }).find((x) => x.id === pasoId);
   irA(X, 0);
   if (!s) { estado.aviso = t('guiaPasoNoEsta'); pintar(); return; }
   if (s.invalida) { estado.aviso = t('guiaPasoInvalidoPor', { motivo: s.invalida }); pintar(); return; }

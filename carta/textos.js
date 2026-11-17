@@ -746,6 +746,7 @@ export const TEXTOS = Object.freeze({
     guiaPasoSinAccion: 'la acción «{accion}» no existe en la época de ese libro',
     guiaPasoSinRegistro: 'el registro del paso no está en ese libro',
     guiaPasoNoEsta: 'Ese paso de la guía ya no está.',
+    guiaPasoAjeno: 'Ese paso es de la guía de otra persona. No se ha abierto nada.',
     guiaLibroNoEsta: 'ese libro no está en este dispositivo',
     guiaPendiente: 'por hacer',
     guiaEnLibro: 'en {libro}',

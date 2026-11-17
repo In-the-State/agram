@@ -202,7 +202,10 @@ test('los pasos de la guía: en el orden en que se escribieron, solo los del aut
   const p2 = await hacer(eje, PASO, guia.id, { title: 'En otro libro', action: 'anchor here', why: 'el libro del roadmap', book: OTRO_LIBRO, record: NO_ESTA }, 'autora');
   const p3 = await hacer(eje, PASO, guia.id, { title: 'Sobre el destino', action: 'anchor here', why: 'un registro de aquí', record: destino.id }, 'autora');
   await hacer(eje, PASO, guia.id, { title: 'Ajeno', action: 'anchor here', why: 'no cuenta' }, 'lectora');
-  assert.deepEqual(pasosDeGuia(eje, guia.id), [
+  // Los parámetros nacen sin prototipo (revisión de seguridad): se comparan como objeto corriente.
+  const planos = (lista) => lista.map((p) => ({ ...p, parametros: { ...p.parametros } }));
+  assert.ok(pasosDeGuia(eje, guia.id).every((p) => Object.getPrototypeOf(p.parametros) === null));
+  assert.deepEqual(planos(pasosDeGuia(eje, guia.id)), [
     { id: p1.id, titulo: 'Anota algo', libro: null, accion: 'anchor here', sobre: null, parametros: { title: 'mi nota', content: 'una nota' }, porque: 'el primer registro' },
     { id: p2.id, titulo: 'En otro libro', libro: OTRO_LIBRO, accion: 'anchor here', sobre: NO_ESTA, parametros: {}, porque: 'el libro del roadmap' },
     { id: p3.id, titulo: 'Sobre el destino', libro: null, accion: 'anchor here', sobre: destino.id, parametros: {}, porque: 'un registro de aquí' },
@@ -233,7 +236,7 @@ test('un paso hecho y no hecho: la regla del tutorial, leída en el libro donde 
   assert.equal(pasoHecho(roadmap, alla, 'lectora'), true);
   // Las sugerencias en el otro libro: el paso que le toca, con su guía y hecho.
   const s = sugerenciasDeGuia(eje, roadmap, roadmap.alta('lectora').id, 'lectora');
-  assert.deepEqual(s, [{ plantilla: 'anchor here', sobre: roadmap.alta('lectora').id, porque: 'tu primer hito', id: alla.id, guia: 'Primeros pasos', parametros: { title: 'hito' }, hecho: true }]);
+  assert.deepEqual(s.map((x) => ({ ...x, parametros: { ...x.parametros } })), [{ plantilla: 'anchor here', sobre: roadmap.alta('lectora').id, porque: 'tu primer hito', id: alla.id, guia: 'Primeros pasos', parametros: { title: 'hito' }, hecho: true }]);
   const hito = await hacer(roadmap, 'anchor here', roadmap.alta('lectora').id, { title: 'otro registro' }, 'lectora');
   assert.deepEqual(sugerenciasDeGuia(eje, roadmap, hito.id, 'lectora'), [], 'sobre otro registro, nada');
 });
@@ -285,4 +288,55 @@ test('el camino completo: el paso de la guía sale en la tercera fuente con su p
   // Una propuesta importada (sin `hecho`) sigue saliendo sin hacer, como siempre.
   const { pasos } = await A.camino(eje, alta, 'lectora', { sugerencias: () => [{ plantilla: 'anchor here', parametros: { title: 'otra' }, porque: 'de fuera' }], t: T });
   assert.equal(pasos.find((p) => p.fuente === 'sugerencia').hecho, false);
+});
+
+// ---------- revisión de seguridad de la pieza 2 ----------
+
+test('solo mis guías: la guía que escribe otro miembro del libro, con un paso hacia mi libro, no sale con «autor»; sin él, sí (el servidor de retoques comprueba así)', async () => {
+  const { eje, guia } = await libroDeLaGuia();
+  const mio = await libro(null, 'autora', 'lectora');
+  await hacer(eje, PASO, guia.id, { title: 'Lo mío', action: 'anchor here', parameters: ['title: hito'], why: 'mi guía', book: mio.genesisId }, 'autora');
+  // La lectora, miembro del libro de la guía, escribe su propio elemento y un paso que apunta a mi libro.
+  const trampa = await hacer(eje, 'anchor here', eje.alta('lectora').id, { title: 'Trampa' }, 'lectora');
+  await hacer(eje, PASO, trampa.id, { title: 'Firma esto', action: 'anchor here', parameters: ['title: dame'], why: 'confía', book: mio.genesisId }, 'lectora');
+  assert.deepEqual(guias(eje).map((g) => g.titulo), ['Primeros pasos', 'Trampa'], 'sin autor, todas (para comprobar)');
+  assert.deepEqual(guias(eje, { autor: 'autora' }).map((g) => g.titulo), ['Primeros pasos']);
+  const alta = mio.alta('autora').id;
+  assert.deepEqual(sugerenciasDeGuia(eje, mio, alta, 'autora').map((s) => s.guia), ['Primeros pasos', 'Trampa']);
+  assert.deepEqual(sugerenciasDeGuia(eje, mio, alta, 'autora', { autor: 'autora' }).map((s) => s.guia), ['Primeros pasos'], 'la de otra persona no se me ofrece');
+  assert.deepEqual(sugerenciasDeGuia(eje, mio, alta, 'autora', { autor: 'nadie' }), []);
+  // El tope corta al recorrer.
+  assert.equal(sugerenciasDeGuia(eje, mio, alta, 'autora', { tope: 1 }).length, 1);
+  assert.equal(sugerenciasDeGuia(eje, mio, alta, 'autora', { tope: 0 }).length, 0);
+});
+
+test('los parámetros de un paso no tienen prototipo: «__proto__» y «constructor» son claves suyas y no tocan nada', async () => {
+  const { eje, guia } = await libroDeLaGuia();
+  await hacer(eje, PASO, guia.id, { title: 'Raro', action: 'anchor here', parameters: ['__proto__: x', 'constructor: y', 'title: z'], why: 'probar' }, 'autora');
+  const [p] = pasosDeGuia(eje, guia.id);
+  assert.equal(Object.getPrototypeOf(p.parametros), null);
+  assert.deepEqual(Object.keys(p.parametros), ['__proto__', 'constructor', 'title']);
+  assert.equal(p.parametros.__proto__, 'x');
+  assert.equal(({}).polucion, undefined);
+  assert.equal(typeof ({}).constructor, 'function', 'Object.prototype intacto');
+  const [s] = sugerenciasDeGuia(eje, eje, eje.alta('lectora').id, 'lectora', { idioma: 'es' });
+  assert.match(s.invalida, /__proto__/, 'la acción no lo pide: sale inválido, sin más');
+  // Lo que se copia o se serializa sigue funcionando.
+  assert.equal(JSON.stringify(p.parametros), '{"__proto__":"x","constructor":"y","title":"z"}');
+});
+
+test('la etiqueta de una zona y el título de un paso con caracteres de control o de dirección del texto no salen; un emoji con ZWJ sí', async () => {
+  const { eje, guia, destino } = await libroDeLaGuia();
+  const amano = (en, payload) => escribirPagando(eje, { autor: 'autora', sobre: guia.id, en, t: T, movimientos: [pagaElCoste('autora')], payload });
+  const zona = (etiqueta) => [[etiqueta], [[100], [100], [200], [200]], ['all announced movements happened'], ['autora'], [ZONA], [[eje.genesisId], [destino.id]]];
+  await amano('0000000000', zona('pagar‮ofni'));
+  await amano('0000000000', zona('salto\u0007'));
+  await amano('0000000000', zona('aisla⁦x⁩'));
+  await amano('0000000000', zona('👩‍💻 Hola'));
+  assert.deepEqual(zonas(eje, guia.id).map((z) => z.etiqueta), ['👩‍💻 Hola']);
+  const paso = (titulo) => [[titulo], [['anchor here']], ['porque'], ['autora'], [PASO]];
+  await amano('4000000000', paso('Firma‏esto'));
+  await amano('4000000000', paso('línea\nnueva'));
+  await amano('4000000000', paso('🧑‍🌾 Bien'));
+  assert.deepEqual(pasosDeGuia(eje, guia.id).map((p) => p.titulo), ['🧑‍🌾 Bien']);
 });

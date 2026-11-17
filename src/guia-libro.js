@@ -3,9 +3,9 @@
 //
 //   zonas(eje, X)                                    los botones de la cara de X: [{ id, origen, etiqueta, caja, destino }]
 //   pasosDeGuia(eje, X)                              los pasos de la guía X: [{ id, titulo, libro, accion, sobre, parametros, porque }]
-//   guias(eje)                                       las guías del libro: [{ id, titulo }]
+//   guias(eje, { autor })                            las guías del libro: [{ id, titulo }] (con autor, solo las suyas)
 //   pasoHecho(ejeDestino, paso, yo)                  ¿está hecho el paso en el libro donde se hace? (la regla del tutorial)
-//   sugerenciasDeGuia(ejeGuia, ejeAbierto, X, yo)    los pasos de las guías de ejeGuia que tocan a X, en la forma del gancho
+//   sugerenciasDeGuia(ejeGuia, ejeAbierto, X, yo, { autor, tope })  los pasos de las guías de ejeGuia que tocan a X, en la forma del gancho
 //                                                    `sugerencias` de acciones.camino (la tercera fuente del camino)
 //
 // Las dos plantillas («a zone of the face», «a step of the guide») viven hoy en la época hija del libro de la guía
@@ -30,6 +30,15 @@ const hoja = (x) => (Array.isArray(x) ? x[0] : x);
 const hojas = (x) => (x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]);
 const cadena = (x) => (typeof x === 'string' ? x : typeof x === 'number' ? String(x) : null);
 const bytesDe = (s) => new TextEncoder().encode(s).length;
+/**
+ * Un texto de quien escribe la guía que la carta enseña (la etiqueta de una zona, el título de un paso) no lleva
+ * caracteres de control (\p{Cc}) ni de dirección del texto (U+061C, U+200E, U+200F, U+202A a U+202E, U+2066 a U+2069): con
+ * ellos un texto puede hacerse pasar por otro. El resto de la clase Cf vale (el ZWJ de los emojis compuestos).
+ */
+const RE_TEXTO_ENGANOSO = /[\p{Cc}\u061C\u200E\u200F\u202A-\u202E\u2066-\u2069]/u;
+const textoLimpio = (s) => typeof s === 'string' && !RE_TEXTO_ENGANOSO.test(s);
+/** Cuántos pasos da como mucho sugerenciasDeGuia (los del 9 de un registro), si no se pide otro tope. */
+export const TOPE_DE_SUGERENCIAS = 24;
 
 /** El evento de X (su id o el evento), o null. */
 function eventoDe(eje, X) {
@@ -70,7 +79,7 @@ const llegadas = (eje) => {
 function zonaDe(eje, r) {
   const p = r.payload;
   const etiqueta = hoja(p[0]);
-  if (typeof etiqueta !== 'string' || !etiqueta.trim() || bytesDe(etiqueta) > TOPES_DE_ZONA.etiqueta) return null;
+  if (typeof etiqueta !== 'string' || !etiqueta.trim() || bytesDe(etiqueta) > TOPES_DE_ZONA.etiqueta || !textoLimpio(etiqueta)) return null;
   const caja = hojas(p[1]).map(hoja);
   if (caja.length !== 4 || !caja.every((n) => Number.isInteger(n) && n >= 0 && n <= TOPES_DE_ZONA.cara)) return null;
   const [x, y, ancho, alto] = caja;
@@ -161,8 +170,9 @@ function pasoDe(eje, r) {
   const uno = Array.isArray(p[1]) ? p[1] : [];
   const accion = cadena(hoja(uno[0]));
   const porque = cadena(hoja(p[2]));
-  if (!titulo || !accion || !porque) return null;
-  const parametros = {};
+  if (!titulo || !accion || !porque || !textoLimpio(titulo)) return null;
+  // Sin prototipo: un parámetro puede llamarse «__proto__» o «constructor» sin tocar nada más que su propia clave.
+  const parametros = Object.create(null);
   for (const h of hojas(uno[1])) {
     if (cadena(h) === null) return null;
     const [etiqueta, valor] = parDe(h);
@@ -190,9 +200,10 @@ export function pasosDeGuia(eje, X) {
 
 /**
  * Las guías del libro: todo elemento que tenga al menos un paso de su autor (con forma válida), en el orden en que
- * nacieron: [{ id, titulo }] (el título, el texto de su 0). [] si la época del libro no tiene la plantilla.
+ * nacieron: [{ id, titulo }] (el título, el texto de su 0). Con `autor`, solo las guías cuyo elemento escribió esa
+ * identidad (las mías: la carta no ofrece pasos de la guía de otra persona). [] si la época del libro no tiene la plantilla.
  */
-export function guias(eje) {
+export function guias(eje, { autor } = {}) {
   const nombre = PLANTILLAS_DE_LA_GUIA.paso;
   if (!tiene(eje, nombre)) return [];
   const con = new Set();
@@ -201,7 +212,7 @@ export function guias(eje) {
     const r = eje.obtener(id);
     if (!r || r.en !== EN_EL_CUATRO || !esDe(r, nombre) || con.has(r.sobre)) continue;
     const X = eje.obtener(r.sobre);
-    if (X && X.autor === r.autor && pasoDe(eje, r)) con.add(X.id);
+    if (X && X.autor === r.autor && (autor === undefined || autor === null || X.autor === autor) && pasoDe(eje, r)) con.add(X.id);
   }
   return (eje.orden ?? []).filter((id) => con.has(id)).map((id) => ({ id, titulo: tituloDe(eje, id) }));
 }
@@ -224,7 +235,7 @@ const decir = (eje, clave, original, partes, idioma) => String(texto(eje, clave,
 function parametrosParaLanzar(eje, plantilla, dados, { idioma, ejeGuia }) {
   const idiomas = [...new Set([idioma, 'es', 'en'])];
   const pedidos = idiomas.map((i) => parametrosDeLaPlantilla(plantilla, { idioma: i, epoca: eje.epoca(), eje }));
-  const fuera = {};
+  const fuera = Object.create(null);
   for (const [clave, valor] of Object.entries(dados ?? {})) {
     const k = clave.trim().toLowerCase();
     const p = pedidos.map((l) => l.find((x) => x.nombre.toLowerCase() === k || x.etiqueta.toLowerCase() === k)).find(Boolean);
@@ -268,7 +279,9 @@ export function pasoHecho(ejeDestino, paso, yo, opciones = {}) {
  * parametros, sobre, porque, id, guia, hecho } (`guia`, el título de la guía de la que viene; `hecho`, pasoHecho), o, si
  * su acción no existe en la época de `ejeAbierto` o sus parámetros no se leen, { invalida: <motivo>, plantilla, sobre,
  * porque, id, guia }: sale como paso inválido, no se descarta. Solo lee: lanzar el paso es el gesto de siempre.
- * `opciones.idioma`, el de los motivos.
+ * `opciones.idioma`, el de los motivos; `opciones.autor`, solo las guías de esa identidad en el libro de la guía (la
+ * carta pasa la mía: un paso de la guía de otra persona no se me ofrece); `opciones.tope`, cuántos pasos como mucho
+ * (TOPE_DE_SUGERENCIAS por defecto), cortando al recorrer.
  */
 export function sugerenciasDeGuia(ejeGuia, ejeAbierto, X, yo, opciones = {}) {
   const ev = eventoDe(ejeAbierto, X);
@@ -277,9 +290,12 @@ export function sugerenciasDeGuia(ejeGuia, ejeAbierto, X, yo, opciones = {}) {
   const alta = typeof yo === 'string' ? ejeAbierto.alta(yo)?.id ?? null : null;
   const idioma = idiomaDe(ejeAbierto, yo, opciones);
   const epoca = ejeAbierto.epoca();
+  const tope = Number.isInteger(opciones.tope) && opciones.tope >= 0 ? opciones.tope : TOPE_DE_SUGERENCIAS;
   const fuera = [];
-  for (const g of guias(ejeGuia)) {
+  for (const g of guias(ejeGuia, { autor: opciones.autor })) {
+    if (fuera.length >= tope) break;
     for (const paso of pasosDeGuia(ejeGuia, g.id)) {
+      if (fuera.length >= tope) break;
       const libro = paso.libro === null ? (mismo ? ejeAbierto.genesisId : ejeGuia.genesisId) : paso.libro;
       if (libro !== ejeAbierto.genesisId) continue;
       if (paso.sobre ? paso.sobre !== ev.id : ev.id !== alta) continue;
