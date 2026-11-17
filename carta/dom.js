@@ -1802,7 +1802,8 @@ const comoTexto = (x) => (typeof x === 'string' ? x : JSON.stringify(x));
 function htmlEnlaceDelPuente(l) {
   const fondo = l.fondo.length ? t('puenteFondo', { lista: l.fondo.map((f) => t('puenteFondoDe', { cantidad: f.texto, quien: f.quienTexto || f.quien })).join(', ') }) : t('puenteSinFondo');
   const claves = l.nivelMasBajo === null ? t('puenteSinClaves') : t('puenteClaves', { n: l.claves, nivel: l.nivelMasBajo });
-  const traer = l.traer && l.abierto ? ` <button type="button"${nodo('accion')} data-puente-traer-de="${attr(l.id)}">${escapar(t('puenteTraerDe', { libro: l.nombre }))}</button>` : '';
+  // Sin claves de línea en el enlace no se trae nada («bringing needs the line keys of the book»): no se ofrece.
+  const traer = l.traer && l.abierto && l.nivelMasBajo !== null ? ` <button type="button"${nodo('accion')} data-puente-traer-de="${attr(l.id)}">${escapar(t('puenteTraerDe', { libro: l.nombre }))}</button>` : '';
   return `<li class="puente-enlace" data-enlace="${attr(l.id)}" data-cuenta="${l.cuenta}">
     <span>${escapar(t('puenteEnlace', { libro: l.nombre, tipo: t('puenteTipo_' + l.tipo), quien: l.quienTexto || l.quien }))}</span>
     <br><small>${escapar(l.grado ? t('puenteGrado', { grado: l.grado }) : t('puenteSinGrado'))} · <b>${escapar(t(l.cuenta ? 'puenteCuenta' : 'puenteNoCuenta'))}</b>${l.delDueno && l.delDueno !== l.id ? ' · ' + escapar(t('puenteDelDueno')) : ''}</small>
