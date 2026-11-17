@@ -79,6 +79,7 @@ const UMBRAL_ARRASTRE = 24;
  *   quien(id) · ejemplo(id) · reiniciar() · seguir()
  *   previsualizar(X, accion, paso)  construir y validar un paso del camino sin escribir (encargo «datos3»)
  *   cohorte(valor)  la cohorte con que el cielo del 8 compara (encargo «datos3»)
+ *   cadena(clave)   abrir entera (en vertical) o volver a compactar una cadena del 7 del roadmap (forma «cadenas»)
  *   arranque(que)            la pantalla de arranque: menu, crear, restaurar, ejemplo o cuenta:<alta>
  *   crear(form) · restaurar(form) · copia(form | null) · olvidar()   mi cuenta: crearla, restaurarla de su copia, la copia de seguridad, olvidarla
  *   hermano(delta)           cambiar de PV o de hermano (deslizar horizontal, flechas ← →)
@@ -270,6 +271,7 @@ export function instalar(raiz, m) {
     if ((el = b('[data-cargar-mas]'))) { e.preventDefault(); m.cargarMas?.(Number(el.dataset.cargarMas)); return; }
     if ((el = b('[data-seguir]'))) { e.preventDefault(); m.seguir?.(); return; }
     if ((el = b('[data-cohorte]'))) { e.preventDefault(); m.cohorte?.(el.dataset.cohorte); return; }
+    if ((el = b('[data-cadena]'))) { e.preventDefault(); m.cadena?.(el.dataset.cadena); return; } // el 7 del roadmap: abrir o cerrar una cadena entera
     if ((el = b('[data-englobar]'))) { e.preventDefault(); m.englobar?.(); return; }
     if ((el = b('[data-config]'))) { e.preventDefault(); m.configurar?.(null, el.dataset.config === '9' ? '9' : '2'); return; }
     if ((el = b('[data-reiniciar]'))) { e.preventDefault(); m.reiniciar?.(); return; }

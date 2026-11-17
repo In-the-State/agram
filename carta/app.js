@@ -2174,6 +2174,15 @@ const manejadores = {
     tocar(estado.foco.X, 'cohorte ' + valor);
     pintar();
   },
+  /** Abrir entera (en vertical) o volver a compactar una cadena del 7 del roadmap (forma «cadenas»): su clave, el id de su primer paso. Solo se mira. */
+  cadena(clave) {
+    if (!clave) return;
+    const abiertas = { ...(estado.cadenasAbiertas ?? {}) };
+    if (abiertas[clave]) delete abiertas[clave];
+    else abiertas[clave] = true;
+    estado.cadenasAbiertas = abiertas;
+    pintar();
+  },
   /** Abrir (o cerrar) una celda de la matriz del 4 de X (encargo «el4», VG 12-11, #49.8): su lista de movimientos, hasta diez. Solo se mira. */
   celdaMatriz(X, celda) {
     const misma = estado.celdaMatriz?.X === X && estado.celdaMatriz?.celda === celda;

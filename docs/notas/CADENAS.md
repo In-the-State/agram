@@ -12,4 +12,6 @@ Decidido por Core AGRAM con VG sobre el estudio de Core («dependencias como cad
 - **Lo que desbloquea es un valor**, `FINES_QUE_DESBLOQUEAN` en `src/cadenas.js`: hoy cumplido y decidido. Con error o caducada, la siguiente espera.
 - **El 7 de este libro, por la época.** La fila del 7 de `epoch.8.7.1` es una colección por nombre: la del roadmap sustituye a la de la 0 solo en sus libros. Una carta que no conozca la forma `cadenas` no pinta división en el 7 (`rejillaDe` da null): la carta tiene que llegar antes que el libro reescrito.
 
-Abierto: el volcado (escribir el tipo «task» y la relación de cada fila, en una segunda pasada cuando ya existen todas las tareas) y la carta (la forma `cadenas`, compactada a 400 px por `primeroSinHacer`).
+**La carta** (pieza P3): la forma `cadenas` está en `FORMAS` (`carta/carta.js`, `cadenasDeRejilla`; el HTML en `carta/dom.js`, `htmlCadenas`): una fila por cadena con «sale de» y «también después de», las independientes aparte, las de fuera apagadas y lo descartado en una línea. Si no cabe, se compacta al primer paso sin hacer con uno a cada lado y «+n» (abre la cadena entera en vertical: `data-cadena`, `estado.cadenasAbiertas`). En el móvil en vertical (Sequenced), el 7 es la zona del futuro del hilo, y la forma la pinta allí en lugar de la lista (`hilo: true` en `FORMAS`). Una carta que encuentra una forma que no conoce cae a la de la 0 y lo dice. Pruebas: `test/carta-cadenas.test.js`.
+
+Abierto: el volcado (escribir el tipo «task» y la relación de cada fila, en una segunda pasada cuando ya existen todas las tareas).
