@@ -702,6 +702,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "416c61c9b99c9902a15e9b1aba8a27b9d30d05e956bc437c9acc55aa654f936d"
+    },
+    {
+      "ref": "33bbb154542104363f1195998892e025dacc49b337d8c8a032109341721faee3"
     }
   ],
   [
@@ -2344,7 +2347,7 @@ export const EPOCA_0_BTML_DATOS = [
     [
       [
         "governance",
-        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules (by their name) and the positions of the epoch that no change removes; 7 the pieces of governance: what only a governance change changes. The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
+        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules, readings and templates (by their name) and the positions of the epoch that no change removes or replaces; a record that names «declare a balance» is judged only by the rules of the floor (the way out with what is yours, VG 17-11); 7 the pieces of governance: what only a governance change changes, adds or removes (the bridge row, epoch.8.9, among them). The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
       ],
       [
         0.5
@@ -2388,12 +2391,16 @@ export const EPOCA_0_BTML_DATOS = [
         "a change comes into force with its proof",
         "a support is true at its point",
         "support is released by withdrawing it",
+        "a declared balance is true",
+        "a declared balance is only that",
+        "declare a balance",
         "epoch.7.0",
         "epoch.1.3.1",
         "epoch.7.2"
       ],
       [
         "epoch.7.9",
+        "epoch.8.9",
         "support of",
         "support",
         "approved",
@@ -3382,7 +3389,7 @@ export const EPOCA_0_BTML_DATOS = [
     [
       [
         "bridge",
-        "the bridge between books (VG 17-11; encargo A15, agram-equipo/DISENO_PUENTE.md §5; docs/notas/PUENTE.md): 1 the families that cross as a token (E, P, R, T; at birth, only E); 2 the level of firmness that bringing a record from another book asks (a level of epoch.7.6.1); 3 the requirements of each family, in the order of 1: the names of its rules. Opening a family is a change of epoch: add it to 1 and give its rules in 3; the mechanism does not change"
+        "the bridge between books (VG 17-11; encargo A15, agram-equipo/DISENO_PUENTE.md §5; docs/notas/PUENTE.md): 1 the families that cross as a token (E, P, R, T; at birth, only E); 2 the level of firmness that bringing a record from another book asks (a level of epoch.7.6.1); 3 the requirements of each family, in the order of 1: the names of its rules. Opening a family is a governance change (the whole row is a piece of governance, epoch.7.9.7; VG 17-11): add it to 1 and give its rules in 3; the mechanism does not change"
       ],
       [
         "E"
@@ -7030,7 +7037,8 @@ export const EPOCA_0_BTML_DATOS = [
           "what is received is what was sent: {first ev.3} recibe algo que no es lo que dice el envío (su familia, su serie, cuánto, para quién)",
           "only a receive mints a foreign series: {first ev.3} acuña una serie forastera fuera de un recibir",
           "the tied record of E crossed before: {first ev.3} recibe E cuyo registro atado no se trajo antes de su libro",
-          "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene"
+          "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene",
+          "a declared balance is only that: {first ev.3} nombra «declare a balance» en un registro que es otra cosa (no está en el 8 de su propia alta, lleva más payload que la plantilla, nombra otra acción o mueve algo más que quemar T)"
         ]
       ],
       [
@@ -8851,6 +8859,50 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "a change names its class and brings a change: {first ev.3} proposes a change that does not hang from the 9.7 of the genesis, does not say «ordinary» or «governance» in its 2, brings no epoch in its 1.1 or brings something in its 1.3"
+      ]
+    ]
+  },
+  {
+    "archivo": "a-declared-balance-is-only-that.json",
+    "id": "33bbb154542104363f1195998892e025dacc49b337d8c8a032109341721faee3",
+    "registro": [
+      [
+        "a declared balance is only that"
+      ],
+      [
+        "A.6",
+        "8000000000",
+        "\"declare a balance\""
+      ],
+      [
+        "=not (\"declare a balance\" in ev.4) or first ev.6.5 = first (first ev.3).6 and nth 1 ev.6.5 = \"8000000000\" and first (payload(ev)).3 = first ev.3 and json(payload(ev)) = cat(bytes(\"5b\"), json(first (payload(ev)).0), bytes(\"2c5b5b\"), json(first (payload(ev)).1.0), bytes(\"5d2c5b\"), json(first (payload(ev)).1.1), bytes(\"5d5d2c5b\"), json(first (payload(ev)).2), bytes(\"5d2c5b\"), json(first (payload(ev)).3), bytes(\"5d2c5b\"), json(\"declare a balance\"), bytes(\"5d5d\")) and slice(json(first (payload(ev)).0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"5b\") and slice(json(first (payload(ev)).2), 0, 1) = bytes(\"22\") and count (moves ev where not (burn in it.4 and T in it.0.0.0) or \"anunciado\" in it.2) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "mint",
+        "transfer",
+        "lock",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 (encargo «la salida con lo propio»): los dos tercios pueden añadir una regla que deje a una persona sin escribir; a cambio, la salida con lo propio es intocable: la declaración de saldo del puente pasa a ser suelo, juzgada solo con el suelo (que sea de quien la firma, que sea verdad y que pague su T), sin que la alcance ninguna regla añadida. docs/notas/GOBIERNO.md, «La salida con lo propio»",
+        "Qué es una declaración de saldo, dicho por el suelo y no por la plantilla: un registro que nombra «declare a balance» en su 4 se ancla en el 8 de la propia alta de quien lo firma (su 6.5: sobre la alta, en «8000000000»), su payload es el de la plantilla y nada más (0 un texto, 1.0 la serie, un texto, 1.1 cuánto, un número, 2 el cierre, un texto, 3 quien la firma, 4 solo «declare a balance»: se comprueba rehaciendo su JSON canónico con json y cat, y que cada hoja es un texto o un número y no una décupla) y sus únicos movimientos son la quema de T (nada anunciado). Que esa T sea suya ya lo exige «nobody moves tokens of others», y que pague lo que cuesta, «the cost of writing» y «writing burns today's T»: no se repite",
+        "El núcleo (src/condiciones/reglas.js, veredictosDe) solo le prueba las reglas del suelo (epoch.7.9.6) a un registro que nombra «declare a balance» en su 4, si esta regla está en el suelo; por eso ella ha de exigir la forma entera: un registro que lo nombra y hace otra cosa (mueve otro token, se ancla en otro sitio o en el alta de otro, nombra otra acción en su 4, lleva más payload) no entra"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after a declared balance is true"
+      ],
+      [
+        "a declared balance is only that: {first ev.3} names «declare a balance» in a record that is something else (not on the 8 of its own alta, more payload than the template, another action or other movements than burning T)"
       ]
     ]
   },
@@ -26643,7 +26695,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "0b15ac69efe630375bae12bd6d143f841ea334678ee5b0500e0b16d662b9cf76";
+export const EPOCA_0_BTML_ID = "55b72e91965e9173e2078126863ff3c76e6ffd73ab2941b99be74dd1890126b9";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

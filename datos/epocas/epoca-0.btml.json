@@ -209,7 +209,8 @@
     {"ref":"1433c49461c17fe476a2b0cba5349fe557cd0428cbf4c463dfcaa785658c7d43"},
     {"ref":"2df4c5ca447902e823f67686efbdc44ef66abf65ef87abc818260ab9e99ef2d2"},
     {"ref":"b3ec09fa474965084de73848512338ede6ff5cce9e07c8def4766409599fff9d"},
-    {"ref":"416c61c9b99c9902a15e9b1aba8a27b9d30d05e956bc437c9acc55aa654f936d"}
+    {"ref":"416c61c9b99c9902a15e9b1aba8a27b9d30d05e956bc437c9acc55aa654f936d"},
+    {"ref":"33bbb154542104363f1195998892e025dacc49b337d8c8a032109341721faee3"}
   ],
   [
     [
@@ -907,7 +908,7 @@
     [
       [
         "governance",
-        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules (by their name) and the positions of the epoch that no change removes; 7 the pieces of governance: what only a governance change changes. The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
+        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules, readings and templates (by their name) and the positions of the epoch that no change removes or replaces; a record that names «declare a balance» is judged only by the rules of the floor (the way out with what is yours, VG 17-11); 7 the pieces of governance: what only a governance change changes, adds or removes (the bridge row, epoch.8.9, among them). The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
       ],
       [0.5],
       [0.6666666666],
@@ -941,12 +942,16 @@
         "a change comes into force with its proof",
         "a support is true at its point",
         "support is released by withdrawing it",
+        "a declared balance is true",
+        "a declared balance is only that",
+        "declare a balance",
         "epoch.7.0",
         "epoch.1.3.1",
         "epoch.7.2"
       ],
       [
         "epoch.7.9",
+        "epoch.8.9",
         "support of",
         "support",
         "approved",
@@ -1357,7 +1362,7 @@
     [
       [
         "bridge",
-        "the bridge between books (VG 17-11; encargo A15, agram-equipo/DISENO_PUENTE.md §5; docs/notas/PUENTE.md): 1 the families that cross as a token (E, P, R, T; at birth, only E); 2 the level of firmness that bringing a record from another book asks (a level of epoch.7.6.1); 3 the requirements of each family, in the order of 1: the names of its rules. Opening a family is a change of epoch: add it to 1 and give its rules in 3; the mechanism does not change"
+        "the bridge between books (VG 17-11; encargo A15, agram-equipo/DISENO_PUENTE.md §5; docs/notas/PUENTE.md): 1 the families that cross as a token (E, P, R, T; at birth, only E); 2 the level of firmness that bringing a record from another book asks (a level of epoch.7.6.1); 3 the requirements of each family, in the order of 1: the names of its rules. Opening a family is a governance change (the whole row is a piece of governance, epoch.7.9.7; VG 17-11): add it to 1 and give its rules in 3; the mechanism does not change"
       ],
       ["E"],
       [4],
@@ -3559,7 +3564,8 @@
           "what is received is what was sent: {first ev.3} recibe algo que no es lo que dice el envío (su familia, su serie, cuánto, para quién)",
           "only a receive mints a foreign series: {first ev.3} acuña una serie forastera fuera de un recibir",
           "the tied record of E crossed before: {first ev.3} recibe E cuyo registro atado no se trajo antes de su libro",
-          "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene"
+          "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene",
+          "a declared balance is only that: {first ev.3} nombra «declare a balance» en un registro que es otra cosa (no está en el 8 de su propia alta, lleva más payload que la plantilla, nombra otra acción o mueve algo más que quemar T)"
         ]
       ],
       [

@@ -60,7 +60,8 @@ export const DE_71 = Object.freeze(['an expiry has expired']);
  * solo leen el libro y no traducen ninguna condición JS. Cada una se comprueba en positivo y en negativo en su archivo:
  * la cuenta del banco, las tres primeras y «the E of an account stays with its owner» (VG 17-11, V6)
  * (test/cuenta-banco.test.js); padres y copias, A19 (test/padres.test.js); dar T a una cosa mía, V10 (test/dar-t.test.js);
- * retocar un texto, A20 escalón 1 (test/retoques.test.js); y las seis del gobierno, A21 y sus arreglos (test/gobierno.test.js, test/revision-gobierno.test.js).
+ * retocar un texto, A20 escalón 1 (test/retoques.test.js); las seis del gobierno, A21 y sus arreglos (test/gobierno.test.js, test/revision-gobierno.test.js); y la
+ * de la salida con lo propio, VG 17-11 (test/revision-suelo.test.js).
  */
 export const DE_LA_BETA = Object.freeze([
   'acting on an account needs P on it', "the bank speaks through the owner's thing", "an account lives in its owner's book",
@@ -68,6 +69,7 @@ export const DE_LA_BETA = Object.freeze([
   'only the owner of the book retouches a text',
   'a change names its class and brings a change', 'only who proposed withdraws a change', 'a change is enacted once it is approved', 'a change comes into force with its proof',
   'a support is true at its point', 'support is released by withdrawing it',
+  'a declared balance is only that',
 ]);
 /** Las trece del puente entre libros (A15, 17-11): nacen en BQL y no traducen ninguna condición JS (test/puente.test.js). */
 export const DEL_PUENTE = Object.freeze(Object.values(REGLAS_DEL_PUENTE));
@@ -201,10 +203,11 @@ async function repasar(eje, cuenta) {
 
 // ---------- la época ----------
 
-test('las reglas de economía: 57 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
+test('las reglas de economía: 58 condiciones en epoch.2 en el orden de su 8; las 21 que el 3b no cambió, cada una con su condición JS', async () => {
   // #137 (encargo «recuentos»): 31 + las siete de la beta (DE_LA_BETA: el banco, A19, V10, VG 17-11, V6, y A20 escalón 1), sin condición JS;
-  // las cuatro del gobierno (A21, 17-11) y las dos de sus arreglos (el apoyo fijado en su punto); y las trece del puente (A15, 17-11).
-  assert.equal(EPOCA_0_BTML.condiciones.length, 57);
+  // las cuatro del gobierno (A21, 17-11) y las dos de sus arreglos (el apoyo fijado en su punto); las trece del puente (A15, 17-11);
+  // y la de la salida con lo propio (VG 17-11), en DE_LA_BETA.
+  assert.equal(EPOCA_0_BTML.condiciones.length, 58);
   assert.deepEqual(DEL_PUENTE.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DEL_PUENTE], 'las del puente están en la época, sin condición JS');
   assert.deepEqual(DE_71.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_71], 'la de #71.2 está en la época, sin condición JS');
   assert.deepEqual(DE_LA_BETA.filter((n) => EPOCA_0_BTML.condiciones.some((r) => nombreDe(r) === n)), [...DE_LA_BETA], 'las de la beta del 16-11 están en la época, sin condición JS');

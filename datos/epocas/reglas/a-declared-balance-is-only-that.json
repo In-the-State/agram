@@ -1,0 +1,16 @@
+[
+  ["a declared balance is only that"],
+  ["A.6", "8000000000", "\"declare a balance\""],
+  ["=not (\"declare a balance\" in ev.4) or first ev.6.5 = first (first ev.3).6 and nth 1 ev.6.5 = \"8000000000\" and first (payload(ev)).3 = first ev.3 and json(payload(ev)) = cat(bytes(\"5b\"), json(first (payload(ev)).0), bytes(\"2c5b5b\"), json(first (payload(ev)).1.0), bytes(\"5d2c5b\"), json(first (payload(ev)).1.1), bytes(\"5d5d2c5b\"), json(first (payload(ev)).2), bytes(\"5d2c5b\"), json(first (payload(ev)).3), bytes(\"5d2c5b\"), json(\"declare a balance\"), bytes(\"5d5d\")) and slice(json(first (payload(ev)).0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"5b\") and slice(json(first (payload(ev)).2), 0, 1) = bytes(\"22\") and count (moves ev where not (burn in it.4 and T in it.0.0.0) or \"anunciado\" in it.2) = 0"],
+  ["ev.3"],
+  ["mint", "transfer", "lock", "release", "burn"],
+  ["*"],
+  [
+    "VG 17-11 (encargo «la salida con lo propio»): los dos tercios pueden añadir una regla que deje a una persona sin escribir; a cambio, la salida con lo propio es intocable: la declaración de saldo del puente pasa a ser suelo, juzgada solo con el suelo (que sea de quien la firma, que sea verdad y que pague su T), sin que la alcance ninguna regla añadida. docs/notas/GOBIERNO.md, «La salida con lo propio»",
+    "Qué es una declaración de saldo, dicho por el suelo y no por la plantilla: un registro que nombra «declare a balance» en su 4 se ancla en el 8 de la propia alta de quien lo firma (su 6.5: sobre la alta, en «8000000000»), su payload es el de la plantilla y nada más (0 un texto, 1.0 la serie, un texto, 1.1 cuánto, un número, 2 el cierre, un texto, 3 quien la firma, 4 solo «declare a balance»: se comprueba rehaciendo su JSON canónico con json y cat, y que cada hoja es un texto o un número y no una décupla) y sus únicos movimientos son la quema de T (nada anunciado). Que esa T sea suya ya lo exige «nobody moves tokens of others», y que pague lo que cuesta, «the cost of writing» y «writing burns today's T»: no se repite",
+    "El núcleo (src/condiciones/reglas.js, veredictosDe) solo le prueba las reglas del suelo (epoch.7.9.6) a un registro que nombra «declare a balance» en su 4, si esta regla está en el suelo; por eso ella ha de exigir la forma entera: un registro que lo nombra y hace otra cosa (mueve otro token, se ancla en otro sitio o en el alta de otro, nombra otra acción en su 4, lleva más payload) no entra"
+  ],
+  ["epoch 0"],
+  ["after a declared balance is true"],
+  ["a declared balance is only that: {first ev.3} names «declare a balance» in a record that is something else (not on the 8 of its own alta, more payload than the template, another action or other movements than burning T)"]
+]

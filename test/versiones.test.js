@@ -100,14 +100,17 @@ test('versiones: las constantes casan con la época 0 real (plantillas, posicion
   assert.ok(r[7][9][2][0] > r[7][9][1][0]);
   assert.deepEqual(r[7][9][5], [0]);
   const suelo = V.sueloDe(EPOCA_0_BTML);
-  // 17 reglas del suelo de VG, las 9 del mecanismo del gobierno (anexo de los arreglos, I) y 3 posiciones.
-  assert.equal(suelo.length, 29);
+  // 17 reglas del suelo de VG, las 9 del mecanismo del gobierno (anexo de los arreglos, I), las 2 reglas y la plantilla de
+  // la salida con lo propio (VG 17-11) y 3 posiciones.
+  assert.equal(suelo.length, 32);
   assert.deepEqual(suelo.slice(-3), ['epoch.7.0', 'epoch.1.3.1', 'epoch.7.2']);
   const reglas = new Set(EPOCA_0_BTML.reglasConId.map((x) => x.regla[0][0]));
-  for (const s of suelo.slice(0, 26)) assert.ok(reglas.has(s), s);
+  for (const s of suelo.slice(0, 28)) assert.ok(reglas.has(s), s);
+  assert.equal(suelo[28], 'declare a balance', 'la plantilla de la declaración de saldo');
+  assert.ok(EPOCA_0_BTML.transacciones.some((x) => x.plantilla[0][0] === suelo[28]));
   for (const n of ['approved', 'support', 'support of', 'a change is enacted once it is approved', 'a change comes into force with its proof', 'a support is true at its point']) assert.ok(suelo.includes(n), n);
   const piezas = V.piezasDeGobiernoDe(EPOCA_0_BTML);
-  for (const n of ['epoch.7.9', 'approved', 'support of', 'support', V.PROPONER, V.APROBAR, V.PONER_EN_VIGOR, V.RETIRAR]) assert.ok(piezas.includes(n), n);
+  for (const n of ['epoch.7.9', 'epoch.8.9', 'approved', 'support of', 'support', V.PROPONER, V.APROBAR, V.PONER_EN_VIGOR, V.RETIRAR]) assert.ok(piezas.includes(n), n);
   assert.equal(V.presionDeLosNombres(EPOCA_0_BTML), 9, 'sin nombres cuenta el dueño, con la presión máxima');
   assert.deepEqual(V.erroresDelSuelo(EPOCA_0_BTML, EPOCA_0_BTML, { clase: 'ordinary' }), []);
 });
