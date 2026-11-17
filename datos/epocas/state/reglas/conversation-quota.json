@@ -1,0 +1,15 @@
+[
+  ["conversation quota"],
+  ["a reserve", "return"],
+  ["=count (epoch where (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1)) * sum (((((first (payload(it)).3.1).1 where R in it2.0.0.0 and it2.0.0.1 = first (payload(it)).3.1) each 2) where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and \"a reserve\" in (payload((text(utf8(first it2.0))))).4 and first (text(utf8(first it2.0))).3 = first (payload(it)).3.1 and first (payload((text(utf8(first it2.0))))).3.1 = first (payload(it)).1 and first (text(utf8(first it2.0))).6.5 = first it.5) each 1) + count (epoch where not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1)) * (sum (((((first (payload(it)).3.1).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and \"a reserve\" in (payload((text(utf8(first it2.0))))).4 and first (text(utf8(first it2.0))).3 = first (payload(it)).3.1 and first (payload((text(utf8(first it2.0))))).3.1 = first (payload(it)).1 and first (text(utf8(first it2.0))).6.5 = first it.5) each 1) + sum (((((first (first (first (payload(it)).3.1).6).3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and \"a reserve\" in (payload((text(utf8(first it2.0))))).4 and first (text(utf8(first it2.0))).3 = first (first (first (payload(it)).3.1).6).3 and first (payload((text(utf8(first it2.0))))).3.1 = first (payload(it)).1 and first (text(utf8(first it2.0))).6.5 = first it.5) each 1))"],
+  ["X"],
+  ["read"],
+  ["*"],
+  [
+    "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): con it = una conversación, el cupo de mensajes que le queda a su agente: lo bloqueado de la R de la persona del otro lado (el interlocutor si es una persona; si es una cosa, quien escribió su alta) con la salida en una reserva («a reserve» de la época 0) colgada de la conversación, escrita por quien lo tiene bloqueado (el interlocutor, u otro agente con R de su dueño, o el servicio), que nombra al agente. Cada «message out» gasta una unidad de ahí; lo reservado en otra conversación no cuenta. Sustituye a mirar el saldo de R del agente",
+    "La fórmula sale de datos/epocas/state/ayuda.mjs (formulaDelCupo); la misma cuenta en JS es su función cupo. Coste: la cartera de quien tiene el cupo (una o dos identidades), sin recorrer el libro"
+  ],
+  ["state 0"],
+  ["after messages to deliver"],
+  ["conversation quota: how many messages its agent can still write in the conversation (what the other side reserved for it there)"]
+]

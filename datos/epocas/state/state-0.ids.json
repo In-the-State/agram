@@ -1,7 +1,7 @@
 {
-  "epoca": "c53dd2a994faa17b06def06fd051dfe840543a956a4c9b14568d0b6b1754fbdc",
-  "hereda": "775d6d8a9458e037c7b30832ac559b201311e6e43673257cffd746346d559a5d",
-  "registrosAlPublicar": 65,
+  "epoca": "fea31659184513fcacb7d0ec4f15c8d83a5d2e9a921dd2f5e667b0f06d471661",
+  "hereda": "57c040980e3b12fb77261b88dead7badcdf13950b223d5dd63369a3c09043055",
+  "registrosAlPublicar": 66,
   "reglas": [
     {
       "nombre": "a delivery result comes from whoever delivers",
@@ -36,7 +36,7 @@
     {
       "nombre": "attention group",
       "archivo": "attention-group.json",
-      "id": "a354167b92b3255a435601be3563047f5e49088d193a4548adaafb1bba7f800d"
+      "id": "c3a676d5e3564645ba82c543ab0a31fab528eb94a09ce17cad5ee60a884c9527"
     },
     {
       "nombre": "attention has a price",
@@ -46,12 +46,17 @@
     {
       "nombre": "attention price",
       "archivo": "attention-price.json",
-      "id": "e2ddc254144f553a71441191e13c6182db69d5861719998af1398fd872e46a73"
+      "id": "1cb1534be702cc01010b89eec972af834f08819533038bd9266b61153478ef29"
     },
     {
       "nombre": "conversation archived",
       "archivo": "conversation-archived.json",
       "id": "a64c0cddc2c7b1db6d147942caf009eb31f7460cf8767f2770c66acddd59bce6"
+    },
+    {
+      "nombre": "conversation quota",
+      "archivo": "conversation-quota.json",
+      "id": "5cec6b9d35ae2de5066618d5d4a7575a357eba9fe9270e0c5ef95de493279242"
     },
     {
       "nombre": "conversation title",
@@ -66,7 +71,7 @@
     {
       "nombre": "current connections",
       "archivo": "current-connections.json",
-      "id": "ed7d8649de8cbb2a3ec7ca708239a08aaba03054f7c4cd09d1fb4d9b3401b61f"
+      "id": "867271e492eeadfa84ca9bb7b82b141d45bf3cd186abe8f4814671e372dd32e7"
     },
     {
       "nombre": "delivery",
@@ -106,7 +111,7 @@
     {
       "nombre": "who writes a message",
       "archivo": "who-writes-a-message.json",
-      "id": "3532737270774c95da7bb46ef28d5ae614ba4eff753d0b5ea520bc2625c85cfe"
+      "id": "c9f172a446b441e65593b6ff6dc141447d13c71ed8f38ecdc53963e84cf4c4a9"
     }
   ],
   "plantillas": [
@@ -302,7 +307,7 @@
     {
       "nombre": "message in",
       "archivo": "message-in.json",
-      "id": "9003af8a6035fb1caecb0eb789da4f9336004d21e8055ad02a836e0a9552ab7b",
+      "id": "3883eb33449e4828b2f065b3976a4ac6d09a1f95b64cd938f36469b249e86594",
       "ocho": [
         3,
         13
@@ -311,7 +316,7 @@
     {
       "nombre": "message out",
       "archivo": "message-out.json",
-      "id": "5ef7b6363129a91c19d26011b97b700cc6c53262045b9f3884efb6d3d33b5dca",
+      "id": "e26d918a87590dfcc6c9308fcc833d888aabb733cccf54631d187ebdab7c9fb0",
       "ocho": [
         3,
         14
@@ -320,7 +325,7 @@
     {
       "nombre": "message in from an agent",
       "archivo": "message-in-from-an-agent.json",
-      "id": "51c58e8b205331f5f18eb742ada948c123af97531951ae7267530b71511aec48",
+      "id": "55e74b2c17bca14ac3df6a00753cd40920d8568a7b3ca3ff6165bcab3c043b24",
       "ocho": [
         3,
         15
@@ -428,7 +433,7 @@
     {
       "nombre": "archive a conversation",
       "archivo": "archive-a-conversation.json",
-      "id": "7512797985a3b6df17ff7591bdeb0612b73ac67560bc797b8474be8b7bf768d7",
+      "id": "5ad2f44ccab1a6b7b7b900af9181846bd975ec46f3b22399cd4435b75416cce9",
       "ocho": [
         4,
         24

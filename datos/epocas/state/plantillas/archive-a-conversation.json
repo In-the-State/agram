@@ -67,11 +67,8 @@
     ]
   ],
   ["=\"conversation with an agent\" in (payload(it)).5 and (first it.3 = me or first (first (first (payload(it)).1).6).3 = me) and not (count ((down it) where last (first it2.6).5 = \"4000000000\" and \"archive a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3)) > 0)"],
-  [
-    ["me"],
-    ["person"]
-  ],
-  ["write"],
+  [["me"], ["person"]],
+  ["=count ((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me) > 0 and release (sum ((((me.1 where count (it2.2 where first it3.0 = first (((down it) where \"a reserve\" in (payload(it4)).4 and first it4.3 = me) each 5)) > 0) each 2) where first it2.0 = first (((down it) where \"a reserve\" in (payload(it3)).4 and first it3.3 = me) each 5)) each 1)) (first ((me.1 where count (it2.2 where first it3.0 = first (((down it) where \"a reserve\" in (payload(it4)).4 and first it4.3 = me) each 5)) > 0) each 0)) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me) each 5)"],
   ["4"],
   [
     "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), A.3: el cierre por decisión de una conversación, anclado en su 4 con «close by decision» también en su 4, con la forma de «close by decision» de la época 0 (lo lee su plantilla de cerrado «closed by decision» cuando lo escribe quien la abrió). Después no admite mensajes: la regla «an archived conversation takes no messages». La lanza quien la abrió o el dueño del agente; «continuar» no es plantilla: es cada mensaje",

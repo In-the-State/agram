@@ -90,7 +90,7 @@ test('carta/guia.js no lleva escrito nada de lo que dice la guía: lo lee de la 
 
 test('contexto() sobre la compra: modo y ancho, quién soy, el foco con su lectura y su madurez, la carta de texto, el camino, las acciones del aro y el diario', async () => {
   const { eje, compra } = await ejemploCompra();
-  const c400 = await G.contexto(estadoDe(compra.id), eje, 'huesped', { ancho: 400, alto: 800, idioma: 'en' });
+  const c400 = await G.contexto(estadoDe(compra.id), eje, 'huesped', { ancho: 400, alto: 800, idioma: 'en', tope: 8000 }); // el aro trae más acciones (17-11: el sí del dueño para bajar P)
   assert.match(c400, /400×800 px/);
   assert.match(c400, /franjas apiladas/);
   assert.match(c400, /huesped \(persona\)/);
@@ -106,7 +106,7 @@ test('contexto() sobre la compra: modo y ancho, quién soy, el foco con su lectu
   assert.match(c400, /últimas entradas del diario:\n- 2026-11-07T13:30:00Z/);
   assert.match(c400, /idioma en/);
   assert.match(c400, /language: es/, 'la configuración dice es: el idioma por defecto de la época');
-  assert.ok(c400.length <= 6000);
+  assert.ok(c400.length <= 8000);
   const c1200 = await G.contexto(estadoDe(compra.id), eje, 'huesped', { ancho: 1200, alto: 700, cuenta: true });
   assert.match(c1200, /1200×700 px/);
   assert.match(c1200, /mapa de celdas/);

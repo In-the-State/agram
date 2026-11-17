@@ -392,21 +392,23 @@ for (const r of escrituras) {
 ```
 
 ```text
-61 condiciones, 3 reglas que escriben y 28 lecturas
+63 condiciones, 3 reglas que escriben y 28 lecturas
 no pasa: E is minted by and to its issuer: huesped mints E of casa, or to someone else
 no pasa: P is repositioned one step at a time: huesped mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin
 no pasa: minting E needs own R issued: huesped mints E and has never issued R of its own
+no pasa: P comes down to a thing of another with its owner's yes: huesped leaves P on a record of another without the yes of its owner for whoever keeps it («let P come down here»)
 [
   'E is minted by and to its issuer: huesped mints E of casa, or to someone else',
   'P is repositioned one step at a time: huesped mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin',
-  'minting E needs own R issued: huesped mints E and has never issued R of its own'
+  'minting E needs own R issued: huesped mints E and has never issued R of its own',
+  "P comes down to a thing of another with its owner's yes: huesped leaves P on a record of another without the yes of its owner for whoever keeps it («let P come down here»)"
 ]
 writing a record gives ten P on it                 huesped: 10 P en <compra>
 getting E gives ten P on its record                —
 receiving R gives ten P on the root of its issuer  —
 ```
 
-Leído: la huésped quema un minuto, emite un vale a nombre de la casa y acuña P a mano sobre el menú. Tres reglas no pasan, y el eje rechaza con sus tres mensajes: nadie emite E de otro; nadie acuña P a mano (el P se obtiene o se reposiciona, y esto no es un paso de su P hacia arriba ni hacia abajo); y para emitir E hay que haber emitido R propia. «minting E needs P on its record» pasa: el vale no nombra registro, así que queda atado al alta de su emisor (la de la casa, el génesis), y la huésped tiene P ahí desde que recibió la R de la casa con la invitación. Al aceptar la compra, las reglas que escriben colocan diez P para la huésped sobre la compra (la escribió ella). La cocina recibe euros de la casa, pero de la huésped, no de su emisora: no obtiene P (encargo 3b-bis: solo da P lo que llega de su emisor, diez por unidad); y la compra no mueve R.
+Leído: la huésped quema un minuto, emite un vale a nombre de la casa y acuña P a mano sobre el menú. Cuatro reglas no pasan, y el eje rechaza con sus cuatro mensajes: nadie emite E de otro; nadie acuña P a mano (el P se obtiene o se reposiciona, y esto no es un paso de su P hacia arriba ni hacia abajo); para emitir E hay que haber emitido R propia; y el P no queda en un registro de otro (el menú es de la cocina) sin el sí de su dueño (VG 17-11, «let P come down here»). «minting E needs P on its record» pasa: el vale no nombra registro, así que queda atado al alta de su emisor (la de la casa, el génesis), y la huésped tiene P ahí desde que recibió la R de la casa con la invitación. Al aceptar la compra, las reglas que escriben colocan diez P para la huésped sobre la compra (la escribió ella). La cocina recibe euros de la casa, pero de la huésped, no de su emisora: no obtiene P (encargo 3b-bis: solo da P lo que llega de su emisor, diez por unidad); y la compra no mueve R.
 
 ### 10.1 Las reglas, leídas
 
