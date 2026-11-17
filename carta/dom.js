@@ -1087,6 +1087,35 @@ function htmlBandaDeRejilla(b) {
   return `<div class="rejilla-banda hijo${b.items?.length ? '' : ' vacia'}" data-banda="${b.indice}"><span class="hijo-nombre banda-nombre">${escapar(nombre)}</span><div class="hijo-cuerpo banda-cuerpo">${cuerpo}</div></div>`;
 }
 
+// ---------- el 7 del roadmap: las cadenas (forma «cadenas», docs/CONTRATO.md §12.10; Core AGRAM 17-11) ----------
+
+/** Un paso de una cadena: la tarjeta normal de su registro, su estado en llano y, si une, con qué más; de fuera, apagado. */
+function htmlPasoDeCadena(p) {
+  const une = p.une?.length ? `<small class="cadena-une">${escapar(t('cadenaUne', { que: p.une.join(', ') }))}</small>` : '';
+  const fuera = p.fuera ? `<small class="cadena-fuera">${escapar(t('cadenaFuera'))}</small>` : '';
+  return `<li class="cadena-paso${p.fuera ? ' fuera' : ''}" data-estado="${attr(p.estado)}">${htmlElementoDeBanda(p.nodo)}<small class="cadena-estado">${escapar(p.texto)}</small>${une}${fuera}</li>`;
+}
+
+/**
+ * Una cadena: de dónde sale (si sale de otra), y sus pasos de izquierda a derecha; compactada, con «+n» a cada lado que
+ * lo necesite (tocarlo la abre entera, en vertical: data-cadena, gestos.js); abierta, en columna y con «cerrar».
+ */
+function htmlCadena(c) {
+  const sale = c.sale ? `<p class="cadena-cabeza">${escapar(t('cadenaSaleDe', { que: c.sale }))}</p>` : '';
+  const alternar = (texto, titulo) => `<button type="button" class="cadena-alternar"${nodo('control')} data-cadena="${attr(c.clave)}" aria-expanded="${c.abierta ? 'true' : 'false'}" title="${attr(titulo)}">${escapar(texto)}</button>`;
+  if (c.abierta) return `<section class="cadena abierta" data-cadena-clave="${attr(c.clave)}">${sale}<ol class="cadena-pasos en-columna">${c.pasos.map(htmlPasoDeCadena).join('')}</ol>${alternar(t('cadenaCerrar'), t('cadenaCerrar'))}</section>`;
+  const mas = (n) => (n ? `<li class="cadena-mas">${alternar('+' + n, t('cadenaAbrir', { n: c.antes + c.despues }))}</li>` : '');
+  return `<section class="cadena" data-cadena-clave="${attr(c.clave)}">${sale}<ol class="cadena-pasos">${mas(c.antes)}${c.visibles.map(htmlPasoDeCadena).join('')}${mas(c.despues)}</ol></section>`;
+}
+
+/** La forma «cadenas»: una fila por cadena, las independientes aparte al final, y una línea discreta con lo descartado. */
+function htmlCadenas(r) {
+  if (r.sinTareas) return `<p class="cadenas-vacio">${escapar(t('cadenasSinTareas'))}</p>`;
+  const sueltas = r.independientes.length ? `<section class="cadena cadena-independientes"><p class="cadena-cabeza">${escapar(t('cadenasIndependientes'))}</p><ol class="cadena-pasos">${r.independientes.map(htmlPasoDeCadena).join('')}</ol></section>` : '';
+  const descartadas = r.descartadas.length ? `<p class="cadenas-descartadas">${escapar(t('cadenasDescartadas', { lista: r.descartadas.join('; ') }))}</p>` : '';
+  return `<div class="rejilla-cadenas">${r.cadenas.map(htmlCadena).join('')}${sueltas}${descartadas}</div>`;
+}
+
 /**
  * La rejilla de un mundo (epoch.8.7) en su forma sobria (VG, mockup del segundo nivel v3): la cruceta con la tarjeta
  * central flotante, la escalera, las columnas con el nivel siguiente dentro, la rejilla 3 × 2, la conversación, la
@@ -1105,9 +1134,11 @@ function htmlRejilla(r, { completa = false, arbol = null, apilada = false } = {}
   else if (r.forma === 'cielo' && r.bandas) cuerpo = htmlCielo(r) + sin;
   else if (r.forma === 'camino' && r.bandas) cuerpo = htmlCaminoDeRejilla(r, completa ? arbol : null);
   else if (r.forma === 'matriz' && r.celdas) cuerpo = apilada && r.enColumna ? htmlMatrizEnColumna(r) : htmlMatriz(r);
+  else if (r.forma === 'cadenas' && r.cadenas) cuerpo = htmlCadenas(r);
   else if (r.bandas) cuerpo = `<div class="rejilla-bandas" style="--filas:${r.bandas.length}">${r.bandas.map(htmlBandaDeRejilla).join('')}</div>${sin}`;
   else if (apilada) cuerpo = `${htmlFlotante(r.flotante)}<div class="rejilla-celdas rejilla-${attr(r.forma ?? '')}" style="--columnas:${r.enColumna ? 1 : r.columnas};--filas:${r.enColumna ? r.celdas.length : r.filas}">${r.celdas.map((c) => htmlCeldaDeRejilla(c, r.forma)).join('')}</div>`; // Sequenced: la tarjeta del elemento pulsado arriba, sin flotar
   else cuerpo = `<div class="rejilla-celdas rejilla-${attr(r.forma ?? '')}" style="--columnas:${r.columnas};--filas:${r.filas}">${r.celdas.map((c) => htmlCeldaDeRejilla(c, r.forma)).join('')}${completa ? htmlFlotante(r.flotante) : ''}</div>`;
+  if (r.formaDesconocida) cuerpo = `<p class="forma-desconocida">${escapar(t('formaDesconocida', { forma: r.formaDesconocida }))}</p>` + cuerpo;
   const paginas = r.pagina && r.pagina.de > 1 ? `<ul class="ocupantes rejilla-paginas">${htmlPagina(r.pagina, r.pv)}</ul>` : '';
   // En animado y a pantalla completa, los dos sitios del arte (r.escena, #94): el fondo del mundo debajo de todo y el marco alrededor del bloque (htmlEscena).
   const e = completa ? r.escena : null;
@@ -1416,7 +1447,8 @@ function htmlHilo(n) {
   const mas = n.cargarMas ? `<li class="cargar-mas"><button type="button"${nodo('control')} data-cargar-mas="${n.pv}">${escapar(t('cargarMas', { cuantos: n.faltan }))}</button></li>` : '';
   const total = (n.ocupantes?.total ?? 0) + (n.diario?.total ?? 0);
   const cabeza = `<header class="pv-cabeza hilo-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span><small>${escapar(t(pasado ? 'hiloPasado' : 'hiloFuturo', { n: total }))}</small></header>`;
-  const lista = `<ol class="hilo-cartas">${vacio}${cartas.join('')}${mas}</ol>`;
+  // Una forma que pinta el hilo (las cadenas del 7 del roadmap) va en lugar de la lista de tarjetas.
+  const lista = n.rejilla ? htmlRejilla(n.rejilla, { apilada: true }) : `<ol class="hilo-cartas">${vacio}${cartas.join('')}${mas}</ol>`;
   const clases = ['pv', `pv-${n.pv}`, 'zona-hilo', `zona-${n.hilo}`, `grupo-${n.grupo}`, `lado-${n.lado ?? ''}`, `nivel-${n.nivel}`].join(' ');
   return `<section class="${clases}"${nodo('pv', { tam: NOMBRE_NIVEL[n.nivel] })} data-pv="${n.pv}" data-x="${n.X}" data-nivel="${n.nivel}" data-hilo-zona="${n.pv}" aria-label="${attr(n.etiqueta)}">${pasado ? htmlPorAutorizar(n.porAutorizar) + htmlOpiniones(n.opiniones) + lista + cabeza : cabeza + lista}</section>`;
 }

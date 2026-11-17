@@ -161,3 +161,17 @@ test('un libro con la época 0 a secas da vacío; el 7 de un libro sin esta épo
   assert.equal(contrato.divisionDelMundo(eje, 6).forma, 'franjas', 'el 6 del roadmap, el de siempre');
   assert.equal(contrato.formaDe(eje, 7, 'sequenced').forma, 'cadenas');
 });
+
+test('una anterior de fuera dice su estado verdadero: se leen sus propias anteriores (un salto), sin meterlas en la cadena', async () => {
+  const { eje, pb, t } = await roadmap();
+  let r = cadenas(eje, pb.id);
+  assert.deepEqual(corto(eje, r), { cadenas: [{ sale: null, pasos: ['A4 (fuera)', 'B1'] }], independientes: [] }, 'A2 y A3 no entran');
+  assert.deepEqual(estados(eje, r), { A4: 'espera A2,A3', B1: 'espera A4' });
+  await hacer(eje, 'close', t.A1.id, {});
+  await hacer(eje, 'close', t.A2.id, {});
+  await hacer(eje, 'close', t.A3.id, {});
+  r = cadenas(eje, pb.id);
+  assert.deepEqual(estados(eje, r), { A4: 'listo', B1: 'espera A4' }, 'las de A4, hechas: A4 lista (y no se mira más allá: A1)');
+  await hacer(eje, 'close', t.A4.id, {});
+  assert.deepEqual(estados(eje, cadenas(eje, pb.id)), { A4: 'hecho', B1: 'listo' });
+});

@@ -33,6 +33,7 @@ import { nombreDeRegla } from '../src/bqlm.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
 import { t, etiquetaLlana, usarRetoques, textoDeLaCarta, retoqueDeLaCartaNoVale, huecosDe, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { editorDeBtml, fechaDelRegistro } from './formato-btml.js';
+import { EPOCA_0_BTML } from '../src/epocas.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
 const PIEZA = Object.freeze({ elemento: 'elemento', munequito: 'munequito', icono: 'icono', etapa: 'etapa', fondo: 'fondo', marco: 'marco', movimiento: 'movimiento' });
@@ -1897,6 +1898,8 @@ const FORMAS = {
   franjas: { geometria: porFranjas, celdas: franjasDeRejilla, alReves: true },
   cielo: { geometria: enDosFilas, celdas: cieloDeRejilla },
   camino: { geometria: enDosFilas, celdas: caminoDeRejilla },
+  // `hilo`: en Sequenced, la zona del hilo (el 7, el futuro) la pinta esta forma en vez de su lista de tarjetas.
+  cadenas: { geometria: () => ({ columnas: 1, filas: 1 }), celdas: (...a) => cadenasDeRejilla(...a), hilo: true },
 };
 const geometriaDe = (d) => FORMAS[d.forma]?.geometria(d) ?? null;
 /** Lo que mide la fila del 3 por tema (encargo pv3): sus hijos son cajas de personas. */
@@ -2361,6 +2364,56 @@ function franjasDeRejilla(eje, R, pv, d, g, ctx, { hueco }) {
   return { bandas, hilos, sinBanda, pagina: null };
 }
 
+// ---------- el 7 del roadmap: las cadenas (forma «cadenas», docs/CONTRATO.md §12.10; Core AGRAM 17-11) ----------
+
+/** El texto propio de cada motivo de una arista descartada (contrato.MOTIVOS_DE_DESCARTE). */
+const MOTIVO_DE_DESCARTE = Object.freeze({ [contrato.MOTIVOS_DE_DESCARTE.ciclo]: 'cadenaMotivoCiclo', [contrato.MOTIVOS_DE_DESCARTE.aSiMisma]: 'cadenaMotivoASiMisma', [contrato.MOTIVOS_DE_DESCARTE.noEsta]: 'cadenaMotivoNoEsta', [contrato.MOTIVOS_DE_DESCARTE.noEsTarea]: 'cadenaMotivoNoEsTarea' });
+
+/** El estado de un paso de una cadena, en llano: hecho (y cómo, si no se cumplió), en curso, listo o «espera a …». */
+function estadoDeCadenaEnLlano(p, titulo) {
+  if (p.estado === 'hecho') return p.fin && p.fin !== 'cumplido' ? t('cadenaHechoCon', { fin: t('cadenaFin_' + p.fin) }) : t('cadenaHecho');
+  if (p.estado === 'espera') return t('cadenaEspera', { que: p.espera.map(titulo).join(', ') });
+  return t(p.estado === 'en curso' ? 'cadenaEnCurso' : 'cadenaListo');
+}
+
+/**
+ * Las celdas de la forma «cadenas» (el 7 del libro del roadmap): lo que da contrato.cadenas(eje, R), con cada paso
+ * como la tarjeta normal de su registro (nodoOcupante: se abre al tocar como cualquier otra), su estado en llano y los
+ * títulos de lo que une. Una fila por cadena; si no cabe entera en el hueco (una tarjeta por MEDIDAS.tarjeta), se
+ * compacta: el primer paso sin hacer (primeroSinHacer), uno antes y uno después, y lo demás contado a cada lado
+ * (`antes`, `despues`); toda hecha, el último paso. Una cadena abierta (estado.cadenasAbiertas[clave], que alterna
+ * «+n») va entera, en vertical. `clave` es el id de su primer paso. → { cadenas: [{ clave, sale, pasos, visibles,
+ * antes, despues, abierta }], independientes, descartadas: [texto], sinTareas, pagina: null }.
+ */
+function cadenasDeRejilla(eje, R, pv, d, g, ctx, { hueco } = {}) {
+  const r = contrato.cadenas(eje, R);
+  const tipoDato = contrato.tipo(eje, R, pv, ctx.opciones);
+  const sobrio = sobrioDe(ctx);
+  const titulo = (id) => legibleDe(eje, { ref: id }, null, ctx.opciones).texto ?? String(id).slice(0, 8);
+  const caben = Math.max(1, Math.floor((hueco?.ancho ?? ctx.medidas?.ancho ?? MEDIDAS.ancho) / (ctx.medidas?.tarjeta ?? MEDIDAS.tarjeta)));
+  const abiertas = ctx.estado?.cadenasAbiertas ?? {};
+  const paso = (p) => ({
+    id: p.id, estado: p.estado, fin: p.fin, estacion: p.estacion, fuera: p.fuera,
+    nodo: nodoOcupante(eje, { ref: p.id }, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv, posicion: pv, anidar: 0 }),
+    texto: estadoDeCadenaEnLlano(p, titulo),
+    une: p.une.map(titulo),
+  });
+  const cadenas = r.cadenas.map((c) => {
+    const pasos = c.pasos.map(paso);
+    const clave = c.pasos[0].id;
+    let desde = 0;
+    let hasta = pasos.length;
+    if (pasos.length > caben) {
+      const foco = c.primeroSinHacer ?? pasos.length - 1;
+      desde = c.primeroSinHacer === null ? foco : Math.max(0, foco - 1);
+      hasta = Math.min(pasos.length, foco + (c.primeroSinHacer === null ? 1 : 2));
+    }
+    return { clave, sale: c.sale ? titulo(c.sale) : null, pasos, visibles: pasos.slice(desde, hasta), antes: desde, despues: pasos.length - hasta, abierta: Boolean(abiertas[clave]) };
+  });
+  const descartadas = r.descartadas.map((x) => t('cadenaDescartada', { de: titulo(x.de), a: titulo(x.a), motivo: t(MOTIVO_DE_DESCARTE[x.motivo] ?? 'cadenaMotivoOtro') }));
+  return { cadenas, independientes: r.independientes.map(paso), descartadas, sinTareas: !cadenas.length && !r.independientes.length, pagina: null };
+}
+
 /**
  * El cielo del 8: las diez cajas nivel.grado de los hitos (d.bandas) en dos filas; en cada una, las estrellas de los
  * comparables de la cohorte de R que caen en ella, con su nombre (contrato.cohorteDe, encargo «datos3»: la cohorte
@@ -2456,7 +2509,14 @@ function rangoDeR(eje, R, ctx) {
  * pagina, celdas, flotante?, ejes? } o { …, bandas, sinBanda, hilos?, cuota?, enElFoco?, camino?, madurez? } o null.
  */
 function rejillaDe(eje, X, pv, ctx, { ruta = [], pagina = 1, hueco = { ancho: 1, alto: 1 }, entrar = true, modo = 'mapped' } = {}) {
-  const d = contrato.divisionDelMundo(eje, pv, { nivel: ruta.length + 1, modo, ...ctx.opciones }); // la forma es la del modo (epoch.8.7, #52)
+  let d = contrato.divisionDelMundo(eje, pv, { nivel: ruta.length + 1, modo, ...ctx.opciones }); // la forma es la del modo (epoch.8.7, #52)
+  // Una forma que esta carta no sabe pintar (la declara la época de un libro, más nueva que la carta): la de la época 0,
+  // con una línea que lo dice (`formaDesconocida`), en vez de un hueco. Si la 0 tampoco tiene una que se pinte, nada.
+  let formaDesconocida = null;
+  if (d?.forma && !FORMAS[d.forma]) {
+    const de0 = contrato.divisionDelMundo(eje, pv, { nivel: ruta.length + 1, modo, ...ctx.opciones, epoca: EPOCA_0_BTML });
+    if (de0 && FORMAS[de0.forma]) { formaDesconocida = d.forma; d = de0; }
+  }
   const g = d ? geometriaDe(d) : null;
   if (!g || g.columnas * g.filas <= 0) return null;
   const pasos = ruta.map((p) => (typeof p === 'string' ? { X: p, d: null } : p));
@@ -2468,7 +2528,7 @@ function rejillaDe(eje, X, pv, ctx, { ruta = [], pagina = 1, hueco = { ancho: 1,
     // El personaje del sitio (VG, 12-11, #38): el nodo R.<camino> de lo que la rejilla divide (su cruceta); a nivel 1 es el del propio PV.
     ...([pv, ...sub].length < 9 ? { sitio: { X: R, lugar: [pv, ...sub].join('.') } } : {}),
   };
-  return { ...base, ...FORMAS[d.forma].celdas(eje, R, pv, d, g, ctx, { pagina, hueco, entrar, base: sub, direccion, raiz: X }) };
+  return { ...base, ...(formaDesconocida ? { formaDesconocida } : {}), ...FORMAS[d.forma].celdas(eje, R, pv, d, g, ctx, { pagina, hueco, entrar, base: sub, direccion, raiz: X }) };
 }
 
 /**
@@ -2604,7 +2664,8 @@ function secuenciaDe(eje, X, pvs, ctx, m) {
   for (const pv of digitos) {
     const hilo = zonaDelHilo(pv);
     const nivel = hilo || abierta(pv) ? NIVEL.bloque : NIVEL.comprimido;
-    const n = nodoLateral(eje, X, pv, nivel, ctx, m, hueco, null, { secuencia: true, rejilla: !hilo });
+    // Una zona del hilo cuya forma pinta el hilo (`hilo` en FORMAS: las cadenas del 7 del roadmap) lleva su rejilla.
+    const n = nodoLateral(eje, X, pv, nivel, ctx, m, hueco, null, { secuencia: true, rejilla: !hilo || FORMAS[contrato.formaDe(eje, pv, 'sequenced', ctx.opciones)?.forma]?.hilo === true });
     if (hilo) {
       // El hilo, por páginas: hay más si quedan ocupantes o entradas del diario por cargar.
       const faltan = (n.ocupantes ? n.ocupantes.total - n.ocupantes.lista.length : 0) + (n.diario ? n.diario.total - n.diario.entradas.length : 0);
