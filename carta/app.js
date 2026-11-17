@@ -25,7 +25,7 @@
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
 import { arbol, porFirmar, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
-import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos } from './dom.js';
+import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
 import { t, idiomaDeInterfaz, usarRetoques } from './textos.js';
@@ -45,6 +45,7 @@ import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido
 import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
 import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMovibles, proponer as proponerCambio, ajustesDelElemento, conGobierno } from './reglas.js';
+import * as puente from './puente.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -378,7 +379,39 @@ function reglasDe() {
     proponer = { ...r.proponer, parametros, clase: r.proponer.clase ?? (elegido ? (elegido.gobierno ? 'gobierno' : 'corriente') : null) };
   }
   // Con el guardián, a quien propuso no se le enseña el botón: la carta lo pone en vigor sola (ponerEnVigorSolo).
-  return { lista, cambio, proponer, guardian: conGuardianAbierto() && cambio?.autor === estado.identidad, aviso: r.aviso, motivos: r.motivos, exito: r.exito };
+  return { lista, cambio, proponer, salida: r.salida ? salidaDe() : null, puedeSalir: Boolean(estado.eje.alta(estado.identidad)), guardian: conGuardianAbierto() && cambio?.autor === estado.identidad, aviso: r.aviso, motivos: r.motivos, exito: r.exito };
+}
+
+// ---------- «Irme con lo mío» (encargo «carta: irme con lo mío y el puente»; carta/puente.js) ----------
+
+/** El nombre (y foco) del libro nuevo de la salida: «Lo mío, de <este libro>». */
+const nombreDeLaSalida = () => t('salidaNombreNuevo', { libro: estado.cuenta?.nombre ?? String(estado.eje?.genesisId ?? '').slice(0, 8) });
+
+/** La vista «Irme con lo mío» de ahora (puente.salidaDe, con mi libro nuevo si ya está abierto) y lo que cuesta su paso siguiente. */
+function salidaDe() {
+  const s = estado.reglas.salida;
+  const nombre = nombreDeLaSalida();
+  const vista = puente.salidaDe(estado.eje, estado.identidad, { punto: s.punto, nuevo: s.nuevo?.eje ?? null, nombre, idioma: idioma() });
+  const p = vista?.siguiente;
+  const ejeDelPaso = p?.libro === 'viejo' ? estado.eje : s.nuevo?.eje;
+  return { vista, nombre, coste: p && p.que !== 'genesis' ? puente.costeDelPaso(ejeDelPaso, p) : null, nuevo: s.nuevo ? { nombre: s.nuevo.cuenta.nombre } : null, sinCuenta: !firmaLaCuenta(), ocupado: s.ocupado };
+}
+
+/** Mi libro nuevo de la salida, si ya está en este dispositivo (puente.entradaDeLaSalida), abierto aparte: el abierto no cambia. */
+async function nuevoDeLaSalida() {
+  const s = estado.reglas?.salida;
+  if (!s || s.nuevo || !estado.cuenta) return;
+  const e = puente.entradaDeLaSalida(cuentas.cuentas(), { publica: estado.cuenta.publica, libro: estado.eje.genesisId, elemento: estado.cuenta.alta, nombre: nombreDeLaSalida() });
+  if (!e) return;
+  const r = await cuentas.abrirCuenta(e.alta, { guardian });
+  if (r.eje && estado.reglas?.salida === s) s.nuevo = { cuenta: r.cuenta, eje: r.eje, privada: r.privada };
+}
+
+/** Con qué se firma en mi libro nuevo: su clave (camino A) o el guardián, diciendo ese libro (camino B). */
+function firmarEnElNuevo(n) {
+  if (n.privada) return cuentas.firmarCon(n.privada);
+  const firmante = n.firmante ?? (estado.cuenta?.guardian === true && guardian ? firmanteDeCuenta(guardian, estado.cuenta.publica, { eje: () => n.eje, dialogo: true }) : null);
+  return firmante ? autoridad.firmanteDeEventos(firmante, { publica: estado.cuenta.publica }) : undefined;
 }
 
 /** Lo escrito en el formulario de proponer: { titulo, explicacion, posicion, valor, pieza }. */
@@ -1336,7 +1369,7 @@ const manejadores = {
   /** El detalle de un cambio (su propuesta). */
   reglasCambio(id) {
     if (!estado.reglas || typeof id !== 'string') return;
-    estado.reglas = { ...estado.reglas, cambio: id, proponer: null, aviso: null, motivos: [], exito: null };
+    estado.reglas = { ...estado.reglas, cambio: id, proponer: null, salida: null, aviso: null, motivos: [], exito: null };
     tocar(estado.foco.X, 'cambio ' + id.slice(0, 8));
     pintar();
     void ponerEnVigorSolo();
@@ -1344,13 +1377,13 @@ const manejadores = {
   /** Volver a la lista de cambios. */
   reglasVolver() {
     if (!estado.reglas) return;
-    estado.reglas = { ...estado.reglas, cambio: null, proponer: null, aviso: null, motivos: [] };
+    estado.reglas = { ...estado.reglas, cambio: null, proponer: null, salida: null, aviso: null, motivos: [] };
     pintar();
   },
   /** El formulario de proponer un cambio. */
   reglasProponer() {
     if (!estado.reglas) return;
-    estado.reglas = { ...estado.reglas, cambio: null, proponer: { posicion: null, valores: {}, clase: null }, aviso: null, motivos: [], exito: null };
+    estado.reglas = { ...estado.reglas, cambio: null, proponer: { posicion: null, valores: {}, clase: null }, salida: null, aviso: null, motivos: [], exito: null };
     tocar(estado.foco.X, 'proponer un cambio');
     pintar();
   },
@@ -1398,6 +1431,61 @@ const manejadores = {
     } else {
       estado.reglas = { ...estado.reglas, aviso: null, motivos: motivosConGuardian(r.motivos ?? []), exito: null };
     }
+    pintar();
+  },
+  /** «Irme con lo mío» (desde «Reglas del libro»): pone en el eje los sellos guardados y busca mi libro nuevo, si ya lo hay. */
+  async salida() {
+    if (!estado.reglas || !estado.eje) return;
+    estado.reglas = { ...estado.reglas, cambio: null, proponer: null, salida: { punto: 'vigente', nuevo: null, ocupado: false }, aviso: null, motivos: [], exito: null };
+    if (estado.cuenta) puente.sellosGuardados(estado.eje, estado.cuenta.alta);
+    tocar(estado.foco.X, 'irme con lo mío');
+    pintar();
+    await nuevoDeLaSalida();
+    pintar();
+  },
+  /** Con qué reglas nace el libro nuevo: las vigentes o las de antes del último cambio en vigor. */
+  salidaPunto(punto) {
+    const s = estado.reglas?.salida;
+    if (!s || (punto !== 'vigente' && punto !== 'antes')) return;
+    s.punto = punto;
+    pintar();
+  },
+  /**
+   * El único botón de la salida: firma el primer paso «listo», tal cual lo da el plan, tras confirmarlo en la página con su
+   * coste a la vista; el génesis abre el libro nuevo como otro libro de esta cuenta. Después se vuelve a pedir el plan.
+   */
+  async salidaFirmar() {
+    const s = estado.reglas?.salida;
+    if (!s || s.ocupado || !estado.eje || !firmaLaCuenta()) return;
+    const { vista, nombre, coste } = salidaDe();
+    const p = vista?.siguiente;
+    if (!p) return;
+    const texto = p.que === 'genesis'
+      ? t('salidaConfirmarGenesis', { n: p.n, nombre, punto: t('salidaPunto_' + vista.punto).toLowerCase() })
+      : t('salidaConfirmar', { n: p.n, donde: t('salidaEnLibro_' + p.libro), paso: textoDelPasoDeSalida(vista.pasos.find((x) => x.n === p.n) ?? p, nombre), coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') });
+    if (!(await confirmarEnPagina(texto))) return;
+    limpiarMensajes();
+    s.ocupado = true;
+    await pintar();
+    try {
+      const c = estado.cuenta;
+      if (p.que === 'genesis') {
+        const r = await puente.abrirLibroDeSalida({ cuenta: c, privada: c.privada, guardian: c.guardian === true ? guardian : null, paso: p, idioma: idioma() });
+        if (estado.reglas?.salida === s) s.nuevo = { cuenta: r.cuenta, eje: r.eje, privada: r.privada, firmante: r.firmante };
+        if (estado.reglas) estado.reglas.exito = t('salidaHecho', { n: p.n });
+      } else {
+        const enElViejo = p.libro === 'viejo';
+        const eje = enElViejo ? estado.eje : s.nuevo?.eje;
+        const r = await puente.firmarPaso(eje, p, enElViejo ? firmarCon(estado.identidad) : firmarEnElNuevo(s.nuevo));
+        if (r.asentado) {
+          if (enElViejo) { trasEscribir(); marcarNuevos(); } else s.nuevo.cuenta = puente.guardarLibroNuevo(s.nuevo);
+          if (estado.reglas) estado.reglas.exito = t('salidaHecho', { n: p.n }) + (r.asentado.firma ? ' ' + t('firmado') : '');
+        } else if (estado.reglas) estado.reglas.motivos = motivosConGuardian(r.motivos ?? []);
+      }
+    } catch (e) {
+      if (estado.reglas) estado.reglas.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
+    }
+    s.ocupado = false;
     pintar();
   },
   /** «Ajustes de este elemento» (desde su configuración, la cruceta de su 0). */

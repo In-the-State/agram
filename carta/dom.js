@@ -1639,10 +1639,10 @@ export function htmlReglas(v) {
   if (!v?.lista) return '';
   const avisos = [...(v.aviso ? [v.aviso] : []), ...(v.motivos ?? []).map((m) => m?.mensaje ?? m)];
   const mensajes = (avisos.length ? `<ul class="motivos" role="alert">${avisos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '') + (v.exito ? `<p class="exito" role="status">${escapar(v.exito)}</p>` : '');
-  const cuerpo = v.proponer ? htmlProponerCambio(v.proponer) : v.cambio ? htmlCambio(v.cambio, v) : htmlListaDeCambios(v.lista);
+  const cuerpo = v.salida ? htmlSalida(v.salida) : v.proponer ? htmlProponerCambio(v.proponer) : v.cambio ? htmlCambio(v.cambio, v) : htmlListaDeCambios(v.lista) + htmlEntradaSalida(v.puedeSalir);
   return `<div class="formulario-fondo" data-cerrar><section class="formulario reglas"${nodo('reglas')} role="dialog" aria-label="${attr(t('reglasTitulo'))}">
     <header><h2>${escapar(t('reglasTitulo'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
-    ${v.cambio || v.proponer ? `<p class="reglas-volver"><button type="button" class="enlace"${nodo('control')} data-reglas-volver>${escapar(t('reglasVolver'))}</button></p>` : ''}
+    ${v.cambio || v.proponer || v.salida ? `<p class="reglas-volver"><button type="button" class="enlace"${nodo('control')} data-reglas-volver>${escapar(t('reglasVolver'))}</button></p>` : ''}
     ${mensajes}${cuerpo}
     <p class="reglas-pie" data-reglas-pie><small>${escapar(t('reglasPie'))}</small></p>
   </section></div>`;
@@ -1727,6 +1727,53 @@ function htmlProponerCambio(p) {
     <details class="reglas-avanzado"${p.avanzado || val.pieza ? ' open' : ''}><summary>${escapar(t('reglasAvanzado'))}</summary><p class="ayuda"><small>${escapar(t('reglasAvanzadoAyuda'))}</small></p><textarea name="pieza" rows="6" spellcheck="false" autocomplete="off">${escapar(val.pieza ?? '')}</textarea></details>
     <footer><button type="submit">${escapar(t('reglasProponerBoton'))}</button></footer>
   </form>`;
+}
+
+// ---------- «Irme con lo mío» (encargo «carta: irme con lo mío y el puente»; carta/puente.js salidaDe) ----------
+
+/** El coste de un paso como lo dice el formulario de cualquier acción (para la confirmación de la app). */
+export const textoDelCoste = (c) => textoDeCoste(c);
+
+/** La entrada «Irme con lo mío» en la lista de «Reglas del libro»: para quien tiene alta en este libro. */
+const htmlEntradaSalida = (si) => (si ? `<p class="reglas-salida-entrada"><button type="button" class="enlace"${nodo('control')} data-salida-abrir title="${attr(t('salidaAbrirTitulo'))}">${escapar(t('salidaAbrir'))}</button></p>` : '');
+
+/** El texto de un paso de la salida: qué hace y, si lo nombra, de qué serie («Declarar aquí 10 P sobre Ana»). */
+export const textoDelPasoDeSalida = (p, nombre) => t('salidaPaso_' + p.que, { serie: p.texto ?? p.serie ?? '', nombre: nombre ?? '' });
+
+/**
+ * «Irme con lo mío» (carta/puente.js salidaDe): lo que me llevo y lo que no (con su causa, tal como la da el plan), con qué
+ * reglas nace el libro nuevo (las vigentes o las de antes del último cambio), los pasos en orden con su estado (la espera,
+ * con su frase tal cual), un solo botón que firma el primer paso «listo» con su coste a la vista, la frase del sello y lo
+ * que va aparte. `s`: { vista, coste (del paso siguiente), nombre (el del libro nuevo), nuevo ({ nombre } si ya está),
+ * sinCuenta, ocupado }. Todo dato va escapado.
+ */
+function htmlSalida(s) {
+  const v = s.vista;
+  if (!v) return '';
+  const lista = (xs, f) => `<ul class="salida-lista">${xs.map(f).join('')}</ul>`;
+  const lleva = v.lleva.length ? lista(v.lleva, (x) => `<li data-serie="${attr(x.serie)}">${escapar(x.texto)}</li>`) : `<p class="ayuda">${escapar(t('salidaNada'))}</p>`;
+  const noSeLleva = v.noSeLleva.length ? `<h3>${escapar(t('salidaNoSeLleva'))}</h3>${lista(v.noSeLleva, (x) => `<li data-serie="${attr(x.serie)}">${escapar(x.texto)} <small class="salida-causa">${escapar(x.causa)}</small></li>`)}` : '';
+  const nacido = v.pasos.some((p) => p.que === 'genesis' && p.estado === 'hecho');
+  const reglas = nacido ? `<p>${escapar(t('salidaPuntoFijo'))}</p>`
+    : v.puntos.length > 1 ? `<p class="salida-puntos">${v.puntos.map((p) => `<button type="button"${nodo('control')} data-salida-punto="${attr(p)}" aria-pressed="${p === v.punto}">${escapar(t('salidaPunto_' + p))}</button>`).join(' ')}</p>`
+      : `<p>${escapar(t('salidaPuntoElegido', { punto: t('salidaPunto_vigente').toLowerCase() }))}</p>`;
+  const pasos = v.pasos.map((p) => `<li class="salida-paso" data-estado="${attr(p.estado)}" data-que="${attr(p.que)}"><span>${escapar(textoDelPasoDeSalida(p, s.nombre))}</span> <small>${escapar(t('salidaEnLibro_' + p.libro))}</small> · <small class="salida-estado">${escapar(t('salidaEstado_' + p.estado))}</small>${p.espera ? `<br><small class="salida-espera">${escapar(p.espera)}</small>` : ''}</li>`).join('');
+  const todo = v.pasos.length && v.pasos.every((p) => p.estado === 'hecho');
+  const siguiente = v.siguiente && !s.sinCuenta
+    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado ? 'disabled' : ''}>${escapar(s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
+    : '';
+  return `<article class="salida"${nodo('reglas')} data-salida>
+    <h3>${escapar(t('salidaAbrir'))}</h3>
+    <p class="ayuda">${escapar(t('salidaAyuda'))}</p>
+    <h3>${escapar(t('salidaLleva'))}</h3>${lleva}${noSeLleva}
+    <h3>${escapar(t('salidaReglas'))}</h3>${reglas}
+    <h3>${escapar(t('salidaPasos'))}</h3><ol class="salida-pasos">${pasos}</ol>
+    ${todo ? `<p class="exito" role="status">${escapar(t('salidaTodoHecho'))}</p>` : ''}${s.nuevo ? `<p class="salida-nuevo">${escapar(t('salidaNuevo', { nombre: s.nuevo.nombre }))}</p>` : ''}
+    <p class="salida-sello" data-salida-sello>${escapar(t('salidaSello'))}</p>
+    ${v.sinSello ? `<p class="aviso" data-sin-sello="${attr(v.sinSello)}">${escapar(t('salidaSinSello_' + v.sinSello))}</p>` : ''}${s.sinCuenta ? `<p class="aviso">${escapar(t('salidaSinCuenta'))}</p>` : ''}
+    ${siguiente}
+    <h3>${escapar(t('salidaAparte'))}</h3><p class="salida-aparte" data-salida-aparte>${escapar(v.aparte)}</p>
+  </article>`;
 }
 
 /**

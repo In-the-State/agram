@@ -49,6 +49,8 @@ const UMBRAL_ARRASTRE = 24;
  *   enviar(form)             enviar el formulario de una acción
  *   reglas() · reglasCambio(id) · reglasVolver() · reglasProponer() · reglasActuar(que, id) · reglasPosicion(posicion, form) · reglasPropuesta(form)
  *                            «Reglas del libro» (A21; carta/reglas.js): abrirla, un cambio, volver a la lista, proponer, sus acciones
+ *   salida() · salidaPunto(punto) · salidaFirmar()
+ *                            «Irme con lo mío» (carta/puente.js): abrirla, con qué reglas nace el libro nuevo, firmar el paso siguiente
  *   ajustesElemento(X)       «Ajustes de este elemento» (A21): lo fijado y lo heredado del libro
  *   libro(alta) · libroOtro() · libroEntrar(alta, foco) · libroVolver(alta, foco) · libroAnunciar(alta, foco)
  *   libroPrivado(X) · libroPrivadoCrear(form) · libroPrivadoAnunciar() · copiaTodos()
@@ -228,6 +230,10 @@ export function instalar(raiz, m) {
     if ((el = b('[data-reglas-volver]'))) { e.preventDefault(); m.reglasVolver?.(); return; }
     if ((el = b('[data-reglas-proponer]'))) { e.preventDefault(); m.reglasProponer?.(); return; }
     if ((el = b('[data-reglas-actuar]'))) { e.preventDefault(); m.reglasActuar?.(el.dataset.reglasActuar, el.dataset.id); return; }
+    // «Irme con lo mío» (carta/puente.js): abrirla, con qué reglas nace el libro nuevo y firmar el paso siguiente.
+    if ((el = b('[data-salida-abrir]'))) { e.preventDefault(); m.salida?.(); return; }
+    if ((el = b('[data-salida-punto]'))) { e.preventDefault(); m.salidaPunto?.(el.dataset.salidaPunto); return; }
+    if ((el = b('[data-salida-firmar]'))) { e.preventDefault(); if (!el.disabled) m.salidaFirmar?.(); return; }
     if ((el = b('[data-ajustes-elemento]'))) { e.preventDefault(); m.ajustesElemento?.(el.dataset.ajustesElemento); return; }
     // Varios libros (A24; carta/libros.js): «Tus libros», entrar y volver, el libro privado y la copia de todos.
     if ((el = b('[data-libro]'))) { e.preventDefault(); if (!el.disabled) m.libro?.(el.dataset.libro); return; }
