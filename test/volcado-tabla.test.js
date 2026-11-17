@@ -9,7 +9,8 @@ import { Eje } from '../src/eje.js';
 import { cerrado } from '../src/motor.js';
 import * as A from '../src/acciones.js';
 import { generarClaves } from '../src/autoridad.js';
-import { volcar, leerLibro, estacionDe, correspondenciaDe, pintar, PLANTILLAS, notaDeDetalle, comprobarTabla, NOTA, TOPES } from '../ejemplos/volcado/volcar.mjs';
+import { volcar, leerLibro, estacionDe, correspondenciaDe, pintar, PLANTILLAS, notaDeDetalle, comprobarTabla, NOTA, TOPES, conCadenas, epocaDelVolcado } from '../ejemplos/volcado/volcar.mjs';
+import { cadenas, NOMBRES_DE_LAS_CADENAS } from '../src/cadenas.js';
 
 const CORR = {
   columnas: { id: 'ref', cosa: 'equipo', proyecto: 'bloque', texto: 'que', fase: 'etapa', datos: ['ronda', 'nota'] },
@@ -437,4 +438,102 @@ test('un libro volcado antes de este cambio: la tabla vieja con la correspondenc
   // Un nombre de la dueña que ya tiene alta propia (volcado antes como otra casa): no se vuelca encima.
   const conAlfa = await volcar(eje, nueva, { claves, correspondencia: { ...DETALLE, duena: 'Alfa' }, t: DIA(2, 11), simular: true });
   assert.ok(conAlfa.noPuede.some((x) => x.motivo === 'el nombre Alfa ya tiene alta propia en este libro: la casa de la dueña no se vuelca encima'));
+});
+
+// ---------- las dependencias como relación de verdad: la época del roadmap y «this goes after» (VG 17-11) ----------
+
+const CADENAS = { ...DETALLE, epoca: 'roadmap' };
+const T_CAD = [
+  fila('c1', 'Alfa', 'Uno', 'Medir la pared inventada', 'revisada'),
+  conDetalle(fila('c2', 'Alfa', 'Uno', 'Lijar la pared inventada', 'pendiente'), { depende: ['c1'] }),
+  conDetalle(fila('c3', 'Beta', 'Dos', 'Comprar la pintura inventada', 'pendiente'), { depende: ['c1'] }),
+  conDetalle(fila('c4', 'Alfa', 'Uno', 'Pintar la pared inventada', 'pendiente'), { depende: ['c2', 'c3'] }),
+  fila('c5', 'Beta', 'Dos', 'Barrer el patio inventado', 'pendiente'),
+];
+
+async function prepararConEpoca() {
+  const duena = await generarClaves();
+  const claves = { duena: { privada: duena.privada }, cosas: { Alfa: await generarClaves(), Beta: await generarClaves() } };
+  const eje = await Eje.genesis({ identidad: 'duena', foco: ['la dueña'], t: DIA(1, 8), clave: duena.publica, privada: duena.privada, exigirFirmas: true, epoca: epocaDelVolcado(correspondenciaDe(CADENAS)) });
+  return { eje, claves };
+}
+/** Las cadenas del libro por id de fila: [[sale, [fila, estado, une…]…]…], independientes y descartadas. */
+function cadenasPorFila(eje) {
+  const filaDe = new Map([...leerLibro(eje, 'duena', correspondenciaDe(CADENAS)).tareas].map(([f, x]) => [x.id, f]));
+  const c = cadenas(eje, eje.genesisId);
+  return {
+    cadenas: c.cadenas.map((x) => ({ sale: x.sale ? filaDe.get(x.sale) : null, pasos: x.pasos.map((p) => [filaDe.get(p.id), p.estado, ...p.une.map((u) => '+' + filaDe.get(u))]) })),
+    independientes: c.independientes.map((p) => [filaDe.get(p.id), p.estado]),
+    descartadas: c.descartadas.length,
+  };
+}
+
+test('con la época del roadmap: el libro nace con ella; las tareas llevan el tipo «task»; una relación «this goes after» por fila con «depende», en su 2.6 y en una segunda pasada; las cadenas son las de la tabla; repetir no escribe', async () => {
+  const { eje, claves } = await prepararConEpoca();
+  assert.equal(eje.epoca().id.slice(0, 8), '50fbac2f', 'la época del roadmap');
+  assert.equal(conCadenas(eje), true);
+  const uno = await volcar(eje, T_CAD, { claves, correspondencia: CADENAS, t: DIA(1) });
+  assert.deepEqual([uno.noPuede, uno.paraLaDuena], [[], []]);
+  const rel = uno.escritos.filter((e) => e.tipo === 'relacion');
+  assert.deepEqual(rel.map((e) => e.fila + ' ' + e.quien + ' ' + e.plantilla), ['c2 Alfa this goes after', 'c3 Beta this goes after', 'c4 Alfa this goes after']);
+  const ultimaTarea = Math.max(...uno.escritos.filter((e) => e.tipo === 'tarea').map((e) => eje.orden.indexOf(e.id)));
+  assert.ok(rel.every((e) => eje.orden.indexOf(e.id) > ultimaTarea), 'la segunda pasada: después de todas las tareas');
+  const libro = leerLibro(eje, 'duena', correspondenciaDe(CADENAS));
+  for (const [f, t] of libro.tareas) assert.deepEqual(eje.obtener(t.id).payload[5], [NOMBRES_DE_LAS_CADENAS.tarea], f + ': el tipo «task»');
+  const r4 = eje.obtener(rel[2].id);
+  assert.deepEqual([r4.sobre, r4.en, r4.autor], [libro.tareas.get('c4').id, '2600000000', 'Alfa']);
+  assert.deepEqual(r4.payload[6], [{ ref: libro.tareas.get('c2').id }, { ref: libro.tareas.get('c3').id }], 'todas sus anteriores en el 6');
+  assert.deepEqual(notaDeDetalle(eje, 'c4', { columna: 'ref' }).depende.map((d) => d.id), ['c2', 'c3'], 'la nota conserva sus líneas «depende»');
+  // Las cadenas: c1 → c2 → c4 (une c3), la bifurcación c1 → c3 (de otra casa) y c5 independiente.
+  assert.deepEqual(cadenasPorFila(eje), {
+    cadenas: [{ sale: null, pasos: [['c1', 'hecho'], ['c2', 'en curso'], ['c4', 'espera', '+c3']] }, { sale: 'c1', pasos: [['c3', 'en curso']] }],
+    independientes: [['c5', 'en curso']],
+    descartadas: 0,
+  });
+  // Otra vez: nada.
+  const antes = eje.orden.length;
+  assert.equal((await volcar(eje, T_CAD, { claves, correspondencia: CADENAS, t: DIA(2) })).escritos.length, 0);
+  assert.equal(eje.orden.length, antes);
+});
+
+test('con la época del roadmap: cambiar un «depende» escribe otra relación y la lectura lo refleja; quitarlos todos, una relación sin 6; «hecho» (deliver) no desbloquea, el cierre sí', async () => {
+  const { eje, claves } = await prepararConEpoca();
+  await volcar(eje, T_CAD, { claves, correspondencia: CADENAS, t: DIA(1) });
+  // c4 ya solo depende de c3.
+  const solo3 = T_CAD.map((f) => (f.ref === 'c4' ? { ...f, depende: ['c3'] } : f));
+  const dos = await volcar(eje, solo3, { claves, correspondencia: CADENAS, t: DIA(1, 10) });
+  assert.deepEqual(dos.escritos.map((e) => e.fila + ' ' + e.tipo), ['c4 nota', 'c4 relacion']);
+  assert.deepEqual(cadenasPorFila(eje).cadenas, [{ sale: null, pasos: [['c1', 'hecho'], ['c2', 'en curso']] }, { sale: 'c1', pasos: [['c3', 'en curso'], ['c4', 'espera']] }]);
+  // «lista» (en el roadmap, «hecho»: deliver) en c3: el motor no la da por cerrada sin el cierre; c4 sigue esperando.
+  const lista3 = solo3.map((f) => (f.ref === 'c3' ? { ...f, que: f.que, etapa: 'lista' } : f));
+  await volcar(eje, lista3, { claves, correspondencia: CADENAS, t: DIA(1, 11) });
+  assert.deepEqual(cadenasPorFila(eje).cadenas[1].pasos, [['c3', 'en curso'], ['c4', 'espera']]);
+  // «revisada» (en el roadmap, «comprobado»: close) en c3: desbloquea a c4.
+  const cerrada3 = solo3.map((f) => (f.ref === 'c3' ? { ...f, etapa: 'revisada' } : f));
+  await volcar(eje, cerrada3, { claves, correspondencia: CADENAS, t: DIA(1, 12) });
+  assert.deepEqual(cadenasPorFila(eje).cadenas[1].pasos, [['c3', 'hecho'], ['c4', 'en curso']]);
+  // c4 sin «depende»: una relación sin 6 (y una nota vacía); c4 queda independiente.
+  const sinDep = cerrada3.map((f) => (f.ref === 'c4' ? fila('c4', 'Alfa', 'Uno', 'Pintar la pared inventada', 'pendiente') : f));
+  const tres = await volcar(eje, sinDep, { claves, correspondencia: CADENAS, t: DIA(1, 13) });
+  assert.deepEqual(tres.escritos.map((e) => e.fila + ' ' + e.tipo), ['c4 nota', 'c4 relacion']);
+  const r = eje.obtener(tres.escritos[1].id);
+  assert.deepEqual([r.payload[1], r.payload[6]], [[0], undefined], 'una relación sin 6');
+  assert.ok(cadenasPorFila(eje).independientes.some(([f]) => f === 'c4'));
+  assert.equal((await volcar(eje, sinDep, { claves, correspondencia: CADENAS, t: DIA(1, 14) })).escritos.length, 0);
+  // Una casa sin clave: sus relaciones (como todo lo suyo) a noPuede.
+  const sinBeta = await volcar(eje, sinDep.map((f) => (f.ref === 'c3' ? { ...f, depende: ['c2'] } : f)), { claves: { duena: claves.duena, cosas: { Alfa: claves.cosas.Alfa } }, correspondencia: CADENAS, t: DIA(1, 15), simular: true });
+  assert.ok(sinBeta.noPuede.some((x) => x.paso.tipo === 'relacion' && x.paso.fila === 'c3' && x.motivo === 'sin la clave de Beta'), JSON.stringify(sinBeta.noPuede.map((x) => [x.paso.tipo, x.paso.fila, x.motivo])) + JSON.stringify(sinBeta.avisos));
+});
+
+test('un libro que ya existe con la 0 a secas y la correspondencia del roadmap: ni tipo ni relaciones; un aviso llano lo dice', async () => {
+  const { eje, claves } = await preparar();
+  assert.equal(conCadenas(eje), false);
+  const inf = await volcar(eje, T_CAD, { claves, correspondencia: CADENAS, t: DIA(1) });
+  assert.equal(inf.avisos[0], 'este libro nació con la época 0 a secas y la correspondencia pide la del roadmap: las dependencias no se escriben como relación ni las tareas llevan el tipo «task»; el libro se reescribirá entero, no se migra');
+  assert.ok(!inf.escritos.some((e) => e.tipo === 'relacion'));
+  const t4 = leerLibro(eje, 'duena', correspondenciaDe(CADENAS)).tareas.get('c4');
+  assert.equal(eje.obtener(t4.id).payload[5], undefined, 'sin el tipo');
+  assert.deepEqual(cadenas(eje, eje.genesisId), { cadenas: [], independientes: [], descartadas: [] });
+  assert.ok(notaDeDetalle(eje, 'c4', { columna: 'ref' }).depende.length === 2, 'la nota sí');
+  assert.throws(() => correspondenciaDe({ ...CORR, epoca: 'otra' }), /«epoca» es roadmap/);
 });
