@@ -416,6 +416,9 @@ test('#25: el arte propio de un registro es su modelo parcial (piezas ancladas p
   const deLaNota = propio(eje, nota.id);
   assert.deepEqual([deLaNota.propio, deLaNota.donde, deLaNota.registro], [true, nota.id, []], 'el arte anclado en un texto cuenta; su registro, sin posiciones');
   assert.equal(pieza([deLaNota], 'elemento', 3, null, 'centro').recurso, 'archivo:' + 'd'.repeat(64), 'y sirve en todos los mundos');
+  // Otro arte puesto después con la misma clave: gana el último (la plantilla no escribe rango).
+  await eje.escribir({ autor, sobre: nota.id, en: '5000000000', t: T, movimientos: [minuto(autor)], payload: [['elemento'], [0, 'image'], ['*'], ['centro'], ['once', 1], ['*'], ['archivo:' + 'e'.repeat(64)]] });
+  assert.equal(pieza([propio(eje, nota.id)], 'elemento', 3, null, 'centro').recurso, 'archivo:' + 'e'.repeat(64), 'el arte propio más reciente manda');
 });
 
 test('#25, la plantilla «attach art to this element» (época 0): ancla el adjunto como pieza propia del elemento; de quien no es su autor no da pieza; html no', async () => {

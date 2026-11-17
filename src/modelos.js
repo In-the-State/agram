@@ -470,7 +470,9 @@ export function pieza(modelos, tipo, pv, clave, variante, { tamano, rol, de } = 
         mejores = exactas.length ? exactas : lista.filter((p) => p.clave === CUALQUIERA);
       }
       if (!mejores.length) continue;
-      const elegida = mejores.reduce((a, b) => (b.tamano > a.tamano || (b.tamano === a.tamano && b.rango < a.rango) ? b : a));
+      // A igual tamaño manda el rango; a igual rango, la primera. En el arte propio (#25) la lista va por llegada y la
+      // plantilla no escribe rango: ahí gana la última, que es lo que su autor acaba de poner.
+      const elegida = mejores.reduce((a, b) => (b.tamano > a.tamano || (b.tamano === a.tamano && (b.rango < a.rango || (m.propio && b.rango === a.rango))) ? b : a));
       const { crudo: _crudo, tiempo: _tiempo, repeticion: _repeticion, ...plana } = elegida;
       return { modelo: m.nombre, nivel: m.nivel, origen: m.donde ?? null, propio: Boolean(m.propio), ...plana };
     }
