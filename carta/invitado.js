@@ -6,6 +6,8 @@
 //   bajarLibro(datos)                               el libro del servidor, solo para leer → { eje, sincronia } o { motivo }
 //   vistaDeInvitacion(eje, publica)                 lo que la pantalla dice: el libro, y mi alta o mis invitaciones
 //   destinoGuardado(estado)                         el destino guardado de un libro (url, eje) si su eje no lo dice
+//   quienEntra({ cuenta, emparejamiento, idioma })  quién entra: la cuenta abierta o, sin ella, la de la app emparejada
+//   entradaDelLibro(quien, { nombre, identidad, alta })  la entrada de «Tus libros» del libro en que entro
 //
 // La clave de lectura es un secreto: nunca va en un motivo, ni se pinta, ni a la consola. El libro que se baja es dato
 // hostil: todo lo suyo se enseña como texto (dom.js htmlInvitado lo escapa). Nada de esto firma ni escribe: aceptar es
@@ -101,6 +103,24 @@ export function vistaDeInvitacion(eje, publica, { t: ahora } = {}) {
     return { id: i.id, autor: corto(i.autor, 64), quienInvita: altaDeQuien ? ceroDe(eje, altaDeQuien) : null, invitado: corto(i.invitado, 64), da: i.da.map((x) => corto(x, 80)).slice(0, 10), coste, tema: corto(i.tema) };
   });
   return { libro, miAlta: null, invitaciones };
+}
+
+/**
+ * Quién entra en el libro al que me invitan: la cuenta abierta, si la hay (nada cambia); si no, con un emparejamiento vivo y
+ * aceptado (docs/notas/EMPAREJAMIENTO.md), la cuenta de la app: { publica: la clave larga de la app, guardian: true,
+ * idioma } (sin privada: firma la app por el guardián emparejado). null si no hay ninguna de las dos.
+ */
+export function quienEntra({ cuenta = null, emparejamiento = null, idioma = null } = {}) {
+  if (cuenta) return cuenta;
+  let e = null;
+  try { e = emparejamiento?.estado?.() ?? null; } catch { e = null; }
+  if (!e?.aceptada || typeof e.app !== 'string' || !/^[0-9a-f]{64}$/.test(e.app)) return null;
+  return { publica: e.app, guardian: true, ...(idioma ? { idioma } : {}) };
+}
+
+/** La entrada de «Tus libros» del libro en que entra `quien` (quienEntra): con guardian: true si firma su guardián, nunca con privada. */
+export function entradaDelLibro(quien, { nombre, identidad, alta }) {
+  return { nombre, ...(quien.idioma ? { idioma: quien.idioma } : {}), identidad, alta, publica: quien.publica, ...(quien.guardian === true ? { guardian: true } : {}) };
 }
 
 /** El destino guardado de un libro (el estado de su sincronía: cuentas.estadoSincronia), si su eje no lo dice: { url, eje } o null. */

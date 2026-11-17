@@ -344,7 +344,7 @@ function extraDe() {
       emparejar: Boolean(emparejado.emparejamiento), reemparejar: emparejado.hubo, otraClave: porQueSoloLeer(estado.cuenta.publica, emparejado.emparejamiento) === 'otraClave',
       // Quien firma es el emparejamiento (su adaptador es el guardián, o lo era y ya no está vivo): en plazo o terminado.
       porEmparejamiento: emparejado.adaptador && (guardian === emparejado.adaptador || (!guardian && emparejado.hubo)) ? (emparejado.emparejamiento?.estado() ? 'vivo' : 'terminado') : undefined } : undefined,
-    emparejar: emparejado.emparejamiento ? { vivo: Boolean(emparejado.emparejamiento.estado()) } : null,
+    emparejar: emparejado.emparejamiento ? { vivo: Boolean(emparejado.emparejamiento.estado()), aceptada: Boolean(emparejado.emparejamiento.estado()?.aceptada) } : null,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
@@ -948,16 +948,23 @@ function cerrarInvitado() {
   delInvitado = null;
 }
 
+/**
+ * Quién entra en el libro al que me invitan (invitado.quienEntra): la cuenta abierta; sin ella, la de la app emparejada
+ * (con el emparejamiento vivo y aceptado: su clave larga, guardian: true, sin privada, el idioma de la carta). O null.
+ */
+const quienEntra = () => invitado.quienEntra({ cuenta: estado.cuenta, emparejamiento: estado.cuenta ? null : emparejado.emparejamiento, idioma: idiomaDeInterfaz() });
+
 /** La vista del diálogo (dom.js htmlInvitado): lo de estado.invitado, sin la clave de lectura. */
 function invitadoDe() {
   const e = estado.invitado;
-  return { paso: e.paso, url: e.url ?? '', eje: e.eje ?? '', vista: e.vista ?? null, aviso: e.aviso ?? '', exito: e.exito ?? '', ocupado: Boolean(e.ocupado), publica: estado.cuenta?.publica ?? '', pendiente: e.pendiente ?? null };
+  return { paso: e.paso, url: e.url ?? '', eje: e.eje ?? '', vista: e.vista ?? null, aviso: e.aviso ?? '', exito: e.exito ?? '', ocupado: Boolean(e.ocupado), publica: quienEntra()?.publica ?? '', pendiente: e.pendiente ?? null };
 }
 
 /** Baja el libro de los datos ya validados y deja su vista; lo que falle se dice, sin la clave. */
 async function buscarInvitacion(datos) {
   const e = estado.invitado;
-  if (!e || !estado.cuenta) return;
+  const quien = quienEntra();
+  if (!e || !quien) return;
   e.ocupado = true; e.aviso = ''; e.url = datos.url; e.eje = datos.eje;
   pintar();
   const r = await invitado.bajarLibro(datos);
@@ -965,15 +972,18 @@ async function buscarInvitacion(datos) {
   e.ocupado = false;
   if (!r.eje) { e.aviso = t('invitadoNoBaja', { motivo: r.motivo }); pintar(); return; }
   delInvitado = { datos, eje: r.eje, sincronia: r.sincronia };
-  e.vista = invitado.vistaDeInvitacion(r.eje, estado.cuenta.publica);
+  e.vista = invitado.vistaDeInvitacion(r.eje, quien.publica);
   e.paso = 'vista';
   pintar();
 }
 
 /** El firmante con que acepto en el libro bajado: con guardián, el suyo (sobre ese eje); si no, mi clave. Nada del guardián cambia. */
 function firmanteDelInvitado(eje) {
-  if (estado.cuenta?.guardian === true) return guardian && !estado.cuenta.soloLeer ? firmanteDeCuenta(guardian, estado.cuenta.publica, { eje: () => eje, dialogo: true }) : null;
-  return estado.cuenta?.privada ?? null;
+  // Con la cuenta de la app emparejada, su guardián: el alta se propone a la app sobre ESE eje (su `libro` es su génesis:
+  // firmanteDeCuenta → libroDeLaFirma) y con diálogo, porque es una invitación.
+  const quien = quienEntra();
+  if (quien?.guardian === true) return guardian && !quien.soloLeer ? firmanteDeCuenta(guardian, quien.publica, { eje: () => eje, dialogo: true }) : null;
+  return quien?.privada ?? null;
 }
 
 /**
@@ -998,9 +1008,11 @@ async function subirAltaDelInvitado() {
     pintar();
     return;
   }
-  const quien = d.alta.identidad;
-  const cuenta = { nombre: e.vista?.libro?.nombre || quien, idioma: estado.cuenta.idioma, identidad: quien, alta: d.alta.id, publica: estado.cuenta.publica, ...(estado.cuenta.guardian === true ? { guardian: true } : {}) };
-  const ok = await cuentas.guardarCuenta({ cuenta, eje: d.eje, privada: estado.cuenta.privada, claveLectura: d.datos.claveLectura }, { recordar: false });
+  const entra = quienEntra();
+  if (!entra) { e.aviso = t('invitadoSinFirma'); pintar(); return; }
+  const identidad = d.alta.identidad;
+  const cuenta = invitado.entradaDelLibro(entra, { nombre: e.vista?.libro?.nombre || identidad, identidad, alta: d.alta.id });
+  const ok = await cuentas.guardarCuenta({ cuenta, eje: d.eje, privada: entra.privada, claveLectura: d.datos.claveLectura }, { recordar: false });
   cuentas.guardarEstadoSincronia(d.alta.id, d.sincronia.serializar());
   if (!ok) { e.aviso = t('sinAlmacenamiento'); pintar(); return; }
   cerrarInvitado();
@@ -2732,10 +2744,11 @@ const manejadores = {
   },
   /** «Entrar en un libro al que me han invitado»: el diálogo, en el paso de los datos. Solo con una cuenta (alguien con clave). */
   invitado() {
-    if (!estado.cuenta) return;
+    if (!quienEntra()) return; // una cuenta abierta, o la de la app emparejada y aceptada
     limpiarMensajes();
     delInvitado = null;
-    if (estado.arranque && estado.eje) estado.arranque = null; // desde la pantalla de arranque: el diálogo va sobre la carta
+    // Con un libro abierto, el diálogo va sobre la carta; sin ninguno, sobre la pantalla de arranque (al cerrarlo, se vuelve a ella).
+    if (estado.arranque && estado.eje) estado.arranque = null;
     estado.invitado = { paso: 'datos', aviso: '', ocupado: false };
     pintar();
   },
@@ -2775,7 +2788,8 @@ const manejadores = {
   async invitadoAceptar(id) {
     const e = estado.invitado;
     const d = delInvitado;
-    if (!e || !d || e.ocupado || !estado.cuenta) return;
+    const quien = quienEntra();
+    if (!e || !d || e.ocupado || !quien) return;
     const inv = e.vista?.invitaciones?.find((i) => i.id === id);
     if (!inv) return;
     const firmante = firmanteDelInvitado(d.eje);
@@ -2786,7 +2800,7 @@ const manejadores = {
       const ahora = new Date().toISOString();
       const ultimo = d.eje.orden.length ? d.eje.obtener(d.eje.orden.at(-1))?.t : null;
       const tAlta = ultimo && Date.parse(ultimo) >= Date.parse(ahora) ? new Date(Date.parse(ultimo) + 1000).toISOString() : ahora;
-      const alta = await d.eje.aceptar(id, { publica: estado.cuenta.publica, privada: firmante }, { t: tAlta });
+      const alta = await d.eje.aceptar(id, { publica: quien.publica, privada: firmante }, { t: tAlta });
       d.alta = { id: alta.id, identidad: inv.invitado, inv: id };
     } catch (err) {
       e.ocupado = false;
@@ -2803,9 +2817,11 @@ const manejadores = {
     const e = estado.invitado;
     const d = delInvitado;
     const mia = e?.vista?.miAlta;
-    if (!e || !d || !mia || e.ocupado || !estado.cuenta) return;
-    const cuenta = { nombre: e.vista.libro?.nombre || mia.identidad, idioma: estado.cuenta.idioma, identidad: mia.identidad, alta: mia.alta, publica: estado.cuenta.publica, ...(estado.cuenta.guardian === true ? { guardian: true } : {}) };
-    const ok = await cuentas.guardarCuenta({ cuenta, eje: d.eje, privada: estado.cuenta.privada, claveLectura: d.datos.claveLectura }, { recordar: false });
+    const quien = quienEntra();
+    if (!e || !d || !mia || e.ocupado || !quien) return;
+    // Sin firma: mi alta ya está en ese libro con mi clave (con la de la app, la entrada lleva guardian: true).
+    const cuenta = invitado.entradaDelLibro(quien, { nombre: e.vista.libro?.nombre || mia.identidad, identidad: mia.identidad, alta: mia.alta });
+    const ok = await cuentas.guardarCuenta({ cuenta, eje: d.eje, privada: quien.privada, claveLectura: d.datos.claveLectura }, { recordar: false });
     cuentas.guardarEstadoSincronia(mia.alta, d.sincronia.serializar());
     if (!ok) { e.aviso = t('sinAlmacenamiento'); pintar(); return; }
     cerrarInvitado();
@@ -2967,7 +2983,7 @@ async function iniciarEmparejamiento() {
     });
     emparejado.emparejamiento = emparejamiento;
     emparejado.adaptador = guardianEmparejado(emparejamiento, { avisar: (a) => emparejado.pantalla?.avisar(a) });
-    emparejado.pantalla = instalarEmparejar({ raiz, emparejamiento, adaptador: emparejado.adaptador, alCambiar: (a) => trasEmparejamiento(a), abrirArranque: (que) => manejadores.arranque(que), sinLibro: sinLibroDeLaApp });
+    emparejado.pantalla = instalarEmparejar({ raiz, emparejamiento, adaptador: emparejado.adaptador, alCambiar: (a) => trasEmparejamiento(a), abrirArranque: (que) => (que === 'invitado' ? manejadores.invitado() : manejadores.arranque(que)), sinLibro: sinLibroDeLaApp });
     await emparejamiento.cargar();
   } catch (e) {
     console.error('emparejamiento:', String(e?.message ?? e));

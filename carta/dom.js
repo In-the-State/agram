@@ -2279,7 +2279,7 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
       <p class="ayuda">${escapar(t('arranqueIntro'))}</p>
       ${htmlBotonEnsayo(ensayo)}${entrar}${motivos}
       <div class="opciones">
-        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button><button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>`}
+        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button><button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>${conLaApp && emparejar?.aceptada ? `<button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button>` : ''}`}
         ${emparejarBoton}
         <button type="button" data-arranque="restaurar">${t('restaurarUnaCuenta')}</button>
         <button type="button" data-arranque="ejemplo">${t('probarConEjemplo')}</button>
@@ -2319,7 +2319,7 @@ export function html(arbol, extra = {}) {
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
   retocando = arbol?.retocar ?? null; // el modo «retocar textos» (A20): solo lo trae el árbol de quien puede retocar
   // Sin eje (nadie ha elegido aún cuenta ni ejemplo): la pantalla de arranque entera.
-  if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false, emparejar: extra.emparejar, ensayo: extra.ensayo })}</div>`;
+  if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false, emparejar: extra.emparejar, ensayo: extra.ensayo })}${htmlInvitado(extra.invitado)}</div>`;
   if (!arbol || arbol.vacio) return `<div class="carta vacia"><p class="aviso">${escapar(arbol?.avisos?.join(' · ') ?? t('sinRegistro'))}</p></div>`;
   const a = { ...arbol };
   const clase = ['carta', a.apilada ? 'carta-apilada' : 'carta-matriz', a.animado ? 'animado' : 'sobrio', `disposicion-${a.disposicion}`].join(' ');
