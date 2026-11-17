@@ -104,6 +104,16 @@ test('el camino del 9 del nodo: seis pasos en orden, una acción cada uno, y se 
   // El nodo del libro (VG 17-11: lo da de alta el operador, invitado): el que nombra como titular al autor del génesis.
   assert.equal(nodoDe(eje)?.id, ids.nodo, 'el nodo del libro, aunque no cuelgue del génesis');
   assert.equal(nodosDe(eje).length, 1);
+  // Nombrar al titular lo hace cualquiera: sin el criterio escrito por él no hay nodo del libro, llegue quien llegue.
+  const antes = await ejemploNodo({ hasta: 'nodo' });
+  assert.equal(nodosDe(antes.eje).length, 1, 'el alta está');
+  assert.equal(nodoDe(antes.eje), null, 'pero el titular aún no la ha reconocido');
+  // Un falso que llega antes, nombra al titular y se escribe a sí mismo el criterio: no cuenta (el criterio no es del titular).
+  const reg = (id, autor, accion, extra = {}) => ({ id, autor, payload: [[], [], [], [['x'], ['n'], ['T']], [accion]], ...extra });
+  const libro = [{ id: 'g', autor: 'T', payload: [] }, reg('falso', 'M', 'register the node'), reg('cM', 'M', 'require authorization', { sobre: 'falso' }), reg('bueno', 'O', 'register the node'), reg('cT', 'T', 'require authorization', { sobre: 'bueno' })];
+  const falso = { genesisId: 'g', orden: libro.map((e) => e.id), obtener: (id) => libro.find((e) => e.id === id), sobre: (id) => libro.filter((e) => e.sobre === id) };
+  assert.equal(nodosDe(falso).length, 2);
+  assert.equal(nodoDe(falso)?.id, 'bueno', 'gana el que el titular reconoció, no el primero');
   for (const n of CAMINO) assert.ok(!contrato.texto(eje, 'template ' + n, 'es').startsWith('template'), 'nombre llano en español: ' + n);
 });
 

@@ -39,15 +39,30 @@ const esPersona = (eje, identidad) => !eje.alta(identidad) || duenoDe(eje, ident
 
 /** La plantilla del alta de un nodo: su registro la nombra en su 4 y nombra a su titular en su 3.2. */
 export const ALTA_DEL_NODO = 'register the node';
+/** La plantilla con la que el titular de un nodo escribe su criterio en el 2.4 del alta: solo se le ofrece a él. */
+export const CRITERIO_DEL_TITULAR = 'require authorization';
+const SITIO_DEL_CRITERIO = '2400000000';
+const accionDe = (ev) => (Array.isArray(ev?.payload) ? [ev.payload[4]].flat(3)[0] : undefined);
 /**
- * Las altas de nodo del libro, por llegada. Cualquier persona da de alta un nodo sobre su propia alta (VG 17-11: el
- * operador, invitado por el titular), así que puede haber varias y ninguna cuelga directamente del génesis.
+ * Las altas de nodo del libro, por llegada: los registros cuya acción (su 4) es exactamente la del alta, fuera del
+ * génesis y de los registros de la época. Cualquier persona da de alta un nodo sobre su propia alta (VG 17-11: el
+ * operador, invitado por el titular) y nombra al titular que quiera: son CANDIDATAS, no el nodo del libro.
  */
-export const nodosDe = (eje) => (eje.orden ?? []).map((id) => eje.obtener(id)).filter((ev) => Array.isArray(ev?.payload) && [ev.payload[4]].flat(3).includes(ALTA_DEL_NODO));
-/** El nodo del libro: la primera alta de nodo que nombra como titular (su 3.2) al autor del génesis. null si no hay. */
+export const nodosDe = (eje) =>
+  (eje.orden ?? [])
+    .filter((id) => id !== eje.genesisId && !eje.esDeLaEpoca?.(id))
+    .map((id) => eje.obtener(id))
+    .filter((ev) => accionDe(ev) === ALTA_DEL_NODO);
+/**
+ * El nodo del libro: la primera alta de nodo que nombra como titular (su 3.2) al autor del génesis Y que él ha
+ * reconocido escribiendo su criterio en el 2.4 de esa alta. Nombrar al titular lo puede hacer cualquiera; el criterio
+ * solo lo escribe él, con su firma: sin ese registro suyo no hay nodo del libro (null), llegue quien llegue antes.
+ */
 export function nodoDe(eje) {
   const titular = eje.obtener(eje.genesisId)?.autor;
-  return nodosDe(eje).find((ev) => [ev.payload[3]?.[2]].flat(3)[0] === titular) ?? null;
+  if (!titular) return null;
+  const reconocido = (ev) => eje.sobre(ev.id, SITIO_DEL_CRITERIO).some((c) => c.autor === titular && accionDe(c) === CRITERIO_DEL_TITULAR);
+  return nodosDe(eje).find((ev) => [ev.payload[3]?.[2]].flat(3)[0] === titular && reconocido(ev)) ?? null;
 }
 const soloReturn = (p) => {
   const modos = [p?.[1]?.[0]].flat(2);
