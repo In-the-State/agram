@@ -2384,8 +2384,19 @@ function estadoDeCadenaEnLlano(p, titulo) {
  * compacta: el primer paso sin hacer (primeroSinHacer), uno antes y uno después (y, en ancho, los siguientes que quepan
  * dejando sitio a los «+n»; si se acaban, los de antes), y lo demás contado a cada lado
  * (`antes`, `despues`); toda hecha, el último paso. Una cadena abierta (estado.cadenasAbiertas[clave], que alterna
- * «+n») va entera, en vertical. `clave` es el id de su primer paso. → { cadenas: [{ clave, sale, pasos, visibles,
- * antes, despues, abierta }], independientes, descartadas: [texto], sinTareas, pagina: null }.
+ * «+n») va entera, en vertical. `clave` es el id de su primer paso.
+ *
+ * Las filas que no son una secuencia (Core AGRAM 17-11, el libro real: decenas de ramas de un paso que salen del mismo
+ * paso, y decenas de independientes): las cadenas de UN paso que salen del mismo paso, si son dos o más, se juntan en un
+ * grupo en el sitio de la primera (`sueltas: true`, «salen de …, cada una por su lado»); las independientes, en la fila
+ * «sin dependencias». En las dos, primero lo que está por hacer (en curso, listo, espera) y al final lo entregado y lo
+ * hecho, cada parte en su orden; envuelven a varias líneas con tarjetas del ancho normal y, compactadas, enseñan lo que
+ * cabe en dos líneas (2 × las tarjetas que caben en una línea − 1: el sitio del «+n») y el resto en un «+n» (`mas`), que la abre entera con el mismo
+ * gesto y estado que una cadena (clave «sueltas:<id del paso del que salen>», o «sueltas:» para las independientes).
+ *
+ * → { cadenas: [{ clave, sale, pasos, visibles, antes, despues, abierta } | { clave, sueltas: true, sale, pasos,
+ * visibles, mas, abierta }], independientes: { clave, sueltas: true, pasos, visibles, mas, abierta } | null,
+ * descartadas: [texto], sinTareas, pagina: null }.
  */
 function cadenasDeRejilla(eje, R, pv, d, g, ctx, { hueco } = {}) {
   const r = contrato.cadenas(eje, R);
@@ -2400,7 +2411,30 @@ function cadenasDeRejilla(eje, R, pv, d, g, ctx, { hueco } = {}) {
     texto: estadoDeCadenaEnLlano(p, titulo),
     une: p.une.map(titulo),
   });
-  const cadenas = r.cadenas.map((c) => {
+  // Las tarjetas por línea de una fila que envuelve: el ancho, menos los márgenes de la rejilla y de la fila, entre la
+  // tarjeta y su hueco (visto en pantalla: con el ancho entero por tarjeta salía una línea de más).
+  const anchoDeLinea = (hueco?.ancho ?? ctx.medidas?.ancho ?? MEDIDAS.ancho) - 64;
+  const porLinea = Math.max(1, Math.floor(anchoDeLinea / ((ctx.medidas?.tarjeta ?? MEDIDAS.tarjeta) + 8)));
+  // Una fila sin orden: lo por hacer primero y lo entregado o hecho al final (cada parte en su orden); dos líneas compactada.
+  const POR_HACER = (p) => (p.estado === 'hecho' || p.estado === 'entregado' ? 1 : 0);
+  const sueltas = (clave, lista, extra = {}) => {
+    const pasos = lista.map((p, i) => ({ p, i })).sort((a, b) => POR_HACER(a.p) - POR_HACER(b.p) || a.i - b.i).map((x) => x.p);
+    const abierta = Boolean(abiertas[clave]);
+    const enDos = pasos.length > 2 * porLinea ? 2 * porLinea - 1 : pasos.length;
+    return { clave, sueltas: true, ...extra, pasos, visibles: abierta ? pasos : pasos.slice(0, enDos), mas: pasos.length - enDos, abierta, porLinea };
+  };
+  // Las ramas de un paso que salen del mismo paso: cuántas hay de cada uno (un grupo pide dos o más).
+  const ramas = new Map();
+  for (const c of r.cadenas) if (c.pasos.length === 1 && c.sale) ramas.set(c.sale, [...(ramas.get(c.sale) ?? []), c]);
+  const agrupadas = new Set([...ramas.values()].filter((l) => l.length >= 2).flat());
+  const filas = [];
+  for (const c of r.cadenas) {
+    if (!agrupadas.has(c)) { filas.push(c); continue; }
+    if (ramas.get(c.sale)[0] !== c) continue;
+    filas.push({ grupo: c.sale, pasos: ramas.get(c.sale).map((x) => x.pasos[0]) });
+  }
+  const cadenas = filas.map((c) => {
+    if (c.grupo) return sueltas('sueltas:' + c.grupo, c.pasos.map(paso), { sale: titulo(c.grupo) });
     const pasos = c.pasos.map(paso);
     const clave = c.pasos[0].id;
     let desde = 0;
@@ -2416,7 +2450,7 @@ function cadenasDeRejilla(eje, R, pv, d, g, ctx, { hueco } = {}) {
     return { clave, sale: c.sale ? titulo(c.sale) : null, pasos, visibles: pasos.slice(desde, hasta), antes: desde, despues: pasos.length - hasta, abierta: Boolean(abiertas[clave]) };
   });
   const descartadas = r.descartadas.map((x) => t('cadenaDescartada', { de: titulo(x.de), a: titulo(x.a), motivo: t(MOTIVO_DE_DESCARTE[x.motivo] ?? 'cadenaMotivoOtro') }));
-  return { cadenas, independientes: r.independientes.map(paso), descartadas, sinTareas: !cadenas.length && !r.independientes.length, pagina: null };
+  return { cadenas, independientes: r.independientes.length ? sueltas('sueltas:', r.independientes.map(paso)) : null, descartadas, sinTareas: !cadenas.length && !r.independientes.length, pagina: null };
 }
 
 /**

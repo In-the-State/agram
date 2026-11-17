@@ -1100,7 +1100,20 @@ function htmlPasoDeCadena(p) {
  * Una cadena: de dónde sale (si sale de otra), y sus pasos de izquierda a derecha; compactada, con «+n» a cada lado que
  * lo necesite (tocarlo la abre entera, en vertical: data-cadena, gestos.js); abierta, en columna y con «cerrar».
  */
+/**
+ * Una fila sin orden (las ramas de un paso que salen del mismo paso, o las independientes): su cabecera y sus pasos,
+ * envolviendo a varias líneas con tarjetas del ancho normal; compactada, lo que cabe en dos líneas y «+n» al final, que
+ * la abre entera (data-cadena, como una cadena); abierta, «cerrar» al final.
+ */
+function htmlSueltas(c, cabeza, clase) {
+  const alternar = (texto, titulo) => `<button type="button" class="cadena-alternar"${nodo('control')} data-cadena="${attr(c.clave)}" aria-expanded="${c.abierta ? 'true' : 'false'}" title="${attr(titulo)}">${escapar(texto)}</button>`;
+  const mas = !c.abierta && c.mas > 0 ? `<li class="cadena-mas">${alternar('+' + c.mas, t('sueltasAbrir', { n: c.mas }))}</li>` : '';
+  const cerrar = c.abierta && c.mas > 0 ? alternar(t('sueltasCerrar'), t('sueltasCerrar')) : '';
+  return `<section class="cadena cadena-sueltas ${clase}${c.abierta ? ' abierta' : ''}" data-cadena-clave="${attr(c.clave)}"><p class="cadena-cabeza">${escapar(cabeza)}</p><ol class="cadena-pasos envuelve" style="--por-linea:${Number(c.porLinea) || 2}">${c.visibles.map(htmlPasoDeCadena).join('')}${mas}</ol>${cerrar}</section>`;
+}
+
 function htmlCadena(c) {
+  if (c.sueltas) return htmlSueltas(c, t('cadenaSalenDe', { que: c.sale }), 'cadena-ramas');
   const sale = c.sale ? `<p class="cadena-cabeza">${escapar(t('cadenaSaleDe', { que: c.sale }))}</p>` : '';
   const alternar = (texto, titulo) => `<button type="button" class="cadena-alternar"${nodo('control')} data-cadena="${attr(c.clave)}" aria-expanded="${c.abierta ? 'true' : 'false'}" title="${attr(titulo)}">${escapar(texto)}</button>`;
   if (c.abierta) return `<section class="cadena abierta" data-cadena-clave="${attr(c.clave)}">${sale}<ol class="cadena-pasos en-columna">${c.pasos.map(htmlPasoDeCadena).join('')}</ol>${alternar(t('cadenaCerrar'), t('cadenaCerrar'))}</section>`;
@@ -1111,7 +1124,7 @@ function htmlCadena(c) {
 /** La forma «cadenas»: una fila por cadena, las independientes aparte al final, y una línea discreta con lo descartado. */
 function htmlCadenas(r) {
   if (r.sinTareas) return `<p class="cadenas-vacio">${escapar(t('cadenasSinTareas'))}</p>`;
-  const sueltas = r.independientes.length ? `<section class="cadena cadena-independientes"><p class="cadena-cabeza">${escapar(t('cadenasIndependientes'))}</p><ol class="cadena-pasos">${r.independientes.map(htmlPasoDeCadena).join('')}</ol></section>` : '';
+  const sueltas = r.independientes ? htmlSueltas(r.independientes, t('cadenasIndependientes'), 'cadena-independientes') : '';
   const descartadas = r.descartadas.length ? `<p class="cadenas-descartadas">${escapar(t('cadenasDescartadas', { lista: r.descartadas.join('; ') }))}</p>` : '';
   return `<div class="rejilla-cadenas">${r.cadenas.map(htmlCadena).join('')}${sueltas}${descartadas}</div>`;
 }

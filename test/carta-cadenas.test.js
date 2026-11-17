@@ -60,7 +60,7 @@ test('las cadenas en pantalla ancha: una fila por cadena en orden, «sale de», 
   assert.deepEqual([r.cadenas[0].sale, r.cadenas[0].antes, r.cadenas[0].despues], [null, 0, 0], 'cabe entera');
   assert.deepEqual(r.cadenas[0].visibles[2].une, ['A3']);
   assert.deepEqual([r.cadenas[1].sale, ...textos(r.cadenas[1].visibles)], ['A1', 'A3 · espera a A1']);
-  assert.deepEqual(textos(r.independientes), ['A5 · listo']);
+  assert.deepEqual(textos(r.independientes.pasos), ['A5 · listo']);
   assert.match(h, /data-forma="cadenas"/);
   assert.match(h, /sale de A1/);
   assert.match(h, /también después de A3/);
@@ -165,4 +165,52 @@ test('entregado: su texto en llano y su data-estado; deja pasar a la siguiente',
   assert.deepEqual(textos(r.cadenas[0].visibles).slice(0, 2), ['A1 · entregado, sin comprobar', 'A2 · listo']);
   assert.match(h, /data-estado="entregado"/);
   assert.match(h, /entregado, sin comprobar/);
+});
+
+/** Un paso (S0) del que salen seis: S1 sigue su cadena y S2…S6 son ramas de un paso; T1 → T2, otra rama de dos; y doce independientes, cinco de ellas cerradas y una entregada. */
+async function ramas() {
+  const eje = await libro(epocaRoadmap());
+  const p = await hacer(eje, 'anchor here', eje.genesisId, { title: 'Proyecto' });
+  const t = { S0: await tarea(eje, p.id, 'S0') };
+  for (const n of ['S1', 'S2', 'S3', 'S4', 'S5', 'S6']) { t[n] = await tarea(eje, p.id, n); await despues(eje, t[n], [t.S0]); }
+  t.T1 = await tarea(eje, p.id, 'T1');
+  t.T2 = await tarea(eje, p.id, 'T2');
+  await despues(eje, t.T1, [t.S0]);
+  await despues(eje, t.T2, [t.T1]);
+  for (let i = 1; i <= 12; i++) t['I' + i] = await tarea(eje, p.id, 'I' + i);
+  for (const n of ['I1', 'I3', 'I5', 'I7', 'I9']) await hacer(eje, 'close', t[n].id, {});
+  const an = await hacer(eje, 'declare future T', t.I2.id, { what: 'trabajo', when: '2026-11-20T10:00:00Z', units: 30 });
+  await hacer(eje, 'deliver', t.I2.id, { announcement: an.id });
+  return { eje, t };
+}
+
+test('las ramas de un paso que salen del mismo paso, juntas en un grupo; las independientes, lo por hacer primero; en ancho, todo a la vista', async () => {
+  const { eje, t } = await ramas();
+  const { r, h } = await siete(eje, eje.genesisId, ORDENADOR);
+  const nombres = (l) => l.map((p) => p.nodo.texto);
+  assert.deepEqual(r.cadenas.map((c) => (c.sueltas ? 'grupo ' + c.sale : 'cadena ' + (c.sale ?? '-'))), ['cadena -', 'grupo S0', 'cadena S0'], 'el grupo, en el sitio de la primera rama');
+  assert.deepEqual(nombres(r.cadenas[0].pasos), ['S0', 'S1']);
+  const g = r.cadenas[1];
+  assert.deepEqual([g.clave, nombres(g.visibles), g.mas], ['sueltas:' + t.S0.id, ['S2', 'S3', 'S4', 'S5', 'S6'], 0]);
+  assert.deepEqual(nombres(r.cadenas[2].pasos), ['T1', 'T2'], 'una rama de dos pasos sigue siendo una cadena');
+  const i = r.independientes;
+  assert.equal(i.clave, 'sueltas:');
+  assert.deepEqual(nombres(i.visibles), ['I4', 'I6', 'I8', 'I10', 'I11', 'I12', 'I1', 'I2', 'I3', 'I5', 'I7', 'I9'], 'lo por hacer primero y lo entregado o hecho al final, cada parte en su orden');
+  assert.equal(i.mas, 0);
+  assert.match(h, /salen de S0, cada una por su lado/);
+  assert.match(h, /class="cadena-pasos envuelve"/);
+  assert.doesNotMatch(h, /data-cadena="sueltas:/, 'todo cabe en dos líneas: sin «+n»');
+});
+
+test('a 400 px las filas sin orden se compactan a dos líneas con «+n», que las abre enteras y «cerrar» las vuelve a compactar', async () => {
+  const { eje, t } = await ramas();
+  let { r, h } = await siete(eje, eje.genesisId, MOVIL);
+  const g = r.cadenas[1];
+  assert.deepEqual([g.visibles.length, g.mas, r.independientes.visibles.length, r.independientes.mas], [3, 2, 3, 9], 'dos líneas de dos, menos el sitio del «+n»');
+  assert.match(h, new RegExp(`data-cadena="sueltas:${t.S0.id}"[^>]*>\\+2<`));
+  assert.match(h, /data-cadena="sueltas:"[^>]*>\+9</);
+  ({ r, h } = await siete(eje, eje.genesisId, MOVIL, { cadenasAbiertas: { ['sueltas:' + t.S0.id]: true, 'sueltas:': true } }));
+  assert.deepEqual([r.cadenas[1].abierta, r.cadenas[1].visibles.length, r.independientes.visibles.length], [true, 5, 12]);
+  assert.equal((h.match(/>cerrar</g) ?? []).length, 2, '«cerrar» al final de cada una');
+  assert.doesNotMatch(h, />\+\d+</, 'abiertas, sin «+n»');
 });
