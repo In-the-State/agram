@@ -109,10 +109,11 @@ export function cabeceraDeLoteFirmada({ numero = 0, anterior = '00'.repeat(32), 
  * cabeceras }. `capas` son los eslabones de abajo arriba ([{ nivel, grado?, red?, claves?, numero?, anterior?, libro?, hora?,
  * otros?, ids? }]: `claves` las del emisor de ese nivel, generadas si no se dan; `hora` la de su cabecera, en segundos Unix
  * (por defecto HORA_DE_EJEMPLO más un minuto por eslabón); `otros`, cuántos ids más van en su lote; `ids`, cuáles); la de
- * arriba la firma el observador (la clave declarada). `instante` es la hora del bloque. `cambiar(prueba)` deja tocar la
+ * arriba la firma el observador (la clave declarada). `libro` es el de las cabeceras que no dicen otro (el id del génesis del
+ * eje que las lee: «sealed» y «firm» exigen que la primera nombre este libro; VG 17-11). `instante` es la hora del bloque. `cambiar(prueba)` deja tocar la
  * prueba antes de hacer la décupla.
  */
-export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11:00:00.000Z', observador, capas = [{ nivel: 4 }], interna, otrasTx = 0, cambiar } = {}) {
+export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11:00:00.000Z', observador, capas = [{ nivel: 4 }], libro = LIBRO_DE_EJEMPLO, interna, otrasTx = 0, cambiar } = {}) {
   let x = id;
   let lote = null;
   const cadena = [];
@@ -122,7 +123,7 @@ export async function selloEnCascada(id, { altura = 1, instante = '2026-11-10T11
     const ids = [...new Set([x, ...(c.ids ?? []), ...Array.from({ length: c.otros ?? 0 }, (_, i) => de('otro id ' + k + ' ' + i + ' ' + x))])].sort();
     const { raiz, caminos } = arbolSip(ids);
     if (k === 0) lote = raiz;
-    const h = cabeceraDeLoteFirmada({ numero: c.numero ?? 0, anterior: c.anterior, raiz, hora: c.hora ?? HORA_DE_EJEMPLO + 60 * k, libro: c.libro }, claves);
+    const h = cabeceraDeLoteFirmada({ numero: c.numero ?? 0, anterior: c.anterior, raiz, hora: c.hora ?? HORA_DE_EJEMPLO + 60 * k, libro: c.libro ?? libro }, claves);
     cadena.push({ cabecera: h.cabecera, nivel: c.nivel, camino: caminos.get(x), ...(c.grado !== undefined ? { grado: c.grado } : {}), ...(c.red !== undefined ? { red: c.red } : {}) });
     cabeceras.push(h);
     x = h.hash;

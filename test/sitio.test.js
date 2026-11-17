@@ -133,7 +133,9 @@ test('la configuración (parte 9) de una cuenta sin esos ajustes enseña los def
 test('app.js: lee el sitio al arrancar, crea las cuentas con sus defectos y enseña los que faltan en la configuración; la clave de lectura sigue siendo del navegador', () => {
   assert.match(APP, /import \* as ajustesDelSitio from '\.\/sitio\.js'/);
   assert.match(APP, /await ajustesDelSitio\.cargar\(\)/);
-  assert.match(APP, /cuentas\.crearCuenta\(\{[^}]*ajustes: ajustesDelSitio\.defectos\(\)/);
+  // Desde varios libros (A24): un libro más de la misma clave no hereda el eje compartido del sitio.
+  assert.match(APP, /const ajustes = mio \? [^\n]*sincronia\.CONFIGURACION\.eje[^\n]* : ajustesDelSitio\.defectos\(\);/);
+  assert.match(APP, /cuentas\.crearCuenta\(\{[^}]*\bajustes,/);
   assert.match(APP, /preferencias\(estado\.eje, estado\.identidad, porDefectoDelSitio\(\)\.preferencias\)/);
   assert.match(APP, /ajustesEditablesDe\(exterior\.AJUSTES\.plantilla, estado\.eje, estado\.identidad, porDefectoDelSitio\(\)\.exterior\)/);
   assert.doesNotMatch(readFileSync(new URL('../carta/sitio.js', import.meta.url), 'utf8'), /guardarClaveLectura|eval\(|new Function|innerHTML/);
