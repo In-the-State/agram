@@ -17,7 +17,7 @@
 import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA, eslabonesValidos } from '../../src/sello.js';
 import { canonico } from '../../src/evento.js';
 import { claveToken, partirClave } from '../../src/tokens.js';
-import { gradoDelEnlace, cuelgaDe } from '../../src/contrato.js';
+import { gradoDelEnlace, cuelgaDe, PARAMETROS_DEL_ENLACE } from '../../src/contrato.js';
 import { epocaEscritaDe } from '../../src/epocas.js';
 import { quemaDelCoste } from '../../src/escritura.js';
 import { ajustesDelEje } from '../../src/exterior.js';
@@ -1051,7 +1051,8 @@ export function planDeSalida(eje, identidad, opciones = {}) {
   // 4. En el nuevo, como dueño: «this book hangs from» con el viejo, sus claves de línea y el punto.
   const colgado = nuevo ? cuelgaDe(nuevo) : null;
   const yaCuelga = colgado?.libro === eje.genesisId ? colgado : null;
-  const params = { X: nuevo?.genesisId ?? null, book: eje.genesisId, element: elemento, 'line keys': claves, ...(version.registro ? { point: version.registro } : {}) };
+  const N_ = PARAMETROS_DEL_ENLACE;
+  const params = { X: nuevo?.genesisId ?? null, [N_.libro]: eje.genesisId, [N_.elemento]: elemento, [N_.claves]: claves, ...(version.registro ? { [N_.punto]: version.registro } : {}) };
   paso({ libro: 'nuevo', que: 'cuelga', plantilla: L_.cuelga, params, quien: identidad, ...(yaCuelga ? { estado: 'hecho', id: yaCuelga.id } : nuevo ? { estado: 'listo' } : { estado: 'espera', espera: E_.genesis }) });
   const enlace = yaCuelga ? nuevo.obtener(yaCuelga.id) : null;
   const sinClaves = enlace ? nivelMasBajoDe(enlace) === null : !(Array.isArray(claves) && claves.length);

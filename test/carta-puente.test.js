@@ -712,3 +712,21 @@ test('previaDelLibroPrivado mide con la época del libro grande (con un cambio e
   assert.equal(prueba.epoca().id, m.viejo.epoca().id, 'la del grande');
   assert.ok(conRegla(prueba, 'not bea'), 'con su cambio en vigor');
 });
+
+test('salida en la vista: el botón, apagado mientras busca el libro nuevo y si ese libro no se abre, sin decir «firmando»', async () => {
+  await conAlmacen(async () => {
+    const c = await libroConSellador('Olga');
+    const yo = c.cuenta.identidad;
+    const lista = reglasDelLibro(c.eje, yo);
+    const vista = PU.salidaDe(c.eje, yo, { nombre: 'Lo mío' });
+    const boton = (extra) => /<button[^>]*data-salida-firmar[^>]*>([^<]*)<\/button>/.exec(htmlReglas({ lista, salida: { vista, nombre: 'Lo mío', coste: null, nuevo: null, sinCuenta: false, ocupado: false, ...extra } }));
+    const [libre, buscando, bloqueado, firmando] = [{}, { buscando: true }, { bloqueado: true }, { ocupado: true }].map(boton);
+    assert.doesNotMatch(libre[0], /disabled/);
+    assert.equal(libre[1], t('salidaFirmar', { n: vista.siguiente.n }));
+    assert.match(buscando[0], /disabled/);
+    assert.equal(buscando[1], t('salidaBuscando'));
+    assert.match(bloqueado[0], /disabled/);
+    assert.equal(bloqueado[1], t('salidaFirmar', { n: vista.siguiente.n }), 'bloqueado no dice «firmando»: el motivo va en el aviso');
+    assert.equal(firmando[1], t('salidaFirmando'));
+  });
+});

@@ -413,16 +413,22 @@ function htmlSitio(s, arbol = null, extra = {}) {
     return `<div class="sitio-posicion${p.accion && !con ? ' tocable' : ''}" data-posicion="${p.posicion}" data-color="${p.posicion}"><span class="numero">${p.posicion}</span>${tocar}${con ? `<div class="sitio-controles"${nodo('sitio-controles', { posicion: p.posicion })}>${con}</div>` : ''}</div>`;
   };
   const cuerpo = [...celdas.entries()].map(([k, ps]) => { const [f, c] = k.split(','); return `<li class="sitio-celda" style="--fila:${Number(f) + 1};--columna:${Number(c) + 1}">${ps.map(posicion).join('')}</li>`; }).join('');
-  return `<div class="sitio-fondo" data-cerrar><div class="sitio-cruceta"${nodo('sitio', { lugar: s.lugar })} data-x="${attr(s.X)}" data-sitio-de="${attr(s.lugar)}"${s.general ? ' data-sitio-general' : ''} role="dialog" aria-label="${attr(t('sitioDe', { lugar: s.lugar, que: s.texto }))}"><header><h2><span class="sitio-icono" aria-hidden="true">?</span> ${escapar(t(s.general ? 'sitioCeroDe' : 'sitioDe', { lugar: s.lugar, que: s.texto }))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>${s.general ? htmlEntradasDelElemento(s.X, extra) : ''}<ol class="sitio-posiciones">${cuerpo}</ol></div></div>`;
+  return `<div class="sitio-fondo" data-cerrar><div class="sitio-cruceta"${nodo('sitio', { lugar: s.lugar })} data-x="${attr(s.X)}" data-sitio-de="${attr(s.lugar)}"${s.general ? ' data-sitio-general' : ''} role="dialog" aria-label="${attr(t('sitioDe', { lugar: s.lugar, que: s.texto }))}"><header><h2><span class="sitio-icono" aria-hidden="true">?</span> ${escapar(t(s.general ? 'sitioCeroDe' : 'sitioDe', { lugar: s.lugar, que: s.texto }))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>${s.general ? htmlEntradasDelElemento(s.X, extra, { miAlta: s.miAlta, foco: s.foco }) : ''}<ol class="sitio-posiciones">${cuerpo}</ol></div></div>`;
 }
 
 /**
  * En la configuración de un elemento (la cruceta de su 0): «Ajustes de este elemento» y, en el génesis del libro con
- * gobierno, «Reglas del libro» (A21; carta/reglas.js). La app dice si el libro tiene gobierno y cuál es su génesis.
+ * gobierno, «Reglas del libro» (A21; carta/reglas.js). La app dice si el libro tiene gobierno y cuál es su génesis. En la
+ * cruceta general (la del 0 de mi alta, #38) la entrada dice que es la de mi alta (`miAlta`) y, si el foco es otro
+ * elemento (`foco`: { X, texto }), lleva otra para él que lo nombra: las dos abren la misma vista (data-ajustes-elemento).
  */
-function htmlEntradasDelElemento(X, extra = {}) {
+function htmlEntradasDelElemento(X, extra = {}, { miAlta = false, foco = null } = {}) {
   const reglas = extra.entradaReglas && extra.genesisId === X ? ` <button type="button"${nodo('control')} data-reglas-abrir title="${attr(t('reglasAbrirTitulo'))}">${escapar(t('reglasAbrir'))}</button>` : '';
-  return `<p class="sitio-entradas"><button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesElementoTitulo'))}">${escapar(t('ajustesElemento'))}</button>${reglas}</p>`;
+  const propia = miAlta
+    ? `<button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesDeMiAltaTitulo'))}">${escapar(t('ajustesDeMiAlta'))}</button>`
+    : `<button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesElementoTitulo'))}">${escapar(t('ajustesElemento'))}</button>`;
+  const delFoco = foco?.X ? ` <button type="button"${nodo('control')} data-ajustes-elemento="${attr(foco.X)}" data-ajustes-del-foco title="${attr(t('ajustesDelFocoTitulo', { que: foco.texto }))}">${escapar(t('ajustesDelFoco', { que: foco.texto }))}</button>` : '';
+  return `<p class="sitio-entradas">${propia}${delFoco}${reglas}</p>`;
 }
 
 /** Una fracción entre 0 y 1 con tres decimales, para una variable de CSS (solo un número: nada del dato llega al estilo). */
@@ -1745,7 +1751,8 @@ export const textoDelPasoDeSalida = (p, nombre) => t('salidaPaso_' + p.que, { se
  * reglas nace el libro nuevo (las vigentes o las de antes del último cambio), los pasos en orden con su estado (la espera,
  * con su frase tal cual), un solo botón que firma el primer paso «listo» con su coste a la vista, la frase del sello y lo
  * que va aparte. `s`: { vista, coste (del paso siguiente), nombre (el del libro nuevo), nuevo ({ nombre } si ya está),
- * sinCuenta, ocupado }. Todo dato va escapado.
+ * sinCuenta, ocupado, buscando (el botón espera a saber si ya hay libro nuevo), bloqueado (lo hay y no se abre: el botón,
+ * apagado, sin decir «firmando»; el motivo va en el aviso de la hoja) }. Todo dato va escapado.
  */
 function htmlSalida(s) {
   const v = s.vista;
@@ -1760,7 +1767,7 @@ function htmlSalida(s) {
   const pasos = v.pasos.map((p) => `<li class="salida-paso" data-estado="${attr(p.estado)}" data-que="${attr(p.que)}"><span>${escapar(textoDelPasoDeSalida(p, s.nombre))}</span> <small>${escapar(t('salidaEnLibro_' + p.libro))}</small> · <small class="salida-estado">${escapar(t('salidaEstado_' + p.estado))}</small>${p.espera ? `<br><small class="salida-espera">${escapar(p.espera)}</small>` : ''}</li>`).join('');
   const todo = v.pasos.length && v.pasos.every((p) => p.estado === 'hecho');
   const siguiente = v.siguiente && !s.sinCuenta
-    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado || s.buscando ? 'disabled' : ''}>${escapar(s.buscando ? t('salidaBuscando') : s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
+    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado || s.buscando || s.bloqueado ? 'disabled' : ''}>${escapar(s.buscando ? t('salidaBuscando') : s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
     : '';
   return `<article class="salida"${nodo('reglas')} data-salida>
     <h3>${escapar(t('salidaAbrir'))}</h3>

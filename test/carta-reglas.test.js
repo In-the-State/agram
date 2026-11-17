@@ -16,7 +16,9 @@ import { generarClaves } from '../src/autoridad.js';
 import { reglasDelLibro, cambioDelLibro, actuar, proponer, parametrosMovibles, comprobarPropuesta, cambioDeDatos, ajustesDelElemento, pideDialogo } from '../carta/reglas.js';
 import { APOYAR } from '../src/versiones.js';
 import { htmlReglas, htmlAjustesDelElemento, htmlConfiguracion } from '../carta/dom.js';
-import { preferencias } from '../carta/carta.js';
+import { preferencias, arbol } from '../carta/carta.js';
+import { html } from '../carta/dom.js';
+import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { segundoFactorDe } from '../carta/anfitrion.js';
 import { t } from '../carta/textos.js';
 import { selloEnCascada } from '../ejemplos/ikisai/sellos.mjs';
@@ -264,4 +266,21 @@ test('carta-reglas: con el guardián, proponer, apoyar, aprobar y poner en vigor
   const conf = htmlConfiguracion(preferencias(eje, 'ana'), { reglas: true });
   assert.match(conf, /data-reglas-abrir/);
   assert.doesNotMatch(htmlConfiguracion(preferencias(eje, 'ana'), {}), /data-reglas-abrir/);
+});
+
+test('carta-reglas: la cruceta general lleva «Ajustes de mi alta» y, si el foco es otro elemento, otra entrada que lo nombra con su X', async () => {
+  const { eje, compra } = await ejemploCompra();
+  const alta = eje.alta('huesped').id;
+  const GRANDE = { ancho: 1920, alto: 1080 };
+  const cruceta = async (foco) => html(await arbol({ foco: { X: foco, pv: 0 }, sitio: { X: alta, lugar: '0', general: true } }, eje, 'huesped', GRANDE, ES), { cuentas: [] });
+  const entradas = (h) => [...h.matchAll(/data-ajustes-elemento="([0-9a-f]{64})"([^>]*)>([^<]*)<\/button>/g)].map((m) => ({ X: m[1], delFoco: m[2].includes('data-ajustes-del-foco'), texto: m[3] }));
+  // El foco es la compra (no mi alta): las dos entradas, cada una con su X y su texto.
+  const con = entradas(await cruceta(compra.id));
+  assert.deepEqual(con.map((e) => [e.X, e.delFoco]), [[alta, false], [compra.id, true]]);
+  assert.equal(con[0].texto, t('ajustesDeMiAlta'));
+  assert.match(con[1].texto, /^Ajustes de «.+»$/);
+  assert.notEqual(con[0].texto, con[1].texto, 'los dos textos no se confunden');
+  assert.ok(con[1].texto.length <= t('ajustesDelFoco', { que: '' }).length + 40, 'el 0 del foco, recortado');
+  // El foco es mi alta: solo la de mi alta.
+  assert.deepEqual(entradas(await cruceta(alta)).map((e) => [e.X, e.delFoco]), [[alta, false]]);
 });
