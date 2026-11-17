@@ -179,6 +179,27 @@ test('vuelta: un enlace que su autor retira deja parado lo que se mandó por él
   assert.deepEqual(saldoDe(grande, 'ana', serie), { libre: 3, bloqueado: 2 });
 });
 
+test('vuelta (RP1): si ana retira su enlace y vuelve a enlazar con OTRAS claves, una vuelta traída por el nuevo no saca lo mandado por el viejo; con las mismas, sí', async () => {
+  const m = await mundo();
+  const { grande, pequeno, claves, abre, sala, serie } = m;
+  await enviaYRecibe(m, 3);
+  await m.lanza(grande, RETIRAR_ENLACE, { X: abre.id }, 'ana');
+  const nueva = await generarClaves();
+  const otras = await m.lanza(grande, ENLACES.abrir, { X: sala.id, book: pequeno.genesisId, 'line keys': [[1, nueva.publica], [4, claves.sellador.publica]] }, 'ana');
+  // Una vuelta de verdad sellada con la casa nueva del pequeño (como si el pequeño hubiera cambiado de claves).
+  const vuelta = await m.lanza(pequeno, P.enviar, { X: m.cuelga.id, series: m.forastera, quantity: 1, to: claves.ana.publica }, 'bea');
+  const traida = await m.traer(grande, pequeno, vuelta, { link: otras.id, proof: await m.sellar(pequeno, vuelta.id, { nivel1: nueva }) });
+  assert.equal(bloqueosDeLaVuelta(grande, traida.id), null, 'el fondo de las claves nuevas está vacío');
+  assert.deepEqual(reglas(await m.intenta(grande, P.recibir, { X: traida.id, locks: [['ana', abre.id, 1]] }, 'ana')), [N.loEnviado], 'lo mandado con las claves viejas no sale con una vuelta sellada por las nuevas');
+  // Vuelve a enlazar con las de siempre (en el mismo elemento: retira el de las otras) y la misma vuelta, sellada por ellas, sí.
+  const iguales = await m.lanza(grande, ENLACES.abrir, { X: sala.id, book: pequeno.genesisId, 'line keys': [[1, claves.casaP.publica], [4, claves.sellador.publica]] }, 'ana');
+  const otra = await m.lanza(pequeno, P.enviar, { X: m.cuelga.id, series: m.forastera, quantity: 1, to: claves.ana.publica }, 'bea');
+  const buena = await m.traer(grande, pequeno, otra, { link: iguales.id });
+  assert.deepEqual(bloqueosDeLaVuelta(grande, buena.id), [['ana', abre.id, 1]]);
+  await m.lanza(grande, P.recibir, { X: buena.id }, 'ana');
+  assert.deepEqual(saldoDe(grande, 'ana', serie), { libre: 3, bloqueado: 2 });
+});
+
 // ---------- 2. Quien creó un libro lo enlaza con su génesis ----------
 
 test('creador: bea enlaza en el grande, sobre un elemento suyo y con su génesis, el pequeño que creó, y trae de él; lo traído dice por qué enlace y su grado', async () => {
@@ -408,8 +429,21 @@ test('coste: la vuelta a otra persona, la regla del creador y traer y enviar por
   const nota = await m.lanza(m.pequeno, 'anchor here', { X: m.pequeno.genesisId, title: 'nota', content: 'x' }, 'bea');
   const trae = await m.traerCon(m.grande, m.pequeno, nota, { link: e.id, proof: await m.sellar(m.pequeno, nota.id) });
   const envia = await m.intenta(m.grande, P.enviar, { X: e.id, series: m.serie, quantity: 1, to: m.claves.bea.publica }, 'ana');
+  // Una vuelta de diez bloqueos (el tope de la plantilla): ana manda 1 por cada uno de diez enlaces suyos con las mismas claves.
+  await m.lanza(m.grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 10 }, 'ana');
+  const diez = [m.abre];
+  for (let k = 1; k < 11; k++) {
+    const sala = await m.lanza(m.grande, 'anchor here', { X: m.grande.genesisId, title: 'sala ' + k, content: 'x' }, 'ana');
+    diez.push(await m.lanza(m.grande, ENLACES.abrir, { X: sala.id, book: m.pequeno.genesisId, 'line keys': [[1, m.claves.casaP.publica], [4, m.claves.sellador.publica]] }, 'ana'));
+  }
+  for (const L of diez.slice(1)) await enviaYRecibe(m, 1, L);
+  await enviaYRecibe(m, 1);
+  const traidaDiez = await devuelve(m, 13);
+  const reciboDiez = await m.intenta(m.grande, P.recibir, { X: traidaDiez.id }, 'bea');
+  assert.equal(reciboDiez.evento.payload[1][1].length, 10, 'diez ternas');
   const casos = [
-    ['what is received is what was sent (la vuelta)', formulaDeLoEnviado, recibo],
+    ['what is received is what was sent (la vuelta, un bloqueo)', formulaDeLoEnviado, recibo],
+    ['what is received is what was sent (la vuelta, diez bloqueos)', formulaDeLoEnviado, reciboDiez],
     [REGLA_DEL_CREADOR, formulaDelCreador, enlace],
     ['a record is brought from a linked book (enlace de la creadora)', formulaDeEnlazado, trae],
     ['a send locks what it names (enlace de la creadora)', formulaDelEnvio, envia],

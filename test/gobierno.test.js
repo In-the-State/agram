@@ -75,7 +75,7 @@ test('gobierno: la fila 7.9 «governance», el suelo y las piezas por su nombre 
   const [suelo, piezas] = [siete9[6], siete9[7]];
   for (const n of suelo) assert.ok(nombres.has(n) || plantillas.has(n) || /^epoch(\.\d)+$/.test(n), 'el suelo nombra una regla (o una plantilla) que existe: ' + n);
   assert.deepEqual(suelo.filter((n) => n.startsWith('epoch.')), ['epoch.7.0', 'epoch.1.3.1', 'epoch.7.2']);
-  assert.equal(suelo.length, 49, '17 reglas de VG, 9 del mecanismo del gobierno (arreglos, anexo I), 3 de la salida con lo propio (VG 17-11: dos reglas y la plantilla «declare a balance»), 17 del puente (encargo «el puente, segunda vuelta»: once reglas y seis plantillas) y 3 posiciones');
+  assert.equal(suelo.length, 50, '17 reglas de VG, 9 del mecanismo del gobierno (arreglos, anexo I), 3 de la salida con lo propio (VG 17-11: dos reglas y la plantilla «declare a balance»), 18 del puente (encargo «el puente, segunda vuelta»: once reglas y seis plantillas; y «only a send locks for another book», de sus arreglos) y 3 posiciones');
   for (const n of ['a declared balance is true', 'a declared balance is only that', 'declare a balance']) assert.ok(suelo.includes(n), n);
   for (const n of piezas) assert.ok(nombres.has(n) || plantillas.has(n) || n === 'epoch.7.9' || n === 'epoch.8.9', 'pieza de gobierno: ' + n);
   for (const n of ['epoch.7.9', 'epoch.8.9', 'approved', ...Object.values(P)]) assert.ok(piezas.includes(n), n);

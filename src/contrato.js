@@ -2922,11 +2922,14 @@ const clavesDelEnlace = (r) => {
   return (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2).map(([n, k]) => n + ':' + k).sort().join(',');
 };
 
-/** ¿Es `r` un enlace entre libros (de cualquiera de los dos tipos) de `quien`, para `libro`, vigente como lo mira la regla? */
+/** ¿Es `r` un enlace entre libros (de cualquiera de los dos tipos), para `libro`, vigente para el puente como lo mira la regla? */
 function enlaceVigente(eje, r, libro) {
   const abre = accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir);
   if (!abre && !accionesDelRegistro(r).includes(LIBRO_PRIVADO.cuelga)) return false;
   if (libroDelEnlace(r) !== libro || retirado(eje, r.id, r.autor)) return false;
+  // RP5 (arreglos de la segunda revisión del puente): como la regla, el libro en 1.0.0 («open…») o en 1.0 («this book…»):
+  // un enlace de antes del puente (el libro en 1.0 o en 1) se lee como anuncio, pero no cuenta para el puente.
+  if (!Array.isArray(r.payload?.[1]?.[0])) return false;
   const l = { id: r.id, t: r.t };
   const genesis = eje.genesisId;
   if (abre && r.en !== LIBRO_PRIVADO.en) return false;

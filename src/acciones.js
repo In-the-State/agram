@@ -53,11 +53,14 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
 import { recuento, cerrado as cerradoDe } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
+
+/** Las plantillas del puente que se lanzan sobre un enlace y solo valen por uno que cuente (RP4; datos/epocas/puente.mjs). */
+const PLANTILLAS_POR_UN_ENLACE = Object.freeze(['send to another book', 'bring a record from another book']);
 
 // ---------- la época y sus sitios ----------
 
@@ -408,10 +411,17 @@ export function acciones(eje, X, k, yo, opciones = {}) {
   const idioma = idiomaDe(eje, yo, opciones);
   const ctx = contextoDe(eje, epoca, { me: yo });
   const fuera = [];
+  // RP4 (arreglos de la segunda revisión del puente): enviar y traer no se ofrecen por un enlace que la lectura no da por
+  // bueno para el puente (gradoDelEnlace: otra persona sin génesis, el de quien creó el libro con un enlace del dueño con
+  // otras claves, uno retirado o de antes del puente). La regla no lo mira entero (el límite (b) es de lectura): lo dice la
+  // oferta. Solo se lee si X es un enlace, y una vez.
+  let cuentaElEnlace;
+  const cuenta = () => (cuentaElEnlace ??= gradoDelEnlace(eje, ev.id)?.cuenta === true);
   for (const { nombre, plantilla, pv, id } of plantillasDeTransaccion(opciones)) {
     if (pv !== Number(k)) continue;
     const condicion = texto(ultima(plantilla[2]));
     if (!esFormula(condicion) || !cumple(condicion, ctx, sujetoDe(ev))) continue;
+    if (PLANTILLAS_POR_UN_ENLACE.includes(nombre) && !cuenta()) continue;
     const { valores, parametros: lista } = preparar(eje, plantilla, ev, yo, {}, { t: relojDe(eje, opciones), epoca, idioma });
     fuera.push({
       nombre,

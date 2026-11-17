@@ -62,6 +62,12 @@ export const REGLAS_DEL_PUENTE = Object.freeze({
  */
 export const REGLA_DEL_CREADOR = 'who created a book links it with its genesis';
 
+/**
+ * RP2 (arreglos de la segunda revisión del puente): solo un envío bloquea con la salida en un enlace. Detrás de la del
+ * creador en la cadena del 8; es suelo.
+ */
+export const REGLA_DEL_BLOQUEO = 'only a send locks for another book';
+
 /** Dónde lleva un «open a private book here» el génesis del libro que enlaza (su 5) y un «this book hangs from» el punto (su 5). */
 export const GENESIS_EN = 5;
 export const PUNTO_EN = 5;
@@ -85,6 +91,7 @@ export const SUELO_DEL_PUENTE = Object.freeze([
   'a send locks what it names',
   'only a receive mints a foreign series',
   REGLA_DEL_CREADOR,
+  REGLA_DEL_BLOQUEO,
   'bring a record from another book',
   'send to another book',
   'receive from another book',
@@ -356,26 +363,85 @@ export function formulaDeLoEnviado() {
   // libere según lo que vuelva): saca del FONDO de la serie, el libro de origen y el autor del enlace por el que se trajo
   // (Lb): lo bloqueado de esa serie con la salida en un enlace de ese autor a ese libro (también uno retirado). Cada
   // transferencia va desde quien bloqueó hacia quien recibe, con esa salida; cada liberación, de quien recibe, con esa
-  // salida; lo liberado suma lo que vuelve, y lo que entra por cada salida se libera en el mismo registro (nada más sale
-  // del fondo ni cambia de manos dentro de él). El fondo de un enlace no sale por el de otro autor.
+  // salida; lo liberado suma lo que vuelve, y el 1.1 dice cada bloqueo del que saca (RP6). El fondo de un enlace no sale
+  // por el de otro autor ni por uno de otras claves (RP1).
   const A = 'first (first ' + BP + '.1.3).3';
+  // RP1 (arreglos de la segunda revisión): el fondo tampoco cambia de claves. La salida ha de anotar, para el nivel de la
+  // primera cabecera de la prueba con que se trajo la vuelta, la misma clave que firmó esa cabecera (la que «a brought
+  // record comes with its proof» ya cotejó con el enlace por el que se trajo).
+  const NK = clavePrimeraDeLoTraido(BP);
   const S = (v) => '(text(utf8(' + v + ')))';
   const deLaSerie = (m) => familiaEs(F, m) + ' and first ' + m + '.0.0.2 = first ' + SND('1.1.2') + ' and first ' + m + '.5 = first ' + SND('1.1.3')
     + ' and cat(utf8(first before.5), bytes("3a"), utf8(first ' + m + '.0.0.1)) = utf8(' + E_ + ')';
-  const delFondo = (m, v) => deLaSerie(m) + ' and count (' + m + '.2 where first ' + S(v) + '.5 = ' + S(v) + ' and ' + libroEs(S(v), O) + ' and first ' + S(v) + '.3 = ' + A + ') > 0';
-  const mismaSalida = (a, b, v) => 'count (' + a + '.2 where first ' + S(v) + '.5 = ' + S(v) + ' and ' + v + ' in ' + b + '.2) > 0';
+  // Un enlace del fondo: de este libro, al libro de origen, de ese autor y con esas claves. Se mira una vez por terna del
+  // 1.1 (diez como mucho), no por movimiento: cada movimiento ha de llevar la salida de una terna (ternasVerdaderas).
+  const delFondo = (L) => 'first ' + L + '.5 = ' + L + ' and ' + libroEs(L, O) + ' and first ' + L + '.3 = ' + A + ' and (' + claveEnNivel(L, NK.nivel, NK.clave) + ')';
   const vuelta = deLibro(E_, 'first before.5')
     + ' and count (ev.1 where mint in it.4 or lock in it.4) = 0'
-    + ' and count (ev.1 where (transfer in it.4 or release in it.4) and not (' + delFondo('it', 'it2')
+    + ' and count (ev.1 where (transfer in it.4 or release in it.4) and not (' + deLaSerie('it')
     + ' and (transfer in it.4 and it.3.1 = first ev.3 and it.3.0 != first ev.3 or release in it.4 and it.3.0 = first ev.3))) = 0'
     + ' and sum ((ev.1 where release in it.4) each 1) = ' + q
-    + ' and count (ev.1 where transfer in it.4 and sum ((ev.1 where release in it2.4 and ' + mismaSalida('it2', 'it', 'it3') + ') each 1)'
-    + ' < sum ((ev.1 where transfer in it2.4 and ' + mismaSalida('it2', 'it', 'it3') + ') each 1)) = 0';
-  const ida = sinDosPuntos(E_)
+    // El 1.1 dice de qué bloqueos saca y lo dice de verdad (RP6).
+    + ' and ' + ternasVerdaderas((Lk) => delFondo(S(Lk)));
+  const ida = sinDosPuntos(E_) + ' and count (payload(ev)).1.1.0 = 0'
     + ' and count (ev.1 where release in it.4 or transfer in it.4 or lock in it.4) = 0 and count (ev.1 where mint in it.4) = 1'
     + ' and count (ev.1 where mint in it.4 and it.1 = ' + q + ' and it.3.1 = first ev.3 and ' + familiaEs(F, 'it')
     + ' and first it.0.0.2 = first ' + SND('1.1.2') + ' and utf8(first it.0.0.1) = cat(utf8(' + O + '), bytes("3a"), utf8(' + E_ + '))) = 1';
   return '=' + noRecibir + ' or ' + F + ' in epoch.8.9.1 and (' + vuelta + ' or ' + ida + ')';
+}
+
+/**
+ * El nivel y la clave de la primera cabecera (el eslabón 0) de la prueba con que se trajo un registro, dado el payload
+ * del «bring a record from another book» `BP` (una expresión): { nivel, clave }, dos expresiones.
+ */
+function clavePrimeraDeLoTraido(BP, p = POSICIONES_DEL_SELLO) {
+  const E0 = '(first ' + BP + '.1.2).' + p.cadena + '.0';
+  return { nivel: '(first ' + E0 + '.' + p.eslabon.nivel + ')', clave: '(first ' + E0 + '.' + p.eslabon.cabecera + '.' + p.cabeceraDeLote.clave + ')' };
+}
+
+/**
+ * RP6 (arreglos de la segunda revisión): el 1.1 de una vuelta dice la verdad. Cada terna [quién, enlace, cuánto] lleva tres
+ * hojas y cuánto es positivo; la de otra persona es una transferencia de esa persona, con esa salida y esa cantidad, y la
+ * de quien recibe, una liberación con esa salida y esa cantidad; y nada queda fuera de las ternas: cada transferencia y
+ * cada liberación es una terna (quién, salida y cantidad), y hay tantas transferencias como ternas de otras personas y
+ * tantas liberaciones como ternas. Y el enlace de cada terna es del fondo (`delFondo`, una función del enlace): así
+ * cada salida de la vuelta lo es. Las ternas se miran una a una (una décupla: diez como mucho). Lo que no coteja: si
+ * varias ternas con la misma salida y distintas cantidades se reparten de otra forma entre las transferencias (el total
+ * liberado sigue siendo lo que vuelve y todo sale del mismo fondo).
+ */
+function ternasVerdaderas(delFondo) {
+  const T = (k) => '(payload(ev)).1.1.' + k;
+  const K = BLOQUEOS_DE_LA_VUELTA;
+  const porTerna = Array.from({ length: K }, (_, k) => {
+    const H = 'first ' + T(k);
+    const L = 'nth 1 ' + T(k);
+    const Q = 'last ' + T(k);
+    // Quién, enlace y cuánto se leen una vez (cada where da el siguiente it: it quién, it2 el enlace, it3 cuánto, it4 el
+    // movimiento): leer la terna dentro de la vuelta por los movimientos costaba diez veces más.
+    const mov = '(it != first ev.3 and count (ev.1 where transfer in it4.4 and it4.1 = it3 and it4.3.0 = it and it2 in it4.2) > 0'
+      + ' or it = first ev.3 and count (ev.1 where release in it4.4 and it4.1 = it3 and it2 in it4.2) > 0)';
+    // Tres hojas, dicho sin escribir el número (A3: ninguna regla lleva un número que la época tenga): primera, segunda y última.
+    return '(count ' + T(k) + ' = 0 or count ' + T(k) + ' = count (first ' + T(k) + ') + count (nth 1 ' + T(k) + ') + count (last ' + T(k) + ') and ' + Q + ' > 0 and ' + delFondo(L)
+      + ' and count ((' + H + ') where count ((' + L + ') where count ((' + Q + ') where ' + mov + ') > 0) > 0) > 0)';
+  }).join(' and ');
+  const cuantas = 'count (ev.1 where transfer in it.4) = ' + Array.from({ length: K }, (_, k) => 'count (first ' + T(k) + ' where it != first ev.3)').join(' + ')
+    + ' and count (ev.1 where release in it.4) = ' + Array.from({ length: K }, (_, k) => 'count (first ' + T(k) + ')').join(' + ');
+  const enAlguna = (cond) => '(' + Array.from({ length: K }, (_, k) => cond(k)).join(' or ') + ')';
+  const fuera = 'count (ev.1 where transfer in it.4 and not ' + enAlguna((k) => 'last ' + T(k) + ' = it.1 and first ' + T(k) + ' = it.3.0 and nth 1 ' + T(k) + ' in it.2')
+    + ' or release in it.4 and not ' + enAlguna((k) => 'last ' + T(k) + ' = it.1 and nth 1 ' + T(k) + ' in it.2') + ') = 0';
+  return cuantas + ' and ' + porTerna + ' and ' + fuera;
+}
+
+/**
+ * «only a send locks for another book» (RP2): un registro que deja algo bloqueado con la salida en un enlace entre libros
+ * («open a private book here» o «this book hangs from» de este libro), por un bloqueo o por una transferencia con salida,
+ * es un «send to another book» (el bloqueo) o un «receive from another book» (la transferencia, que su regla obliga a
+ * liberar en el mismo registro). El enlace en la salida se reconoce como en las demás reglas del puente.
+ */
+export function formulaDelBloqueo() {
+  const S = '(text(utf8(it2)))';
+  return '=count (ev.1 where (lock in it.4 or transfer in it.4) and count (it.2 where first ' + S + '.5 = ' + S + ' and ' + esEnlace(S) + ') > 0'
+    + ' and not (lock in it.4 and "' + P.enviar + '" in (payload(ev)).4 or transfer in it.4 and "' + P.recibir + '" in (payload(ev)).4)) = 0';
 }
 
 /** «only a receive mints a foreign series»: nadie acuña una serie forastera fuera de un «receive from another book». */
@@ -495,7 +561,8 @@ export function sentenciasDeRecibir() {
  * De qué bloqueos saca la vuelta traída `idTraido` (un «bring a record from another book» de un envío que vuelve) en
  * `eje`: el 1.1 de «receive from another book», [[quién lo bloqueó, el enlace de su salida, cuánto saca], …], el más
  * antiguo primero (por el primer envío que bloqueó con esa salida), hasta cubrir lo que vuelve; del fondo de la serie, el
- * libro de origen y el autor del enlace por el que se trajo (también los enlaces retirados de ese autor). null si no es
+ * libro de origen y el autor del enlace por el que se trajo (también los enlaces retirados de ese autor), cuyas salidas
+ * anotan, para el nivel de la primera cabecera de la prueba, la clave que la firmó (RP1). null si no es
  * una vuelta o el fondo no alcanza (o pide más de diez bloqueos). Es ayuda, no regla: la regla mira lo que nombra.
  */
 export function bloqueosDeLaVuelta(eje, idTraido) {
@@ -515,7 +582,14 @@ export function bloqueosDeLaVuelta(eje, idTraido) {
   const suyo = emisor.slice(eje.genesisId.length + 1);
   const accionesDe = (x) => [].concat(x?.payload?.[4] ?? []);
   const libroDe = (l) => (accionesDe(l).includes(L_.abrir) ? hoja(l.payload?.[1]) : accionesDe(l).includes(L_.cuelga) ? hoja(l.payload?.[1]) : undefined);
-  const delFondo = (l) => l && l.autor === enlace.autor && libroDe(l) === origen;
+  // RP1: y que su salida anote, para el nivel de la primera cabecera de la prueba, la clave que la firmó (como la regla).
+  const q = POSICIONES_DEL_SELLO;
+  const eslabon0 = p[1]?.[2]?.[Number(q.cadena)]?.[0];
+  const nivel = hoja(eslabon0?.[Number(q.eslabon.nivel)]);
+  const clave = hoja(eslabon0?.[Number(q.eslabon.cabecera)]?.[Number(q.cabeceraDeLote.clave)]);
+  const paresDe = (l) => (accionesDe(l).includes(L_.abrir) ? l.payload?.[2] : l.payload?.[1]?.[1]);
+  const conLaClave = (l) => (Array.isArray(paresDe(l)) ? paresDe(l) : []).some((x) => Array.isArray(x) && x[0] === nivel && x[1] === clave);
+  const delFondo = (l) => l && l.autor === enlace.autor && libroDe(l) === origen && conLaClave(l);
   const vistos = new Map();
   let serie = null;
   for (const id of eje.orden) {
@@ -602,6 +676,7 @@ export const FORMULAS = Object.freeze({
   'minting-e-needs-own-r-issued.json': formulaDeRPropia,
   'minting-e-needs-p-on-its-record.json': formulaDePEnSuRegistro,
   'who-created-a-book-links-it-with-its-genesis.json': formulaDelCreador,
+  'only-a-send-locks-for-another-book.json': formulaDelBloqueo,
 });
 
 /** Cada archivo de plantillas/ con las sentencias de su 4 (lo que mueve) que salen de aquí. */
