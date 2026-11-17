@@ -34,7 +34,10 @@ import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
-import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios, pedirSesion, puedePedirSesion, clavesDeLinea, puedeDarClavesDeLinea } from './anfitrion.js';
+import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios, pedirSesion, puedePedirSesion, clavesDeLinea, puedeDarClavesDeLinea, hayAnfitrion, usarGuardian, tieneLaCuenta } from './anfitrion.js';
+import { Emparejamiento, almacenIndexedDB } from './emparejamiento.js';
+import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas } from './guardian-emparejado.js';
+import { instalar as instalarEmparejar } from './emparejar.js';
 import * as libros from './libros.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
@@ -201,6 +204,7 @@ function trasEscribir() {
   guardar();
   if (estado.sincronia) void sincronizar();
   void criteriosAlGuardian();
+  if (emparejado.emparejamiento) void asentarDelEmparejamiento(); // lo firmado por la app que ya está en el libro se descarta
 }
 
 /** Camino B: la sesión del guardián de mi cuenta, para lo automático (sinc.pasar, seguir); sin firmante, nada que consultar. */
@@ -322,7 +326,10 @@ function extraDe() {
     ejemplos: EJEMPLOS.map((e) => ({ id: e.id, etiqueta: e.etiqueta })), ejemplo: ejemploElegido(), guardado: estado.guardado, aviso: estado.aviso, exito: estado.exito, nuevos: estado.nuevos,
     anfitrion: Boolean(anfitrion), autorizando,
     // Camino B: el aviso persistente de la cuenta del guardián (solo para leer, o la sesión cerrada con su botón).
-    guardian: estado.cuenta?.guardian === true ? { soloLeer: Boolean(estado.cuenta.soloLeer), sinGuardian: !guardian, sesionCerrada: estado.guardian.sesionCerrada, abriendo: estado.guardian.abriendo, puedeAbrir: Boolean(estado.guardian.pendiente) || puedePedirSesion(guardian), noAbrio: estado.guardian.noAbrio } : undefined,
+    guardian: estado.cuenta?.guardian === true ? { soloLeer: Boolean(estado.cuenta.soloLeer), sinGuardian: !guardian, sesionCerrada: estado.guardian.sesionCerrada, abriendo: estado.guardian.abriendo, puedeAbrir: Boolean(estado.guardian.pendiente) || puedePedirSesion(guardian), noAbrio: estado.guardian.noAbrio,
+      // Sin anfitrión (A25): emparejar con la app (o volver a emparejar) y, si la app emparejada guarda otra clave, decirlo.
+      emparejar: Boolean(emparejado.emparejamiento), reemparejar: emparejado.hubo, otraClave: porQueSoloLeer(estado.cuenta.publica, emparejado.emparejamiento) === 'otraClave' } : undefined,
+    emparejar: emparejado.emparejamiento ? { vivo: Boolean(emparejado.emparejamiento.estado()) } : null,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
@@ -767,6 +774,7 @@ function entrarCon({ cuenta, eje, privada, soloLeer }) {
   abrirLibroLocal();
   abrirSincronia();
   void criteriosAlGuardian();
+  if (emparejado.emparejamiento) void asentarDelEmparejamiento(); // tras recargar: lo firmado por la app que falta en este libro
 }
 
 /** Entra en el ejemplo: el eje guardado en este navegador (si sus claves son las de esta sesión) o uno nuevo. */
@@ -1837,7 +1845,9 @@ const manejadores = {
       // sin «sync ledger» del sitio, que es el nombre del libro compartido del otro: el nuevo queda solo en este dispositivo.
       const mio = ar.conMiClave && estado.cuenta ? estado.cuenta : null;
       const ajustes = mio ? Object.fromEntries(Object.entries(ajustesDelSitio.defectos() ?? {}).filter(([k]) => k !== sincronia.CONFIGURACION.eje)) : ajustesDelSitio.defectos();
-      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...(guardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
+      // Con el emparejamiento por QR (A25), un libro nuevo con la clave de una cuenta del navegador no pasa por la app.
+      const conGuardian = guardian && !(mio && mio.guardian !== true && guardian === emparejado.adaptador);
+      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...(conGuardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
       const guardada = await cuentas.guardarCuenta(r);
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');
@@ -2089,11 +2099,119 @@ async function reiniciar() {
   irA(foco);
 }
 
+// ---------- el emparejamiento por QR (A25: camino B sin anfitrión; carta/guardian-emparejado.js, carta/emparejar.js) ----------
+
+/**
+ * El emparejamiento de esta página (sin anfitrión; con anfitrión, todo null y no se ofrece emparejar), el adaptador que
+ * hace de guardián mientras está vivo, su pantalla, si ha habido emparejamiento en esta página («Volver a emparejar»),
+ * los registros firmados que no se pudieron asentar (no se reintentan en esta página) y la cola de asentar (de uno en uno).
+ */
+const emparejado = { emparejamiento: null, adaptador: null, pantalla: null, hubo: false, fallidos: new Set(), serie: Promise.resolve() };
+
+/** ¿Falta en este dispositivo un libro con la clave de la app emparejada? (la pantalla ofrece abrir uno o restaurar una copia) */
+function sinLibroDeLaApp() {
+  const e = emparejado.emparejamiento?.estado();
+  return Boolean(e) && !cuentas.cuentas().some((c) => c.guardian === true && cuentas.mismaClave(c.publica, e.app));
+}
+
+/** Sin anfitrión: el emparejamiento (en IndexedDB), su pantalla y lo guardado (si sigue en plazo); su guardián, si está vivo. Nunca lanza. */
+async function iniciarEmparejamiento() {
+  if (hayAnfitrion) return;
+  try {
+    const emparejamiento = new Emparejamiento({
+      almacen: almacenIndexedDB(), agente: ('navegador · ' + location.host).slice(0, 200),
+      avisar: (a) => { emparejado.pantalla?.avisar(a); void trasEmparejamiento(a); },
+    });
+    emparejado.emparejamiento = emparejamiento;
+    emparejado.adaptador = guardianEmparejado(emparejamiento, { avisar: (a) => emparejado.pantalla?.avisar(a) });
+    emparejado.pantalla = instalarEmparejar({ raiz, emparejamiento, adaptador: emparejado.adaptador, alCambiar: (a) => trasEmparejamiento(a), abrirArranque: (que) => manejadores.arranque(que), sinLibro: sinLibroDeLaApp });
+    await emparejamiento.cargar();
+  } catch (e) {
+    console.error('emparejamiento:', String(e?.message ?? e));
+  }
+  usarGuardian(guardianDeLaCarta(emparejado));
+  if (emparejado.emparejamiento?.estado()) emparejado.hubo = true;
+  emparejado.pantalla?.pintar();
+}
+
+/** Los avisos que solo cambian la línea del emparejamiento (la pantalla los pinta sola). */
+const SOLO_LA_LINEA = new Set(['conectado', 'desconectado', 'auth_rechazado', 'firma_invalida', 'rechazo', 'propuesta', 'propuesta_resuelta']);
+
+/**
+ * Tras un cambio del emparejamiento (leído un QR, aceptado, caducado, revocado, rechazado, olvidado): el guardián de la
+ * página vuelve a ser el que toca (guardianDeLaCarta) y la cuenta del guardián abierta pasa a firmar por el
+ * emparejamiento (si la app guarda su clave) o vuelve a solo lectura, con su sincronía rehecha. Después, lo firmado que
+ * falte en el libro se asienta. Repinta la carta si algo de ella cambió.
+ */
+async function trasEmparejamiento(aviso = {}) {
+  const emp = emparejado.emparejamiento;
+  if (!emp) return;
+  if (emp.estado()) emparejado.hubo = true;
+  // Una firma que llega para lo propuesto antes de recargar (o vuelto a pedir desde la lista) se asienta aquí; la de esta
+  // página la asienta su propio flujo.
+  if (aviso.tipo === 'firma') { await asentarDelEmparejamiento(); return; }
+  if (SOLO_LA_LINEA.has(aviso.tipo)) return;
+  const antes = guardian;
+  usarGuardian(guardianDeLaCarta(emparejado));
+  let repintar = antes !== guardian || Boolean(estado.arranque);
+  const c = estado.cuenta;
+  if (c?.guardian === true) {
+    const firma = await tieneLaCuenta(guardian, c.publica);
+    if (estado.cuenta !== c) return;
+    if (firma !== Boolean(c.firmante) || antes !== guardian) {
+      c.soloLeer = !firma;
+      c.firmante = firma ? firmanteDeCuenta(guardian, c.publica, { eje: () => estado.eje }) : null;
+      estado.guardian = { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null, noAbrio: false };
+      estado.sincronia = sinc.soltar(estado.sincronia, c.alta);
+      abrirSincronia();
+      repintar = true;
+    } else if (aviso.tipo === 'emparejada' && estado.guardian.sesionCerrada) {
+      // La app ha aceptado: la sesión ya está abierta; lo automático que se paró vuelve a intentarse.
+      estado.guardian.sesionCerrada = false;
+      if (estado.sincronia) void sincronizar();
+      repintar = true;
+    }
+  }
+  await asentarDelEmparejamiento();
+  emparejado.pantalla?.pintar();
+  if (repintar) await pintar();
+}
+
+/**
+ * Lo firmado por la app tras recargar (docs/notas/EMPAREJAMIENTO.md): las propuestas «firmado» de este libro que aún no
+ * están en él se asientan (guardian-emparejado.js asentarFirmadas: el cuerpo idéntico por autoridad.firmar) y se
+ * descartan; las que ya están, solo se descartan. De una en una (sin asentar nada dos veces). Si se asienta o falla algo,
+ * se dice y se repinta.
+ */
+function asentarDelEmparejamiento() {
+  const paso = emparejado.serie.then(async () => {
+    const emp = emparejado.emparejamiento;
+    const eje = estado.eje;
+    if (!emp || !eje || !estado.cuenta) return;
+    const deEstaPagina = new Set([...(emparejado.adaptador?.deEstaPagina ?? []), ...emparejado.fallidos]);
+    const r = await asentarFirmadas(emp, eje, { deEstaPagina });
+    for (const f of r.fallidos) { emparejado.fallidos.add(f.id); console.error('emparejamiento (asentar):', f.motivo); }
+    if (r.descartados.length || r.asentados.length) emparejado.pantalla?.pintar();
+    if (estado.eje !== eje || !(r.asentados.length || r.fallidos.length)) return;
+    if (r.asentados.length) {
+      guardar();
+      if (estado.sincronia) void sincronizar();
+      marcarNuevos();
+      estado.exito = t('emparejarAsentados', { n: r.asentados.length });
+    }
+    if (r.fallidos.length) estado.aviso = t('emparejarNoAsentado', { motivo: r.fallidos[0].motivo });
+    await pintar();
+  });
+  emparejado.serie = paso.catch(() => {});
+  return emparejado.serie;
+}
+
 // ---------- arranque ----------
 
 async function arrancar() {
   gestos = instalar(raiz, manejadores);
   await ajustesDelSitio.cargar(); // ./sitio.json, opcional: los defectos del sitio (silencioso si no está)
+  await iniciarEmparejamiento(); // sin anfitrión: el emparejamiento por QR guardado, antes de abrir la cuenta (su guardián)
   opinar.instalar({
     raiz, cuenta: () => estado.cuenta?.nombre ?? 'ejemplo', alCambiar: () => { void pintar(); },
     // Con «opinions anchor» (los ajustes de la guía), cada opinión se escribe además como un registro anclado en el proyecto.

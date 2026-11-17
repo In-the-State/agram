@@ -21,6 +21,9 @@
 // (el id del génesis del libro abierto) a `firmar({ publica, libro, … })` y a `criterios({ publica, libro, registros })`, y
 // pide las claves de línea de un libro con el verbo opcional `clavesDeLinea({ publica, libro }) → [{ nivel, clave }]`. Un
 // anfitrión que no mira `libro` sigue valiendo; uno sin `clavesDeLinea` no da ninguna.
+//
+// Sin anfitrión (A25): el emparejamiento por QR ofrece los mismos verbos (carta/guardian-emparejado.js) y, mientras está
+// vivo, es el guardián de la página (usarGuardian). Con anfitrión no se ofrece emparejar y su guardián no cambia.
 
 import * as acciones from '../src/acciones.js';
 import { evaluar } from '../src/bqlm.js';
@@ -30,6 +33,7 @@ import { clavePublicaValida, verificar } from '../src/autoridad.js';
 import { canonico, cuerpo } from '../src/evento.js';
 import { pideDialogo } from './reglas.js';
 import { LIBRO_PRIVADO } from '../src/contrato.js';
+import { claveDeRechazo } from './guardian-emparejado.js';
 
 /** El global del anfitrión, leído UNA vez al cargar (si leerlo lanza, como si no estuviera). */
 const delGlobal = (() => { try { return globalThis.__AGRAM_ANFITRION__; } catch { return undefined; } })();
@@ -56,8 +60,26 @@ export function guardianDe(valor) {
   }
 }
 
-/** El guardián de esta página (camino B), leído una vez al cargar, o null (camino A). */
-export const guardian = guardianDe(delGlobal);
+/** El guardián del anfitrión (camino B), leído una vez al cargar, o null. */
+export const guardianDelAnfitrion = guardianDe(delGlobal);
+
+/** ¿Hay anfitrión (con firmante o con guardián)? Con anfitrión no se ofrece emparejar por QR (carta/guardian-emparejado.js). */
+export const hayAnfitrion = Boolean(anfitrion || guardianDelAnfitrion);
+
+/**
+ * El guardián de esta página (camino B), o null (camino A). Es el del anfitrión si lo hay; sin anfitrión, el adaptador
+ * del emparejamiento por QR mientras esté vivo (usarGuardian). Es un enlace vivo: quien lo importa ve siempre el de ahora.
+ */
+export let guardian = guardianDelAnfitrion;
+
+/**
+ * Sin anfitrión, pone como guardián de la página `otro` (el adaptador del emparejamiento, o null al terminar). Con
+ * anfitrión no cambia nada: su guardián manda (y, si solo tiene firmante, no hay guardián). → el guardián que queda.
+ */
+export function usarGuardian(otro) {
+  guardian = hayAnfitrion ? guardianDelAnfitrion : guardianDe(otro);
+  return guardian;
+}
 
 /** Los errores del guardián que la carta dice en llano (su clave en carta/textos.js); cualquier otro es un fallo sin más. */
 export const ERRORES_DEL_GUARDIAN = Object.freeze({
@@ -82,8 +104,11 @@ export function codigoDe(e) {
   }
 }
 
-/** La clave de carta/textos.js con que se dice un error del guardián: la de su `code` o, si no es uno conocido, «guardianFallo». */
-export const claveDelError = (e) => ERRORES_DEL_GUARDIAN[codigoDe(e)] ?? 'guardianFallo';
+/**
+ * La clave de carta/textos.js con que se dice un error del guardián: si viene del emparejamiento por QR, la de su código
+ * original (carta/guardian-emparejado.js claveDeRechazo); si no, la de su `code` o, si no es uno conocido, «guardianFallo».
+ */
+export const claveDelError = (e) => claveDeRechazo(e) ?? ERRORES_DEL_GUARDIAN[codigoDe(e)] ?? 'guardianFallo';
 
 /** ¿Tiene el guardián una sesión abierta para esta cuenta? Ante cualquier duda (lanza, devuelve otra cosa), no. Nunca lanza. */
 export async function sesionAbierta(g, publica) {

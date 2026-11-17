@@ -80,12 +80,52 @@ emparejamiento.cerrar();              // al cerrar la página: para el socket y 
 
 La propuesta lleva un campo **opcional** `libro`: el id del génesis del libro en el que se firma, 64 hex en minúsculas. StateArk aún no lo ha construido en su app ni en sus vectores. `proponer` (y el firmante) lo admite como opcional, lo valida si viene (`message_invalid` si no es 64 hex en minúsculas) y **solo lo manda si se le da**: sin él, el mensaje es exactamente el de los vectores de hoy.
 
+## La pantalla
+
+Encargo «la pantalla del emparejamiento por QR» (camino B, parte de A25; Core AGRAM, 17-11).
+
+**El emparejamiento hace de guardián.** `carta/guardian-emparejado.js` (sin DOM) hace sobre una instancia de `Emparejamiento` un objeto con los verbos del guardián de `docs/ANFITRION.md`: `cuentas()` da la única cuenta, la de `larga` (`estado().app`, que es la clave de la cuenta: dato de frontera de Core StateArk, 17-11); `crearCuenta` no crea clave y da esa misma; `firmar({ publica, canonico, id, segundoFactor, libro })` es `proponer` con el segundo factor que la carta ya calcula y el `libro` (el id del génesis del libro abierto, o el del propio génesis), y resuelve con la firma de la app; `sesion(publica)` (o `sesion({ publica })`) está abierta si el emparejamiento sigue en plazo, la app lo aceptó y `publica` es `larga`. No ofrece `criterios`, `clavesDeLinea`, `pedirSesion` ni `firmarServicio`, que la carta ya trata como opcionales. `carta/anfitrion.js` exporta `guardian` como enlace vivo: es el del anfitrión si lo hay y, si no, el adaptador mientras hay emparejamiento vivo (`usarGuardian`, `guardianDeLaCarta`); con anfitrión no se ofrece emparejar.
+
+**Los códigos.** Con otra `publica` el adaptador rechaza con `unknown_account` sin mandar nada. Cada fallo lleva `code`, el del contrato del guardián que mejor dice lo ocurrido (la carta ya sabe tratarlo), y `emparejamiento`, el original, que `claveDelError` dice en llano (`emparejarRechazo_<code>` en `carta/textos.js`; uno desconocido de la app, `emparejarRechazoOtro`, como `cancelled_by_holder`):
+
+| Código del emparejamiento | De quién | Código del contrato del guardián |
+|---|---|---|
+| `cancelled_by_holder` | la app | `cancelled_by_holder` |
+| `unknown_account` | la app (o la carta, con otra `publica`) | `unknown_account` |
+| `id_mismatch` | la app o la carta | `id_mismatch` |
+| `canonical_invalid` | la app o la carta | `id_mismatch` |
+| `author_mismatch` | la app | `unknown_account` |
+| `message_invalid` | la app o la carta | `id_mismatch` |
+| `session_expired` | la carta | `session_closed` |
+| `session_revoked` | la carta | `session_closed` |
+| `pairing_refused` | la carta | `session_closed` |
+| `pairing_forgotten` | la carta | `session_closed` |
+| `pairing_replaced` | la carta | `session_closed` |
+| `no_pairing` | la carta | `session_closed` |
+| `proposal_discarded` | la carta | `cancelled_by_holder` |
+| `message_too_large` | la carta | `id_mismatch` |
+
+Los del QR (`qr_invalid`, `relay_invalid`, `delegation_invalid`, `session_mismatch`, `scope_invalid`, `session_expired`) tienen su frase (`emparejarQR_<code>`); otro fallo al emparejar, «No se ha podido emparejar», con el detalle en la consola.
+
+**La pantalla** (`carta/emparejar.js`, en su propio contenedor al lado de la carta, para que un repintado no le quite el vídeo):
+
+- **Emparejar**: en la pantalla de arranque sin anfitrión («Emparejar con la app») y en el aviso de una cuenta sin clave que solo se lee. Con la cámara si hay `BarcodeDetector` y `getUserMedia` (`leerConCamara({ detector, video })`, aislada y probada con dobles; la cámara se suelta al leer, al cancelar, al cerrar el diálogo, al ocultarse la página y al salir); siempre, pegando el texto. Lo leído pasa tal cual a `emparejar(texto)`; nada del QR se pinta como HTML, y de un rechazo de la app solo se dice su código en llano, nunca su motivo.
+- **Tras leer**: «Emparejada con la app hasta las HH:MM», la huella corta y «Esperando a que la app acepte…» hasta el aviso `emparejada`. Aceptada y sin ningún libro de la clave de la app en este dispositivo: «Abrir un libro con la clave de la app» (el `crearCuenta` de siempre con el guardián; el génesis lo firma la app) y «Restaurar una copia».
+- **La línea fija**, abajo: hasta qué hora, la huella, la conexión con el relé (`conectada`, «sin conexión con el relé», «el relé no acepta esta sesión»), «Leer otro QR» y «Olvidar el emparejamiento» (`olvidar()`; dice que se borra en este navegador y que para cortarlo del todo hay que revocarlo en la app). Leer otro QR con propuestas esperando pregunta antes y después dice cuántas han caducado.
+- **Lo propuesto**: «Propuesto: confírmalo en la app» mientras algo espera, sin bloquear la carta; la lista «Pendiente de la app» con cada propuesta, su estado (`propuesto`, `firmado`, `rechazado` con su motivo llano, «caducado sin firmar», `revocado`), «Volver a pedir» (`reenviar`, solo si sigue `propuesto` en la sesión viva) y «Descartar» (`descartar`).
+- **Tras recargar**: `asentarFirmadas` pasa cada propuesta `firmado` de este libro que aún no está en él por `autoridad.firmar` con el cuerpo idéntico (`{ ...JSON.parse(canonico), id }`) y un firmante que da la firma guardada (el núcleo la vuelve a comprobar con `publica`), la añade con `eje.anadir` y la descarta; una que ya está, solo se descarta; nunca dos veces. Las propuestas de esta misma página las asienta su propio flujo.
+- **El almacén** es `almacenIndexedDB()`: `cargar()` al abrir la carta (antes de abrir la cuenta, para que su guardián ya esté), `cerrar()` al cerrar la página (`pagehide`; al volver de la caché del navegador, `cargar()` otra vez).
+
+**Las cuentas.** Las entradas sin clave (`guardian: true`) cuya `publica` es `larga` firman por el emparejamiento; con otra `publica` siguen en solo lectura con «la app emparejada guarda otra clave»; sin emparejamiento (o al caducar, con `revocada` o al olvidar), solo lectura con «Emparejar con la app» o «Volver a emparejar». Con una cuenta del navegador abierta, «Un libro nuevo con mi clave» no pasa por la app.
+
+**Lo no comprobado**: nada se ha visto en un navegador ni ha hablado con un relé real ni con la app real; `almacenIndexedDB`, la cámara y el `WebSocket` del navegador no se prueban en Node.
+
 ## El armazón del service worker
 
-Para que el emparejamiento funcione sin red desde la primera carga, habrá que añadir al `ARMAZON` de `sw.js` (este encargo no lo toca), cuando el encargo de pantalla importe el módulo:
+Para que el emparejamiento funcione sin red desde la primera carga, habrá que añadir al `ARMAZON` de `sw.js` (ni este encargo ni el de la pantalla lo tocan) lo que la carta importa ya desde el encargo de pantalla:
 
 ```
-'./carta/emparejamiento.js', './carta/nip44.js', './carta/chacha20.js'
+'./carta/emparejamiento.js', './carta/nip44.js', './carta/chacha20.js', './carta/guardian-emparejado.js', './carta/emparejar.js'
 ```
 
 y subir la `VERSION`. Lo que importan de `src/` (`evento.js`, `cripto.js`, `autoridad.js`, `vendor/noble-secp256k1.js`) ya lo guarda el service worker al primer uso, como el resto del núcleo.
