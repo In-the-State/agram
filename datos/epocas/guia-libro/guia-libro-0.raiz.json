@@ -1,0 +1,61 @@
+[
+  [
+    "época del libro de la guía 0",
+    "guide book epoch 0"
+  ],
+  "<hereda>",
+  "<hereda>",
+  "<hereda>",
+  "<hereda>",
+  "<hereda>",
+  [
+    [
+      "VG 17-11 (por Core State; agram-equipo/DISENO_ZONAS_GUIA.md, pieza 1): los botones de la cara (las zonas) y la guía mínima nacen en la época propia del libro de la guía, hija de la 0, con el diseño estricto de ENCAJE_GUIA.md (c); pasan a la 0 al congelar, con la forma que tengan entonces, si VG lo confirma. Hereda de la época 0 definitiva y no la cambia",
+      "Core AGRAM 17-11: dos plantillas de transacción, «a step of the guide» (en el 4 del elemento) y «a zone of the face» (en su 0), sin plantillas de datos (los registros que escriben no llevan tipo en su 5: ahí va dónde se hace el paso y a dónde lleva la zona). Las lecturas, puras, en src/guia-libro.js: buscan las plantillas por su nombre en la época del libro, no por esta época"
+    ],
+    [
+      "hereda"
+    ],
+    [
+      "<id de la 0>"
+    ]
+  ],
+  "<hereda>",
+  "<hereda>",
+  [
+    "<hereda>",
+    "<hereda>",
+    "<hereda>",
+    "<hereda>",
+    [
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      [
+        [
+          "es",
+          "español"
+        ],
+        [
+          "<textos es>"
+        ]
+      ],
+      [
+        [
+          "en",
+          "English"
+        ],
+        [
+          "<textos en>"
+        ]
+      ]
+    ],
+    "<hereda>",
+    [
+      "<hereda>",
+      [
+        "<plantillas>"
+      ]
+    ]
+  ]
+]

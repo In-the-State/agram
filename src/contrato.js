@@ -3967,3 +3967,6 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, ...resto } = {}) {
 export { porAutorizar } from './acciones.js';
 // Las preferencias de formato (#93): el nombre de su plantilla vive en acciones (este módulo no lleva escrito ningún nombre de la época).
 export { configuracionDeFormato, AJUSTES_DE_FORMATO } from './acciones.js';
+// Las zonas de la cara y la guía mínima (§12.8; VG 17-11 por Core State, DISENO_ZONAS_GUIA pieza 1): sus lecturas viven en
+// guia-libro.js y se exponen aquí con el resto de lo que lee la carta (el ciclo con guia-libro solo vale en tiempo de llamada).
+export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_LA_GUIA, TOPES_DE_ZONA } from './guia-libro.js';

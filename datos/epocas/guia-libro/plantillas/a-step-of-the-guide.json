@@ -1,0 +1,297 @@
+[
+  [
+    "a step of the guide"
+  ],
+  [
+    [
+      [
+        "title"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "required"
+      ],
+      [
+        1
+      ],
+      [
+        "the title of the step, in plain words"
+      ]
+    ],
+    [
+      [
+        "action"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "required"
+      ],
+      [
+        2
+      ],
+      [
+        "the action, by its canonical name: a transaction template of the epoch of the book where it is done (not checked here: that book may be another one)"
+      ]
+    ],
+    [
+      [
+        "parameters"
+      ],
+      [
+        "text"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        3
+      ],
+      [
+        "the parameters of the action, one occupant each as «label: value» (the name or the label of the parameter and its value as it is written in a form: the shape of a proposal of the external exit)"
+      ]
+    ],
+    [
+      [
+        "why"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "required"
+      ],
+      [
+        4
+      ],
+      [
+        "why this step, one sentence"
+      ]
+    ],
+    [
+      [
+        "who"
+      ],
+      [
+        "identity"
+      ],
+      [
+        "=it = me"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "required"
+      ],
+      [
+        5
+      ],
+      [
+        "=me",
+        "who writes the step: the author of the guide"
+      ]
+    ],
+    [
+      [
+        "actions"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"a step of the guide\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "required"
+      ],
+      [
+        6
+      ],
+      [
+        "a step of the guide",
+        "the action that wrote it"
+      ]
+    ],
+    [
+      [
+        "book"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "required"
+      ],
+      [
+        7
+      ],
+      [
+        "=first before.5",
+        "the book where it is done: the id of its genesis (64 hexadecimal characters in lower case), a datum and not a reference; by default, this book"
+      ]
+    ],
+    [
+      [
+        "record"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it and (first memo.5.0 != first before.5 or count it.6 > 0)"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a step of the guide»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        8
+      ],
+      [
+        "the record it is done on: its id (64 hexadecimal characters in lower case), a datum; in this book it has to exist; empty: the alta of whoever follows the guide in that book"
+      ]
+    ]
+  ],
+  [
+    "=first it.3 = me"
+  ],
+  [
+    [
+      "me"
+    ],
+    [
+      "person"
+    ]
+  ],
+  [
+    "write"
+  ],
+  [
+    "4"
+  ],
+  [
+    "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): un paso de la guía es un registro del autor de la guía, anclado en el 4 de la guía. Dice qué acción real se hace, en qué libro y sobre qué registro, con qué parámetros y por qué. No guarda estado: está hecho cuando la acción real está escrita (la misma regla que el tutorial del camino, docs/CONTRATO.md §12.5). Se ofrece solo al autor del elemento, que es quien cuenta (la lectura ignora los pasos de otros). Su 4 es «write»: no mueve nada más que el coste de escribir",
+    "La décupla del registro (manda la décupla sobre la colocación del diseño): 0 el título; 1.0 la acción y 1.1 sus parámetros «etiqueta: valor» (lo que se hace y con cuánto); 2 el porqué; 3 quién; 4 «a step of the guide» (el 4 nombra la acción que escribe el registro, como en todo registro: si llevara la acción del paso, un paso «close with error» en el 4 de la guía la cerraría con error, porque la plantilla de cerrado lee lo que dice el 4 de lo anclado en el 4); 5 dónde se hace: 5.0 el libro (por defecto, el génesis de este libro) y 5.1 el registro (opcional, al final: sin él, el alta de quien sigue la guía). Sin huecos ni rellenos (VG 13-11, #77); sin tipo en el 5 (la plantilla de transacción ya tiene diez parámetros en la zona, el tope de una décupla, y el 5 es dónde se hace)"
+  ],
+  [
+    "guide book epoch 0"
+  ],
+  [
+    4,
+    29
+  ],
+  [
+    "a step of the guide: {me} adds to the guide {first it.0} the step {first memo.0}"
+  ]
+]
