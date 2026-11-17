@@ -1266,7 +1266,8 @@ html.mapped body{padding:0}
 .cadena-pasos.en-columna>.cadena-paso{max-width:none}
 .cadena-paso.fuera{opacity:.55}
 .cadena-estado,.cadena-une,.cadena-fuera{font-size:11px;color:var(--muted)}
-.cadena-paso[data-estado="hecho"] .cadena-estado{color:var(--ok)}
+.cadena-paso[data-estado="hecho"] .cadena-estado,.cadena-paso[data-estado="entregado"] .cadena-estado{color:var(--ok)}
+.cadena-paso[data-estado="entregado"] .cadena-estado{font-style:italic}
 .cadena-paso[data-estado="espera"] .cadena-estado{font-style:italic}
 .cadena-mas{flex:0 0 auto;align-self:center}
 .cadena-alternar{font-size:12px;padding:2px 8px;border:1px dashed var(--rule);border-radius:12px;background:var(--bg);color:var(--fg);cursor:pointer}

@@ -3969,4 +3969,4 @@ export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_
 export { notaDeDetalle, partirNota, NOTA } from './nota-detalle.js';
 // Las invitaciones de un libro (§12.11): las pendientes para una clave, y si ya hay un alta con ella.
 export { invitacionesParaClave, altaConClave, invitacionPendiente } from './invitaciones.js';
-export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)
+export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ENTREGADA_DESBLOQUEA, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)

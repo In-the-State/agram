@@ -133,3 +133,13 @@ test('sin tareas, un texto llano; un libro sin la forma sigue con sus franjas; u
   assert.ok(u.r.bandas.length > 0);
   assert.match(u.h, /Esta carta no sabe pintar la forma «nube» que pide este libro: se ve como en la época 0\./);
 });
+
+test('entregado: su texto en llano y su data-estado; deja pasar a la siguiente', async () => {
+  const { eje, t } = await roadmap();
+  const an = await hacer(eje, 'declare future T', t.A1.id, { what: 'trabajo', when: '2026-11-20T10:00:00Z', units: 30 });
+  await hacer(eje, 'deliver', t.A1.id, { announcement: an.id });
+  const { r, h } = await siete(eje, eje.genesisId, ORDENADOR);
+  assert.deepEqual(textos(r.cadenas[0].visibles).slice(0, 2), ['A1 · entregado, sin comprobar', 'A2 · listo']);
+  assert.match(h, /data-estado="entregado"/);
+  assert.match(h, /entregado, sin comprobar/);
+});

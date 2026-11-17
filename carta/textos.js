@@ -1210,6 +1210,7 @@ export const TEXTOS = Object.freeze({
     cadenaFin_error: 'cerrado con error',
     cadenaFin_caducado: 'caducado',
     cadenaFin_decidido: 'cerrado por decisión',
+    cadenaEntregado: 'entregado, sin comprobar',
     cadenaEnCurso: 'en curso',
     cadenaListo: 'listo',
     cadenaEspera: 'espera a {que}',
