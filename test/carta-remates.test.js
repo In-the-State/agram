@@ -180,7 +180,7 @@ test('formato: el botón «formatear» no escribe, un cambio de desplegable escr
   assert.match(sinCuenta, /estado\.formatoMemoria = \{ \.\.\.estado\.formatoMemoria, \[clave\]: valor \}/);
   assert.doesNotMatch(sinCuenta, /escribir|salida/);
   assert.match(formato, /registroDeFormato\(estado\.eje, estado\.identidad, \{ \[clave\]: valor \}\)/);
-  assert.match(formato, /salida\.escribirDesde\(estado\.eje, \{ modo: 'sequenced', autor: estado\.identidad, sobre: r\.sobre, en: r\.en, payload: r\.payload \}, privadaDe\(estado\.identidad\)\)/);
+  assert.match(formato, /salida\.escribirDesde\(estado\.eje, \{ modo: 'sequenced', autor: estado\.identidad, sobre: r\.sobre, en: r\.en, payload: r\.payload, \.\.\.horaDe\(\) \}, privadaDe\(estado\.identidad\)\)/);
   // Se lee del libro en cada pintado y la clave vieja del almacén local se borra al leer.
   assert.match(APP, /estado\.formato = formatoDe\(\)/);
   assert.match(APP, /olvidarFormatoLocal\(almacenLocal\(\), estado\.cuenta \? estado\.cuenta\.alta : null\)/);
