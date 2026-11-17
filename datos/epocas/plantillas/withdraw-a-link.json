@@ -1,0 +1,79 @@
+[
+  ["withdraw a link"],
+  [
+    [
+      ["text"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["0"],
+      ["Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"],
+      ["required"],
+      [1],
+      ["withdrawn", "the withdrawal note"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"],
+      ["required"],
+      [2],
+      ["withdraw a link", "the action"]
+    ],
+    [
+      ["about"],
+      ["ref"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1"],
+      ["Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"],
+      ["required"],
+      [3],
+      ["=first it.5", "the link withdrawn: X"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"],
+      ["required"],
+      [4],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"],
+      ["required"],
+      [5],
+      ["=me", "who withdraws it: the author of the link"]
+    ]
+  ],
+  ["=first it.3 = me and (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and count ((down it) where \"withdraw a link\" in (payload(it2)).4 and first it2.3 = me) = 0"],
+  [["me"], ["person"]],
+  ["write"],
+  ["4"],
+  [
+    "Core AGRAM 17-11 (encargo «arreglos del puente», PH4, tras la revisión de seguridad del puente): quien escribió un enlace entre libros («open a private book here» o «this book hangs from») puede retirarlo con un registro anclado en el propio enlace. Un enlace retirado no vale para traer («a record is brought from a linked book») ni para enviar («a send locks what it names»), y contrato.librosPrivados y contrato.cuelgaDe no lo dan por vigente. Las plantillas «close…» no sirven tal cual: «close» dice que lo anunciado ha pasado y solo se ofrece sobre un proceso",
+    "Solo cuenta la retirada que escribe el autor del enlace (las reglas y el contrato miran first it.3 del enlace); por eso solo se le ofrece a él, y una sola vez. Coste acotado: las reglas miran lo que cuelga del enlace (down), no el libro",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+    "Ancla en el 4 del enlace, como «close»; su 4 es «write»: no mueve nada más que el coste de escribir",
+    "[4, 28]: detrás de «receive from another book»"
+  ],
+  ["epoch 0"],
+  [4, 28],
+  ["withdraw a link: {me} withdraws the link {first memo.1}"]
+]

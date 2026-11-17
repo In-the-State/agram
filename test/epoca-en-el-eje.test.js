@@ -268,7 +268,7 @@ test('be.mjs epoca: --ver de un archivo, --publicar en un eje nuevo del servidor
     const ver = await ejecutar(['epoca', '--ver', '--archivo', archivo], {});
     assert.match(ver, /^época: época de prueba · id [0-9a-f]{64}$/m);
     assert.match(ver, /hereda de: [0-9a-f]{8} \(época 0\)/);
-    assert.match(ver, /plantillas de transacción \(9\.6\): 71/); // + las dos del libro privado y «retouch a text» en la 0 (A20 escalón 1) + las seis del gobierno (A21) + las cuatro del puente (A15)
+    assert.match(ver, /plantillas de transacción \(9\.6\): 72/); // + «withdraw a link» (arreglos del puente, PH4) + las dos del libro privado y «retouch a text» en la 0 (A20 escalón 1) + las seis del gobierno (A21) + las cuatro del puente (A15)
     assert.match(ver, /2 cruceta/);
     const mal = join(dir, 'mal.json');
     writeFileSync(mal, JSON.stringify({ ...PRUEBA, raiz: [['-'], ...PRUEBA.raiz.slice(1)] }));

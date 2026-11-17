@@ -1,15 +1,16 @@
 [
   ["a declared balance is true"],
   ["A.1"],
-  ["=not (\"declare a balance\" in ev.4) or first (payload(ev)).1.1 <= sum ((first ev.3).1.(first (payload(ev)).1.0) each 1) + sum (((first ev.3).1.(first (payload(ev)).1.0)).2 each 1)"],
+  ["=not (\"declare a balance\" in ev.4) or first (payload(ev)).1.1 + sum ((((first ev.3).1.(first (payload(ev)).1.0)).2 where first (text(utf8(first it.0))).5 = (text(utf8(first it.0))) and (\"open a private book here\" in (payload((text(utf8(first it.0))))).4 or \"this book hangs from\" in (payload((text(utf8(first it.0))))).4)) each 1) + sum ((moves ev where (burn in it.4 or transfer in it.4) and first it.0 = first (payload(ev)).1.0 and it.3.0 = first ev.3 and it.3.1 != first ev.3) each 1) <= sum ((first ev.3).1.(first (payload(ev)).1.0) each 1) + sum (((first ev.3).1.(first (payload(ev)).1.0)).2 each 1)"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],
   [
     "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-    "Diseño §4.5: «declare a balance» es verdad en ese punto: quien la escribe tiene, de esa serie, al menos lo que declara (lo disponible y lo bloqueado, sobre el libro de antes). Si declara más, se rechaza"
+    "Diseño §4.5: «declare a balance» es verdad en ese punto: quien la escribe tiene, de esa serie, al menos lo que declara (lo disponible y lo bloqueado, sobre el libro de antes). Si declara más, se rechaza",
+    "Core AGRAM 17-11 (encargo «arreglos del puente», PH2 y PH3, tras la revisión de seguridad del puente): no cuenta lo bloqueado con la salida en un enlace («open a private book here» o «this book hangs from», reconocido como en «what is locked for another book is released only by its return»): eso ya vive en el otro libro como serie forastera y su tenedor lo declara allí; y lo declarado no supera lo que queda de esa serie después de los movimientos del propio registro (lo que quema o pasa a otro, como la T de su coste). Sigue siendo suelo, con el mismo nombre. La fórmula sale de datos/epocas/puente.mjs"
   ],
   ["epoch 0"],
   ["after the tied record of E crossed before"],
-  ["a declared balance is true: {first ev.3} declares more {first (payload(ev)).1.0} than it has"]
+  ["a declared balance is true: {first ev.3} declares more {first (payload(ev)).1.0} than it has here after this record (what is locked for another book is declared there)"]
 ]

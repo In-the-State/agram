@@ -317,26 +317,30 @@ test('salida: restaurar y reordenar el libro de bea silenciada y sus declaracion
   assert.deepEqual(huella(otro), huella(m.eje));
 });
 
-// ---------- Preguntas que deja la salida con lo propio (para VG; no se arreglan aquí) ----------
+// ---------- Las preguntas que dejó la salida con lo propio, decididas por Core (encargo «arreglos del puente») ----------
 
-test('S7: una declaración de saldo fechada en 2099 entra (no se le prueba «at most a year ahead») y adelanta el reloj del libro', {
-  todo: 'PREGUNTA S7 (encargo «la salida con lo propio»): a una declaración solo se le prueba el suelo, y «at most a year ahead» no está en él; su t no tiene tope y adelanta el reloj del libro. Propuesta: añadir esa regla a 7.9.6 (solo lee el reloj del libro y epoch.7.0, que ya es suelo)',
-}, async () => {
+// Arreglado: PREGUNTA S7: a una declaración solo se le prueba el suelo, y «at most a year ahead» no está en él; su t no tenía tope y adelantaba el reloj del libro. Decidido por Core: no se mete esa regla en 7.9.6; «a declared balance is only that» lleva su propio tope, el mismo límite y la misma fórmula (el mayor t del libro más epoch.7.0.6.1)
+test('S7: una declaración de saldo fechada en 2099 no entra: no adelanta el reloj del libro más allá de lo que admite cualquier registro', async () => {
   const m = await mundo();
   const r = await A.transaccion(m.eje, 'declare a balance', { X: m.eje.alta('bea').id, series: 'R:ana' }, 'bea', { t: '2099-01-01T00:00:00Z' });
   const entra = r.ok ? await m.eje.anadir(r.evento).then(() => 'entra', (e) => e.message) : JSON.stringify(r.motivos);
   assert.notEqual(entra, 'entra', 'una declaración no adelanta el reloj del libro más allá de lo que admite cualquier registro');
+  assert.match(entra, /a declared balance is only that/, 'la para la regla del suelo, no «at most a year ahead»');
+  assert.doesNotMatch(entra, /at most a year ahead/);
+  const r2 = await A.transaccion(m.eje, 'declare a balance', { X: m.eje.alta('bea').id, series: 'R:ana' }, 'bea', { t: '2026-12-01T00:00:00Z' });
+  assert.ok(r2.ok, 'dentro del año, entra: ' + JSON.stringify(r2.motivos));
 });
 
-test('S8: un cambio de gobierno que añade «not bea» y la pone en el suelo (7.9.6 se amplía) alcanza la declaración de bea', {
-  todo: 'PREGUNTA S8 (encargo «la salida con lo propio»): a una declaración se le prueban las reglas de 7.9.6 de la versión vigente, y un cambio de gobierno puede ampliar 7.9.6 con una regla suya. Propuesta: probarle solo las del suelo de la versión de nacimiento, o no dejar que un cambio añada condiciones al suelo',
-}, async () => {
+// Arreglado: PREGUNTA S8: a una declaración se le probaban las reglas de 7.9.6 de la versión vigente, y un cambio de gobierno puede ampliar 7.9.6 con una regla suya. Decidido por Core: se juzga con el suelo de la versión de nacimiento del libro (src/suelo.js, condicionesDelRegistro)
+test('S8: un cambio de gobierno que añade «not bea» y la pone en el suelo (7.9.6 se amplía) no alcanza la declaración de bea', async () => {
   const m = await mundo();
   const k = () => ({ ref: m.eje.epoca().id });
   const lista = [...EPOCA_0_BTML.registro[7][9][6], 'not bea'];
   const r = await m.recorrer('fuera bea, en el suelo', { 2: [{ ref: idDeRegistro(VETO) }], 7: [k(), k(), k(), k(), k(), k(), k(), k(), k(), [k(), k(), k(), k(), k(), k(), lista]] }, { registros: [VETO] });
   assert.ok(r.puesta?.ev, 'control: entra en vigor: ' + textos(r.puesta ?? r.aprobacion ?? r.propuesta));
-  assert.ok((await declara(m, 'R:ana')).ev, 'ninguna regla añadida alcanza la declaración de saldo');
+  assert.ok(m.eje.epoca().registro[7][9][6].includes('not bea'), 'el suelo de la versión vigente la nombra');
+  assert.match(await m.aMano({ autor: 'bea', sobre: m.eje.alta('bea').id, movimientos: [pagaElCoste('bea')], payload: [['nota de bea']] }), /not bea/, 'control: bea ya no escribe otra cosa');
+  assert.ok((await declara(m, 'R:ana')).ev, 'ninguna regla añadida alcanza la declaración de saldo: se juzga con el suelo de nacimiento');
 });
 
 // ---------- Lo que aguanta ----------

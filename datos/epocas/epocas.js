@@ -665,16 +665,16 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "02fb7e952496cfe9afc8913b907a890f2731aee278d4aeddaeaaf8ec2728c7bb"
     },
     {
-      "ref": "34364830a15ee917dcc830fadc47b61f210bd7afe74bb8c81e5a0b9db576249d"
+      "ref": "2fb105aa488e9abc1b25c96a56604066c695e3d45b78d8a1a85838556e87d7ac"
     },
     {
-      "ref": "2d80767a67fba9146d6e6d7a24307509e5eba60c7947a75332eb99827a4dfd28"
+      "ref": "5a49c67b9f805d2c678b44450cefc99b326cc9f1f66b591c1b81e4abadf58f9c"
     },
     {
       "ref": "d6d5ac253c84e8467f0608bf99c479f7f8cdfa308fb6f82d9afda4781816a03d"
     },
     {
-      "ref": "6e17303d6375ee1023b6f62eb84405631b6040f344fafb9be5ae90c779bb1f0c"
+      "ref": "4fdf975dc1f1917afa4435a3d8b725bd2645ab30af9233a03f1e2d6404aa08c5"
     },
     {
       "ref": "29b903f35ee08c9d0afe2db2ceb56a27e0fe05d9b08343df70f74060f6e6040f"
@@ -683,7 +683,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "3e37fd9a3d70406abd099388ad8e7bb99a933b027c09a4ba1a88e2376fee75d3"
     },
     {
-      "ref": "a8e44fcb58260e81a9ae0dddd748ada56267be2ddaca8be97ac973effdb7b4c0"
+      "ref": "eaed4b27a0304ad9a9eb20807fafdb16cbd587e0f39998e669f4627438afef71"
     },
     {
       "ref": "e60a71de48939b900b6077ee1fa9626e4c720b6ed9cc2d30ef3a7ffd5fde3aad"
@@ -701,10 +701,10 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "b3ec09fa474965084de73848512338ede6ff5cce9e07c8def4766409599fff9d"
     },
     {
-      "ref": "416c61c9b99c9902a15e9b1aba8a27b9d30d05e956bc437c9acc55aa654f936d"
+      "ref": "e550e2af3fe34dd7e8077589f1a94e1e6d010f62c4e35279d456b3ec9263377f"
     },
     {
-      "ref": "33bbb154542104363f1195998892e025dacc49b337d8c8a032109341721faee3"
+      "ref": "07014ad67799088890818ea8e416256dc418096be1ebb1e3a6fb79eb1e3dba12"
     }
   ],
   [
@@ -7007,11 +7007,23 @@ export const EPOCA_0_BTML_DATOS = [
           "template receive from another book param actions label: acción",
           "template receive from another book param actions help: la acción",
           "template receive from another book message: {me} recibe el envío {first memo.1}",
+          "template withdraw a link: retirar un enlace",
+          "template withdraw a link param text label: texto",
+          "template withdraw a link param text help: la nota de la retirada",
+          "template withdraw a link param actions label: acción",
+          "template withdraw a link param actions help: la acción",
+          "template withdraw a link param about label: sobre",
+          "template withdraw a link param about help: el enlace que se retira: X",
+          "template withdraw a link param criteria label: criterio",
+          "template withdraw a link param criteria help: la plantilla de cerrado del registro",
+          "template withdraw a link param who label: quién",
+          "template withdraw a link param who help: quién lo retira: el autor del enlace",
+          "template withdraw a link message: {me} retira el enlace {first memo.1}",
           "template declare a balance: declarar un saldo",
           "template declare a balance param series label: serie",
           "template declare a balance param series help: la serie (su clave en este libro): una que tengo",
           "template declare a balance param quantity label: cantidad",
-          "template declare a balance param quantity help: cuánto declaro tener, disponible y bloqueado (por defecto, todo lo que tengo)",
+          "template declare a balance param quantity help: cuánto declaro tener, disponible y bloqueado, sin lo bloqueado para otro libro (por defecto, todo lo que tengo aquí)",
           "template declare a balance param criteria label: criterio",
           "template declare a balance param criteria help: la plantilla de cerrado del registro",
           "template declare a balance param who label: quién",
@@ -7025,20 +7037,20 @@ export const EPOCA_0_BTML_DATOS = [
           "template this book hangs from param anchor origin help: el origen de la línea de ese libro: el outpoint de su ancla 0 (su txid, 64 caracteres hexadecimales en minúsculas, «:» y su salida); una prueba de ese libro cuyas anclas no descienden de él es otra línea. Comprobarlo contra Bitcoin no es una regla del libro: es un grado de la prueba; sin él, lo que llega de ese libro se lee «sin comprobar el origen»",
           "template this book hangs from param line keys label: claves de línea",
           "template this book hangs from param line keys help: las claves de línea del libro del que cuelga este: hasta cuatro pares [nivel, clave], como en «abrir aquí un libro privado», o 0: ninguna (por defecto); con ellas este libro comprueba lo que trae de él",
-          "a record is brought from a linked book: {first ev.3} trae del libro {first (payload(ev)).1.0} por {first (payload(ev)).1.3}, que no es el último enlace del dueño de este libro con ese libro, o no desde el 9.8 del génesis",
-          "bringing needs the line keys of the book: {first ev.3} trae de un libro cuyo enlace no anota claves de línea: no hay con qué comprobar sus cabeceras",
+          "a record is brought from a linked book: {first ev.3} trae del libro {first (payload(ev)).1.0} por {first (payload(ev)).1.3}, que no es el último enlace del dueño de este libro con ese libro (en su elemento o en el 9.5 del génesis), o está retirado, o no desde el 9.8 del génesis",
+          "bringing needs the line keys of the book: {first ev.3} trae de un libro cuyo enlace no anota la clave de línea del nivel de la primera cabecera de la prueba: no hay con qué comprobar esa cabecera",
           "a brought record is its body: {first ev.3} trae {first (payload(ev)).1.1.0}, que no es el hash del cuerpo que trae",
-          "a brought record comes with its proof: {first ev.3} trae {first (payload(ev)).1.1.0} sin una prueba de su libro que lo cubra al nivel que pide el puente (epoch.8.9.2) con las claves de línea que nombra su enlace",
+          "a brought record comes with its proof: {first ev.3} trae {first (payload(ev)).1.1.0} sin una prueba de su libro que lo cubra al nivel que pide el puente (epoch.8.9.2) con las claves de línea que nombra su enlace (también su primera cabecera, firmada por la clave de su nivel)",
           "a record is brought once: {first ev.3} trae otra vez {first (payload(ev)).1.1.0}: ya se trajo",
           "only the families of the bridge cross: {first ev.3} envía una serie de la familia {first (payload(ev)).1.1.1}, que no cruza como token (epoch.8.9.1)",
-          "a send locks what it names: {first ev.3} envía a {first (payload(ev)).1.0} algo que no es un bloqueo de lo que dice el envío, con la salida en el enlace con ese libro",
+          "a send locks what it names: {first ev.3} envía a {first (payload(ev)).1.0} algo que no es un bloqueo de lo que dice el envío, con la salida en el enlace con ese libro, o por un enlace retirado",
           "what is locked for another book is released only by its return: {first ev.3} libera o pasa lo bloqueado para otro libro, que solo libera su vuelta",
           "a send is received once by whom it names: {first ev.3} recibe {first ev.6.5}, que no es un envío a este libro para una clave de su alta, o ya se recibió",
           "what is received is what was sent: {first ev.3} recibe algo que no es lo que dice el envío (su familia, su serie, cuánto, para quién)",
           "only a receive mints a foreign series: {first ev.3} acuña una serie forastera fuera de un recibir",
           "the tied record of E crossed before: {first ev.3} recibe E cuyo registro atado no se trajo antes de su libro",
-          "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene",
-          "a declared balance is only that: {first ev.3} nombra «declare a balance» en un registro que es otra cosa (no está en el 8 de su propia alta, lleva más payload que la plantilla, nombra otra acción o mueve algo más que quemar T)"
+          "a declared balance is true: {first ev.3} declara más {first (payload(ev)).1.0} de lo que tiene aquí después de este registro (lo bloqueado para otro libro se declara allí)",
+          "a declared balance is only that: {first ev.3} nombra «declare a balance» en un registro que es otra cosa (no está en el 8 de su propia alta, lleva más payload que la plantilla, nombra otra acción o mueve algo más que quemar T) o fechado más de un año después del mayor instante del libro"
         ]
       ],
       [
@@ -7387,6 +7399,9 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "a030814fb1d8be133225dda73a42b547ea88a74aee0951262c307404e2166562"
         },
         {
+          "ref": "fefa505f3cc340032562d13c60a3190bcccd484444b6ea88dab28a1a7fc59fa8"
+        },
+        {
           "ref": "4d453575c924896213b169bc37c92322eb7b7c9222ebbc4da011a22b3e09f544"
         },
         {
@@ -7426,7 +7441,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "210f79c0c5440f4901999d4d470b3274b6f02a40f8ca77bdf5faea9349cb4114"
         },
         {
-          "ref": "b303cf496360d8a9322e9deb67ae0621b6b1e9ad867c2dc8443cd8d3c323b36c"
+          "ref": "e0309b2ec962e99f269103338e03a56afc915316f9b5af32eb4e472fb7d01ee1"
         },
         {
           "ref": "4efc22fba2982d79d2545e6768e7591cdbfd893a99693ecba9253826c49780e0"
@@ -7453,10 +7468,10 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "fce6cac82d91c1aa26033459717f8d029c35237666592c03fd0e14bcb2048e2f"
         },
         {
-          "ref": "deabdcf0609a13c1bc295899917002a9f01e45baaa9b673d759d1c482a9762ae"
+          "ref": "17f90319cede232f2b4a1569bbe87de2f9d8b66b864605014d8f24f297d1e3a3"
         },
         {
-          "ref": "b418032a49344dffa114d1b1accf42495bbbf461dde96d235e4a547eb7de9dc2"
+          "ref": "9ea9c71a0237b55567212046cc4f97fdb72cdf79e2009c514abbe6582373ec93"
         }
       ]
     ],
@@ -8643,7 +8658,7 @@ export const EPOCA_0_DATOS = {
 export const REGLAS_DE_EPOCA_DATOS = [
   {
     "archivo": "a-brought-record-comes-with-its-proof.json",
-    "id": "6e17303d6375ee1023b6f62eb84405631b6040f344fafb9be5ae90c779bb1f0c",
+    "id": "4fdf975dc1f1917afa4435a3d8b725bd2645ab30af9233a03f1e2d6404aa08c5",
     "registro": [
       [
         "a brought record comes with its proof"
@@ -8656,7 +8671,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "cascada"
       ],
       [
-        "=not (\"bring a record from another book\" in ev.4) or \"cascada\" in (first (payload(ev)).1.2).6 and bytes(first (first (payload(ev)).1.2).4) = bytes(first (payload(ev)).1.1.0) and first (first (payload(ev)).1.2).9.0.0.8 = first (payload(ev)).1.0 and \"cabecera de lote\" in (first (payload(ev)).1.2).9.0.0.0 and \"v2\" in (first (payload(ev)).1.2).9.0.0.0 and le(bytes(first (first (payload(ev)).1.2).9.0.0.7.0)) = first (first (payload(ev)).1.2).9.0.0.1 and le(bytes(first (first (payload(ev)).1.2).9.0.0.7.1)) = first (first (payload(ev)).1.2).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.2).4), (first (payload(ev)).1.2).9.0.2, (first (payload(ev)).1.2).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.0.0.7.0), bytes(first (first (payload(ev)).1.2).9.0.0.2), bytes(first (first (payload(ev)).1.2).9.0.0.3), bytes(first (first (payload(ev)).1.2).9.0.0.7.1), bytes(first (first (payload(ev)).1.2).9.0.0.5), bytes(first (first (payload(ev)).1.2).9.0.0.8), bytes(first (first (payload(ev)).1.2).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.0.0.5)) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5)))) or \"cabecera de lote\" in (first (payload(ev)).1.2).9.1.0.0 and \"v2\" in (first (payload(ev)).1.2).9.1.0.0 and le(bytes(first (first (payload(ev)).1.2).9.1.0.7.0)) = first (first (payload(ev)).1.2).9.1.0.1 and le(bytes(first (first (payload(ev)).1.2).9.1.0.7.1)) = first (first (payload(ev)).1.2).9.1.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.2).9.0.0.7.0), bytes(first (first (payload(ev)).1.2).9.0.0.2), bytes(first (first (payload(ev)).1.2).9.0.0.3), bytes(first (first (payload(ev)).1.2).9.0.0.7.1), bytes(first (first (payload(ev)).1.2).9.0.0.5), bytes(first (first (payload(ev)).1.2).9.0.0.8), bytes(first (first (payload(ev)).1.2).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.2).9.1.2, (first (payload(ev)).1.2).9.1.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.1.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.1.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.1.0.7.0), bytes(first (first (payload(ev)).1.2).9.1.0.2), bytes(first (first (payload(ev)).1.2).9.1.0.3), bytes(first (first (payload(ev)).1.2).9.1.0.7.1), bytes(first (first (payload(ev)).1.2).9.1.0.5), bytes(first (first (payload(ev)).1.2).9.1.0.8), bytes(first (first (payload(ev)).1.2).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.1.0.5)) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5)))) or \"cabecera de lote\" in (first (payload(ev)).1.2).9.2.0.0 and \"v2\" in (first (payload(ev)).1.2).9.2.0.0 and le(bytes(first (first (payload(ev)).1.2).9.2.0.7.0)) = first (first (payload(ev)).1.2).9.2.0.1 and le(bytes(first (first (payload(ev)).1.2).9.2.0.7.1)) = first (first (payload(ev)).1.2).9.2.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.2).9.1.0.7.0), bytes(first (first (payload(ev)).1.2).9.1.0.2), bytes(first (first (payload(ev)).1.2).9.1.0.3), bytes(first (first (payload(ev)).1.2).9.1.0.7.1), bytes(first (first (payload(ev)).1.2).9.1.0.5), bytes(first (first (payload(ev)).1.2).9.1.0.8), bytes(first (first (payload(ev)).1.2).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.2).9.2.2, (first (payload(ev)).1.2).9.2.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.2.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.2.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.2.0.7.0), bytes(first (first (payload(ev)).1.2).9.2.0.2), bytes(first (first (payload(ev)).1.2).9.2.0.3), bytes(first (first (payload(ev)).1.2).9.2.0.7.1), bytes(first (first (payload(ev)).1.2).9.2.0.5), bytes(first (first (payload(ev)).1.2).9.2.0.8), bytes(first (first (payload(ev)).1.2).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.2.0.5)) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5)))) or \"cabecera de lote\" in (first (payload(ev)).1.2).9.3.0.0 and \"v2\" in (first (payload(ev)).1.2).9.3.0.0 and le(bytes(first (first (payload(ev)).1.2).9.3.0.7.0)) = first (first (payload(ev)).1.2).9.3.0.1 and le(bytes(first (first (payload(ev)).1.2).9.3.0.7.1)) = first (first (payload(ev)).1.2).9.3.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.2).9.2.0.7.0), bytes(first (first (payload(ev)).1.2).9.2.0.2), bytes(first (first (payload(ev)).1.2).9.2.0.3), bytes(first (first (payload(ev)).1.2).9.2.0.7.1), bytes(first (first (payload(ev)).1.2).9.2.0.5), bytes(first (first (payload(ev)).1.2).9.2.0.8), bytes(first (first (payload(ev)).1.2).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.2).9.3.2, (first (payload(ev)).1.2).9.3.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.3.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.3.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.3.0.7.0), bytes(first (first (payload(ev)).1.2).9.3.0.2), bytes(first (first (payload(ev)).1.2).9.3.0.3), bytes(first (first (payload(ev)).1.2).9.3.0.7.1), bytes(first (first (payload(ev)).1.2).9.3.0.5), bytes(first (first (payload(ev)).1.2).9.3.0.8), bytes(first (first (payload(ev)).1.2).9.3.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.3.0.5)) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))))))))"
+        "=not (\"bring a record from another book\" in ev.4) or \"cascada\" in (first (payload(ev)).1.2).6 and bytes(first (first (payload(ev)).1.2).4) = bytes(first (payload(ev)).1.1.0) and first (first (payload(ev)).1.2).9.0.0.8 = first (payload(ev)).1.0 and \"cabecera de lote\" in (first (payload(ev)).1.2).9.0.0.0 and \"v2\" in (first (payload(ev)).1.2).9.0.0.0 and le(bytes(first (first (payload(ev)).1.2).9.0.0.7.0)) = first (first (payload(ev)).1.2).9.0.0.1 and le(bytes(first (first (payload(ev)).1.2).9.0.0.7.1)) = first (first (payload(ev)).1.2).9.0.0.4 and merkle(bytes(first (first (payload(ev)).1.2).4), (first (payload(ev)).1.2).9.0.2, (first (payload(ev)).1.2).9.0.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.0.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.0.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.0.0.7.0), bytes(first (first (payload(ev)).1.2).9.0.0.2), bytes(first (first (payload(ev)).1.2).9.0.0.3), bytes(first (first (payload(ev)).1.2).9.0.0.7.1), bytes(first (first (payload(ev)).1.2).9.0.0.5), bytes(first (first (payload(ev)).1.2).9.0.0.8), bytes(first (first (payload(ev)).1.2).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.0.0.5)) and ((first (payload((first (payload(ev)).1.3))).2.0 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (first (first (payload(ev)).1.2).9.0.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5)) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.0.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.0.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.0.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.0.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.0.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.0.0.5)))) or \"cabecera de lote\" in (first (payload(ev)).1.2).9.1.0.0 and \"v2\" in (first (payload(ev)).1.2).9.1.0.0 and le(bytes(first (first (payload(ev)).1.2).9.1.0.7.0)) = first (first (payload(ev)).1.2).9.1.0.1 and le(bytes(first (first (payload(ev)).1.2).9.1.0.7.1)) = first (first (payload(ev)).1.2).9.1.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.2).9.0.0.7.0), bytes(first (first (payload(ev)).1.2).9.0.0.2), bytes(first (first (payload(ev)).1.2).9.0.0.3), bytes(first (first (payload(ev)).1.2).9.0.0.7.1), bytes(first (first (payload(ev)).1.2).9.0.0.5), bytes(first (first (payload(ev)).1.2).9.0.0.8), bytes(first (first (payload(ev)).1.2).9.0.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.2).9.1.2, (first (payload(ev)).1.2).9.1.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.1.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.1.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.1.0.7.0), bytes(first (first (payload(ev)).1.2).9.1.0.2), bytes(first (first (payload(ev)).1.2).9.1.0.3), bytes(first (first (payload(ev)).1.2).9.1.0.7.1), bytes(first (first (payload(ev)).1.2).9.1.0.5), bytes(first (first (payload(ev)).1.2).9.1.0.8), bytes(first (first (payload(ev)).1.2).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.1.0.5)) and (first (payload((first (payload(ev)).1.3))).2.0 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.0 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).2.1 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.1 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).2.2 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.2 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).2.3 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.3 != (first (first (payload(ev)).1.2).9.1.1) or last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.1.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.1.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.1.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.1.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.1.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.1.0.5)))) or \"cabecera de lote\" in (first (payload(ev)).1.2).9.2.0.0 and \"v2\" in (first (payload(ev)).1.2).9.2.0.0 and le(bytes(first (first (payload(ev)).1.2).9.2.0.7.0)) = first (first (payload(ev)).1.2).9.2.0.1 and le(bytes(first (first (payload(ev)).1.2).9.2.0.7.1)) = first (first (payload(ev)).1.2).9.2.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.2).9.1.0.7.0), bytes(first (first (payload(ev)).1.2).9.1.0.2), bytes(first (first (payload(ev)).1.2).9.1.0.3), bytes(first (first (payload(ev)).1.2).9.1.0.7.1), bytes(first (first (payload(ev)).1.2).9.1.0.5), bytes(first (first (payload(ev)).1.2).9.1.0.8), bytes(first (first (payload(ev)).1.2).9.1.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.2).9.2.2, (first (payload(ev)).1.2).9.2.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.2.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.2.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.2.0.7.0), bytes(first (first (payload(ev)).1.2).9.2.0.2), bytes(first (first (payload(ev)).1.2).9.2.0.3), bytes(first (first (payload(ev)).1.2).9.2.0.7.1), bytes(first (first (payload(ev)).1.2).9.2.0.5), bytes(first (first (payload(ev)).1.2).9.2.0.8), bytes(first (first (payload(ev)).1.2).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.2.0.5)) and (first (payload((first (payload(ev)).1.3))).2.0 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.0 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).2.1 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.1 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).2.2 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.2 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).2.3 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.3 != (first (first (payload(ev)).1.2).9.2.1) or last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.2.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.2.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.2.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.2.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.2.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.2.0.5)))) or \"cabecera de lote\" in (first (payload(ev)).1.2).9.3.0.0 and \"v2\" in (first (payload(ev)).1.2).9.3.0.0 and le(bytes(first (first (payload(ev)).1.2).9.3.0.7.0)) = first (first (payload(ev)).1.2).9.3.0.1 and le(bytes(first (first (payload(ev)).1.2).9.3.0.7.1)) = first (first (payload(ev)).1.2).9.3.0.4 and merkle(hash(cat(bytes(first (first (payload(ev)).1.2).9.2.0.7.0), bytes(first (first (payload(ev)).1.2).9.2.0.2), bytes(first (first (payload(ev)).1.2).9.2.0.3), bytes(first (first (payload(ev)).1.2).9.2.0.7.1), bytes(first (first (payload(ev)).1.2).9.2.0.5), bytes(first (first (payload(ev)).1.2).9.2.0.8), bytes(first (first (payload(ev)).1.2).9.2.0.9)), \"StateArk/Lote/Cabecera/v2\"), (first (payload(ev)).1.2).9.3.2, (first (payload(ev)).1.2).9.3.3, \"sip\") = bytes(first (first (payload(ev)).1.2).9.3.0.3) and signed(bytes(first (first (payload(ev)).1.2).9.3.0.6), hash(cat(bytes(first (first (payload(ev)).1.2).9.3.0.7.0), bytes(first (first (payload(ev)).1.2).9.3.0.2), bytes(first (first (payload(ev)).1.2).9.3.0.3), bytes(first (first (payload(ev)).1.2).9.3.0.7.1), bytes(first (first (payload(ev)).1.2).9.3.0.5), bytes(first (first (payload(ev)).1.2).9.3.0.8), bytes(first (first (payload(ev)).1.2).9.3.0.9)), \"StateArk/Lote/Cabecera/v2\"), bytes(first (first (payload(ev)).1.2).9.3.0.5)) and (first (payload((first (payload(ev)).1.3))).2.0 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.0 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).2.1 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.1 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).2.2 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.2 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).2.3 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) and (first (payload((first (payload(ev)).1.3))).1.1.3 != (first (first (payload(ev)).1.2).9.3.1) or last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5) and ((((nth 0 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 0 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 0 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 0 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 0 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 0 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))) or ((nth 1 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 1 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 1 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 1 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 1 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 1 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))) or ((nth 2 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 2 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 2 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 2 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 2 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 2 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))) or ((nth 3 epoch.7.6.1) in (first (first (payload(ev)).1.2).9.3.1) and (nth 3 epoch.7.6.1) >= first epoch.8.9.2 and ((nth 3 epoch.7.6.5) = 0 or ((nth 1 (first (payload(ev)).1.2).9.3.1) in (nth 3 epoch.7.6.5) or (nth 1 (first (payload(ev)).1.2).9.3.1) in ((nth 3 epoch.7.6.5) + 1)) and (nth 1 (first (payload(ev)).1.2).9.3.1) < count epoch.7.6.4) and ((first (payload((first (payload(ev)).1.3))).2.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.0 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.0 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.1 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.1 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.2 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.2 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).2.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).2.3 = first (first (payload(ev)).1.2).9.3.0.5) or (first (payload((first (payload(ev)).1.3))).1.1.3 = (nth 3 epoch.7.6.1) and last (payload((first (payload(ev)).1.3))).1.1.3 = first (first (payload(ev)).1.2).9.3.0.5))))))))"
       ],
       [
         "ev.3"
@@ -8673,7 +8688,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-        "Diseño §4.1 y §7 bis (Core StateArk 17-11: la décupla de sello de la vía «cascada» basta, sin pedir nada al servicio): la prueba cubre el id; su primera cabecera es del libro de origen (su libro, el 8 de la cabecera, es el 1.0); y un eslabón, con los de debajo válidos (cabecera v2 bien formada, camino «sip», firma con su propia clave: las piezas de «sealed»), dice un nivel a la altura de epoch.8.9.2 o por encima, con su grado a la altura del exigido en él (epoch.7.6.5, como «firm»), firmado por una clave de línea que el enlace anota para ese nivel. «sealed» entero no basta (sus claves de abajo no se miran): la prueba de otra línea no pasa. Que el ancla descienda del origen de la línea («anchor origin») pide un nodo de Bitcoin: no es una regla, es un grado de la prueba. La fórmula sale de datos/epocas/puente.mjs"
+        "Diseño §4.1 y §7 bis (Core StateArk 17-11: la décupla de sello de la vía «cascada» basta, sin pedir nada al servicio): la prueba cubre el id; su primera cabecera es del libro de origen (su libro, el 8 de la cabecera, es el 1.0); y un eslabón, con los de debajo válidos (cabecera v2 bien formada, camino «sip», firma con su propia clave: las piezas de «sealed»), dice un nivel a la altura de epoch.8.9.2 o por encima, con su grado a la altura del exigido en él (epoch.7.6.5, como «firm»), firmado por una clave de línea que el enlace anota para ese nivel. «sealed» entero no basta (sus claves de abajo no se miran): la prueba de otra línea no pasa. Que el ancla descienda del origen de la línea («anchor origin») pide un nodo de Bitcoin: no es una regla, es un grado de la prueba. La fórmula sale de datos/epocas/puente.mjs",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH1 (crítico): el eslabón 0 (la cabecera cuyo libro es el de origen) lo firma la clave que el enlace anota para su nivel; sin clave anotada para ese nivel, no se trae. Cada eslabón entre el 0 y el que llega al nivel pedido, si el enlace anota clave para su nivel, lo firma esa clave. Antes valía con cualquier clave que se firmara a sí misma: quien consiguiera que el sellador de arriba sellara un hash fabricaba registros del otro libro"
       ],
       [
         "epoch 0"
@@ -8682,7 +8698,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after a brought record is its body"
       ],
       [
-        "a brought record comes with its proof: {first ev.3} brings {first (payload(ev)).1.1.0} without a proof of its book that covers it at the level the bridge asks (epoch.8.9.2) with the line keys its link names"
+        "a brought record comes with its proof: {first ev.3} brings {first (payload(ev)).1.1.0} without a proof of its book that covers it at the level the bridge asks (epoch.8.9.2) with the line keys its link names (its first header too, signed by the key of its level)"
       ]
     ]
   },
@@ -8864,7 +8880,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-declared-balance-is-only-that.json",
-    "id": "33bbb154542104363f1195998892e025dacc49b337d8c8a032109341721faee3",
+    "id": "07014ad67799088890818ea8e416256dc418096be1ebb1e3a6fb79eb1e3dba12",
     "registro": [
       [
         "a declared balance is only that"
@@ -8872,10 +8888,11 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "A.6",
         "8000000000",
-        "\"declare a balance\""
+        "\"declare a balance\"",
+        "epoch.7.0.6.1"
       ],
       [
-        "=not (\"declare a balance\" in ev.4) or first ev.6.5 = first (first ev.3).6 and nth 1 ev.6.5 = \"8000000000\" and first (payload(ev)).3 = first ev.3 and json(payload(ev)) = cat(bytes(\"5b\"), json(first (payload(ev)).0), bytes(\"2c5b5b\"), json(first (payload(ev)).1.0), bytes(\"5d2c5b\"), json(first (payload(ev)).1.1), bytes(\"5d5d2c5b\"), json(first (payload(ev)).2), bytes(\"5d2c5b\"), json(first (payload(ev)).3), bytes(\"5d2c5b\"), json(\"declare a balance\"), bytes(\"5d5d\")) and slice(json(first (payload(ev)).0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"5b\") and slice(json(first (payload(ev)).2), 0, 1) = bytes(\"22\") and count (moves ev where not (burn in it.4 and T in it.0.0.0) or \"anunciado\" in it.2) = 0"
+        "=not (\"declare a balance\" in ev.4) or first ev.6.5 = first (first ev.3).6 and nth 1 ev.6.5 = \"8000000000\" and first (payload(ev)).3 = first ev.3 and json(payload(ev)) = cat(bytes(\"5b\"), json(first (payload(ev)).0), bytes(\"2c5b5b\"), json(first (payload(ev)).1.0), bytes(\"5d2c5b\"), json(first (payload(ev)).1.1), bytes(\"5d5d2c5b\"), json(first (payload(ev)).2), bytes(\"5d2c5b\"), json(first (payload(ev)).3), bytes(\"5d2c5b\"), json(\"declare a balance\"), bytes(\"5d5d\")) and slice(json(first (payload(ev)).0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.0), 0, 1) = bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"22\") and slice(json(first (payload(ev)).1.1), 0, 1) != bytes(\"5b\") and slice(json(first (payload(ev)).2), 0, 1) = bytes(\"22\") and count (moves ev where not (burn in it.4 and T in it.0.0.0) or \"anunciado\" in it.2) = 0 and (count before.6.0 = 0 or (first ev.6.0).0 <= before.6.0.0 + epoch.7.0.6.1)"
       ],
       [
         "ev.3"
@@ -8893,7 +8910,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "VG 17-11 (encargo «la salida con lo propio»): los dos tercios pueden añadir una regla que deje a una persona sin escribir; a cambio, la salida con lo propio es intocable: la declaración de saldo del puente pasa a ser suelo, juzgada solo con el suelo (que sea de quien la firma, que sea verdad y que pague su T), sin que la alcance ninguna regla añadida. docs/notas/GOBIERNO.md, «La salida con lo propio»",
         "Qué es una declaración de saldo, dicho por el suelo y no por la plantilla: un registro que nombra «declare a balance» en su 4 se ancla en el 8 de la propia alta de quien lo firma (su 6.5: sobre la alta, en «8000000000»), su payload es el de la plantilla y nada más (0 un texto, 1.0 la serie, un texto, 1.1 cuánto, un número, 2 el cierre, un texto, 3 quien la firma, 4 solo «declare a balance»: se comprueba rehaciendo su JSON canónico con json y cat, y que cada hoja es un texto o un número y no una décupla) y sus únicos movimientos son la quema de T (nada anunciado). Que esa T sea suya ya lo exige «nobody moves tokens of others», y que pague lo que cuesta, «the cost of writing» y «writing burns today's T»: no se repite",
-        "El núcleo (src/condiciones/reglas.js, veredictosDe) solo le prueba las reglas del suelo (epoch.7.9.6) a un registro que nombra «declare a balance» en su 4, si esta regla está en el suelo; por eso ella ha de exigir la forma entera: un registro que lo nombra y hace otra cosa (mueve otro token, se ancla en otro sitio o en el alta de otro, nombra otra acción en su 4, lleva más payload) no entra"
+        "El núcleo (src/condiciones/reglas.js, veredictosDe) solo le prueba las reglas del suelo (epoch.7.9.6) a un registro que nombra «declare a balance» en su 4, si esta regla está en el suelo; por eso ella ha de exigir la forma entera: un registro que lo nombra y hace otra cosa (mueve otro token, se ancla en otro sitio o en el alta de otro, nombra otra acción en su 4, lleva más payload) no entra",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», S7 de test/revision-suelo.test.js): una declaración se juzga solo con el suelo y «at most a year ahead» no es suelo, así que esta regla lleva su propio tope: el instante de la declaración no pasa del mismo límite que pone «at most a year ahead» (el mayor t del libro más un año del calendario de la época, epoch.7.0.6.1, con la misma fórmula). La regla general sigue siendo de la época y una declaración no mueve el reloj del libro más que cualquier registro"
       ],
       [
         "epoch 0"
@@ -8902,13 +8920,13 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after a declared balance is true"
       ],
       [
-        "a declared balance is only that: {first ev.3} names «declare a balance» in a record that is something else (not on the 8 of its own alta, more payload than the template, another action or other movements than burning T)"
+        "a declared balance is only that: {first ev.3} names «declare a balance» in a record that is something else (not on the 8 of its own alta, more payload than the template, another action or other movements than burning T) or dated more than a year after the latest time in the ledger"
       ]
     ]
   },
   {
     "archivo": "a-declared-balance-is-true.json",
-    "id": "416c61c9b99c9902a15e9b1aba8a27b9d30d05e956bc437c9acc55aa654f936d",
+    "id": "e550e2af3fe34dd7e8077589f1a94e1e6d010f62c4e35279d456b3ec9263377f",
     "registro": [
       [
         "a declared balance is true"
@@ -8917,7 +8935,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "A.1"
       ],
       [
-        "=not (\"declare a balance\" in ev.4) or first (payload(ev)).1.1 <= sum ((first ev.3).1.(first (payload(ev)).1.0) each 1) + sum (((first ev.3).1.(first (payload(ev)).1.0)).2 each 1)"
+        "=not (\"declare a balance\" in ev.4) or first (payload(ev)).1.1 + sum ((((first ev.3).1.(first (payload(ev)).1.0)).2 where first (text(utf8(first it.0))).5 = (text(utf8(first it.0))) and (\"open a private book here\" in (payload((text(utf8(first it.0))))).4 or \"this book hangs from\" in (payload((text(utf8(first it.0))))).4)) each 1) + sum ((moves ev where (burn in it.4 or transfer in it.4) and first it.0 = first (payload(ev)).1.0 and it.3.0 = first ev.3 and it.3.1 != first ev.3) each 1) <= sum ((first ev.3).1.(first (payload(ev)).1.0) each 1) + sum (((first ev.3).1.(first (payload(ev)).1.0)).2 each 1)"
       ],
       [
         "ev.3"
@@ -8934,7 +8952,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-        "Diseño §4.5: «declare a balance» es verdad en ese punto: quien la escribe tiene, de esa serie, al menos lo que declara (lo disponible y lo bloqueado, sobre el libro de antes). Si declara más, se rechaza"
+        "Diseño §4.5: «declare a balance» es verdad en ese punto: quien la escribe tiene, de esa serie, al menos lo que declara (lo disponible y lo bloqueado, sobre el libro de antes). Si declara más, se rechaza",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH2 y PH3, tras la revisión de seguridad del puente): no cuenta lo bloqueado con la salida en un enlace («open a private book here» o «this book hangs from», reconocido como en «what is locked for another book is released only by its return»): eso ya vive en el otro libro como serie forastera y su tenedor lo declara allí; y lo declarado no supera lo que queda de esa serie después de los movimientos del propio registro (lo que quema o pasa a otro, como la T de su coste). Sigue siendo suelo, con el mismo nombre. La fórmula sale de datos/epocas/puente.mjs"
       ],
       [
         "epoch 0"
@@ -8943,7 +8962,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after the tied record of E crossed before"
       ],
       [
-        "a declared balance is true: {first ev.3} declares more {first (payload(ev)).1.0} than it has"
+        "a declared balance is true: {first ev.3} declares more {first (payload(ev)).1.0} than it has here after this record (what is locked for another book is declared there)"
       ]
     ]
   },
@@ -9081,7 +9100,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-record-is-brought-from-a-linked-book.json",
-    "id": "34364830a15ee917dcc830fadc47b61f210bd7afe74bb8c81e5a0b9db576249d",
+    "id": "2fb105aa488e9abc1b25c96a56604066c695e3d45b78d8a1a85838556e87d7ac",
     "registro": [
       [
         "a record is brought from a linked book"
@@ -9090,10 +9109,11 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "before.5",
         "9800000000",
         "9100000000",
-        "9500000000"
+        "9500000000",
+        "\"withdraw a link\""
       ],
       [
-        "=not (\"bring a record from another book\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9800000000\" and count (first (payload(ev)).1.3).5 > 0 and first (first (payload(ev)).1.3).3 = first (first before.5).3 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 and nth 1 (first (payload(ev)).1.3).6.5 = \"9100000000\" and first (payload((first (payload(ev)).1.3))).1.0.0 = first (payload(ev)).1.0 and count ((down (up (first (payload(ev)).1.3))) where \"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4 and first (first (payload(ev)).1.3).6.5 = first before.5 and nth 1 (first (payload(ev)).1.3).6.5 = \"9500000000\" and first (payload((first (payload(ev)).1.3))).1.0 = first (payload(ev)).1.0 and count (((first before.5).9.5) where \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0 and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0)"
+        "=not (\"bring a record from another book\" in ev.4) or first ev.6.5 = first before.5 and nth 1 ev.6.5 = \"9800000000\" and count (first (payload(ev)).1.3).5 > 0 and first (first (payload(ev)).1.3).3 = first (first before.5).3 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 and nth 1 (first (payload(ev)).1.3).6.5 = \"9100000000\" and first (payload((first (payload(ev)).1.3))).1.0.0 = first (payload(ev)).1.0 and count ((down (up (first (payload(ev)).1.3))) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4 and first (first (payload(ev)).1.3).6.5 = first before.5 and nth 1 (first (payload(ev)).1.3).6.5 = \"9500000000\" and first (payload((first (payload(ev)).1.3))).1.0 = first (payload(ev)).1.0 and count (((first before.5).9.1) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0) and count (((first before.5).9.5) where (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (\"open a private book here\" in (payload(it)).4 and first (payload(it)).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload(it)).4 and first (payload(it)).1.0 = first (payload(ev)).1.0) and first it.3 = first (first (payload(ev)).1.3).3 and it != (first (payload(ev)).1.3) and first (first it.6).0.0 >= first (first (first (payload(ev)).1.3).6).0.0) = 0 and count ((down (first (payload(ev)).1.3)) where \"withdraw a link\" in (payload(it)).4 and first it.3 = first (first (payload(ev)).1.3).3) = 0"
       ],
       [
         "ev.3"
@@ -9110,7 +9130,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-        "Diseño §3: solo se trae de un libro con el que hay enlace, el que anota el dueño de este libro (el autor del génesis) y el último de los suyos para ese libro (al rotar una clave): un «open a private book here» sin otro posterior del mismo autor para el mismo libro en el mismo elemento, o un «this book hangs from» en el 9.5 del génesis sin otro posterior. Decisión de Core AGRAM en el encargo: solo los enlaces del dueño, porque con los de cualquiera otro (que puede abrir un libro privado sobre un elemento suyo y anotar sus propias claves) se fabricarían registros «de» un libro con claves que ese libro no tiene. A igualdad de instante, ninguno de los dos vale (el BQL mínimo no ordena textos). Lo traído cuelga del 9.8 del génesis"
+        "Diseño §3: solo se trae de un libro con el que hay enlace, el que anota el dueño de este libro (el autor del génesis) y el último de los suyos para ese libro (al rotar una clave): un «open a private book here» sin otro posterior del mismo autor para el mismo libro en el mismo elemento, o un «this book hangs from» en el 9.5 del génesis sin otro posterior. Decisión de Core AGRAM en el encargo: solo los enlaces del dueño, porque con los de cualquiera otro (que puede abrir un libro privado sobre un elemento suyo y anotar sus propias claves) se fabricarían registros «de» un libro con claves que ese libro no tiene. A igualdad de instante, ninguno de los dos vale (el BQL mínimo no ordena textos). Lo traído cuelga del 9.8 del génesis",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH4: el posterior se mira cruzando los dos tipos de enlace, en el mismo elemento (para «open a private book here», lo que cuelga de su elemento; para «this book hangs from», el 9.1 del génesis) y en el 9.5 del génesis: un enlace del dueño para el mismo libro, de cualquiera de los dos tipos, con instante igual o posterior, retira el anterior. Un enlace en otro elemento no lo retira: no se recorre el libro. Y un enlace retirado (de él cuelga un «withdraw a link» de su autor) no vale"
       ],
       [
         "epoch 0"
@@ -9119,7 +9140,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after support is released by withdrawing it"
       ],
       [
-        "a record is brought from a linked book: {first ev.3} brings from the book {first (payload(ev)).1.0} through {first (payload(ev)).1.3}, which is not the last link of the owner of this book with that book, or not from the 9.8 of the genesis"
+        "a record is brought from a linked book: {first ev.3} brings from the book {first (payload(ev)).1.0} through {first (payload(ev)).1.3}, which is not the last link of the owner of this book with that book (in its element or in the 9.5 of the genesis), or is withdrawn, or not from the 9.8 of the genesis"
       ]
     ]
   },
@@ -9208,7 +9229,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-send-locks-what-it-names.json",
-    "id": "a8e44fcb58260e81a9ae0dddd748ada56267be2ddaca8be97ac973effdb7b4c0",
+    "id": "eaed4b27a0304ad9a9eb20807fafdb16cbd587e0f39998e669f4627438afef71",
     "registro": [
       [
         "a send locks what it names"
@@ -9218,7 +9239,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "9500000000"
       ],
       [
-        "=not (\"send to another book\" in ev.4) or (\"open a private book here\" in (payload((first ev.6.5))).4 or \"this book hangs from\" in (payload((first ev.6.5))).4) and (\"open a private book here\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0) and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.1 and first it.0.0.2 = first (payload(ev)).1.1.2 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.3 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.3 = first (payload(first it.5)).1.1.0)) = 1"
+        "=not (\"send to another book\" in ev.4) or (\"open a private book here\" in (payload((first ev.6.5))).4 or \"this book hangs from\" in (payload((first ev.6.5))).4) and (\"open a private book here\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0.0 = first (payload(ev)).1.0 or \"this book hangs from\" in (payload((first ev.6.5))).4 and first (payload((first ev.6.5))).1.0 = first (payload(ev)).1.0) and count ((down (first ev.6.5)) where \"withdraw a link\" in (payload(it)).4 and first it.3 = first (first ev.6.5).3) = 0 and first (payload(ev)).1.0 != first before.5 and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0 and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first (payload(ev)).1.1.1 and first it.0.0.2 = first (payload(ev)).1.1.2 and (not (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and first (payload(ev)).1.1.3 = first it.5 or (E in it.0.0.0 and hex(slice(cat(utf8(first it.0.0.1), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 64, 65)) = \"3a\") and slice(utf8(first it.0.0.1), 0, 64) = utf8(first (payload(ev)).1.0) and \"bring a record from another book\" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = first (payload(ev)).1.0 and first (payload(ev)).1.1.3 = first (payload(first it.5)).1.1.0)) = 1"
       ],
       [
         "ev.3"
@@ -9235,7 +9256,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-        "Diseño §4.2 y §4.4: el envío se ancla en un enlace con el libro de destino y bloquea, una vez y sin otro movimiento que su coste, lo que dice de la serie que dice, con la salida en ese enlace. Una serie forastera solo vuelve a su libro de origen"
+        "Diseño §4.2 y §4.4: el envío se ancla en un enlace con el libro de destino y bloquea, una vez y sin otro movimiento que su coste, lo que dice de la serie que dice, con la salida en ese enlace. Una serie forastera solo vuelve a su libro de origen",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH4: un enlace retirado (de él cuelga un «withdraw a link» de su autor) no vale para enviar"
       ],
       [
         "epoch 0"
@@ -9244,7 +9266,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after only the families of the bridge cross"
       ],
       [
-        "a send locks what it names: {first ev.3} sends to {first (payload(ev)).1.0} something that is not one lock of what the send names, with the link with that book as its exit"
+        "a send locks what it names: {first ev.3} sends to {first (payload(ev)).1.0} something that is not one lock of what the send names, with the link with that book as its exit, or through a withdrawn link"
       ]
     ]
   },
@@ -9833,7 +9855,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "bringing-needs-the-line-keys-of-the-book.json",
-    "id": "2d80767a67fba9146d6e6d7a24307509e5eba60c7947a75332eb99827a4dfd28",
+    "id": "5a49c67b9f805d2c678b44450cefc99b326cc9f1f66b591c1b81e4abadf58f9c",
     "registro": [
       [
         "bringing needs the line keys of the book"
@@ -9842,7 +9864,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "epoch.7.6.1"
       ],
       [
-        "=not (\"bring a record from another book\" in ev.4) or not (count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4)) or count (payload((first (payload(ev)).1.3))).2.0 > 1 or count (payload((first (payload(ev)).1.3))).1.1.0 > 1"
+        "=not (\"bring a record from another book\" in ev.4) or not (count (first (payload(ev)).1.3).5 > 0 and (\"open a private book here\" in (payload((first (payload(ev)).1.3))).4 or \"this book hangs from\" in (payload((first (payload(ev)).1.3))).4)) or (count (payload((first (payload(ev)).1.3))).2.0 > 1 and first (payload((first (payload(ev)).1.3))).2.0 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).1.1.0 > 1 and first (payload((first (payload(ev)).1.3))).1.1.0 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).2.1 > 1 and first (payload((first (payload(ev)).1.3))).2.1 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).1.1.1 > 1 and first (payload((first (payload(ev)).1.3))).1.1.1 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).2.2 > 1 and first (payload((first (payload(ev)).1.3))).2.2 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).1.1.2 > 1 and first (payload((first (payload(ev)).1.3))).1.1.2 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).2.3 > 1 and first (payload((first (payload(ev)).1.3))).2.3 = (first (first (payload(ev)).1.2).9.0.1)) or (count (payload((first (payload(ev)).1.3))).1.1.3 > 1 and first (payload((first (payload(ev)).1.3))).1.1.3 = (first (first (payload(ev)).1.2).9.0.1))"
       ],
       [
         "ev.3"
@@ -9859,7 +9881,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       ],
       [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
-        "Core AGRAM 17-11 (con Core StateArk): un libro se puede anotar sin claves de línea (0: un libro pequeño sin sellador), pero entonces no hay con qué comprobar sus cabeceras: traer de él se rechaza"
+        "Core AGRAM 17-11 (con Core StateArk): un libro se puede anotar sin claves de línea (0: un libro pequeño sin sellador), pero entonces no hay con qué comprobar sus cabeceras: traer de él se rechaza",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», tras la revisión de seguridad del puente, test/revision-puente.test.js): PH1: no basta que el enlace anote alguna clave: ha de anotar la del nivel de la primera cabecera de la prueba (su eslabón 0, la única cuyo libro se mira), que es la que comprueba que esa cabecera la firmó el otro libro. La fórmula sale de datos/epocas/puente.mjs"
       ],
       [
         "epoch 0"
@@ -9868,7 +9891,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "after a record is brought from a linked book"
       ],
       [
-        "bringing needs the line keys of the book: {first ev.3} brings from a book whose link names no line keys: there is nothing to check its headers with"
+        "bringing needs the line keys of the book: {first ev.3} brings from a book whose link names no line key for the level of the first header of the proof: there is nothing to check that header with"
       ]
     ]
   },
@@ -22148,6 +22171,216 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "withdraw-a-link.json",
+    "id": "fefa505f3cc340032562d13c60a3190bcccd484444b6ea88dab28a1a7fc59fa8",
+    "registro": [
+      [
+        "withdraw a link"
+      ],
+      [
+        [
+          [
+            "text"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "withdrawn",
+            "the withdrawal note"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "withdraw a link",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "about"
+          ],
+          [
+            "ref"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first it.5",
+            "the link withdrawn: X"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): parámetro de «withdraw a link»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=me",
+            "who withdraws it: the author of the link"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 = me and (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and count ((down it) where \"withdraw a link\" in (payload(it2)).4 and first it2.3 = me) = 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4, tras la revisión de seguridad del puente): quien escribió un enlace entre libros («open a private book here» o «this book hangs from») puede retirarlo con un registro anclado en el propio enlace. Un enlace retirado no vale para traer («a record is brought from a linked book») ni para enviar («a send locks what it names»), y contrato.librosPrivados y contrato.cuelgaDe no lo dan por vigente. Las plantillas «close…» no sirven tal cual: «close» dice que lo anunciado ha pasado y solo se ofrece sobre un proceso",
+        "Solo cuenta la retirada que escribe el autor del enlace (las reglas y el contrato miran first it.3 del enlace); por eso solo se le ofrece a él, y una sola vez. Coste acotado: las reglas miran lo que cuelga del enlace (down), no el libro",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
+        "Ancla en el 4 del enlace, como «close»; su 4 es «write»: no mueve nada más que el coste de escribir",
+        "[4, 28]: detrás de «receive from another book»"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        4,
+        28
+      ],
+      [
+        "withdraw a link: {me} withdraws the link {first memo.1}"
+      ]
+    ]
+  },
+  {
     "archivo": "anchor-here.json",
     "id": "4d453575c924896213b169bc37c92322eb7b7c9222ebbc4da011a22b3e09f544",
     "registro": [
@@ -24854,7 +25087,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "declare-a-balance.json",
-    "id": "b303cf496360d8a9322e9deb67ae0621b6b1e9ad867c2dc8443cd8d3c323b36c",
+    "id": "e0309b2ec962e99f269103338e03a56afc915316f9b5af32eb4e472fb7d01ee1",
     "registro": [
       [
         "declare a balance"
@@ -24921,8 +25154,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             2
           ],
           [
-            "=sum (me.1.(first memo.1.0) each 1) + sum ((me.1.(first memo.1.0)).2 each 1)",
-            "how much I declare I have, available and locked (by default, all I have)"
+            "=sum (me.1.(first memo.1.0) each 1) + sum ((me.1.(first memo.1.0)).2 each 1) - sum (((me.1.(first memo.1.0)).2 where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and (\"open a private book here\" in (payload((text(utf8(first it2.0))))).4 or \"this book hangs from\" in (payload((text(utf8(first it2.0))))).4)) each 1)",
+            "how much I declare I have, available and locked, without what is locked for another book (by default, all I have here)"
           ]
         ],
         [
@@ -25046,6 +25279,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "VG 17-11 por Core State (agram-equipo/DISENO_PUENTE.md, §1): los cuatro tokens funcionan igual y todos deben poder cruzar, cada uno con sus requisitos; en el primer puente los registros y la E cruzan como tales y R, P y T como prueba (un saldo declarado). El mecanismo es genérico; qué familias cruzan como token es dato de la época (epoch.8.9). Solo entre libros enlazados. docs/notas/PUENTE.md",
         "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide; 2 cuándo se ofrece; 3 quién la lanza; 4 lo que mueve; 5 el dígito de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje, la representación del registro que escribe",
         "Diseño §4.5: en el origen, la escribe el titular: «tengo tanto de tal serie». La regla «a declared balance is true» la acepta solo si es verdad en ese punto (lo disponible y lo bloqueado de esa serie, sobre el libro de antes); declarar menos es verdad. No bloquea nada: es una foto con fecha. Traída al otro libro con «bring a record from another book», es la prueba que pide VG para R, P y T",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH2): lo bloqueado con la salida en un enlace (un envío) ya vive en el otro libro como serie forastera y se declara allí: no se cuenta aquí, ni en la regla ni en el defecto de cuánto",
         "Se lanza sobre la propia alta y se ancla en su 8 (la medida, frente a otros)",
         "[8, 4]: la medida (PV 8), detrás de las de la 0"
       ],
@@ -26174,7 +26408,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "open-a-private-book-here.json",
-    "id": "deabdcf0609a13c1bc295899917002a9f01e45baaa9b673d759d1c482a9762ae",
+    "id": "17f90319cede232f2b4a1569bbe87de2f9d8b66b864605014d8f24f297d1e3a3",
     "registro": [
       [
         "open a private book here"
@@ -26399,7 +26633,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Ancla en el 9.1 del elemento: el 9 es lo que le configura (allí anclan «add a parent», «remove a parent», «set the kind of owner» y «set a custody default») y el enlace no choca con ellos en su dirección; el 9.0 es el 9 por ceros, y en el génesis el 9.2, el 9.3 y el 9.6 ya los ocupan los ajustes, las preferencias y las revisiones. «this book hangs from» ancla en el 9.4 del génesis, así que en un génesis los dos no chocan",
         "Quién puede: quien puede escribir sobre X con las reglas que ya hay; sin regla de validez nueva. Su 4 es «write»: no mueve nada más que el coste de escribir. Sobre el alta de otra identidad no se ofrece, como «anchor here»: allí pide el precio de la atención («attention has a price»), que esta plantilla no paga; se escribe a mano con el pago en la misma transacción",
         "Vale el último: si sobre el mismo elemento hay más de un registro para el mismo libro (al rotar una clave), contrato.librosPrivados da el último por instante y, a igualdad, por id. La época no tiene una forma general de quitar el enlace",
-        "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el libro pasa a 1.0.0 y su 1.0.1, opcional, es el origen de la línea del libro privado («anchor origin», el outpoint de su ancla 0), junto al libro (cierra su propia décupla: sin huecos); las claves de línea admiten 0, ninguna (acordado con Core StateArk). Un registro escrito antes, con el libro en 1.0, se sigue leyendo (contrato.librosPrivados) pero no sirve para traer: el puente lee el libro en 1.0.0"
+        "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el libro pasa a 1.0.0 y su 1.0.1, opcional, es el origen de la línea del libro privado («anchor origin», el outpoint de su ancla 0), junto al libro (cierra su propia décupla: sin huecos); las claves de línea admiten 0, ninguna (acordado con Core StateArk). Un registro escrito antes, con el libro en 1.0, se sigue leyendo (contrato.librosPrivados) pero no sirve para traer: el puente lee el libro en 1.0.0",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo"
       ],
       [
         "epoch 0"
@@ -26415,7 +26650,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "this-book-hangs-from.json",
-    "id": "b418032a49344dffa114d1b1accf42495bbbf461dde96d235e4a547eb7de9dc2",
+    "id": "9ea9c71a0237b55567212046cc4f97fdb72cdf79e2009c514abbe6582373ec93",
     "registro": [
       [
         "this book hangs from"
@@ -26639,7 +26874,8 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
         "Core AGRAM 17-11 (encargo «abrir aquí un libro privado»): 0 el nombre de la acción; 1 el libro del que cuelga (el id de su génesis, 64 hex en minúsculas); 2 el elemento (su id, 64 hex); 3 quién lo dice; 4 la acción. Los dos son datos y no referencias: este libro no tiene el grande ni lo lee",
         "Se lanza sobre el génesis y solo se ofrece a su dueño (el autor del génesis): es de la oferta de la plantilla, sin regla de validez. Escrito a mano por otro, la época no lo rechaza; contrato.cuelgaDe solo cuenta los del autor del génesis. Ancla en el 9.5 del génesis: no choca con el 9 de la custodia, el 9.2, el 9.3 y el 9.6 de los ajustes, las preferencias y las revisiones, el 9.4 de los retoques de textos, ni con el 9.1 de «open a private book here»",
         "Si se escribe más de una vez, vale el último por instante y, a igualdad, por id (contrato.cuelgaDe). Su 4 es «write»: no mueve nada más que el coste de escribir",
-        "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el enlace del pequeño anota también del grande sus claves de línea (1.1; 0 si ninguna, por defecto) y el origen de su línea (1.2, opcional, «anchor origin»), para traer de él; el libro pasa a 1.0 (lo opcional cierra su décupla). Un registro escrito antes, con el libro en 1, se sigue leyendo (contrato.cuelgaDe) pero no sirve para traer"
+        "Core AGRAM 17-11 (encargo «el puente entre libros», A15) (diseño §3 y §7 bis): el enlace del pequeño anota también del grande sus claves de línea (1.1; 0 si ninguna, por defecto) y el origen de su línea (1.2, opcional, «anchor origin»), para traer de él; el libro pasa a 1.0 (lo opcional cierra su décupla). Un registro escrito antes, con el libro en 1, se sigue leyendo (contrato.cuelgaDe) pero no sirve para traer",
+        "Core AGRAM 17-11 (encargo «arreglos del puente», PH4): el último se mira cruzando los dos tipos de enlace, en el mismo elemento y en el 9.5 del génesis (contrato.librosPrivados y contrato.cuelgaDe, como la regla «a record is brought from a linked book»); quien escribió el enlace lo retira con «withdraw a link», anclado en el propio enlace, y un enlace retirado no vale. Uno nuevo en otro elemento no retira el viejo"
       ],
       [
         "epoch 0"
@@ -26695,7 +26931,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "55b72e91965e9173e2078126863ff3c76e6ffd73ab2941b99be74dd1890126b9";
+export const EPOCA_0_BTML_ID = "3725d9713454bbeecc0bd2c4d6fde7a6e6db18058346f6a86e7b92f98219af43";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
