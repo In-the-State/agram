@@ -3,7 +3,10 @@
 // dependencias. Cómo se usa y lo comprobado: retoques/LEEME.md.
 //
 //   node retoques/servidor.mjs [--puerto 8790] [--rama <rama de retoques>] [--modelo <modelo>] [--publico <host>]
-//                              [--clave-api <ruta>]
+//                              [--clave-api <ruta>] [--ensayo <carpeta> --tabla <ruta> --claves <ruta>]
+//
+// --ensayo (con --tabla y --claves, las tres FUERA del repositorio): el libro del roadmap volcado de la tabla, servido como
+// libro compartido bajo /ensayo/… y la cuenta de la dueña en GET /retoques/ensayo/cuenta (retoques/ensayo.mjs).
 //
 // --clave-api: un archivo FUERA del repositorio cuya primera línea es la clave de API de VG; Core gasta de ella y no de la
 // cuenta de Claude Code de este equipo (retoques/agente.mjs). Dentro de la raíz servida, el servidor no arranca.
@@ -26,6 +29,7 @@ import { dirname, extname, join, relative, resolve, sep, isAbsolute } from 'node
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Agente, leerClave } from './agente.mjs';
+import { montarEnsayo } from './ensayo.mjs';
 import { resumenDelFondo, conMensaje, entradasDe, leerTexto, leerSesiones, guardarSesiones, sesionesSinCrecer } from './fondo.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -43,6 +47,8 @@ export const LIMITES = Object.freeze({
   esperaMaxima: 60_000, // ms
   sesion: 12 * 3600_000, // ms de una cookie de sesión
   latido: 20_000, // ms entre latidos del canal de avisos
+  ensayoPorMinuto: 600, // llamadas a /ensayo/… por minuto: una carta nueva baja unos cientos de registros y pide su recibo uno a uno
+  ensayoCuerpo: 256 * 1024, // bytes de un cuerpo en /ensayo/… (el tope del contrato del libro compartido)
 });
 const ETIQUETA = '<script src="./retoques/cliente.js"></script>';
 
@@ -140,7 +146,7 @@ if (h) { history.replaceState(null, '', location.pathname); l.value = h[1]; entr
  * ya hecho (si no, new Agente); `orden`: el ejecutable del agente (pruebas); `llave` (pruebas; si no, aleatoria).
  * → { escuchar(): Promise<puerto>, cerrar(): Promise, llave, agente, servidor, puerto() }.
  */
-export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo = null, publico = null, agente = null, orden = null, llave = null, vigilar = true, claveApi = null } = {}) {
+export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo = null, publico = null, agente = null, orden = null, llave = null, vigilar = true, claveApi = null, ensayo = null, decir = console.log } = {}) {
   raiz = resolve(raiz);
   const raizReal = realpathSync.native(raiz);
   if (claveApi) {
@@ -154,6 +160,17 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
   if (host && !/^[a-z0-9.-]+$/.test(host)) throw new Error('--publico: un nombre de host sin puerto ni esquema');
   const LLAVE = llave ?? randomBytes(32).toString('hex');
   const datos = join(raiz, 'retoques', '.datos');
+  // El ensayo: la carpeta, la tabla y las claves, fuera del repositorio (el contenido es real y vive solo en este equipo).
+  if (ensayo) {
+    for (const [opcion, ruta] of [['--ensayo', ensayo.carpeta], ['--tabla', ensayo.tabla], ['--claves', ensayo.claves]]) {
+      if (!ruta) throw new Error(opcion + ': falta (--ensayo va con --tabla y --claves)');
+      const abs = resolve(String(ruta));
+      if (dentroDe(raiz, abs) || dentroDe(raizReal, abs) || (existsSync(abs) && dentroDe(raizReal, realpathSync.native(abs)))) throw new Error(opcion + ': tiene que estar FUERA del repositorio (' + raiz + ')');
+    }
+    ensayo = { carpeta: resolve(String(ensayo.carpeta)), tabla: resolve(String(ensayo.tabla)), claves: resolve(String(ensayo.claves)) };
+  }
+  let elEnsayo = null; // el montado (retoques/ensayo.mjs), al escuchar
+  const llamadasEnsayo = [];
   const core = agente ?? new Agente({ raiz, datos, modelo, orden, claveApi });
   // El fondo y las sesiones (retoques/fondo.mjs): esta sesión empieza con lo que hay ahora en la lista.
   const rutaFondo = join(datos, 'fondo.md');
@@ -319,7 +336,11 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
     const m = req.method;
     if (ruta === '/retoques/estado' && m === 'GET') {
       const sesiones = leerSesiones(rutaSesiones);
-      return json(res, 200, { agente: core.vivo, ocupado: core.ocupado, conversacion: Boolean(core.sesion), rama: ramaActual(), ramaDeRetoques: rama, sinGuardar: sinGuardar(), modelo: modelo ?? null, claveApi: Boolean(claveApi), fondo: totalDelFondo(), sesionesSinCrecer: sesionesSinCrecer(sesiones) });
+      return json(res, 200, { agente: core.vivo, ocupado: core.ocupado, conversacion: Boolean(core.sesion), rama: ramaActual(), ramaDeRetoques: rama, sinGuardar: sinGuardar(), modelo: modelo ?? null, claveApi: Boolean(claveApi), fondo: totalDelFondo(), sesionesSinCrecer: sesionesSinCrecer(sesiones), ensayo: Boolean(ensayo), ensayoAlta: elEnsayo?.alta ?? null });
+    }
+    if (ruta === '/retoques/ensayo/cuenta' && m === 'GET') {
+      if (!elEnsayo) return vacia(res, ensayo ? 503 : 404);
+      return json(res, 200, await elEnsayo.cuenta());
     }
     if (ruta === '/retoques/fondo' && m === 'GET') return json(res, 200, resumenDelFondo(leerTexto(rutaFondo), leerSesiones(rutaSesiones)));
     if (ruta === '/retoques/eventos' && m === 'GET') {
@@ -385,6 +406,30 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
     return vacia(res, 204, { 'set-cookie': `${COOKIE}=${valor}; HttpOnly; Secure; SameSite=Strict; Path=/; Max-Age=${Math.floor(LIMITES.sesion / 1000)}` });
   }
 
+  /** /ensayo/…: el libro compartido del ensayo (el contrato de siempre); crear ejes, nunca desde fuera. */
+  async function libroDelEnsayo(req, res, ruta) {
+    if (!elEnsayo) { req.resume(); return vacia(res, 503); }
+    const ahora = Date.now();
+    while (llamadasEnsayo.length && llamadasEnsayo[0] < ahora - 60_000) llamadasEnsayo.shift();
+    if (llamadasEnsayo.length >= LIMITES.ensayoPorMinuto) { req.resume(); return vacia(res, 429); }
+    llamadasEnsayo.push(ahora);
+    if (/\/ejes\/?$/.test(ruta) || !['GET', 'POST', 'OPTIONS'].includes(req.method)) { req.resume(); return vacia(res, 404); }
+    if (Number(req.headers['content-length'] ?? 0) > LIMITES.ensayoCuerpo) { req.resume(); return vacia(res, 413); }
+    const trozos = [];
+    let total = 0;
+    for await (const t of req) {
+      total += t.length;
+      if (total > LIMITES.ensayoCuerpo) return vacia(res, 413);
+      trozos.push(t);
+    }
+    const cabeceras = new Headers();
+    for (const [k, v] of Object.entries(req.headers)) if (typeof v === 'string') cabeceras.set(k, v);
+    const peticion = new Request('http://' + String(req.headers.host) + req.url, { method: req.method, headers: cabeceras, body: req.method === 'POST' ? Buffer.concat(trozos) : undefined });
+    const r = await elEnsayo.manejar(peticion);
+    res.writeHead(r.status, { ...Object.fromEntries(r.headers.entries()), ...cabecerasBase });
+    res.end(r.status === 204 ? undefined : Buffer.from(await r.arrayBuffer()));
+  }
+
   const servidor = http.createServer(async (req, res) => {
     try {
       const cara = caraDe(req);
@@ -402,6 +447,7 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
         return res.end(req.method === 'HEAD' ? undefined : readFileSync(join(AQUI, 'cliente.js')));
       }
       if (ruta === '/retoques' || ruta.startsWith('/retoques/') || /^\/retoques%/i.test(ruta)) return await llamada(req, res, ruta);
+      if (ensayo && (ruta === '/ensayo' || ruta.startsWith('/ensayo/'))) return await libroDelEnsayo(req, res, ruta);
       return servirArchivo(req, res);
     } catch (e) {
       if (!res.headersSent) vacia(res, 500);
@@ -427,10 +473,15 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
               vigia.on('error', () => { /* una carpeta borrada: se sigue */ });
             } catch (e) { console.error('retoques: sin vigilar los archivos:', e?.message ?? e); }
           }
-          ok(puertoReal);
+          if (!ensayo) { ok(puertoReal); return; }
+          const url = host ? 'https://' + host + '/ensayo' : 'http://localhost:' + puertoReal + '/ensayo';
+          montarEnsayo({ ...ensayo, url, origenes: host ? ['https://' + host] : [], decir })
+            .then((e) => { elEnsayo = e; ok(puertoReal); })
+            .catch((e) => { servidor.close(); mal(e); });
         });
       });
     },
+    ensayo: () => elEnsayo,
     async cerrar() {
       clearTimeout(temporizador);
       vigia?.close();
@@ -453,8 +504,10 @@ function opciones(argv) {
     else if (a === '--modelo') { o.modelo = v; i++; }
     else if (a === '--publico') { o.publico = v; i++; }
     else if (a === '--clave-api') { o.claveApi = v; i++; }
-    else throw new Error('no conozco «' + a + '». Uso: node retoques/servidor.mjs [--puerto 8790] [--rama <rama>] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>]');
+    else if (a === '--ensayo' || a === '--tabla' || a === '--claves') { o.ensayo ??= {}; o.ensayo[{ '--ensayo': 'carpeta', '--tabla': 'tabla', '--claves': 'claves' }[a]] = v; i++; }
+    else throw new Error('no conozco «' + a + '». Uso: node retoques/servidor.mjs [--puerto 8790] [--rama <rama>] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>] [--ensayo <carpeta> --tabla <ruta> --claves <ruta>]');
   }
+  if (o.ensayo && !(o.ensayo.carpeta && o.ensayo.tabla && o.ensayo.claves)) throw new Error('--ensayo, --tabla y --claves van juntas');
   if (o.puerto !== undefined && !(Number.isInteger(o.puerto) && o.puerto > 0 && o.puerto < 65536)) throw new Error('--puerto: un número entre 1 y 65535');
   return o;
 }
@@ -471,6 +524,7 @@ if (process.argv[1] && import.meta.url === pathToFileURL(resolve(process.argv[1]
     console.log(o.rama ? '«guardar» hace commit solo en la rama ' + o.rama + '.' : 'Sin --rama: «guardar» no hace commit.');
     if (!o.claveApi) console.log('Aviso: sin --clave-api, Core gasta de la cuenta de Claude Code de este equipo.');
     else console.log(leerClave(resolve(o.claveApi)) ? 'Core gasta de la clave de API de VG (--clave-api).' : 'Aviso: el archivo de --clave-api falta o está vacío: Core no arrancará hasta que esté.');
+    if (o.ensayo) console.log('Ensayo: el libro del roadmap en /ensayo; la dueña entra desde el PV9 («Core»).');
     console.log('Ctrl+C para parar (Core se cierra con él).');
   } catch (e) {
     console.error('retoques:', e?.message ?? e);

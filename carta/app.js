@@ -70,7 +70,7 @@ const estado = {
   guia: { alta: null, historial: [], borrador: '', pensando: false, pendiente: '', error: '', con: 'guia' },
   // Hablar con Core desde el PV9 (solo con el servidor de retoques, retoques/; carta/guia.js «hablar con Core»): la
   // conversación de este navegador (null hasta cargarla), lo escrito sin mandar, lo señalado y si el próximo toque señala.
-  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false, fondo: null, fondoAbierto: false },
+  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false, fondo: null, fondoAbierto: false, ensayo: null, entrandoEnsayo: false },
   // El 3 por tema (encargo pv3): el botón de cada caja ({ [caja]: 'todos' | 'doy' | 'recibo' }) y el sitio abierto
   // ({ X, lugar }: la cruceta del propio nodo, el personaje del sitio) o null.
   filtrosDelTres: {}, sitio: null,
@@ -466,7 +466,20 @@ function datosCore() {
   if (!c.turnos) {
     c.turnos = guia.cargarCore(almacenLocal()).map((m) => (m.role === 'core' && !m.hecho ? { ...m, hecho: true, error: m.error || t('coreCortado') } : m));
   }
-  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando, fondo: c.fondo, fondoAbierto: c.fondoAbierto };
+  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando, fondo: c.fondo, fondoAbierto: c.fondoAbierto, ensayo: hayQueEntrarEnElEnsayo() ? { entrando: c.entrandoEnsayo } : null };
+}
+
+/** ¿Sirve el servidor de retoques el libro del roadmap (--ensayo) y esta pantalla aún no tiene esa cuenta? */
+const hayQueEntrarEnElEnsayo = () => Boolean(estado.core.ensayo?.alta) && !cuentas.cuentas().some((x) => x.alta === estado.core.ensayo.alta);
+
+/** El ensayo, según el servidor de retoques (GET /retoques/estado: ensayo y el alta de la dueña). */
+async function refrescarEnsayo() {
+  const r = retoques();
+  if (!r?.estado) return;
+  let e = null;
+  try { e = await r.estado(); } catch { /* sin servidor: sin botón */ }
+  estado.core.ensayo = e?.ensayo === true && typeof e.ensayoAlta === 'string' ? { alta: e.ensayoAlta } : null;
+  pintarGuia();
 }
 
 /** La lista de cambios de fondo del servidor de retoques (al cargar y al acabar cada respuesta de Core). */
@@ -1921,6 +1934,43 @@ const manejadores = {
     estado.core.senalado = estado.core.senalado.filter((_, j) => j !== i);
     pintarGuia();
   },
+  /**
+   * «Entrar en el libro del roadmap» (el ensayo): la copia de la cuenta de la dueña que da el servidor de retoques, restaurada
+   * por el camino de siempre (cuentas.restaurarCuenta, el eje del libro compartido, guardarla aquí), abierta y sincronizada.
+   */
+  async coreEnsayo() {
+    const r = retoques();
+    const c = estado.core;
+    if (!r?.ensayoCuenta || c.entrandoEnsayo || !hayQueEntrarEnElEnsayo()) return;
+    Object.assign(c, { entrandoEnsayo: true, error: '' });
+    pintarGuia();
+    try {
+      const { copia, frase } = await r.ensayoCuenta();
+      const rc = await cuentas.restaurarCuenta(copia, frase);
+      const destino = rc.claveLectura ? sincronia.destino(rc.eje, rc.cuenta.identidad) : null;
+      let delLibro = null;
+      let aviso = '';
+      if (destino) {
+        const d = await sinc.ejeDelServidor({ cuenta: rc.cuenta, url: destino.url, eje: destino.eje, claveLectura: rc.claveLectura, foto: rc.eje });
+        if (d.eje) { rc.eje = d.eje; delLibro = d.sincronia; } else aviso = t('noBajaDelServidor', { motivo: d.motivo });
+      }
+      const guardada = await cuentas.guardarCuenta(rc);
+      if (delLibro) cuentas.guardarEstadoSincronia(rc.cuenta.alta, delLibro.serializar());
+      entrarCon(rc);
+      estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: rc.eje.orden.length }) : t('sinAlmacenamiento');
+      estado.exito = t('cuentaRestaurada', { nombre: rc.cuenta.nombre, cuantos: rc.eje.orden.length }) + (delLibro ? ' · ' + t('ejeDelServidor', { cuantos: rc.eje.orden.length }) : '');
+      estado.aviso = aviso;
+      estado.foco = { X: rc.cuenta.alta, pv: 0 };
+      tocar(rc.cuenta.alta, null);
+      marcarNuevos();
+      if (estado.sincronia) void sincronizar();
+      c.entrandoEnsayo = false;
+      await pintar();
+    } catch (e) {
+      Object.assign(c, { entrandoEnsayo: false, error: String(e?.message ?? e) });
+      pintarGuia();
+    }
+  },
   /** Una conversación nueva con Core: la del agente y la de este navegador. */
   async coreNueva() {
     const r = retoques();
@@ -2388,6 +2438,7 @@ async function arrancar() {
     // La lista de cambios de fondo: si está abierta se queda abierta al repintar; se pide al cargar.
     raiz.addEventListener('toggle', (e) => { if (e.target.matches?.('[data-core-fondo]')) estado.core.fondoAbierto = e.target.open; }, true);
     void refrescarFondo();
+    void refrescarEnsayo();
     window.addEventListener('pagehide', guardarSitioDeRetoques);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') guardarSitioDeRetoques(); });
   }

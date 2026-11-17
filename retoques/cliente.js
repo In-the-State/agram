@@ -64,6 +64,12 @@
     async fondo() {
       try { const r = await llamar('/retoques/fondo'); return r.ok ? await r.json() : null; } catch { return null; }
     },
+    /** El ensayo (--ensayo): la copia de la cuenta de la dueña y la frase de este arranque, para restaurarla. */
+    async ensayoCuenta() {
+      const r = await llamar('/retoques/ensayo/cuenta');
+      if (!r.ok) throw new Error('el servidor de retoques no da la cuenta del libro del roadmap (HTTP ' + r.status + ')');
+      return r.json();
+    },
     /** Manda una opinión de «opinar» a retoques/.datos/opiniones.jsonl. → true si llegó. */
     async opinion(opinion) {
       if (!llave) return false;
