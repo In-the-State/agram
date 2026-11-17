@@ -151,3 +151,35 @@ test('volcar: con lo anunciado por debajo de lo que cuesta escribir «commit P»
   assert.deepEqual(inf.avisos, []);
   assert.equal(estacionDe(eje, leerLibro(eje, 'duena', correspondenciaDe(CORR)).tareas.get('a2').id), 'autorizada');
 });
+
+test('volcar con `filas`: solo esas filas; una que cambió en el libro (en pantalla) y no en la tabla no se toca', async () => {
+  const { eje, claves } = await preparar();
+  const opciones = (t, extra = {}) => ({ claves, correspondencia: CORR, t, ...extra });
+  await volcar(eje, TABLA, opciones(DIA(1)));
+  // En pantalla, la cosa Alfa cambia el texto de a2 (otro «anchor here» suyo sobre la tarea, como una corrección); antes,
+  // la dueña le da T del día para escribirlo.
+  const { firmar } = await import('../src/autoridad.js');
+  const { ESCALAS_REALES } = await import('../src/tokens.js');
+  const da = await A.transaccion(eje, PLANTILLAS.dar, { X: eje.alta('Alfa').id, scale: ESCALAS_REALES.indexOf('minuto'), amount: 60 }, 'duena', { t: DIA(2), escala: 'segundo', firmar: (ev) => firmar(ev, claves.duena.privada) });
+  assert.equal(da.ok, true, JSON.stringify(da.motivos));
+  await eje.anadir(da.evento);
+  const a2 = leerLibro(eje, 'duena', correspondenciaDe(CORR)).tareas.get('a2');
+  const tx = await A.transaccion(eje, PLANTILLAS.registro, { X: a2.id, title: 'Revisar los textos, dicho en pantalla', content: ['ref: a2', 'ronda: 2', 'nota: a medias'] }, 'Alfa', { t: DIA(2, 9), firmar: (ev) => firmar(ev, claves.cosas.Alfa.privada) });
+  assert.equal(tx.ok, true, JSON.stringify(tx.motivos));
+  await eje.anadir(tx.evento);
+  // La tabla cambia a1; a2 sigue como estaba en la tabla.
+  const cambiada = [fila('a1', 'Alfa', 'Uno', 'Escribir la guía entera', 'pendiente'), ...TABLA.slice(1)];
+  const sinFiltro = await volcar(eje, cambiada, opciones(DIA(2, 10), { simular: true }));
+  assert.ok(sinFiltro.escritos.some((e) => e.fila === 'a2' && e.tipo === 'correccion'), 'sin filtro, volvería a poner el texto de la tabla en a2');
+  const antes = eje.orden.length;
+  const conFiltro = await volcar(eje, cambiada, opciones(DIA(2, 10), { filas: ['a1'] }));
+  assert.deepEqual(conFiltro.escritos.map((e) => e.fila + ' ' + e.tipo), ['a1 correccion']);
+  assert.equal(eje.orden.length, antes + 1);
+  assert.deepEqual(conFiltro.desaparecen, [], 'las filas fuera del filtro no cuentan como desaparecidas');
+  const libro = leerLibro(eje, 'duena', correspondenciaDe(CORR));
+  assert.equal(libro.tareas.get('a1').texto, 'Escribir la guía entera');
+  assert.equal(libro.tareas.get('a2').texto, 'Revisar los textos, dicho en pantalla', 'la pantalla manda hasta que la tabla diga otra cosa');
+  // Una fila nueva entra aunque sea de una cosa ya dada de alta.
+  const nueva = await volcar(eje, [...cambiada, fila('b2', 'Beta', 'Tres', 'Otra más', 'pendiente')], opciones(DIA(2, 11), { filas: new Set(['b2']) }));
+  assert.deepEqual(nueva.escritos.filter((e) => e.fila).map((e) => e.fila + ' ' + e.tipo), ['b2 tarea', 'b2 propuesta']);
+});
