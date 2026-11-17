@@ -1,0 +1,268 @@
+[
+  [
+    "this goes after"
+  ],
+  [
+    [
+      [
+        "title"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "required"
+      ],
+      [
+        1
+      ],
+      [
+        "goes after",
+        "the title of the record, in plain words"
+      ]
+    ],
+    [
+      [
+        "previous"
+      ],
+      [
+        "ref"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "6"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        2
+      ],
+      [
+        "the tasks this one goes after: references to tasks of this book (of any author), at most 30; none: it no longer depends on anything"
+      ]
+    ],
+    [
+      [
+        "count"
+      ],
+      [
+        "number"
+      ],
+      [
+        "=floor it = it and it >= 0 and it <= 30 and it = count memo.6"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "required"
+      ],
+      [
+        3
+      ],
+      [
+        "=count memo.6",
+        "how many tasks it goes after: the number of references in its 6"
+      ]
+    ],
+    [
+      [
+        "criteria"
+      ],
+      [
+        "text"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "required"
+      ],
+      [
+        4
+      ],
+      [
+        "=first epoch.9.0.1.2",
+        "the closing template, as in any anchored record"
+      ]
+    ],
+    [
+      [
+        "who"
+      ],
+      [
+        "identity"
+      ],
+      [
+        "=it = me"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "required"
+      ],
+      [
+        5
+      ],
+      [
+        "=me",
+        "who writes it: the author of the task"
+      ]
+    ],
+    [
+      [
+        "actions"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"this goes after\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "required"
+      ],
+      [
+        6
+      ],
+      [
+        "this goes after",
+        "the action that wrote it"
+      ]
+    ],
+    [
+      [
+        "type"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"previous tasks\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): parámetro de «this goes after»"
+      ],
+      [
+        "required"
+      ],
+      [
+        7
+      ],
+      [
+        "previous tasks",
+        "the template of the record: previous tasks"
+      ]
+    ]
+  ],
+  [
+    "=\"task\" in (payload(it)).5 and first it.3 = me"
+  ],
+  [
+    [
+      "me"
+    ],
+    [
+      "person"
+    ]
+  ],
+  [
+    "write"
+  ],
+  [
+    "2.6"
+  ],
+  [
+    "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): «esta tarea va después de aquellas» es una precondición para empezar, la condición de la tarea que viene de otros registros: se ancla en su 2.6 (2, con qué condición; 6, de dónde viene). La escribe el autor de la tarea que depende, sobre ella; la anterior puede ser de otro autor (la condición es suya, no del otro). Manda la última: un registro lleva todas las anteriores (sin su 6, ya no depende de nada). Se ofrece solo al autor de una tarea (el tipo «task» en su 5), en modo persona. Su 4 es «write»: no mueve nada más que el coste de escribir. Otro libro, fuera: una referencia solo vale dentro del libro (el suelo de referencias)",
+    "La décupla del registro: 0 el título; 1 cuántas anteriores (las referencias de su 6); 2 el criterio de cierre; 3 quién; 4 «this goes after»; 5 el tipo, «previous tasks»; 6 las anteriores, una referencia por tarea (como mucho 30), al final: sin huecos ni rellenos (VG 13-11, #77). La regla «a task does not go after itself» rechaza la que se nombra a sí misma; los ciclos no los comprueba una regla (el BQL mínimo no recorre): la lectura descarta la arista que cierra el ciclo y lo dice (src/cadenas.js)"
+  ],
+  [
+    "roadmap epoch 0"
+  ],
+  [
+    7,
+    6
+  ],
+  [
+    "this goes after: {me} says that {first it.0} goes after {first memo.1} tasks"
+  ]
+]

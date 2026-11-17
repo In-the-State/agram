@@ -1,0 +1,37 @@
+[
+  [
+    "a task does not go after itself"
+  ],
+  [
+    "this goes after",
+    "ev.6"
+  ],
+  [
+    "=not (\"this goes after\" in (payload(ev)).4) or count ((payload(ev)).6 where it = first ev.6.5) = 0"
+  ],
+  [
+    "ev.3"
+  ],
+  [
+    "mint",
+    "transfer",
+    "lock",
+    "release",
+    "burn"
+  ],
+  [
+    "*"
+  ],
+  [
+    "Core AGRAM 17-11 (encargo «dependencias como cadenas en el 7», P1; decidido por Core AGRAM con VG): una tarea no va después de sí misma: un registro «this goes after» no nombra en su 6 la tarea sobre la que se ancla. Solo se mira cuando la candidata dice la acción en su 4 (el or es perezoso)"
+  ],
+  [
+    "roadmap epoch 0"
+  ],
+  [
+    "after a reserve is spent as it says"
+  ],
+  [
+    "a task does not go after itself: {first ev.3} says that a task goes after itself"
+  ]
+]
