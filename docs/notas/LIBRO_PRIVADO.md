@@ -25,11 +25,11 @@ Que el grande guarda y sella sin leer se declara en el pequeño con lo que ya ha
 
 ## Con qué reglas nace el pequeño
 
-El pequeño nace con **las reglas que rigen en el grande**, no con las de nacimiento del grande: su época es la del grande con los cambios en vigor ya fundidos (`epocaEscritaDe(grande.epoca())`, la época por referencia, `VERSIONES.md` §11). No copia la época fundida: escribe en su apertura la época de nacimiento del grande y, detrás, cada cambio en vigor, y al cargar los vuelve a fundir en orden con la misma función. El resultado es la misma época, con el mismo id, y es su versión de nacimiento: una sola.
+El pequeño nace con **las reglas que rigen en el grande**, no con las de nacimiento del grande: su época es la del grande con los cambios en vigor ya fundidos (`epocaEscritaDe(grande.epoca(), { porReferencia: true })`, la época por referencia, `VERSIONES.md` §11). No copia la época fundida: escribe en su apertura la época de nacimiento del grande (o, si el grande nació con la 0 del código, la nombra por su id y no la escribe) y, detrás, cada cambio en vigor, y al cargar los vuelve a fundir en orden con la misma función. El resultado es la misma época, con el mismo id, y es su versión de nacimiento: una sola. Si el grande no tiene cambios y nació con la 0, el pequeño nace como hoy, nombrando la 0 sin escribir nada.
 
-**Desde ahí decide él.** Sus reglas las cambian sus miembros con su propio gobierno; un cambio que el grande ponga en vigor después no le llega solo (la época «viva» no se construye: pregunta de gobierno para VG, `DISENO_TRAMO_4.md` §3). Si quiere seguirlo, uno de sus miembros lo propone dentro y se aprueba con su umbral. También puede nacer con la época del grande en un punto anterior (`epocaEscritaDe(grande.versiones()[k].version)`): la de antes de un cambio que no acepta.
+**Desde ahí decide él.** Sus reglas las cambian sus miembros con su propio gobierno; un cambio que el grande ponga en vigor después no le llega solo (la época «viva» no se construye: pregunta de gobierno para VG, `DISENO_TRAMO_4.md` §3). Si quiere seguirlo, uno de sus miembros lo propone dentro y se aprueba con su umbral. También puede nacer con la época del grande en un punto anterior (`epocaEscritaDe(grande.versiones()[k].version, { porReferencia: true })`): la de antes de un cambio que no acepta.
 
-Que «this book hangs from» anote ese punto (el registro que puso en vigor el último cambio en el grande) pide un parámetro nuevo en su plantilla, y con él cambiar la época 0: no se ha hecho (`VERSIONES.md` §11, «El punto»).
+Que «this book hangs from» anote ese punto (el registro que puso en vigor el último cambio en el grande) pide un parámetro nuevo en su plantilla, y con él cambiar la época 0: va por el carril de época (`VERSIONES.md` §11, «El punto»).
 
 ## Qué se ve desde fuera
 

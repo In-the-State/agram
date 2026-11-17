@@ -132,7 +132,7 @@ const diezPorUnidad = (epoca) => Number((epoca.registro ?? epoca.payload)?.[1]?.
 const RESUELTAS = new Map();
 function resolverEscrita(escrita) {
   const parte = (p) => idDeRegistro(p.raiz) + ':' + p.registros.map(idDeRegistro).join(',');
-  const llave = [escrita, ...(escrita.cambios ?? [])].map(parte).join('|');
+  const llave = [escrita.base !== undefined ? 'base:' + escrita.base : parte(escrita), ...(escrita.cambios ?? []).map(parte)].join('|');
   if (!RESUELTAS.has(llave)) RESUELTAS.set(llave, cargarEpocaEscrita(escrita));
   return RESUELTAS.get(llave);
 }
@@ -140,16 +140,18 @@ function resolverEscrita(escrita) {
 /**
  * La época escrita que rehacen los registros de la época de un libro, en orden: { raiz, registros } y, si los hay, sus
  * `cambios` (tramo 4, la época por referencia): cada registro de un cambio dice en su contexto a qué cambio pertenece
- * (`cambio`, 1, 2…) y, el primero, que es su raíz (`raizDelCambio`). El orden lo vigila #erroresDeEpoca.
+ * (`cambio`, 1, 2…) y, el primero, que es su raíz (`raizDelCambio`). Si no hay registros de nacimiento (el primero es
+ * ya de un cambio), el libro nació con la época del código que nombra su génesis (`base`, su id): { base, cambios }. El
+ * orden lo vigila #erroresDeEpoca.
  */
-function escritaDeRegistros(eventos) {
+function escritaDeRegistros(eventos, base) {
   const partes = [];
   for (const ev of eventos) {
     const k = ev.contexto?.cambio ?? 0;
     (partes[k] ??= []).push(ev.payload);
   }
   const [nacimiento, ...cambios] = partes;
-  const escrita = { raiz: nacimiento[0], registros: nacimiento.slice(1) };
+  const escrita = nacimiento ? { raiz: nacimiento[0], registros: nacimiento.slice(1) } : { base };
   if (cambios.length) escrita.cambios = cambios.map((p) => ({ raiz: p[0], registros: p.slice(1) }));
   return escrita;
 }
@@ -256,12 +258,17 @@ export class Eje {
     // que trae el código, y no la escribe (los ejes de siempre).
     // Con `cambios` (tramo 4, la época por referencia: { raiz, registros, cambios: [{ raiz, registros }, …] }, la que da
     // epocaEscritaDe de una versión de otro libro), nace con esa época y esos cambios fundidos encima, en orden; también
-    // se escriben, detrás, como registros de la época. Una época cargada (o una versión) vale por su forma escrita.
+    // se escriben, detrás, como registros de la época. Si el libro de arriba nació con una época del código, la forma es
+    // { base: su id, cambios }: el génesis nombra ese id, como el de un libro nacido con ella, y solo se escriben los
+    // cambios (con { base, cambios: [] }, nada: es un génesis sin época). Una época cargada (o una versión) vale por su
+    // forma escrita.
     let escrita = null;
     let cargada = null;
     let cambios = [];
+    let porId = false;
     if (epoca !== undefined && epoca !== null) {
       escrita = Array.isArray(epoca) ? { raiz: epoca, registros: [] } : epoca.escrita || epoca.anterior ? epocaEscritaDe(epoca) : epoca;
+      porId = escrita?.base !== undefined;
       // Con cambios bien formados se carga por la misma caché con que el eje la rehace al completarse la apertura (fundir
       // cada cambio es lo caro: se paga una vez). Sin ellos, como siempre.
       const conCambios = Array.isArray(escrita?.cambios) && escrita.cambios.length > 0 && !erroresDeEpocaEscrita(escrita).length;
@@ -271,10 +278,13 @@ export class Eje {
         return (registros ?? []).filter((r) => !vistos.has(idDeRegistro(r)) && vistos.add(idDeRegistro(r)));
       };
       cambios = (escrita.cambios ?? []).map((c) => ({ raiz: c.raiz, registros: sinRepetir(c.registros) }));
-      escrita = { raiz: escrita.raiz, registros: sinRepetir(escrita.registros) };
+      escrita = porId ? { base: escrita.base } : { raiz: escrita.raiz, registros: sinRepetir(escrita.registros) };
       if (conCambios) cargada = resolverEscrita({ ...escrita, cambios });
     }
     const deLosCambios = cambios.reduce((n, c) => n + 1 + c.registros.length, 0);
+    // El id que nombra el génesis y cuántos registros de época van tras él (ninguno: no escribe su época).
+    const nombrada = porId ? escrita.base : cargada ? cargada.id : EPOCA_0_BTML.id;
+    const aEscribir = porId ? deLosCambios : cargada ? 1 + escrita.registros.length + deLosCambios : 0;
     if (Object.hasOwn(resto, 'tipo')) throw new Error('génesis: no hay tipo (VG, 10-11, B1): persona o cosa se lee de quién escribe el alta; el autor del génesis escribe la suya, es una persona');
     if (emision.some((m) => m?.token === 'P')) throw new Error('génesis: nadie acuña P a mano (mapa §15, «P como peso de criterio»: se retira «P del génesis sobre todo el eje»); el P se obtiene al escribir, al conseguir E y al recibir R');
     const eje = new Eje({ exigirFirmas });
@@ -284,7 +294,7 @@ export class Eje {
       t,
       movimientos: [],
       payload: foco,
-      contexto: { ...contexto, genesis: true, epoca: cargada ? cargada.id : EPOCA_0_BTML.id, ...(cargada ? { epocaEscrita: 1 + escrita.registros.length + deLosCambios } : {}), ...(demostracion ? { demostracion: true } : {}), ...(clave ? { claves: { [identidad]: clave } } : {}) },
+      contexto: { ...contexto, genesis: true, epoca: nombrada, ...(aEscribir ? { epocaEscrita: aEscribir } : {}), ...(demostracion ? { demostracion: true } : {}), ...(clave ? { claves: { [identidad]: clave } } : {}) },
     });
     if (privada) ev = await firmar(ev, privada);
     // La misma regla que al restaurar: si el génesis declara clave, va firmado con ella (GN-1, GN-2).
@@ -292,15 +302,15 @@ export class Eje {
     if (motivos.length) throw new Error('génesis rechazado: ' + motivos.map((m) => m.texto).join('; '));
     if (exigirFirmas && !clave) throw new Error('el génesis debe ir firmado');
     eje.#aplicar(ev);
-    if (cargada) {
+    if (aEscribir) {
       // La apertura: la raíz de la época y, detrás, sus registros, anclados en el génesis por su autor, sin mover nada.
       // Detrás, los de cada cambio (tramo 4): su contexto dice a qué cambio pertenecen (1, 2…) y cuál es su raíz.
       const apertura = [
-        ...[escrita.raiz, ...escrita.registros].map((payload) => ({ payload, mas: {} })),
+        ...(porId ? [] : [escrita.raiz, ...escrita.registros]).map((payload) => ({ payload, mas: {} })),
         ...cambios.flatMap((c, k) => [{ payload: c.raiz, mas: { cambio: k + 1, raizDelCambio: true } }, ...c.registros.map((payload) => ({ payload, mas: { cambio: k + 1 } }))]),
       ];
       for (const { payload, mas } of apertura) {
-        let r = await crearEvento({ autor: identidad, sobre: ev.id, t, movimientos: [], payload, contexto: { epoca: cargada.id, registroDeEpoca: true, ...mas } });
+        let r = await crearEvento({ autor: identidad, sobre: ev.id, t, movimientos: [], payload, contexto: { epoca: nombrada, registroDeEpoca: true, ...mas } });
         if (privada) r = await firmar(r, privada, undefined, { publica: clave });
         await eje.anadir(r);
       }
@@ -1460,7 +1470,6 @@ export class Eje {
     } else if (this.exigirFirmas) errores.push('autor sin clave: ' + g.autor);
     if (errores.length) return errores;
     const idPayload = idDeRegistro(ev.payload);
-    if (x.eventos.length === 0 && idPayload !== x.id) return ['la raíz de la época (' + idPayload.slice(0, 8) + ') no casa con el id que referencia el génesis (' + x.id.slice(0, 8) + ')'];
     // Los cambios (tramo 4, la época por referencia): detrás de la época de nacimiento, cada uno su raíz y sus registros,
     // en orden (1, 2…, sin saltos); su contexto dice a qué cambio pertenece y, el primero, que es su raíz.
     const cambio = ev.contexto?.cambio;
@@ -1468,6 +1477,8 @@ export class Eje {
     if (cambio !== undefined && !(Number.isSafeInteger(cambio) && cambio >= 1)) return ['un registro de un cambio dice en su contexto el número del cambio (1, 2…): «' + String(cambio) + '» no lo es'];
     if (raizDelCambio !== undefined && (raizDelCambio !== true || cambio === undefined)) return ['solo la raíz de un cambio lo dice en su contexto (raizDelCambio: true)'];
     const k = cambio ?? 0;
+    // Si el primero es ya de un cambio, el libro nació con la época del código que nombra el génesis (no la escribe).
+    if (x.eventos.length === 0 && k === 0 && idPayload !== x.id) return ['la raíz de la época (' + idPayload.slice(0, 8) + ') no casa con el id que referencia el génesis (' + x.id.slice(0, 8) + ')'];
     const ultimo = x.eventos.length ? x.eventos[x.eventos.length - 1].contexto?.cambio ?? 0 : 0;
     if (k < ultimo) return ['los cambios van en orden: tras un registro del cambio ' + ultimo + ' no va uno ' + (k ? 'del cambio ' + k : 'de la época de nacimiento')];
     if (k > ultimo + 1) return ['los cambios van en orden y sin saltos: tras ' + (ultimo ? 'el cambio ' + ultimo : 'la época de nacimiento') + ' va el cambio ' + (ultimo + 1) + ', no el ' + k];
@@ -1477,7 +1488,7 @@ export class Eje {
     if (x.contenidos.has(contenido)) return ['registro de la época repetido: ' + idPayload.slice(0, 8)];
     if (x.eventos.length + 1 === x.esperados) {
       try {
-        resolverEscrita(escritaDeRegistros([...x.eventos, ev]));
+        resolverEscrita(escritaDeRegistros([...x.eventos, ev], x.id));
       } catch (err) {
         return ['la época escrita no se carga: ' + err.message];
       }
@@ -1653,7 +1664,7 @@ export class Eje {
         x.eventos.push(ev);
         const k = ev.contexto?.cambio ?? 0;
         x.contenidos.add(k ? k + ':' + idDeRegistro(ev.payload) : idDeRegistro(ev.payload));
-        if (x.eventos.length === x.esperados) this.#epoca = resolverEscrita(escritaDeRegistros(x.eventos));
+        if (x.eventos.length === x.esperados) this.#epoca = resolverEscrita(escritaDeRegistros(x.eventos, x.id));
       }
       return;
     }

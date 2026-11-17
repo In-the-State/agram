@@ -9,7 +9,7 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { Eje } from '../src/eje.js';
 import * as A from '../src/acciones.js';
-import { EPOCA_0_BTML, cargarEpocaEscrita, epocaEscritaDe, idDeRegistro, RAIZ_DE_LA_0_POR_REFERENCIA } from '../src/epocas.js';
+import { EPOCA_0_BTML, IDS_ANTERIORES_DE_LA_0, cargarEpocaEscrita, epocaEscritaDe, idDeRegistro } from '../src/epocas.js';
 import { crearEvento } from '../src/evento.js';
 import { serializar, restaurar } from '../src/persistencia.js';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
@@ -182,22 +182,100 @@ test('época por referencia: la época state como nacimiento y un cambio encima'
   assert.deepEqual(loQueRige(cargarEpocaEscrita(otra)), loQueRige(eje.epoca()));
 });
 
-test('época por referencia: un libro nacido con la 0 del código da RAIZ_DE_LA_0_POR_REFERENCIA, que carga como la 0', async () => {
-  const cero = cargarEpocaEscrita({ raiz: RAIZ_DE_LA_0_POR_REFERENCIA, registros: [] });
-  for (const k of ['reglas', 'condiciones', 'plantillas', 'fila79']) assert.deepEqual(loQueRige(cero)[k], loQueRige(EPOCA_0_BTML)[k], k);
-  assert.equal(cero.nombre, EPOCA_0_BTML.nombre);
-  assert.equal(cero.hereda, B);
-  assert.notEqual(cero.id, B, 'es otra raíz: su id no es el de la 0');
-  // Una versión sobre la 0 del código (un cambio fundido a mano: con la 0 sola, poner en vigor pide firmeza).
-  const cambio = { raiz: raizDeCambio(B, 'más margen', { 7: [M, M, M, [[900], [7200]]] }), registros: [] };
-  const version = V.fundirCambio(EPOCA_0_BTML, cambio).version;
-  const escrita = epocaEscritaDe(version);
-  assert.equal(escrita.raiz, RAIZ_DE_LA_0_POR_REFERENCIA);
-  assert.deepEqual(escrita.registros, []);
-  assert.equal(escrita.cambios.length, 1);
-  const { eje } = await libro({ epoca: escrita, yo: 'bea', t0: T1 });
-  for (const k of ['reglas', 'condiciones', 'plantillas', 'fila79']) assert.deepEqual(loQueRige(eje.epoca())[k], loQueRige(version)[k], k);
-  assert.deepEqual(eje.epoca().registro[7][3][0], [900]);
+/** Dos cambios sobre la 0 del código, fundidos a mano con la misma función (con la 0 sola, poner en vigor pide firmeza). */
+function versionesSobreLa0() {
+  const c1 = { raiz: raizDeCambio(B, 'más margen', { 7: [M, M, M, [[900], [7200]]] }), registros: [] };
+  const c2 = { raiz: raizDeCambio(B, 'un límite', { 2: [{ ref: idDeRegistro(REGLA) }], 7: siete({ ocho: [M, [5]] }) }), registros: [REGLA] };
+  const v1 = V.fundirCambio(EPOCA_0_BTML, c1).version;
+  const v2 = V.fundirCambio(v1, c2).version;
+  assert.ok(v1 && v2);
+  assert.deepEqual([V.erroresDelSuelo(EPOCA_0_BTML, v1), V.erroresDelSuelo(v1, v2)], [[], []]);
+  return { c1, c2, v1, v2 };
+}
+
+test('época por referencia: grande nacido con la 0 del código y dos cambios: el pequeño tiene el mismo id y las mismas reglas, y solo escribe los cambios', async () => {
+  const { v1, v2 } = versionesSobreLa0();
+  const escrita = epocaEscritaDe(v2);
+  assert.deepEqual(Object.keys(escrita), ['base', 'cambios'], 'sin raíz ni registros de nacimiento: el id de la época del código');
+  assert.equal(escrita.base, B);
+  assert.deepEqual(escrita.cambios.map((c) => c.raiz[0][0]), ['más margen', 'un límite']);
+  assert.equal(epocaEscritaDe(v1).cambios.length, 1);
+  const L = await libro({ epoca: escrita, yo: 'bea', t0: T1 });
+  const { eje } = L;
+  assert.equal(eje.epoca().id, B, 'el mismo id de época que arriba');
+  assert.deepEqual(loQueRige(eje.epoca()), loQueRige(v2), 'las mismas reglas');
+  const g = eje.obtener(eje.genesisId);
+  assert.equal(g.contexto.epoca, B, 'el génesis nombra la época del código por su id');
+  assert.equal(g.contexto.epocaEscrita, 3);
+  assert.deepEqual(eje.registrosDeLaEpoca.map((id) => [eje.obtener(id).contexto.cambio, eje.obtener(id).contexto.raizDelCambio ?? false, eje.obtener(id).payload[0][0]]), [[1, true, 'más margen'], [2, true, 'un límite'], [2, false, 'a test limit']], 'solo los registros de los cambios');
+  assert.equal(eje.versiones().length, 1);
+  assert.deepEqual(Object.keys(eje.versiones()[0].version.escrita), ['base', 'cambios']);
+  assert.deepEqual(epocaEscritaDe(eje.epoca()), escrita, 'y quien nazca de él, lo mismo');
+  assert.match((await L.mide(7)).error.message, /a test limit: 7 is above the limit/);
+  const medida = await L.mide(4);
+  assert.ok(medida.ev);
+  // Restaurar, Eje.desde, reordenar y antes(n) dan la misma época.
+  const firma = (e) => [e.epoca().id, loQueRige(e.epoca()), e.versiones().length, e.registrosDeLaEpoca];
+  assert.deepEqual(firma(await restaurar(serializar(eje))), firma(eje));
+  assert.deepEqual(firma(await Eje.desde(eje.orden.map((id) => eje.obtener(id)))), firma(eje));
+  const otro = await Eje.desde(eje.orden.map((id) => eje.obtener(id)));
+  assert.deepEqual((await otro.reordenar([...eje.orden])).rechazados, []);
+  assert.deepEqual(firma(otro), firma(eje));
+  assert.deepEqual(firma(eje.antes(1 + eje.registrosDeLaEpoca.length)), firma(eje));
+  assert.throws(() => eje.antes(eje.registrosDeLaEpoca.length).epoca(), /no está entera en el libro/);
+  // Un cambio propio encima se funde (ponerlo en vigor con la 0 pide la firmeza de la 0: no se recorre aquí) y la forma
+  // sigue por id.
+  const propio = V.comprobarCambio(eje.epoca(), { raiz: raizDeCambio(B, 'subir el límite', { 7: siete({ ocho: [M, [10]] }) }), registros: [] }, 'ordinary');
+  assert.deepEqual(propio.motivos, []);
+  assert.deepEqual(propio.version.registro[7][8][1], [10]);
+  assert.deepEqual(Object.keys(epocaEscritaDe(propio.version)), ['base', 'cambios']);
+  assert.equal(epocaEscritaDe(propio.version).cambios.length, 3);
+});
+
+test('época por referencia: epocaEscritaDe(eje.epoca(), { porReferencia: true }) vale sin condiciones en los tres casos', async () => {
+  const forma = (eje) => epocaEscritaDe(eje.epoca(), { porReferencia: true });
+  // 1. Grande con la 0 del código, sin cambios: { base, cambios: [] }; el pequeño nombra la 0 y no escribe nada,
+  // igual que un génesis sin época.
+  const cero = await Eje.genesis({ identidad: 'ana', foco: ['el libro de ana'], t: T0, demostracion: true });
+  assert.deepEqual(forma(cero), { base: B, cambios: [] });
+  const sinEpoca = await Eje.genesis({ identidad: 'bea', foco: ['el libro de bea'], t: T1, demostracion: true });
+  const pequeno = (await libro({ epoca: forma(cero), yo: 'bea', t0: T1 })).eje;
+  assert.deepEqual(pequeno.orden, sinEpoca.orden);
+  assert.equal(pequeno.epoca(), EPOCA_0_BTML);
+  // Sin la opción, la 0 sigue dando su forma entera (para escribirla en un libro, como hasta ahora).
+  assert.deepEqual(Object.keys(epocaEscritaDe(EPOCA_0_BTML)), ['raiz', 'registros']);
+  assert.equal(idDeRegistro(epocaEscritaDe(EPOCA_0_BTML).raiz), B);
+  // 2. Con la 0 y cambios: la opción no cambia nada (ya es por id).
+  const { v2 } = versionesSobreLa0();
+  assert.deepEqual(epocaEscritaDe(v2, { porReferencia: true }), epocaEscritaDe(v2));
+  // 3. Época escrita, sin y con cambios: lo de siempre.
+  const L = await libro();
+  assert.deepEqual(forma(L.eje), epocaEscritaDe(L.eje.epoca()));
+  assert.deepEqual(Object.keys(forma(L.eje)), ['raiz', 'registros']);
+  await L.enVigor('subir el límite', { 7: siete({ ocho: [M, [10]] }) });
+  assert.deepEqual(Object.keys(forma(L.eje)), ['raiz', 'registros', 'cambios']);
+});
+
+test('época por referencia: una base que es un id anterior de la 0 o un id que el código no conoce resuelve como hoy un génesis que lo nombra (la 0)', async () => {
+  const { c1, c2, v2 } = versionesSobreLa0();
+  for (const base of [IDS_ANTERIORES_DE_LA_0[0], 'ab'.repeat(32)]) {
+    const { eje } = await libro({ epoca: { base, cambios: [c1, c2] }, yo: 'bea', t0: T1 });
+    assert.equal(eje.obtener(eje.genesisId).contexto.epoca, base, 'el génesis nombra ese id');
+    assert.equal(eje.epoca().id, B, 'y se resuelve a la 0, como hoy');
+    assert.deepEqual(loQueRige(eje.epoca()), loQueRige(v2));
+    assert.deepEqual(loQueRige((await restaurar(serializar(eje))).epoca()), loQueRige(v2));
+    // Sin cambios, igual que un génesis viejo que nombra ese id: la 0.
+    const solo = (await libro({ epoca: { base, cambios: [] }, yo: 'cris', t0: T1 })).eje;
+    assert.equal(solo.epoca(), EPOCA_0_BTML);
+    assert.equal(solo.orden.length, 1);
+  }
+  // Mal formada.
+  const abre = (epoca) => Eje.genesis({ identidad: 'bea', foco: ['bea'], t: T1, demostracion: true, epoca });
+  await assert.rejects(abre({ base: 'x', cambios: [c1] }), /«base» es el id de una época que trae el código/);
+  await assert.rejects(abre({ base: B, raiz: EPOCA.raiz, cambios: [c1] }), /una época nombrada por su id \(«base»\) no lleva raíz ni registros/);
+  // Un cambio que no encaja sobre la 0 no abre, con su causa.
+  const ajeno = { raiz: raizDeCambio('cd'.repeat(32), 'de otra', { 7: siete({ ocho: [M, [10]] }) }), registros: [] };
+  await assert.rejects(abre({ base: B, cambios: [ajeno] }), /no abre con el cambio 1 de 1 \(«de otra»\): el cambio no hereda de la época de este libro/);
 });
 
 test('época por referencia: un cambio manipulado (toca el suelo, no hereda, orden cambiado) no abre el libro', async () => {
