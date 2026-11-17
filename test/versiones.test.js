@@ -102,7 +102,7 @@ test('versiones: las constantes casan con la época 0 real (plantillas, posicion
   const suelo = V.sueloDe(EPOCA_0_BTML);
   // 17 reglas del suelo de VG, las 9 del mecanismo del gobierno (anexo de los arreglos, I), las 2 reglas y la plantilla de
   // la salida con lo propio (VG 17-11), las 13 reglas y las 6 plantillas del puente (encargo «el puente, segunda vuelta» y sus arreglos) y 3 posiciones.
-  assert.equal(suelo.length, 51);
+  assert.equal(suelo.length, 53); // + la guarda de la reserva y la plantilla «a reserve» (VG 17-11)
   assert.deepEqual(suelo.slice(-3), ['epoch.7.0', 'epoch.1.3.1', 'epoch.7.2']);
   const reglas = new Set(EPOCA_0_BTML.reglasConId.map((x) => x.regla[0][0]));
   for (const s of suelo.slice(0, 28)) assert.ok(reglas.has(s), s);

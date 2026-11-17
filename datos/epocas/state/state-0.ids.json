@@ -1,7 +1,7 @@
 {
-  "epoca": "8054fd53030d5e5a57f234391e3b9ae4ceab8d125a47752046dcd9663d1156d4",
-  "hereda": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca",
-  "registrosAlPublicar": 65,
+  "epoca": "b88d6c740b931068587f5ba5685ed4417232a820f9bfecb684d650860ef46aca",
+  "hereda": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0",
+  "registrosAlPublicar": 66,
   "reglas": [
     {
       "nombre": "a delivery result comes from whoever delivers",
@@ -52,6 +52,11 @@
       "nombre": "conversation archived",
       "archivo": "conversation-archived.json",
       "id": "a64c0cddc2c7b1db6d147942caf009eb31f7460cf8767f2770c66acddd59bce6"
+    },
+    {
+      "nombre": "conversation quota",
+      "archivo": "conversation-quota.json",
+      "id": "5cec6b9d35ae2de5066618d5d4a7575a357eba9fe9270e0c5ef95de493279242"
     },
     {
       "nombre": "conversation title",
@@ -106,7 +111,7 @@
     {
       "nombre": "who writes a message",
       "archivo": "who-writes-a-message.json",
-      "id": "3532737270774c95da7bb46ef28d5ae614ba4eff753d0b5ea520bc2625c85cfe"
+      "id": "c9f172a446b441e65593b6ff6dc141447d13c71ed8f38ecdc53963e84cf4c4a9"
     }
   ],
   "plantillas": [
@@ -302,7 +307,7 @@
     {
       "nombre": "message in",
       "archivo": "message-in.json",
-      "id": "9003af8a6035fb1caecb0eb789da4f9336004d21e8055ad02a836e0a9552ab7b",
+      "id": "3883eb33449e4828b2f065b3976a4ac6d09a1f95b64cd938f36469b249e86594",
       "ocho": [
         3,
         13
@@ -311,7 +316,7 @@
     {
       "nombre": "message out",
       "archivo": "message-out.json",
-      "id": "5ef7b6363129a91c19d26011b97b700cc6c53262045b9f3884efb6d3d33b5dca",
+      "id": "e26d918a87590dfcc6c9308fcc833d888aabb733cccf54631d187ebdab7c9fb0",
       "ocho": [
         3,
         14
@@ -320,7 +325,7 @@
     {
       "nombre": "message in from an agent",
       "archivo": "message-in-from-an-agent.json",
-      "id": "51c58e8b205331f5f18eb742ada948c123af97531951ae7267530b71511aec48",
+      "id": "55e74b2c17bca14ac3df6a00753cd40920d8568a7b3ca3ff6165bcab3c043b24",
       "ocho": [
         3,
         15
@@ -428,7 +433,7 @@
     {
       "nombre": "archive a conversation",
       "archivo": "archive-a-conversation.json",
-      "id": "7512797985a3b6df17ff7591bdeb0612b73ac67560bc797b8474be8b7bf768d7",
+      "id": "5ad2f44ccab1a6b7b7b900af9181846bd975ec46f3b22399cd4435b75416cce9",
       "ocho": [
         4,
         24

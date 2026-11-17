@@ -1,13 +1,13 @@
 {
-  "id": "8054fd53030d5e5a57f234391e3b9ae4ceab8d125a47752046dcd9663d1156d4",
-  "hereda": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca",
+  "id": "b88d6c740b931068587f5ba5685ed4417232a820f9bfecb684d650860ef46aca",
+  "hereda": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0",
   "raiz": [
     [
       "época state 0",
       "state epoch 0"
     ],
     {
-      "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
     },
     [
       {
@@ -41,6 +41,9 @@
         "ref": "a64c0cddc2c7b1db6d147942caf009eb31f7460cf8767f2770c66acddd59bce6"
       },
       {
+        "ref": "5cec6b9d35ae2de5066618d5d4a7575a357eba9fe9270e0c5ef95de493279242"
+      },
+      {
         "ref": "3c7fcd26f70fe9e68c3959fcbb8cd5bf6fb936064e6d138c918a041e02540043"
       },
       {
@@ -71,21 +74,21 @@
         "ref": "fda51c4bb157e7684c434a622e6dff2cfccbfe867b562696c0d94300ae599321"
       },
       {
-        "ref": "3532737270774c95da7bb46ef28d5ae614ba4eff753d0b5ea520bc2625c85cfe"
+        "ref": "c9f172a446b441e65593b6ff6dc141447d13c71ed8f38ecdc53963e84cf4c4a9"
       }
     ],
     {
-      "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
     },
     [
       {
-        "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       },
       {
-        "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       },
       {
-        "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       },
       [
         [
@@ -143,7 +146,7 @@
       ]
     ],
     {
-      "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
     },
     [
       [
@@ -159,31 +162,31 @@
         "hereda"
       ],
       [
-        "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       ]
     ],
     {
-      "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
     },
     {
-      "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+      "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
     },
     [
       [
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         [
           [
@@ -202,29 +205,29 @@
         ]
       ],
       {
-        "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       },
       [
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         [
           [
@@ -1093,17 +1096,17 @@
         ]
       ],
       {
-        "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       },
       [
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         [
           [
@@ -1816,7 +1819,7 @@
             "template delivery result message: resultado de la entrega: {first (payload(ev)).6.0}",
             "a message names a channel and its interlocutor: {first ev.3} escribe un mensaje en un canal que no está en la lista de la época, o con un interlocutor que no es el de su conversación",
             "a message carries a text or a file: {first ev.3} escribe un mensaje sin texto ni adjunto, con un adjunto que no es ni un sha256 ni «telegram:…», o en respuesta a un mensaje de otra conversación",
-            "who writes a message: {first ev.3} escribe un mensaje que no le toca: en nombre de un interlocutor cuya alta no escribió, como otra persona en el canal de la casa, o uno que sale sin ser el agente de la conversación ni su dueño; o sin la R que lleva: uno que entra sin R de quien escribe para el agente (de otro agente, sin devolver una unidad de R del dueño del agente a ese dueño), uno que sale sin devolver una unidad de R de la persona del otro lado a esa persona, o con R de otro emisor o mandada a otro sitio",
+            "who writes a message: {first ev.3} escribe un mensaje que no le toca: en nombre de un interlocutor cuya alta no escribió, como otra persona en el canal de la casa, o uno que sale sin ser el agente de la conversación ni su dueño; o sin la R que reserva o gasta en esta conversación: uno que entra sin bloquear R de quien escribe en su reserva de aquí para el agente (de otro agente, sin gastar una unidad de R del dueño del agente reservada aquí para él), uno que sale sin gastar una unidad de R de la persona del otro lado reservada aquí para quien escribe, u otros movimientos de R",
             "an archived conversation takes no messages: {first ev.3} escribe en una conversación que está archivada: ya no admite mensajes",
             "a delivery result comes from whoever delivers: {first ev.3} escribe un resultado de entrega que no está sobre un mensaje que sale por un canal de fuera a un interlocutor que dio de alta él, o que no dice ni sent ni failed con su causa",
             "who opens, renames and archives a conversation: {first ev.3} abre una conversación fuera del 1.5 del alta de un agente declarado, sin ser su dueño ni tener su R, o para un interlocutor que no dio de alta, o sin dar al agente una unidad de R suya (una cosa: de su dueño), o con R de otro emisor o mandada a otro sitio; o renombra o archiva una que no abrió y cuyo agente no es suyo",
@@ -1825,6 +1828,7 @@
             "conversation archived: si la conversación está archivada (verdadero) o activa (falso)",
             "messages of: los mensajes de la conversación, por llegada",
             "message count: cuántos mensajes tiene la conversación",
+            "conversation quota: cuántos mensajes puede escribir todavía su agente en la conversación (lo que el otro lado le reservó en ella)",
             "last message: el instante del último mensaje de la conversación",
             "delivery: el resultado vigente de la entrega del mensaje",
             "messages to deliver: los mensajes que salen por un canal de fuera de la conversación y aún no están enviados",
@@ -1866,11 +1870,11 @@
         ]
       ],
       {
-        "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+        "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
       },
       [
         {
-          "ref": "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca"
+          "ref": "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0"
         },
         [
           {
@@ -1937,13 +1941,13 @@
             "ref": "fa42f3956372b82da8e98b5a3be37857b2c559233f728b04a43c68c269850c58"
           },
           {
-            "ref": "9003af8a6035fb1caecb0eb789da4f9336004d21e8055ad02a836e0a9552ab7b"
+            "ref": "3883eb33449e4828b2f065b3976a4ac6d09a1f95b64cd938f36469b249e86594"
           },
           {
-            "ref": "5ef7b6363129a91c19d26011b97b700cc6c53262045b9f3884efb6d3d33b5dca"
+            "ref": "e26d918a87590dfcc6c9308fcc833d888aabb733cccf54631d187ebdab7c9fb0"
           },
           {
-            "ref": "51c58e8b205331f5f18eb742ada948c123af97531951ae7267530b71511aec48"
+            "ref": "55e74b2c17bca14ac3df6a00753cd40920d8568a7b3ca3ff6165bcab3c043b24"
           },
           {
             "ref": "f9f14103ab8bd1d04b39bdc61b7f9db9da1cb35eed79c816b5a30f446e0efb5c"
@@ -1979,7 +1983,7 @@
             "ref": "e7e524d63fb869c7bac724b3b11cc4b0a2e718faf427719f65adf3eb01667dc2"
           },
           {
-            "ref": "7512797985a3b6df17ff7591bdeb0612b73ac67560bc797b8474be8b7bf768d7"
+            "ref": "5ad2f44ccab1a6b7b7b900af9181846bd975ec46f3b22399cd4435b75416cce9"
           },
           {
             "ref": "277e064cb1a4a67656f9beae93c8f13f161b710a0a122abefa325efd5693799f"
@@ -2404,6 +2408,40 @@
     ],
     [
       [
+        "conversation quota"
+      ],
+      [
+        "a reserve",
+        "return"
+      ],
+      [
+        "=count (epoch where (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1)) * sum (((((first (payload(it)).3.1).1 where R in it2.0.0.0 and it2.0.0.1 = first (payload(it)).3.1) each 2) where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and \"a reserve\" in (payload((text(utf8(first it2.0))))).4 and first (text(utf8(first it2.0))).3 = first (payload(it)).3.1 and first (payload((text(utf8(first it2.0))))).3.1 = first (payload(it)).1 and first (text(utf8(first it2.0))).6.5 = first it.5) each 1) + count (epoch where not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1)) * (sum (((((first (payload(it)).3.1).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and \"a reserve\" in (payload((text(utf8(first it2.0))))).4 and first (text(utf8(first it2.0))).3 = first (payload(it)).3.1 and first (payload((text(utf8(first it2.0))))).3.1 = first (payload(it)).1 and first (text(utf8(first it2.0))).6.5 = first it.5) each 1) + sum (((((first (first (first (payload(it)).3.1).6).3).1 where R in it2.0.0.0 and it2.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first (text(utf8(first it2.0))).5 = (text(utf8(first it2.0))) and \"a reserve\" in (payload((text(utf8(first it2.0))))).4 and first (text(utf8(first it2.0))).3 = first (first (first (payload(it)).3.1).6).3 and first (payload((text(utf8(first it2.0))))).3.1 = first (payload(it)).1 and first (text(utf8(first it2.0))).6.5 = first it.5) each 1))"
+      ],
+      [
+        "X"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): con it = una conversación, el cupo de mensajes que le queda a su agente: lo bloqueado de la R de la persona del otro lado (el interlocutor si es una persona; si es una cosa, quien escribió su alta) con la salida en una reserva («a reserve» de la época 0) colgada de la conversación, escrita por quien lo tiene bloqueado (el interlocutor, u otro agente con R de su dueño, o el servicio), que nombra al agente. Cada «message out» gasta una unidad de ahí; lo reservado en otra conversación no cuenta. Sustituye a mirar el saldo de R del agente",
+        "La fórmula sale de datos/epocas/state/ayuda.mjs (formulaDelCupo); la misma cuenta en JS es su función cupo. Coste: la cartera de quien tiene el cupo (una o dos identidades), sin recorrer el libro"
+      ],
+      [
+        "state 0"
+      ],
+      [
+        "after messages to deliver"
+      ],
+      [
+        "conversation quota: how many messages its agent can still write in the conversation (what the other side reserved for it there)"
+      ]
+    ],
+    [
+      [
         "conversation title"
       ],
       [
@@ -2774,7 +2812,7 @@
         "R"
       ],
       [
-        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) and ((count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).1) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).1)) = 0 or not (count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).1).6).3) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).1).6).3) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first ev.3).6).3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).1)) = 0) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and ((count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).3.1) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).3.1)) = 0 or not (count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).3.1).6).3) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (first (first (payload((first ev.6.5))).3.1).6).3) and not (first (payload(ev)).1.0 in epoch.9.0.5.2 and R in it.0.0.0 and transfer in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and it.3.1 = first (payload((first ev.6.5))).3.1)) = 0)"
+        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) and ((count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and lock in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and lock in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0 or not (count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) and not (R in it.0.0.0 and lock in it.4 and it.0.0.1 = first (first (first ev.3).6).3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and ((count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0)) = 0 or not (count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) and not (first (payload(ev)).1.0 in epoch.9.0.5.2 and R in it.0.0.0 and lock in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).3.1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0)"
       ],
       [
         "ev.3"
@@ -2792,7 +2830,8 @@
       [
         "Core AGRAM 17-11 (encargo «los dos canales», VG 17-11 por Core State; cerrado con Core AARPIA), B, quién escribe: «message in» de un canal de fuera, solo quien dio de alta al interlocutor (el autor de su alta, y no él mismo), así que nadie más habla en su nombre; «message in» del canal de la casa (epoch.9.0.5.2), la propia persona, que es su interlocutor (1.1 = quien escribe); «message out», el agente de la conversación (su 1) o el dueño del agente (quien escribió su alta). Con «a message names a channel and its interlocutor», el interlocutor es además el de la conversación",
         "Core AGRAM 17-11 (encargo «los dos canales», punto C, decidido por Core AGRAM al fundir: sin tocar el núcleo ni la 0, el alta con la dotación mínima), 4: el interlocutor de un canal de fuera es además de tipo «interlocutor» (el 5 de su alta), lo que da de alta «register an interlocutor»; cuesta una lectura del alta que la regla ya mira",
-        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), E: la R de cada mensaje, también escrito a mano (los movimientos del propio registro). «message in» escrito por una persona (en la casa, el interlocutor; fuera, el servicio): al menos una unidad de R suya (su emisor es quien escribe), de quien escribe al agente de la conversación (su 1). «message in» escrito por una cosa (otro agente, en la casa): al menos una unidad de R del dueño del agente de la conversación devuelta a ese dueño; puede pasar además al agente R de su propio dueño. «message out»: al menos una unidad de R de la persona del otro lado devuelta a ella (el interlocutor, si es una persona, que escribió su propia alta; si es una cosa, quien escribió su alta: el servicio o el dueño del otro agente), de quien firma; agente con agente (canal de la casa e interlocutor que es una cosa), puede pasar además al interlocutor R del dueño del agente. Fuera de eso, ningún movimiento de R que no sea acuñar la propia (lo que pone en mano quien da R suya): un mensaje que lleva R de otro emisor, o que la manda a otro sitio, no entra. Que nadie mueva R de otro lo dice ya la 0 («nobody moves tokens of others»)"
+        "Core AGRAM 17-11 (encargo «la R en los canales», VG 17-11), E: la R de cada mensaje, también escrito a mano (los movimientos del propio registro). «message in» escrito por una persona (en la casa, el interlocutor; fuera, el servicio): al menos una unidad de R suya (su emisor es quien escribe), de quien escribe al agente de la conversación (su 1). «message in» escrito por una cosa (otro agente, en la casa): al menos una unidad de R del dueño del agente de la conversación devuelta a ese dueño; puede pasar además al agente R de su propio dueño. «message out»: al menos una unidad de R de la persona del otro lado devuelta a ella (el interlocutor, si es una persona, que escribió su propia alta; si es una cosa, quien escribió su alta: el servicio o el dueño del otro agente), de quien firma; agente con agente (canal de la casa e interlocutor que es una cosa), puede pasar además al interlocutor R del dueño del agente. Fuera de eso, ningún movimiento de R que no sea acuñar la propia (lo que pone en mano quien da R suya): un mensaje que lleva R de otro emisor, o que la manda a otro sitio, no entra. Que nadie mueva R de otro lo dice ya la 0 («nobody moves tokens of others»)",
+        "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11: el cupo por conversación): los mensajes ya no entregan R, la reservan. «message in» de una persona: al menos una unidad de R suya BLOQUEADA con la salida en su reserva de esta conversación para el agente («a reserve» de la época 0, colgada de la conversación, solo «return»). «message in» de una cosa (otro agente): al menos una unidad de R del dueño de este agente GASTADA (liberada, vuelve a su titular) de una reserva de esta conversación que la nombra; puede bloquear además R de su dueño en su reserva para el agente. «message out»: al menos una unidad de R de la persona del otro lado gastada de una reserva de esta conversación que nombra a quien escribe (el agente o su dueño); agente con agente, puede bloquear además R del dueño del agente en su reserva para el otro. La reserva que se gasta está colgada de esta conversación: lo reservado en otra no cuenta. Que solo el titular deje gastar lo suyo y de qué modo lo dicen la tercera excepción de «nobody moves tokens of others» y «a reserve is spent as it says», de la 0. La fórmula sale de datos/epocas/state/ayuda.mjs (formulaDeQuienEscribe)"
       ],
       [
         "state 0"
@@ -2801,7 +2840,7 @@
         "after a message carries a text or a file"
       ],
       [
-        "who writes a message: {first ev.3} writes a message it may not write: in the name of an interlocutor whose alta it did not write, as another person on the house channel, or out without being the agent of the conversation or its owner; or without the R it carries: a message in without R of whom writes for the agent (from another agent, without returning a unit of R of the owner of the agent to that owner), a message out without returning a unit of R of the person on the other side to it, or R of another issuer or sent elsewhere"
+        "who writes a message: {first ev.3} writes a message it may not write: in the name of an interlocutor whose alta it did not write, as another person on the house channel, or out without being the agent of the conversation or its owner; or without the R it reserves or spends in this conversation: a message in without locking R of whom writes in its reserve here for the agent (from another agent, without spending a unit of R of the owner of the agent reserved here for it), a message out without spending a unit of R of the person on the other side reserved here for whom writes, or other movements of R"
       ]
     ],
     [
@@ -8815,9 +8854,9 @@
         ]
       ],
       [
-        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and transfer first memo.1.5 R.(me) from me to first (payload(it)).1)",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and transfer 1 R.(first (first (first (payload(it)).1).6).3) from me to first (first (first (payload(it)).1).6).3",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and transfer 1 R.(first (first me.6).3) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and transfer first memo.1.5 R.(first (first me.6).3) from me to first (payload(it)).1)"
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
       ],
       [
         "3"
@@ -9087,8 +9126,8 @@
         ]
       ],
       [
-        "=(count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and transfer 1 R.(first (payload(it)).3.1) from me to first (payload(it)).3.1 or not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and transfer 1 R.(first (first (first (payload(it)).3.1).6).3) from me to first (first (first (payload(it)).3.1).6).3",
-        "=count memo.1.5 > 0 and first memo.1.5 > 0 and (me = first (first (first (payload(it)).1).6).3 and put first memo.1.5 at me.1.(R.(me)).1 or me != first (first (first (payload(it)).1).6).3) and transfer first memo.1.5 R.(first (first (first (payload(it)).1).6).3) from me to first (payload(it)).3.1"
+        "=(count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and release 1 R.(first (payload(it)).3.1) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (payload(it)).3.1) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (payload(it)).3.1) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5) or not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and release 1 R.(first (first (first (payload(it)).3.1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+        "=count memo.1.5 > 0 and first memo.1.5 > 0 and (me = first (first (first (payload(it)).1).6).3 and put first memo.1.5 at me.1.(R.(me)).1 or me != first (first (first (payload(it)).1).6).3) and lock first memo.1.5 R.(first (first (first (payload(it)).1).6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).3.1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5)"
       ],
       [
         "3"
@@ -9358,9 +9397,9 @@
         ]
       ],
       [
-        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and transfer first memo.1.5 R.(me) from me to first (payload(it)).1)",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and transfer 1 R.(first (first (first (payload(it)).1).6).3) from me to first (first (first (payload(it)).1).6).3",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and transfer 1 R.(first (first me.6).3) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and transfer first memo.1.5 R.(first (first me.6).3) from me to first (payload(it)).1)"
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
       ],
       [
         "3"
@@ -12461,7 +12500,7 @@
         ]
       ],
       [
-        "write"
+        "=count ((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me) > 0 and release (sum ((((me.1 where count (it2.2 where first it3.0 = first (((down it) where \"a reserve\" in (payload(it4)).4 and first it4.3 = me) each 5)) > 0) each 2) where first it2.0 = first (((down it) where \"a reserve\" in (payload(it3)).4 and first it3.3 = me) each 5)) each 1)) (first ((me.1 where count (it2.2 where first it3.0 = first (((down it) where \"a reserve\" in (payload(it4)).4 and first it4.3 = me) each 5)) > 0) each 0)) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me) each 5)"
       ],
       [
         "4"

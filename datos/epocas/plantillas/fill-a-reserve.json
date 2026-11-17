@@ -1,0 +1,78 @@
+[
+  ["fill a reserve"],
+  [
+    [
+      ["amount"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"],
+      ["required"],
+      [1],
+      [1, "how much I lock with this reserve as its exit"]
+    ],
+    [
+      ["series"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"],
+      ["required"],
+      [2],
+      ["=R.(me)", "the series I lock (by default, my own R: what I lack of it in hand is minted); T is not locked"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"],
+      ["required"],
+      [4],
+      ["=me", "who fills it: the one who wrote the reserve"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"],
+      ["required"],
+      [5],
+      ["fill a reserve", "the action"]
+    ]
+  ],
+  ["=\"a reserve\" in (payload(it)).4 and first it.3 = me"],
+  [["me"], ["agent"]],
+  [
+    "=first memo.1.1 = R.(me) and put first memo.1.0 at me.1.(R.(me)).1 and lock first memo.1.0 R.(me) from me exit it or first memo.1.1 != R.(me) and lock first memo.1.0 before.4.(first memo.1.1) from me exit it"
+  ],
+  ["1"],
+  [
+    "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): llenar una reserva propia, la plantilla mínima. Lo que se reserva se bloquea con la salida en el id de la reserva (la mecánica de bloqueo de siempre); otras plantillas pueden hacerlo (los mensajes de una conversación de la época state), pero algo tiene que poder llenar una reserva fuera de ellas: agente con agente, el lado del agente al que escriben ha de reservar para el otro antes de su primer mensaje, y ningún mensaje lo hace por él. Se ofrece sobre una reserva escrita por quien mira; ancla en su 1. Con la R propia, pone en mano lo que falte (la primera vez la acuña, y eso quema T real); con otra serie, bloquea lo que tiene",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve; 5 el dígito (o camino) de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["epoch 0"],
+  [1, 31],
+  ["fill a reserve: {me} locks {first ev.1.0} of {first ev.1.1} for {first it.0}"]
+]

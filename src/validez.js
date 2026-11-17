@@ -414,6 +414,19 @@ function recibeLaVuelta(eje, ev, m) {
   return enlace.includes('open a private book here') || enlace.includes('this book hangs from');
 }
 
+/**
+ * Si `m` (una transferencia con salida desde otro titular) gasta una reserva (encargo «reservar en lugar de entregar», VG
+ * 17-11; la tercera excepción de «nobody moves tokens of others», calcada de las dos de arriba): no va hacia `ev.autor`, y
+ * su salida es un registro «a reserve» escrito por `m.de` cuyo payload nombra a `ev.autor` como quien gasta (su 3.1). De
+ * qué modo y a quién lo dice la guarda «a reserve is spent as it says», que es suelo.
+ */
+function gastaUnaReserva(eje, ev, m) {
+  if (m.a === ev.autor || typeof m.salida !== 'string') return false;
+  const reserva = eje.obtener(m.salida);
+  const p = reserva?.payload;
+  return Boolean(reserva) && reserva.autor === m.de && Array.isArray(p) && [p[4]].flat(2).includes('a reserve') && [p[3]?.[1]].flat(2)[0] === ev.autor;
+}
+
 function capaAcreditacion(eje, ev, libro) {
   const r = motivos();
   const esGenesis = ev.contexto?.genesis === true;
@@ -488,8 +501,9 @@ function capaAcreditacion(eje, ev, libro) {
       // aceptando la propia invitación (el suelo de «nobody moves tokens of others»): quien escribe no tiene alta,
       // ancla sobre una invitación de `de` que lo nombra en su 3.1 y lo recoge para sí, con la salida = él.
       // O recibiendo la vuelta de otro libro (encargo «el puente, segunda vuelta»): hacia sí, con la salida en un enlace,
-      // en un «receive from another book».
-      if (m.de !== ev.autor && !aceptaSuInvitacion(libro.eje, ev, m, conAlta) && !recibeLaVuelta(libro.eje, ev, m)) return mal('falla', 'nadie mueve lo ajeno: ' + ev.autor + ' saca lo bloqueado de ' + m.de + ' sin aceptar una invitación suya que lo nombre ni recibir la vuelta de otro libro');
+      // en un «receive from another book». O gastando una reserva de `de` que lo nombra (encargo «reservar en lugar de
+      // entregar», VG 17-11): hacia otro, nunca hacia sí, con la salida en esa reserva.
+      if (m.de !== ev.autor && !aceptaSuInvitacion(libro.eje, ev, m, conAlta) && !recibeLaVuelta(libro.eje, ev, m) && !gastaUnaReserva(libro.eje, ev, m)) return mal('falla', 'nadie mueve lo ajeno: ' + ev.autor + ' saca lo bloqueado de ' + m.de + ' sin aceptar una invitación suya que lo nombre, recibir la vuelta de otro libro ni gastar una reserva suya que lo nombre');
       if (verB(m.de, k, m.salida) < m.cantidad) return mal('falla', 'bloqueado de ' + k + ' en ' + m.de + ' con la salida «' + m.salida + '»: hay ' + verB(m.de, k, m.salida) + ', transfiere ' + m.cantidad);
       ponerB(m.de, k, m.salida, verB(m.de, k, m.salida) - m.cantidad);
       if (m.a !== m.salida) {

@@ -102,14 +102,11 @@
     ]
   ],
   ["=\"conversation with an agent\" in (payload(it)).5 and not (count ((down it) where last (first it2.6).5 = \"4000000000\" and \"archive a conversation\" in (payload(it2)).4 and (first it2.3 = first it.3 or first it2.3 = first (first (first (payload(it)).1).6).3)) > 0) and first (payload(it)).3.1 = me and not (count me.6 = 0 or first (first me.6).3 = me)"],
+  [["me"], ["agent"]],
   [
-    ["me"],
-    ["agent"]
-  ],
-  [
-    "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and transfer 1 R.(me) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and transfer first memo.1.5 R.(me) from me to first (payload(it)).1)",
-    "=not (count me.6 = 0 or first (first me.6).3 = me) and transfer 1 R.(first (first (first (payload(it)).1).6).3) from me to first (first (first (payload(it)).1).6).3",
-    "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and transfer 1 R.(first (first me.6).3) from me to first (payload(it)).1 or count memo.1.5 > 0 and first memo.1.5 > 0 and transfer first memo.1.5 R.(first (first me.6).3) from me to first (payload(it)).1)"
+    "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
+    "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+    "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
   ],
   ["3"],
   [

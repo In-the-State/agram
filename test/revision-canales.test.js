@@ -16,6 +16,7 @@ import { firmar } from '../src/autoridad.js';
 import { serializar, restaurar } from '../src/persistencia.js';
 import { ejemploNodo, N, CLAVES, hora, claveDePrueba } from '../ejemplos/state/nodo.mjs';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
+import { registrosParaUnMensaje, cupo, reservaPara, RESERVA } from '../datos/epocas/state/ayuda.mjs';
 
 const claveDe = (q) => CLAVES[q] ?? claveDePrueba(q);
 const AG = N.agenteCasa;
@@ -46,7 +47,19 @@ async function nodo(desde = 6000) {
   };
   /** El P de `quien` sobre el alta de `de` (en su mirada 3: el que da recibir R de su emisor). */
   const pSobre = (quien, de) => eje.poderSobre(quien, eje.alta(de).id);
-  return { eje, ids, t, intentar, hecho, aMano, persona, pSobre };
+  /** Mete un mensaje con lo que lo precede (la reserva de quien escribe, si falta): registrosParaUnMensaje; da el mensaje. */
+  const meter = async (conv, quien, params) => {
+    let ev;
+    for (const r of registrosParaUnMensaje(eje, conv, quien, params)) ev = await hecho(r.plantilla, conv, r.params, quien);
+    return ev;
+  };
+  /** Lo mismo, sin afirmar: el resultado del mensaje (o del primer registro que no entra). */
+  const intentarMeter = async (conv, quien, params) => {
+    let r;
+    for (const x of registrosParaUnMensaje(eje, conv, quien, params)) if (!(r = await intentar(x.plantilla, conv, x.params, quien)).ok) return r;
+    return r;
+  };
+  return { eje, ids, t, intentar, hecho, aMano, persona, pSobre, meter, intentarMeter };
 }
 
 /** Un movimiento de P de `origen` (por defecto el agente). */
@@ -202,47 +215,67 @@ test('CH1: restaurar, rehacer desde los eventos y reordenar dan los mismos vered
 });
 
 // ---------- CH2 (medio, conocido): sin tope por conversación ----------
+// Arreglado (VG 17-11, encargo «reservar en lugar de entregar»): los mensajes ya no entregan R al agente, la reservan en
+// la conversación («a reserve» de la 0, colgada de ella), y el agente solo gasta de lo reservado en esa conversación.
 
-test('CH2: por Telegram, x escribe 5 veces y el agente escribe 9 veces seguidas a y, que solo abrió y escribió una (la R del servicio de una conversación se gasta en otra)', {
-  todo: 'HALLAZGO CH2 (medio, límite conocido de docs/notas/R_EN_CANALES.md): fuera, toda la R es del servicio, así que «un agente solo escribe a quien le ha dado R» no separa a los interlocutores: lo que da la charla de x paga mensajes no pedidos a y (y a cualquier otro chat del servicio). Daño: mensajes no pedidos a personas de fuera, entregados por el servicio, y el agente acumulando P sobre el servicio sin tope (CH4). Arreglo mínimo: contar por conversación (lo que entra menos lo que sale) en «who writes a message» para los canales de fuera',
-}, async () => {
+test('CH2: por Telegram, x escribe 5 veces y el agente solo escribe a y lo que y reservó en su conversación (la R del servicio de una conversación no se gasta en otra)', async () => {
   const n = await nodo();
   const conv = {};
   for (const q of ['x', 'y']) {
     await n.hecho('register an interlocutor', n.ids.altaServicio, { thing: 'inter-' + q, channel: 'telegram', fingerprint: createHash('sha256').update('revision/' + q).digest('hex') }, N.servicio);
     conv[q] = (await n.hecho('open a conversation', n.ids.agenteCasa, { interlocutor: 'inter-' + q, title: q }, N.servicio)).id;
   }
-  for (let k = 0; k < 5; k++) await n.hecho('message in', conv.x, { channel: 'telegram', text: 'x ' + k }, N.servicio);
-  await n.hecho('message in', conv.y, { channel: 'telegram', text: 'y 0' }, N.servicio);
+  for (let k = 0; k < 5; k++) await n.meter(conv.x, N.servicio, { channel: 'telegram', text: 'x ' + k });
+  await n.meter(conv.y, N.servicio, { channel: 'telegram', text: 'y 0' });
+  assert.deepEqual([cupo(n.eje, conv.x), cupo(n.eje, conv.y)], [5, 1]);
   let aY = 0;
   while (aY < 20 && (await n.intentar('message out', conv.y, { text: 'a y ' + aY }, AG)).ok) aY++;
-  assert.ok(aY <= 2, 'a y, como mucho lo que dio su conversación (abrir y un mensaje): ' + aY);
+  assert.equal(aY, 1, 'a y, lo que reservó su conversación (abrir no cuenta: la R de abrir se entrega, no se reserva)');
+  assert.equal(cupo(n.eje, conv.x), 5, 'lo de x sigue en la conversación de x');
+});
+
+test('el tope por conversación: lo reservado en diez conversaciones no se gasta en una; el agente con cupo 0 no escribe; tampoco a mano', async () => {
+  const n = await nodo();
+  // El operador da al servicio R suya para el precio de abrir diez conversaciones.
+  await n.hecho('admit someone', n.eje.alta(N.operador).id, { whom: N.servicio, amount: 10 }, N.operador);
+  const convs = [];
+  for (let k = 0; k < 10; k++) {
+    await n.hecho('register an interlocutor', n.ids.altaServicio, { thing: 'inter-' + k, channel: 'telegram', fingerprint: createHash('sha256').update('revision/diez/' + k).digest('hex') }, N.servicio);
+    const c = (await n.hecho('open a conversation', n.ids.agenteCasa, { interlocutor: 'inter-' + k }, N.servicio)).id;
+    await n.meter(c, N.servicio, { channel: 'telegram', text: 'hola ' + k });
+    convs.push(c);
+  }
+  assert.deepEqual(convs.map((c) => cupo(n.eje, c)), Array(10).fill(1));
+  const una = convs[0];
+  assert.ok((await n.intentar('message out', una, { text: 'una' }, AG)).ok);
+  assert.equal((await n.intentar('message out', una, { text: 'otra' }, AG)).ok, false, 'cupo 0 en esa conversación: no escribe, aunque haya nueve más en otras');
+  // A mano, gastando lo reservado en otra conversación: no entra.
+  const otra = reservaPara(n.eje, convs[1], N.servicio, AG);
+  const payload = ['message out', [['telegram'], ['inter-0'], ['a mano']]];
+  assert.match(await n.aMano(AG, una, payload, [{ token: 'R', emisor: N.servicio, cantidad: 1, de: N.servicio, a: N.servicio, estado: 'liberacion', salida: otra.id }], '3000000000'), /who writes a message/);
+  assert.deepEqual(convs.map((c) => cupo(n.eje, c)), [0, ...Array(9).fill(1)]);
 });
 
 // ================================ LA PREGUNTA DE VG: EL P, MEDIDO ================================
 
-test('dato: el P del agente sobre quien le da R es un nivel (diez por lo neto recibido de él: recibido menos devuelto) que nunca baja, aunque devuelva toda la R; «le doy 1000»; muchas personas, cada una en su alta', async () => {
+test('dato: el P del agente sobre quien le da R lo da abrir (diez por unidad) y no crece con los mensajes, que reservan y no entregan; «le doy 1000» al abrir sí da diez mil (abrir sigue entregando); muchas personas, cada una en su alta', async () => {
   const n = await nodo();
   const p = 'persona-con-r';
   await n.persona(p);
   const conv = await n.hecho('open a conversation', n.ids.agenteCasa, {}, p);
   assert.equal(n.pSobre(AG, p), 10, 'abrir');
   for (let k = 0; k < 10; k++) {
+    await n.meter(conv.id, p, { text: 'p ' + k });
     await n.hecho('message out', conv.id, { channel: 'house', text: 'r ' + k }, AG);
-    await n.hecho('message in', conv.id, { text: 'p ' + k }, p);
   }
   assert.equal(n.pSobre(AG, p), 10, 'diez vueltas: no crece');
-  // Retiene sin contestar: cada «message in» le da otra.
-  for (let k = 0; k < 3; k++) await n.hecho('message in', conv.id, { text: 'sin respuesta ' + k }, p);
-  assert.equal(n.eje.saldo(AG, 'R:' + p), 4);
-  assert.equal(n.pSobre(AG, p), 40, 'cuatro en la mano: cuarenta');
-  // Las devuelve todas: el P se queda (devolver baja el nivel, no quema).
-  for (let k = 0; k < 4; k++) await n.hecho('message out', conv.id, { channel: 'house', text: 'devuelvo ' + k }, AG);
-  assert.equal(n.eje.saldo(AG, 'R:' + p), 0);
-  assert.equal(n.pSobre(AG, p), 40, 'sin R de p, sigue con cuarenta P sobre su alta');
-  await n.hecho('message in', conv.id, { text: 'otra vez' }, p);
-  assert.equal(n.pSobre(AG, p), 40, 'recibir otra no acuña hasta pasar el nivel ya alcanzado');
-  // «le doy 1000».
+  // Retiene sin contestar: cada «message in» reserva una más en la conversación, no se la da.
+  for (let k = 0; k < 3; k++) await n.meter(conv.id, p, { text: 'sin respuesta ' + k });
+  assert.deepEqual([n.eje.saldo(AG, 'R:' + p), cupo(n.eje, conv.id)], [1, 3]);
+  assert.equal(n.pSobre(AG, p), 10, 'tres reservadas: sigue en diez');
+  await n.meter(conv.id, p, { text: 'le doy 3', give: 3 });
+  assert.equal(n.pSobre(AG, p), 10, '«le doy 3» no da más P');
+  // «le doy 1000» al abrir.
   const mil = 'persona-mil';
   await n.persona(mil);
   await n.hecho('open a conversation', n.ids.agenteCasa, { give: 1000 }, mil);
@@ -257,16 +290,16 @@ test('dato: el P del agente sobre quien le da R es un nivel (diez por lo neto re
   assert.ok(n.eje.poderes(AG).filter((x) => otras.some((q) => x.ambito === n.eje.alta(q).id + '.3')).every((x) => x.cantidad === 10));
 });
 
-test('dato (CH4): por Telegram el P del agente es sobre el servicio y crece con todo el tráfico de todos los chats (sin tope)', async () => {
+test('dato (CH4, cerrado): por Telegram el P del agente sobre el servicio ya no crece con el tráfico: los mensajes que entran reservan en su conversación', async () => {
   const n = await nodo();
   const s = () => n.pSobre(AG, N.servicio);
   const antes = [n.eje.saldo(AG, 'R:' + N.servicio), s()];
-  for (let k = 0; k < 8; k++) await n.hecho('message in', n.ids.conversacionTelegram, { channel: 'telegram', text: 'm ' + k }, N.servicio);
-  const despues = [n.eje.saldo(AG, 'R:' + N.servicio), s()];
-  assert.deepEqual([despues[0] - antes[0], despues[1]], [8, 10 * despues[0]], 'antes ' + JSON.stringify(antes) + ', después ' + JSON.stringify(despues));
+  for (let k = 0; k < 8; k++) await n.meter(n.ids.conversacionTelegram, N.servicio, { channel: 'telegram', text: 'm ' + k });
+  assert.deepEqual([n.eje.saldo(AG, 'R:' + N.servicio), s()], antes, 'ni R ni P de más');
+  assert.equal(cupo(n.eje, n.ids.conversacionTelegram), 8);
 });
 
-test('dato: agente con agente no da P por la R que gira; pero si escribe el dueño el «message out» con «give», el otro agente recibe R de su emisor y gana P sobre el dueño', async () => {
+test('dato: agente con agente, lo que cada lado reserva para el otro no le llega ni da P; el dueño que escribe con «give» reserva igual, y sin una reserva que lo nombre no escribe', async () => {
   const n = await nodo();
   const B = 'agente-de-la-visita';
   const K = claveDe(B);
@@ -276,18 +309,25 @@ test('dato: agente con agente no da P por la R que gira; pero si escribe el due�
   await n.hecho('admit someone', n.eje.alta(N.visita).id, { whom: B, amount: 6 }, N.visita);
   await n.hecho('admit someone', n.eje.alta(N.operador).id, { whom: B, amount: 2 }, N.operador);
   const conv = await n.hecho('open a conversation as an agent', n.ids.agenteCasa, {}, B);
-  const antes = n.pSobre(B, N.operador);
+  const delOperador = await n.hecho(RESERVA, conv.id, { spender: B, modes: 'return' }, N.operador);
+  await n.hecho('fill a reserve', delOperador.id, { amount: 2 }, N.operador);
+  const antes = [n.pSobre(B, N.operador), n.eje.saldo(B, 'R:' + N.operador)];
   for (let k = 0; k < 3; k++) {
-    await n.hecho('message in from an agent', conv.id, { channel: 'house', text: 'B ' + k }, B);
-    await n.hecho('message out', conv.id, { text: 'A ' + k, give: 1 }, AG);
+    await n.meter(conv.id, B, { channel: 'house', text: 'B ' + k, esAgente: true });
+    await n.meter(conv.id, AG, { text: 'A ' + k, give: 1 });
   }
-  assert.equal(n.pSobre(B, N.operador), antes, 'la R del operador que le pasa su agente no da P');
-  await n.hecho('message in from an agent', conv.id, { channel: 'house', text: 'B otra' }, B);
-  await n.hecho('give own R', n.eje.alta(N.operador).id, { amount: 1 }, N.visita); // para que el dueño pueda devolver la de la visita
-  await n.hecho('message out', conv.id, { text: 'escribe el dueño', give: 10 }, N.operador);
-  const neto = n.eje.recibidoDelEmisor(B).find((x) => x.emisor === N.operador).neto;
-  assert.deepEqual([neto, n.pSobre(B, N.operador)], [7, 70], 'la que pasa el dueño viene de su emisor: diez por lo neto (2 de «admit someone» + 10 − 5 devueltas en los «message in from an agent»)');
+  assert.deepEqual([n.pSobre(B, N.operador), n.eje.saldo(B, 'R:' + N.operador)], antes, 'la R del operador que el agente reserva para B no le llega: ni R ni P');
+  // El dueño escribe con «give 10»: sin una reserva de la conversación que lo nombre (para gastar) no entra.
+  assert.equal((await n.intentarMeter(conv.id, N.operador, { text: 'escribe el dueño', give: 10 })).ok, false);
+  // Con ella (B reserva para el operador y la llena con R de su dueño), entra, y lo que da lo reserva para B: B no gana P.
+  const paraElDueno = await n.hecho(RESERVA, conv.id, { spender: N.operador, modes: 'return' }, B);
+  await n.hecho('fill a reserve', paraElDueno.id, { amount: 1, series: 'R:' + N.visita }, B);
+  const sale = await n.meter(conv.id, N.operador, { text: 'escribe el dueño', give: 10 });
+  assert.ok(sale.movimientos.some((m) => m.token === 'R' && m.emisor === N.operador && m.estado === 'bloqueo' && m.cantidad === 10));
+  assert.deepEqual([n.pSobre(B, N.operador), n.eje.saldo(B, 'R:' + N.operador)], antes, '«le doy 10» del dueño no da P al otro agente');
+  assert.equal(cupo(n.eje, conv.id, B), 12, 'los diez del dueño en su reserva para B, más los dos que el agente dejó reservados');
 });
+
 
 // ================================ LO QUE AGUANTA ================================
 
@@ -364,11 +404,13 @@ test('aguanta: una conversación larga (20 vueltas, con «le doy» por medio) re
   const conv = await n.hecho('open a conversation', n.ids.agenteCasa, {}, p);
   const mios = [conv.id];
   for (let k = 0; k < 20; k++) {
+    // Lo que entra reserva (la primera vez, con la reserva de p delante: registrosParaUnMensaje); lo que sale la gasta.
+    for (const r of registrosParaUnMensaje(n.eje, conv.id, p, { text: 'p ' + k, ...(k % 7 === 3 ? { give: 3 } : {}) })) mios.push((await n.hecho(r.plantilla, conv.id, r.params, p)).id);
     mios.push((await n.hecho('message out', conv.id, { channel: 'house', text: 'r ' + k }, AG)).id);
-    mios.push((await n.hecho('message in', conv.id, { text: 'p ' + k, ...(k % 7 === 3 ? { give: 3 } : {}) }, p)).id);
     if (k % 7 === 3) for (let j = 0; j < 2; j++) mios.push((await n.hecho('message out', conv.id, { channel: 'house', text: 'extra ' + k + '.' + j }, AG)).id);
   }
-  const foto = (e) => ({ r: [e.saldo(AG, 'R:' + p), e.saldo(p, 'R:' + p)], p: e.poderSobre(AG, e.alta(p).id), registros: e.orden.length });
+  assert.equal(cupo(n.eje, conv.id), 0);
+  const foto = (e) => ({ r: [e.saldo(AG, 'R:' + p), e.saldo(p, 'R:' + p), e.bloqueado(p, 'R:' + p)], p: e.poderSobre(AG, e.alta(p).id), registros: e.orden.length, cupo: cupo(e, conv.id) });
   const esperada = foto(n.eje);
   assert.deepEqual(foto(await restaurar(serializar(n.eje))), esperada, 'restaurada');
   const desde = await Eje.desde(n.eje.orden.map((id) => n.eje.obtener(id)), { exigirFirmas: true });

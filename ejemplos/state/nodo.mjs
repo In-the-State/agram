@@ -38,6 +38,7 @@ import { Eje } from '../../src/eje.js';
 import { publicaDe, firmar, firmarPosesion } from '../../src/autoridad.js';
 import * as A from '../../src/acciones.js';
 import { epocaState } from '../../datos/epocas/state/generar.mjs';
+import { registrosParaUnMensaje, cupo, RESERVA } from '../../datos/epocas/state/ayuda.mjs';
 
 /** Una clave de prueba derivada de una semilla fija (nada real): { publica, privada } x-only en hexadecimal. */
 export const claveDePrueba = (semilla) => {
@@ -87,6 +88,13 @@ export async function ejemploNodo({ hasta = null } = {}) {
     await eje.anadir(ev);
     if (guarda) ids[guarda] = ev.id;
     return ev;
+  }
+  /** Un mensaje que entra con lo que lo precede (la reserva de quien escribe, si falta): registrosParaUnMensaje. */
+  async function meter(conversacion, quien, params, guarda, guardaReserva) {
+    for (const r of registrosParaUnMensaje(eje, conversacion, quien, params)) {
+      const { X, ...resto } = r.params;
+      await hacer(r.plantilla, X, resto, quien, { guarda: r.plantilla === RESERVA ? guardaReserva : guarda });
+    }
   }
   /** Lo que tiene que rechazarse: se anota el caso y sus motivos; si pasa, el ejemplo falla. */
   async function noPasa(caso, nombre, X, params, quien) {
@@ -201,29 +209,36 @@ export async function ejemploNodo({ hasta = null } = {}) {
     ids[guarda] = (await eje.aceptar(i, K[quien], { t: t() })).id;
   };
   await entra(N.personaCasa, 3, 'altaPersonaCasa');
-  // Por la casa: la persona abre, pregunta (ella es su interlocutor) y el agente responde. Abrir y preguntar le dan al
-  // agente una unidad de R de la persona cada uno (la suya: la pone en mano y, si le falta, la emite); responder le
-  // devuelve una (encargo «la R en los canales»).
+  // Por la casa: la persona abre, pregunta (ella es su interlocutor) y el agente responde. Abrir le da al agente una
+  // unidad de R de la persona (la suya: la pone en mano y, si le falta, la emite). Preguntar no se la da: la reserva
+  // (encargo «reservar en lugar de entregar», VG 17-11): la persona escribe una vez su reserva de la conversación para el
+  // agente («a reserve» de la 0, en «return») y cada mensaje que entra bloquea una unidad de su R con la salida en ella;
+  // responder gasta una, que vuelve a la persona. Qué escribir, en orden, lo dice registrosParaUnMensaje.
   const casa = await hacer('open a conversation', ids.agenteCasa, { title: 'Horario de la tienda' }, N.personaCasa, { guarda: 'conversacionCasa' });
-  await hacer('message in', casa.id, { channel: 'house', text: '¿A qué hora abre la tienda de ejemplo?' }, N.personaCasa, { guarda: 'preguntaCasa' });
+  await meter(casa.id, N.personaCasa, { channel: 'house', text: '¿A qué hora abre la tienda de ejemplo?' }, 'preguntaCasa', 'reservaCasa');
   await hacer('message out', casa.id, { text: 'Abre a las nueve (respuesta del modelo simulado).', 'reply to': ids.preguntaCasa }, N.agenteCasa, { guarda: 'respuestaCasa' });
   // Por Telegram: el servicio da de alta al interlocutor (la huella de su identificador de fuera, nunca el identificador),
   // abre la conversación y escribe lo que entra en su nombre; el agente responde; la primera entrega falla y el reintento
   // sale. El alta del interlocutor («register an interlocutor») es una cosa del servicio sin clave, con su canal y su huella
   // en el 6 y un segundo de T, lo mínimo que la 0 pide para abrir una cuenta. La R la pone el servicio, que es una persona
-  // del libro: abrir y cada mensaje que entra dan al agente una unidad de R del servicio (la primera vez la emite, y eso
-  // quema T real del servicio en el mismo registro); el agente la guarda y su respuesta se la devuelve al servicio (el
-  // interlocutor es una cosa sin clave: no emite ni mueve R).
+  // del libro: abrir da al agente una unidad de R del servicio; cada mensaje que entra la reserva en la reserva del
+  // servicio para el agente en esa conversación (la primera vez la emite, y eso quema T real del servicio en el mismo
+  // registro); la respuesta del agente gasta una, que vuelve al servicio (el interlocutor es una cosa sin clave: no emite ni
+  // mueve R).
   await entra(N.servicio, 5, 'altaServicio');
   await hacer('register an interlocutor', ids.altaServicio, { thing: N.interlocutor, channel: 'telegram', fingerprint: HUELLA }, N.servicio, { guarda: 'interlocutor' });
   const tg = await hacer('open a conversation', ids.agenteCasa, { interlocutor: N.interlocutor }, N.servicio, { guarda: 'conversacionTelegram' });
-  await hacer('message in', tg.id, { channel: 'telegram', text: 'Hola, ¿queda pan?', file: 'telegram:AgAD-ejemplo_0001' }, N.servicio, { guarda: 'entraTelegram' });
+  await meter(tg.id, N.servicio, { channel: 'telegram', text: 'Hola, ¿queda pan?', file: 'telegram:AgAD-ejemplo_0001' }, 'entraTelegram', 'reservaTelegram');
   await hacer('message out', tg.id, { text: 'Sí, hasta las dos.', 'reply to': ids.entraTelegram }, N.agenteCasa, { guarda: 'saleTelegram' });
   await hacer('delivery result', ids.saleTelegram, { result: 'failed', cause: 'el canal no respondió a tiempo' }, N.servicio, { guarda: 'entregaFallida' });
   await hacer('delivery result', ids.saleTelegram, { result: 'sent', reference: 'ref-ejemplo-42' }, N.servicio, { guarda: 'entregaEnviada' });
   // Una conversación renombrada y archivada: ya no admite mensajes.
   const vieja = await hacer('open a conversation', ids.agenteCasa, { title: 'Una prueba' }, N.personaCasa, { guarda: 'conversacionArchivada' });
   await hacer('rename a conversation', vieja.id, { title: 'Una prueba ya resuelta' }, N.personaCasa, { guarda: 'renombre' });
+  // La persona había reservado para el agente en ella («a reserve» y «fill a reserve», una unidad): archivar, como es quien
+  // reservó, retira lo que quede en el mismo registro.
+  const reservaVieja = await hacer(RESERVA, vieja.id, { spender: N.agenteCasa, modes: 'return' }, N.personaCasa, { guarda: 'reservaArchivada' });
+  await hacer('fill a reserve', reservaVieja.id, { amount: 1 }, N.personaCasa);
   await hacer('archive a conversation', vieja.id, {}, N.personaCasa, { guarda: 'archivada' });
   await noPasa('un mensaje en una conversación archivada', 'message in', vieja.id, { channel: 'house', text: '¿Sigue abierta?' }, N.personaCasa);
 
@@ -257,4 +272,5 @@ if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href) {
   const lee = (n, id) => leerRegla(e.lecturas.find((r) => r[0][0] === n), id, new ContextoEje(eje, { epoch: e })).valor.map((x) => x?.id ?? x);
   for (const x of lee('conversations', ids.agenteCasa)) console.log(`conversación «${lee('conversation title', x)}»: ${lee('conversation archived', x)[0] ? 'archivada' : 'activa'}, ${lee('message count', x)} mensajes, ${lee('messages to deliver', x).length} por entregar`);
   console.log(`R que guarda el agente de la casa: ${[N.personaCasa, N.servicio].map((q) => `${eje.saldo(N.agenteCasa, 'R:' + q)} de ${q}`).join(', ')}`);
+  console.log(`cupo del agente: ${[ids.conversacionCasa, ids.conversacionTelegram].map((c) => cupo(eje, c)).join(' en la casa, ')} por Telegram`);
 }

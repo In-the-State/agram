@@ -1,0 +1,107 @@
+[
+  ["a reserve"],
+  [
+    [
+      ["spender"],
+      ["identity"],
+      ["=it != me and count it.6 > 0"],
+      ["me"],
+      ["payload"],
+      ["3.1"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["required"],
+      [1],
+      ["who spends: the identity that may take out what I lock with this reserve as its exit, in the ways it says (a person or a thing with a key, an agent too)"]
+    ],
+    [
+      ["modes"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["required"],
+      [2],
+      [
+        "return",
+        "how it may spend, one or several of: «return» (what it spends is mine again, available), «burn» (it is burned) and «pay» (it goes to someone of the list of payees)"
+      ]
+    ],
+    [
+      ["payees"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["optional"],
+      [3],
+      [
+        "=(\"-\" where count ((payload(ev)).1.2) > 0)",
+        "with «pay», to whom it may pay (identities; never the spender); «-» if there is none and the reserve says until when"
+      ]
+    ],
+    [
+      ["until"],
+      ["text"],
+      ["=count it.0 > 0"],
+      ["me"],
+      ["payload"],
+      ["1.2"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["optional"],
+      [4],
+      ["until when it may spend (optional): an instant; a record dated after it spends nothing"]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["required"],
+      [5],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3.0"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["required"],
+      [6],
+      ["=me", "who reserves: the owner of what is reserved"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"],
+      ["required"],
+      [7],
+      ["a reserve", "the action"]
+    ]
+  ],
+  ["=count (me.1 where it2.1 > 0 and not (T in it2.0.0.0)) > 0"],
+  [["me"], ["agent"]],
+  ["write"],
+  ["1"],
+  [
+    "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11: la pieza genérica, con un solo uso, el cupo de mensajes de una conversación de la época state): reservar en lugar de entregar. La escribe el dueño de lo que se va a reservar, anclada en el uso (cualquier registro, en su 1); su payload nombra en su 3.1 a quien gasta (una identidad), en su 1.0 de qué modo puede gastar (uno o varios de «return», «burn» y «pay»), en su 1.1 a quién puede pagar (con «pay»; nunca a quien gasta) y, opcional, en su 1.2 hasta cuándo. No mueve nada (solo el coste de escribir)",
+    "Llenarla: el dueño bloquea lo suyo con la salida en el id de esta reserva (la mecánica de bloqueo de siempre; no hace falta otra plantilla: basta con que otra la bloquee con esa salida, como los mensajes de una conversación, o un bloqueo a mano). Gastarla: quien gasta libera (return), libera y quema (burn) o transfiere con esa salida a alguien de la lista (pay); lo deciden la tercera excepción de «nobody moves tokens of others» y la guarda «a reserve is spent as it says», que son suelo. Retirar lo no gastado: el dueño libera su propio bloqueo cuando quiera. La T no se bloquea («T is not locked»): no hay reserva de T",
+    "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve o «write» si solo escribe; 5 el dígito (o camino) de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+  ],
+  ["epoch 0"],
+  [1, 30],
+  ["a reserve: {me} reserves for {last ev.3.1} on {first it.0}"]
+]

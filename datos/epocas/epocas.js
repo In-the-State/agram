@@ -476,7 +476,7 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "74b23f3705ffa44dd59fa213c14638ac912c07fdf59ae040f1715f56f8ccecf9"
     },
     {
-      "ref": "2330bdbbcddfa96666b3da5fb27f2cae03f7c341ecb6e3f65175e1b34a09fd39"
+      "ref": "dfd6a554edca4e8473e5a18129c6ac78f8e88bb09f9dc35999972e9f74f5c6e2"
     },
     {
       "ref": "48d6ec72345c79d4b5d6ffd89df8ebd8966480798c862c7152d845f2306540b0"
@@ -717,6 +717,9 @@ export const EPOCA_0_BTML_DATOS = [
     },
     {
       "ref": "099363780e531b5004bb12249ba49f7019aa0150836c69c64e17b7d15512eaf6"
+    },
+    {
+      "ref": "d6364c6134738953dcd1c3145d92fd468b06f8d053ba12e55f5622dc82526742"
     }
   ],
   [
@@ -2359,7 +2362,7 @@ export const EPOCA_0_BTML_DATOS = [
     [
       [
         "governance",
-        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules, readings and templates (by their name) and the positions of the epoch that no change removes or replaces; a record that names «declare a balance» is judged only by the rules of the floor (the way out with what is yours, VG 17-11); the rules and templates that keep what is locked for another book and what is brought from it are floor too (the bridge, second round, VG 17-11); 7 the pieces of governance: what only a governance change changes, adds or removes (the bridge row, epoch.8.9, among them). The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
+        "how the rules of this book change (VG 17-11, state/REPLANTEO_CASCADA.md; encargo A21, agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md §4.1; docs/notas/GOBIERNO.md): a change is a child epoch written in the book with «propose a change», backed by the P of the names with «support a change», approved with «enact a change» when «approved» passes, and put in force with «put a change in force» and the timestamp proof of its approval. 1 the threshold of an ordinary change and 2 that of a governance change, as a part of the pressure of the names (from 0 to 1, the unit of epoch.9.0.0.2; it passes if the support is above it); 3 and 4 the level of firmness (a level of epoch.7.6.1; 0, no proof) that an ordinary and a governance change ask before coming into force (VG 17-11: level 3 and level 4, data each book can change); 5 who counts: names, each one a leaf, an identity with the highest pressure (epoch.9.0.0.4) or «name k» with pressure k; 0, no name: the owner of the book (the author of its genesis) with the highest pressure (a position is never empty); 6 the floor: the rules, readings and templates (by their name) and the positions of the epoch that no change removes or replaces; a record that names «declare a balance» is judged only by the rules of the floor (the way out with what is yours, VG 17-11); the rules and templates that keep what is locked for another book and what is brought from it are floor too (the bridge, second round, VG 17-11); and so are the template «a reserve» and its guard, «a reserve is spent as it says» (reserving instead of giving, VG 17-11); 7 the pieces of governance: what only a governance change changes, adds or removes (the bridge row, epoch.8.9, among them). The text retouches of A20 step 1 do not go through here: only the owner of the book retouches a text"
       ],
       [
         0.5
@@ -2425,6 +2428,8 @@ export const EPOCA_0_BTML_DATOS = [
         "open a private book here",
         "this book hangs from",
         "withdraw a link",
+        "a reserve is spent as it says",
+        "a reserve",
         "epoch.7.0",
         "epoch.1.3.1",
         "epoch.7.2"
@@ -5901,6 +5906,7 @@ export const EPOCA_0_BTML_DATOS = [
           "obligation: cuánta R de esta identidad tienen otros, disponible o bloqueada",
           "only persons mint: {first ev.3} es una cosa (su alta la escribió {first (first ev.3).6.3}), y solo acuñan las personas",
           "P comes down to a thing of another with its owner's yes: {first ev.3} deja P en un registro de otro sin el sí de su dueño para quien se queda con él («let P come down here»)",
+          "a reserve is spent as it says: {first ev.3} saca de una reserva de un modo que no dice (sus modos, a quién pagar, hasta cuándo), o hacia sí",
           "P is repositioned one step at a time: {first ev.3} acuña P que no es un paso de su propio P hacia arriba (una décima) o hacia abajo (una décima más), de un registro a su padre o a un hijo, conservando su origen",
           "P moves within a known scope: {first ((ev.1 where P in it.0.0.0 and not (it.0.0.1 in it.0.0.1.5)) each 0)} no nombra ningún registro del libro",
           "present: el registro quema T real de su autor (una escala que el calendario mide), o es el génesis",
@@ -6409,6 +6415,34 @@ export const EPOCA_0_BTML_DATOS = [
           "template let P come down here param actions label: acción",
           "template let P come down here param actions help: la acción",
           "template let P come down here message: {me} responde {first ev.1.0} a {last ev.3.1} para bajar P a {first it.0}",
+          "template a reserve: una reserva",
+          "template a reserve param spender label: quién gasta",
+          "template a reserve param spender help: quién gasta: la identidad que puede sacar lo que bloqueo con esta reserva como salida, de los modos que dice (una persona o una cosa con clave, también un agente)",
+          "template a reserve param modes label: modos",
+          "template a reserve param modes help: cómo puede gastar, uno o varios de: «return» (lo que gasta vuelve a ser mío, disponible), «burn» (se quema) y «pay» (va a alguien de la lista de a quién pagar)",
+          "template a reserve param payees label: a quién pagar",
+          "template a reserve param payees help: con «pay», a quién puede pagar (identidades; nunca a quien gasta); «-» si no hay nadie y la reserva dice hasta cuándo",
+          "template a reserve param until label: hasta cuándo",
+          "template a reserve param until help: hasta cuándo puede gastar (opcional): un instante; un registro con fecha posterior no gasta nada",
+          "template a reserve param criteria label: criterio",
+          "template a reserve param criteria help: la plantilla de cerrado del registro",
+          "template a reserve param who label: quién",
+          "template a reserve param who help: quién reserva: el dueño de lo que se reserva",
+          "template a reserve param actions label: acción",
+          "template a reserve param actions help: la acción",
+          "template a reserve message: {me} reserva para {last ev.3.1} en {first it.0}",
+          "template fill a reserve: llenar una reserva",
+          "template fill a reserve param amount label: cantidad",
+          "template fill a reserve param amount help: cuánto bloqueo con esta reserva como salida",
+          "template fill a reserve param series label: serie",
+          "template fill a reserve param series help: la serie que bloqueo (por defecto, mi propia R: lo que me falte en mano se acuña); la T no se bloquea",
+          "template fill a reserve param criteria label: criterio",
+          "template fill a reserve param criteria help: la plantilla de cerrado del registro",
+          "template fill a reserve param who label: quién",
+          "template fill a reserve param who help: quién la llena: quien escribió la reserva",
+          "template fill a reserve param actions label: acción",
+          "template fill a reserve param actions help: la acción",
+          "template fill a reserve message: {me} bloquea {first ev.1.0} de {first ev.1.1} para {first it.0}",
           "template return R (ask for attention): devolver R (pedir atención)",
           "template return R (ask for attention) param text label: texto",
           "template return R (ask for attention) param text help: lo que pido",
@@ -7357,6 +7391,12 @@ export const EPOCA_0_BTML_DATOS = [
         },
         {
           "ref": "b62f6e646a382a7cc9418c53f61b1e285e2afdd3e1b2950dc33a629988e8dc10"
+        },
+        {
+          "ref": "a224c061d0a3d120f97abe3ddc26fed29a999879a70819d68e8aba7a8df62316"
+        },
+        {
+          "ref": "a04062120355d44e6573cd05056b1a2c239cf923141fe676fa9578352624b14d"
         },
         {
           "ref": "5602698c40cb49b6e1691ea8b8541a1f3b6f08c1c6df228d2c6d87d34739e4ba"
@@ -9245,6 +9285,49 @@ export const REGLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "a-reserve-is-spent-as-it-says.json",
+    "id": "d6364c6134738953dcd1c3145d92fd468b06f8d053ba12e55f5622dc82526742",
+    "registro": [
+      [
+        "a reserve is spent as it says"
+      ],
+      [
+        "\"a reserve\"",
+        "\"return\"",
+        "\"burn\"",
+        "\"pay\""
+      ],
+      [
+        "=count (ev.1 where (release in it.4 or transfer in it.4) and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3) > 0 and not (count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and (count (payload((text(utf8(it2))))).1.2 = 0 or (first ev.6.0).0 <= (first (payload((text(utf8(it2))))).1.2).0) and (release in it.4 and (\"return\" in (payload((text(utf8(it2))))).1.0 or \"burn\" in (payload((text(utf8(it2))))).1.0 and sum ((ev.1 where burn in it3.4 and it3.0 = it.0 and it3.3.0 = it.3.0) each 1) >= sum ((ev.1 where release in it3.4 and it3.0 = it.0 and it3.3.0 = it.3.0) each 1)) or transfer in it.4 and \"pay\" in (payload((text(utf8(it2))))).1.0 and it.3.1 in (payload((text(utf8(it2))))).1.1 and it.3.1 != first ev.3)) > 0) or burn in it.4 and it.3.0 != first ev.3 and sum ((ev.1 where release in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0 and count (it2.2 where first (text(utf8(it3))).5 = (text(utf8(it3))) and \"a reserve\" in (payload((text(utf8(it3))))).4 and first (text(utf8(it3))).3 = it2.3.0 and first (payload((text(utf8(it3))))).3.1 = first ev.3 and (count (payload((text(utf8(it3))))).1.2 = 0 or (first ev.6.0).0 <= (first (payload((text(utf8(it3))))).1.2).0) and \"burn\" in (payload((text(utf8(it3))))).1.0) > 0) each 1) < sum ((ev.1 where burn in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0) each 1)) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "transfer",
+        "release",
+        "burn"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 17-11 (encargo «reservar en lugar de entregar»): entra la pieza genérica, consumir de lo bloqueado con salida sin recibirlo (tercera excepción de «nobody moves tokens of others»), con un solo uso para probarla, el cupo de mensajes de una conversación de la época state. Esta es su guarda, y es suelo (epoch.7.9.6, con la plantilla «a reserve» que lee): sin ella, quien gasta sacaría lo reservado de un modo que la reserva no dice",
+        "Lo que sale de una reserva (un registro «a reserve» escrito por el titular de lo que se mueve, que nombra en su 3.1 a quien escribe) por mano de quien gasta sale del modo que dice su 1.0: «return», liberarlo (vuelve disponible a su dueño); «burn», liberarlo y quemarlo en el mismo registro (la quema no lleva salida en el núcleo); «pay», transferirlo con esa salida a alguien de su 1.1 (llega bloqueado con la misma salida, y lo suelta quien lo recibe). Si dice hasta cuándo (su 1.2), el instante del registro no lo pasa. Nada va hacia quien gasta. Se lee el payload firmado de la reserva (payload(…)), no lo que otros anclen en ella",
+        "La fórmula sale de datos/epocas/reserva.mjs (formulaDeLaGuarda). Con «burn» y sin «return», el registro ha de quemar de esa serie y de ese titular al menos todo lo que libera de él; una quema desde otro ha de quedar cubierta por lo que libera, a tiempo, de reservas con «burn». docs/notas/RESERVA.md"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        "after P comes down to a thing of another with its owner's yes"
+      ],
+      [
+        "a reserve is spent as it says: {first ev.3} takes out of a reserve in a way it does not say (its modes, its payees, until when), or towards itself"
+      ]
+    ]
+  },
+  {
     "archivo": "a-send-is-received-once-by-whom-it-names.json",
     "id": "1057c6b4738e6c2bd6c15d2495e0d1b55b222bcd796f8862bbf8abef682f8e7f",
     "registro": [
@@ -10924,7 +11007,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "nobody-moves-tokens-of-others.json",
-    "id": "2330bdbbcddfa96666b3da5fb27f2cae03f7c341ecb6e3f65175e1b34a09fd39",
+    "id": "dfd6a554edca4e8473e5a18129c6ac78f8e88bb09f9dc35999972e9f74f5c6e2",
     "registro": [
       [
         "nobody moves tokens of others"
@@ -10935,7 +11018,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "\"receive from another book\""
       ],
       [
-        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1) and not (transfer in it.4 and it.3.1 = first ev.3 and \"receive from another book\" in (payload(ev)).4 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0)) = 0"
+        "=count (ev.1 where (transfer in it.4 or lock in it.4 or release in it.4 or burn in it.4) and it.3.0 != first ev.3 and not (transfer in it.4 and count (first ev.3).6 = 0 and it.3.1 = first ev.3 and first ev.3 in it.2 and \"invitation\" in (payload(first (first ev.6).5)).0 and first (first (first ev.6).5).3 = it.3.0 and first ev.3 in (payload(first (first ev.6).5)).3.1) and not (transfer in it.4 and it.3.1 = first ev.3 and \"receive from another book\" in (payload(ev)).4 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and (\"open a private book here\" in (payload((text(utf8(it2))))).4 or \"this book hangs from\" in (payload((text(utf8(it2))))).4)) > 0) and not ((release in it.4 or transfer in it.4) and it.3.1 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3) > 0 or burn in it.4 and sum ((ev.1 where release in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0 and count (it2.2 where first (text(utf8(it3))).5 = (text(utf8(it3))) and \"a reserve\" in (payload((text(utf8(it3))))).4 and first (text(utf8(it3))).3 = it2.3.0 and first (payload((text(utf8(it3))))).3.1 = first ev.3) > 0) each 1) >= sum ((ev.1 where burn in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0) each 1))) = 0"
       ],
       [
         "ev.3"
@@ -16180,6 +16263,485 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         "give T to a thing of mine: {me} gives {first ev.1.1} T of scale {first ev.1.0} to {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "a-reserve.json",
+    "id": "a224c061d0a3d120f97abe3ddc26fed29a999879a70819d68e8aba7a8df62316",
+    "registro": [
+      [
+        "a reserve"
+      ],
+      [
+        [
+          [
+            "spender"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "=it != me and count it.6 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "who spends: the identity that may take out what I lock with this reserve as its exit, in the ways it says (a person or a thing with a key, an agent too)"
+          ]
+        ],
+        [
+          [
+            "modes"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "return",
+            "how it may spend, one or several of: «return» (what it spends is mine again, available), «burn» (it is burned) and «pay» (it goes to someone of the list of payees)"
+          ]
+        ],
+        [
+          [
+            "payees"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            3
+          ],
+          [
+            "=(\"-\" where count ((payload(ev)).1.2) > 0)",
+            "with «pay», to whom it may pay (identities; never the spender); «-» if there is none and the reserve says until when"
+          ]
+        ],
+        [
+          [
+            "until"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=count it.0 > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            4
+          ],
+          [
+            "until when it may spend (optional): an instant; a record dated after it spends nothing"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            6
+          ],
+          [
+            "=me",
+            "who reserves: the owner of what is reserved"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            7
+          ],
+          [
+            "a reserve",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=count (me.1 where it2.1 > 0 and not (T in it2.0.0.0)) > 0"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11: la pieza genérica, con un solo uso, el cupo de mensajes de una conversación de la época state): reservar en lugar de entregar. La escribe el dueño de lo que se va a reservar, anclada en el uso (cualquier registro, en su 1); su payload nombra en su 3.1 a quien gasta (una identidad), en su 1.0 de qué modo puede gastar (uno o varios de «return», «burn» y «pay»), en su 1.1 a quién puede pagar (con «pay»; nunca a quien gasta) y, opcional, en su 1.2 hasta cuándo. No mueve nada (solo el coste de escribir)",
+        "Llenarla: el dueño bloquea lo suyo con la salida en el id de esta reserva (la mecánica de bloqueo de siempre; no hace falta otra plantilla: basta con que otra la bloquee con esa salida, como los mensajes de una conversación, o un bloqueo a mano). Gastarla: quien gasta libera (return), libera y quema (burn) o transfiere con esa salida a alguien de la lista (pay); lo deciden la tercera excepción de «nobody moves tokens of others» y la guarda «a reserve is spent as it says», que son suelo. Retirar lo no gastado: el dueño libera su propio bloqueo cuando quiera. La T no se bloquea («T is not locked»): no hay reserva de T",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve o «write» si solo escribe; 5 el dígito (o camino) de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        1,
+        30
+      ],
+      [
+        "a reserve: {me} reserves for {last ev.3.1} on {first it.0}"
+      ]
+    ]
+  },
+  {
+    "archivo": "fill-a-reserve.json",
+    "id": "a04062120355d44e6573cd05056b1a2c239cf923141fe676fa9578352624b14d",
+    "registro": [
+      [
+        "fill a reserve"
+      ],
+      [
+        [
+          [
+            "amount"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            1,
+            "how much I lock with this reserve as its exit"
+          ]
+        ],
+        [
+          [
+            "series"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=R.(me)",
+            "the series I lock (by default, my own R: what I lack of it in hand is minted); T is not locked"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "=me",
+            "who fills it: the one who wrote the reserve"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): parámetro de «fill a reserve»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "fill a reserve",
+            "the action"
+          ]
+        ]
+      ],
+      [
+        "=\"a reserve\" in (payload(it)).4 and first it.3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "agent"
+        ]
+      ],
+      [
+        "=first memo.1.1 = R.(me) and put first memo.1.0 at me.1.(R.(me)).1 and lock first memo.1.0 R.(me) from me exit it or first memo.1.1 != R.(me) and lock first memo.1.0 before.4.(first memo.1.1) from me exit it"
+      ],
+      [
+        "1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «reservar en lugar de entregar», VG 17-11): llenar una reserva propia, la plantilla mínima. Lo que se reserva se bloquea con la salida en el id de la reserva (la mecánica de bloqueo de siempre); otras plantillas pueden hacerlo (los mensajes de una conversación de la época state), pero algo tiene que poder llenar una reserva fuera de ellas: agente con agente, el lado del agente al que escriben ha de reservar para el otro antes de su primer mensaje, y ningún mensaje lo hace por él. Se ofrece sobre una reserva escrita por quien mira; ancla en su 1. Con la R propia, pone en mano lo que falte (la primera vez la acuña, y eso quema T real); con otra serie, bloquea lo que tiene",
+        "Molde (encargo 3c-2a): 0 nombre; 1 los parámetros que pide (cada uno como una posición de una plantilla de datos: 0 etiqueta, 1 tipo, 2 validación «=…» con it = el valor, 3 quién lo da, 4 qué se hace con él, 5 dónde va en el registro que escribe, 6 de dónde viene, 7 required u optional, 8 orden, 9 los defectos y, la última hoja, la ayuda); 2 cuándo se ofrece (BQL con it = X y me = quien mira); 3 quién la lanza; 4 lo que mueve; 5 el dígito (o camino) de X donde ancla; 6 procedencia; 7 época; 8 [punto de vista, orden]; 9 mensaje"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        1,
+        31
+      ],
+      [
+        "fill a reserve: {me} locks {first ev.1.0} of {first ev.1.1} for {first it.0}"
       ]
     ]
   },
@@ -27497,7 +28059,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "cd02ea5008d4c568ea8ee36b310388069bc95063d009dda42972f897e055ffca";
+export const EPOCA_0_BTML_ID = "bdbeb30616fc73540f3169cb07665795b6edaabadaa79505bd8a64c41afd1ea0";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [
