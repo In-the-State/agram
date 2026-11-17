@@ -23,7 +23,7 @@
 // «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida } from './dom.js';
 import { instalar } from './gestos.js';
@@ -46,6 +46,7 @@ import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
 import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMovibles, proponer as proponerCambio, ajustesDelElemento, conGobierno } from './reglas.js';
 import * as puente from './puente.js';
+import * as guiasCarta from './guias.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -756,7 +757,7 @@ async function pintar() {
     if (!estado.eje) usarRetoques(null); // sin libro, los textos de la carta tal como nacieron (arbol instala los de cada libro)
     if (estado.eje) {
       try {
-        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: externa.sugerenciasDe(propuestasPendientes()), firmar: firmarParaVer(estado.identidad), ...(estado.cuenta ? { libros: librosDelArbol() } : {}) });
+        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: sugerenciasDelCamino(), pasosDeLaGuia: pasosDeLaGuiaDelFoco, firmar: firmarParaVer(estado.identidad), ...(estado.cuenta ? { libros: librosDelArbol() } : {}) });
       } catch (e) {
         a = { vacio: true, avisos: [t('noSePinta', { motivo: e.message ?? e })] };
         console.error(e);
@@ -929,6 +930,72 @@ const misEntradas = () => (estado.cuenta ? cuentas.cuentas().filter((c) => cuent
 /** ¿Firma la cuenta abierta? (una del navegador con su clave, o una del guardián que no está solo para leer) */
 const firmaLaCuenta = () => Boolean(estado.cuenta && (estado.cuenta.guardian === true ? estado.cuenta.firmante : estado.cuenta.privada));
 /** Lo que el árbol sabe de mis libros (carta.js opciones.libros): las entradas de mi clave, si puedo abrir uno privado y si el anfitrión da claves. */
+// ---------- las zonas de la cara y la guía mínima (carta/guias.js; DISENO_ZONAS_GUIA §4) ----------
+
+/** Los ejes de mis otros libros en este dispositivo, leídos una vez mientras su texto guardado no cambie. */
+const librosDelDispositivo = new guiasCarta.LibrosDelDispositivo({ clave: cuentas.CLAVES.eje, restaurar: persistencia.restaurar });
+/** De qué libro (el alta de su entrada; null: el abierto) es la guía de cada paso que salió en el 9: a ella se vuelve al tocarlo. */
+const guiaDePaso = new Map();
+/** El libro abierto como lo leen las guías: su alta (null en un ejemplo) y su eje, lo último y no lo guardado. */
+const libroAbierto = () => ({ alta: estado.cuenta?.alta ?? null, eje: estado.eje });
+
+/**
+ * El gancho `sugerencias` del camino: las propuestas importadas (carta/externa.js) y los pasos de mis guías (la tercera
+ * fuente con las guías de los libros de mi clave en este dispositivo, con sus topes: carta/guias.js). En un ejemplo, las
+ * guías del propio libro.
+ */
+function sugerenciasDelCamino() {
+  const importadas = externa.sugerenciasDe(propuestasPendientes());
+  const entradas = estado.cuenta ? misEntradas() : [{ alta: null }];
+  const deGuias = guiasCarta.sugerenciasDeMisGuias({ entradas, libros: librosDelDispositivo, actual: libroAbierto(), idioma: idioma(), deDonde: (id, alta) => guiaDePaso.set(id, alta) });
+  return async (eje, ev, yo) => [...((await importadas(eje, ev, yo)) ?? []), ...(await deGuias(eje, ev, yo))];
+}
+
+/** El camino de la guía X en su libro (si X es una guía): sus pasos con el estado leído en cada libro de este dispositivo. */
+async function pasosDeLaGuiaDelFoco(eje, X) {
+  if (!contrato.pasosDeGuia(eje, X).length) return null;
+  const entradas = estado.cuenta ? misEntradas() : [];
+  const yoDe = (entrada) => (entrada.alta === (estado.cuenta?.alta ?? null) ? estado.identidad : entrada.identidad ?? null);
+  return guiasCarta.estadoDeLosPasos(eje, X, { entradas, libros: librosDelDispositivo, actual: libroAbierto(), yoDe, decir: (k, p) => t(k, p), opciones: { idioma: idioma() } });
+}
+
+/**
+ * Seguir un paso de una guía (tocarlo en el 9, en el camino de su guía o en una zona que lleva a él): va al libro del
+ * paso (si está en este dispositivo; si no, lo dice) y a su registro (sin registro, mi alta en ese libro) y abre el
+ * formulario normal de su acción con los parámetros rellenos y editables, como «modificar» de una propuesta importada,
+ * con lo que ahora no pasaría dicho en él. Un paso inválido sale con su motivo. Nunca firma, escribe ni lanza: lanzar es
+ * el gesto de siempre. `guiaAlta`: el alta del libro de la guía (null: el abierto).
+ */
+async function seguirPasoDeGuia(guiaAlta, pasoId) {
+  limpiarMensajes();
+  const abierto = libroAbierto();
+  const ejeGuia = guiaAlta === null || guiaAlta === abierto.alta ? abierto.eje : await librosDelDispositivo.eje(guiaAlta);
+  const hallado = ejeGuia ? guiasCarta.pasoDelLibro(ejeGuia, pasoId) : null;
+  if (!hallado) { estado.aviso = t('guiaPasoNoEsta'); pintar(); return; }
+  const { paso, guia: deLaGuia } = hallado;
+  const libro = paso.libro ?? ejeGuia.genesisId;
+  if (libro !== estado.eje.genesisId) {
+    const entrada = await guiasCarta.libroDeEntrada(libro, { entradas: estado.cuenta ? misEntradas() : [], libros: librosDelDispositivo, actual: abierto });
+    if (!entrada) { estado.aviso = t('guiaPasoInvalidoPor', { motivo: t('guiaLibroNoEsta') }); pintar(); return; }
+    if (!(await entrarEnCuenta(entrada.alta))) return;
+  }
+  const yo = estado.identidad;
+  const X = paso.sobre ?? estado.eje.alta(yo)?.id ?? null;
+  if (!X || !estado.eje.obtener(X)) { estado.aviso = t('guiaPasoInvalidoPor', { motivo: t('guiaPasoSinRegistro') }); pintar(); return; }
+  // La guía, vista desde el libro donde se hace el paso (el mismo eje si es el mismo libro): sus parámetros, leídos con su tipo.
+  const guiaEje = ejeGuia.genesisId === estado.eje.genesisId ? estado.eje : ejeGuia;
+  const s = contrato.sugerenciasDeGuia(guiaEje, estado.eje, X, yo, { idioma: idioma() }).find((x) => x.id === pasoId);
+  irA(X, 0);
+  if (!s) { estado.aviso = t('guiaPasoNoEsta'); pintar(); return; }
+  if (s.invalida) { estado.aviso = t('guiaPasoInvalidoPor', { motivo: s.invalida }); pintar(); return; }
+  const v = await validarSinFirmar(estado.eje, s.sobre, s.plantilla, s.parametros ?? {}, yo);
+  estado.formulario = { X: s.sobre, accion: s.plantilla, valores: s.parametros ?? {}, motivos: v.ok ? [] : motivosConGuardian(motivosEnLlano(v.motivos, estado.eje)), resultado: null };
+  estado.aro = null;
+  estado.exito = t('guiaPasoAbierto', { guia: deLaGuia.titulo ?? '' });
+  tocar(s.sobre, 'lanzar ' + canonicoDe(s.plantilla));
+  pintar();
+}
+
 const librosDelArbol = () => ({ propios: misEntradas(), puedeAbrir: firmaLaCuenta(), puedeAnunciar: estado.cuenta?.guardian === true && Boolean(estado.cuenta.firmante) && puedeDarClavesDeLinea(guardian) });
 /** ¿Tiene destino de sincronía ese libro? El abierto, si sincroniza; los demás, si guardaron su estado de sincronía y tienen clave de lectura. */
 const conDestino = (alta) => (alta === estado.cuenta?.alta ? Boolean(estado.sincronia) : Boolean(cuentas.claveLectura(alta) && cuentas.estadoSincronia(alta)?.url));
@@ -2231,6 +2298,38 @@ const manejadores = {
     limpiarMensajes();
     tocar(e.sobre, 'lanzar ' + canonicoDe(e.accion));
     pintar();
+  },
+  /**
+   * Tocar una zona de la cara (DISENO_ZONAS_GUIA §4): se vuelve a leer la zona en el libro (nunca del DOM). Si lleva a un
+   * paso de una guía, es seguir ese paso; a otro registro de este libro, el foco va a él; a un registro de otro libro, se
+   * entra en ese libro con el foco en él si está en este dispositivo, y si no, se dice. Nunca firma, escribe, lanza ni
+   * pide nada a la red.
+   */
+  async zona(X, id) {
+    if (!estado.eje || !X || !id) return;
+    const z = contrato.zonas(estado.eje, X).find((x) => x.id === id);
+    if (!z) { limpiarMensajes(); estado.aviso = t('zonaNoEsta'); pintar(); return; }
+    const { libro, registro } = z.destino;
+    if (libro === null) {
+      if (guiasCarta.pasoDelLibro(estado.eje, registro)) return seguirPasoDeGuia(null, registro);
+      return irA(registro, 0);
+    }
+    const entrada = await guiasCarta.libroDeEntrada(libro, { entradas: estado.cuenta ? misEntradas() : [], libros: librosDelDispositivo, actual: libroAbierto() });
+    if (!entrada) { limpiarMensajes(); estado.aviso = t('zonaLibroNoEsta'); pintar(); return; }
+    const ejeDestino = await librosDelDispositivo.eje(entrada.alta);
+    if (ejeDestino && guiasCarta.pasoDelLibro(ejeDestino, registro)) return seguirPasoDeGuia(entrada.alta, registro);
+    limpiarMensajes();
+    await entrarEnCuenta(entrada.alta, { foco: registro });
+  },
+  /** Tocar un paso de una de mis guías en el 9: seguirlo (el formulario de su acción, relleno). */
+  guiaPaso(id) {
+    if (!id) return;
+    return seguirPasoDeGuia(guiaDePaso.has(id) ? guiaDePaso.get(id) : null, id);
+  },
+  /** Tocar un paso en el camino de su guía (en el libro de la guía): seguirlo, en el libro donde se hace. */
+  guiaSeguir(id) {
+    if (!id) return;
+    return seguirPasoDeGuia(null, id);
   },
   /** Una de las preguntas hechas de la época (los botones rápidos). */
   guiaRapida(i) {

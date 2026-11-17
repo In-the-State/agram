@@ -213,6 +213,10 @@ export function instalar(raiz, m) {
     if ((el = b('[data-core-quitar]'))) { e.preventDefault(); m.coreQuitar?.(Number(el.dataset.coreQuitar)); return; }
     if ((el = b('[data-core-nueva]'))) { e.preventDefault(); if (!el.disabled) m.coreNueva?.(); return; }
     if ((el = b('[data-core-ensayo]'))) { e.preventDefault(); if (!el.disabled) m.coreEnsayo?.(); return; }
+    // Las zonas de la cara y los pasos de una guía (carta/guias.js): solo navegan o abren un formulario relleno.
+    if ((el = b('[data-zona]'))) { e.preventDefault(); m.zona?.(el.dataset.x ?? xDe(el), el.dataset.zona); return; }
+    if ((el = b('[data-guia-paso]'))) { e.preventDefault(); m.guiaPaso?.(el.dataset.guiaPaso); return; }
+    if ((el = b('[data-guia-seguir]'))) { e.preventDefault(); m.guiaSeguir?.(el.dataset.guiaSeguir); return; }
     for (const que of ['aceptar', 'modificar', 'rechazar']) {
       if ((el = b(`[data-propuesta-${que}]`))) { e.preventDefault(); m.propuesta?.(que, el.dataset[`propuesta${que[0].toUpperCase()}${que.slice(1)}`]); return; }
     }
