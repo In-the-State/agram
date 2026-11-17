@@ -865,6 +865,10 @@ export const TEXTOS = Object.freeze({
     // «Ajustes de este elemento» (A21, diseño §7; carta/reglas.js ajustesDelElemento)
     ajustesElemento: 'Ajustes de este elemento',
     ajustesElementoTitulo: 'lo que este elemento tiene fijado y lo que toma de las reglas del libro',
+    ajustesDeMiAlta: 'Ajustes de mi alta',
+    ajustesDeMiAltaTitulo: 'lo que tu alta tiene fijado y lo que toma de las reglas del libro',
+    ajustesDelFoco: 'Ajustes de «{que}»',
+    ajustesDelFocoTitulo: 'lo que «{que}», el elemento en foco, tiene fijado y lo que toma de las reglas del libro (y, si es tuyo, a quién dejas bajar su P)',
     ajustesFijado: 'Fijado aquí',
     ajustesNadaFijado: 'Nada fijado aquí: todo viene del libro o de más arriba.',
     ajustesHeredado: 'De las reglas del libro',

@@ -2012,16 +2012,28 @@ function celdasDeConversacion(eje, R, pv, d, g, ctx, opciones) {
   return { celdas, vacia: celdas.every((x) => x.vacio), pagina: null, columnas: 1, filas: Math.max(1, celdas.length), persona: { identidad: c.persona, texto: c.texto, caja: c.caja, nombre: c.nombre, alta: R, agenteDe: agenteDe(eje, c.persona, ctx.opciones) } };
 }
 
+/** Un texto en una línea, cortado en `n` caracteres con «…» si es más largo. */
+const recortado = (texto, n) => {
+  const s = String(texto ?? '').replace(/\s+/g, ' ').trim();
+  return s.length > n ? s.slice(0, n - 1).trimEnd() + '…' : s;
+};
+
 /**
  * El personaje del sitio (encargo pv3, VG 12-11, issue #38): la cruceta del propio nodo X.<lugar> (acciones.sitio), con
  * sus diez posiciones en la geometría de la cruz (1-4 en las esquinas, 6-9 en la cruz, 0 y 5 en el centro), cada una
  * con su nombre, su valor y la acción que la configura (la app abre su formulario con los parámetros del sitio).
  */
-function nodoSitio(eje, s, yo, ctx) {
+function nodoSitio(eje, s, yo, ctx, foco = null) {
   const n = acciones.sitio(eje, s.X, s.lugar, yo, ctx.opciones);
   if (!n) return null;
+  // En la cruceta general (la del 0 de mi alta, #38): si es la de mi alta, se dice; y si el foco es otro elemento, sus
+  // ajustes también se abren desde aquí, con su 0 recortado para no confundir las dos entradas.
+  const miAlta = Boolean(s.general && yo && eje.alta(yo)?.id === n.X);
+  const delFoco = s.general && typeof foco === 'string' && foco !== n.X && eje.obtener(foco)
+    ? { X: foco, texto: recortado(legibleDe(eje, { ref: foco }, null, ctx.opciones).texto, 40) }
+    : null;
   return {
-    X: n.X, lugar: n.direccion, general: Boolean(s.general), texto: legibleDe(eje, { ref: n.X }, null, ctx.opciones).texto,
+    X: n.X, lugar: n.direccion, general: Boolean(s.general), miAlta, foco: delFoco, texto: legibleDe(eje, { ref: n.X }, null, ctx.opciones).texto,
     posiciones: n.posiciones.map((p) => {
       const nombre = p.nombre ?? '';
       const valor = valorEnLlano(eje, p, ctx);
@@ -2678,7 +2690,7 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
   // La hoja «retocar un texto» (A20), abierta tocando un texto en el modo «retocar textos».
   const retoque = estado.retoque?.clave ? retoqueDeTexto(eje, yo, estado.retoque, opciones) : null;
   // El personaje de un sitio abierto (encargo pv3): la cruceta del nodo, si no hay formulario encima.
-  const sitio = !form && estado.sitio?.X && eje.obtener(estado.sitio.X) ? nodoSitio(eje, estado.sitio, yo, ctx) : null;
+  const sitio = !form && estado.sitio?.X && eje.obtener(estado.sitio.X) ? nodoSitio(eje, estado.sitio, yo, ctx, X) : null;
   return {
     tipo: 'carta',
     X,

@@ -413,16 +413,22 @@ function htmlSitio(s, arbol = null, extra = {}) {
     return `<div class="sitio-posicion${p.accion && !con ? ' tocable' : ''}" data-posicion="${p.posicion}" data-color="${p.posicion}"><span class="numero">${p.posicion}</span>${tocar}${con ? `<div class="sitio-controles"${nodo('sitio-controles', { posicion: p.posicion })}>${con}</div>` : ''}</div>`;
   };
   const cuerpo = [...celdas.entries()].map(([k, ps]) => { const [f, c] = k.split(','); return `<li class="sitio-celda" style="--fila:${Number(f) + 1};--columna:${Number(c) + 1}">${ps.map(posicion).join('')}</li>`; }).join('');
-  return `<div class="sitio-fondo" data-cerrar><div class="sitio-cruceta"${nodo('sitio', { lugar: s.lugar })} data-x="${attr(s.X)}" data-sitio-de="${attr(s.lugar)}"${s.general ? ' data-sitio-general' : ''} role="dialog" aria-label="${attr(t('sitioDe', { lugar: s.lugar, que: s.texto }))}"><header><h2><span class="sitio-icono" aria-hidden="true">?</span> ${escapar(t(s.general ? 'sitioCeroDe' : 'sitioDe', { lugar: s.lugar, que: s.texto }))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>${s.general ? htmlEntradasDelElemento(s.X, extra) : ''}<ol class="sitio-posiciones">${cuerpo}</ol></div></div>`;
+  return `<div class="sitio-fondo" data-cerrar><div class="sitio-cruceta"${nodo('sitio', { lugar: s.lugar })} data-x="${attr(s.X)}" data-sitio-de="${attr(s.lugar)}"${s.general ? ' data-sitio-general' : ''} role="dialog" aria-label="${attr(t('sitioDe', { lugar: s.lugar, que: s.texto }))}"><header><h2><span class="sitio-icono" aria-hidden="true">?</span> ${escapar(t(s.general ? 'sitioCeroDe' : 'sitioDe', { lugar: s.lugar, que: s.texto }))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>${s.general ? htmlEntradasDelElemento(s.X, extra, { miAlta: s.miAlta, foco: s.foco }) : ''}<ol class="sitio-posiciones">${cuerpo}</ol></div></div>`;
 }
 
 /**
  * En la configuración de un elemento (la cruceta de su 0): «Ajustes de este elemento» y, en el génesis del libro con
- * gobierno, «Reglas del libro» (A21; carta/reglas.js). La app dice si el libro tiene gobierno y cuál es su génesis.
+ * gobierno, «Reglas del libro» (A21; carta/reglas.js). La app dice si el libro tiene gobierno y cuál es su génesis. En la
+ * cruceta general (la del 0 de mi alta, #38) la entrada dice que es la de mi alta (`miAlta`) y, si el foco es otro
+ * elemento (`foco`: { X, texto }), lleva otra para él que lo nombra: las dos abren la misma vista (data-ajustes-elemento).
  */
-function htmlEntradasDelElemento(X, extra = {}) {
+function htmlEntradasDelElemento(X, extra = {}, { miAlta = false, foco = null } = {}) {
   const reglas = extra.entradaReglas && extra.genesisId === X ? ` <button type="button"${nodo('control')} data-reglas-abrir title="${attr(t('reglasAbrirTitulo'))}">${escapar(t('reglasAbrir'))}</button>` : '';
-  return `<p class="sitio-entradas"><button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesElementoTitulo'))}">${escapar(t('ajustesElemento'))}</button>${reglas}</p>`;
+  const propia = miAlta
+    ? `<button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesDeMiAltaTitulo'))}">${escapar(t('ajustesDeMiAlta'))}</button>`
+    : `<button type="button"${nodo('control')} data-ajustes-elemento="${attr(X)}" title="${attr(t('ajustesElementoTitulo'))}">${escapar(t('ajustesElemento'))}</button>`;
+  const delFoco = foco?.X ? ` <button type="button"${nodo('control')} data-ajustes-elemento="${attr(foco.X)}" data-ajustes-del-foco title="${attr(t('ajustesDelFocoTitulo', { que: foco.texto }))}">${escapar(t('ajustesDelFoco', { que: foco.texto }))}</button>` : '';
+  return `<p class="sitio-entradas">${propia}${delFoco}${reglas}</p>`;
 }
 
 /** Una fracción entre 0 y 1 con tres decimales, para una variable de CSS (solo un número: nada del dato llega al estilo). */
