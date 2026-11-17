@@ -990,7 +990,7 @@ function htmlBandaDeRejilla(b) {
  */
 function htmlRejilla(r, { completa = false, arbol = null, apilada = false } = {}) {
   if (!r) return '';
-  const cabeza = (completa || apilada) && r.niveles > 1 ? `<div class="rejilla-cabeza"><span class="nivel-rejilla">${escapar(t('rejillaNivel', { nivel: r.nivel, niveles: r.niveles }))}</span>${r.ruta.length ? htmlInterrogante(r.sitio) : ''}${r.persona ? `<span class="ruta-rejilla persona-rejilla">${escapar(t('conversacionCon', { que: r.persona.texto, caja: r.persona.caja, grupo: r.persona.nombre ?? '' }))}</span>` : r.texto ? `<span class="ruta-rejilla">${escapar(r.texto)}</span>` : ''}${r.direccion && r.nivel > 1 ? `<span class="direccion-rejilla">${escapar(r.direccion)}</span>` : ''}${r.ruta.length ? `<button type="button" class="subir"${nodo('control')} data-subir="${r.pv}" title="${attr(t('subirTitulo'))}">↑ ${t('subir')}</button>` : ''}</div>` : '';
+  const cabeza = (completa || apilada) && r.niveles > 1 ? `<div class="rejilla-cabeza"><span class="nivel-rejilla">${escapar(t('rejillaNivel', { nivel: r.nivel, niveles: r.niveles }))}</span>${r.ruta.length ? htmlInterrogante(r.sitio) : ''}${r.persona ? `<span class="ruta-rejilla persona-rejilla">${escapar(t('conversacionCon', { que: r.persona.texto, caja: r.persona.caja, grupo: r.persona.nombre ?? '' }))}</span>${r.persona.agenteDe ? `<span class="ruta-rejilla persona-agente" data-agente-de>${escapar(t('hablasConAgente', { que: r.persona.agenteDe.texto }))}</span>` : ''}` : r.texto ? `<span class="ruta-rejilla">${escapar(r.texto)}</span>` : ''}${r.direccion && r.nivel > 1 ? `<span class="direccion-rejilla">${escapar(r.direccion)}</span>` : ''}${r.ruta.length ? `<button type="button" class="subir"${nodo('control')} data-subir="${r.pv}" title="${attr(t('subirTitulo'))}">↑ ${t('subir')}</button>` : ''}</div>` : '';
   const sin = r.sinBanda?.length ? `<div class="rejilla-sin" title="${attr(t('sinBandaTitulo'))}">${r.sinBanda.map(htmlElementoDeBanda).join('')}</div>` : '';
   let cuerpo;
   if (r.forma === 'franjas' && r.bandas) cuerpo = htmlFranjas(r) + sin;
@@ -1760,6 +1760,13 @@ export function htmlGuardian(g) {
     const texto = g.otraClave ? 'emparejarOtraClave' : g.sinGuardian ? (g.emparejar ? 'emparejarSoloLeer' : 'guardianSoloLeerSinGuardian') : 'guardianSoloLeer';
     const emparejar = g.emparejar ? ` <button type="button" class="enlace" data-emparejar title="${attr(t('emparejarConLaAppTitulo'))}">${escapar(t(g.reemparejar ? 'emparejarOtraVez' : 'emparejarConLaApp'))}</button>` : '';
     return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(texto))}${emparejar}</p>`;
+  }
+  // Firma el emparejamiento (A25): no hay sesión de guardián que abrir. En plazo, cada registro se confirma en la app; terminado,
+  // se dice y se ofrece «Volver a emparejar».
+  if (g.porEmparejamiento) {
+    const terminado = g.porEmparejamiento === 'terminado';
+    const volver = terminado ? ` <button type="button" class="enlace" data-emparejar title="${attr(t('emparejarConLaAppTitulo'))}">${escapar(t('emparejarOtraVez'))}</button>` : '';
+    return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(terminado ? 'emparejarTerminado' : 'emparejarFirmaEnLaApp'))}${volver}</p>`;
   }
   const sinBoton = g.puedeAbrir === false;
   const boton = sinBoton ? '' : ` <button type="button" class="enlace" data-guardian-abrir title="${attr(t('guardianAbrirTitulo'))}"${g.abriendo ? ' disabled aria-busy="true"' : ''}>${escapar(t('guardianAbrir'))}</button>`;

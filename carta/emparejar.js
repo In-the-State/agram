@@ -96,6 +96,17 @@ export function htmlDialogoEmparejar({ fase = 'leer', camara = false, camaraActi
   </section></div>`;
 }
 
+/**
+ * La confirmación dentro de la página (en lugar del `confirm` del navegador): el mismo diálogo de la carta (fondo, sección y pie con
+ * botones) con una frase y «Seguir» / «Cancelar». `texto` ya va dicho en llano.
+ */
+export function htmlConfirmarEmparejar({ texto = '' } = {}) {
+  return `<div class="formulario-fondo emparejar-fondo" data-emparejar-confirmar-fondo><section class="formulario emparejar" role="alertdialog" aria-modal="true" aria-label="${attr(t('emparejarTitulo'))}">
+    <p data-emparejar-confirmar-texto>${escapar(texto)}</p>
+    <footer><button type="button" class="principal" data-emparejar-confirmar="si">${escapar(t('emparejarSeguir'))}</button> <button type="button" data-emparejar-confirmar="no">${escapar(t('emparejarCancelar'))}</button></footer>
+  </section></div>`;
+}
+
 /** Los avisos del emparejamiento que terminan la sesión, con lo que se dice. */
 const FINALES = Object.freeze({ rechazada: 'emparejarRechazada', caducada: 'emparejarCaducada', revocada: 'emparejarRevocada', olvidada: 'emparejarOlvidado' });
 
@@ -114,10 +125,45 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
   raiz.after(caja);
   const cajaLinea = caja.querySelector('[data-emparejar-caja-linea]');
   const cajaDialogo = caja.querySelector('[data-emparejar-caja-dialogo]');
-  const ui = { abierto: false, fase: 'leer', camaraActiva: false, texto: '', error: null, ocupado: false, resultado: null, mensaje: '', mensajeDialogo: '', rele: null, pendientesAbierto: false, turno: 0 };
-  const confirmar = (texto) => (typeof entorno.confirm === 'function' ? entorno.confirm(texto) : true);
+  const ui = { abierto: false, fase: 'leer', camaraActiva: false, texto: '', error: null, ocupado: false, resultado: null, mensaje: '', mensajeDialogo: '', rele: null, pendientesAbierto: false, turno: 0, confirmando: null };
+  /** Pregunta dentro de la página; resuelve true con «Seguir», false con «Cancelar», el fondo o Escape (y false si ya hay otra pregunta abierta). */
+  const confirmar = (texto) => new Promise((resolver) => {
+    if (ui.confirmando) { resolver(false); return; }
+    ui.confirmando = { texto, resolver };
+    pintarDialogo();
+  });
+  const responder = (si) => {
+    const c = ui.confirmando;
+    if (!c) return;
+    ui.confirmando = null;
+    pintarDialogo();
+    c.resolver(si);
+  };
 
   const video = () => cajaDialogo.querySelector('[data-emparejar-video]');
+
+  // La línea es fija abajo: la página reserva su alto (--emparejar-alto, en la raíz) para que no tape nada. Sin línea, 0 y se quita.
+  let observador = null;
+  function reservarAlto() {
+    const linea = cajaLinea.querySelector('[data-emparejar-linea]');
+    const alto = linea ? Math.ceil(linea.getBoundingClientRect().height) : 0;
+    const estilo = documento.documentElement?.style;
+    if (!estilo) return;
+    if (alto > 0) estilo.setProperty('--emparejar-alto', alto + 'px');
+    else estilo.removeProperty('--emparejar-alto');
+    return linea;
+  }
+  function medirLinea() {
+    const linea = reservarAlto();
+    try {
+      observador?.disconnect();
+      if (linea && typeof entorno.ResizeObserver === 'function') {
+        observador = observador ?? new entorno.ResizeObserver(() => reservarAlto());
+        observador.observe(linea);
+      }
+    } catch { /* sin observador: el alto se mide en cada repintado y al girar o cambiar de tamaño */ }
+  }
+  entorno.addEventListener?.('resize', reservarAlto);
 
   function pintarLinea() {
     let estado = null;
@@ -125,16 +171,19 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
     try { estado = emparejamiento.estado(); propuestas = emparejamiento.propuestas(); } catch { /* sin emparejamiento usable */ }
     const esperan = esperando(emparejamiento).length + (adaptador?.enEspera?.size ?? 0);
     cajaLinea.innerHTML = htmlLineaEmparejamiento({ estado, propuestas, esperan, rele: estado ? ui.rele : null, mensaje: ui.mensaje, pendientesAbierto: ui.pendientesAbierto });
+    medirLinea();
   }
 
   function pintarDialogo() {
-    if (!ui.abierto) { cajaDialogo.innerHTML = ''; return; }
+    const pregunta = ui.confirmando ? htmlConfirmarEmparejar({ texto: ui.confirmando.texto }) : '';
+    if (!ui.abierto) { cajaDialogo.innerHTML = pregunta; cajaDialogo.querySelector('[data-emparejar-confirmar="no"]')?.focus?.(); return; }
     const estado = emparejamiento.estado();
     cajaDialogo.innerHTML = htmlDialogoEmparejar({
       fase: ui.fase, camara: puedeLeerConCamara(entorno), camaraActiva: ui.camaraActiva, texto: ui.texto, error: ui.error, ocupado: ui.ocupado,
       resultado: ui.resultado, aceptada: Boolean(estado?.aceptada), sinLibro: sinLibro(), mensaje: ui.mensajeDialogo,
-    });
-    if (ui.fase === 'leer' && !ui.camaraActiva) cajaDialogo.querySelector('[data-emparejar-texto]')?.focus?.();
+    }) + pregunta;
+    if (pregunta) cajaDialogo.querySelector('[data-emparejar-confirmar="no"]')?.focus?.();
+    else if (ui.fase === 'leer' && !ui.camaraActiva) cajaDialogo.querySelector('[data-emparejar-texto]')?.focus?.();
   }
 
   function pintar() {
@@ -165,7 +214,7 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
   /** Lee el texto de un QR: avisa antes si hay propuestas esperando (caducarán), empareja y lo dice. */
   async function procesar(texto) {
     const n = esperando(emparejamiento).length;
-    if (n && !confirmar(t('emparejarSustituirConfirmar', { n }))) return;
+    if (n && !(await confirmar(t('emparejarSustituirConfirmar', { n })))) return;
     ui.ocupado = true;
     ui.error = null;
     pintarDialogo();
@@ -217,6 +266,9 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
   documento.addEventListener('click', (e) => {
     const b = (s) => e.target?.closest?.(s);
     let el;
+    if ((el = b('[data-emparejar-confirmar]'))) { e.preventDefault(); responder(el.dataset.emparejarConfirmar === 'si'); return; }
+    if ((el = b('[data-emparejar-confirmar-fondo]')) && e.target === el) { responder(false); return; }
+    if (ui.confirmando) return; // con una pregunta abierta, solo ella responde
     if ((el = b('[data-emparejar-fondo]')) && e.target === el) { cerrar(); return; }
     if (b('[data-emparejar-cerrar]')) { e.preventDefault(); cerrar(); return; }
     if (b('[data-emparejar-camara-parar]')) { e.preventDefault(); pararCamara(); pintarDialogo(); return; }
@@ -227,15 +279,16 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
     if ((el = b('[data-emparejar-descartar]'))) { e.preventDefault(); const id = el.dataset.emparejarDescartar; void gesto(() => emparejamiento.descartar(id)); return; }
     if (b('[data-emparejar-olvidar]')) {
       e.preventDefault();
-      if (!confirmar(t('emparejarOlvidarConfirmar'))) return;
-      void gesto(async () => { await emparejamiento.olvidar(); ui.mensaje = t('emparejarOlvidado'); await alCambiar({ tipo: 'olvidada' }); });
+      void confirmar(t('emparejarOlvidarConfirmar')).then((si) => {
+        if (si) return gesto(async () => { await emparejamiento.olvidar(); ui.mensaje = t('emparejarOlvidado'); await alCambiar({ tipo: 'olvidada' }); });
+      });
       return;
     }
     if (b('[data-emparejar]')) { e.preventDefault(); abrir(); }
   });
   documento.addEventListener('input', (e) => { if (e.target?.matches?.('[data-emparejar-texto]')) ui.texto = e.target.value; });
-  documento.addEventListener('toggle', (e) => { if (e.target?.matches?.('[data-emparejar-pendientes]')) ui.pendientesAbierto = e.target.open; }, true);
-  documento.addEventListener('keydown', (e) => { if (e.key === 'Escape' && ui.abierto) cerrar(); });
+  documento.addEventListener('toggle', (e) => { if (e.target?.matches?.('[data-emparejar-pendientes]')) { ui.pendientesAbierto = e.target.open; reservarAlto(); } }, true);
+  documento.addEventListener('keydown', (e) => { if (e.key !== 'Escape') return; if (ui.confirmando) responder(false); else if (ui.abierto) cerrar(); });
   // Al salir de la pantalla, la cámara se suelta; al cerrar la página, además se para el cliente del relé (no borra nada).
   documento.addEventListener('visibilitychange', () => { if (documento.visibilityState === 'hidden' && ui.camaraActiva) { pararCamara(); pintarDialogo(); } });
   entorno.addEventListener?.('pagehide', () => { pararCamara(); emparejamiento.cerrar(); });

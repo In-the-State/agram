@@ -6,8 +6,9 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { arbol as arbolEnIdioma, formulario, enviar, preferencias, escalaDeTamanos, NIVEL, LATERALES, CENTROS, GEOMETRIA, ANIMAR } from '../carta/carta.js';
+import { arbol as arbolEnIdioma, agenteDe, formulario, enviar, preferencias, escalaDeTamanos, NIVEL, LATERALES, CENTROS, GEOMETRIA, ANIMAR } from '../carta/carta.js';
 import { html, htmlPieza, variablesDeColor } from '../carta/dom.js';
+import { t } from '../carta/textos.js';
 import * as C from '../src/contrato.js';
 import * as A from '../src/acciones.js';
 import * as modelos from '../src/modelos.js';
@@ -771,4 +772,16 @@ test('#22: mantener sobre un hueco vacío abre el aro con un input nuevo (crea e
   // El formulario de la acción dice qué parámetros salen del archivo (la app abre el selector en vez del formulario).
   const f = formulario(eje, nuevo.id, dos.otras.at(-1).id, 'huesped', {}, { idioma: 'en' });
   assert.deepEqual(f.campos.filter((c) => c.archivo).map((c) => [c.nombre, c.archivo]), [['file', 'ref'], ['format', 'format']]);
+});
+
+test('«Hablas con el agente de …»: una cosa que su dueño declaró agente lo dice con el nombre de quien escribió su alta; una persona o una cosa sin declarar, no', async () => {
+  const { eje } = await ejemploCompra();
+  assert.equal(agenteDe(eje, 'cocina'), null, 'una cosa sin declarar agente no lo es');
+  const alta = eje.alta('cocina').id;
+  await eje.escribir({ autor: 'casa', sobre: alta, en: '9000000000', t: '2026-11-08T10:00:00Z', payload: ['declaro agente a cocina', { ref: alta }, ['agent'], ['casa'], ['declare agent']], movimientos: [pagaElCoste('casa')] });
+  assert.equal(agenteDe(eje, 'cocina', { idioma: 'es' }).identidad, 'casa');
+  assert.ok(agenteDe(eje, 'cocina', { idioma: 'es' }).texto.length > 0);
+  assert.equal(agenteDe(eje, 'huesped'), null, 'una persona no es un agente');
+  assert.equal(agenteDe(eje, 'nadie'), null);
+  assert.equal(t('hablasConAgente', { que: 'Víctor' }), 'Hablas con el agente de Víctor.');
 });

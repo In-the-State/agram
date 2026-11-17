@@ -504,3 +504,12 @@ test('al cambiar de libro, la sincronía de antes queda suelta: su estado guarda
     assert.equal(S.soltar(null, c.cuenta.alta), null, 'soltar sin sincronía no hace nada');
   });
 });
+
+test('un libro privado sin claves de línea se abre y se dice llano que de él no se podrá traer nada al otro hasta anotarlas', () => {
+  const frase = 'Sin claves de línea, de este libro no se podrá traer nada al otro hasta anotarlas.';
+  assert.ok(t('libroPrivadoSinClaves').endsWith(frase), 'al crearlo');
+  assert.ok(t('libroSinSellador').endsWith(frase), 'al entrar en su génesis');
+  const hecho = htmlLibroPrivado({ X: 'x'.repeat(64), nombre: 'Sala privada', elemento: 'sala', fase: 'hecho', sinClaves: true, entrar: 'a'.repeat(64), libro: 'b'.repeat(64) });
+  assert.ok(hecho.includes(frase) && hecho.includes('data-falta'));
+  assert.ok(hecho.includes('Creado el libro «Sala privada».'), 'creado, sin más');
+});
