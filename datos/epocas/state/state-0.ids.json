@@ -1,6 +1,6 @@
 {
-  "epoca": "6ccd224cb91bb5c564577f0fc3ed8daf70adbcd75bbcdffc2e54540c75404d5d",
-  "hereda": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580",
+  "epoca": "4146cf1193dd9fee062263483fdc6134c41928da87a092f90468f6eab084e5ba",
+  "hereda": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44",
   "registrosAlPublicar": 66,
   "reglas": [
     {
@@ -111,7 +111,7 @@
     {
       "nombre": "who writes a message",
       "archivo": "who-writes-a-message.json",
-      "id": "c9f172a446b441e65593b6ff6dc141447d13c71ed8f38ecdc53963e84cf4c4a9"
+      "id": "04741815812c2bc2db08753964ec4a5c8e5e59549d820d347b4e6f3b62decd35"
     }
   ],
   "plantillas": [
@@ -307,7 +307,7 @@
     {
       "nombre": "message in",
       "archivo": "message-in.json",
-      "id": "3883eb33449e4828b2f065b3976a4ac6d09a1f95b64cd938f36469b249e86594",
+      "id": "8e928ca33156444ee9f23506e7f8a0d6f3e7011af24cddbb6053103dd023ce5c",
       "ocho": [
         3,
         13
@@ -316,7 +316,7 @@
     {
       "nombre": "message out",
       "archivo": "message-out.json",
-      "id": "e26d918a87590dfcc6c9308fcc833d888aabb733cccf54631d187ebdab7c9fb0",
+      "id": "95647db32293c8d5e24d5f32ca2dbe22a7d77cb661488a181ad587ca772117f5",
       "ocho": [
         3,
         14
@@ -325,7 +325,7 @@
     {
       "nombre": "message in from an agent",
       "archivo": "message-in-from-an-agent.json",
-      "id": "55e74b2c17bca14ac3df6a00753cd40920d8568a7b3ca3ff6165bcab3c043b24",
+      "id": "fb9d0e876c6925b94acf22afdbd111c0ce23ec16ae47fec25fe14ffa7e48de58",
       "ocho": [
         3,
         15
@@ -433,7 +433,7 @@
     {
       "nombre": "archive a conversation",
       "archivo": "archive-a-conversation.json",
-      "id": "5ad2f44ccab1a6b7b7b900af9181846bd975ec46f3b22399cd4435b75416cce9",
+      "id": "a444f91b882e26dcd2a9cd2746b3f354257fd456e5398e7d1d3fb46a5930a72a",
       "ocho": [
         4,
         24

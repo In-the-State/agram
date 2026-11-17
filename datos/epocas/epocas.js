@@ -716,10 +716,10 @@ export const EPOCA_0_BTML_DATOS = [
       "ref": "251a9578f570b8e6bf6e0f80d5d67ad24c6af39f46d8cb3376f338e893d0d1cb"
     },
     {
-      "ref": "099363780e531b5004bb12249ba49f7019aa0150836c69c64e17b7d15512eaf6"
+      "ref": "142339675bc35e5941d4f9f98052a61ee1efd0b618164f95ae7b44ea5db2173e"
     },
     {
-      "ref": "d6364c6134738953dcd1c3145d92fd468b06f8d053ba12e55f5622dc82526742"
+      "ref": "a9eb10c61b789965b13c39ec004f69b513e504c55c147ea1fffdf1583439801c"
     }
   ],
   [
@@ -6419,7 +6419,7 @@ export const EPOCA_0_BTML_DATOS = [
           "template a reserve param spender label: quién gasta",
           "template a reserve param spender help: quién gasta: la identidad que puede sacar lo que bloqueo con esta reserva como salida, de los modos que dice (una persona o una cosa con clave, también un agente)",
           "template a reserve param modes label: modos",
-          "template a reserve param modes help: cómo puede gastar, uno o varios de: «return» (lo que gasta vuelve a ser mío, disponible), «burn» (se quema) y «pay» (va a alguien de la lista de a quién pagar)",
+          "template a reserve param modes help: cómo puede gastar, uno o varios de: «return» (lo que gasta vuelve a ser mío, disponible), «burn» (se quema) y «pay» (va a alguien de la lista de a quién pagar, que «pay» pide)",
           "template a reserve param payees label: a quién pagar",
           "template a reserve param payees help: con «pay», a quién puede pagar (identidades; nunca a quien gasta); «-» si no hay nadie y la reserva dice hasta cuándo",
           "template a reserve param until label: hasta cuándo",
@@ -7393,7 +7393,7 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "b62f6e646a382a7cc9418c53f61b1e285e2afdd3e1b2950dc33a629988e8dc10"
         },
         {
-          "ref": "a224c061d0a3d120f97abe3ddc26fed29a999879a70819d68e8aba7a8df62316"
+          "ref": "2c94845811d4c7975b10291227873fa5d27973c52de313e9476e2867588908f3"
         },
         {
           "ref": "a04062120355d44e6573cd05056b1a2c239cf923141fe676fa9578352624b14d"
@@ -9286,7 +9286,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-reserve-is-spent-as-it-says.json",
-    "id": "d6364c6134738953dcd1c3145d92fd468b06f8d053ba12e55f5622dc82526742",
+    "id": "a9eb10c61b789965b13c39ec004f69b513e504c55c147ea1fffdf1583439801c",
     "registro": [
       [
         "a reserve is spent as it says"
@@ -9298,7 +9298,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "\"pay\""
       ],
       [
-        "=count (ev.1 where (release in it.4 or transfer in it.4) and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3) > 0 and not (count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and (count (payload((text(utf8(it2))))).1.2 = 0 or (first ev.6.0).0 <= (first (payload((text(utf8(it2))))).1.2).0) and (release in it.4 and (\"return\" in (payload((text(utf8(it2))))).1.0 or \"burn\" in (payload((text(utf8(it2))))).1.0 and sum ((ev.1 where burn in it3.4 and it3.0 = it.0 and it3.3.0 = it.3.0) each 1) >= sum ((ev.1 where release in it3.4 and it3.0 = it.0 and it3.3.0 = it.3.0) each 1)) or transfer in it.4 and \"pay\" in (payload((text(utf8(it2))))).1.0 and it.3.1 in (payload((text(utf8(it2))))).1.1 and it.3.1 != first ev.3)) > 0) or burn in it.4 and it.3.0 != first ev.3 and sum ((ev.1 where release in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0 and count (it2.2 where first (text(utf8(it3))).5 = (text(utf8(it3))) and \"a reserve\" in (payload((text(utf8(it3))))).4 and first (text(utf8(it3))).3 = it2.3.0 and first (payload((text(utf8(it3))))).3.1 = first ev.3 and (count (payload((text(utf8(it3))))).1.2 = 0 or (first ev.6.0).0 <= (first (payload((text(utf8(it3))))).1.2).0) and \"burn\" in (payload((text(utf8(it3))))).1.0) > 0) each 1) < sum ((ev.1 where burn in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0) each 1)) = 0"
+        "=count (ev.1 where (release in it.4 or transfer in it.4) and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3) > 0 and not (count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and (count (payload((text(utf8(it2))))).1.2 = 0 or (first ev.6.0).0 <= (first (payload((text(utf8(it2))))).1.2).0 and (count before.6.0 = 0 or first before.6.0.0 <= (first (payload((text(utf8(it2))))).1.2).0)) and (release in it.4 and (\"return\" in (payload((text(utf8(it2))))).1.0 or \"burn\" in (payload((text(utf8(it2))))).1.0 and sum ((ev.1 where burn in it3.4 and it3.0 = it.0 and it3.3.0 = it.3.0) each 1) >= sum ((ev.1 where release in it3.4 and it3.0 = it.0 and it3.3.0 = it.3.0) each 1)) or transfer in it.4 and \"pay\" in (payload((text(utf8(it2))))).1.0 and it.3.1 in (payload((text(utf8(it2))))).1.1 and it.3.1 != \"-\" and it.3.1 != first ev.3)) > 0) or burn in it.4 and it.3.0 != first ev.3 and sum ((ev.1 where release in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0 and count (it2.2 where first (text(utf8(it3))).5 = (text(utf8(it3))) and \"a reserve\" in (payload((text(utf8(it3))))).4 and first (text(utf8(it3))).3 = it2.3.0 and first (payload((text(utf8(it3))))).3.1 = first ev.3 and (count (payload((text(utf8(it3))))).1.2 = 0 or (first ev.6.0).0 <= (first (payload((text(utf8(it3))))).1.2).0 and (count before.6.0 = 0 or first before.6.0.0 <= (first (payload((text(utf8(it3))))).1.2).0)) and \"burn\" in (payload((text(utf8(it3))))).1.0) > 0) each 1) < sum ((ev.1 where burn in it2.4 and it2.0 = it.0 and it2.3.0 = it.3.0) each 1)) = 0"
       ],
       [
         "ev.3"
@@ -11596,7 +11596,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "p-comes-down-to-a-thing-of-another-with-its-owner-s-yes.json",
-    "id": "099363780e531b5004bb12249ba49f7019aa0150836c69c64e17b7d15512eaf6",
+    "id": "142339675bc35e5941d4f9f98052a61ee1efd0b618164f95ae7b44ea5db2173e",
     "registro": [
       [
         "P comes down to a thing of another with its owner's yes"
@@ -11608,7 +11608,7 @@ export const REGLAS_DE_EPOCA_DATOS = [
         "\"3\""
       ],
       [
-        "=count (ev.1 where P in it.0.0.0 and (mint in it.4 or transfer in it.4) and not (mint in it.4 and count (ev.1 where P in it2.0.0.0 and burn in it2.4 and it2.3.0 = first ev.3 and (first it.0.0.1 in up (first it2.0.0.1) or first it.0.0.1 = first it2.0.0.1 and count it.0.0.5 = 0 and count it2.0.0.5 > 0)) > 0) and not (count it.0.0.5 > 0 and text(json(first it.0.0.5)) = \"3\" and first (first (first (first it.0.0.1).3).6).5 = first it.0.0.1) and first (first it.0.0.1).3 != it.3.1 and first (first it.0.0.1).3 != first ev.3 and not (count ((down (first it.0.0.1)) where \"let P come down here\" in (payload(it2)).4 and first it2.3 = first (first it.0.0.1).3 and first (payload(it2)).3.1 = it.3.1) > 0 and \"yes\" in (payload(last ((down (first it.0.0.1)) where \"let P come down here\" in (payload(it2)).4 and first it2.3 = first (first it.0.0.1).3 and first (payload(it2)).3.1 = it.3.1))).1.0 and not (\"no\" in (payload(last ((down (first it.0.0.1)) where \"let P come down here\" in (payload(it2)).4 and first it2.3 = first (first it.0.0.1).3 and first (payload(it2)).3.1 = it.3.1))).1.0))) = 0"
+        "=count (ev.1 where P in it.0.0.0 and (mint in it.4 or transfer in it.4) and not (mint in it.4 and count (ev.1 where P in it2.0.0.0 and burn in it2.4 and it2.3.0 = first ev.3 and (first it.0.0.1 in up (first it2.0.0.1) or first it.0.0.1 = first it2.0.0.1 and count it.0.0.5 = 0 and count it2.0.0.5 > 0)) > 0) and not (count it.0.0.5 > 0 and text(json(first it.0.0.5)) = \"3\" and first (first (first (first it.0.0.1).3).6).5 = first it.0.0.1) and first (first it.0.0.1).3 != it.3.1 and first (first it.0.0.1).3 != first ev.3 and not (count ((last ((down (first it.0.0.1)) where first it2.6.5 = first it.0.0.1 and nth 1 it2.6.5 = \"2100000000\" and first it2.3 = first (first it.0.0.1).3 and \"let P come down here\" in (payload(it2)).4 and first (payload(it2)).3.1 = it.3.1)) where \"yes\" in (payload(it2)).1.0 and not (\"no\" in (payload(it2)).1.0)) > 0)) = 0"
       ],
       [
         "ev.3"
@@ -11623,7 +11623,8 @@ export const REGLAS_DE_EPOCA_DATOS = [
       [
         "VG 17-11 (encargo «el P baja con el sí del dueño», CH1 de test/revision-canales.test.js): el P que nace de recibir R se queda como está (nace en la mirada 3 del alta de quien dio la R y ahí es voz, no ocupa nada); lo que cambia es que solo baja a una cosa de otro con el sí de su dueño, igual para personas y para agentes, y también a lo escrito a mano. Época 0, no es suelo",
         "Core AGRAM 17-11: el dueño de una cosa es quien escribió su registro (su 3, el primero). Un registro que deja P posicionado en un registro X (un paso de bajar de «P is repositioned one step at a time»: acuñar P en X quemándolo en su padre o en el registro entero, si X es una mirada; o una transferencia de P posicionado en X a otro titular, con salida o sin ella) solo entra si quien queda con ese P es el dueño de X, o quien lo mueve es el dueño de X, o hay un sí vigente del dueño de X colgado de X («let P come down here») que nombra en su 3.1 a quien queda con él: el último de ese dueño para esa identidad, que dice «yes» en su 1.0 (uno que dice «no» lo retira). Subir no pide nada (acuñar en el padre, o en el registro entero desde una mirada suya). La mirada 3 del alta de una persona (su alta la escribió ella), donde nace el P de recibir su R, tampoco: es la raíz donde ese P nació",
-        "Coste acotado: solo mira lo que cuelga de X (down X) y el payload firmado de cada registro (payload(…)), nunca recorre el libro; se para en su primera comprobación si el registro no acuña ni transfiere P. Lo ya bajado se queda: retirar el sí corta los pasos nuevos; lo que está abajo sigue hasta que se libere (que el dueño pueda echarlo de vuelta a la raíz queda fuera, VG). Regla aparte de «P is repositioned one step at a time» (más clara y más barata: aquella es larga y mira la forma del paso; esta, solo quién queda con el P)"
+        "Coste acotado: solo mira lo que cuelga de X (down X) y el payload firmado de cada registro (payload(…)), nunca recorre el libro; se para en su primera comprobación si el registro no acuña ni transfiere P. Lo ya bajado se queda: retirar el sí corta los pasos nuevos; lo que está abajo sigue hasta que se libere (que el dueño pueda echarlo de vuelta a la raíz queda fuera, VG). Regla aparte de «P is repositioned one step at a time» (más clara y más barata: aquella es larga y mira la forma del paso; esta, solo quién queda con el P)",
+        "Core AGRAM 17-11 (revisión de seguridad del carril, hallazgo 4): un tercero dejaba PENDIENTE el paso colgando de X registros con un 4 enorme, porque se leía su payload antes de mirar quién lo escribió. Ahora se mira primero el ancla exacta (colgado de X en su 2.1) y el autor (el dueño), y solo después el payload, en una sola pasada (el último sí del dueño para esa identidad). Lo que crece es el número de registros colgados de X, unos 20 ocupantes cada uno sin importar su tamaño. El hallazgo 1 (subir a una cosa ajena desde un hijo suyo no pide el sí) está reproducido y sin cerrar: cerrarlo rompe la cuenta compartida (test/cuenta-banco.test.js) y una cosa que reposiciona su P (test/reglas-3b.test.js); decide Core"
       ],
       [
         "epoch 0"
@@ -16268,7 +16269,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
   },
   {
     "archivo": "a-reserve.json",
-    "id": "a224c061d0a3d120f97abe3ddc26fed29a999879a70819d68e8aba7a8df62316",
+    "id": "2c94845811d4c7975b10291227873fa5d27973c52de313e9476e2867588908f3",
     "registro": [
       [
         "a reserve"
@@ -16314,7 +16315,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
             "text"
           ],
           [
-            "any"
+            "=not (\"pay\" in (payload(ev)).1.0) or count ((payload(ev)).1.1 where it2 != \"-\") > 0"
           ],
           [
             "me"
@@ -16336,7 +16337,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
           ],
           [
             "return",
-            "how it may spend, one or several of: «return» (what it spends is mine again, available), «burn» (it is burned) and «pay» (it goes to someone of the list of payees)"
+            "how it may spend, one or several of: «return» (what it spends is mine again, available), «burn» (it is burned) and «pay» (it goes to someone of the list of payees, which «pay» needs)"
           ]
         ],
         [
@@ -28059,7 +28060,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580";
+export const EPOCA_0_BTML_ID = "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

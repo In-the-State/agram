@@ -69,8 +69,11 @@ export function excepcionDeLaReserva() {
     + ' or burn in it.4 and ' + sumaDe('release', 'it', 1, conReserva('it2', 1)) + ' >= ' + sumaDe('burn', 'it', 1);
 }
 
-/** Si dice hasta cuándo (su 1.2), el instante del registro no lo pasa. */
-const aTiempo = (R) => '(count ' + dice(R, HASTA) + ' = 0 or (first ev.6.0).0 <= (first ' + dice(R, HASTA) + ').0)';
+/**
+ * Si dice hasta cuándo (su 1.2), ni el instante del registro (que elige quien escribe) ni el reloj del libro antes de él (el
+ * mayor instante ya visto, before.6.0, como «at most a year ahead») lo pasan: antedatar no sirve.
+ */
+const aTiempo = (R) => '(count ' + dice(R, HASTA) + ' = 0 or (first ev.6.0).0 <= (first ' + dice(R, HASTA) + ').0 and (count before.6.0 = 0 or first before.6.0.0 <= (first ' + dice(R, HASTA) + ').0))';
 
 /**
  * La guarda (it = el movimiento, a la profundidad 0): de un titular que no es quien escribe, una liberación o una
@@ -82,7 +85,7 @@ const aTiempo = (R) => '(count ' + dice(R, HASTA) + ' = 0 or (first ev.6.0).0 <=
 export function formulaDeLaGuarda() {
   const permite = (R, d) => aTiempo(R) + ' and (release in it.4 and ("return" in ' + dice(R, MODOS) + ' or "burn" in ' + dice(R, MODOS)
     + ' and ' + sumaDe('burn', 'it', d + 1) + ' >= ' + sumaDe('release', 'it', d + 1) + ')'
-    + ' or transfer in it.4 and "pay" in ' + dice(R, MODOS) + ' and it.3.1 in ' + dice(R, A_QUIEN_PAGA) + ' and it.3.1 != first ev.3)';
+    + ' or transfer in it.4 and "pay" in ' + dice(R, MODOS) + ' and it.3.1 in ' + dice(R, A_QUIEN_PAGA) + ' and it.3.1 != "-" and it.3.1 != first ev.3)';
   const conQuema = (R) => aTiempo(R) + ' and "burn" in ' + dice(R, MODOS);
   // Primero la primitiva (un ocupante del 1 del payload que no es un movimiento no llega a leer su 3).
   return '=count (ev.1 where (release in it.4 or transfer in it.4) and it.3.0 != first ev.3 and ' + conReserva('it', 0)

@@ -1,13 +1,13 @@
 {
-  "id": "6ccd224cb91bb5c564577f0fc3ed8daf70adbcd75bbcdffc2e54540c75404d5d",
-  "hereda": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580",
+  "id": "4146cf1193dd9fee062263483fdc6134c41928da87a092f90468f6eab084e5ba",
+  "hereda": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44",
   "raiz": [
     [
       "época state 0",
       "state epoch 0"
     ],
     {
-      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+      "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
     },
     [
       {
@@ -74,21 +74,21 @@
         "ref": "fda51c4bb157e7684c434a622e6dff2cfccbfe867b562696c0d94300ae599321"
       },
       {
-        "ref": "c9f172a446b441e65593b6ff6dc141447d13c71ed8f38ecdc53963e84cf4c4a9"
+        "ref": "04741815812c2bc2db08753964ec4a5c8e5e59549d820d347b4e6f3b62decd35"
       }
     ],
     {
-      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+      "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
     },
     [
       {
-        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       },
       {
-        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       },
       {
-        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       },
       [
         [
@@ -146,7 +146,7 @@
       ]
     ],
     {
-      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+      "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
     },
     [
       [
@@ -162,31 +162,31 @@
         "hereda"
       ],
       [
-        "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       ]
     ],
     {
-      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+      "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
     },
     {
-      "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+      "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
     },
     [
       [
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         [
           [
@@ -205,29 +205,29 @@
         ]
       ],
       {
-        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       },
       [
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         [
           [
@@ -1096,17 +1096,17 @@
         ]
       ],
       {
-        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       },
       [
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         [
           [
@@ -1870,11 +1870,11 @@
         ]
       ],
       {
-        "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+        "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
       },
       [
         {
-          "ref": "cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580"
+          "ref": "b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44"
         },
         [
           {
@@ -1941,13 +1941,13 @@
             "ref": "fa42f3956372b82da8e98b5a3be37857b2c559233f728b04a43c68c269850c58"
           },
           {
-            "ref": "3883eb33449e4828b2f065b3976a4ac6d09a1f95b64cd938f36469b249e86594"
+            "ref": "8e928ca33156444ee9f23506e7f8a0d6f3e7011af24cddbb6053103dd023ce5c"
           },
           {
-            "ref": "e26d918a87590dfcc6c9308fcc833d888aabb733cccf54631d187ebdab7c9fb0"
+            "ref": "95647db32293c8d5e24d5f32ca2dbe22a7d77cb661488a181ad587ca772117f5"
           },
           {
-            "ref": "55e74b2c17bca14ac3df6a00753cd40920d8568a7b3ca3ff6165bcab3c043b24"
+            "ref": "fb9d0e876c6925b94acf22afdbd111c0ce23ec16ae47fec25fe14ffa7e48de58"
           },
           {
             "ref": "f9f14103ab8bd1d04b39bdc61b7f9db9da1cb35eed79c816b5a30f446e0efb5c"
@@ -1983,7 +1983,7 @@
             "ref": "e7e524d63fb869c7bac724b3b11cc4b0a2e718faf427719f65adf3eb01667dc2"
           },
           {
-            "ref": "5ad2f44ccab1a6b7b7b900af9181846bd975ec46f3b22399cd4435b75416cce9"
+            "ref": "a444f91b882e26dcd2a9cd2746b3f354257fd456e5398e7d1d3fb46a5930a72a"
           },
           {
             "ref": "277e064cb1a4a67656f9beae93c8f13f161b710a0a122abefa325efd5693799f"
@@ -2812,7 +2812,7 @@
         "R"
       ],
       [
-        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) and ((count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and lock in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and lock in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0 or not (count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) and not (R in it.0.0.0 and lock in it.4 and it.0.0.1 = first (first (first ev.3).6).3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and ((count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0)) = 0 or not (count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 != first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) and not (first (payload(ev)).1.0 in epoch.9.0.5.2 and R in it.0.0.0 and lock in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).3.1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0)"
+        "=not ((first (payload(ev)).0 = \"message in\" or first (payload(ev)).0 = \"message out\") and last (first ev.6).5 = \"3000000000\" and \"conversation with an agent\" in (payload((first ev.6.5))).5) or first (payload(ev)).0 = \"message in\" and (first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and \"interlocutor\" in (payload(first (first (payload(ev)).1.1).6)).5) and ((count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and lock in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0) each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and lock in it.4 and it.0.0.1 = first ev.3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0 or not (count (first ev.3).6 = 0 or first (first (first ev.3).6).3 = first ev.3) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 != first ev.3 and (it.3.0 = first (payload((first ev.6.5))).1 or it.3.0 = first (first (first (payload((first ev.6.5))).1).6).3) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) = 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 != first ev.3 and (it.3.0 = first (payload((first ev.6.5))).1 or it.3.0 = first (first (first (payload((first ev.6.5))).1).6).3) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) and not (R in it.0.0.0 and lock in it.4 and it.0.0.1 = first (first (first ev.3).6).3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0) or first (payload(ev)).0 = \"message out\" and (first ev.3 = first (payload((first ev.6.5))).1 or first ev.3 = first (first (first (payload((first ev.6.5))).1).6).3) and ((count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 != first ev.3 and (it.3.0 = first (payload((first ev.6.5))).3.1 or it.3.0 = first (first (first (payload((first ev.6.5))).3.1).6).3) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) = 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (payload((first ev.6.5))).3.1 and it.3.0 != first ev.3 and (it.3.0 = first (payload((first ev.6.5))).3.1 or it.3.0 = first (first (first (payload((first ev.6.5))).3.1).6).3) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0)) = 0 or not (count (first (payload((first ev.6.5))).3.1).6 = 0 or first (first (first (payload((first ev.6.5))).3.1).6).3 = first (payload((first ev.6.5))).3.1) and sum ((ev.1 where R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 != first ev.3 and (it.3.0 = first (payload((first ev.6.5))).3.1 or it.3.0 = first (first (first (payload((first ev.6.5))).3.1).6).3) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) each 1) = 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (R in it.0.0.0 and release in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).3.1).6).3 and it.3.0 != first ev.3 and (it.3.0 = first (payload((first ev.6.5))).3.1 or it.3.0 = first (first (first (payload((first ev.6.5))).3.1).6).3) and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = it.3.0 and first (payload((text(utf8(it2))))).3.1 = first ev.3 and first (text(utf8(it2))).6.5 = first ev.6.5) > 0) and not (first (payload(ev)).1.0 in epoch.9.0.5.2 and R in it.0.0.0 and lock in it.4 and it.0.0.1 = first (first (first (payload((first ev.6.5))).1).6).3 and it.3.0 = first ev.3 and count (it.2 where first (text(utf8(it2))).5 = (text(utf8(it2))) and \"a reserve\" in (payload((text(utf8(it2))))).4 and first (text(utf8(it2))).3 = first ev.3 and first (payload((text(utf8(it2))))).3.1 = first (payload((first ev.6.5))).3.1 and first (text(utf8(it2))).6.5 = first ev.6.5 and \"return\" in (payload((text(utf8(it2))))).1.0 and not (\"burn\" in (payload((text(utf8(it2))))).1.0) and not (\"pay\" in (payload((text(utf8(it2))))).1.0)) > 0)) = 0)"
       ],
       [
         "ev.3"
@@ -8854,9 +8854,9 @@
         ]
       ],
       [
-        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where (first it2.3 = first (payload(it)).1 or first it2.3 = first (first (first (payload(it)).1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where (first it2.3 = first (payload(it)).1 or first it2.3 = first (first (first (payload(it)).1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
       ],
       [
         "3"
@@ -9126,8 +9126,8 @@
         ]
       ],
       [
-        "=(count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and release 1 R.(first (payload(it)).3.1) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (payload(it)).3.1) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (payload(it)).3.1) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5) or not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and release 1 R.(first (first (first (payload(it)).3.1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
-        "=count memo.1.5 > 0 and first memo.1.5 > 0 and (me = first (first (first (payload(it)).1).6).3 and put first memo.1.5 at me.1.(R.(me)).1 or me != first (first (first (payload(it)).1).6).3) and lock first memo.1.5 R.(first (first (first (payload(it)).1).6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).3.1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5)"
+        "=(count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and release 1 R.(first (payload(it)).3.1) from first ((((down it) where (first it2.3 = first (payload(it)).3.1 or first it2.3 = first (first (first (payload(it)).3.1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (payload(it)).3.1) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where (first it2.3 = first (payload(it)).3.1 or first it2.3 = first (first (first (payload(it)).3.1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (payload(it)).3.1) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5) or not (count (first (payload(it)).3.1).6 = 0 or first (first (first (payload(it)).3.1).6).3 = first (payload(it)).3.1) and release 1 R.(first (first (first (payload(it)).3.1).6).3) from first ((((down it) where (first it2.3 = first (payload(it)).3.1 or first it2.3 = first (first (first (payload(it)).3.1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where (first it2.3 = first (payload(it)).3.1 or first it2.3 = first (first (first (payload(it)).3.1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).3.1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+        "=count memo.1.5 > 0 and first memo.1.5 > 0 and (me = first (first (first (payload(it)).1).6).3 and put first memo.1.5 at me.1.(R.(me)).1 or me != first (first (first (payload(it)).1).6).3) and lock first memo.1.5 R.(first (first (first (payload(it)).1).6).3) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).3.1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5)"
       ],
       [
         "3"
@@ -9397,9 +9397,9 @@
         ]
       ],
       [
-        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
-        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
+        "=(count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and lock 1 R.(me) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and lock first memo.1.5 R.(me) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and release 1 R.(first (first (first (payload(it)).1).6).3) from first ((((down it) where (first it2.3 = first (payload(it)).1 or first it2.3 = first (first (first (payload(it)).1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 3) exit first ((((down it) where (first it2.3 = first (payload(it)).1 or first it2.3 = first (first (first (payload(it)).1).6).3) and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = first (first (first (payload(it)).1).6).3) each 2) where first it3.0 = first it2.5) each 1) >= 1)) each 5)",
+        "=not (count me.6 = 0 or first (first me.6).3 = me) and (count memo.1.5 = 0 and lock 1 R.(first (first me.6).3) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5) or count memo.1.5 > 0 and first memo.1.5 > 0 and lock first memo.1.5 R.(first (first me.6).3) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4 and first (payload(it2)).3.1 = first (payload(it)).1 and \"return\" in (payload(it2)).1.0 and not (\"burn\" in (payload(it2)).1.0) and not (\"pay\" in (payload(it2)).1.0)) each 5))"
       ],
       [
         "3"
@@ -12500,7 +12500,7 @@
         ]
       ],
       [
-        "=count ((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me) > 0 and release (sum ((((me.1 where count (it2.2 where first it3.0 = first (((down it) where \"a reserve\" in (payload(it4)).4 and first it4.3 = me) each 5)) > 0) each 2) where first it2.0 = first (((down it) where \"a reserve\" in (payload(it3)).4 and first it3.3 = me) each 5)) each 1)) (first ((me.1 where count (it2.2 where first it3.0 = first (((down it) where \"a reserve\" in (payload(it4)).4 and first it4.3 = me) each 5)) > 0) each 0)) from me exit first (((down it) where \"a reserve\" in (payload(it2)).4 and first it2.3 = me) each 5)"
+        "=count ((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4) > 0 and release (sum ((((me.1 where count (it2.2 where first it3.0 = first (((down it) where first it4.3 = me and \"a reserve\" in (payload(it4)).4) each 5)) > 0) each 2) where first it2.0 = first (((down it) where first it3.3 = me and \"a reserve\" in (payload(it3)).4) each 5)) each 1)) (first ((me.1 where count (it2.2 where first it3.0 = first (((down it) where first it4.3 = me and \"a reserve\" in (payload(it4)).4) each 5)) > 0) each 0)) from me exit first (((down it) where first it2.3 = me and \"a reserve\" in (payload(it2)).4) each 5)"
       ],
       [
         "4"

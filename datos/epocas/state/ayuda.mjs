@@ -63,13 +63,25 @@ export function emisorQueGasta(eje, conversacion, agente) {
 /**
  * El cupo que le queda a `agente` (por defecto, el de la conversación) en una conversación: lo que tienen bloqueado, con la
  * salida en una reserva suya colgada de esa conversación que nombra a `agente`, los autores de esas reservas, de la R que
- * gasta (emisorQueGasta). Lo reservado en otra conversación no cuenta.
+ * gasta (emisorQueGasta), y solo las reservas del otro lado (otroLado). Lo reservado en otra conversación no cuenta.
  */
 export function cupo(eje, conversacion, agente = agenteDe(eje, conversacion)) {
   const clave = 'R:' + emisorQueGasta(eje, conversacion, agente);
+  const lado = otroLado(eje, conversacion, agente);
   let n = 0;
-  for (const r of reservasEn(eje, conversacion, { para: agente })) n += eje.bloqueado(r.autor, clave, r.id);
+  for (const r of reservasEn(eje, conversacion, { para: agente })) if (lado.includes(r.autor)) n += eje.bloqueado(r.autor, clave, r.id);
   return n;
+}
+
+/**
+ * Quién es el otro lado de la conversación para `agente` (revisión de seguridad, hallazgo 5: solo su reserva da cupo): para
+ * el agente de la conversación o su dueño, el interlocutor y quien escribió su alta (el servicio, por un interlocutor de
+ * fuera; el dueño del otro agente); para el otro agente, el agente de la conversación y su dueño.
+ */
+export function otroLado(eje, conversacion, agente) {
+  const ag = agenteDe(eje, conversacion);
+  const inter = interlocutorDe(eje, conversacion);
+  return agente === ag || agente === duenoDe(eje, ag) ? [inter, duenoDe(eje, inter)] : [ag, duenoDe(eje, ag)];
 }
 
 /**
@@ -127,14 +139,18 @@ const llena = (v, d, emisor, para) => {
   return 'R in ' + v + '.0.0.0 and lock in ' + v + '.4 and ' + v + '.0.0.1 = ' + emisor + ' and ' + v + '.3.0 = ' + W
     + ' and count (' + v + '.2 where ' + reservaEnLaConversacion(R, W, para) + ' and ' + SOLO_RETURN(R) + ') > 0';
 };
-/** El movimiento `v` (a la profundidad d) libera R de `emisor` de otro con la salida en una reserva suya de esta conversación que nombra a quien escribe. */
-const gasta = (v, d, emisor) => {
+/**
+ * El movimiento `v` (a la profundidad d) libera R de `emisor` de su titular, que es el otro lado (`lado`: dos
+ * identidades), con la salida en una reserva suya de esta conversación que nombra a quien escribe.
+ */
+const gasta = (v, d, emisor, lado) => {
   const R = S(el(d + 1));
   return 'R in ' + v + '.0.0.0 and release in ' + v + '.4 and ' + v + '.0.0.1 = ' + emisor + ' and ' + v + '.3.0 != ' + W
+    + ' and (' + v + '.3.0 = ' + lado[0] + ' or ' + v + '.3.0 = ' + lado[1] + ')'
     + ' and count (' + v + '.2 where ' + reservaEnLaConversacion(R, v + '.3.0', W) + ') > 0';
 };
-/** Al menos una unidad de lo que cumple `bien` y ningún otro movimiento de R que no sea acuñar (poner en mano la propia). */
-const soloEso = (bien, otro = null) => 'sum ((ev.1 where ' + bien + ') each 1) >= 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (' + bien + ')' + (otro ? ' and not (' + otro + ')' : '') + ') = 0';
+/** Al menos una unidad (con `exacto`, una y solo una: lo que gasta una contestación) de lo que cumple `bien` y ningún otro movimiento de R que no sea acuñar (poner en mano la propia). */
+const soloEso = (bien, otro = null, exacto = false) => 'sum ((ev.1 where ' + bien + ') each 1) ' + (exacto ? '=' : '>=') + ' 1 and count (ev.1 where R in it.0.0.0 and not (mint in it.4) and not (' + bien + ')' + (otro ? ' and not (' + otro + ')' : '') + ') = 0';
 
 /** Quién escribe un «message in» (sin cambios: los canales y el interlocutor). */
 const QUIEN_ENTRA = '(first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payload(ev)).1.1 = first ev.3 or not (first (payload(ev)).1.0 in epoch.9.0.5.2) and first (payload(ev)).1.1 != first ev.3 and first (first (first (payload(ev)).1.1).6).3 = first ev.3 and "interlocutor" in (payload(first (first (payload(ev)).1.1).6)).5)';
@@ -152,9 +168,9 @@ const QUIEN_ENTRA = '(first (payload(ev)).1.0 in epoch.9.0.5.2 and first (payloa
 export function formulaDeQuienEscribe() {
   const cabeza = '=not ((first (payload(ev)).0 = "message in" or first (payload(ev)).0 = "message out") and last (first ev.6).5 = "3000000000" and "conversation with an agent" in (payload(' + C + ')).5)';
   const entraPersona = personaW + ' and ' + soloEso(llena('it', 0, W, AG));
-  const entraCosa = 'not ' + personaW + ' and ' + soloEso(gasta('it', 0, DAG), llena('it', 0, DW, AG));
-  const salePersona = personaINT + ' and ' + soloEso(gasta('it', 0, INT));
-  const saleCosa = 'not ' + personaINT + ' and ' + soloEso(gasta('it', 0, DINT), 'first (payload(ev)).1.0 in epoch.9.0.5.2 and ' + llena('it', 0, DAG, INT));
+  const entraCosa = 'not ' + personaW + ' and ' + soloEso(gasta('it', 0, DAG, [AG, DAG]), llena('it', 0, DW, AG), true);
+  const salePersona = personaINT + ' and ' + soloEso(gasta('it', 0, INT, [INT, DINT]), null, true);
+  const saleCosa = 'not ' + personaINT + ' and ' + soloEso(gasta('it', 0, DINT, [INT, DINT]), 'first (payload(ev)).1.0 in epoch.9.0.5.2 and ' + llena('it', 0, DAG, INT), true);
   return cabeza + ' or first (payload(ev)).0 = "message in" and ' + QUIEN_ENTRA + ' and (' + entraPersona + ' or ' + entraCosa + ')'
     + ' or first (payload(ev)).0 = "message out" and (' + W + ' = ' + AG + ' or ' + W + ' = ' + DAG + ') and (' + salePersona + ' or ' + saleCosa + ')';
 }
@@ -168,11 +184,11 @@ const tPersonaMe = '(count me.6 = 0 or first (first me.6).3 = me)';
 const tPersonaINT = '(count (first (payload(it)).3.1).6 = 0 or ' + tDINT + ' = ' + tINT + ')';
 
 /** El id de mi reserva en la conversación para `para` (solo «return»): la primera. */
-const miReserva = (para) => 'first (((down it) where "' + RESERVA + '" in (payload(it2)).4 and first it2.3 = me and first (payload(it2)).3.1 = ' + para + ' and ' + SOLO_RETURN('it2') + ') each 5)';
-/** Las reservas de la conversación que me nombran y cuyo autor tiene bloqueada en ellas al menos una unidad de R de `emisor`. */
-const paraMi = (emisor) => '((down it) where "' + RESERVA + '" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = ' + emisor + ') each 2) where first it3.0 = first it2.5) each 1) >= 1)';
+const miReserva = (para) => 'first (((down it) where first it2.3 = me and "' + RESERVA + '" in (payload(it2)).4 and first (payload(it2)).3.1 = ' + para + ' and ' + SOLO_RETURN('it2') + ') each 5)';
+/** Las reservas del otro lado (`lado`) que me nombran y cuyo autor tiene bloqueada en ellas al menos una unidad de R de `emisor`. */
+const paraMi = (emisor, lado) => '((down it) where (first it2.3 = ' + lado[0] + ' or first it2.3 = ' + lado[1] + ') and "' + RESERVA + '" in (payload(it2)).4 and first (payload(it2)).3.1 = me and sum (((((first it2.3).1 where R in it3.0.0.0 and it3.0.0.1 = ' + emisor + ') each 2) where first it3.0 = first it2.5) each 1) >= 1)';
 /** Gastar una unidad de R de `emisor` de la primera reserva de la conversación que me nombra y tiene cupo: liberarla (vuelve a su titular). */
-const gastarUna = (emisor) => 'release 1 R.(' + emisor + ') from first ((' + paraMi(emisor) + ') each 3) exit first ((' + paraMi(emisor) + ') each 5)';
+const gastarUna = (emisor, lado) => 'release 1 R.(' + emisor + ') from first ((' + paraMi(emisor, lado) + ') each 3) exit first ((' + paraMi(emisor, lado) + ') each 5)';
 /** Bloquear `cuanto` de R de `emisor` en mi reserva para `para`. */
 const bloquear = (cuanto, emisor, para) => 'lock ' + cuanto + ' R.(' + emisor + ') from me exit ' + miReserva(para);
 
@@ -180,7 +196,7 @@ const bloquear = (cuanto, emisor, para) => 'lock ' + cuanto + ' R.(' + emisor + 
 export function cuatroDelMensajeQueEntra() {
   return [
     '=' + tPersonaMe + ' and (count memo.1.5 = 0 and put 1 at me.1.(R.(me)).1 and ' + bloquear('1', 'me', tAG) + ' or count memo.1.5 > 0 and first memo.1.5 > 0 and put first memo.1.5 at me.1.(R.(me)).1 and ' + bloquear('first memo.1.5', 'me', tAG) + ')',
-    '=not ' + tPersonaMe + ' and ' + gastarUna(tDAG),
+    '=not ' + tPersonaMe + ' and ' + gastarUna(tDAG, [tAG, tDAG]),
     '=not ' + tPersonaMe + ' and (count memo.1.5 = 0 and ' + bloquear('1', 'first (first me.6).3', tAG) + ' or count memo.1.5 > 0 and first memo.1.5 > 0 and ' + bloquear('first memo.1.5', 'first (first me.6).3', tAG) + ')',
   ];
 }
@@ -188,13 +204,13 @@ export function cuatroDelMensajeQueEntra() {
 /** Las líneas del 4 de «message out». */
 export function cuatroDelMensajeQueSale() {
   return [
-    '=' + tPersonaINT + ' and ' + gastarUna(tINT) + ' or not ' + tPersonaINT + ' and ' + gastarUna(tDINT),
+    '=' + tPersonaINT + ' and ' + gastarUna(tINT, [tINT, tDINT]) + ' or not ' + tPersonaINT + ' and ' + gastarUna(tDINT, [tINT, tDINT]),
     '=count memo.1.5 > 0 and first memo.1.5 > 0 and (me = ' + tDAG + ' and put first memo.1.5 at me.1.(R.(me)).1 or me != ' + tDAG + ') and ' + bloquear('first memo.1.5', tDAG, tINT),
   ];
 }
 
 /** Una reserva mía colgada de la conversación, como expresión a la profundidad d (su where da el elemento el(d)). */
-const unaMia = (d) => 'first (((down it) where "' + RESERVA + '" in (payload(' + el(d) + ')).4 and first ' + el(d) + '.3 = me) each 5)';
+const unaMia = (d) => 'first (((down it) where first ' + el(d) + '.3 = me and "' + RESERVA + '" in (payload(' + el(d) + ')).4) each 5)';
 
 /**
  * El 4 de «archive a conversation»: si quien archiva reservó en la conversación, el mismo registro retira lo que quede en
@@ -203,7 +219,7 @@ const unaMia = (d) => 'first (((down it) where "' + RESERVA + '" in (payload(' +
 export function cuatroDelArchivo() {
   const serie = 'first ((me.1 where count (it2.2 where first it3.0 = ' + unaMia(3) + ') > 0) each 0)';
   const cuanto = 'sum ((((me.1 where count (it2.2 where first it3.0 = ' + unaMia(3) + ') > 0) each 2) where first it2.0 = ' + unaMia(2) + ') each 1)';
-  return ['=count ((down it) where "' + RESERVA + '" in (payload(it2)).4 and first it2.3 = me) > 0 and release (' + cuanto + ') (' + serie + ') from me exit ' + unaMia(1)];
+  return ['=count ((down it) where first it2.3 = me and "' + RESERVA + '" in (payload(it2)).4) > 0 and release (' + cuanto + ') (' + serie + ') from me exit ' + unaMia(1)];
 }
 
 /**

@@ -32,7 +32,7 @@ console.log(eje.epocaDe(enVigor.id).registro[7][3][0], eje.epoca().registro[7][3
 ```
 
 ```text
-[ [ 0, null, '83c02e37' ], [ 1, '3c524caa', 'a19677e2' ] ]
+[ [ 0, null, '8042cc45' ], [ 1, '68b613ac', 'ac7d2dc3' ] ]
 [ 600 ] [ 900 ] true
 ```
 

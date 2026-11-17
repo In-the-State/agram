@@ -22,7 +22,7 @@ import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 
 /** El id de la época 0 definitiva (no cambia con esta época). */
-const ID_DE_LA_0 = 'cbf7b695f966f8136ac0687ae9a56936ea850187326e7bd52b1c8d8fa782d580';
+const ID_DE_LA_0 = 'b5d2dd6625c6de72dc919f7e62fd71af67691b26bc749133c1e52e6dbd2b5c44';
 const CAMINO = ['register the node', 'register the authority', 'register the relay', 'register the archive', 'declare a context', 'put in service'];
 const PAPELES = ['authority', 'container', 'relay', 'gate', 'archive', 'deployment', 'worker', 'agent', 'context', 'served ledger'];
 
