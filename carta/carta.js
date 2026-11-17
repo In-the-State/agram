@@ -829,7 +829,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
   // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
-  if (g.cara === 'anverso') return { ...base, representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
+  if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
     const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
@@ -1628,10 +1628,25 @@ export const hayRosetonAmpliado = (rosetones) => Object.values(rosetones ?? {}).
 async function caminoDe(eje, X, yo, ctx) {
   if (!yo) return { pasos: [], niveles: null };
   const c = await acciones.camino(eje, X, yo, ctx.opciones);
+  // El camino de una guía en su libro (DISENO_ZONAS_GUIA §4): sus pasos con el estado leído en cada libro del dispositivo.
+  // Lo da la app (opciones.pasosDeLaGuia: lee mis otros libros); sin él, o si X no es una guía, no hay nada.
+  const deLaGuia = typeof ctx.opciones.pasosDeLaGuia === 'function' ? await ctx.opciones.pasosDeLaGuia(eje, X, yo) : null;
   return {
-    pasos: c.pasos.map((p) => ({ fuente: p.fuente, falta: sinNombreInterno(p.falta, eje, ctx.opciones), hecho: Boolean(p.hecho), espera: p.espera ?? null, regla: p.regla ?? null, porque: sinNombreInterno(p.porque ?? null, eje, ctx.opciones), propuesta: p.propuesta ?? null, invalida: p.invalida ?? null, mio: Boolean(p.hacer) && !p.espera && !p.hecho, hacer: p.hacer ? { ...accionDe(p.hacer.plantilla, ctx.opciones), X: p.hacer.X, parametros: p.hacer.parametros, lectura: Boolean(p.hacer.lectura) } : null, pasa: p.pasa, motivos: p.motivos })),
+    pasos: c.pasos.map((p) => ({ fuente: p.fuente, falta: sinNombreInterno(p.falta, eje, ctx.opciones), hecho: Boolean(p.hecho), espera: p.espera ?? null, regla: p.regla ?? null, porque: sinNombreInterno(p.porque ?? null, eje, ctx.opciones), propuesta: p.propuesta ?? null, invalida: p.invalida ?? null, ...(typeof p.guia === 'string' && p.guia ? { guia: p.guia } : {}), mio: Boolean(p.hacer) && !p.espera && !p.hecho, hacer: p.hacer ? { ...accionDe(p.hacer.plantilla, ctx.opciones), X: p.hacer.X, parametros: p.hacer.parametros, lectura: Boolean(p.hacer.lectura) } : null, pasa: p.pasa, motivos: p.motivos })),
     niveles: c.niveles ?? null,
+    ...(Array.isArray(deLaGuia) && deLaGuia.length ? { guia: deLaGuia.map((g) => ({ ...g, accionNombre: accionDe(g.accion, ctx.opciones)?.nombre ?? g.accion })) } : {}),
   };
+}
+
+/**
+ * Las zonas de la cara de X (contrato.zonas, §12.8: solo las del autor de X, con su forma comprobada): los botones que la
+ * carta pinta encima de su dibujo, { id, etiqueta, caja }. Lo que hace cada una lo decide la app al tocarla, volviendo a
+ * leer la zona (nunca del DOM). Sin zonas, nada: el nodo no cambia de forma.
+ */
+function zonasDeLaCara(eje, X) {
+  let lista = [];
+  try { lista = contrato.zonas(eje, X); } catch { lista = []; }
+  return lista.length ? { zonas: lista.map((z) => ({ id: z.id, etiqueta: z.etiqueta, caja: [...z.caja] })) } : {};
 }
 
 /** Lo que el libro local sabe: lo gastado hoy, lo que queda, cuántas interacciones esperan a englobarse. */

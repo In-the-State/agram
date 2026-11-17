@@ -201,6 +201,23 @@ function htmlAislada(rep, clase, nombre = null) {
   return `<span class="${clase} rep-aislada rep-pendiente" data-archivo="${attr(rep.archivo ?? '')}" role="status">${escapar(estado)}</span>`;
 }
 
+/**
+ * La cara con sus zonas (DISENO_ZONAS_GUIA §4; contrato.zonas): el dibujo de siempre (el html en su <iframe sandbox>, la
+ * pieza o el texto) y, encima, una capa de la carta que lo cubre entero, con un botón por zona. El botón es de la carta
+ * (su borde y su letra): su texto es la etiqueta de quien escribió la zona, escapada; su caja va en milésimas de la cara
+ * como variables CSS (enteros de 0 a 1000, pasados por cssSeguro). Tocarlo solo navega (app.js zona): nunca firma,
+ * escribe, lanza ni pide nada a la red.
+ */
+function htmlCaraConZonas(cara, c) {
+  const entero = (n) => Math.max(0, Math.min(1000, Math.trunc(Number(n)) || 0));
+  const botones = c.zonas.map((z) => {
+    const [x = 0, y = 0, ancho = 0, alto = 0] = (Array.isArray(z.caja) ? z.caja : []).map(entero);
+    const estilo = cssSeguro(`--zx:${x};--zy:${y};--zan:${ancho};--zal:${alto}`);
+    return `<button type="button" class="zona"${nodo('control')} data-zona="${attr(z.id)}" data-x="${attr(c.X)}" style="${attr(estilo)}" title="${attr(t('zonaTitulo', { que: z.etiqueta }))}">${escapar(z.etiqueta)}</button>`;
+  }).join('');
+  return `<span class="cara-con-zonas">${cara}<span class="zonas-capa" role="group" aria-label="${attr(t('zonasDeLaCara'))}">${botones}</span></span>`;
+}
+
 /** Una representación del 0 como HTML: texto, la imagen que cabe (solo llega con recurso en animado), la de un archivo adjunto (su URL local) o el HTML aislado. */
 function htmlRepresentacion(rep, { clase = 'rep', nombre = null } = {}) {
   if (!rep) return `<span class="${clase} rep-vacia">—</span>`;
@@ -1050,6 +1067,43 @@ function htmlPropuesta(p) {
     <span class="propuesta-botones"><button type="button"${nodo('control')} data-propuesta-aceptar="${id}" title="${attr(t('propuestaAceptarTitulo'))}">${t('propuestaAceptar')}</button><button type="button"${nodo('control')} data-propuesta-modificar="${id}" title="${attr(t('propuestaModificarTitulo'))}">${t('propuestaModificar')}</button>${rechazar}</span></li>`;
 }
 
+/**
+ * Un paso de una de mis guías en el camino de este registro (la tercera fuente, src/guia-libro.js): su acción en llano
+ * (el nombre de la época), la guía de la que viene y su porqué (texto de quien escribió la guía, escapado), hecho o no,
+ * y si ahora no pasa, por qué. Tocarlo abre el formulario de la acción con sus parámetros rellenos (app.js guiaPaso):
+ * lanzar es el gesto de siempre. Uno inválido sale con su motivo, sin botón.
+ */
+function htmlPasoDeGuia(p) {
+  const id = attr(p.propuesta ?? '');
+  const deLaGuia = `<span class="fuente">${escapar(t('guiaPasoDe', { guia: p.guia }))}</span>`;
+  const porque = p.porque ? ` <span class="porque"><b>${t('propuestaPorque')}</b> ${escapar(p.porque)}</span>` : '';
+  if (p.invalida) return `<li class="paso guia-paso invalida"${nodo('paso')} data-guia-paso-id="${id}"><b>${t('guiaPasoInvalido')}</b> <span class="falta">${escapar(p.falta ?? '')}</span> <span class="motivo">${escapar(p.invalida)}</span> ${deLaGuia}${porque}</li>`;
+  if (p.hecho) return `<li class="paso guia-paso hecho"${nodo('paso')} data-guia-paso-id="${id}"><span class="falta">${escapar(p.hacer?.nombre ?? p.falta ?? '')}</span> <span class="marca">${t('hecho')}</span> ${deLaGuia}${porque}</li>`;
+  const noPasa = p.pasa === false && p.motivos?.length ? `<small class="motivos" role="status">${escapar(t('propuestaNoPasa', { motivos: p.motivos.map((m) => m.mensaje).join('; ') }))}</small>` : '';
+  return `<li class="paso guia-paso mio${p.pasa === false ? ' no-pasa' : ''}"${nodo('paso')} data-guia-paso-id="${id}"><button type="button"${nodo('control')} data-guia-paso="${id}" title="${attr(t('guiaPasoTitulo'))}">${escapar(p.hacer?.nombre ?? '')}</button> ${deLaGuia}${porque}${noPasa}</li>`;
+}
+
+/**
+ * El camino de una guía en su libro: todos sus pasos (su título y su porqué, de quien escribió la guía, escapados), en
+ * qué libro se hacen y su estado leído en ese libro, si está en este dispositivo. Tocar uno lleva a hacerlo (app.js
+ * guiaSeguir: el libro, el registro y el formulario relleno).
+ */
+function htmlPasosDeLaGuia(lista) {
+  if (!lista?.length) return '';
+  const estado = (g) => (g.estado === 'hecho' ? `<span class="marca">${t('hecho')}</span>`
+    : g.estado === 'noEsta' ? `<span class="motivo">${t('guiaLibroNoEsta')}</span>`
+      : g.estado === 'invalido' ? `<span class="motivo">${escapar(t('guiaPasoInvalidoPor', { motivo: g.motivo ?? '' }))}</span>`
+        : `<span class="marca">${t('guiaPendiente')}</span>`);
+  const filas = lista.map((g) => {
+    const donde = g.libro ? ` <small class="libro">${escapar(t('guiaEnLibro', { libro: g.libro }))}</small>` : '';
+    const titulo = g.estado === 'noEsta' || g.estado === 'invalido'
+      ? `<b class="de-la-guia">${escapar(g.titulo)}</b>`
+      : `<button type="button" class="de-la-guia"${nodo('control')} data-guia-seguir="${attr(g.id)}" title="${attr(t('guiaSeguirTitulo', { accion: g.accionNombre ?? g.accion }))}">${escapar(g.titulo)}</button>`;
+    return `<li class="paso guia-paso ${attr(g.estado)}"${nodo('paso')}>${titulo}${donde} ${estado(g)}${g.porque ? ` <span class="porque"><b>${t('propuestaPorque')}</b> ${escapar(g.porque)}</span>` : ''}</li>`;
+  }).join('');
+  return `<section class="guia-pasos"${nodo('guia')}><h5>${t('guiaSusPasos')}</h5><ol>${filas}</ol></section>`;
+}
+
 /** Lo que daría un paso previsualizado (carta.previsualizar): si pasaría y con qué movimientos, o por qué no. */
 function htmlPrevia(v) {
   const texto = v.ok ? (v.frase || t('previaPasaSinMovimientos')) : t('previaNoPasa', { motivos: (v.motivos ?? []).map((m) => m.mensaje).join('; ') });
@@ -1077,6 +1131,7 @@ export function htmlCamino(c, { X } = {}) {
   if (!c) return '';
   const comun = prefijoComunDePasos(c.pasos);
   const pasos = c.pasos.map((p, i) => {
+    if (p.guia) return htmlPasoDeGuia(p);
     if (p.propuesta !== null && p.propuesta !== undefined) return htmlPropuesta(p);
     const clase = p.hecho ? 'hecho' : p.espera ? 'espera' : p.mio ? 'mio' : 'otro';
     const falta = comun && typeof p.falta === 'string' && p.falta.startsWith(comun + ' · ') ? p.falta.slice(comun.length + 3) : (p.falta ?? '');
@@ -1094,7 +1149,7 @@ export function htmlCamino(c, { X } = {}) {
   const niveles = c.niveles ? `<p class="niveles">${t('paraUbicarse')} ${c.niveles.map((n) => `<span>${escapar(n)}</span>`).join(' → ')}</p>` : '';
   const seguir = c.pasos.some((p) => p.mio && !p.hacer?.lectura && (p.propuesta === null || p.propuesta === undefined)) ? `<button type="button" class="seguir" data-seguir>${t('seguir')}</button>` : '';
   const compartido = comun ? `<p class="camino-comun">${escapar(comun)}</p>` : '';
-  return `<section class="camino"${nodo('camino')} aria-label="${attr(t('camino'))}">${niveles}${compartido}<ol>${pasos || `<li class="nada">${t('nadaQueHacerAqui')}</li>`}</ol>${seguir}</section>`;
+  return `<section class="camino"${nodo('camino')} aria-label="${attr(t('camino'))}">${niveles}${compartido}<ol>${pasos || `<li class="nada">${t('nadaQueHacerAqui')}</li>`}</ol>${seguir}${htmlPasosDeLaGuia(c.guia)}</section>`;
 }
 
 /**
@@ -1323,7 +1378,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
     return `<section class="nucleo anverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'anverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
       <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
-      <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}">${htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
+      <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}${c.zonas?.length ? ' con-zonas' : ''}">${c.zonas?.length ? htmlCaraConZonas(htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta }), c) : htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
       ${htmlCuentaDelBanco(c.cuenta)}
       ${arbol.secuencia ? htmlFilas(arbol, c) : `<label class="campo campo-0 campo-unico"${nodo('campo', { d: 0 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(t('nuevoAquiMarcador', { que: c.textoDelFoco ?? c.representacion?.texto ?? '' }))}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>`}
       ${leido}
