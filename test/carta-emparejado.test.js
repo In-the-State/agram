@@ -11,7 +11,7 @@ import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import * as Q from '../carta/cuentas.js';
 import * as A from '../carta/anfitrion.js';
 import * as G from '../carta/guardian-emparejado.js';
-import { htmlLineaEmparejamiento, htmlDialogoEmparejar, horaDe } from '../carta/emparejar.js';
+import { htmlLineaEmparejamiento, htmlDialogoEmparejar, htmlConfirmarEmparejar, instalar, horaDe } from '../carta/emparejar.js';
 import { htmlGuardian, htmlArranque, htmlReglas } from '../carta/dom.js';
 import { preferencias } from '../carta/carta.js';
 import { TEXTOS, t } from '../carta/textos.js';
@@ -502,4 +502,95 @@ test('nada de la sesión sale por el adaptador: ni cuentas, ni sesion, ni los er
     assert.ok(!JSON.stringify({ m: e.message, c: e.code, e: e.emparejamiento }).includes(priv));
     assert.equal(AHORA, Date.parse(V.ahora));
   } finally { w.cerrar(); }
+});
+
+// ---------- flecos: el aviso del guardián con emparejamiento y la confirmación dentro de la página ----------
+
+test('el aviso del guardián, cuando firma el emparejamiento: en plazo dice que cada registro se confirma en la app; terminado, que terminó y ofrece volver a emparejar; con anfitrión, los de siempre', () => {
+  const vivo = htmlGuardian({ sesionCerrada: true, puedeAbrir: false, emparejar: true, porEmparejamiento: 'vivo' });
+  assert.ok(vivo.includes('Cada registro se confirma en la app del móvil.'));
+  assert.ok(!vivo.includes('guardián'), 'no habla de la sesión del guardián');
+  assert.ok(!vivo.includes('data-guardian-abrir') && !vivo.includes('data-emparejar'), 'ni abrir sesión ni volver a emparejar');
+  const terminado = htmlGuardian({ sesionCerrada: true, puedeAbrir: false, emparejar: true, porEmparejamiento: 'terminado' });
+  assert.ok(terminado.includes('El emparejamiento con la app terminó. Vuelve a emparejar para escribir.'));
+  assert.ok(!terminado.includes('guardián') && !terminado.includes('data-guardian-abrir'));
+  assert.ok(terminado.includes('data-emparejar') && terminado.includes('Volver a emparejar'), 'con el gesto que ya existe');
+  for (const k of ['emparejarFirmaEnLaApp', 'emparejarTerminado', 'emparejarSeguir']) assert.ok(existe(k), k);
+  // Con anfitrión (sin porEmparejamiento), los textos de siempre.
+  assert.ok(htmlGuardian({ sesionCerrada: true, puedeAbrir: true }).includes(t('guardianSesionCerrada')));
+  assert.ok(htmlGuardian({ sesionCerrada: true, puedeAbrir: false }).includes(t('guardianSesionCerradaSinBoton')));
+});
+
+/** Un documento mínimo para instalar la pantalla sin navegador: guarda sus oyentes y da lo que la pantalla le pide por selector. */
+function documentoDePrueba() {
+  const oyentes = new Map();
+  const dialogo = { innerHTML: '', texto: { value: '', focus() {} }, querySelector(s) { return s === '[data-emparejar-texto]' ? this.texto : /confirmar="no"/.test(s) ? { focus() {} } : null; } };
+  const linea = { innerHTML: '', querySelector: () => null };
+  const caja = { className: '', set innerHTML(_) {}, querySelector: (s) => (s.includes('linea') ? linea : dialogo) };
+  const documento = { visibilityState: 'visible', createElement: () => caja, addEventListener: (tipo, f) => oyentes.set(tipo, [...(oyentes.get(tipo) ?? []), f]), documentElement: { style: { setProperty() {}, removeProperty() {} } } };
+  const raiz = { ownerDocument: documento, after() {} };
+  const pulsa = (selector, extra = {}) => {
+    const el = { dataset: extra, disabled: false };
+    const e = { target: { closest: (s) => (s === selector ? el : null), matches: () => false }, preventDefault() {} };
+    for (const f of oyentes.get('click') ?? []) f(e);
+  };
+  return { raiz, dialogo, linea, pulsa };
+}
+
+test('olvidar el emparejamiento pregunta dentro de la página, no con el confirm del navegador: Cancelar no hace nada y Seguir lo olvida', async () => {
+  const w = await emparejado();
+  try {
+    let usadoElConfirm = 0;
+    const d = documentoDePrueba();
+    instalar({ raiz: d.raiz, emparejamiento: w.carta, entorno: { confirm: () => { usadoElConfirm += 1; return true; } } });
+    d.pulsa('[data-emparejar-olvidar]');
+    assert.ok(d.dialogo.innerHTML.includes('data-emparejar-confirmar-texto') && d.dialogo.innerHTML.includes(t('emparejarOlvidarConfirmar')), 'la pregunta está en la página');
+    assert.ok(d.dialogo.innerHTML.includes('data-emparejar-confirmar="si"') && d.dialogo.innerHTML.includes('data-emparejar-confirmar="no"'));
+    assert.ok(w.carta.estado(), 'aún no se ha olvidado nada');
+    d.pulsa('[data-emparejar-confirmar]', { emparejarConfirmar: 'no' });
+    await new Promise((ok) => setImmediate(ok));
+    assert.equal(d.dialogo.innerHTML, '', 'la pregunta se cierra');
+    assert.ok(w.carta.estado(), 'Cancelar: sigue emparejada');
+    d.pulsa('[data-emparejar-olvidar]');
+    d.pulsa('[data-emparejar-confirmar]', { emparejarConfirmar: 'si' });
+    await hasta(() => w.carta.estado() === null, w.app, 'olvidada');
+    assert.equal(usadoElConfirm, 0, 'el confirm del navegador no se toca');
+  } finally { w.cerrar(); }
+});
+
+test('leer otro QR con propuestas esperando pregunta dentro de la página; sin Seguir no se empareja otra vez', async () => {
+  const w = await emparejado({ modo: { hola: 'aceptar', propuesta: 'callar' } });
+  try {
+    const firmando = w.g.firmar(await propuestaDe(await registro('esperando')));
+    firmando.catch(() => {});
+    await hasta(() => G.esperando(w.carta).length === 1, w.app);
+    let usadoElConfirm = 0;
+    const d = documentoDePrueba();
+    instalar({ raiz: d.raiz, emparejamiento: w.carta, adaptador: w.g, entorno: { confirm: () => { usadoElConfirm += 1; return true; } } });
+    const antes = w.carta.estado().sesion;
+    d.dialogo.texto.value = 'no es un QR';
+    d.pulsa('[data-emparejar]'); // abre el diálogo
+    d.pulsa('[data-emparejar-leer]');
+    assert.ok(d.dialogo.innerHTML.includes(t('emparejarSustituirConfirmar', { n: 1 })), 'avisa de que caducarán');
+    d.pulsa('[data-emparejar-confirmar]', { emparejarConfirmar: 'no' });
+    await new Promise((ok) => setImmediate(ok));
+    assert.ok(!d.dialogo.innerHTML.includes('data-emparejar-confirmar-texto'));
+    assert.equal(w.carta.estado().sesion, antes, 'Cancelar: nada cambia');
+    assert.equal(G.esperando(w.carta).length, 1, 'lo propuesto sigue esperando');
+    assert.equal(usadoElConfirm, 0);
+    // Seguir: con un texto que no es un QR, la frase llana en el propio diálogo (y la pregunta ya no está).
+    d.pulsa('[data-emparejar-leer]');
+    d.pulsa('[data-emparejar-confirmar]', { emparejarConfirmar: 'si' });
+    await new Promise((ok) => setTimeout(ok, 20));
+    assert.ok(d.dialogo.innerHTML.includes(t('emparejarQR_qr_invalid')));
+    assert.ok(!d.dialogo.innerHTML.includes('data-emparejar-confirmar-texto'));
+    assert.equal(usadoElConfirm, 0);
+  } finally { w.cerrar(); }
+});
+
+test('la confirmación de la página escapa su texto y lleva Seguir y Cancelar', () => {
+  const h = htmlConfirmarEmparejar({ texto: '<b>¿Seguir?</b>' });
+  assert.ok(h.includes('&lt;b&gt;') && !h.includes('<b>¿'));
+  assert.ok(h.includes('data-emparejar-confirmar="si"') && h.includes(t('emparejarSeguir')));
+  assert.ok(h.includes('data-emparejar-confirmar="no"') && h.includes(t('emparejarCancelar')));
 });

@@ -63,7 +63,7 @@
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%;height:100%}
 body{margin:0;min-height:100%;background:var(--bg);color:var(--fg);font-family:var(--sans);font-size:16px;line-height:1.4;
-  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:env(safe-area-inset-bottom,0px);overflow-x:hidden}
+  padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));padding-bottom:calc(env(safe-area-inset-bottom,0px) + var(--emparejar-alto,0px));overflow-x:hidden}
 button,input,select{font:inherit;color:inherit}
 button{cursor:pointer;min-height:32px;border-radius:8px;border:1px solid var(--rule);background:var(--panel);padding:4px 10px;max-width:100%;overflow-wrap:break-word;hyphens:auto}
 button:disabled{opacity:.5;cursor:default}
@@ -402,7 +402,7 @@ html.opinando #carta *{cursor:crosshair}
    pantalla (carta/carta.js repartir); aquí solo se pinta. Los pasos y sus fracciones son de la época (epoch.8.6). */
 html.mapped,html.mapped body{height:100%;overflow:hidden}
 html.mapped body{padding:0}
-.carta-matriz{height:100vh;height:100dvh;display:flex;flex-direction:column;overflow:hidden;padding:0 12px}
+.carta-matriz{height:calc(100vh - var(--emparejar-alto,0px));height:calc(100dvh - var(--emparejar-alto,0px));display:flex;flex-direction:column;overflow:hidden;padding:0 12px}
 .carta-matriz>*{flex:none}
 .carta-matriz>.aviso,.carta-matriz>.exito{margin:4px 0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .carta-matriz .escena{flex:1 1 auto;min-height:0;margin:6px 0 8px;overflow:hidden}
@@ -1023,7 +1023,7 @@ html.mapped body{padding:0}
 .hilo-entrada small{display:block;overflow-wrap:anywhere}
 .hilo-vacio{padding:4px 2px}
 /* la fila de los diez dígitos, fina y fija abajo */
-.digitos{position:fixed;left:0;right:0;bottom:0;z-index:8;display:flex;justify-content:center;gap:2px;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--rule)}
+.digitos{position:fixed;left:0;right:0;bottom:var(--emparejar-alto,0px);z-index:8;display:flex;justify-content:center;gap:2px;padding:4px 4px calc(4px + env(safe-area-inset-bottom,0px));background:var(--bg);border-top:1px solid var(--rule)}
 .digito{flex:1 1 0;min-width:0;max-width:44px;height:32px;min-height:32px;padding:0;border-radius:8px;font-family:var(--mono);font-size:14px;font-weight:600;border-color:color-mix(in oklab,var(--c,var(--rule)) 70%,var(--rule));background:color-mix(in oklab,var(--c,var(--rule)) 26%,var(--panel))}
 /* Sequenced en animado: en cada fila abierta, el fondo del mundo muy atenuado y solo arriba (el de una caja alta, a 2,4×,
    enseñaba un trozo de escena bajo las letras: una banda con degradado a transparente); las celdas, translúcidas. */
@@ -1205,7 +1205,9 @@ html.mapped body{padding:0}
 .custodia-abrir{margin:6px 0 0}
 .libro-privado-pasos{margin:4px 0;padding-left:20px;display:grid;gap:4px;font-size:13px}
 
-/* El emparejamiento por QR (A25; carta/emparejar.js): la línea fija abajo, lo pendiente de la app y el diálogo. */
+/* El emparejamiento por QR (A25; carta/emparejar.js): la línea fija abajo, lo pendiente de la app y el diálogo. Mientras se enseña, la
+   página reserva su alto (--emparejar-alto, que pone emparejar.js en la raíz): el cuerpo lo suma a su relleno de abajo, la carta de
+   Mapped se acorta y la barra de dígitos se sube encima de la línea. Sin línea, la variable no existe y nada cambia. */
 .emparejar-linea{position:fixed;left:0;right:0;bottom:0;z-index:15;background:var(--panel);border-top:1px solid var(--rule);color:var(--fg);font-size:13px;padding:6px 12px calc(6px + env(safe-area-inset-bottom));max-height:45vh;overflow:auto}
 .emparejar-linea p{margin:2px 0}
 .emparejar-propuesto{color:var(--warn)}

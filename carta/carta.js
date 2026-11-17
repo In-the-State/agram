@@ -1934,6 +1934,16 @@ function celdaDeCaja(eje, R, pv, d, g, h, i, ctx, entrar, base = []) {
 const CAPAS = Object.freeze({ 0: 'capaChat', 1: 'capaRecursos', 2: 'capaCriterios', 3: 'capaFavoritos', 4: 'capaTrabajo' });
 
 /**
+ * «Hablas con el agente de {persona}»: si `identidad` es un agente (una cosa que su dueño declaró agente: acciones.esAgente), quien
+ * escribió su alta, con su nombre en llano: { identidad, texto }; si no, null.
+ */
+export function agenteDe(eje, identidad, opciones = {}) {
+  if (!acciones.esAgente(eje, identidad, opciones)) return null;
+  const dueno = eje.obtener(eje.alta(identidad)?.id)?.autor;
+  return typeof dueno === 'string' && dueno ? { identidad: dueno, texto: legibleDe(eje, { ref: dueno }, null, opciones).texto } : null;
+}
+
+/**
  * La conversación del 3 con una persona (encargo pv3; contrato.conversacionDelTres): R es el alta de la persona en la
  * que se entró desde su caja (el dígito de la caja es el último de la dirección); una celda por capa, en una columna: el
  * chat (cada mensaje con su autor, su hora y el estado de su paquete) y, acumulativo del 4 hacia el 1 según la caja, el
@@ -1951,7 +1961,7 @@ function celdasDeConversacion(eje, R, pv, d, g, ctx, opciones) {
     const ocupantes = k.items.map((it) => ({ ...nodoOcupante(eje, { ref: it.ref }, tamanoDeNivel(2, ctx.opciones), sobrio, null, { pv: k.capa, lado: GEOMETRIA[k.capa]?.lado ?? 0, posicion: k.capa, anidar: 0 }), ...(it.estado ? { estado: it.estado } : {}), entra: false }));
     return { fila: i, columna: 0, pv: k.capa, capaDelTres: k.capa, nombre: t(CAPAS[k.capa]), vacio: ocupantes.length === 0, total: ocupantes.length, ocupantes, ocupante: ocupantes[0] ?? null, entra: false, escribir: null };
   });
-  return { celdas, vacia: celdas.every((x) => x.vacio), pagina: null, columnas: 1, filas: Math.max(1, celdas.length), persona: { identidad: c.persona, texto: c.texto, caja: c.caja, nombre: c.nombre, alta: R } };
+  return { celdas, vacia: celdas.every((x) => x.vacio), pagina: null, columnas: 1, filas: Math.max(1, celdas.length), persona: { identidad: c.persona, texto: c.texto, caja: c.caja, nombre: c.nombre, alta: R, agenteDe: agenteDe(eje, c.persona, ctx.opciones) } };
 }
 
 /**

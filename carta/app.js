@@ -328,7 +328,9 @@ function extraDe() {
     // Camino B: el aviso persistente de la cuenta del guardián (solo para leer, o la sesión cerrada con su botón).
     guardian: estado.cuenta?.guardian === true ? { soloLeer: Boolean(estado.cuenta.soloLeer), sinGuardian: !guardian, sesionCerrada: estado.guardian.sesionCerrada, abriendo: estado.guardian.abriendo, puedeAbrir: Boolean(estado.guardian.pendiente) || puedePedirSesion(guardian), noAbrio: estado.guardian.noAbrio,
       // Sin anfitrión (A25): emparejar con la app (o volver a emparejar) y, si la app emparejada guarda otra clave, decirlo.
-      emparejar: Boolean(emparejado.emparejamiento), reemparejar: emparejado.hubo, otraClave: porQueSoloLeer(estado.cuenta.publica, emparejado.emparejamiento) === 'otraClave' } : undefined,
+      emparejar: Boolean(emparejado.emparejamiento), reemparejar: emparejado.hubo, otraClave: porQueSoloLeer(estado.cuenta.publica, emparejado.emparejamiento) === 'otraClave',
+      // Quien firma es el emparejamiento (su adaptador es el guardián, o lo era y ya no está vivo): en plazo o terminado.
+      porEmparejamiento: emparejado.adaptador && (guardian === emparejado.adaptador || (!guardian && emparejado.hubo)) ? (emparejado.emparejamiento?.estado() ? 'vivo' : 'terminado') : undefined } : undefined,
     emparejar: emparejado.emparejamiento ? { vivo: Boolean(emparejado.emparejamiento.estado()) } : null,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
     preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,

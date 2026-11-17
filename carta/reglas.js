@@ -25,21 +25,13 @@ import { ContextoEje } from '../src/contexto-eje.js';
 import { idDeRegistro } from '../src/epocas.js';
 import { esReferencia, direccion } from '../src/btml.js';
 import {
-  PROPONER, APROBAR, PONER_EN_VIGOR, RETIRAR, ACCION_EN, ANCLA_DE_PROPUESTAS, NOMBRES, UMBRAL_CORRIENTE, UMBRAL_DE_GOBIERNO,
+  PROPONER, APOYAR, RETIRAR_APOYO, APROBAR, PONER_EN_VIGOR, RETIRAR, ACCION_EN, ANCLA_DE_PROPUESTAS, NOMBRES, UMBRAL_CORRIENTE, UMBRAL_DE_GOBIERNO,
   CLASE_CORRIENTE, CLASE_DE_GOBIERNO, cambioDe, claseDe, dice, traePlantilla, fundirCambio, motivosAlProponer, erroresDelSuelo,
   presionDeLosNombres, sueloDe, piezasDeGobiernoDe,
 } from '../src/versiones.js';
 import { caminoDePosicion, PREFIJO_DE_POSICION } from '../src/suelo.js';
 import { enviar, motivosEnLlano } from './carta.js';
 import { t } from './textos.js';
-
-// ---------- Lo que el núcleo no exporta todavía ----------
-// src/versiones.js exporta los nombres de cuatro de las seis plantillas del gobierno (PROPONER, APROBAR, PONER_EN_VIGOR,
-// RETIRAR), no los de apoyar y retirar el apoyo. Son los de la época 0 (datos/epocas/plantillas/support-a-change.json y
-// withdraw-support.json; docs/notas/GOBIERNO.md §3). Hueco del núcleo: `export const APOYAR = 'support a change'` y
-// `export const RETIRAR_APOYO = 'withdraw support'` en src/versiones.js.
-export const APOYAR = 'support a change';
-export const RETIRAR_APOYO = 'withdraw support';
 /** La lectura de la época que da las propuestas del libro, por llegada (docs/notas/GOBIERNO.md §4). */
 const LECTURA_DE_CAMBIOS = 'changes';
 /** Dónde da cada propuesta sus lecturas (docs/notas/GOBIERNO.md §4; las mismas que ejemplos/gobierno.mjs resumen). */
