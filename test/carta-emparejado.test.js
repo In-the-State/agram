@@ -594,3 +594,66 @@ test('la confirmación de la página escapa su texto y lleva Seguir y Cancelar',
   assert.ok(h.includes('data-emparejar-confirmar="si"') && h.includes(t('emparejarSeguir')));
   assert.ok(h.includes('data-emparejar-confirmar="no"') && h.includes(t('emparejarCancelar')));
 });
+
+// ---------- emparejada y sin libros: entrar en un libro al que me han invitado (carta/invitado.js) ----------
+
+test('emparejada sin libros: el diálogo y el arranque ofrecen entrar por invitación; quien entra es la cuenta de la app (guardian: true, sin privada)', async () => {
+  const resultado = { hasta: '2026-11-17T18:00:00.000Z', huella: '6aa3-da9b' };
+  const h = htmlDialogoEmparejar({ fase: 'hecho', resultado, aceptada: true, sinLibro: true });
+  const [crear, invitar, restaurar] = ['crear', 'invitado', 'restaurar'].map((q) => h.indexOf(`data-emparejar-arranque="${q}"`));
+  assert.ok(crear > 0 && invitar > crear && restaurar > invitar, 'el de la invitación, entre los otros dos');
+  assert.ok(h.includes(`<button type="button" class="principal" data-emparejar-arranque="crear">`), 'abrir un libro sigue siendo el principal');
+  assert.ok(h.includes(t('invitadoEntrar')));
+  assert.ok(!htmlDialogoEmparejar({ fase: 'hecho', resultado, aceptada: false, sinLibro: true }).includes('data-emparejar-arranque="invitado"'), 'hasta que la app acepta, no');
+  // El arranque sin cuenta: con el emparejamiento vivo y aceptado, el mismo botón; sin aceptar o sin emparejar, no.
+  assert.ok(htmlArranque({ modo: 'menu' }, { emparejar: { vivo: true, aceptada: true } }).includes('data-libro-invitado'));
+  assert.ok(!htmlArranque({ modo: 'menu' }, { emparejar: { vivo: true, aceptada: false } }).includes('data-libro-invitado'));
+  assert.ok(!htmlArranque({ modo: 'menu' }, { emparejar: { vivo: false } }).includes('data-libro-invitado'));
+  assert.ok(htmlArranque({ modo: 'menu', conClave: true }, { emparejar: null }).includes('data-libro-invitado'), 'con una cuenta abierta, como hoy');
+  // Quien entra.
+  const { quienEntra } = await import('../carta/invitado.js');
+  const w = await emparejado({ modo: { hola: 'aceptar', propuesta: 'firmar' } });
+  try {
+    assert.deepEqual(quienEntra({ emparejamiento: w.carta, idioma: 'es' }), { publica: APP, guardian: true, idioma: 'es' });
+    const cuenta = { nombre: 'Abierta', publica: 'ab'.repeat(32), identidad: 'abierta', alta: 'cd'.repeat(32) };
+    assert.equal(quienEntra({ cuenta, emparejamiento: w.carta }), cuenta, 'con una cuenta abierta, nada cambia');
+    assert.equal(quienEntra({}), null);
+  } finally { w.cerrar(); }
+  const sinAceptar = mundo({ modo: { hola: 'callar', propuesta: 'firmar' } });
+  try {
+    await sinAceptar.carta.emparejar(V.qr.texto);
+    assert.equal(quienEntra({ emparejamiento: sinAceptar.carta }), null, 'sin aceptar, nadie');
+  } finally { sinAceptar.cerrar(); }
+});
+
+test('emparejada sin libros, con mi alta ya hecha: «Añadirlo a tus libros» guarda la entrada con guardian: true y el libro se abre con la cuenta de la app; aceptar se propone a la app con el libro de ese génesis', async () => {
+  await conAlmacen(async () => {
+    const { quienEntra, entradaDelLibro, vistaDeInvitacion } = await import('../carta/invitado.js');
+    const w = await emparejado({ modo: { hola: 'aceptar', propuesta: 'firmar' } });
+    try {
+      const duena = await Q.crearCuenta({ nombre: 'Dueña inventada' });
+      const t0 = Date.now();
+      const inv = await duena.eje.invitar({ autor: duena.cuenta.identidad, invitado: 'vg-invitada', clave: APP, t: new Date(t0 + 2000).toISOString(), privada: duena.privada });
+      const quien = quienEntra({ emparejamiento: w.carta, idioma: 'es' });
+      // Aceptar: el alta la firma la app, propuesta por el guardián emparejado sobre ESE eje (su libro: el génesis) y con diálogo.
+      assert.equal(vistaDeInvitacion(duena.eje, quien.publica).invitaciones[0].id, inv.id);
+      const firmante = A.firmanteDeCuenta(w.g, quien.publica, { eje: () => duena.eje, dialogo: true });
+      const alta = await conLaApp(duena.eje.aceptar(inv.id, { publica: quien.publica, privada: firmante }, { t: new Date(t0 + 4000).toISOString() }), w.app);
+      const propuesta = w.app.recibidos.filter((m) => m.tipo === 'propuesta').at(-1);
+      assert.equal(propuesta.libro, duena.eje.genesisId, 'la propuesta dice el libro: el génesis del libro bajado');
+      assert.equal(propuesta.id, alta.id);
+      // Mi alta ya está con la clave de la app: solo «Añadirlo a tus libros», sin firma.
+      const vista = vistaDeInvitacion(duena.eje, quien.publica);
+      assert.deepEqual(vista.miAlta, { identidad: 'vg-invitada', alta: alta.id });
+      assert.deepEqual(vista.invitaciones, []);
+      const cuenta = entradaDelLibro(quien, { nombre: 'Libro invitado', identidad: vista.miAlta.identidad, alta: vista.miAlta.alta });
+      assert.deepEqual(cuenta, { nombre: 'Libro invitado', idioma: 'es', identidad: 'vg-invitada', alta: alta.id, publica: APP, guardian: true });
+      assert.ok(await Q.guardarCuenta({ cuenta, eje: duena.eje, privada: quien.privada, claveLectura: 'x'.repeat(43) }, { recordar: false }));
+      assert.equal(Q.cuentas().find((c) => c.alta === alta.id).guardian, true);
+      // Dentro: se abre con el guardián emparejado (la cuenta de la app), no solo para leer.
+      const r = await Q.abrirCuenta(alta.id, { guardian: w.g });
+      assert.ok(r.eje, r.motivo);
+      assert.deepEqual([r.cuenta.guardian, r.cuenta.publica, r.soloLeer ?? false], [true, APP, false]);
+    } finally { w.cerrar(); }
+  });
+});

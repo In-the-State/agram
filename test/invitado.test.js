@@ -138,3 +138,21 @@ test('el diálogo: los datos con la clave de tipo contraseña y vacía; lo del l
   assert.ok(dentro.includes('data-invitado-anadir') && !dentro.includes('data-invitado-aceptar'));
   assert.ok(htmlInvitado({ paso: 'vista', pendiente: 'f'.repeat(64), vista: { libro: { nombre: 'L', genesis: 'abc' }, miAlta: null, invitaciones: [{ id: 'f'.repeat(64), autor: 'd', invitado: 'y', da: [], coste: null }] } }).includes('data-invitado-reintentar'), 'si la subida falló, reintentar');
 });
+
+test('quien entra: con una cuenta abierta, esa misma (nada cambia) y su entrada como hoy; sin cuenta ni emparejamiento, nadie', async () => {
+  const { quienEntra, entradaDelLibro } = await import('../carta/invitado.js');
+  const yo = await Q.crearCuenta({ nombre: 'Abierta' });
+  const cuenta = { ...yo.cuenta, privada: yo.privada };
+  assert.equal(quienEntra({ cuenta, emparejamiento: { estado: () => ({ aceptada: true, app: 'ab'.repeat(32) }) } }), cuenta);
+  assert.deepEqual(entradaDelLibro(cuenta, { nombre: 'L', identidad: 'invitada', alta: 'cd'.repeat(32) }), { nombre: 'L', ...(cuenta.idioma ? { idioma: cuenta.idioma } : {}), identidad: 'invitada', alta: 'cd'.repeat(32), publica: cuenta.publica });
+  assert.equal(quienEntra({}), null);
+  assert.equal(quienEntra({ emparejamiento: { estado: () => ({ aceptada: true, app: 'no es una clave' }) } }), null);
+  assert.equal(quienEntra({ emparejamiento: { estado: () => { throw new Error('x'); } } }), null);
+});
+
+test('el diálogo del invitado se pinta también sin ningún libro abierto, sobre la pantalla de arranque', async () => {
+  const { html } = await import('../carta/dom.js');
+  const h = html(null, { arranque: { modo: 'menu' }, invitado: { paso: 'datos' } });
+  assert.ok(h.includes('arranque-pantalla') && h.includes('data-invitado-form'), 'el arranque y, encima, el diálogo');
+  assert.ok(!html(null, { arranque: { modo: 'menu' } }).includes('data-invitado-form'));
+});

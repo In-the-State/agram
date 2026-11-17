@@ -71,7 +71,7 @@ export function htmlDialogoEmparejar({ fase = 'leer', camara = false, camaraActi
   let cuerpo;
   if (fase === 'hecho' && resultado) {
     const libro = sinLibro && aceptada
-      ? `<p>${escapar(t('emparejarSinLibro'))}</p><p class="opciones"><button type="button" class="principal" data-emparejar-arranque="crear">${escapar(t('emparejarAbrirLibro'))}</button> <button type="button" data-emparejar-arranque="restaurar">${escapar(t('emparejarRestaurar'))}</button></p>`
+      ? `<p>${escapar(t('emparejarSinLibro'))}</p><p class="opciones"><button type="button" class="principal" data-emparejar-arranque="crear">${escapar(t('emparejarAbrirLibro'))}</button> <button type="button" data-emparejar-arranque="invitado">${escapar(t('invitadoEntrar'))}</button> <button type="button" data-emparejar-arranque="restaurar">${escapar(t('emparejarRestaurar'))}</button></p>`
       : '';
     cuerpo = `<p>${escapar(t('emparejarHasta', { hora: horaDe(resultado.hasta) }))}</p>
       <p>${escapar(t('emparejarHuella', { huella: '' }))}<b class="emparejar-huella" data-emparejar-huella>${escapar(resultado.huella)}</b></p>
