@@ -89,6 +89,19 @@ Las que no se dan no se escriben. Manda la última nota: si el detalle de la tab
 
 En el ensayo, cuando cambia una fila, también se vuelven a mirar las que dependen de ella (su nota copia su texto).
 
+
+## Las dependencias como relación de verdad (época del roadmap, VG 17-11)
+
+La correspondencia gana `epoca`: el nombre de la época con que nace el libro (`EPOCAS` en `volcar.mjs`; hoy solo `"roadmap"`, la de `datos/epocas/roadmap/`). La del roadmap la lleva. Sin `epoca`, la 0 a secas, como siempre. El volcado no crea el libro: quien lo crea le pone `epocaDelVolcado(corr)` (`retoques/ensayo.mjs` en `crearCuenta`, la línea de órdenes en `Eje.genesis`, las pruebas).
+
+Cuando la época del libro tiene la plantilla «this goes after» (`conCadenas(eje)`):
+
+- **Cada tarea** lleva el tipo «task» en su 5 (`NOMBRES_DE_LAS_CADENAS.tarea`). Las correcciones y las notas, no.
+- **Las relaciones** (solo en modo personas): por cada fila con `depende`, **un** registro «this goes after» de la casa de la tarea que depende, anclado en su **2.6**, con todas sus anteriores, en orden, en su 6 (y su número en el 1). Título llano: «va después de c2, c3». Se escriben **en una segunda pasada**, detrás de todo lo demás, cuando ya existen todas las tareas. Entran en la diferencia: manda la última; si la lista de anteriores de una fila cambia, se escribe otra; si se queda sin ninguna, una relación sin 6 («ya no va después de nada»). Una anterior que no llega al libro (su casa sin clave, un paso que no pasó) deja la relación en «no puede». Una casa sin clave: sus relaciones, como todo lo suyo, a «no puede». La nota de detalle conserva sus líneas «depende».
+- **La lectura** es `cadenas(eje, X)` (`src/cadenas.js`, `docs/CONTRATO.md` §12.10). Una tarea está **hecha** solo con su cierre escrito: en el roadmap, la fase «comprobado» (`close`). «hecho» es `deliver`, que no la cierra: la siguiente sigue esperando hasta «comprobado».
+
+Un libro que ya existe con la 0 a secas y una correspondencia que pide la época del roadmap no recibe nada de esto: ni tipo ni relaciones, y el informe empieza por un aviso llano («este libro nació con la época 0 a secas…: el libro se reescribirá entero, no se migra»). La nota de detalle sí se escribe.
+
 ## Cómo se llama
 
 ```

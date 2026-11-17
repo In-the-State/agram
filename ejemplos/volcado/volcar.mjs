@@ -59,15 +59,33 @@ import { cerrado } from '../../src/motor.js';
 import { serializar, restaurar } from '../../src/persistencia.js';
 import { firmar, firmarPosesion, generarClaves, publicaDe } from '../../src/autoridad.js';
 import { esAnunciado, ESCALAS_REALES } from '../../src/tokens.js';
+import { NOMBRES_DE_LAS_CADENAS } from '../../src/cadenas.js';
+import { epocaRoadmap } from '../../datos/epocas/roadmap/generar.mjs';
 
 /** Los pasos del proceso de una tarea, en orden: la fase de una fila dice hasta cuál llega. */
 export const PASOS = Object.freeze(['propuesta', 'autorizada', 'ejecutada', 'cerrada']);
 
-/** Las plantillas de la época 0 que escribe el volcado. */
+/** Las plantillas que escribe el volcado: las de la época 0 y, en un libro con la época del roadmap, la relación. */
 export const PLANTILLAS = Object.freeze({
   alta: 'register a thing', dar: 'give T to a thing of mine', registro: 'anchor here',
   propuesta: 'declare future T', autorizada: 'commit P', ejecutada: 'deliver', cerrada: 'close',
+  relacion: NOMBRES_DE_LAS_CADENAS.relacion,
 });
+
+/**
+ * Las épocas con que puede nacer el libro de un volcado, por su nombre en la correspondencia («epoca»): la del roadmap
+ * (datos/epocas/roadmap/: las dependencias como relación de verdad y el 7 como cadenas). Sin «epoca», la 0 a secas.
+ * El volcado no crea el libro: lo crea quien lo llama (retoques/ensayo.mjs, la línea de órdenes, las pruebas) con
+ * epocaDelVolcado(corr).
+ */
+export const EPOCAS = Object.freeze({ roadmap: epocaRoadmap });
+export const epocaDelVolcado = (corr) => (corr?.epoca ? EPOCAS[corr.epoca]() : undefined);
+
+/** ¿Tiene la época del libro la relación «this goes after»? Solo entonces las tareas llevan el tipo «task» y se escriben las relaciones. */
+export const conCadenas = (eje) => Boolean(A.plantillaDeTransaccion(NOMBRES_DE_LAS_CADENAS.relacion, { epoca: eje.epoca() }));
+
+/** El aviso de un libro que nació sin la época que pide la correspondencia: no se migra. */
+const avisoDeEpoca = (corr) => `este libro nació con la época 0 a secas y la correspondencia pide la del ${corr.epoca}: las dependencias no se escriben como relación ni las tareas llevan el tipo «${NOMBRES_DE_LAS_CADENAS.tarea}»; el libro se reescribirá entero, no se migra`;
 
 /**
  * La dueña paga el coste de escribir cada alta y cada «give T to a thing of mine» en T de segundo: su T de minuto es lo
@@ -81,6 +99,7 @@ const MINUTO = ESCALAS_REALES.indexOf('minuto');
 const SEP = ': ';
 const EN_0 = '0000000000';
 const ANUNCIO = '4100000000';
+const EN_LA_CONDICION = '2600000000';
 
 const hojas = (x) => (Array.isArray(x) ? x.flatMap(hojas) : [x]);
 const accionDe = (ev) => hojas(ev?.payload?.[4]).filter((x) => typeof x === 'string');
@@ -112,9 +131,11 @@ export function correspondenciaDe(c = {}) {
   if (!MODOS.includes(como)) throw new Error('correspondencia: «como» es ' + MODOS.join(' o ') + ', no «' + como + '»');
   for (const k of COLUMNAS_DE_DETALLE) if (col[k] !== undefined && (typeof col[k] !== 'string' || !col[k])) throw new Error('correspondencia: la columna «' + k + '» es un nombre de columna');
   if (ETIQUETAS_DE_NOTA.has(col.id) || /^(paso|depende) /.test(col.id)) throw new Error('correspondencia: la columna del id no puede llamarse como una etiqueta de la nota de detalle («' + col.id + '»)');
+  const epoca = c.epoca ?? null;
+  if (epoca !== null && !Object.hasOwn(EPOCAS, epoca)) throw new Error('correspondencia: «epoca» es ' + Object.keys(EPOCAS).join(' o ') + ' (o nada: la 0 a secas), no «' + epoca + '»');
   const duena = c.duena ?? null;
   if (duena !== null && (typeof duena !== 'string' || !duena)) throw new Error('correspondencia: «duena» es el nombre de la casa de la dueña');
-  return { columnas: { ...col, datos: Array.isArray(col.datos) ? col.datos : [] }, fases, nombres: c.nombres ?? {}, minutosAnunciados: minutos, cuando: c.cuando ?? null, como, duena };
+  return { columnas: { ...col, datos: Array.isArray(col.datos) ? col.datos : [] }, fases, nombres: c.nombres ?? {}, minutosAnunciados: minutos, cuando: c.cuando ?? null, como, duena, epoca };
 }
 
 /** Los datos de una fila como el 1 de su registro: «etiqueta: valor», el id primero. */
@@ -361,7 +382,10 @@ export function leerLibro(eje, duena, corr) {
           ejecutada: sobreAnuncio.some((h) => tiene(h, PLANTILLAS.ejecutada)),
           cerrada: eje.sobre(t.id).some((h) => h.autor === autor && tiene(h, PLANTILLAS.cerrada)),
         };
-        tareas.set(fila, { id: t.id, cosa, autor, proyecto: texto0(p), texto: texto0(ultima), datos: etiquetas(ultima), anuncio: anuncio?.id ?? null, pasos, nota: nota ? lineasDe(nota) : null });
+        // La última relación «this goes after» de su autor, en su 2.6: los ids de sus anteriores (null si no hay).
+        const relacion = eje.sobre(t.id, EN_LA_CONDICION).filter((h) => h.autor === autor && tiene(h, PLANTILLAS.relacion)).at(-1);
+        const anteriores = relacion ? [].concat(relacion.payload?.[6] ?? []).map((x) => x?.ref).filter(Boolean) : null;
+        tareas.set(fila, { id: t.id, cosa, autor, proyecto: texto0(p), texto: texto0(ultima), datos: etiquetas(ultima), anuncio: anuncio?.id ?? null, pasos, nota: nota ? lineasDe(nota) : null, anteriores });
       }
     }
   }
@@ -395,6 +419,9 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
   const { columnas: col, fases, nombres } = corr;
   const libro = leerLibro(eje, duena, corr);
   const autorDe = (cosa) => (cosa === corr.duena ? duena : cosa);
+  // Con la época del roadmap: el tipo «task» en cada tarea y, en modo personas, las relaciones (VG 17-11).
+  const cadenasSi = conCadenas(eje);
+  const planeadas = []; // las filas que llegan a planearse, para las relaciones de la segunda pasada
   // Los textos de toda la tabla (aunque haya filtro de filas), para las líneas de las dependencias de las notas.
   const textos = new Map((Array.isArray(tabla) ? tabla : []).filter((f) => hayValor(f?.[col.id]) && hayValor(f?.[col.texto])).map((f) => [String(f[col.id]), String(f[col.texto])]));
   const pasos = [];
@@ -436,6 +463,7 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
       if (quiere < n) avisos.push(`fila ${fid}: la fase «${fase}» (${destino}) retrocede desde ${PASOS[n]}; no se deshace`);
       for (let p = n + 1; p <= quiere; p++) nuevos.push({ tipo: PASOS[p], quien: ya.autor, cosa: ya.cosa, fila: fid, tarea: ya.id, anuncio: ya.anuncio, texto });
       if (nuevos.length) pasos.push(...nuevos); else sinCambios.push(fid);
+      planeadas.push({ fid, fila, cosa: ya.cosa, autor: ya.autor, ya });
       continue;
     }
     if (!libro.cosas.has(cosa) && !cosasNuevas.has(cosa)) {
@@ -454,10 +482,25 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
       proyectosNuevos.add(clave);
       pasos.push({ tipo: 'proyecto', quien: autorDe(cosa), cosa, proyecto });
     }
-    pasos.push({ tipo: 'tarea', quien: autorDe(cosa), cosa, proyecto, fila: fid, texto, datos });
+    pasos.push({ tipo: 'tarea', quien: autorDe(cosa), cosa, proyecto, fila: fid, texto, datos, ...(cadenasSi ? { tipoDeTarea: NOMBRES_DE_LAS_CADENAS.tarea } : {}) });
+    planeadas.push({ fid, fila, cosa, autor: autorDe(cosa), ya: null });
     const nota = lineasDeNota(fila, corr, textos);
     if (nota) pasos.push({ tipo: 'nota', quien: autorDe(cosa), cosa, fila: fid, lineas: nota });
     for (let p = 0; p <= quiere; p++) pasos.push({ tipo: PASOS[p], quien: autorDe(cosa), cosa, fila: fid, texto });
+  }
+  // La segunda pasada: las relaciones, cuando ya existen todas las tareas. Una por fila cuya lista de anteriores cambia
+  // (manda la última); si se queda sin ninguna, una relación sin 6.
+  if (cadenasSi && corr.como === 'personas') {
+    const filaDe = new Map([...libro.tareas].map(([f, x]) => [x.id, f]));
+    for (const { fid, fila, cosa, autor, ya } of planeadas) {
+      const quiere = dependeDe(fila, col);
+      const tiene = ya?.anteriores ? ya.anteriores.map((id) => filaDe.get(id) ?? '?' + id) : null;
+      if (!quiere.length && !tiene?.length) continue;
+      if (tiene && tiene.join('\n') === quiere.join('\n')) continue;
+      pasos.push({ tipo: 'relacion', quien: autor, cosa, fila: fid, tarea: ya?.id, anteriores: quiere });
+      const i = sinCambios.indexOf(fid);
+      if (i >= 0) sinCambios.splice(i, 1);
+    }
   }
   const desaparecen = [...libro.tareas.keys()].filter((f) => !vistos.has(f));
   for (const f of desaparecen) avisos.push(`fila ${f}: ya no está en la tabla; no se borra`);
@@ -518,7 +561,15 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, dar = ne
       case 'alta': X = eje.alta(duena)?.id; params = { thing: paso.cosa, minutes: minutos.get(paso.cosa), ...(claves.cosas?.[paso.cosa]?.publica ? { key: claves.cosas[paso.cosa].publica } : {}) }; break;
       case 'dar': X = ids.alta.get(paso.cosa); params = { scale: MINUTO, amount: dar.get(paso.cosa) }; break;
       case 'proyecto': X = ids.alta.get(paso.cosa); params = { title: paso.proyecto }; break;
-      case 'tarea': X = ids.proyecto.get(paso.cosa + '\0' + paso.proyecto); params = { title: paso.texto, content: paso.datos }; break;
+      case 'tarea': X = ids.proyecto.get(paso.cosa + '\0' + paso.proyecto); params = { title: paso.texto, content: paso.datos, ...(paso.tipoDeTarea ? { type: paso.tipoDeTarea } : {}) }; break;
+      case 'relacion': {
+        // Las anteriores, por su fila: han de estar ya en el libro (escritas antes o en esta misma pasada).
+        const falta = paso.anteriores.filter((f) => !ids.tarea.has(f) || caidas.has('fila\0' + f));
+        if (falta.length) { fallos.push({ paso, motivo: 'la anterior ' + falta.join(', ') + ' no está en el libro', quema: null }); caidas.add(propia); continue; }
+        X = tarea;
+        params = { title: paso.anteriores.length ? 'va después de ' + paso.anteriores.join(', ') : 'ya no va después de nada', ...(paso.anteriores.length ? { previous: paso.anteriores.map((f) => ids.tarea.get(f)) } : {}) };
+        break;
+      }
       case 'correccion': X = tarea; params = { title: paso.texto, content: paso.datos }; break;
       case 'nota': X = tarea; params = { title: NOTA.titulo, content: paso.lineas }; break;
       case 'propuesta': X = tarea; params = { what: paso.texto, when: corr.cuando ?? t0, units: corr.minutosAnunciados }; break;
@@ -636,13 +687,18 @@ export async function volcar(eje, tabla, opciones = {}) {
       noPuede: [], paraLaDuena: [], desaparecen: [], comprobacion: errores, t: { calculado: {}, gastado: {}, dado: {} }, eje,
     };
   }
-  if (corr.como === 'personas') return volcarPersonas(eje, tabla, corr, opciones);
+  const sinEpoca = corr.epoca && !conCadenas(eje) ? avisoDeEpoca(corr) : null;
+  if (corr.como === 'personas') {
+    const inf = await volcarPersonas(eje, tabla, corr, opciones);
+    if (sinEpoca) inf.avisos.unshift(sinEpoca);
+    return inf;
+  }
   if (corr.duena) throw new Error('correspondencia: la casa de la dueña («duena») solo se vuelca en modo personas');
   const duena = opciones.duena ?? eje.obtener(eje.genesisId).autor;
   const claves = opciones.claves ?? {};
   const t0 = opciones.t ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   const plan = planear(eje, tabla, { duena, corr, filas: opciones.filas ? new Set([...opciones.filas].map(String)) : null });
-  const avisos = [...plan.avisos];
+  const avisos = [...(sinEpoca ? [sinEpoca] : []), ...plan.avisos];
   const paraLaDuena = [];
   const noPuede = [];
   const minimo = minutosPermitidos()[0] ?? 1;
@@ -746,7 +802,7 @@ async function volcarPersonas(eje, tabla, corr, opciones) {
   const casaValida = (id) => {
     const k = claves.cosas?.[id]?.publica;
     if (k) return eje.clave(id) === k;
-    const inv = eje.obtener(eje.alta(id)?.sobre);
+    const inv = eje.obtener(eje.obtener(eje.alta(id)?.id)?.sobre);
     return Boolean(inv) && (inv.autor === duena || inv.autor === autorDelGenesis);
   };
   const corrV = { ...corr, casaValida };
@@ -865,7 +921,7 @@ async function principal(argv) {
   const t = a.t ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
   const eje = a.eje
     ? await restaurar(JSON.parse(readFileSync(resolve(a.eje), 'utf8')))
-    : await Eje.genesis({ identidad: duena, foco: [duena], t: masSegundos(t, -1), clave: publicaDe(claves.duena.privada), privada: claves.duena.privada, exigirFirmas: true });
+    : await Eje.genesis({ identidad: duena, foco: [duena], t: masSegundos(t, -1), clave: publicaDe(claves.duena.privada), privada: claves.duena.privada, exigirFirmas: true, ...(corr.epoca ? { epoca: epocaDelVolcado(corr) } : {}) });
   const inf = await volcar(eje, tabla, { duena, claves, correspondencia, t, simular: Boolean(a.simular) });
   console.log((a.eje ? '' : 'eje local vacío (solo el génesis de ' + duena + ')\n') + pintar(inf));
   if (!a.simular) {

@@ -36,7 +36,7 @@ import { crearApi, hashDeClave, ORIGENES } from '../servidor/supabase/funciones/
 import { crearArchivos } from '../servidor/supabase/funciones/archivos/api.js';
 import { generarClaves, publicaDe } from '../src/autoridad.js';
 import { sincronia, salida } from '../src/index.js';
-import { volcar, correspondenciaDe, comprobarTabla } from '../ejemplos/volcado/volcar.mjs';
+import { volcar, correspondenciaDe, comprobarTabla, epocaDelVolcado } from '../ejemplos/volcado/volcar.mjs';
 import * as cuentas from '../carta/cuentas.js';
 import { preferencias } from '../carta/carta.js';
 import { epocaGuiaLibro } from '../datos/epocas/guia-libro/generar.mjs';
@@ -206,7 +206,7 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
     // El primer volcado: cuántas pasadas hacen falta, medido en un libro de prueba; luego, de verdad, la última hoy.
     const ms = ahora().getTime();
     const hoy = Math.floor(ms / DIA) * DIA;
-    const libroNuevo = async (dia0) => (await cuentas.crearCuenta({ nombre: identidad, identidad, idioma: 'es', ajustes: { 'sync url': url, 'sync ledger': EJE }, t: iso(dia0 + 1000), conClave: { publica, privada } })).eje;
+    const libroNuevo = async (dia0) => (await cuentas.crearCuenta({ nombre: identidad, identidad, idioma: 'es', ajustes: { 'sync url': url, 'sync ledger': EJE }, t: iso(dia0 + 1000), conClave: { publica, privada }, ...(corr.epoca ? { epoca: epocaDelVolcado(corr) } : {}) })).eje; // con la época de la correspondencia (la del roadmap)
     const prueba = await libroNuevo(hoy - (tope - 1) * DIA);
     const pasos = [];
     for (let k = 0; k < tope; k++) {

@@ -19,7 +19,8 @@ import { acciones, sincronia } from '../src/index.js';
 import { firmar } from '../src/autoridad.js';
 import * as Q from '../carta/cuentas.js';
 import * as S from '../carta/sincronia.js';
-import { leerLibro, correspondenciaDe, PLANTILLAS, notaDeDetalle } from '../ejemplos/volcado/volcar.mjs';
+import { leerLibro, correspondenciaDe, PLANTILLAS, notaDeDetalle, conCadenas } from '../ejemplos/volcado/volcar.mjs';
+import { cadenas } from '../src/cadenas.js';
 
 const FALSO = join(dirname(fileURLToPath(import.meta.url)), 'ayudas-agente-falso.mjs');
 const CORR = correspondenciaDe(JSON.parse(readFileSync(new URL('../ejemplos/volcado/correspondencia-roadmap.json', import.meta.url), 'utf8')));
@@ -426,6 +427,13 @@ test('ensayo (VG 17-11): con la correspondencia nueva y una tabla con detalle y 
     assert.equal(v1.autor, B.cuenta.identidad, 'la fila de VG la escribe la dueña');
     assert.equal(notaDeDetalle(B.eje, 't2', { correspondencia: CORR }).base, 'Una base inventada');
     assert.deepEqual(notaDeDetalle(B.eje, 'v1', { correspondencia: CORR }).depende, [{ id: 't2', texto: 'Lijar el marco inventado' }]);
+    // El libro nació con la época del roadmap: las tareas llevan el tipo y las dependencias son relaciones; las cadenas.
+    assert.equal(B.eje.epoca().id, JSON.parse(readFileSync(new URL('../datos/epocas/roadmap/roadmap-0.ids.json', import.meta.url), 'utf8')).epoca);
+    assert.equal(conCadenas(B.eje), true, 'la época del roadmap');
+    const filaDe = new Map([...libro.tareas].map(([k, x]) => [x.id, k]));
+    const c = cadenas(B.eje, B.eje.genesisId);
+    assert.deepEqual(c.cadenas.map((x) => x.pasos.map((p) => filaDe.get(p.id))), [['t1', 't2', 'v1']]);
+    assert.deepEqual(c.independientes.map((p) => filaDe.get(p.id)), ['t3', 't4']);
     await m.s.cerrar();
     // Otro arranque con la misma tabla: nada.
     const n = leerCompartido().length;
