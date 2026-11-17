@@ -55,12 +55,17 @@ const RE_SVG_DATOS = /^data:image\/svg\+xml;base64,[A-Za-z0-9+/]+=*$/;
  * La dirección con que se pide el recurso de una pieza: una URL http(s) tal cual (las del eje ya pasaron la lista blanca
  * de la época, modelos.recursoAdmitido), un adjunto «archivo:<sha256>» por el resolutor de la app (sin él, null: no se
  * pinta), un SVG del arte ya saneado como data: (SEG-15) y una ruta del repositorio relativa a la página.
+ * Un adjunto SVG lo da el resolutor como data:image/svg+xml;base64 (carta/archivos.js, SEG-15: un blob sería del mismo
+ * origen que la carta): ese data: solo vale con `imagen` (lo que se pone como src de un <img>, donde un SVG no ejecuta
+ * nada); para todo lo demás (un Lottie, un fondo CSS, un marco) y cualquier otro data:, null.
  */
-export function srcDeRecurso(recurso) {
+export function srcDeRecurso(recurso, { imagen = false } = {}) {
   if (typeof recurso !== 'string' || !recurso) return null;
   if (RE_ARCHIVO.test(recurso)) {
     const url = resolverDeArchivos?.(recurso.slice('archivo:'.length));
-    return typeof url === 'string' && /^(https?:|blob:)/.test(url) ? url : null;
+    if (typeof url !== 'string') return null;
+    if (/^(https?:|blob:)/.test(url)) return url;
+    return imagen && RE_SVG_DATOS.test(url) ? url : null;
   }
   if (/^https?:\/\//.test(recurso)) return recurso;
   if (RE_SVG_DATOS.test(recurso)) return recurso; // un SVG del arte, ya saneado (modelos.svgComoDatos, SEG-15): en <img>, nunca en línea
@@ -78,7 +83,8 @@ export function htmlPieza(pieza, { paso, animar = false, alt = '', clase = '', p
   if (!pieza) return '';
   const clases = ['pieza', ...(clase ? [clase] : [])];
   if (pieza.recurso && pieza.formato) {
-    const src = srcDeRecurso(pieza.recurso);
+    // Un Lottie no va en <img>: su recurso se baja como JSON (trasPintar); solo la imagen admite un adjunto SVG en data:.
+    const src = srcDeRecurso(pieza.recurso, { imagen: !(pieza.animado || pieza.bucle) });
     if (!src) return ''; // un adjunto sin resolutor (o sin red): no se pinta
     const fotogramas = pieza.fotogramas ?? 0;
     const k = paso && typeof paso.k === 'number' && paso.de ? Math.min(paso.k, paso.de) : 0;

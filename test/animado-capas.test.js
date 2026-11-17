@@ -395,6 +395,17 @@ test('#25: lo que otro ancla en un registro no es su arte propio; un adjunto «a
     assert.equal(srcDeRecurso('arte/x.svg'), './arte/x.svg');
     resolverArchivos(() => 'javascript:alert(1)');
     assert.equal(srcDeRecurso('archivo:' + sha), null, 'el resolutor solo puede dar http(s) o blob');
+    assert.equal(srcDeRecurso('archivo:' + sha, { imagen: true }), null, 'ni para una imagen');
+    // Un adjunto SVG llega como data:image/svg+xml;base64 (archivos.js, SEG-15): solo como src de un <img>.
+    const svg = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64');
+    resolverArchivos(() => svg);
+    assert.equal(srcDeRecurso('archivo:' + sha, { imagen: true }), svg);
+    assert.equal(srcDeRecurso('archivo:' + sha), null, 'fuera de un <img> (Lottie, fondo, marco), no');
+    assert.ok(html(a).includes('src="' + svg + '"'), 'el dibujo del subelemento, un <img>, lo pinta');
+    for (const malo of ['data:text/html;base64,PHA+', 'data:image/svg+xml,<svg/>', 'data:image/svg+xml;utf8,<svg/>', svg + '"><script>', svg + ' x', 'javascript:alert(1)', 'DATA:image/svg+xml;base64,PHN2Zy8+']) {
+      resolverArchivos(() => malo);
+      assert.equal(srcDeRecurso('archivo:' + sha, { imagen: true }), null, malo);
+    }
   } finally {
     resolverArchivos(null);
   }
