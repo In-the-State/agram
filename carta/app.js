@@ -88,6 +88,9 @@ const estado = {
   // «Abrir aquí un libro privado» (A24, §4.4; carta/libros.js): el diálogo abierto ({ X, elemento, nombre, fase, cuelga,
   // anuncio, claves, pequeno, … }) o null.
   libroPrivado: null,
+  // El puente entre mis libros abiertos (carta/puente.js): la hoja abierta ({ otros: Map libro → { cuenta, eje } | { motivo },
+  // enviar: { serie } | null, traer: { enlace } | null, aviso, motivos, exito, ocupado }) o null.
+  puente: null,
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -349,6 +352,7 @@ function extraDe() {
     retocarTextos: estado.config && estado.eje ? retocarTextosDe() : undefined,
     // «Reglas del libro» y «Ajustes de este elemento» (A21): sus vistas, y la entrada desde la configuración y desde el génesis.
     reglas: estado.reglas && estado.eje ? reglasDe() : undefined,
+    puente: estado.puente && estado.eje ? puenteDe() : undefined,
     ajustesElemento: estado.ajustes && estado.eje ? ajustesDelElemento(estado.eje, estado.ajustes.X, estado.identidad) ?? undefined : undefined,
     entradaReglas: estado.eje ? conGobierno(estado.eje) : false, genesisId: estado.eje?.genesisId,
     parteConfiguracion: estado.config || undefined, arranque: estado.arranque, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
@@ -405,6 +409,58 @@ async function nuevoDeLaSalida() {
   if (!e) return;
   const r = await cuentas.abrirCuenta(e.alta, { guardian });
   if (r.eje && estado.reglas?.salida === s) s.nuevo = { cuenta: r.cuenta, eje: r.eje, privada: r.privada };
+}
+
+// ---------- el puente entre mis libros abiertos (encargo «carta: irme con lo mío y el puente»; carta/puente.js) ----------
+
+/**
+ * Mis otros libros enlazados con este, abiertos aparte para el puente (cuentas.abrirCuenta: el libro abierto no cambia y
+ * no se abre otra sincronía), con sus sellos guardados puestos en su eje (puente.sellosGuardados).
+ */
+async function abrirLosEnlazados() {
+  const p = estado.puente;
+  if (!p || !estado.eje) return;
+  for (const l of puente.enlacesDelLibro(estado.eje, estado.identidad, { mios: misEntradas(), idioma: idioma() })) {
+    if (p.otros.has(l.libro)) continue;
+    const r = await cuentas.abrirCuenta(l.alta, { guardian });
+    if (estado.puente !== p) return;
+    if (r.eje) puente.sellosGuardados(r.eje, l.alta);
+    p.otros.set(l.libro, r.eje ? { cuenta: r.cuenta, eje: r.eje } : { motivo: r.motivo ?? '' });
+  }
+}
+
+/** La hoja «Entre mis libros» de ahora (dom.js htmlPuente): todo de carta/puente.js, con mis libros de este dispositivo. */
+function puenteDe() {
+  const p = estado.puente;
+  const o = { idioma: idioma() };
+  const yo = estado.identidad;
+  const mios = misEntradas();
+  const enlaces = puente.enlacesDelLibro(estado.eje, yo, { mios, ...o }).map((l) => {
+    const otro = p.otros.get(l.libro);
+    return { ...l, abierto: Boolean(otro?.eje), noAbre: Boolean(otro && !otro.eje), motivo: otro?.motivo ?? null };
+  });
+  const cruza = firmaLaCuenta() ? puente.loQueCruza(estado.eje, yo, o) : [];
+  let enviar = null;
+  const c = p.enviar ? cruza.find((x) => x.serie === p.enviar.serie) : null;
+  if (c) {
+    const destinos = enlaces.filter((l) => l.enviar && (!c.soloA || l.libro === c.soloA)).map((l) => ({ enlace: l.id, libro: l.libro, nombre: l.nombre, grado: l.grado }));
+    enviar = { ...c, destinos, elegido: p.enviar.enlace ?? destinos[0]?.enlace ?? null, soloANombre: mios.find((e) => e.libro === c.soloA)?.nombre ?? null, ocupado: p.ocupado };
+  }
+  let traer = null;
+  const l = p.traer ? enlaces.find((x) => x.id === p.traer.enlace && x.traer) : null;
+  const origen = l ? p.otros.get(l.libro)?.eje : null;
+  if (origen) traer = { enlace: l.id, libro: l.nombre, ...puente.traibles(estado.eje, l.id, origen, o) };
+  return { enlaces, cruza, enviar, traer, traidos: puente.traidosDelLibro(estado.eje, yo, { mios, ...o }), aviso: p.aviso, motivos: p.motivos, exito: p.exito };
+}
+
+/** Tras escribir en el puente: guarda y sincroniza como cualquier escritura, y lo dice en la hoja. */
+function trasEscribirEnElPuente(r, exito) {
+  const p = estado.puente;
+  if (r.asentado) {
+    trasEscribir();
+    marcarNuevos();
+    if (p) Object.assign(p, { enviar: null, motivos: [], exito: exito + (r.asentado.firma ? ' ' + t('firmado') : '') });
+  } else if (p) Object.assign(p, { exito: null, motivos: motivosConGuardian(r.motivos ?? []) });
 }
 
 /** Con qué se firma en mi libro nuevo: su clave (camino A) o el guardián, diciendo ese libro (camino B). */
@@ -780,6 +836,7 @@ function cambiarDeEje(eje, identidad) {
   estado.copia = null;
   estado.sincronia = sinc.soltar(estado.sincronia, estado.cuenta?.alta); // la del libro de antes se suelta (la del nuevo se abre en entrarCon)
   estado.libroPrivado = null;
+  estado.puente = null;
   estado.lineaSincronia = null;
   limpiarMensajes();
 }
@@ -1291,6 +1348,7 @@ const manejadores = {
     else if (estado.config) { estado.config = false; estado.motivosPreferencias = []; }
     else if (estado.formulario) estado.formulario = null;
     else if (estado.reglas) estado.reglas = null;
+    else if (estado.puente) estado.puente = null;
     else if (estado.ajustes) estado.ajustes = null;
     else if (estado.sitio) estado.sitio = null;
     else if (estado.aro) estado.aro = null;
@@ -1470,7 +1528,7 @@ const manejadores = {
     try {
       const c = estado.cuenta;
       if (p.que === 'genesis') {
-        const r = await puente.abrirLibroDeSalida({ cuenta: c, privada: c.privada, guardian: c.guardian === true ? guardian : null, paso: p, idioma: idioma() });
+        const r = await puente.abrirLibroDeSalida({ cuenta: c, privada: c.privada, guardian: c.guardian === true ? guardian : null, paso: p });
         if (estado.reglas?.salida === s) s.nuevo = { cuenta: r.cuenta, eje: r.eje, privada: r.privada, firmante: r.firmante };
         if (estado.reglas) estado.reglas.exito = t('salidaHecho', { n: p.n });
       } else {
@@ -1486,6 +1544,104 @@ const manejadores = {
       if (estado.reglas) estado.reglas.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
     }
     s.ocupado = false;
+    pintar();
+  },
+  /** «Puente» (desde la salida o desde una línea de enlace con uno de mis libros): la hoja «Entre mis libros». */
+  async puente() {
+    if (!estado.eje) return;
+    estado.puente = { otros: new Map(), enviar: null, traer: null, aviso: null, motivos: [], exito: null, ocupado: false };
+    estado.reglas = null;
+    estado.aro = null;
+    estado.formulario = null;
+    estado.sitio = null;
+    estado.config = false;
+    if (estado.cuenta) puente.sellosGuardados(estado.eje, estado.cuenta.alta);
+    limpiarMensajes();
+    tocar(estado.foco.X, 'puente entre mis libros');
+    pintar();
+    await abrirLosEnlazados();
+    pintar();
+  },
+  /** Elegir lo mío que se envía a otro libro: abre su formulario (a qué libro y cuánto). */
+  puenteEnviarSerie(serie) {
+    const p = estado.puente;
+    if (!p || typeof serie !== 'string') return;
+    Object.assign(p, { enviar: { serie }, traer: null, motivos: [], exito: null });
+    pintar();
+  },
+  /** «Traer de este libro»: lo que el libro enlazado tiene sellado y aún no está aquí. */
+  puenteTraerDe(enlace) {
+    const p = estado.puente;
+    if (!p || typeof enlace !== 'string') return;
+    Object.assign(p, { traer: { enlace }, enviar: null, motivos: [], exito: null });
+    pintar();
+  },
+  /** Enviar a otro libro, tras confirmarlo en la página con el aviso, el grado del enlace y lo que cuesta. */
+  async puenteEnviar(form) {
+    const p = estado.puente;
+    if (!p?.enviar || p.ocupado || !firmaLaCuenta()) return;
+    const v = puenteDe();
+    const valores = valoresDe(form);
+    const destino = v.enviar?.destinos.find((d) => d.enlace === valores.enlace);
+    const cantidad = Number(valores.cantidad);
+    p.enviar.enlace = destino?.enlace ?? p.enviar.enlace;
+    if (!destino || !Number.isInteger(cantidad) || cantidad < 1 || cantidad > v.enviar.disponible) {
+      p.motivos = [{ mensaje: t('puenteCantidad', { disponible: v.enviar?.disponible ?? 0 }) }];
+      pintar();
+      return;
+    }
+    const datos = { enlace: destino.enlace, serie: v.enviar.serie, cantidad, publica: estado.cuenta.publica };
+    const coste = puente.costeDelEnvio(estado.eje, estado.identidad, datos);
+    const texto = t('puenteConfirmarEnvio', { cuanto: puente.serieEnLlano(estado.eje, datos.serie, cantidad, idioma()), libro: destino.nombre, grado: destino.grado ?? '', aviso: t('puenteAvisoEnvio') + ' ' + t('puenteRedDePruebas'), coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') });
+    if (!(await confirmarEnPagina(texto))) return;
+    p.ocupado = true;
+    await pintar();
+    try {
+      trasEscribirEnElPuente(await puente.enviarAOtroLibro(estado.eje, estado.identidad, { ...datos, firmar: firmarCon(estado.identidad) }), t('puenteEnviado', { libro: destino.nombre }));
+    } catch (e) {
+      p.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
+    }
+    p.ocupado = false;
+    pintar();
+  },
+  /** Traer aquí un registro sellado del libro enlazado, con su prueba, tras confirmarlo con lo que cuesta. */
+  async puenteTraer(id) {
+    const p = estado.puente;
+    if (!p?.traer || p.ocupado || !firmaLaCuenta()) return;
+    const v = puenteDe();
+    const x = v.traer?.lista.find((r) => r.id === id);
+    const l = v.enlaces.find((e) => e.id === p.traer.enlace);
+    const origen = l ? p.otros.get(l.libro)?.eje : null;
+    if (!x || !origen) return;
+    const datos = { enlace: l.id, origen, id };
+    const coste = puente.costeDeTraer(estado.eje, estado.identidad, datos);
+    if (!(await confirmarEnPagina(t('puenteConfirmarTraer', { titulo: x.titulo || id.slice(0, 8), libro: l.nombre, coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') })))) return;
+    p.ocupado = true;
+    await pintar();
+    try {
+      trasEscribirEnElPuente(await puente.traerDeOtroLibro(estado.eje, estado.identidad, { ...datos, firmar: firmarCon(estado.identidad) }), t('puenteTraido', { libro: l.nombre }));
+    } catch (e) {
+      p.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
+    }
+    p.ocupado = false;
+    pintar();
+  },
+  /** Recibir lo traído (la ida, o la parte siguiente de una vuelta), tras confirmarlo con lo que queda y lo que cuesta. */
+  async puenteRecibir(id) {
+    const p = estado.puente;
+    if (!p || p.ocupado || !firmaLaCuenta()) return;
+    const x = puenteDe().traidos.find((r) => r.traido === id);
+    if (!x?.recibir) return;
+    const coste = puente.costeDeRecibir(estado.eje, estado.identidad, { id });
+    if (!(await confirmarEnPagina(t('puenteConfirmarRecibir', { queda: x.envio.queda, coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') })))) return;
+    p.ocupado = true;
+    await pintar();
+    try {
+      trasEscribirEnElPuente(await puente.recibirDeOtroLibro(estado.eje, estado.identidad, { id, firmar: firmarCon(estado.identidad) }), t('puenteRecibidoYa'));
+    } catch (e) {
+      p.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
+    }
+    p.ocupado = false;
     pintar();
   },
   /** «Ajustes de este elemento» (desde su configuración, la cruceta de su 0). */

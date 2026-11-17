@@ -21,11 +21,20 @@
 //   abrirLibroDeSalida({ … })                       → el génesis del libro nuevo, como otro libro de esta cuenta
 //   costeDelPaso(eje, paso) · firmarPaso(eje, paso, firmar)  → lo que cuesta un paso de escribir y firmarlo, por el camino de siempre
 //   guardarLibroNuevo({ cuenta, eje })              → guarda el libro nuevo tras escribir en él (no es el abierto)
+//   enlacesDelLibro(eje, yo, { mios })              → los enlaces a mis libros de este dispositivo: grado, si cuenta, fondo
+//   loQueCruza(eje, yo)                             → lo mío que puede ir a otro libro (la familia del puente, disponible)
+//   enviarAOtroLibro · traerDeOtroLibro · recibirDeOtroLibro → las tres escrituras del puente
+//   traibles(destino, enlace, origen)               → lo que el otro libro tiene sellado y aún no está traído aquí
+//   traidosDelLibro(eje, yo, { mios })              → lo traído, leído, y si se puede recibir y cuánto queda
 
 import { contrato, acciones } from '../src/index.js';
-import { PLANTILLAS_DEL_PUENTE as PL, saldosDe, planDeSalida, pruebaParaTraer, clavesDeLineaDe, sinSello } from '../datos/epocas/puente.mjs';
+import { claveToken, partirClave } from '../src/tokens.js';
+import {
+  PLANTILLAS_DEL_PUENTE as PL, ENLACES, ANCLA_DE_LO_TRAIDO, saldosDe, planDeSalida, leerTraido, bloqueosDeLaVuelta, registroComoDecupla,
+  pruebaParaTraer, clavesDeLineaDe, paresDelEnlace, nivelMasBajoDe, porRecibir, sinSello,
+} from '../datos/epocas/puente.mjs';
 import * as cuentas from './cuentas.js';
-import { enviar, motivosEnLlano } from './carta.js';
+import { enviar, motivosEnLlano, ceroDe } from './carta.js';
 
 export { PL as PLANTILLAS, sinSello };
 
@@ -44,6 +53,8 @@ function serieEs(eje, serie, cantidad, o) {
     return String(serie);
   }
 }
+/** Una serie con su cantidad, en llano, en el idioma de `idioma` (para la confirmación de la app). */
+export const serieEnLlano = (eje, serie, cantidad, idioma) => serieEs(eje, serie, cantidad, { idioma });
 /** El nivel de firmeza que pide traer en `eje` (epoch.8.9.2; 4 si no lo dice), como leerTraido. */
 const nivelDelPuente = (eje) => Number(hoja(eje?.epoca?.()?.registro?.[8]?.[9]?.[2])) || 4;
 /** Las familias que cruzan como token en `eje` (epoch.8.9.1). */
@@ -161,12 +172,16 @@ export function entradaDeLaSalida(entradas, { publica, libro, elemento, nombre }
  * elegido), por el camino de abrirLibroPrivado (cuentas.crearCuenta con `conClave`, la misma identidad) y lo guarda como otro
  * libro de esta cuenta, sin cambiar el abierto («Tus libros»). Con guardián, su firmante. → { cuenta, eje, privada?,
  * firmante? }; si crear falla, lanza (nada se guarda).
+ *
+ * Sin idioma: nace sin ningún registro de ajustes. Un registro anclado en el 9 de su génesis (las preferencias con el
+ * idioma, «exterior settings») hace que «a record is brought from a linked book» rechace traer a él (encontrado en este
+ * encargo, sin tocar la época): la salida acabaría en el último paso. El idioma se cambia después, en su configuración.
  */
-export async function abrirLibroDeSalida({ cuenta, privada, guardian = null, paso, t, idioma } = {}) {
+export async function abrirLibroDeSalida({ cuenta, privada, guardian = null, paso, t } = {}) {
   if (paso?.que !== 'genesis' || paso.estado !== 'listo') throw new Error('el paso no es abrir el libro nuevo');
   const { identidad, foco, epoca } = paso.params;
   const conClave = guardian ? { publica: cuenta.publica } : { publica: cuenta.publica, privada };
-  const creado = await cuentas.crearCuenta({ nombre: String(hoja(foco)), idioma: idioma ?? cuenta.idioma, conClave, epoca, identidad, ...(guardian ? { guardian, dialogo: true } : {}), ...(t ? { t } : {}) });
+  const creado = await cuentas.crearCuenta({ nombre: String(hoja(foco)), conClave, epoca, identidad, ...(guardian ? { guardian, dialogo: true } : {}), ...(t ? { t } : {}) });
   await cuentas.guardarCuenta({ cuenta: creado.cuenta, eje: creado.eje, privada: creado.privada }, { recordar: false });
   return { cuenta: cuentas.entradaDe(creado.cuenta, creado.eje), eje: creado.eje, ...(guardian ? { firmante: creado.firmante } : { privada: creado.privada }) };
 }
@@ -193,3 +208,161 @@ export function guardarLibroNuevo({ cuenta, eje }) {
   cuentas.guardarEje({ alta: cuenta.alta }, eje);
   return cuentas.completarEntrada(cuenta, eje);
 }
+
+// ---------- el puente entre mis libros abiertos (paso 3 del plan del puente) ----------
+
+/** El libro que nombra un enlace (el 1.0.0 de «open a private book here», el 1.0 de «this book hangs from»). */
+const libroDelEnlace = (r) => hoja(r?.payload?.[1]);
+
+/**
+ * Lo bloqueado por un enlace (su fondo, docs/notas/PUENTE.md §10.4): de cada quien que envió por él y cada serie, lo que
+ * sigue bloqueado con la salida en él (eje.bloqueado(quien, serie, enlace)). → [{ quien, serie, cantidad }].
+ */
+export function fondoDe(eje, enlace) {
+  const vistos = new Map();
+  for (const ev of eje.sobre(enlace, '4000000000')) {
+    if (!accionesDe(ev).includes(PL.enviar)) continue;
+    for (const m of ev.movimientos ?? []) if (m.estado === 'bloqueo' && m.salida === enlace) vistos.set(m.de + '\u0000' + claveToken(m), [m.de, claveToken(m)]);
+  }
+  return [...vistos.values()].map(([quien, serie]) => ({ quien, serie, cantidad: eje.bloqueado(quien, serie, enlace) })).filter((x) => x.cantidad > 0);
+}
+
+/**
+ * Los enlaces de `eje` a mis libros de este dispositivo (`mios`: las entradas de mi clave, { alta, libro, nombre }): cada
+ * «open a private book here» y «this book hangs from» con su grado, si cuenta y el del dueño (contrato.gradoDelEnlace), las
+ * claves que anota (su nivel más bajo, nivelMasBajoDe), el fondo bloqueado por él y qué se ofrece por él (enviar, traer:
+ * acciones.acciones, que no ofrece nada por un enlace que no cuenta). Solo los de libros míos de aquí: el puente de la
+ * carta va entre los libros que esta cuenta tiene abiertos.
+ */
+export function enlacesDelLibro(eje, yo, { mios = [], idioma } = {}) {
+  const o = { idioma: idiomaDe(eje, yo, { idioma }) };
+  const fuera = [];
+  for (const id of eje.orden ?? []) {
+    const r = eje.obtener(id);
+    const a = accionesDe(r);
+    if (!a.includes(ENLACES.abrir) && !a.includes(ENLACES.cuelga)) continue;
+    const libro = libroDelEnlace(r);
+    const mio = mios.find((e) => e.libro === libro);
+    if (!mio || libro === eje.genesisId) continue;
+    const g = contrato.gradoDelEnlace(eje, id) ?? {};
+    fuera.push({
+      id, libro, nombre: mio.nombre ?? String(libro).slice(0, 8), alta: mio.alta, tipo: a.includes(ENLACES.abrir) ? 'abre' : 'cuelga',
+      quien: r.autor, quienTexto: quienEs(eje, r.autor, o), cuando: cuandoEs(eje, r.t, o),
+      grado: g.grado ?? null, cuenta: g.cuenta === true, delDueno: g.delDueno ?? null,
+      claves: paresDelEnlace(r).length, nivelMasBajo: nivelMasBajoDe(r),
+      fondo: fondoDe(eje, id).map((f) => ({ ...f, quienTexto: quienEs(eje, f.quien, o), texto: serieEs(eje, f.serie, f.cantidad, o) })),
+      enviar: ofrecida(eje, id, PL.enviar, yo, o), traer: ofrecida(eje, id, PL.traer, yo, o),
+    });
+  }
+  return fuera;
+}
+
+/**
+ * Lo mío en `eje` que puede ir a otro libro: de saldosDe, las series de una familia que cruza (epoch.8.9.1) con algo
+ * disponible. Una serie forastera (su emisor, «<libro>:…») solo vuelve a su libro de origen: `soloA` lo dice.
+ * → [{ serie, disponible, texto, soloA }].
+ */
+export function loQueCruza(eje, yo, { idioma } = {}) {
+  const o = { idioma: idiomaDe(eje, yo, { idioma }) };
+  const familias = familiasDelPuente(eje);
+  return saldosDe(eje, yo).filter((s) => familias.includes(s.familia) && s.disponible > 0).map((s) => {
+    const emisor = partirClave(s.serie)?.emisor ?? '';
+    const k = String(emisor).indexOf(':');
+    return { serie: s.serie, disponible: s.disponible, texto: serieEs(eje, s.serie, s.disponible, o), soloA: k > 0 ? emisor.slice(0, k) : null };
+  });
+}
+
+/** Lo que cuesta enviar `cantidad` de `serie` por `enlace` a la clave `publica`, o null. */
+export function costeDelEnvio(eje, yo, { enlace, serie, cantidad, publica }, o = {}) {
+  return costeDe(eje, enlace, PL.enviar, { series: serie, quantity: Number(cantidad), to: publica }, yo, o);
+}
+
+/** «send to another book» por `enlace`: `cantidad` de `serie`, a la clave `publica` (la mía: mis libros). → lo que da enviar. */
+export function enviarAOtroLibro(eje, yo, { enlace, serie, cantidad, publica, firmar, t } = {}) {
+  return escribir(eje, enlace, PL.enviar, { series: serie, quantity: Number(cantidad), to: publica }, yo, firmar, { t });
+}
+
+/** Los ids de los registros ya traídos a `destino` del libro `libro` (los «bring a record» del 9.8 de su génesis). */
+function yaTraidos(destino, libro) {
+  return new Set(destino.sobre(destino.genesisId, ANCLA_DE_LO_TRAIDO).filter((r) => accionesDe(r).includes(PL.traer) && hoja(r.payload?.[1]?.[0]) === libro).map((r) => hoja(r.payload?.[1]?.[1]?.[0])));
+}
+
+/**
+ * Lo que el libro `origen` tiene sellado y se puede traer a `destino` por `enlace` (su id en `destino`): los registros del
+ * origen (sin el génesis, que no se trae) con prueba de sello que alcanza (pruebaParaTraer, con las claves que anota el
+ * enlace y el nivel que pide `destino`) y que aún no están traídos aquí, lo más nuevo arriba, como mucho `max`. → { lista:
+ * [{ id, autor, quien, cuando, titulo }], esperan (cuántos esperan su sello), sinSello (puente.mjs sinSello del origen) }.
+ */
+export function traibles(destino, enlace, origen, { max = 30, idioma } = {}) {
+  const r = destino.obtener(enlace);
+  const lineas = paresDelEnlace(r);
+  const nivel = nivelDelPuente(destino);
+  const ya = yaTraidos(destino, origen.genesisId);
+  const o = { idioma: idiomaDe(origen, null, { idioma }) };
+  const lista = [];
+  let esperan = 0;
+  for (const id of [...(origen.orden ?? [])].reverse()) {
+    if (id === origen.genesisId || ya.has(id)) continue;
+    const { prueba } = pruebaParaTraer(origen, id, { lineas, nivel });
+    if (!prueba) { esperan += 1; continue; }
+    if (lista.length >= max) continue;
+    const ev = origen.obtener(id);
+    lista.push({ id, autor: ev.autor, quien: quienEs(origen, ev.autor, o), cuando: cuandoEs(origen, ev.t, o), titulo: String(ceroDe(origen, id, o, hoja(ev.payload?.[0]) ?? '') ?? '') });
+  }
+  return { lista, esperan, sinSello: sinSello(origen) };
+}
+
+/** «bring a record from another book»: el registro `id` de `origen`, con su prueba de sello, por `enlace`. → lo que da enviar. */
+export function traerDeOtroLibro(destino, yo, { enlace, origen, id, firmar, t } = {}) {
+  const ev = origen?.obtener?.(id);
+  const { prueba } = ev ? pruebaParaTraer(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
+  if (!ev || !prueba) return Promise.resolve({ ok: false, asentado: null, motivos: [], sinPrueba: true });
+  return escribir(destino, enlace, PL.traer, { record: registroComoDecupla(ev), proof: prueba }, yo, firmar, { t });
+}
+
+/** Lo que cuesta traer `id` de `origen` por `enlace`, o null. */
+export function costeDeTraer(destino, yo, { enlace, origen, id }, o = {}) {
+  const ev = origen?.obtener?.(id);
+  const { prueba } = ev ? pruebaParaTraer(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
+  return prueba ? costeDe(destino, enlace, PL.traer, { record: registroComoDecupla(ev), proof: prueba }, yo, o) : null;
+}
+
+/**
+ * Lo traído a `eje`, leído (leerTraido), lo más nuevo arriba: de qué libro vino (su nombre si es mío), quién lo escribió allí,
+ * cuándo quedó en firme, por qué enlace, su grado, si es del dueño y el nivel más bajo de ese enlace. Si no es fiable, su
+ * causa (como viene) y ni su contexto ni sus movimientos. Si es un envío: cuánto queda por recibir (porRecibir) y si `yo`
+ * puede recibirlo (acciones.acciones).
+ */
+export function traidosDelLibro(eje, yo, { mios = [], idioma } = {}) {
+  const o = { idioma: idiomaDe(eje, yo, { idioma }) };
+  const lista = eje.sobre(eje.genesisId, ANCLA_DE_LO_TRAIDO).filter((r) => accionesDe(r).includes(PL.traer));
+  return lista.reverse().map((r) => {
+    const l = leerTraido(eje, r.id);
+    if (!l) return null;
+    const mio = mios.find((e) => e.libro === l.libro);
+    const envio = porRecibir(eje, r.id);
+    return {
+      traido: r.id, libro: l.libro, libroNombre: mio?.nombre ?? null, id: l.id, autor: l.autor, t: l.t, firme: l.firme,
+      enlace: l.enlace, quien: l.quien, grado: l.grado, cuenta: l.cuenta, delDueno: l.delDueno, nivelMasBajo: l.nivelMasBajo, origen: l.origen,
+      fiable: l.fiable, causa: l.causa,
+      payload: l.payload, contexto: l.fiable ? l.contexto : null, movimientos: l.fiable ? l.movimientos : null,
+      envio, recibir: Boolean(envio && envio.queda > 0 && ofrecida(eje, r.id, PL.recibir, yo, o)),
+    };
+  }).filter(Boolean);
+}
+
+/**
+ * «receive from another book» sobre lo traído `id`: la ida, sin más; la vuelta, nombrando de qué bloqueos saca la parte
+ * siguiente (bloqueosDeLaVuelta, el más antiguo primero). → lo que da enviar.
+ */
+export function recibirDeOtroLibro(eje, yo, { id, firmar, t } = {}) {
+  const locks = bloqueosDeLaVuelta(eje, id);
+  return escribir(eje, id, PL.recibir, locks?.length ? { locks } : {}, yo, firmar, { t });
+}
+
+/** Lo que cuesta recibir lo traído `id`, o null. */
+export function costeDeRecibir(eje, yo, { id }, o = {}) {
+  const locks = bloqueosDeLaVuelta(eje, id);
+  return costeDe(eje, id, PL.recibir, locks?.length ? { locks } : {}, yo, o);
+}
+
