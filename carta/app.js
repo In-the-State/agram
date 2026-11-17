@@ -401,7 +401,7 @@ function salidaDe() {
   // Enviar del viejo al nuevo pide en el viejo un enlace que cuente hacia el nuevo (puente.enlaceAlNuevo).
   const e = s.nuevo?.eje ? puente.enlaceAlNuevo(estado.eje, estado.identidad, s.nuevo.eje) : null;
   const enlace = e ? { hecho: Boolean(e.hecho), sinGenesis: e.sinGenesis, ofrecido: e.ofrecido, coste: puente.costeDelEnlaceAlNuevo(estado.eje, estado.identidad, s.nuevo.eje) } : null;
-  return { vista, nombre, enlace, coste: p && p.que !== 'genesis' ? puente.costeDelPaso(ejeDelPaso, p) : null, nuevo: s.nuevo ? { nombre: s.nuevo.cuenta.nombre } : null, sinCuenta: !firmaLaCuenta(), ocupado: s.ocupado || s.bloqueado, buscando: s.buscando };
+  return { vista, nombre, enlace, coste: p && p.que !== 'genesis' ? puente.costeDelPaso(ejeDelPaso, p) : null, nuevo: s.nuevo ? { nombre: s.nuevo.cuenta.nombre } : null, sinCuenta: !firmaLaCuenta(), ocupado: s.ocupado, buscando: s.buscando, bloqueado: s.bloqueado };
 }
 
 /** salidaDe, a salvo: si leer falla (un libro o un sello ajeno mal formado), la hoja lo dice y queda libre. */

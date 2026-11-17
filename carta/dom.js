@@ -1745,7 +1745,8 @@ export const textoDelPasoDeSalida = (p, nombre) => t('salidaPaso_' + p.que, { se
  * reglas nace el libro nuevo (las vigentes o las de antes del último cambio), los pasos en orden con su estado (la espera,
  * con su frase tal cual), un solo botón que firma el primer paso «listo» con su coste a la vista, la frase del sello y lo
  * que va aparte. `s`: { vista, coste (del paso siguiente), nombre (el del libro nuevo), nuevo ({ nombre } si ya está),
- * sinCuenta, ocupado }. Todo dato va escapado.
+ * sinCuenta, ocupado, buscando (el botón espera a saber si ya hay libro nuevo), bloqueado (lo hay y no se abre: el botón,
+ * apagado, sin decir «firmando»; el motivo va en el aviso de la hoja) }. Todo dato va escapado.
  */
 function htmlSalida(s) {
   const v = s.vista;
@@ -1760,7 +1761,7 @@ function htmlSalida(s) {
   const pasos = v.pasos.map((p) => `<li class="salida-paso" data-estado="${attr(p.estado)}" data-que="${attr(p.que)}"><span>${escapar(textoDelPasoDeSalida(p, s.nombre))}</span> <small>${escapar(t('salidaEnLibro_' + p.libro))}</small> · <small class="salida-estado">${escapar(t('salidaEstado_' + p.estado))}</small>${p.espera ? `<br><small class="salida-espera">${escapar(p.espera)}</small>` : ''}</li>`).join('');
   const todo = v.pasos.length && v.pasos.every((p) => p.estado === 'hecho');
   const siguiente = v.siguiente && !s.sinCuenta
-    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado || s.buscando ? 'disabled' : ''}>${escapar(s.buscando ? t('salidaBuscando') : s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
+    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado || s.buscando || s.bloqueado ? 'disabled' : ''}>${escapar(s.buscando ? t('salidaBuscando') : s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
     : '';
   return `<article class="salida"${nodo('reglas')} data-salida>
     <h3>${escapar(t('salidaAbrir'))}</h3>
