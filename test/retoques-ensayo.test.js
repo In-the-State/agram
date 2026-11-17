@@ -13,6 +13,8 @@ import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearServidor, CABECERA_LLAVE } from '../retoques/servidor.mjs';
 import { instantesDePasadas, huellaDeFila, EJE } from '../retoques/ensayo.mjs';
+import { EJE_GUIA, CARA, caraDeLaGuia, comprobarPasos, idDeLaEpocaDeLaGuia } from '../retoques/guia-ensayo.mjs';
+import { zonas, pasosDeGuia, sugerenciasDeGuia } from '../src/guia-libro.js';
 import { acciones, sincronia } from '../src/index.js';
 import { firmar } from '../src/autoridad.js';
 import * as Q from '../carta/cuentas.js';
@@ -68,10 +70,8 @@ function dispositivo() {
   return { almacen, usar: () => { globalThis.localStorage = ls; } };
 }
 
-/** Lo que hace la carta con «Entrar en el libro del roadmap»: restaurar la copia, el eje del libro compartido, guardarla y abrirla. */
-async function entrar(d, { copia, frase }) {
-  d.usar();
-  const r = await Q.restaurarCuenta(copia, frase);
+/** Restaura un libro de la copia como la carta: el eje del libro compartido, guardarlo y abrirlo con su sincronía. */
+async function guardarLibro(r) {
   const destino = sincronia.destino(r.eje, r.cuenta.identidad);
   const libro = await S.ejeDelServidor({ cuenta: r.cuenta, url: destino.url, eje: destino.eje, claveLectura: r.claveLectura, foto: r.eje });
   assert.equal(libro.motivo, undefined, libro.motivo);
@@ -82,6 +82,20 @@ async function entrar(d, { copia, frase }) {
   const sinc = S.abrir({ alta: r.cuenta.alta, eje: abierta.eje, yo: r.cuenta.identidad });
   assert.ok(sinc, 'la cuenta restaurada sincroniza con /ensayo');
   return { ...r, eje: abierta.eje, sinc, destino };
+}
+
+/**
+ * Lo que hace la carta con «Entrar en el libro del roadmap»: la copia de los dos libros de la dueña (cuentas.exportarTodos),
+ * cada uno guardado con su libro compartido. → el del roadmap, con `guia` (el de la guía de ensayo).
+ */
+async function entrar(d, { copia, frase }) {
+  d.usar();
+  const todos = await Q.restaurarTodos(copia, frase);
+  assert.deepEqual(todos.fallidos, []);
+  const libros = [];
+  for (const r of todos.restaurados) libros.push(await guardarLibro(r));
+  const roadmap = libros.find((l) => l.destino.eje === EJE);
+  return { ...roadmap, guia: libros.find((l) => l !== roadmap) };
 }
 
 /** Todo el texto de los archivos de una carpeta (recursivo), para buscar secretos. */
@@ -111,8 +125,9 @@ test('ensayo: el almacén vacío se llena con la tabla; dos dispositivos restaur
   let m;
   try {
     m = await arrancar(p);
-    assert.equal(m.dicho.length, 1);
+    assert.equal(m.dicho.length, 2);
     assert.match(m.dicho[0], /^ensayo: volcado en 1 pasada: \d+ registros escritos, 0 avisos$/);
+    assert.equal(m.dicho[1], 'ensayo: guía de ensayo creada: 3 pasos y 4 zonas');
     for (const f of TABLA) assert.ok(!m.dicho[0].includes(f.tarea));
     assert.ok(existsSync(p.ensayo.claves), 'el archivo de claves se crea');
     const claves = JSON.parse(readFileSync(p.ensayo.claves, 'utf8'));
@@ -125,7 +140,8 @@ test('ensayo: el almacén vacío se llena con la tabla; dos dispositivos restaur
     assert.equal((await pedir(m.puerto, '/retoques/ensayo/cuenta')).estado, 401);
     const cuenta = JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: llave })).cuerpo);
     assert.equal(typeof cuenta.frase, 'string');
-    assert.equal(cuenta.copia.formato, Q.FORMATO);
+    assert.equal(cuenta.copia.formato, Q.FORMATO_DE_TODOS, 'la copia de los dos libros de la dueña');
+    assert.equal(cuenta.copia.copias.length, 2);
     assert.ok(!JSON.stringify(cuenta.copia).includes(claves.duena.privada), 'la privada va cifrada');
     // Crear ejes, nunca desde fuera.
     assert.equal((await pedir(m.puerto, '/ensayo/ejes', { metodo: 'POST', cuerpo: { eje: 'otro' }, cabeceras: { 'x-crear-ejes': 'prueba' } })).estado, 404);
@@ -235,8 +251,9 @@ test('ensayo: dentro de la raíz, rechazado; la cara pública sin sesión no da 
       }
       // Con --publico, la «sync url» del libro es la de fuera.
       const cuenta = JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: { [CABECERA_LLAVE]: m.s.llave } })).cuerpo);
-      const r = await Q.restaurarCuenta(cuenta.copia, cuenta.frase);
+      const [r, rg] = (await Q.restaurarTodos(cuenta.copia, cuenta.frase)).restaurados;
       assert.deepEqual(sincronia.destino(r.eje, r.cuenta.identidad), { url: 'https://' + publico + '/ensayo', eje: EJE });
+      assert.deepEqual(sincronia.destino(rg.eje, rg.cuenta.identidad), { url: 'https://' + publico + '/ensayo/guia', eje: EJE_GUIA });
     } finally { await m.s.cerrar(); }
     // Sin --ensayo: ni la ruta, ni la cuenta, y estado lo dice.
     const s = crearServidor({ raiz: p.raiz, puerto: 0, vigilar: false });
@@ -288,6 +305,94 @@ test('ensayo (seguridad): un alta de cosa de otro con el nombre de una casa no p
     await assert.rejects(arrancar(p, { puerto }), /disposición anterior.*aparta la carpeta del ensayo/);
   } finally {
     delete globalThis.localStorage;
+    await m?.s.cerrar();
+    p.borrar();
+  }
+});
+
+test('la guía de ensayo: el segundo libro de la dueña, con la época hija; sus pasos no salen inválidos, sus zonas salen por zonas, su cara se sirve; al volver a arrancar, idéntica', async () => {
+  const p = preparar();
+  let m;
+  try {
+    m = await arrancar(p);
+    const puerto = m.puerto;
+    assert.equal(m.dicho.at(-1), 'ensayo: guía de ensayo creada: 3 pasos y 4 zonas');
+    const rutaGuia = join(p.ensayo.carpeta, 'guia.json');
+    assert.ok(existsSync(rutaGuia), 'en su propio archivo, junto al otro');
+    const leida = m.s.ensayo().guia();
+    const llave = { [CABECERA_LLAVE]: m.s.llave };
+    const A = await entrar(dispositivo(), JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: llave })).cuerpo));
+    const G = A.guia;
+    assert.ok(G, 'la copia lleva los dos libros');
+    assert.equal(G.cuenta.identidad, A.cuenta.identidad, 'de la misma dueña');
+    assert.equal(G.cuenta.publica, A.cuenta.publica, 'con su misma clave');
+    assert.equal(G.eje.epoca().id, idDeLaEpocaDeLaGuia(), 'con la época hija del libro de la guía');
+    assert.deepEqual(G.destino, { url: 'http://localhost:' + puerto + '/ensayo/guia', eje: EJE_GUIA });
+    // Los pasos: tres, sobre el libro del roadmap; ninguno sale inválido allí (sugerenciasDeGuia y lo que se ofrece).
+    const pasos = pasosDeGuia(G.eje, leida.guia);
+    assert.deepEqual(pasos.map((x) => x.titulo), ['Escribe tu primera nota', 'Añade una tarea a esta línea', 'Comenta una tarea']);
+    assert.ok(pasos.every((x) => x.libro === A.eje.genesisId && x.accion === 'anchor here'));
+    assert.equal(pasos[0].sobre, null, 'el primero, sobre su propia alta');
+    assert.deepEqual(comprobarPasos(G.eje, leida.guia, A.eje, A.cuenta.identidad), []);
+    for (const x of pasos) {
+      const s = sugerenciasDeGuia(G.eje, A.eje, x.sobre ?? A.eje.alta(A.cuenta.identidad).id, A.cuenta.identidad, { idioma: 'es' }).find((y) => y.id === x.id);
+      assert.ok(s && !s.invalida && s.hecho === false, x.titulo + ': ' + JSON.stringify(s));
+    }
+    // Las zonas: cuatro, por zonas(); dos a dos pasos, una al roadmap (otro libro) y una a un registro de este libro.
+    const z = zonas(G.eje, leida.guia);
+    assert.deepEqual(z.map((x) => x.etiqueta), ['Primera nota', 'Una tarea nueva', 'Ver el roadmap', 'Mi sitio aquí']);
+    assert.ok(z.every((x) => new TextEncoder().encode(x.etiqueta).length <= 40));
+    assert.deepEqual(z.slice(0, 2).map((x) => x.destino), [{ libro: null, registro: pasos[0].id }, { libro: null, registro: pasos[1].id }]);
+    assert.equal(z[2].destino.libro, A.eje.genesisId);
+    assert.ok(A.eje.obtener(z[2].destino.registro), 'un registro del roadmap');
+    assert.deepEqual(z[3].destino, { libro: null, registro: G.eje.alta(G.cuenta.identidad).id });
+    assert.deepEqual(leida.zonas, z, 'lo mismo en el servidor y en el dispositivo');
+    // La cara: «attach a file» en el 0 de la guía; el html se sirve por /ensayo/guia/archivos con la clave de lectura.
+    const cara = caraDeLaGuia();
+    assert.ok(G.eje.sobre(leida.guia, '0000000000').some((r) => JSON.stringify(r.payload).includes(cara.referencia)));
+    assert.ok(!/<script|https?:|src=|href=|url\(/i.test(CARA), 'sin guiones ni nada de fuera');
+    const sin = await pedir(puerto, '/ensayo/guia/archivos/' + cara.id + '?eje=' + EJE_GUIA);
+    assert.equal(sin.estado, 401, 'sin la clave de lectura, nada');
+    const html = await pedir(puerto, '/ensayo/guia/archivos/' + cara.id + '?eje=' + EJE_GUIA, { cabeceras: { 'x-clave-lectura': G.claveLectura } });
+    assert.equal(html.estado, 200);
+    assert.equal(html.cuerpo, CARA);
+    assert.equal((await pedir(puerto, '/ensayo/guia/ejes', { metodo: 'POST', cuerpo: { eje: 'otro' } })).estado, 404);
+    // Los dos libros por sus rutas, con sus claves de lectura: la de uno no abre el otro.
+    assert.notEqual(G.claveLectura, A.claveLectura);
+    assert.equal((await pedir(puerto, '/ensayo/guia/eventos?eje=' + EJE_GUIA, { cabeceras: { 'x-clave-lectura': A.claveLectura } })).estado, 401);
+    await m.s.cerrar();
+    // Otro arranque: la guía se carga tal cual (el archivo, igual byte a byte; nada que decir de ella).
+    const antes = readFileSync(rutaGuia, 'utf8');
+    m = await arrancar(p, { puerto });
+    assert.deepEqual(m.dicho, []);
+    assert.equal(readFileSync(rutaGuia, 'utf8'), antes);
+    assert.deepEqual(m.s.ensayo().guia(), leida);
+    assert.equal(m.s.ensayo().altaGuia, G.cuenta.alta);
+  } finally {
+    delete globalThis.localStorage;
+    await m?.s.cerrar();
+    p.borrar();
+  }
+});
+
+test('la guía de ensayo de otra época: el servidor no arranca y dice apartarla; nunca la borra', async () => {
+  const p = preparar();
+  let m;
+  try {
+    m = await arrancar(p);
+    await m.s.cerrar();
+    m = null;
+    // Un libro «guia» de la dueña con otra época (el del roadmap, de la 0, puesto en el almacén de la guía).
+    const compartido = JSON.parse(readFileSync(join(p.ensayo.carpeta, 'compartido.json'), 'utf8'));
+    const otro = { ...compartido, ejes: { [EJE_GUIA]: { ...compartido.ejes[EJE], eje: EJE_GUIA } }, eventos: { [EJE_GUIA]: compartido.eventos[EJE].map((f) => ({ ...f, eje: EJE_GUIA })) } };
+    const rutaGuia = join(p.ensayo.carpeta, 'guia.json');
+    writeFileSync(rutaGuia, JSON.stringify(otro));
+    const estado = JSON.parse(readFileSync(join(p.ensayo.carpeta, 'ensayo.json'), 'utf8'));
+    writeFileSync(join(p.ensayo.carpeta, 'ensayo.json'), JSON.stringify({ ...estado, guia: { claveLectura: estado.claveLectura } }));
+    const antes = readFileSync(rutaGuia, 'utf8');
+    await assert.rejects(arrancar(p), /la guía de ensayo es de otra época .*aparta guia\.json/);
+    assert.equal(readFileSync(rutaGuia, 'utf8'), antes, 'no se reescribe ni se borra');
+  } finally {
     await m?.s.cerrar();
     p.borrar();
   }
