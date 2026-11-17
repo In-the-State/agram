@@ -1977,8 +1977,10 @@ function familiasSentenciadas(ev) {
  *              la cadena: un eslabón de ese nivel, con todos los de debajo válidos, su grado a la altura del exigido en
  *              7.6.5 y la clave de su cabecera anotada para ese nivel en «line keys» de la cuenta raíz, pares [nivel,
  *              clave] (VG 17-11, encargo «las claves de línea, por nivel»: las «observer keys» ya no cuentan para la
- *              cadena), y la primera cabecera de la cadena nombra este libro (su 8, el id del génesis); el primero,
- *              también con su recibo de llegada si no se le exige grado; el último, también con «sealed»), «saltada» (por
+ *              cadena), y la primera cabecera de la cadena nombra este libro (su 8, el id del génesis); con todos los
+ *              eslabones de 0 a j firmados por una clave anotada para el nivel que cada uno dice y el 0 en el más bajo
+ *              de los anotados (enmienda «5 bis»); el primero,
+ *              también con su recibo de llegada si no se le exige grado; el último, también con «sealed», por la vía «cascada» con esos pares en toda la cadena), «saltada» (por
  *              debajo del más alto alcanzado, y no alcanzado) o «pendiente» (por encima); en cada nivel alcanzado por la
  *              cadena, `clave` (la de la cabecera que lo alcanza), `grado` y `red` (los que dice ese eslabón detrás de su
  *              nivel, 9.k.1 = [nivel, grado, red], como el nombre canónico de 7.6.4 y 7.6.6 si traen una posición válida o
@@ -2016,20 +2018,23 @@ export function firmeza(eje, id, opciones = {}) {
   const ultima = tabla.length - 1;
   // Lo que dice «firm» (VG 17-11, encargo «firm lee grados»; formulaDeFirmeza), nivel a nivel. Por la cadena: el primer
   // eslabón j, de los que valen seguidos desde abajo (sello.eslabonesValidos), que dice ese nivel, con su grado a la altura
-  // del exigido y la clave de su cabecera anotada para ese nivel (before.8.9 de la cuenta raíz, pares [nivel, clave]), con la
-  // primera cabecera de este libro (eslabonesValidos con `libro`: 0 si no).
+  // del exigido; los de 0 a j, cada uno con la clave de su cabecera anotada para el nivel que dice (before.8.9 de la cuenta
+  // raíz, pares [nivel, clave]) y el 0 en el más bajo de los anotados, con la primera cabecera de este libro
+  // (eslabonesValidos con `libro` y `lineas`: la cuenta se para en el primero que no). «sealed» da el último nivel: por la
+  // vía «cascada», solo con los pares de toda su cadena (enmienda «5 bis», Core AGRAM con Core StateArk, 17-11).
   const { grados, exigidos, redes } = gradosDe(epoca);
   const exterior = ajustesDelEje(eje, opciones);
-  const anotadas = new Set(exterior.lineas.map(([nivel, clave]) => nivel + ' ' + clave));
+  const validos = eslabonesValidos(sello, id, { libro: eje.genesisId, lineas: exterior.lineas });
   const porCadena = new Map();
-  for (const e of cadena.slice(0, eslabonesValidos(sello, id, { libro: eje.genesisId }))) {
+  for (const e of cadena.slice(0, validos)) {
     const k = tabla.findIndex((c) => c.nivel === hoja(e[1]));
     const clave = Array.isArray(e[0]) ? e[0][5] : null;
     const [, grado, red] = hojas(e[1]);
-    if (k < 0 || porCadena.has(k) || !anotadas.has(tabla[k].nivel + ' ' + clave) || !gradoLlega(grado, exigidos[k], grados)) continue;
+    if (k < 0 || porCadena.has(k) || !gradoLlega(grado, exigidos[k], grados)) continue;
     porCadena.set(k, { clave, grado: canonicoDe(grado, grados), red: grado === undefined ? null : canonicoDe(red, redes) });
   }
-  const alcanza = tabla.map((c, k) => porCadena.has(k) || (k === 0 && recibido && exigidos[0] === 0) || (k === ultima && v.sello === true));
+  const selladoConPares = v.sello === true && (!(Array.isArray(sello) && sello[6] === 'cascada') || validos === cadena.length);
+  const alcanza = tabla.map((c, k) => porCadena.has(k) || (k === 0 && recibido && exigidos[0] === 0) || (k === ultima && selladoConPares));
   // Lo pedido sigue leyendo los niveles como la lectura «on time» (src/anclas.js), que este encargo no cambia.
   const alcanzaPedido = tabla.map((c, k) => (k === ultima ? v.sello : k === 0 ? niveles.has(c.nivel) || recibido : v.sello && niveles.has(c.nivel)));
   const alto = alcanza.lastIndexOf(true);

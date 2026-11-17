@@ -18,7 +18,8 @@
 // reglas «sealed» y «firm» comprueban. La cuenta raíz declara el observador («observer keys») y las claves de línea de cada
 // nivel («line keys», pares [nivel, clave]): «firm» solo cuenta un eslabón cuya clave está anotada para el nivel que dice
 // (el observador, que firma la cabecera de nivel 4 de la línea compartida, se anota también como [4, su clave]). Las
-// cabeceras nombran este libro (su génesis). Nada de esto es real: ni el observador, ni la red, ni los bloques.
+// cabeceras nombran este libro (su génesis) y toda cadena empieza en la casa, el nivel más bajo anotado, con cada eslabón
+// firmado por la clave de su nivel (enmienda «5 bis»). Nada de esto es real: ni el observador, ni la red, ni los bloques.
 
 import { Eje } from '../../src/eje.js';
 import * as A from '../../src/acciones.js';
@@ -106,10 +107,10 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   const nota = await lanzar('anchor here', alta, { title: 'una nota con P', content: 'diez P sobre ella' }, 'ana', despues(180));
   r.nivel3 = await lanzar('reposition P toward X', alta, { }, 'ana', despues(200));
   void nota;
-  await sellar(r.nivel3, [{ ...PROTOCOLO, hora: segundos(despues(900)) }, { ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
+  await sellar(r.nivel3, [{ ...CASA, hora: segundos(despues(201)) }, { ...PROTOCOLO, hora: segundos(despues(900)) }, { ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
   const soporte = await escribe('bitcoin', ['minuto'], despues(240));
   r.bitcoin = await lanzar('issue E tied to X', soporte.id, { denomination: 'entrada', quantity: 1 }, 'ana', despues(260));
-  await sellar(r.bitcoin, [{ ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
+  await sellar(r.bitcoin, [{ ...CASA, hora: segundos(despues(261)) }, { ...BITCOIN, hora: segundos(despues(3000)) }], despues(3600));
 
   // La persona sola: sus cuatro cabeceras locales ([n, 0]) sellan un registro que acuña E; arriba firma su propia línea de
   // nivel 4, no el observador de Bitcoin, así que «sealed» no vale y el nivel 4 lo alcanza la cadena, con grado local.
@@ -124,9 +125,9 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   // Lo pedido por la escala.
   r.pendiente = await escribe('pendiente', ['anio'], despues(360));
   r.aTiempo = await escribe('aTiempo', ['minuto'], despues(420));
-  await sellar(r.aTiempo, [{ ...FEDERACION, hora: segundos(despues(450)) }, { ...BITCOIN, hora: segundos(despues(460)) }], despues(470));
+  await sellar(r.aTiempo, [{ ...CASA, hora: segundos(despues(421)) }, { ...FEDERACION, hora: segundos(despues(450)) }, { ...BITCOIN, hora: segundos(despues(460)) }], despues(470));
   r.tarde = await escribe('tarde', ['minuto'], despues(480));
-  await sellar(r.tarde, [{ ...FEDERACION, hora: segundos(despues(1080)) }, { ...BITCOIN, hora: segundos(despues(1200)) }], despues(1300));
+  await sellar(r.tarde, [{ ...CASA, hora: segundos(despues(481)) }, { ...FEDERACION, hora: segundos(despues(1080)) }, { ...BITCOIN, hora: segundos(despues(1200)) }], despues(1300));
   r.sinAlcanzar = await escribe('sinAlcanzar', ['segundo'], despues(540));
 
   // Lo colgado: bea pide para él el nivel 4 en un día (paga con su día); llega a Bitcoin a las cinco horas.

@@ -164,8 +164,9 @@ test('una prueba mejor sustituye a la anterior: la que alcanza más niveles pasa
   assert.equal(eje.marcarSello(r.id, taproot), true);
   assert.equal(eje.marcarSello(r.id, cascada), true, 'más reciente, pero mejor: sustituye');
   assert.equal(eje.sello(r.id).hash, cascada.hash);
-  // Sus eslabones de nivel 1 y 2 no tienen la clave declarada (VG 17-11, «firm lee grados»): solo el último, por «sealed».
-  assert.deepEqual(contrato.firmeza(eje, r.id).capas.map((c) => c.estado), ['saltada', 'saltada', 'saltada', 'alcanzada']);
+  // Sus eslabones no tienen la clave de línea de su nivel: hasta la enmienda «5 bis» (17-11) «sealed» daba el último; ahora,
+  // por la vía «cascada», solo con los pares de toda la cadena, así que ningún nivel. Lo pedido (lo que mira esta prueba) no cambia.
+  assert.deepEqual(contrato.firmeza(eje, r.id).capas.map((c) => c.estado), ['pendiente', 'pendiente', 'pendiente', 'pendiente']);
   assert.equal(eje.marcarSello(r.id, peor), false, 'más antigua, pero peor: no sustituye');
   assert.equal(eje.sello(r.id).hash, cascada.hash);
   // A igual alcance, la más antigua (como antes).
