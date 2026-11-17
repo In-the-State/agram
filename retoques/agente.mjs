@@ -52,10 +52,21 @@ const OTRAS_CREDENCIALES = ['ANTHROPIC_API_KEY', 'ANTHROPIC_AUTH_TOKEN', 'CLAUDE
 export const ORIGEN_DE_LA_CLAVE = 'ANTHROPIC_API_KEY';
 export const NO_USA_LA_CLAVE = 'Core no está usando la clave de VG';
 
-/** La clave de un archivo: su primera línea, sin espacios; null si no se puede leer o está vacía. */
+/** El campo de un archivo JSON de secretos donde va la clave de la API de Anthropic. */
+export const CAMPO_DE_LA_CLAVE = 'anthropic_api_key';
+
+/**
+ * La clave de un archivo: su primera línea, sin espacios; o, si el archivo es un objeto JSON (el de secretos que ya
+ * guarda la clave de la guía), su campo `anthropic_api_key`. null si no se puede leer, está vacía o el campo falta.
+ */
 export function leerClave(ruta) {
   try {
-    const v = readFileSync(ruta, 'utf8').split(/\r?\n/)[0].trim();
+    const texto = readFileSync(ruta, 'utf8').replace(/^\uFEFF/, '');
+    if (texto.trimStart().startsWith('{')) {
+      const v = JSON.parse(texto)?.[CAMPO_DE_LA_CLAVE];
+      return typeof v === 'string' && v.trim() ? v.trim() : null;
+    }
+    const v = texto.split(/\r?\n/)[0].trim();
     return v || null;
   } catch { return null; }
 }

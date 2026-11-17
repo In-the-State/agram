@@ -4,7 +4,7 @@
 //   node beta/publicar.mjs --config ruta   el archivo con api_token, account_id (y zone_id) de Cloudflare
 //
 // El archivo de credenciales NO está en el repositorio: por defecto se busca en
-// ../PROD/ikisai-apps/private/cloudflare.json (relativo a la raíz del repositorio) o en la variable de entorno
+// ../private/agram/cloudflare.json (relativo a la raíz del repositorio: la caja de secretos de In the State) o en la variable de entorno
 // AGRAM_CLOUDFLARE_CONFIG. Nunca se imprime ni se copia.
 //
 // Qué publica: lo mismo que sirve GitHub Pages (la raíz del repositorio) salvo lo que no es la web (.git, node_modules,
@@ -25,7 +25,7 @@ const EXCLUIR = new Set(['.git', 'node_modules', 'test', 'bench', '.github', 'se
 
 const args = process.argv.slice(2);
 const iConfig = args.indexOf('--config');
-const rutaConfig = iConfig >= 0 ? args[iConfig + 1] : process.env.AGRAM_CLOUDFLARE_CONFIG || resolve(RAIZ, '..', 'PROD', 'ikisai-apps', 'private', 'cloudflare.json');
+const rutaConfig = iConfig >= 0 ? args[iConfig + 1] : process.env.AGRAM_CLOUDFLARE_CONFIG || resolve(RAIZ, '..', 'private', 'agram', 'cloudflare.json');
 if (!existsSync(rutaConfig)) {
   console.error('No encuentro las credenciales de Cloudflare en ' + rutaConfig + ' (usa --config o AGRAM_CLOUDFLARE_CONFIG).');
   process.exit(1);

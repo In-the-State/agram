@@ -8,7 +8,8 @@
 // --ensayo (con --tabla y --claves, las tres FUERA del repositorio): el libro del roadmap volcado de la tabla, servido como
 // libro compartido bajo /ensayo/… y la cuenta de la dueña en GET /retoques/ensayo/cuenta (retoques/ensayo.mjs).
 //
-// --clave-api: un archivo FUERA del repositorio cuya primera línea es la clave de API de VG; Core gasta de ella y no de la
+// --clave-api: un archivo FUERA del repositorio con la clave de API de VG (su primera línea, o el campo `anthropic_api_key`
+// si es el JSON de secretos que ya la guarda: así no se duplica); Core gasta de ella y no de la
 // cuenta de Claude Code de este equipo (retoques/agente.mjs). Dentro de la raíz servida, el servidor no arranca.
 //
 // Seguridad (cualquier página abierta en el mismo navegador puede llamar a localhost):

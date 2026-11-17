@@ -15,7 +15,7 @@ import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { crearServidor, segmentosDe, excluido, avisoDe, inyectar, SW_BAJA, COOKIE, CABECERA_LLAVE } from '../retoques/servidor.mjs';
-import { mensajeDe, argumentos } from '../retoques/agente.mjs';
+import { mensajeDe, argumentos, leerClave } from '../retoques/agente.mjs';
 import { entradasDe, sesionesSinCrecer, conMensaje, resumenDelFondo } from '../retoques/fondo.mjs';
 
 const FALSO = join(dirname(fileURLToPath(import.meta.url)), 'ayudas-agente-falso.mjs');
@@ -370,6 +370,24 @@ async function conConsola(fn) {
 }
 const mensaje = (m, texto) => pedir(m.puerto, '/retoques/core', { metodo: 'POST', cabeceras: conLlave(m.llave), cuerpo: { texto } }).then((r) => trozosDe(r.cuerpo));
 const nueva = (m) => pedir(m.puerto, '/retoques/core/nueva', { metodo: 'POST', cabeceras: conLlave(m.llave), cuerpo: {} });
+
+test('clave de VG: vale el archivo de secretos en JSON (su campo anthropic_api_key), sin copiar la clave a otro archivo', () => {
+  const casos = [
+    [JSON.stringify({ url: 'https://x.example', anthropic_api_key: CLAVE_FALSA, otra: 'no' }, null, 2), CLAVE_FALSA],
+    ['\uFEFF' + JSON.stringify({ anthropic_api_key: '  ' + CLAVE_FALSA + ' ' }), CLAVE_FALSA],
+    [JSON.stringify({ url: 'https://x.example' }), null],
+    [JSON.stringify({ anthropic_api_key: 7 }), null],
+    ['{ esto no es JSON', null],
+    [CLAVE_FALSA + '\r\notra línea', CLAVE_FALSA],
+    ['', null],
+  ];
+  for (const [contenido, esperado] of casos) {
+    const a = archivoDeClave(contenido);
+    try { assert.equal(leerClave(a.ruta), esperado, contenido.slice(0, 30)); } finally { a.borrar(); }
+  }
+  const falta = archivoDeClave(null);
+  try { assert.equal(leerClave(falta.ruta), null); } finally { falta.borrar(); }
+});
 
 test('clave de VG: el hijo la recibe en su entorno; no sale en estado, ni en errores, ni en la consola; si el hijo no la usa, se le para', async () => {
   const clave = archivoDeClave(CLAVE_FALSA + '\nlo de la segunda línea no cuenta\n');

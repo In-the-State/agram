@@ -8,7 +8,7 @@ Un servidor local para la aceptación de la carta: sirve la carta con recarga au
 node retoques/servidor.mjs --rama beta-retoques [--puerto 8790] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>] [--ensayo <carpeta> --tabla <ruta> --claves <ruta>]
 ```
 
-- `--clave-api <ruta>`: un archivo FUERA del repositorio cuya primera línea es la clave de API de VG. Core gasta de ella, no de la cuenta de Claude Code de este equipo. Si la ruta cae dentro de la raíz servida, el servidor no arranca. Sin esta opción, la consola avisa de que Core gasta de la cuenta del equipo.
+- `--clave-api <ruta>`: un archivo FUERA del repositorio con la clave de API de VG: su primera línea o, si el archivo es un JSON de secretos, su campo `anthropic_api_key` (el archivo que ya guarda la clave de la guía sirve tal cual, sin copiarla a otro). Core gasta de ella, no de la cuenta de Claude Code de este equipo. Si la ruta cae dentro de la raíz servida, el servidor no arranca. Sin esta opción, la consola avisa de que Core gasta de la cuenta del equipo.
 
 - Escucha solo en `127.0.0.1`. Escribe en la consola la dirección con la llave (`http://localhost:8790/#llave=…`): ábrela. La llave es nueva en cada arranque y no se guarda en ningún archivo; si se pierde, la carta enseña un campo pequeño «pega la llave».
 - `--rama`: la única rama en que «guardar» hace commit (de `carta/` e `index.html`). Nunca `beta`, `main` ni `master`; sin `--rama`, no guarda. Nunca empuja.

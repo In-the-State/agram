@@ -27,7 +27,7 @@ servidor/
 
 Lo hace VG, o Core con VG delante. Ningún valor de credenciales entra en este repositorio (es público).
 
-1. **Crear el proyecto.** En la cuenta de Supabase de Ikisai (la misma de Ikisai Apps), un proyecto **aparte** para AGRAM (plan gratuito), para no tocar producción. Región: la de Ikisai Apps. Guardar la URL del proyecto, la clave anónima y la **clave de servicio** en `PROD/ikisai-apps/private/` (junto a `cloud-credentials.json`, por ejemplo como `agram-supabase.json`), **nunca en el repositorio**.
+1. **Crear el proyecto.** En la cuenta de Supabase de Ikisai (la misma de Ikisai Apps), un proyecto **aparte** para AGRAM (plan gratuito), para no tocar producción. Región: la de Ikisai Apps. Guardar la URL del proyecto, la clave anónima y la **clave de servicio** en `InTheState/private/agram/` (por ejemplo como `agram-supabase.json`), **nunca en el repositorio**.
 2. **Las tablas.** O bien con la CLI (`supabase link --project-ref <ref>` desde una carpeta con `supabase/migrations/` que contenga `0001_eventos.sql`, y `supabase db push`), o bien pegando `migraciones/0001_eventos.sql` tal cual en el editor SQL del panel. Es idempotente (`if not exists`, `drop trigger if exists`).
 3. **La función.** `supabase functions deploy eventos --no-verify-jwt` desde una carpeta con `supabase/functions/eventos/` que contenga `index.ts`, `api.js`, `verificar.js` y `noble-secp256k1.js` (copiar los cuatro archivos de `servidor/supabase/funciones/eventos/`; el último es la librería de las firmas Schnorr BIP-340, `docs/notas/FIRMAS_BIP340.md`, y `verificar.js` la importa con una ruta relativa). `--no-verify-jwt` porque la función lleva su propia autorización (la clave de lectura del eje y las firmas de los eventos): así la carta no necesita la clave anónima. `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase en toda función.
 4. **Variables de entorno.** Opcional: `supabase secrets set AGRAM_CREAR_EJES=<un secreto largo al azar>` para crear ejes con la cabecera `X-Crear-Ejes` sin manejar la clave de servicio desde fuera. Sin ella, crear ejes solo vale con `Authorization: Bearer <clave de servicio>`. Guardar el secreto en la misma carpeta privada.
@@ -42,7 +42,7 @@ curl -X POST https://<ref>.supabase.co/functions/v1/eventos/ejes \
 # → 201 {"eje":"vg","claveLectura":"<43 caracteres base64url>","creado":"2026-…"}
 ```
 
-La clave de lectura se devuelve **una sola vez**: el servidor guarda solo su hash SHA-256. Se guarda en `PROD/ikisai-apps/private/` y se da a cada dispositivo de VG (la carta la guarda en `localStorage` por cuenta, `agram.sync.<alta>`; `docs/CONTRATO.md` §15.8). Si se pierde, se crea otro eje y se vuelven a subir los eventos (son los mismos: el servidor es idempotente por id).
+La clave de lectura se devuelve **una sola vez**: el servidor guarda solo su hash SHA-256. Se guarda en `InTheState/private/agram/` y se da a cada dispositivo de VG (la carta la guarda en `localStorage` por cuenta, `agram.sync.<alta>`; `docs/CONTRATO.md` §15.8). Si se pierde, se crea otro eje y se vuelven a subir los eventos (son los mismos: el servidor es idempotente por id).
 
 La URL que va en la configuración de la carta (`sync url`) es la base de la función: `https://<ref>.supabase.co/functions/v1`; el nombre del eje (`sync ledger`), `vg`. Las rutas cuelgan de ahí: `POST …/functions/v1/eventos`, `GET …/functions/v1/eventos?eje=vg&desde=0`, `POST …/functions/v1/eventos/ejes`.
 
@@ -139,7 +139,7 @@ y en los ajustes del exterior: `relay url` y `blossom url` = `http://127.0.0.1:8
 
 La carta tiene una guía de solo lectura en el PV9 que pregunta a Claude con el contexto de la pantalla (`docs/CONTRATO.md` §16). Su vía preferida es esta función, hermana de `eventos`: la clave de Anthropic vive en el servidor, nunca en el navegador ni en el repositorio.
 
-1. **Los secretos.** `supabase secrets set ANTHROPIC_API_KEY=<la clave de la API de Anthropic>` (guardarla también en `PROD/ikisai-apps/private/`, nunca en el repositorio). `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase (la función lee con ellas la tabla `ejes` para comprobar la clave de lectura).
+1. **Los secretos.** `supabase secrets set ANTHROPIC_API_KEY=<la clave de la API de Anthropic>` (guardarla también en `InTheState/private/agram/`, nunca en el repositorio). `SUPABASE_URL` y `SUPABASE_SERVICE_ROLE_KEY` las inyecta Supabase (la función lee con ellas la tabla `ejes` para comprobar la clave de lectura).
 2. **Desplegar.** `supabase functions deploy guia --no-verify-jwt` desde una carpeta con `supabase/functions/guia/` que contenga `index.ts` y `api.js` (copiar los dos de `servidor/supabase/funciones/guia/`; es autónoma, no importa nada de `eventos`). `--no-verify-jwt`: la función lleva su propia autorización, la clave de lectura del eje (`X-Clave-Lectura`), la misma del libro compartido.
 3. **Probarla.**
 ```sh
@@ -189,7 +189,7 @@ cp sitio.ejemplo.json sitio.json     # y editar: "sync url", "sync ledger", "gui
 
 ## Lo que queda para desplegar
 
-- Crear el proyecto Supabase (VG) y guardar sus credenciales en `PROD/ikisai-apps/private/`.
+- Crear el proyecto Supabase (VG) y guardar sus credenciales en `InTheState/private/agram/`.
 - Pasar la migración y desplegar la función (pasos 2 a 4). Probarla a mano (`funciones/eventos/LEEME.md`).
 - Crear el eje de VG y repartir su clave de lectura a sus dispositivos.
 - Configurar la carta en cada dispositivo («Configurar la carta tras desplegar», arriba). La carta ya está enganchada (`docs/CONTRATO.md` §15.8).

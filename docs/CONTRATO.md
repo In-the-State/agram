@@ -1120,7 +1120,7 @@ El `recibido` del servidor es la hora a la que los demás vieron cada evento. En
 
 ### 15.6 Privacidad
 
-Leer exige la clave de lectura del eje (`X-Clave-Lectura`; el servidor compara su hash); escribir también, y además la firma del autor con la clave de su alta. La clave de lectura **no va en el eje** (el eje se comparte): vive en el almacén local del dispositivo, por cuenta (`agram.sync.<alta>`, §15.8), y sale de él solo cifrada, en la copia de seguridad (§14). Ningún secreto en el código: la función lee todo de `Deno.env`; las credenciales, en `PROD/ikisai-apps/private/`.
+Leer exige la clave de lectura del eje (`X-Clave-Lectura`; el servidor compara su hash); escribir también, y además la firma del autor con la clave de su alta. La clave de lectura **no va en el eje** (el eje se comparte): vive en el almacén local del dispositivo, por cuenta (`agram.sync.<alta>`, §15.8), y sale de él solo cifrada, en la copia de seguridad (§14). Ningún secreto en el código: la función lee todo de `Deno.env`; las credenciales, en `InTheState/private/agram/`.
 
 ### 15.7 Configuración
 
