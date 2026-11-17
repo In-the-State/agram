@@ -55,12 +55,17 @@ const RE_SVG_DATOS = /^data:image\/svg\+xml;base64,[A-Za-z0-9+/]+=*$/;
  * La dirección con que se pide el recurso de una pieza: una URL http(s) tal cual (las del eje ya pasaron la lista blanca
  * de la época, modelos.recursoAdmitido), un adjunto «archivo:<sha256>» por el resolutor de la app (sin él, null: no se
  * pinta), un SVG del arte ya saneado como data: (SEG-15) y una ruta del repositorio relativa a la página.
+ * Un adjunto SVG lo da el resolutor como data:image/svg+xml;base64 (carta/archivos.js, SEG-15: un blob sería del mismo
+ * origen que la carta): ese data: solo vale con `imagen` (lo que se pone como src de un <img>, donde un SVG no ejecuta
+ * nada); para todo lo demás (un Lottie, un fondo CSS, un marco) y cualquier otro data:, null.
  */
-export function srcDeRecurso(recurso) {
+export function srcDeRecurso(recurso, { imagen = false } = {}) {
   if (typeof recurso !== 'string' || !recurso) return null;
   if (RE_ARCHIVO.test(recurso)) {
     const url = resolverDeArchivos?.(recurso.slice('archivo:'.length));
-    return typeof url === 'string' && /^(https?:|blob:)/.test(url) ? url : null;
+    if (typeof url !== 'string') return null;
+    if (/^(https?:|blob:)/.test(url)) return url;
+    return imagen && RE_SVG_DATOS.test(url) ? url : null;
   }
   if (/^https?:\/\//.test(recurso)) return recurso;
   if (RE_SVG_DATOS.test(recurso)) return recurso; // un SVG del arte, ya saneado (modelos.svgComoDatos, SEG-15): en <img>, nunca en línea
@@ -78,7 +83,8 @@ export function htmlPieza(pieza, { paso, animar = false, alt = '', clase = '', p
   if (!pieza) return '';
   const clases = ['pieza', ...(clase ? [clase] : [])];
   if (pieza.recurso && pieza.formato) {
-    const src = srcDeRecurso(pieza.recurso);
+    // Un Lottie no va en <img>: su recurso se baja como JSON (trasPintar); solo la imagen admite un adjunto SVG en data:.
+    const src = srcDeRecurso(pieza.recurso, { imagen: !(pieza.animado || pieza.bucle) });
     if (!src) return ''; // un adjunto sin resolutor (o sin red): no se pinta
     const fotogramas = pieza.fotogramas ?? 0;
     const k = paso && typeof paso.k === 'number' && paso.de ? Math.min(paso.k, paso.de) : 0;
@@ -482,7 +488,7 @@ function htmlRecursosDeHijo(c) {
 function htmlFlotante(f) {
   if (!f) return '';
   const girar = `<button type="button" class="girar"${nodo('control')} data-girar title="${attr(t('girarTitulo'))}" aria-label="${attr(t('girar'))}">↻</button>`;
-  const cabeza = (n) => `<header class="flotante-cabeza"><span class="numero">${f.pv}</span><span class="etiqueta">${escapar(f.etiqueta ?? '')}</span><small class="cara-n">${escapar(t('cara', { n }))}</small>${girar}</header>`;
+  const cabeza = (n) => `<header class="flotante-cabeza"><span class="numero">${f.pv}</span>${n === 0 ? htmlIconoPropio(f) : ''}<span class="etiqueta">${escapar(f.etiqueta ?? '')}</span><small class="cara-n">${escapar(t('cara', { n }))}</small>${girar}</header>`;
   const m = f.medida;
   const lleno = m && typeof m.de === 'number' && m.de > 0 ? Math.min(1, Math.max(0, m.k / m.de)) : null;
   const medida = m ? `<p class="flotante-cifra"><b>${escapar(m.k)}</b>${m.de ? `<small>/${escapar(m.de)}</small>` : ''} <span>${escapar(m.nombre)}</span></p>${lleno !== null ? `<span class="flotante-barra" style="--lleno:${Math.round(lleno * 1000) / 1000}" title="${attr(m.k + ' / ' + m.de)}"><span></span></span>` : ''}` : '';
@@ -1315,7 +1321,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   const cero = arbol.apilada && c.cara === 'anverso' ? '' : htmlInterrogante(c.sitio, { clase: 'sitio-centro' });
   if (c.cara === 'anverso') {
     return `<section class="nucleo anverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'anverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
-      <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
+      <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}">${htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
       ${htmlCuentaDelBanco(c.cuenta)}
@@ -1330,7 +1336,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
     const pasosHtml = pasos.length ? `<ul class="pasos">${pasos.map((p) => `<li><b>${escapar(p.nombre)}</b> ${escapar(p.k)}${p.de ? `<small>/${escapar(p.de)}</small>` : ''}</li>`).join('')}</ul>` : '';
     const validacion = c.validacion?.length ? `<ul class="motivos">${c.validacion.map((v) => `<li>${escapar(v.motivo)}</li>`).join('')}</ul>` : '';
     return `<section class="nucleo reverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'reverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
-      <header class="nucleo-cabeza"><span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
+      <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
       ${ancla}${htmlFirmeza(c.firmeza)}${htmlCustodia(c.custodia)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
@@ -1342,7 +1348,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   // fondo detrás de todo y el marco alrededor de la lista de ocupantes (htmlEscena).
   const lista = htmlOcupantes(c.ocupantes, { pv: c.pv, disposicion: c.disposicion });
   return `<section class="nucleo abierto tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'abierto', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}"${c.estilo && !c.rejilla ? ` data-id="${attr(c.X)}"` : ''} aria-label="${attr(c.etiqueta)}">
-    <header class="nucleo-cabeza"><span class="numero">${c.pv}</span><span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}</header>
+    <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}</header>
     ${c.rejilla ? '' : htmlFondo(c.escena?.fondo)}
     ${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
     <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${GEOMETRIA[c.pv]?.grupo === 'cruz' && GEOMETRIA[c.pv]?.fila === 'abajo' && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
@@ -1458,7 +1464,7 @@ function htmlAro(aro) {
   const edicion = c?.editando
     ? `<div class="aro-edicion">${htmlOpciones(c.opciones5, c.pv5, aro.X, 'opciones opciones-arriba')}<input class="campo-input" data-campo="${c.pv}" data-x="${aro.X}" value="${attr(c.valor ?? '')}" aria-label="${attr(c.etiqueta ?? '')}" autocomplete="off">${htmlOpciones(c.opciones0, c.pv, aro.X, 'opciones opciones-abajo')}</div>`
     : '';
-  return `<div class="aro-fondo" data-cerrar><div class="aro${c?.editando ? ' editando' : ''}"${nodo('aro')} data-x="${aro.X}" role="dialog" aria-label="${attr(t('aroDe', { que: aro.texto }))}"><ul>${huecos}</ul><div class="aro-centro" data-aro-centro data-x="${aro.X}" title="${attr(t('aroCentroTitulo'))}"><b>${escapar(aro.texto)}</b>${edicion}</div></div></div>`;
+  return `<div class="aro-fondo" data-cerrar><div class="aro${c?.editando ? ' editando' : ''}"${nodo('aro')} data-x="${aro.X}" role="dialog" aria-label="${attr(t('aroDe', { que: aro.texto }))}"><ul>${huecos}</ul><div class="aro-centro" data-aro-centro data-x="${aro.X}" title="${attr(t('aroCentroTitulo'))}">${htmlIconoPropio(aro)}<b>${escapar(aro.texto)}</b>${edicion}</div></div></div>`;
 }
 
 /** Un valor en crudo como texto de input (una lista o una décupla, en JSON). */

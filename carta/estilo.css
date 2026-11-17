@@ -256,7 +256,7 @@ small{color:var(--muted)}
 .aro ul{display:contents;list-style:none;margin:0;padding:0}
 .aro-centro{grid-area:2 / 2;position:relative;z-index:0;margin:0;padding:4px;display:grid;gap:4px;place-items:center;text-align:center;font-size:13px;overflow:hidden;overflow-wrap:anywhere;border-radius:10px;background:var(--bg);border:1px solid var(--rule);box-shadow:0 6px 24px rgba(0,0,0,.25)}
 .aro.anclado .aro-centro{background:transparent;box-shadow:none;border:2px dashed var(--accent)}
-.aro.anclado .aro-centro>*{display:none}
+.aro.anclado .aro-centro>*:not(.capa-icono){display:none} /* anclado, el centro deja ver lo pulsado; su retrato propio (#25) sí se ve */
 .aro-centro{cursor:pointer;-webkit-touch-callout:none;user-select:none} /* un clic entra en el elemento; mantenerlo, editarlo */
 /* el centro en edición: el input con su valor; la lista del 0 debajo y la del 5 (su reverso) encima, por encima de los sitios */
 .aro.editando .aro-centro,.aro.anclado.editando .aro-centro{z-index:4;overflow:visible;cursor:auto;background:var(--bg);border-style:solid;box-shadow:0 6px 24px rgba(0,0,0,.3)}

@@ -558,6 +558,16 @@ function retratoDe(ctx, elemento, pv, lado, tamano) {
 const conRetrato = (retrato) => (retrato ? { icono: retrato } : {});
 
 /**
+ * El retrato del elemento pulsado (#25: «y la tarjeta central cuando es el pulsado»): el de la tarjeta del foco, la
+ * flotante de una rejilla y el centro del aro. En un mundo abierto (1-4, 6-9), el de ese mundo; en el centro (0 y 5),
+ * el del 5, donde se ancla el arte de todos los mundos («*»). → { icono } o {} (sin arte propio, el nodo no cambia).
+ */
+function retratoDelPulsado(ctx, X, pv, tamano) {
+  const mundo = LATERALES.includes(pv) ? pv : CENTROS[1] ?? 5;
+  return conRetrato(retratoDe(ctx.conArte ?? ctx, X, mundo, GEOMETRIA[mundo]?.lado ?? 0, tamano));
+}
+
+/**
  * El rol del personaje de un PV de X. GANCHO: hoy el rol no sale del registro (nada en la época lo dice todavía); se
  * devuelve null y la carta usa el rol por defecto del mundo, que es un dato de la cabecera (epoch.9.7.0.4: la
  * correspondencia del muñequito, modelos.rolPorDefecto). Cuando el registro diga su rol, es aquí donde se lee.
@@ -814,6 +824,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
     estilo: estiloDe(eje, X, pv, ctx), // los dos estilos del registro (X.0.9 y X.5.0), saneados: la carta los emite como CSS
     // El personaje del centro (VG, 12-11, #38): el del 0 es la configuración general (la cruceta del 0 de mi alta, donde estaba la barra); el del 5 y el de un PV abierto, sus nodos.
     sitio: g.cara === 'anverso' ? sitioCero(eje, ctx, X) : sitioDe(ctx, eje, X, g.cara === 'reverso' ? '5' : String(pv), pv),
+    ...retratoDelPulsado(ctx, X, pv, tamano),
   };
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
@@ -967,7 +978,7 @@ function nodoAro(eje, X, yo, ctx) {
     pv5: reverso ?? null,
     editando: Boolean(ctx.estado.aro?.editar),
   };
-  return { X, texto, huecos, centro };
+  return { X, texto, huecos, centro, ...retratoDelPulsado(ctx, X, anverso, tamanoDeNivel(1, ctx.opciones)) };
 }
 
 /**
@@ -1956,6 +1967,7 @@ function centroFlotante(eje, R, pv, ctx) {
     plantilla: nombreDePlantillaDe(eje, R, ctx),
     ancla: ev ? { sobre: ev.sobre ?? null, en: ev.en ? dirCorta(ev.en) : '', sobreTexto: ev.sobre ? legibleDe(eje, { ref: ev.sobre }, null, ctx.opciones).texto : null } : null,
     pasos: [...Object.values(pasos.porPv), ...(pasos.comun ? [pasos.comun] : [])],
+    ...retratoDelPulsado(ctx, R, pv, tamanoDeNivel(2, ctx.opciones)),
   };
 }
 

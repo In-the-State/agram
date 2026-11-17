@@ -374,6 +374,35 @@ test('#25: el arte propio de un registro va primero: el menú con su icono se ve
   assert.ok(!html(s).includes(ICONO_PROPIO), 'en sobrio no se pinta ni lo propio');
 });
 
+test('#25: el pulsado lleva su retrato: la tarjeta del foco (anverso, reverso, un mundo abierto), la flotante de su rejilla y el centro de su aro; sin arte propio el árbol no cambia; en sobrio, nada', async () => {
+  const { eje, compra, menu } = await menuConIcono();
+  const img = `<img class="pieza capa capa-icono pieza-imagen" src="./${ICONO_PROPIO}"`;
+  await pintado(eje, 1); // propio
+  const sin = await arbol({ foco: { X: compra.id, pv: 0 }, aro: { X: compra.id, pv: null } }, eje, 'huesped', GRANDE);
+  assert.ok(!('icono' in sin.centro) && !('icono' in sin.aro), 'la compra no tiene arte propio: ni tarjeta ni aro cambian de forma');
+  const cabecera = (h) => h.slice(h.indexOf('<header class="nucleo-cabeza">'), h.indexOf('</header>', h.indexOf('<header class="nucleo-cabeza">')));
+  for (const pv of [0, 5, 1]) {
+    const a = await arbol({ foco: { X: menu.id, pv } }, eje, 'huesped', GRANDE);
+    assert.equal(a.centro.icono?.recurso, ICONO_PROPIO, 'la tarjeta del foco en el ' + pv);
+    assert.equal(a.centro.icono.origen, menu.id);
+    // Con una tarjeta flotante en la rejilla (un mundo a pantalla completa), el retrato va en ella, no repetido en la cabecera.
+    assert.equal(cabecera(html(a)).includes(img), !a.centro.rejilla?.flotante, 'en la cabecera de la tarjeta, en el ' + pv);
+  }
+  const f = await arbol({ foco: { X: menu.id, pv: 1 } }, eje, 'huesped', GRANDE);
+  const flotante = f.centro.rejilla?.flotante;
+  assert.equal(flotante?.X, menu.id, 'el 1 del menú a pantalla completa lleva tarjeta flotante');
+  assert.equal(flotante.icono?.recurso, ICONO_PROPIO, 'la tarjeta flotante de su rejilla');
+  assert.ok(html(f).includes('<header class="flotante-cabeza"><span class="numero">1</span>' + img), 'en la cara 0 de la flotante');
+  const conAro = await arbol({ foco: { X: compra.id, pv: 0 }, aro: { X: menu.id, pv: null } }, eje, 'huesped', GRANDE);
+  assert.equal(conAro.aro.icono?.recurso, ICONO_PROPIO, 'el centro del aro abierto sobre él');
+  assert.ok(html(conAro).includes('<div class="aro-centro" data-aro-centro data-x="' + menu.id + '" title="' ) && /class="aro-centro"[^>]*>s*<img class="pieza capa capa-icono/.test(html(conAro)), 'pintado en el centro del aro');
+  assert.ok(CSS.includes('.aro.anclado .aro-centro>*:not(.capa-icono){display:none}'),'con el aro anclado (abierto con el dedo), el retrato del centro no se esconde');
+  await pintado(eje, 0); // sobrio
+  const s0 = await arbol({ foco: { X: menu.id, pv: 0 }, aro: { X: menu.id, pv: null } }, eje, 'huesped', GRANDE);
+  assert.ok(!('icono' in s0.centro) && !('icono' in s0.aro), 'en sobrio, nada');
+  assert.ok(!html(s0).includes(ICONO_PROPIO));
+});
+
 test('#25: lo que otro ancla en un registro no es su arte propio; un adjunto «archivo:<sha256>» se lee y la carta lo resuelve con lo que instala la app', async () => {
   const { eje, compra, menu } = await ejemploCompra();
   const autor = eje.obtener(menu.id).autor;
@@ -395,6 +424,17 @@ test('#25: lo que otro ancla en un registro no es su arte propio; un adjunto «a
     assert.equal(srcDeRecurso('arte/x.svg'), './arte/x.svg');
     resolverArchivos(() => 'javascript:alert(1)');
     assert.equal(srcDeRecurso('archivo:' + sha), null, 'el resolutor solo puede dar http(s) o blob');
+    assert.equal(srcDeRecurso('archivo:' + sha, { imagen: true }), null, 'ni para una imagen');
+    // Un adjunto SVG llega como data:image/svg+xml;base64 (archivos.js, SEG-15): solo como src de un <img>.
+    const svg = 'data:image/svg+xml;base64,' + Buffer.from('<svg xmlns="http://www.w3.org/2000/svg"/>').toString('base64');
+    resolverArchivos(() => svg);
+    assert.equal(srcDeRecurso('archivo:' + sha, { imagen: true }), svg);
+    assert.equal(srcDeRecurso('archivo:' + sha), null, 'fuera de un <img> (Lottie, fondo, marco), no');
+    assert.ok(html(a).includes('src="' + svg + '"'), 'el dibujo del subelemento, un <img>, lo pinta');
+    for (const malo of ['data:text/html;base64,PHA+', 'data:image/svg+xml,<svg/>', 'data:image/svg+xml;utf8,<svg/>', svg + '"><script>', svg + ' x', 'javascript:alert(1)', 'DATA:image/svg+xml;base64,PHN2Zy8+']) {
+      resolverArchivos(() => malo);
+      assert.equal(srcDeRecurso('archivo:' + sha, { imagen: true }), null, malo);
+    }
   } finally {
     resolverArchivos(null);
   }
