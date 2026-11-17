@@ -217,3 +217,18 @@ Su 5, opcional, «point»: el id del registro que puso en vigor el último cambi
 | a send locks what it names, por ese enlace | 168 | 318 | 67 134 |
 
 Por el enlace del dueño, el coste de traer no cambia (39 pasos: la prueba del génesis no se mira). Validar el registro entero: unos 20-30 ms.
+
+## 11. La salida, paso a paso (tramo 4, parte B)
+
+Diseño: `agram-equipo/DISENO_TRAMO_4.md` §4. Quien no acepta un cambio, o a quien una regla deja sin escribir, se va con lo suyo. No hay regla ni plantilla nueva (la época 0 no cambia): dos funciones de JS, fuera del núcleo, en `datos/epocas/puente.mjs`. Ejemplo: `node ejemplos/salida.mjs`. Prueba de punta a punta: `test/salida.test.js`.
+
+- **`saldosDe(eje, identidad)`** → `[{ serie, familia, disponible, bloqueado, enOtroLibro, cantidad, declarable, causa }]`: cuánto puede declarar hoy de cada serie, exactamente lo que acepta «a declared balance is true» (disponible y bloqueado, menos lo bloqueado con la salida en un enlace, y nunca más de lo que queda tras el propio registro). Probado: con `cantidad` entra; con una más, la regla la rechaza. **La T no es declarable**: la de una persona no se guarda (es lo que puede gastar cada día al escribir, su saldo es 0) y la declaración misma quema T; `declarable: false` y su causa en llano (probado a mano: una declaración de 1 T la rechaza la regla).
+- **`planDeSalida(eje, identidad, { punto, claves, nuevo, sellos, foco, elemento })`** → `{ libro, identidad, epoca: { punto, version, id, registro }, pasos, noSeLleva, esperan, aparte }`. No firma ni escribe: devuelve los pasos en orden, cada uno con su libro (`viejo` o `nuevo`), su plantilla y sus parámetros, y su estado (`hecho` con su id, `listo` para firmar, o `espera` con lo que falta). Se vuelve a pedir tras cada paso: lee lo ya escrito.
+  1. En el viejo, un «declare a balance» por serie declarable.
+  2. El génesis del nuevo, con la época del viejo por referencia (`epocaEscritaDe(version, { porReferencia: true })`, como `abrirLibroPrivado`) en el `punto`: `'vigente'` (por defecto), `'antes'` (la de antes del último cambio en vigor) o el número de una versión.
+  3. En el nuevo, como dueño, «this book hangs from» con el viejo, sus claves de línea (`claves`, la de la casa incluida) y el punto (el registro que puso en vigor esa versión; nada si es la de nacimiento). El elemento, por defecto, el alta de quien sale en el viejo.
+  4. En el nuevo, un «bring a record from another book» por declaración, con su prueba de sello (`sellos`).
+- **Lo que no se lleva** (`noSeLleva`): lo bloqueado en un enlace (se declara en el otro libro), la T y el P sobre sus propias declaraciones (cada declaración da P sobre ella; declararlo daría otra declaración y otro P, sin fin). La E y los registros como tales van aparte, con «send to another book», bajo las reglas del viejo.
+- **Probado tras una regla que silencia** (como `test/revision-suelo.test.js`, S6): las declaraciones entran. Con la época vigente la regla viaja al libro nuevo y allí no se escribe ni de qué cuelga: quien sale por una regla nace con `punto: 'antes'`.
+
+**Lo que la regla no puede dar.** La declaración vale fuera cuando lleva el sello del libro viejo. Ninguna regla la rechaza, pero el sello lo pone quien guarda ese libro. Si deja de sellar, la persona tiene su registro firmado y su copia, y la prueba para terceros espera: el plan se queda en las declaraciones firmadas y cada «traer» dice «espera el sello del libro viejo». Sin las claves de línea del viejo en el enlace, tampoco se trae nada, y el plan lo dice.

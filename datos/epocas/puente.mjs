@@ -8,15 +8,18 @@
 // Lo demás de cada regla (lo que lee, procedencia, orden, mensaje) y las plantillas son JSON escritos a mano.
 //
 // Y las ayudas de JS del puente, que no son núcleo: el registro de otro libro como décupla para traerlo
-// (registroComoDecupla) y lo traído, leído (leerTraido).
+// (registroComoDecupla), lo traído, leído (leerTraido), y la salida con saldos: cuánto se puede declarar (saldosDe) y
+// los registros de la salida, listos para firmar (planDeSalida; docs/notas/PUENTE.md §11).
 
 import { readFileSync, renameSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA } from '../../src/sello.js';
 import { canonico } from '../../src/evento.js';
-import { claveToken } from '../../src/tokens.js';
-import { gradoDelEnlace } from '../../src/contrato.js';
+import { claveToken, partirClave } from '../../src/tokens.js';
+import { gradoDelEnlace, cuelgaDe } from '../../src/contrato.js';
+import { epocaEscritaDe } from '../../src/epocas.js';
+import { quemaDelCoste } from '../../src/escritura.js';
 import { formatear } from './generar.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
@@ -831,6 +834,149 @@ export function nivelMasBajoDe(enlace) {
   if (Array.isArray(pares) && pares.length > 4) return null;
   const niveles = (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number').map((x) => x[0]);
   return niveles.length ? Math.min(...niveles) : null;
+}
+
+// ---------- la salida con saldos (tramo 4, parte B; agram-equipo/DISENO_TRAMO_4.md §4; docs/notas/PUENTE.md §11) ----------
+
+/** El criterio de cierre que escribe «declare a balance» (su 2): aquí solo sirve para medir cuánto ocupa el registro. */
+const CIERRE_DE_LA_DECLARACION = 'all announced movements happened';
+
+/** El payload que escribe «declare a balance» (su 9 y sus parámetros), para medir lo que cuesta escribirlo. */
+const payloadDeDeclaracion = (quien, serie, cuanto) => ['declare a balance: ' + quien + ' declares having ' + cuanto + ' of ' + serie, [[serie], [cuanto]], [CIERRE_DE_LA_DECLARACION], [quien], [P.declarar]];
+
+/** ¿Es el registro `id` de `eje` un enlace entre libros? Lo mismo que mira la regla en la salida de un bloqueo. */
+const esEnlaceDe = (eje, id) => {
+  const a = [].concat(eje.obtener(id)?.payload?.[4] ?? []);
+  return a.includes(L_.abrir) || a.includes(L_.cuelga);
+};
+
+/**
+ * Cuánto puede declarar hoy `identidad` en `eje` de cada serie que tiene: exactamente lo que acepta «a declared balance is
+ * true» (lo disponible más lo bloqueado, menos lo bloqueado con la salida en un enlace, y nunca más de lo que queda tras el
+ * propio registro, que quema la T de su coste). → [{ serie, familia, disponible, bloqueado, enOtroLibro, cantidad,
+ * declarable, causa }], en el orden de su cartera: `cantidad`, lo que se declara (0 si no es declarable); `enOtroLibro`, lo
+ * bloqueado con la salida en un enlace (vive en el otro libro y se declara allí); `causa`, en llano, por qué no es
+ * declarable (null si lo es). Las series de las que no tiene nada no salen, salvo la T, que sale para decir por qué no se
+ * lleva (la de una persona no se guarda: se gasta al escribir, y su saldo es 0).
+ */
+export function saldosDe(eje, identidad) {
+  const bloqueos = eje?.bloqueos?.(identidad) ?? [];
+  const claves = new Set([...(eje?.libro?.disponibles?.(identidad) ?? [])].map(([k]) => k));
+  for (const b of bloqueos) claves.add(b.clave);
+  const saldos = [];
+  for (const serie of claves) {
+    const familia = serie.slice(0, serie.indexOf(':'));
+    const disponible = eje.saldo(identidad, serie);
+    const bloqueado = eje.bloqueado(identidad, serie);
+    const enOtroLibro = bloqueos.filter((b) => b.clave === serie && esEnlaceDe(eje, b.salida)).reduce((s, b) => s + b.cantidad, 0);
+    if (disponible + bloqueado <= 0 && familia !== 'T') continue;
+    let cantidad = disponible + bloqueado - enOtroLibro;
+    // Lo que el propio registro quema de esta serie (PH3): la T de su coste, si es de esta escala.
+    const coste = familia === 'T' && cantidad > 0 ? quemaDelCoste(identidad, payloadDeDeclaracion(identidad, serie, cantidad), 'minuto', { eje }) : null;
+    if (coste && 'T:' + coste.escala === serie) cantidad -= coste.cantidad;
+    const declarable = cantidad > 0;
+    const causa = declarable ? null
+      : familia === 'T' ? 'la T de una persona no se guarda: es lo que puede gastar cada día al escribir, y la declaración misma la gasta; aquí no le queda T que declarar'
+        : 'todo lo que tiene de esta serie está bloqueado para otro libro (un envío): vive allí y se declara allí';
+    saldos.push({ serie, familia, disponible, bloqueado, enOtroLibro, cantidad: declarable ? cantidad : 0, declarable, causa });
+  }
+  return saldos;
+}
+
+/** Lo que espera un paso de la salida, en llano. */
+export const ESPERAS_DE_LA_SALIDA = Object.freeze({
+  sello: 'espera el sello del libro viejo: la declaración vale fuera cuando lleva la prueba de quien guarda y sella ese libro; mientras, tienes tu registro firmado y tu copia',
+  claves: 'espera las claves de línea del libro viejo (la de su casa incluida): sin ellas no se trae nada',
+  declaracion: 'espera a que firmes la declaración en el libro viejo',
+  genesis: 'espera a que abras el libro nuevo',
+  cuelga: 'espera a que escribas en el libro nuevo de qué libro cuelga',
+});
+
+/**
+ * Los registros de la salida de `identidad` del libro `eje`, en orden y con a qué libro va cada uno (DISENO_TRAMO_4.md §4,
+ * pasos 1, 3, 4 y 5). No firma ni escribe nada: devuelve datos, y se vuelve a pedir tras cada paso (lee lo ya hecho).
+ *
+ * `opciones`: `punto`, la época con que nace el libro nuevo ('vigente', por defecto; 'antes', la de antes del último cambio
+ * en vigor; o el número de una versión de eje.versiones()); `claves`, las claves de línea del libro viejo ([[nivel, clave],
+ * …], la de su casa incluida); `nuevo`, el eje del libro nuevo si ya está abierto; `sellos`, la prueba de sello de cada
+ * declaración en el libro viejo ({ id: décupla } o un Map); `foco`, el del libro nuevo; `elemento`, el elemento del libro
+ * viejo del que cuelga el nuevo (por defecto, el alta de `identidad` allí, donde van sus declaraciones).
+ *
+ * → { libro, identidad, epoca: { punto, version, id, registro }, pasos: [{ n, libro: 'viejo' | 'nuevo', que: 'declarar' |
+ * 'genesis' | 'cuelga' | 'traer', plantilla, params, quien, serie?, estado: 'hecho' | 'listo' | 'espera', id?, espera? }],
+ * noSeLleva: [{ serie, cantidad, causa }], esperan: [textos], aparte }. Un paso «listo» se firma tal cual: `plantilla` y
+ * `params` para acciones.transaccion en su libro; el génesis, `params` para Eje.genesis con la época del viejo por
+ * referencia (como carta/libros.js, abrirLibroPrivado), y quien lo firma añade su clave y su instante. `id`, el del
+ * registro ya escrito; `espera`, lo que falta. `epoca.registro` es el punto: el registro que puso en vigor esa versión.
+ */
+export function planDeSalida(eje, identidad, opciones = {}) {
+  const alta = eje?.alta?.(identidad);
+  if (!alta) throw new TypeError('planDeSalida: ' + identidad + ' no tiene alta en este libro');
+  const { punto = 'vigente', claves = 0, nuevo = null, sellos = {}, foco = ['lo mío, de ' + String(eje.genesisId).slice(0, 8)], elemento = alta.id } = opciones;
+  const versiones = eje.versiones();
+  const k = punto === 'vigente' ? versiones.length - 1 : punto === 'antes' ? versiones.length - 2 : punto;
+  if (!Number.isInteger(k) || !versiones[k]) throw new TypeError('planDeSalida: no hay esa versión de la época (' + punto + ')' + (punto === 'antes' ? ': el libro no tiene ningún cambio en vigor' : ''));
+  const version = versiones[k];
+  const E_ = ESPERAS_DE_LA_SALIDA;
+  const selloDe = (id) => (sellos instanceof Map ? sellos.get(id) : sellos?.[id]) ?? null;
+  const hoja = (x) => (Array.isArray(x) ? hoja(x[0]) : x);
+  const accionesDe = (r) => [].concat(r?.payload?.[4] ?? []);
+  const saldos = saldosDe(eje, identidad);
+  const pasos = [];
+  const paso = (p) => {
+    const x = { n: pasos.length + 1, ...p };
+    pasos.push(x);
+    return x;
+  };
+
+  // 1. En el libro viejo, una declaración por serie declarable (hecha si la última suya de esa serie dice lo mismo). Sin el
+  // P sobre sus propias declaraciones: cada declaración da P sobre ella (writing a record gives ten P on it), y declararlo
+  // daría otra declaración y otro P, sin fin.
+  const esDeclaracion = (r) => r?.autor === identidad && accionesDe(r).includes(P.declarar);
+  const deLaSalida = (s) => s.familia === 'P' && esDeclaracion(eje.obtener(partirClave(s.serie).raiz));
+  const declaradas = eje.sobre(alta.id, '8000000000').filter(esDeclaracion);
+  const declaraciones = saldos.filter((s) => s.declarable && !deLaSalida(s)).map((s) => {
+    const ultima = declaradas.filter((r) => hoja(r.payload?.[1]?.[0]) === s.serie).at(-1);
+    const hecha = ultima && hoja(ultima.payload?.[1]?.[1]) === s.cantidad ? ultima : null;
+    return paso({ libro: 'viejo', que: 'declarar', plantilla: P.declarar, params: { X: alta.id, series: s.serie, quantity: s.cantidad }, quien: identidad, serie: s.serie, ...(hecha ? { estado: 'hecho', id: hecha.id } : { estado: 'listo' }) });
+  });
+
+  // 3. El génesis del libro nuevo, con la época del viejo por referencia en el punto pedido.
+  const epoca = epocaEscritaDe(version.version, { porReferencia: true });
+  paso({ libro: 'nuevo', que: 'genesis', plantilla: null, params: { identidad, foco, epoca }, quien: identidad, ...(nuevo ? { estado: 'hecho', id: nuevo.genesisId } : { estado: 'listo' }) });
+
+  // 4. En el nuevo, como dueño: «this book hangs from» con el viejo, sus claves de línea y el punto.
+  const colgado = nuevo ? cuelgaDe(nuevo) : null;
+  const yaCuelga = colgado?.libro === eje.genesisId ? colgado : null;
+  const params = { X: nuevo?.genesisId ?? null, book: eje.genesisId, element: elemento, 'line keys': claves, ...(version.registro ? { point: version.registro } : {}) };
+  paso({ libro: 'nuevo', que: 'cuelga', plantilla: L_.cuelga, params, quien: identidad, ...(yaCuelga ? { estado: 'hecho', id: yaCuelga.id } : nuevo ? { estado: 'listo' } : { estado: 'espera', espera: E_.genesis }) });
+  const enlace = yaCuelga ? nuevo.obtener(yaCuelga.id) : null;
+  const sinClaves = enlace ? nivelMasBajoDe(enlace) === null : !(Array.isArray(claves) && claves.length);
+
+  // 5. En el nuevo, traer cada declaración con su prueba de sello.
+  const traidos = nuevo ? nuevo.sobre(nuevo.genesisId, ANCLA_DE_LO_TRAIDO).filter((r) => accionesDe(r).includes(P.traer)) : [];
+  for (const d of declaraciones) {
+    const ya = d.id ? traidos.find((r) => hoja(r.payload?.[1]?.[1]?.[0]) === d.id && hoja(r.payload?.[1]?.[0]) === eje.genesisId) : null;
+    const proof = d.id ? selloDe(d.id) : null;
+    const espera = ya ? null : !d.id ? E_.declaracion : !proof ? E_.sello : sinClaves ? E_.claves : !enlace ? E_.cuelga : null;
+    paso({
+      libro: 'nuevo', que: 'traer', plantilla: P.traer, quien: identidad, serie: d.serie,
+      params: { X: enlace?.id ?? null, record: d.id ? registroComoDecupla(eje.obtener(d.id)) : null, proof },
+      ...(ya ? { estado: 'hecho', id: ya.id } : espera ? { estado: 'espera', espera } : { estado: 'listo' }),
+    });
+  }
+
+  const noSeLleva = saldos.filter((s) => s.enOtroLibro > 0).map((s) => ({ serie: s.serie, cantidad: s.enOtroLibro, causa: 'bloqueado para otro libro (un envío): vive allí y se declara allí' }));
+  for (const s of saldos) if (s.familia === 'T' && !s.declarable) noSeLleva.push({ serie: s.serie, cantidad: s.disponible + s.bloqueado, causa: s.causa });
+  for (const s of saldos) if (s.declarable && deLaSalida(s)) noSeLleva.push({ serie: s.serie, cantidad: s.cantidad, causa: 'P sobre una declaración suya: nace al declarar, y declararlo daría otra declaración y otro P, sin fin' });
+  return {
+    libro: eje.genesisId, identidad,
+    epoca: { punto, version: k, id: version.epoca, registro: version.registro },
+    pasos,
+    noSeLleva,
+    esperan: pasos.filter((p) => p.estado === 'espera').map((p) => 'paso ' + p.n + ' (' + p.que + (p.serie ? ' ' + p.serie : '') + '): ' + p.espera),
+    aparte: 'La E y los registros como tales no van en esta salida: salen con «send to another book» y se traen con «bring a record from another book», bajo las reglas del libro viejo.',
+  };
 }
 
 /** El archivo de cada regla del puente. */
