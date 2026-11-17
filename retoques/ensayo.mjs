@@ -13,11 +13,17 @@
 //                         compartido registro a registro con la sincronía de src/sincronia.js (la misma puerta que la
 //                         carta). En los arranques siguientes, solo si la tabla cambió (su SHA-256) y solo sus filas
 //                         cambiadas: la pantalla manda en las demás.
-//   la cuenta de la dueña cuenta(): la copia que la carta sabe restaurar (carta/cuentas.js exportarCuenta) con una frase
-//                         aleatoria de este arranque. No se guarda en ningún sitio.
+//   la guía de ensayo     el SEGUNDO libro, de la misma dueña y con su misma clave, con la época hija del libro de la guía:
+//                         una guía con tres pasos sobre el roadmap y cuatro zonas en su cara (retoques/guia-ensayo.mjs).
+//                         Se crea la primera vez y se sirve en /ensayo/guia/…, con su propio almacén (<carpeta>/guia.json)
+//                         y su propia clave de lectura. Después se carga tal cual: nunca se reescribe solo. Si su época no
+//                         es la que trae el código, se niega con el remedio (apartar guia.json), nunca se borra.
+//   la cuenta de la dueña cuenta(): la copia de sus DOS libros que la carta sabe restaurar (carta/cuentas.js exportarTodos,
+//                         una copia por libro) con una frase aleatoria de este arranque. No se guarda en ningún sitio.
 //
-// En <carpeta> (fuera del repositorio): compartido.json (el almacén) y ensayo.json ({ eje, claveLectura, tabla, filas }:
-// la clave de lectura del eje y las huellas de la tabla y de cada fila volcada). Las claves, en el archivo de --claves
+// En <carpeta> (fuera del repositorio): compartido.json (el almacén), guia.json (el de la guía) y ensayo.json ({ eje,
+// claveLectura, tabla, filas, guia: { claveLectura } }: las claves de lectura de los ejes y las huellas de la tabla y de
+// cada fila volcada). Las claves, en el archivo de --claves
 // (el formato de volcar.mjs); si no existe, se crea con claves nuevas. Nada de esto sale por la consola.
 
 import { createHash, randomBytes } from 'node:crypto';
@@ -33,6 +39,8 @@ import { sincronia, salida } from '../src/index.js';
 import { volcar, correspondenciaDe } from '../ejemplos/volcado/volcar.mjs';
 import * as cuentas from '../carta/cuentas.js';
 import { preferencias } from '../carta/carta.js';
+import { epocaGuiaLibro } from '../datos/epocas/guia-libro/generar.mjs';
+import { EJE_GUIA, escribirGuiaDeEnsayo, caraDeLaGuia, idDeLaEpocaDeLaGuia, leerGuiaDeEnsayo } from './guia-ensayo.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 /** El nombre del eje compartido del ensayo. */
@@ -244,18 +252,80 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
       guardar();
     }
   }
+  // ---- la guía de ensayo: el segundo libro, en su propio almacén y bajo /ensayo/guia/… ----
+  const almacenGuia = almacenEnMemoria({ archivo: join(carpeta, 'guia.json'), ahora });
+  const archivosGuia = crearArchivos({ almacen: almacenGuia, ahora });
+  const dentroGuia = manejadorDe({ almacen: almacenGuia, archivos: archivosGuia, api: crearApi({ almacen: almacenGuia, cripto: criptoNucleo, crearEjes: { secreto }, escriturasPorMinuto: Number.MAX_SAFE_INTEGER, ahora }) });
+  const fueraGuia = manejadorDe({ almacen: almacenGuia, archivos: archivosGuia, api: crearApi({ almacen: almacenGuia, cripto: criptoNucleo, crearEjes: {}, origenes: [...ORIGENES, ...origenes], ahora }) });
+  const fetchGuia = async (u, opciones = {}) => dentroGuia(new Request(u, opciones));
+  const urlGuia = url.replace(/\/+$/, '') + '/guia';
+  estado.guia ??= {};
+  const nuevaGuia = () => new sincronia.Sincronia({ url: BASE_INTERNA + '/guia', eje: EJE_GUIA, claveLectura: estado.guia.claveLectura, fetch: fetchGuia, ahora: () => ahora().getTime() });
+  const apartaLaGuia = 'aparta guia.json de la carpeta del ensayo a otro sitio y arranca otra vez (la guía de ensayo se crea de nuevo; nada se borra)';
+  let ejeGuia;
+  let SG;
+  if (!((await almacenGuia.eje(EJE_GUIA)) && !(await almacenGuia.vacio(EJE_GUIA)))) {
+    if ((await almacenGuia.eje(EJE_GUIA)) && !estado.guia.claveLectura) throw new Error('ensayo: el almacén de la guía tiene el eje sin su clave de lectura: ' + apartaLaGuia);
+    if (!(await almacenGuia.eje(EJE_GUIA))) {
+      const r = await dentroGuia(new Request(BASE_INTERNA + '/guia/ejes', { method: 'POST', headers: { 'Content-Type': 'application/json', 'X-Crear-Ejes': secreto }, body: JSON.stringify({ eje: EJE_GUIA }) }));
+      if (r.status !== 201) throw new Error('ensayo: no se pudo crear el eje de la guía (' + r.status + ')');
+      estado.guia = { claveLectura: (await r.json()).claveLectura };
+      guardar();
+    }
+    const t0 = Math.floor(ahora().getTime() / 1000) * 1000 - 60_000;
+    ejeGuia = (await cuentas.crearCuenta({ nombre: identidad, identidad, idioma: 'es', ajustes: { 'sync url': urlGuia, 'sync ledger': EJE_GUIA }, t: iso(t0), conClave: { publica, privada }, epoca: epocaGuiaLibro() })).eje;
+    const g = await escribirGuiaDeEnsayo(ejeGuia, { roadmap: eje, identidad, privada, corr, t0: t0 + 1000 });
+    SG = nuevaGuia();
+    await subir(SG, ejeGuia);
+    decir('ensayo: guía de ensayo creada: ' + g.pasos.length + ' pasos y ' + g.zonas.length + ' zonas');
+  } else {
+    if (!estado.guia.claveLectura) throw new Error('ensayo: falta la clave de lectura de la guía en ensayo.json: ' + apartaLaGuia);
+    SG = nuevaGuia();
+    const inf = await SG.sincronizar(null, { exigirFirmas: false });
+    if (!inf.eje) throw new Error('ensayo: no se pudo leer la guía de ensayo: ' + apartaLaGuia);
+    ejeGuia = inf.eje;
+    if (ejeGuia.alta(identidad)?.id !== ejeGuia.genesisId) throw new Error('ensayo: la guía de ensayo no es de la dueña de --claves: ' + apartaLaGuia);
+    const suya = ejeGuia.epoca()?.id;
+    if (suya !== idDeLaEpocaDeLaGuia()) throw new Error('ensayo: la guía de ensayo es de otra época (' + String(suya).slice(0, 8) + ', y este código trae la ' + idDeLaEpocaDeLaGuia().slice(0, 8) + '): no se reescribe; ' + apartaLaGuia);
+    // La «sync url» de la guía, como la del roadmap: la de este arranque (solo esa preferencia; el contenido no se toca).
+    if (sincronia.destino(ejeGuia, identidad)?.url !== urlGuia) {
+      const p = preferencias(ejeGuia, identidad, { 'sync url': urlGuia, 'sync ledger': EJE_GUIA });
+      if (p) await salida.escribirDesde(ejeGuia, { modo: 'sequenced', autor: identidad, sobre: p.sobre, en: p.en, payload: p.payload, t: iso(Math.floor(ahora().getTime() / 1000) * 1000 - 1000) }, privada);
+      await subir(SG, ejeGuia);
+    }
+  }
+  // La cara: el html de la guía vive en los archivos del almacén de la guía, que son de memoria: se pone en cada arranque.
+  const cara = caraDeLaGuia();
+  await almacenGuia.guardar(EJE_GUIA, cara.id, cara.tipo, cara.bytes);
+
   const alta = eje.alta(identidad).id;
+  const altaGuia = ejeGuia.alta(identidad).id;
   const frase = randomBytes(18).toString('base64url');
   return {
-    manejar: fuera,
+    /** /ensayo/guia/… va a la guía de ensayo; todo lo demás de /ensayo/…, al roadmap. */
+    manejar: (request) => {
+      const camino = new URL(request.url).pathname;
+      return camino === '/ensayo/guia' || camino.startsWith('/ensayo/guia/') ? fueraGuia(request) : fuera(request);
+    },
     alta,
+    altaGuia,
     identidad,
     ultimo,
-    /** La copia de la cuenta de la dueña, con el libro al día, y la frase de este arranque. Nunca se guarda. */
+    /** Lo que se lee de la guía de ensayo ahora: { guia, pasos, zonas } (para comprobarla). */
+    guia: () => leerGuiaDeEnsayo(ejeGuia, identidad),
+    /**
+     * La copia de los DOS libros de la dueña (el roadmap y la guía de ensayo; carta/cuentas.js exportarTodos), con los
+     * libros al día, y la frase de este arranque. Nunca se guarda.
+     */
     async cuenta() {
       await S.sincronizar(eje);
+      await SG.sincronizar(ejeGuia);
       const cuenta = { nombre: identidad, idioma: 'es', identidad, alta, publica };
-      const copia = await cuentas.exportarCuenta({ cuenta, eje, privada, claveLectura: estado.claveLectura }, frase, iteraciones ? { iteraciones } : {});
+      const cuentaGuia = { nombre: identidad, idioma: 'es', identidad, alta: altaGuia, publica };
+      const copia = await cuentas.exportarTodos([
+        { cuenta, eje, privada, claveLectura: estado.claveLectura },
+        { cuenta: cuentaGuia, eje: ejeGuia, privada, claveLectura: estado.guia.claveLectura },
+      ], frase, iteraciones ? { iteraciones } : {});
       return { copia, frase };
     },
   };

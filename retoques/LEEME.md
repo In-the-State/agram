@@ -82,8 +82,18 @@ Nada montado: ni túnel ni programas nuevos. Los pasos del túnel están en `agr
   - Si la «sync url» de este arranque es otra (otro puerto, o con o sin `--publico`), la dueña escribe sus preferencias nuevas.
 - **La consola** dice una línea por volcado (registros y avisos, sin texto de las filas).
 - **La «sync url»** es `https://<publico>/ensayo` con `--publico`, y si no, `http://localhost:<puerto>/ensayo`. La carta no admite una ruta relativa ahí: `src/sincronia.js` (`urlHttp`) y `carta/sitio.js` exigen `http(s)://`. Con `--publico`, también el portátil ha de entrar por el nombre público.
+- **La guía de ensayo** (`retoques/guia-ensayo.mjs`; `agram-equipo/DISENO_ZONAS_GUIA.md` §5) es el segundo libro, de la misma dueña y con su misma clave, con la época hija del libro de la guía (`datos/epocas/guia-libro/`).
+  - Se crea la primera vez, en su propio almacén (`<carpeta>/guia.json`) y con su propia clave de lectura (en `ensayo.json`). Se sirve en `/ensayo/guia/…`, con las mismas garantías que `/ensayo`: solo 127.0.0.1 o el nombre de `--publico` con su sesión, y la clave de lectura del eje.
+  - Después se carga tal cual: nunca se reescribe solo, porque VG la retoca desde la carta. Lo único que se escribe en ella es la «sync url» si cambia, como en el roadmap.
+  - Si su época no es la que trae el código, el servidor no arranca y dice el remedio: apartar `guia.json` y volver a arrancar. Nunca se borra.
+  - Su contenido inicial lo escribe la dueña con las plantillas reales:
+    - la guía: «anchor here» sobre su alta, «Guía de ensayo»;
+    - su cara: «attach a file» en su 0, un html pequeño sin guiones ni nada de fuera, del tamaño 3. Se sirve por los archivos de la guía; como esos viven en memoria, se vuelve a poner en cada arranque;
+    - tres pasos («a step of the guide») sobre el roadmap, todos «anchor here»: una nota en su alta, una tarea nueva en la primera línea y un comentario en la primera tarea. Antes de subir nada se comprueban con `sugerenciasDeGuia` y con lo que se le ofrece allí;
+    - cuatro zonas («a zone of the face»): «Primera nota» y «Una tarea nueva», a dos pasos; «Ver el roadmap», a la primera línea del roadmap; «Mi sitio aquí», a su alta en este libro.
 - **La dueña entra:**
-  - `GET /retoques/ensayo/cuenta` (con la llave) da la copia de su cuenta (`exportarCuenta`) y una frase aleatoria de ese arranque. No se guarda ni se escribe en la consola.
+  - `GET /retoques/ensayo/cuenta` (con la llave) da la copia de sus DOS libros, el roadmap y la guía (`exportarTodos`, una copia por libro), y una frase aleatoria de ese arranque. No se guarda ni se escribe en la consola.
+  - El botón restaura los dos (`restaurarTodos`), cada uno con su libro compartido, y entra en el del roadmap.
   - En el PV9, en «Core», «Entrar en el libro del roadmap» sale si `estado` dice `ensayo: true` y esta pantalla no tiene esa cuenta (`ensayoAlta`). Restaura la cuenta, la abre y sincroniza.
   - Las claves de las cosas no van en la copia: la carta de hoy no deja a la dueña escribir como sus cosas (en una cuenta no hay selector de identidad).
 
