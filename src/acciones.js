@@ -29,6 +29,7 @@
 //   sobreDe(eje, plantilla, params, yo)     el registro del que colgará lo que escribe (X o el que nombra su 5): la línea de antes de firmar
 //   enlazaDe(eje, plantilla, params, yo)    los registros que enlazará (los que su payload nombra, menos del que cuelga): a quién más va
 //   camino(eje, X, yo)                      lo que falta: lo del tutorial, lo que derivan las reglas, las sugerencias
+//   hechoPorMi(eje, plantilla, X, yo)       ¿hay un registro mío, o de una cosa mía, en su ancla? (la regla de un paso del tutorial)
 //   autoejecutar(eje, X, yo, firmar)        lanza los pasos míos en orden mientras pasen
 //   modoDeEjecucion(eje, plantilla)         su modo de ejecución: { declarado, modo, revisado } (system sin revisión se lee agent)
 //   esAgente(eje, identidad)                ¿es una cosa que su dueño declaró agente? (no lanza las plantillas «person»)
@@ -1582,6 +1583,35 @@ function anuncioDe(registro) {
 const nombresDel9 = (decupla) => hojas(Array.isArray(decupla) ? decupla[9] : undefined).filter((x) => typeof x === 'string' && !esFormula(x));
 
 /**
+ * Yo y mis cosas: lo escrito por una cosa mía (la que tiene mi alta como autor de la suya) cuenta como mío en el camino: el
+ * permiso de una cuenta lo da la conectora del banco, una cosa de su dueño (encargo «cuenta del banco», VG 16-11).
+ */
+const yoYMisCosasDe = (eje, yo) => new Set([yo, ...eje.identidades().filter((x) => x !== yo && eje.esPersona(x) === false && eje.obtener(eje.alta(x)?.id)?.autor === yo)]);
+
+/** La regla del tutorial (§12.5): hay un registro mío, o de una cosa mía, en el ancla donde escribe la plantilla preparada. */
+const hechoEnSuAncla = (eje, prep, mios) => eje.sobreDe(prep.sobre, prep.en, mios).length > 0;
+
+/**
+ * ¿Está hecho para `yo` lo que la plantilla `cual` escribe sobre X? La misma regla que un paso del tutorial del camino
+ * (docs/CONTRATO.md §12.5): hay un registro mío, o de una cosa mía, en su ancla (la que da su 5 sobre X, con `params` y
+ * los defectos, como al construir la transacción). La usa la guía del libro (src/guia-libro.js, pasoHecho) para leer un
+ * paso en el libro donde se hace. false si la plantilla no está en la época del eje, si X no está en el eje, si `yo` no
+ * es una identidad o si el ancla no se resuelve. Solo lee.
+ */
+export function hechoPorMi(eje, cual, X, yo, params = {}, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const plantilla = plantillaDeTransaccion(cual, opciones);
+  const ev = eventoDe(eje, X);
+  if (!plantilla || !ev || !eje?.obtener(ev.id) || typeof yo !== 'string' || !yo) return false;
+  try {
+    const prep = preparar(eje, plantilla, ev, yo, params ?? {}, { t: relojDe(eje, opciones), epoca: epocaDe(opciones, eje), idioma: idiomaDe(eje, yo, opciones) });
+    return hechoEnSuAncla(eje, prep, yoYMisCosasDe(eje, yo));
+  } catch {
+    return false;
+  }
+}
+
+/**
  * El camino de X para `yo`: lo que falta, de tres fuentes y en este orden, cada paso { fuente, falta, hacer, espera,
  * hecho }: (1) el tutorial fijo, los nombres de plantillas de transacción (o de reglas) escritos en el 9 de la
  * plantilla de X (la de datos, o la de identidad si X es un alta) o del propio X; (2) lo que derivan las reglas:
@@ -1589,8 +1619,9 @@ const nombresDel9 = (decupla) => hojas(Array.isArray(decupla) ? decupla[9] : und
  * del dueño sin alcanzar («commit P»), las peticiones de atención sin atender («attend») y las caducidades próximas
  * («expire something mine»); si lo puede lanzar yo es un paso mío (`hacer`: la plantilla y sus parámetros), si lo
  * tiene que dar otro es un paso de espera (`espera`: de quién); (3) `sugerencias`, un gancho opcional (función
- * (eje, X, yo) → [{ plantilla, parametros, sobre?, porque?, id?, invalida? }]) cuyos pasos van marcados como sugerencia
- * y pasan por las mismas reglas (`pasa`, `motivos`); `sobre` es otro registro que X, `porque` se enseña con el paso, y
+ * (eje, X, yo) → [{ plantilla, parametros, sobre?, porque?, id?, invalida?, guia?, hecho? }]) cuyos pasos van marcados como sugerencia
+ * y pasan por las mismas reglas (`pasa`, `motivos`); `sobre` es otro registro que X, `porque` (y `guia`, el nombre de la
+ * guía de la que viene) se enseña con el paso, una con `hecho: true` sale hecha (sin él, no lo está), y
  * una con `invalida` (el motivo) no se construye: sale como paso inválido. `falta` se lee en humano con el 9 de la regla o de la plantilla, en el idioma de yo. Si la
  * madurez de X es 0 o desconocida, devuelve además `niveles` (los de su plantilla o los genéricos) para que la persona
  * se ubique. Orden: primero lo que nombra el criterio del dueño (X.2.3), luego lo que nombra el mío (el 2.3 de mi alta).
@@ -1609,15 +1640,14 @@ export async function camino(eje, X, yo, opciones = {}) {
   const reglas = (epoca.reglasConId ?? []).map((x) => x.regla);
   const pasos = [];
 
-  // Lo escrito por una cosa mía (la que tiene mi alta como autor de la suya) cuenta como mío en el camino: el permiso de
-  // una cuenta lo da la conectora del banco, una cosa de su dueño (encargo «cuenta del banco», VG 16-11).
-  const yoYMisCosas = new Set([yo, ...eje.identidades().filter((x) => x !== yo && eje.esPersona(x) === false && eje.obtener(eje.alta(x)?.id)?.autor === yo)]);
+  // Lo escrito por una cosa mía cuenta como mío en el camino (yoYMisCosasDe).
+  const yoYMisCosas = yoYMisCosasDe(eje, yo);
   /** Un paso mío con una plantilla: sus parámetros por defecto y si ya está hecho (un registro mío, o de una cosa mía, en su ancla); `falta` se lee con su 9 en el idioma. */
   const mio = (nombre, extra = {}, sobre = ev) => {
     const plantilla = porNombre.get(nombre);
     if (!plantilla) return null;
     const prep = preparar(eje, plantilla, sobre, yo, extra, { t, epoca, idioma });
-    const hecho = eje.sobreDe(prep.sobre, prep.en, yoYMisCosas).length > 0;
+    const hecho = hechoEnSuAncla(eje, prep, yoYMisCosas);
     return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...Object.fromEntries(Object.entries(prep.valores)), ...extra }, lectura: esLectura(plantilla) }, hecho, falta: mensajeDe(eje, epoca, plantilla, prep.candidata, yo, sobre, idioma) };
   };
 
@@ -1704,8 +1734,9 @@ export async function camino(eje, X, yo, opciones = {}) {
   if (typeof opciones.sugerencias === 'function') {
     for (const s of (await opciones.sugerencias(eje, ev, yo)) ?? []) {
       const nombre = typeof s === 'string' ? s : s?.plantilla;
-      // Lo que la sugerencia dice de sí misma, para quien la enseña: por qué (`porque`) y su identidad (`propuesta`).
-      const suya = { ...(typeof s?.porque === 'string' && s.porque ? { porque: s.porque } : {}), ...(s?.id !== undefined ? { propuesta: s.id } : {}) };
+      // Lo que la sugerencia dice de sí misma, para quien la enseña: por qué (`porque`), su identidad (`propuesta`) y, si
+      // viene de la guía de un libro (src/guia-libro.js), el nombre de esa guía (`guia`).
+      const suya = { ...(typeof s?.porque === 'string' && s.porque ? { porque: s.porque } : {}), ...(s?.id !== undefined ? { propuesta: s.id } : {}), ...(typeof s?.guia === 'string' && s.guia ? { guia: s.guia } : {}) };
       // Una sugerencia que no se entiende se enseña con su motivo (`invalida`), no se descarta en silencio.
       if (s && typeof s === 'object' && s.invalida) {
         pasos.push({ fuente: 'sugerencia', falta: String(nombre ?? ''), hacer: null, hecho: false, espera: null, pasa: false, motivos: [{ regla: null, mensaje: String(s.invalida) }], invalida: String(s.invalida), ...suya });
@@ -1717,7 +1748,9 @@ export async function camino(eje, X, yo, opciones = {}) {
       // Una sugerencia puede traer su instante (`t`): la que lleva una prueba de posesión firmada sobre el id solo pasa con él.
       const r = await transaccion(eje, nombre, { X: sobre.id, ...(s?.parametros ?? {}) }, yo, typeof s?.t === 'string' && s.t ? { ...opciones, t: s.t } : opciones);
       const paso = mio(nombre, s?.parametros ?? {}, sobre);
-      pasos.push({ fuente: 'sugerencia', ...paso, hecho: false, espera: null, pasa: r.ok, motivos: r.motivos, ...suya });
+      // Una sugerencia no está hecha, salvo que diga ella misma que lo está (`hecho: true`): un paso de la guía de un libro
+      // lo dice con la regla del tutorial (hechoPorMi); una propuesta importada, nunca.
+      pasos.push({ fuente: 'sugerencia', ...paso, hecho: s?.hecho === true, espera: null, pasa: r.ok, motivos: r.motivos, ...suya });
     }
   }
 

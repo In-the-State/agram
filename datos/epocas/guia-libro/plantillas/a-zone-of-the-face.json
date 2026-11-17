@@ -1,0 +1,370 @@
+[
+  [
+    "a zone of the face"
+  ],
+  [
+    [
+      [
+        "label"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(cat(utf8(it), bytes(\"00\")), 0, 1)) != \"00\" and hex(slice(cat(utf8(it), bytes(\"0000000000000000000000000000000000000000000000000000000000000000000000000000000000\")), 40, 41)) = \"00\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        1
+      ],
+      [
+        "=first ((payload(it)).0 where \"a zone of the face\" in (payload(it)).4)",
+        "the text of the button, plain: at most 40 bytes of UTF-8 (forty letters; one with an accent counts two); on a zone, by default its label"
+      ]
+    ],
+    [
+      [
+        "x"
+      ],
+      [
+        "number"
+      ],
+      [
+        "=floor it = it and it >= 0 and it <= 1000"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        2
+      ],
+      [
+        "=first ((payload(it)).1.0 where \"a zone of the face\" in (payload(it)).4)",
+        "where the box starts from the left, in thousandths of the face (an integer from 0 to 1000)"
+      ]
+    ],
+    [
+      [
+        "y"
+      ],
+      [
+        "number"
+      ],
+      [
+        "=floor it = it and it >= 0 and it <= 1000"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        3
+      ],
+      [
+        "=first ((payload(it)).1.1 where \"a zone of the face\" in (payload(it)).4)",
+        "where the box starts from the top, in thousandths of the face (an integer from 0 to 1000)"
+      ]
+    ],
+    [
+      [
+        "width"
+      ],
+      [
+        "number"
+      ],
+      [
+        "=floor it = it and (it >= 60 and it + first memo.1.0 <= 1000 or it = 0 and first memo.1.0 = 0 and first memo.1.1 = 0 and first memo.1.3 = 0)"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.2"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        4
+      ],
+      [
+        "=first ((payload(it)).1.2 where \"a zone of the face\" in (payload(it)).4)",
+        "the width of the box in thousandths: an integer of at least 60 (a finger) and x + width at most 1000; the whole box at zero withdraws the zone it is written on"
+      ]
+    ],
+    [
+      [
+        "height"
+      ],
+      [
+        "number"
+      ],
+      [
+        "=floor it = it and (it >= 60 and it + first memo.1.1 <= 1000 or it = 0 and first memo.1.0 = 0 and first memo.1.1 = 0 and first memo.1.2 = 0)"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.3"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        5
+      ],
+      [
+        "=first ((payload(it)).1.3 where \"a zone of the face\" in (payload(it)).4)",
+        "the height of the box in thousandths: an integer of at least 60 and y + height at most 1000; the whole box at zero withdraws the zone it is written on"
+      ]
+    ],
+    [
+      [
+        "criteria"
+      ],
+      [
+        "text"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        6
+      ],
+      [
+        "=first epoch.9.0.1.2",
+        "the closing template, as in any anchored record"
+      ]
+    ],
+    [
+      [
+        "who"
+      ],
+      [
+        "identity"
+      ],
+      [
+        "=it = me"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        7
+      ],
+      [
+        "=me",
+        "who writes the zone: the author of the element"
+      ]
+    ],
+    [
+      [
+        "actions"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"a zone of the face\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        8
+      ],
+      [
+        "a zone of the face",
+        "the action that wrote it"
+      ]
+    ],
+    [
+      [
+        "book"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.0"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        9
+      ],
+      [
+        "=first ((payload(it)).5.0 where \"a zone of the face\" in (payload(it)).4)",
+        "=first (first before.5 where not (\"a zone of the face\" in (payload(it)).4))",
+        "the book of the destination: the id of its genesis (64 hexadecimal characters in lower case), a datum and not a reference; by default, this book (on a zone, its book)"
+      ]
+    ],
+    [
+      [
+        "record"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it and (first memo.5.0 != first before.5 or count it.6 > 0)"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.1"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): parámetro de «a zone of the face»"
+      ],
+      [
+        "required"
+      ],
+      [
+        10
+      ],
+      [
+        "=first ((payload(it)).5.1 where \"a zone of the face\" in (payload(it)).4)",
+        "the record the button leads to: its id (64 hexadecimal characters in lower case), a datum; in this book it has to exist. Never an address: only an id"
+      ]
+    ]
+  ],
+  [
+    "=first it.3 = me"
+  ],
+  [
+    [
+      "me"
+    ],
+    [
+      "person"
+    ]
+  ],
+  [
+    "write"
+  ],
+  [
+    "0"
+  ],
+  [
+    "Core AGRAM 17-11 (encargo «zonas de la cara y guía mínima», pieza 1; VG 17-11 por Core State; agram-equipo/DISENO_ZONAS_GUIA.md): una zona de la cara es un registro del autor del elemento, anclado en su 0: dónde está el botón sobre el dibujo (la caja, en milésimas de la cara) y a qué registro lleva. El dibujo no sabe nada de las zonas: la carta pinta los botones encima, con su código. Se ofrece solo al autor del elemento, como «attach art to this element» (la lectura ignora las zonas de otros). Su 4 es «write»: no mueve nada más que el coste de escribir",
+    "La décupla del registro: 0 la etiqueta; 1 la caja, 1.0 x, 1.1 y, 1.2 ancho, 1.3 alto (enteros de 0 a 1000, x + ancho y y + alto sin pasar de 1000, ancho y alto de 60 como poco, salvo la caja toda a cero); 2 el criterio de cierre; 3 quién; 4 «a zone of the face»; 5 el destino: 5.0 su libro (por defecto, el génesis de este libro) y 5.1 el registro, dos ids de 64 hexadecimales como datos. Nunca una dirección: la validación solo admite ids",
+    "Sustituir y retirar: la zona nueva se lanza sobre la zona vieja (X es la zona; ancla en su 0). Cuenta si es del autor del elemento; con la caja toda a cero, la retira. Lanzada sobre una zona, sus defectos son los de esa zona (mover una zona es cambiar sus números)"
+  ],
+  [
+    "guide book epoch 0"
+  ],
+  [
+    2,
+    13
+  ],
+  [
+    "a zone of the face: {me} puts the zone {first memo.0} on the face of {first it.0}"
+  ]
+]

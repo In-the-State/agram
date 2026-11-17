@@ -1,0 +1,26 @@
+{
+  "epoca": "7d81ba8a633c24ec06bf3f6630ec4313092741974f77b1e106cbe673e6c858bf",
+  "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
+  "registrosAlPublicar": 4,
+  "reglas": [],
+  "plantillas": [
+    {
+      "nombre": "a zone of the face",
+      "archivo": "a-zone-of-the-face.json",
+      "id": "d7f3518d473a533ca49d9063bf8c509de3d96232c0f19ee67ea1283c34007ac8",
+      "ocho": [
+        2,
+        13
+      ]
+    },
+    {
+      "nombre": "a step of the guide",
+      "archivo": "a-step-of-the-guide.json",
+      "id": "752d85f335d005c10ff133e1c97549998073b6a1d41fab56051eb07e75f28c1c",
+      "ocho": [
+        4,
+        29
+      ]
+    }
+  ]
+}
