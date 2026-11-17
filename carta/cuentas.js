@@ -275,6 +275,9 @@ export function recordarUltima(alta) {
 export function entradaDe(cuenta, eje) {
   const e = { nombre: cuenta.nombre, idioma: cuenta.idioma, identidad: cuenta.identidad, alta: cuenta.alta, publica: cuenta.publica };
   if (cuenta.guardian === true) e.guardian = true;
+  // El libro nuevo de una salida («Irme con lo mío», carta/puente.js) lleva el génesis del libro del que sale: por él se
+  // encuentra, y no nace otro.
+  if (typeof cuenta.salidaDe === 'string' && /^[0-9a-f]{64}$/.test(cuenta.salidaDe)) e.salidaDe = cuenta.salidaDe;
   let libro = typeof cuenta.libro === 'string' ? cuenta.libro : undefined;
   let cuelga = cuenta.cuelga && typeof cuenta.cuelga === 'object' ? cuenta.cuelga : undefined;
   try {

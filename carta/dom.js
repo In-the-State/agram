@@ -615,7 +615,7 @@ const botonEntrar = (alta, foco) => `<button type="button" class="enlace"${nodo(
 function htmlLineaPrivado(l) {
   if (l.sinAnunciar) return `<small class="custodia-privado" data-mio data-sin-anunciar>${escapar(t('libroMioSinAnunciar', { nombre: l.nombre ?? corto(l.libro) }))} ${botonEntrar(l.entrar, l.libro)}</small>`;
   const linea = escapar(t('custodiaLibroPrivado', { libro: corto(l.libro), quien: l.quien ?? '' }));
-  if (l.entrar) return `<small class="custodia-privado" data-mio>${linea} ${botonEntrar(l.entrar, l.libro)}</small>`;
+  if (l.entrar) return `<small class="custodia-privado" data-mio>${linea} ${botonEntrar(l.entrar, l.libro)}${botonPuente()}</small>`;
   if (l.noReciproco) return `<small class="custodia-privado" data-mio data-no-reciproco>${linea} · ${escapar(t('libroNoReciproco'))}</small>`;
   return `<small class="custodia-privado">${linea}</small>`;
 }
@@ -630,7 +630,7 @@ function htmlCuelgaDe(c) {
   const volver = c.volver ? ` <button type="button" class="enlace"${nodo('control')} data-libro-volver="${attr(c.volver)}" data-foco="${attr(c.elemento)}" title="${attr(t('libroVolverTitulo'))}">${escapar(t('libroVolver'))}</button>` : '';
   const anunciar = c.anunciar ? ` <button type="button" class="enlace"${nodo('control')} data-libro-anunciar="${attr(c.volver)}" data-foco="${attr(c.elemento)}">${escapar(t('libroAnunciar'))}</button>` : '';
   const sinAnunciar = !c.anunciado && c.autor ? `<small class="custodia-cuelga-anuncio">${escapar(t(c.anunciar ? 'libroSinAnunciar' : 'libroSinSellador'))}${anunciar}</small>` : '';
-  return `<p class="custodia-cuelga" data-cuelga="${attr(c.libro)}">${escapar(t('libroCuelgaDe', { elemento: c.elementoNombre ?? corto(c.elemento), libro: c.libroNombre ?? corto(c.libro) }))}${volver}</p>${sinAnunciar}`;
+  return `<p class="custodia-cuelga" data-cuelga="${attr(c.libro)}">${escapar(t('libroCuelgaDe', { elemento: c.elementoNombre ?? corto(c.elemento), libro: c.libroNombre ?? corto(c.libro) }))}${volver}${c.volver ? botonPuente() : ''}</p>${sinAnunciar}`;
 }
 
 /** «Abrir aquí un libro privado» (§4.4): un gesto sobre el elemento X (data-libro-privado). */
@@ -1639,10 +1639,10 @@ export function htmlReglas(v) {
   if (!v?.lista) return '';
   const avisos = [...(v.aviso ? [v.aviso] : []), ...(v.motivos ?? []).map((m) => m?.mensaje ?? m)];
   const mensajes = (avisos.length ? `<ul class="motivos" role="alert">${avisos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '') + (v.exito ? `<p class="exito" role="status">${escapar(v.exito)}</p>` : '');
-  const cuerpo = v.proponer ? htmlProponerCambio(v.proponer) : v.cambio ? htmlCambio(v.cambio, v) : htmlListaDeCambios(v.lista);
+  const cuerpo = v.salida ? htmlSalida(v.salida) : v.proponer ? htmlProponerCambio(v.proponer) : v.cambio ? htmlCambio(v.cambio, v) : htmlListaDeCambios(v.lista) + htmlEntradaSalida(v.puedeSalir);
   return `<div class="formulario-fondo" data-cerrar><section class="formulario reglas"${nodo('reglas')} role="dialog" aria-label="${attr(t('reglasTitulo'))}">
     <header><h2>${escapar(t('reglasTitulo'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
-    ${v.cambio || v.proponer ? `<p class="reglas-volver"><button type="button" class="enlace"${nodo('control')} data-reglas-volver>${escapar(t('reglasVolver'))}</button></p>` : ''}
+    ${v.cambio || v.proponer || v.salida ? `<p class="reglas-volver"><button type="button" class="enlace"${nodo('control')} data-reglas-volver>${escapar(t('reglasVolver'))}</button></p>` : ''}
     ${mensajes}${cuerpo}
     <p class="reglas-pie" data-reglas-pie><small>${escapar(t('reglasPie'))}</small></p>
   </section></div>`;
@@ -1727,6 +1727,142 @@ function htmlProponerCambio(p) {
     <details class="reglas-avanzado"${p.avanzado || val.pieza ? ' open' : ''}><summary>${escapar(t('reglasAvanzado'))}</summary><p class="ayuda"><small>${escapar(t('reglasAvanzadoAyuda'))}</small></p><textarea name="pieza" rows="6" spellcheck="false" autocomplete="off">${escapar(val.pieza ?? '')}</textarea></details>
     <footer><button type="submit">${escapar(t('reglasProponerBoton'))}</button></footer>
   </form>`;
+}
+
+// ---------- «Irme con lo mío» (encargo «carta: irme con lo mío y el puente»; carta/puente.js salidaDe) ----------
+
+/** El coste de un paso como lo dice el formulario de cualquier acción (para la confirmación de la app). */
+export const textoDelCoste = (c) => textoDeCoste(c);
+
+/** La entrada «Irme con lo mío» en la lista de «Reglas del libro»: para quien tiene alta en este libro. */
+const htmlEntradaSalida = (si) => (si ? `<p class="reglas-salida-entrada"><button type="button" class="enlace"${nodo('control')} data-salida-abrir title="${attr(t('salidaAbrirTitulo'))}">${escapar(t('salidaAbrir'))}</button></p>` : '');
+
+/** El texto de un paso de la salida: qué hace y, si lo nombra, de qué serie («Declarar aquí 10 P sobre Ana»). */
+export const textoDelPasoDeSalida = (p, nombre) => t('salidaPaso_' + p.que, { serie: p.texto ?? p.serie ?? '', nombre: nombre ?? '' });
+
+/**
+ * «Irme con lo mío» (carta/puente.js salidaDe): lo que me llevo y lo que no (con su causa, tal como la da el plan), con qué
+ * reglas nace el libro nuevo (las vigentes o las de antes del último cambio), los pasos en orden con su estado (la espera,
+ * con su frase tal cual), un solo botón que firma el primer paso «listo» con su coste a la vista, la frase del sello y lo
+ * que va aparte. `s`: { vista, coste (del paso siguiente), nombre (el del libro nuevo), nuevo ({ nombre } si ya está),
+ * sinCuenta, ocupado }. Todo dato va escapado.
+ */
+function htmlSalida(s) {
+  const v = s.vista;
+  if (!v) return s.error ? `<p class="aviso" role="alert" data-salida-error>${escapar(t('salidaNoSeLee', { motivo: s.error }))}</p>` : '';
+  const lista = (xs, f) => `<ul class="salida-lista">${xs.map(f).join('')}</ul>`;
+  const lleva = v.lleva.length ? lista(v.lleva, (x) => `<li data-serie="${attr(x.serie)}">${escapar(x.texto)}</li>`) : `<p class="ayuda">${escapar(t('salidaNada'))}</p>`;
+  const noSeLleva = v.noSeLleva.length ? `<h3>${escapar(t('salidaNoSeLleva'))}</h3>${lista(v.noSeLleva, (x) => `<li data-serie="${attr(x.serie)}">${escapar(x.texto)} <small class="salida-causa">${escapar(x.causa)}</small></li>`)}` : '';
+  const nacido = v.pasos.some((p) => p.que === 'genesis' && p.estado === 'hecho');
+  const reglas = nacido ? `<p>${escapar(t('salidaPuntoFijo'))}</p>`
+    : v.puntos.length > 1 ? `<p class="salida-puntos">${v.puntos.map((p) => `<button type="button"${nodo('control')} data-salida-punto="${attr(p)}" aria-pressed="${p === v.punto}">${escapar(t('salidaPunto_' + p))}</button>`).join(' ')}</p>`
+      : `<p>${escapar(t('salidaPuntoElegido', { punto: t('salidaPunto_vigente').toLowerCase() }))}</p>`;
+  const pasos = v.pasos.map((p) => `<li class="salida-paso" data-estado="${attr(p.estado)}" data-que="${attr(p.que)}"><span>${escapar(textoDelPasoDeSalida(p, s.nombre))}</span> <small>${escapar(t('salidaEnLibro_' + p.libro))}</small> · <small class="salida-estado">${escapar(t('salidaEstado_' + p.estado))}</small>${p.espera ? `<br><small class="salida-espera">${escapar(p.espera)}</small>` : ''}</li>`).join('');
+  const todo = v.pasos.length && v.pasos.every((p) => p.estado === 'hecho');
+  const siguiente = v.siguiente && !s.sinCuenta
+    ? `<footer><button type="button"${nodo('accion')} data-salida-firmar ${s.ocupado || s.buscando ? 'disabled' : ''}>${escapar(s.buscando ? t('salidaBuscando') : s.ocupado ? t('salidaFirmando') : t('salidaFirmar', { n: v.siguiente.n }))}</button> <small class="reglas-coste">${escapar(v.siguiente.que === 'genesis' ? t('salidaGenesisSinCoste') : s.coste ? textoDeCoste(s.coste) : t('salidaSinCoste'))}</small></footer>`
+    : '';
+  return `<article class="salida"${nodo('reglas')} data-salida>
+    <h3>${escapar(t('salidaAbrir'))}</h3>
+    <p class="ayuda">${escapar(t('salidaAyuda'))}</p>
+    <h3>${escapar(t('salidaLleva'))}</h3>${lleva}${noSeLleva}
+    <h3>${escapar(t('salidaReglas'))}</h3>${reglas}
+    <h3>${escapar(t('salidaPasos'))}</h3><ol class="salida-pasos">${pasos}</ol>
+    ${todo ? `<p class="exito" role="status">${escapar(t('salidaTodoHecho'))}</p>` : ''}${s.nuevo ? `<p class="salida-nuevo">${escapar(t('salidaNuevo', { nombre: s.nuevo.nombre }))}</p>` : ''}
+    <p class="salida-sello" data-salida-sello>${escapar(t('salidaSello'))}</p>
+    ${v.sinSello ? `<p class="aviso" data-sin-sello="${attr(v.sinSello)}">${escapar(t('salidaSinSello_' + v.sinSello))}</p>` : ''}${s.sinCuenta ? `<p class="aviso">${escapar(t('salidaSinCuenta'))}</p>` : ''}
+    ${siguiente}
+    <h3>${escapar(t('salidaAparte'))}</h3><p class="salida-aparte" data-salida-aparte>${escapar(v.aparte)}</p>
+    <p><button type="button" class="enlace"${nodo('control')} data-puente-abrir title="${attr(t('salidaIrAlPuenteTitulo'))}">${escapar(t('salidaIrAlPuente'))}</button></p>
+  </article>`;
+}
+
+// ---------- el puente entre mis libros abiertos (encargo «carta: irme con lo mío y el puente»; carta/puente.js) ----------
+
+/** «Puente»: en una línea de enlace con uno de mis libros (en «quién guarda esto»), abre la hoja del puente. */
+const botonPuente = () => ` <button type="button" class="enlace"${nodo('control')} data-puente-abrir title="${attr(t('puenteAbrirTitulo'))}">${escapar(t('puenteAbrir'))}</button>`;
+
+/** Un valor de una lectura en llano: un texto tal cual; lo demás, su JSON. Siempre se pinta escapado. */
+const comoTexto = (x) => (typeof x === 'string' ? x : JSON.stringify(x));
+
+/** Un enlace a uno de mis libros: su grado, si cuenta, sus claves, el fondo bloqueado por él y «traer de él» si se ofrece. */
+function htmlEnlaceDelPuente(l) {
+  const fondo = l.fondo.length ? t('puenteFondo', { lista: l.fondo.map((f) => t('puenteFondoDe', { cantidad: f.texto, quien: f.quienTexto || f.quien })).join(', ') }) : t('puenteSinFondo');
+  const claves = l.nivelMasBajo === null ? t('puenteSinClaves') : t('puenteClaves', { n: l.claves, nivel: l.nivelMasBajo });
+  const traer = l.traer && l.abierto ? ` <button type="button"${nodo('accion')} data-puente-traer-de="${attr(l.id)}">${escapar(t('puenteTraerDe', { libro: l.nombre }))}</button>` : '';
+  return `<li class="puente-enlace" data-enlace="${attr(l.id)}" data-cuenta="${l.cuenta}">
+    <span>${escapar(t('puenteEnlace', { libro: l.nombre, tipo: t('puenteTipo_' + l.tipo), quien: l.quienTexto || l.quien }))}</span>
+    <br><small>${escapar(l.grado ? t('puenteGrado', { grado: l.grado }) : t('puenteSinGrado'))} · <b>${escapar(t(l.cuenta ? 'puenteCuenta' : 'puenteNoCuenta'))}</b>${l.delDueno && l.delDueno !== l.id ? ' · ' + escapar(t('puenteDelDueno')) : ''}</small>
+    <br><small>${escapar(claves)}</small>
+    <br><small class="puente-fondo">${escapar(fondo)}</small>
+    ${l.noAbre ? `<br><small class="aviso">${escapar(t('puenteNoAbierto', { motivo: l.motivo ?? '' }))}</small>` : ''}${traer}
+  </li>`;
+}
+
+/** Enviar algo mío a otro libro: la serie, a qué libro (entre los enlazados que cuentan) y cuánto, con el aviso antes de firmar. */
+function htmlEnviarDelPuente(e) {
+  if (!e.destinos.length) return `<p class="aviso" data-sin-destino>${escapar(t('puenteSinDestino'))}</p>`;
+  const opciones = e.destinos.map((d) => `<option value="${attr(d.enlace)}"${d.enlace === e.elegido ? ' selected' : ''}>${escapar(d.nombre + (d.grado ? ' · ' + d.grado : '') + (d.quien ? ' · ' + t('puenteDestinoQuien', { quien: d.quien }) : ''))}</option>`).join('');
+  return `<form class="puente-enviar"${nodo('formulario')} data-puente-enviar-form>
+    <input type="hidden" name="serie" value="${attr(e.serie)}">
+    <p><b>${escapar(e.texto)}</b>${e.soloA ? ` <small>${escapar(t('puenteSoloVuelve', { libro: e.soloANombre ?? String(e.soloA).slice(0, 8) }))}</small>` : ''}</p>
+    <div class="campo"><label for="puente-destino">${escapar(t('puenteDestino'))}</label><select id="puente-destino" name="enlace">${opciones}</select></div>
+    <div class="campo"><label for="puente-cantidad">${escapar(t('puenteCantidad', { disponible: e.disponible }))}</label><input id="puente-cantidad" name="cantidad" type="number" min="1" max="${attr(e.disponible)}" step="1" value="${attr(e.cantidad ?? 1)}" required></div>
+    <p class="aviso" data-puente-aviso>${escapar(t('puenteAvisoEnvio'))}</p>
+    <p class="ayuda"><small>${escapar(t('puenteRedDePruebas'))}</small></p>
+    <footer><button type="submit" ${e.ocupado ? 'disabled' : ''}>${escapar(t('puenteEnviar'))}</button></footer>
+  </form>`;
+}
+
+/** Lo que el otro libro tiene sellado y se puede traer aquí; lo que espera su sello, dicho con su frase. */
+function htmlTraerDelPuente(tr) {
+  const lista = tr.lista.length
+    ? `<ul class="puente-traibles">${tr.lista.map((x) => `<li><span>${escapar(x.titulo || x.id.slice(0, 8))}</span> <small>${escapar(x.quien || x.autor)} · ${escapar(x.cuando)}</small> <button type="button"${nodo('accion')} data-puente-traer="${attr(x.id)}">${escapar(t('puenteTraer'))}</button></li>`).join('')}</ul>`
+    : `<p class="ayuda">${escapar(t('puenteNadaQueTraer', { libro: tr.libro }))}</p>`;
+  const espera = tr.sinSello ? t('puenteSinSello_' + tr.sinSello, { libro: tr.libro }) : tr.esperan ? t('puenteEsperanSello', { n: tr.esperan, libro: tr.libro }) : '';
+  return `<div class="puente-traer" data-traer-de="${attr(tr.enlace)}"><h3>${escapar(t('puenteTraerDe', { libro: tr.libro }))}</h3><p class="ayuda">${escapar(t('puenteTraerAyuda', { libro: tr.libro }))}</p>${lista}${espera ? `<p class="aviso" data-espera-sello>${escapar(espera)}</p>` : ''}</div>`;
+}
+
+/**
+ * Lo traído, leído (leerTraido): de qué libro, quién lo escribió allí, cuándo quedó en firme, por qué enlace, su grado, si
+ * es del dueño y el nivel más bajo de ese enlace; si no es fiable, su causa (tal cual) y ni su contexto ni sus movimientos.
+ * Un envío, con cuánto queda por recibir y «Recibir» si se ofrece.
+ */
+function htmlTraidoDelPuente(x) {
+  const de = t('puenteTraidoDe', { libro: x.libroNombre ?? String(x.libro ?? '').slice(0, 8), autor: x.autor ?? '', firme: x.firme ?? t('puenteSinFirme') });
+  const por = t('puentePorEnlace', { grado: x.grado ?? '', dueno: x.grado === 'del dueño' || !x.delDueno ? '' : t('puentePorEnlaceDueno'), cuenta: x.cuenta ? '' : t('puentePorEnlaceNoCuenta'), nivel: x.nivelMasBajo ?? '—' });
+  const cuerpo = x.fiable
+    ? `<details><summary>${escapar(t('puenteQueDecia'))}</summary><pre>${escapar(comoTexto(x.payload))}</pre><p><small>${escapar(t('puenteContexto'))}</small></p><pre>${escapar(comoTexto(x.contexto))}</pre><p><small>${escapar(t('puenteMovimientos'))}</small></p><pre>${escapar(comoTexto(x.movimientos))}</pre></details>`
+    : `<p class="aviso" data-no-fiable>${escapar(x.causa ?? '')}</p><details><summary>${escapar(t('puenteQueDecia'))}</summary><pre>${escapar(comoTexto(x.payload))}</pre></details>`;
+  const envio = x.envio ? `<p class="puente-queda"><small>${escapar(x.envio.queda > 0 ? t('puenteQueda', { queda: x.envio.queda, envia: x.envio.envia }) : t('puenteRecibido'))}</small>${x.recibir ? ` <button type="button"${nodo('accion')} data-puente-recibir="${attr(x.traido)}">${escapar(t('puenteRecibir'))}</button>` : ''}</p>` : '';
+  return `<li class="puente-traido" data-traido="${attr(x.traido)}" data-fiable="${x.fiable}"><span>${escapar(de)}</span><br><small>${escapar(por)}${x.origen ? '' : ' · ' + escapar(t('puenteSinOrigen'))}</small>${cuerpo}${envio}</li>`;
+}
+
+/**
+ * La hoja «Entre mis libros» (carta/puente.js): los enlaces a mis libros de este dispositivo (grado, si cuenta, el fondo y
+ * cómo se cambian sus claves), lo mío que puede ir a otro libro (y el formulario de enviar), lo que se puede traer de un
+ * libro enlazado y lo traído, leído. `v`: { enlaces, cruza, enviar, traer, traidos, aviso, motivos, exito }. Todo dato va
+ * escapado: lo que viene de un registro o de otro libro se pinta como texto.
+ */
+export function htmlPuente(v) {
+  if (!v) return '';
+  const avisos = [...(v.aviso ? [v.aviso] : []), ...(v.motivos ?? []).map((m) => m?.mensaje ?? m)];
+  const mensajes = (avisos.length ? `<ul class="motivos" role="alert">${avisos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '') + (v.exito ? `<p class="exito" role="status">${escapar(v.exito)}</p>` : '');
+  const enlaces = v.enlaces.length
+    ? `<ul class="puente-enlaces">${v.enlaces.map(htmlEnlaceDelPuente).join('')}</ul><p class="ayuda"><small data-cambiar-claves>${escapar(t('puenteCambiarClaves'))}</small></p>`
+    : `<p class="ayuda">${escapar(t('puenteSinEnlaces'))}</p>`;
+  const cruza = v.cruza.length
+    ? `<ul class="puente-cruza">${v.cruza.map((c) => `<li><span>${escapar(c.texto)}</span> <button type="button"${nodo('control')} data-puente-enviar="${attr(c.serie)}">${escapar(t('puenteEnviarEsto'))}</button></li>`).join('')}</ul>`
+    : `<p class="ayuda">${escapar(t('puenteNadaCruza'))}</p>`;
+  const traidos = v.traidos.length ? `<ul class="puente-traidos">${v.traidos.map(htmlTraidoDelPuente).join('')}</ul>` : `<p class="ayuda">${escapar(t('puenteNadaTraido'))}</p>`;
+  return `<div class="formulario-fondo" data-cerrar><section class="formulario puente"${nodo('reglas')} role="dialog" aria-label="${attr(t('puenteTitulo'))}">
+    <header><h2>${escapar(t('puenteTitulo'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <p class="ayuda">${escapar(t('puenteAyuda'))}</p>${mensajes}
+    <h3>${escapar(t('puenteEnlaces'))}</h3>${enlaces}
+    ${v.traer ? htmlTraerDelPuente(v.traer) : ''}
+    <h3>${escapar(t('puenteCruza'))}</h3>${cruza}${v.enviar ? htmlEnviarDelPuente(v.enviar) : ''}
+    <h3>${escapar(t('puenteTraidos'))}</h3>${traidos}
+  </section></div>`;
 }
 
 /**
@@ -1981,7 +2117,7 @@ export function html(arbol, extra = {}) {
     ${a.apilada ? htmlDigitos(a.secuencia) : ''}
     ${htmlAro(a.aro)}
     ${htmlSitio(a.sitio, a, extra)}
-    ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}
+    ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}${htmlPuente(extra.puente)}
     ${htmlFormulario(a.formulario)}
     ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
     ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true, emparejar: extra.emparejar }) : ''}

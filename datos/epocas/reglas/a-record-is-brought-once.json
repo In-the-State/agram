@@ -1,7 +1,7 @@
 [
   ["a record is brought once"],
   ["before.5", "9800000000"],
-  ["=not (\"bring a record from another book\" in ev.4) or count ((first before.5).9.8 where \"bring a record from another book\" in (payload(it)).4 and first (payload(it)).1.1.0 = first (payload(ev)).1.1.0) = 0"],
+  ["=not (\"bring a record from another book\" in ev.4) or count ((first before.5).9.8 where (first it.6.5 = first before.5 and nth 1 it.6.5 = \"9800000000\") and \"bring a record from another book\" in (payload(it)).4 and first (payload(it)).1.1.0 = first (payload(ev)).1.1.0) = 0"],
   ["ev.3"],
   ["mint", "transfer", "lock", "release", "burn"],
   ["*"],

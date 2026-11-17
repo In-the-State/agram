@@ -10,19 +10,23 @@
 // Y las ayudas de JS del puente, que no son núcleo: el registro de otro libro como décupla para traerlo
 // (registroComoDecupla), lo traído, leído (leerTraido), y la salida con saldos: cuánto se puede declarar (saldosDe) y
 // los registros de la salida, listos para firmar (planDeSalida; docs/notas/PUENTE.md §11).
+//
+// La carta importa este módulo en el navegador (encargo «carta: irme con lo mío y el puente»): lo de Node (leer y escribir
+// los archivos de reglas, --escribir) solo se carga en Node, y nada de arriba usa el Buffer de Node.
 
-import { readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA } from '../../src/sello.js';
+import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA, eslabonesValidos } from '../../src/sello.js';
 import { canonico } from '../../src/evento.js';
 import { claveToken, partirClave } from '../../src/tokens.js';
 import { gradoDelEnlace, cuelgaDe } from '../../src/contrato.js';
 import { epocaEscritaDe } from '../../src/epocas.js';
 import { quemaDelCoste } from '../../src/escritura.js';
-import { formatear } from './generar.mjs';
+import { ajustesDelEje } from '../../src/exterior.js';
 
-const AQUI = dirname(fileURLToPath(import.meta.url));
+/** ¿Corre en Node? (las pruebas y --escribir). En el navegador no hay archivos que leer. */
+const EN_NODE = typeof globalThis.process?.versions?.node === 'string';
+const { dirname, join } = EN_NODE ? await import('node:path') : {};
+const { fileURLToPath, pathToFileURL } = EN_NODE ? await import('node:url') : {};
+const AQUI = EN_NODE ? dirname(fileURLToPath(import.meta.url)) : null;
 
 /** Las cuatro plantillas del puente (lo que dice el 4 de cada registro que escriben). */
 export const PLANTILLAS_DEL_PUENTE = Object.freeze({
@@ -113,7 +117,7 @@ export const SUELO_DEL_PUENTE = Object.freeze([
 
 const P = PLANTILLAS_DEL_PUENTE;
 const L_ = ENLACES;
-const hexDe = (t) => Buffer.from(t, 'utf8').toString('hex');
+const hexDe = (t) => Array.from(new TextEncoder().encode(t), (b) => b.toString(16).padStart(2, '0')).join('');
 /** 65 bytes a cero: con ellos `slice` no se sale de un texto corto (el BQL mínimo no tiene «largo»). */
 const CEROS = '00'.repeat(65);
 
@@ -127,6 +131,13 @@ const forasteraMov = (it) => forastera(it + '.0.0.0', it + '.0.0.1');
 /** El libro que nombra un enlace L (`L` una expresión de un registro): 1.0.0 en «open a private book here», 1.0 en «this book hangs from». */
 const libroEs = (L, B) => '("' + L_.abrir + '" in (payload(' + L + ')).4 and first (payload(' + L + ')).1.0.0 = ' + B
   + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and first (payload(' + L + ')).1.0 = ' + B + ')';
+/**
+ * X es un registro anclado exactamente en el camino `en` del génesis. Hace falta en todo `where` sobre el 9.d del génesis:
+ * X.9.d es (X.9).d, así que un registro anclado en el 9 mismo (los ajustes del libro, en «9000000000») mete ahí lo de
+ * dentro de él (sus movimientos, sus textos, sus vistas), que no son registros y con los que `payload` da ERROR. Va el
+ * primero del `where`: el `and` no sigue si esto no se cumple.
+ */
+const ancladoEnElGenesis = (x, en) => '(first ' + x + '.6.5 = first before.5 and nth 1 ' + x + '.6.5 = "' + en + '")';
 const esEnlace = (L) => '("' + L_.abrir + '" in (payload(' + L + ')).4 or "' + L_.cuelga + '" in (payload(' + L + ')).4)';
 
 /** La clave K está anotada en el enlace L para el nivel N: uno de sus pares [nivel, clave] (2.p en «open…», 1.1.p en «this book…»). */
@@ -189,7 +200,7 @@ export function formulaDeEnlazado() {
  */
 export function enlaceQueCuenta(L, B_) {
   const G = '(first before.5)';
-  const sinPosterior = (lista) => 'count ((' + lista + ') where ' + esEnlace('it') + ' and ' + libroEs('it', B_) + ' and first it.3 = first ' + L + '.3 and it != ' + L + ' and ' + t('it') + ' >= ' + t(L) + ') = 0';
+  const sinPosterior = (lista, en) => 'count ((' + lista + ') where ' + (en ? ancladoEnElGenesis('it', en) + ' and ' : '') + esEnlace('it') + ' and ' + libroEs('it', B_) + ' and first it.3 = first ' + L + '.3 and it != ' + L + ' and ' + t('it') + ' >= ' + t(L) + ') = 0';
   const delDueno = 'first ' + L + '.3 = first ' + G + '.3';
   // La prueba del génesis se vuelve a mirar al consumir el enlace (revisión automática, 17-11): no se fía de que la regla
   // del creador rigiera cuando se escribió (un libro que la recibe después por un cambio, o cualquier otro camino).
@@ -200,8 +211,8 @@ export function enlaceQueCuenta(L, B_) {
     + ' and ("' + L_.abrir + '" in (payload(' + L + ')).4 and ' + cuatroPares('2') + ' and (' + delDueno + ' or ' + deQuienLoCreo + ') and nth 1 ' + L + '.6.5 = "9100000000" and first (payload(' + L + ')).1.0.0 = ' + B_
     + ' and ' + sinPosterior('down (up ' + L + ')')
     + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and ' + cuatroPares('1.1') + ' and ' + delDueno + ' and first ' + L + '.6.5 = first before.5 and nth 1 ' + L + '.6.5 = "9500000000" and first (payload(' + L + ')).1.0 = ' + B_
-    + ' and ' + sinPosterior(G + '.9.1') + ')'
-    + ' and ' + sinPosterior(G + '.9.5') + ' and ' + noRetirado(L);
+    + ' and ' + sinPosterior(G + '.9.1', '9100000000') + ')'
+    + ' and ' + sinPosterior(G + '.9.5', '9500000000') + ' and ' + noRetirado(L);
 }
 
 /** El nivel de la primera cabecera del sello que trae un «bring a record from another book» (su eslabón 0). */
@@ -298,7 +309,7 @@ export function formulaDeLaPrueba(p = POSICIONES_DEL_SELLO, { intermedios = true
 
 /** «a record is brought once»: ningún registro traído antes (en el 9.8 del génesis) trae el mismo id. */
 export function formulaDeUnaVez() {
-  return '=' + noTraer + ' or count ((first before.5).9.8 where "' + P.traer + '" in (payload(it)).4 and first (payload(it)).1.1.0 = first ' + R(0) + ') = 0';
+  return '=' + noTraer + ' or count ((first before.5).9.8 where ' + ancladoEnElGenesis('it', ANCLA_DE_LO_TRAIDO) + ' and "' + P.traer + '" in (payload(it)).4 and first (payload(it)).1.1.0 = first ' + R(0) + ') = 0';
 }
 
 // ---------- enviar ----------
@@ -594,7 +605,7 @@ export function sentenciasDeRecibir() {
   const S = (k) => '(payload(it)).1.1.6.1.' + k;
   const EMI = 'first ' + S('1.1');
   const vuelta = 'slice(cat(utf8(' + EMI + '), bytes("' + CEROS + '")), 0, 65) = cat(utf8(first before.5), bytes("3a"))';
-  const traidoDelAtado = '((first before.5).9.8 where "' + P.traer + '" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first ' + S('1.3') + ')';
+  const traidoDelAtado = '((first before.5).9.8 where ' + ancladoEnElGenesis('it2', ANCLA_DE_LO_TRAIDO) + ' and "' + P.traer + '" in (payload(it2)).4 and first (payload(it2)).1.0 = first (payload(it)).1.0 and first (payload(it2)).1.1.0 = first ' + S('1.3') + ')';
   const forastera = 'E.(text(cat(utf8(first (payload(it)).1.0), bytes("3a"), utf8(' + EMI + ')))).(first ' + S('1.2') + ')';
   const ida = 'not (' + vuelta + ') and count ' + traidoDelAtado + ' > 0 and mint first ' + S(2) + ' ' + forastera + '.(first ' + traidoDelAtado + ') to me'
     + ' or not (' + vuelta + ') and count ' + traidoDelAtado + ' = 0 and mint first ' + S(2) + ' ' + forastera + ' to me';
@@ -798,13 +809,18 @@ export function leerTraido(eje, id) {
   const lp = enlace?.payload ?? [];
   const origen = [].concat(lp[4] ?? []).includes(L_.abrir) ? hoja(lp[1]?.[0]?.[1]) : hoja(lp[1]?.[2]);
   const malos = [['el contexto', reg[7]], ['los movimientos', reg[5]]].filter(([, x]) => !esCanonicoDeUnValor(hoja(x))).map(([que]) => que);
-  const fiable = malos.length === 0;
+  // La hora de la cabecera, en segundos: solo es una fecha si es finita y cabe en una fecha de JS (|ms| <= 8.64e15). Si la
+  // prueba trae otra cosa, lo traído se lee «no fiable» (revisión del carril de la carta, 17-11).
+  const horaMala = hora !== undefined && !(Number.isFinite(hora) && Math.abs(hora * 1000) <= 8.64e15);
+  const fiable = malos.length === 0 && !horaMala;
   return {
     libro: hoja(p[1]?.[0]), id: hoja(reg[0]), autor: hoja(reg[1]), t: hoja(reg[4]), payload: reg[6] ?? null,
     contexto: fiable ? JSON.parse(hoja(reg[7])) : null, movimientos: fiable ? JSON.parse(hoja(reg[5])) : null,
     fiable,
-    causa: fiable ? null : 'no fiable: ' + malos.join(' y ') + ' que trae no ' + (malos.length > 1 ? 'son' : 'es') + ' el JSON canónico de un solo valor, así que el mismo id podría leerse partido de otra forma; no se enseña' + (malos.length > 1 ? 'n' : ''),
-    firme: Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
+    causa: fiable ? null : malos.length
+      ? 'no fiable: ' + malos.join(' y ') + ' que trae no ' + (malos.length > 1 ? 'son' : 'es') + ' el JSON canónico de un solo valor, así que el mismo id podría leerse partido de otra forma; no se enseña' + (malos.length > 1 ? 'n' : '')
+      : 'no fiable: la hora de la cabecera de su prueba no es una fecha; no se enseñan ni su contexto ni sus movimientos',
+    firme: !horaMala && Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
     enlace: enlace?.id ?? null, origen: typeof origen === 'string' ? origen : null,
     ...porQueEnlace(eje, enlace?.id),
     nivelMasBajo: nivelMasBajoDe(enlace),
@@ -834,6 +850,93 @@ export function nivelMasBajoDe(enlace) {
   if (Array.isArray(pares) && pares.length > 4) return null;
   const niveles = (Array.isArray(pares) ? pares : []).filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number').map((x) => x[0]);
   return niveles.length ? Math.min(...niveles) : null;
+}
+
+// ---------- de dónde salen los sellos (encargo «carta: irme con lo mío y el puente», sección 0) ----------
+//
+// Traer pide la prueba de sello del registro en su libro y las claves de línea de ese libro. Las dos están ya en el libro
+// de origen, sin pedir nada al nodo: la prueba es la décupla de la vía «cascada» que guarda eje.sello(id) (la que llega
+// por la sincronía de quien guarda y sella ese libro, src/sincronia.js #sellar, y la que leen «sealed» y «firm»), la misma
+// forma que pide «a brought record comes with its proof»; las claves de línea, las que anota su cuenta raíz en «exterior
+// settings» («line keys»: src/exterior.js ajustesDelEje), las mismas con que «firm» comprueba sus sellos. Un libro sin
+// quien lo selle (sin «seal url», o de demostración) no tiene ni una ni otra: lo que pide su sello espera.
+
+/** Las claves de línea de un libro, pares [nivel, clave]: las de «exterior settings» de su cuenta raíz ([] si no anota ninguna). */
+export function clavesDeLineaDe(eje) {
+  try {
+    return ajustesDelEje(eje).lineas;
+  } catch {
+    return [];
+  }
+}
+
+/** Los pares [nivel, clave] que anota un enlace (el 2 de «open a private book here», el 1.1 de «this book hangs from»), o []. */
+export function paresDelEnlace(enlace) {
+  const a = [].concat(enlace?.payload?.[4] ?? []);
+  const pares = a.includes(L_.abrir) ? enlace.payload[2] : a.includes(L_.cuelga) ? enlace.payload[1]?.[1] : null;
+  return Array.isArray(pares) ? pares.filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number' && typeof x[1] === 'string') : [];
+}
+
+/**
+ * ¿Tiene quien lo selle el libro `eje`? null si sí; si no, por qué: 'demostracion' (un libro de demostración no se sella),
+ * 'sinSellador' (su cuenta raíz no dice «seal url»: nadie lo sella) o 'sinClaves' (no anota claves de línea: nada suyo se
+ * puede comprobar en otro libro).
+ */
+export function sinSello(eje) {
+  const genesis = eje?.obtener?.(eje?.genesisId);
+  if (genesis?.contexto?.demostracion === true) return 'demostracion';
+  let sello = null;
+  try {
+    sello = ajustesDelEje(eje).sello;
+  } catch {
+    sello = null;
+  }
+  if (!sello) return 'sinSellador';
+  return clavesDeLineaDe(eje).length ? null : 'sinClaves';
+}
+
+/**
+ * La prueba de sello con que se trae el registro `id` del libro `origen` a otro: la décupla de la vía «cascada» que el
+ * origen ya tiene de ese registro (eje.sello(id).decupla), si sus eslabones valen seguidos desde abajo con las claves
+ * `lineas` (las del enlace por el que se trae; por defecto, las del origen: clavesDeLineaDe), con el libro de origen en la
+ * primera cabecera (sello.eslabonesValidos, como «firm») y uno de ellos dice un nivel a la altura de `nivel` (epoch.8.9.2
+ * del libro de destino). No mira el grado de cada eslabón (epoch.7.6.5): eso lo dice la regla al traer.
+ * → { prueba: la décupla (una copia, para el payload) | null, falta: null | 'sello' | 'claves' | 'nivel' }.
+ */
+export function pruebaParaTraer(origen, id, { lineas = clavesDeLineaDe(origen), nivel = 4 } = {}) {
+  const decupla = origen?.sello?.(id)?.decupla;
+  const q = POSICIONES_DEL_SELLO;
+  if (!Array.isArray(decupla) || ![].concat(decupla[Number(q.via)]).includes(q.cascada)) return { prueba: null, falta: 'sello' };
+  if (!Array.isArray(lineas) || !lineas.length) return { prueba: null, falta: 'claves' };
+  const validos = eslabonesValidos(decupla, id, { libro: origen.genesisId, lineas });
+  const cadena = Array.isArray(decupla[Number(q.cadena)]) ? decupla[Number(q.cadena)] : [];
+  const hoja = (x) => (Array.isArray(x) ? hoja(x[0]) : x);
+  const llega = cadena.slice(0, validos).some((e) => Array.isArray(e) && hoja(e[Number(q.eslabon.nivel)]) >= nivel);
+  return llega ? { prueba: JSON.parse(JSON.stringify(decupla)), falta: null } : { prueba: null, falta: validos ? 'nivel' : 'claves' };
+}
+
+/**
+ * Cuánto queda por recibir de un envío traído `idTraido` (un «bring a record from another book» de un «send to another
+ * book»): `envia`, cuánto dice el envío; `recibido`, lo ya liberado (la vuelta) o acuñado (la ida) por los «receive from
+ * another book» que cuelgan de su 4 (RP9, RP11); `queda`, la diferencia; `vuelta`, si vuelve a este libro (el emisor de la
+ * serie es «<este libro>:…»). null si no es un envío traído.
+ */
+export function porRecibir(eje, idTraido) {
+  const p = eje?.obtener?.(idTraido)?.payload;
+  if (!Array.isArray(p) || ![].concat(p[4] ?? []).includes(P.traer)) return null;
+  const hoja = (x) => (Array.isArray(x) ? hoja(x[0]) : x);
+  const envio = p[1]?.[1]?.[6];
+  if (!Array.isArray(envio) || ![].concat(envio[4] ?? []).includes(P.enviar)) return null;
+  const envia = hoja(envio[1]?.[2]);
+  const emisor = hoja(envio[1]?.[1]?.[1]);
+  const vuelta = typeof emisor === 'string' && emisor.startsWith(eje.genesisId + ':');
+  const cuanto = Number(envia) || 0;
+  const recibos = eje.sobre(idTraido, '4000000000').filter((h) => [].concat(h.payload?.[4] ?? []).includes(P.recibir));
+  // La ida se recibe una vez y entera; la vuelta, en partes: lo liberado por cada recibir (como bloqueosDeLaVuelta).
+  const recibido = vuelta
+    ? recibos.reduce((s, h) => s + (h.movimientos ?? []).filter((m) => m.estado === 'liberacion').reduce((x, m) => x + m.cantidad, 0), 0)
+    : recibos.length ? cuanto : 0;
+  return { envia: cuanto, recibido, queda: Math.max(0, cuanto - recibido), vuelta };
 }
 
 // ---------- la salida con saldos (tramo 4, parte B; agram-equipo/DISENO_TRAMO_4.md §4; docs/notas/PUENTE.md §11) ----------
@@ -983,7 +1086,9 @@ export function planDeSalida(eje, identidad, opciones = {}) {
 export const ARCHIVO = (nombre) => join(AQUI, 'reglas', nombre);
 
 // node datos/epocas/puente.mjs --escribir: pone cada fórmula en el 2 de su regla (el resto del archivo no cambia).
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.argv.includes('--escribir')) {
+if (EN_NODE && import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.argv.includes('--escribir')) {
+  const { readFileSync, renameSync, writeFileSync } = await import('node:fs');
+  const { formatear } = await import('./generar.mjs');
   for (const [archivo, f] of Object.entries(FORMULAS)) {
     const ruta = ARCHIVO(archivo);
     const regla = JSON.parse(readFileSync(ruta, 'utf8'));

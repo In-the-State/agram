@@ -827,7 +827,9 @@ export class Sincronia {
     }
     for (const [id, e] of datos.sellos ?? []) {
       if (e === 'por sellar' || e === 'pendiente') s.#sellos.set(id, e);
-      else if (e && typeof e === 'object') s.#sellos.set(id, { altura: e.altura, hash: e.hash, instante: e.instante, verificado: e.verificado === true });
+      // Con su décupla si se guardó (serializar la lleva): sin ella, la regla «sealed» no tendría qué comprobar tras restaurar.
+      // eje.marcarSello vuelve a mirar su forma (decuplaDeSelloValida) y la regla, sus firmas: guardarla no la da por buena.
+      else if (e && typeof e === 'object') s.#sellos.set(id, { altura: e.altura, hash: e.hash, instante: e.instante, verificado: e.verificado === true, ...(e.decupla !== undefined ? { decupla: e.decupla } : {}) });
     }
     // Lo guardado antes de los pagos no trae `pagos`: se restaura igual, sin esperas.
     const pagos = datos.pagos && typeof datos.pagos === 'object' ? datos.pagos : {};

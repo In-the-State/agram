@@ -49,6 +49,10 @@ const UMBRAL_ARRASTRE = 24;
  *   enviar(form)             enviar el formulario de una acción
  *   reglas() · reglasCambio(id) · reglasVolver() · reglasProponer() · reglasActuar(que, id) · reglasPosicion(posicion, form) · reglasPropuesta(form)
  *                            «Reglas del libro» (A21; carta/reglas.js): abrirla, un cambio, volver a la lista, proponer, sus acciones
+ *   salida() · salidaPunto(punto) · salidaFirmar()
+ *                            «Irme con lo mío» (carta/puente.js): abrirla, con qué reglas nace el libro nuevo, firmar el paso siguiente
+ *   puente() · puenteEnviarSerie(serie) · puenteEnviar(form) · puenteTraerDe(enlace) · puenteTraer(id) · puenteRecibir(id)
+ *                            el puente entre mis libros (carta/puente.js): la hoja, enviar, traer y recibir
  *   ajustesElemento(X)       «Ajustes de este elemento» (A21): lo fijado y lo heredado del libro
  *   libro(alta) · libroOtro() · libroEntrar(alta, foco) · libroVolver(alta, foco) · libroAnunciar(alta, foco)
  *   libroPrivado(X) · libroPrivadoCrear(form) · libroPrivadoAnunciar() · copiaTodos()
@@ -228,6 +232,16 @@ export function instalar(raiz, m) {
     if ((el = b('[data-reglas-volver]'))) { e.preventDefault(); m.reglasVolver?.(); return; }
     if ((el = b('[data-reglas-proponer]'))) { e.preventDefault(); m.reglasProponer?.(); return; }
     if ((el = b('[data-reglas-actuar]'))) { e.preventDefault(); m.reglasActuar?.(el.dataset.reglasActuar, el.dataset.id); return; }
+    // «Irme con lo mío» (carta/puente.js): abrirla, con qué reglas nace el libro nuevo y firmar el paso siguiente.
+    if ((el = b('[data-salida-abrir]'))) { e.preventDefault(); m.salida?.(); return; }
+    if ((el = b('[data-salida-punto]'))) { e.preventDefault(); m.salidaPunto?.(el.dataset.salidaPunto); return; }
+    if ((el = b('[data-salida-firmar]'))) { e.preventDefault(); if (!el.disabled) m.salidaFirmar?.(); return; }
+    // El puente entre mis libros (carta/puente.js): la hoja, elegir qué enviar, traer de un libro enlazado, traer, recibir.
+    if ((el = b('[data-puente-abrir]'))) { e.preventDefault(); m.puente?.(); return; }
+    if ((el = b('[data-puente-enviar]'))) { e.preventDefault(); m.puenteEnviarSerie?.(el.dataset.puenteEnviar); return; }
+    if ((el = b('[data-puente-traer-de]'))) { e.preventDefault(); m.puenteTraerDe?.(el.dataset.puenteTraerDe); return; }
+    if ((el = b('[data-puente-traer]'))) { e.preventDefault(); m.puenteTraer?.(el.dataset.puenteTraer); return; }
+    if ((el = b('[data-puente-recibir]'))) { e.preventDefault(); m.puenteRecibir?.(el.dataset.puenteRecibir); return; }
     if ((el = b('[data-ajustes-elemento]'))) { e.preventDefault(); m.ajustesElemento?.(el.dataset.ajustesElemento); return; }
     // Varios libros (A24; carta/libros.js): «Tus libros», entrar y volver, el libro privado y la copia de todos.
     if ((el = b('[data-libro]'))) { e.preventDefault(); if (!el.disabled) m.libro?.(el.dataset.libro); return; }
@@ -525,6 +539,7 @@ export function instalar(raiz, m) {
     else if (f.matches('[data-configuracion]')) m.configurar?.(f);
     else if (f.matches('[data-retoque]')) m.guardarRetoque?.(f);
     else if (f.matches('[data-reglas-propuesta]')) m.reglasPropuesta?.(f);
+    else if (f.matches('[data-puente-enviar-form]')) m.puenteEnviar?.(f);
     else if (f.matches('[data-crear]')) m.crear?.(f);
     else if (f.matches('[data-restaurar]')) m.restaurar?.(f);
     else if (f.matches('[data-copia-form]')) m.copia?.(f);
