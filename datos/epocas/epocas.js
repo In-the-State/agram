@@ -6085,6 +6085,28 @@ export const EPOCA_0_BTML_DATOS = [
           "template attach a file param actions label: acción",
           "template attach a file param actions help: la acción",
           "template attach a file message: {me} adjunta un archivo a {first it.0}",
+          "template attach art to this element: poner arte propio a este elemento",
+          "template attach art to this element param file label: archivo",
+          "template attach art to this element param file help: el archivo, subido a los archivos del libro: archivo:<su sha256> (la carta abre el selector y lo sube); es el recurso de la pieza",
+          "template attach art to this element param format label: formato",
+          "template attach art to this element param format help: el formato del archivo (epoch.9.5.1), uno que admite una pieza que viene del libro: html no",
+          "template attach art to this element param size label: tamaño",
+          "template attach art to this element param size help: el tamaño mínimo donde se ve (0: en todos)",
+          "template attach art to this element param type label: tipo",
+          "template attach art to this element param type help: el tipo de pieza, uno de los de la cabecera de los modelos de la época (epoch.9.7.0.4): por defecto «elemento», su icono propio",
+          "template attach art to this element param key label: clave",
+          "template attach art to this element param key help: la clave de la pieza (el primer nombre de su tipo: el paso, el mundo…); «*», cualquiera",
+          "template attach art to this element param name label: nombre",
+          "template attach art to this element param name help: el nombre de la pieza (el segundo nombre de su tipo), opcional",
+          "template attach art to this element param variant label: orientación",
+          "template attach art to this element param variant help: la orientación (epoch.9.7.0.3); por defecto, la primera",
+          "template attach art to this element param repetition label: repetición",
+          "template attach art to this element param repetition help: en bucle o una vez (epoch.9.7.0.7); por defecto, una vez",
+          "template attach art to this element param world label: mundo",
+          "template attach art to this element param world help: el mundo donde sirve (1 a 9) o «*», todos; se ancla en esa posición de X («*»: en su 5)",
+          "template attach art to this element param place label: sitio",
+          "template attach art to this element param place help: dónde se ancla en X: el mundo, o su 5 si es «*» (no se escribe en el registro)",
+          "template attach art to this element message: {me} pone arte propio a {first it.0}",
           "template attend: atender",
           "template attend param text label: texto",
           "template attend param text help: la respuesta",
@@ -7423,7 +7445,10 @@ export const EPOCA_0_BTML_DATOS = [
           "ref": "23c680184635442c34ecda01a0400852be6a3e697891b19487455f0bfcef4b54"
         },
         {
-          "ref": "46721c1e99cd9d3458ca177f61ebece770cd188c4b406e576983ac12aabf080b"
+          "ref": "960559ba4c5a63b19a85e19f6d2dacf5736ba2d4cf6a1e8cc65068c1a475c36b"
+        },
+        {
+          "ref": "0e0c90d452983e8b22099109a8447c9512a38fc7227d97f7674c9583d30e77cc"
         },
         {
           "ref": "e42b5ccff63c250a2141612c893f7f9ee57bd468eebad887ed2b297721a936cb"
@@ -18367,8 +18392,379 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
     ]
   },
   {
+    "archivo": "attach-art-to-this-element.json",
+    "id": "960559ba4c5a63b19a85e19f6d2dacf5736ba2d4cf6a1e8cc65068c1a475c36b",
+    "registro": [
+      [
+        "attach art to this element"
+      ],
+      [
+        [
+          [
+            "file"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "file",
+            "ref"
+          ],
+          [
+            "6"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "the file, uploaded to the files of the ledger: archivo:<its sha256> (the card opens the file chooser and uploads it); it is the resource of the piece"
+          ]
+        ],
+        [
+          [
+            "format"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.5.1 and it != \"html\""
+          ],
+          [
+            "me"
+          ],
+          [
+            "file",
+            "format"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "the format of the file (epoch.9.5.1), one that a piece coming from the ledger admits: not html"
+          ]
+        ],
+        [
+          [
+            "size"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it >= 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            3
+          ],
+          [
+            0,
+            "the minimum size where it shows (0: in every size)"
+          ]
+        ],
+        [
+          [
+            "type"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.7.0.4.0.0 or it in epoch.9.7.0.4.1.0 or it in epoch.9.7.0.4.2.0 or it in epoch.9.7.0.4.3.0 or it in epoch.9.7.0.4.4.0 or it in epoch.9.7.0.4.5.0 or it in epoch.9.7.0.4.6.0 or it in epoch.9.7.0.4.7.0 or it in epoch.9.7.0.4.8.0 or it in epoch.9.7.0.4.9.0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            4
+          ],
+          [
+            "elemento",
+            "the type of piece, one of the types of the head of the models of the epoch (epoch.9.7.0.4.k.0, each of its at most ten positions): by default «elemento», its own icon"
+          ]
+        ],
+        [
+          [
+            "key"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            5
+          ],
+          [
+            "*",
+            "the key of the piece (the first name of its type: the step, the world…); «*», any"
+          ]
+        ],
+        [
+          [
+            "name"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2.1"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            6
+          ],
+          [
+            "the name of the piece (the second name of its type), optional"
+          ]
+        ],
+        [
+          [
+            "variant"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.7.0.3"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            7
+          ],
+          [
+            "=first epoch.9.7.0.3",
+            "the orientation (epoch.9.7.0.3), by default the first"
+          ]
+        ],
+        [
+          [
+            "repetition"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it in epoch.9.7.0.7"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4.0"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            8
+          ],
+          [
+            "=last epoch.9.7.0.7",
+            "loop or once (epoch.9.7.0.7), by default once"
+          ]
+        ],
+        [
+          [
+            "world"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=it = \"*\" or it >= 1 and it <= 9 and floor it = it"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "5"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            9
+          ],
+          [
+            "*",
+            "the world where it serves (1 to 9) or «*», all of them; it is anchored in that position of X («*»: in its 5)"
+          ]
+        ],
+        [
+          [
+            "place"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it >= 1 and it <= 9"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "{place}"
+          ],
+          [
+            "Core AGRAM 17-11 (encargo «arte propio», VG por Core State): parámetro de «attach art to this element»"
+          ],
+          [
+            "optional"
+          ],
+          [
+            10
+          ],
+          [
+            "=count ((payload(ev)).5 where it2 = \"*\") * 5 + sum ((payload(ev)).5 where it2 != \"*\")",
+            "where it is anchored in X: the world, or its 5 for «*» (not written in the record)"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 = me"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "write"
+      ],
+      [
+        "{place}"
+      ],
+      [
+        "Core AGRAM 17-11 (encargo «arte propio»; VG por Core State, tras ENCAJE_ROMA.md): que cada libro lleve su propia animación es una capacidad general, así que la plantilla que ancla un adjunto como pieza de arte de un elemento entra en la época 0 (docs/CONTRATO.md §11.7). Escribe un registro que es una PIEZA tal como la lee src/modelos.js (leerPieza; propio, piezasDeModelo con id): 0 el tipo, 1 [tamaño, formato], 2 [clave, nombre], 3 la orientación, 4 [repetición, fotogramas], 5 los mundos y 6 el recurso, archivo:<sha256>. Anclado en X en la posición del mundo donde sirve («*»: en su 5, y se ve en los ocho mundos). Solo cuenta la pieza que ancla el autor de X (la lectura ignora las de otros): por coherencia se ofrece solo a él; no hay regla nueva. Los formatos, los tipos, las orientaciones y las repeticiones son los de la época, no una lista en código; html no (SEG-14)",
+        "Molde (encargo 3c-2a): el de «attach a file». Un parámetro cuyo 4 es «file» sale de subir un archivo: «file ref» es su referencia, «file format» el formato. Su 4 es «write»: no mueve nada más que el coste de escribir"
+      ],
+      [
+        "epoch 0"
+      ],
+      [
+        2,
+        9
+      ],
+      [
+        "attach art to this element: {me} attaches art to {first it.0}"
+      ]
+    ]
+  },
+  {
     "archivo": "let-p-come-down-here.json",
-    "id": "46721c1e99cd9d3458ca177f61ebece770cd188c4b406e576983ac12aabf080b",
+    "id": "0e0c90d452983e8b22099109a8447c9512a38fc7227d97f7674c9583d30e77cc",
     "registro": [
       [
         "let P come down here"
@@ -18565,7 +18961,7 @@ export const PLANTILLAS_DE_EPOCA_DATOS = [
       ],
       [
         2,
-        9
+        12
       ],
       [
         "let P come down here: {me} answers {first ev.1.0} to {last ev.3.1} bringing P down to {first it.0}"
@@ -28068,7 +28464,7 @@ export const GUIA_DE_EPOCA_DATOS = [
 ];
 
 // el id de la raíz de la época 0 (con su 2 = las referencias a sus reglas): el hash de su cuerpo canónico; lo nombran el génesis (contexto.epoca) y el 2 de una invitación (VG, 9-11: «se referencia, no se manda»)
-export const EPOCA_0_BTML_ID = "b84e13658f2cacc7577318621a184b8495c3efb4c0822e3970c7e79f9c1974c5";
+export const EPOCA_0_BTML_ID = "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448";
 
 // modelos/*.json y modelos/<nombre>/*.json: los modelos de visualización de la época (encargo 3c-2b) y sus piezas, { archivo, nombre, id, registro, piezas: [{ archivo, id, registro }] }; cada id, el hash de su cuerpo canónico; el 9.7 de la raíz los referencia
 export const MODELOS_DE_EPOCA_DATOS = [

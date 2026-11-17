@@ -40,9 +40,9 @@ test('texto: la traducción por clave del registro del idioma (epoch.9.4); si fa
   assert.equal(C.claves.parametro('purchase', 'order', 'label'), 'template purchase param order label');
 });
 
-test('las 73 plantillas de transacción tienen en es su nombre, la etiqueta y la ayuda de cada parámetro y su mensaje (con los mismos huecos); también las de datos, los niveles, los órdenes y los tamaños', () => {
+test('las 74 plantillas de transacción tienen en es su nombre, la etiqueta y la ayuda de cada parámetro y su mensaje (con los mismos huecos); también las de datos, los niveles, los órdenes y los tamaños', () => {
   const plantillas = A.plantillasDeTransaccion();
-  assert.equal(plantillas.length, 73);
+  assert.equal(plantillas.length, 74); // + «attach art to this element» (encargo «arte propio»)
   const tiene = (clave, original) => {
     const t = C.texto(null, clave, 'es');
     assert.ok(t !== null && t !== '', 'falta en es: «' + clave + '»');
