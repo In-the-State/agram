@@ -1135,11 +1135,12 @@ function htmlOpiniones(o) {
  */
 export function htmlGuia(g) {
   if (!g) return '';
+  if (g.core?.con === 'core') return htmlCore(g.core);
   const turnos = g.historial.map((m) => `<li class="guia-${m.role === 'user' ? 'yo' : 'claude'}"><b>${t(m.role === 'user' ? 'guiaYo' : 'guiaClaude')}</b> ${escapar(m.content)}</li>`).join('')
     + (g.pensando ? `<li class="guia-yo"><b>${t('guiaYo')}</b> ${escapar(g.pendiente ?? '')}</li><li class="guia-pensando" role="status">${t('guiaPensando')}</li>` : '');
   const rapidas = g.preguntas.map((q, i) => `<button type="button"${nodo('control')} data-guia-rapida="${i}"${g.pensando ? ' disabled' : ''}>${escapar(q)}</button>`).join('');
   return `<section class="guia"${nodo('guia')} data-guia aria-label="${attr(t('guia'))}">
-    <header class="guia-cabeza"><h4>${t('guia')}</h4><small class="ayuda">${escapar(t(g.via === 'direct' ? 'guiaViaDirecta' : g.ejemplo ? 'guiaViaEjemplo' : 'guiaViaServidor'))}</small>${g.historial.length ? `<button type="button"${nodo('control')} data-guia-vaciar title="${attr(t('guiaVaciarTitulo'))}">${t('guiaVaciar')}</button>` : ''}</header>
+    <header class="guia-cabeza"><h4>${t('guia')}</h4>${g.core ? htmlConQuien(g.core.con) : ''}<small class="ayuda">${escapar(t(g.via === 'direct' ? 'guiaViaDirecta' : g.ejemplo ? 'guiaViaEjemplo' : 'guiaViaServidor'))}</small>${g.historial.length ? `<button type="button"${nodo('control')} data-guia-vaciar title="${attr(t('guiaVaciarTitulo'))}">${t('guiaVaciar')}</button>` : ''}</header>
     <ol class="guia-historial" aria-live="polite">${turnos || `<li class="nada">${t('guiaVacia')}</li>`}</ol>
     ${g.error ? `<p class="aviso" role="alert">${escapar(g.error)}</p>` : ''}
     <div class="guia-rapidas">${rapidas}</div>
@@ -1147,6 +1148,37 @@ export function htmlGuia(g) {
     ${htmlPropuestasFuera(g.propuestas)}
     <form class="guia-form" data-guia-form><input type="text" name="pregunta" data-guia-pregunta value="${attr(g.borrador ?? '')}" placeholder="${attr(t('guiaPregunta'))}" aria-label="${attr(t('guiaPregunta'))}" autocomplete="off"${g.pensando ? ' disabled' : ''}><button type="submit"${g.pensando ? ' disabled' : ''}>${t('guiaPreguntar')}</button></form>
     <small class="ayuda">${escapar(t('guiaAyuda'))}</small>
+  </section>`;
+}
+
+/** Con quién se habla en el PV9 cuando está el servidor de retoques (retoques/): la guía, como siempre, o Core. */
+function htmlConQuien(con) {
+  const boton = (quien, texto) => `<button type="button"${nodo('control')} data-guia-con="${quien}" aria-pressed="${(con === 'core') === (quien === 'core')}">${texto}</button>`;
+  return `<span class="guia-con" role="group" aria-label="${attr(t('coreConQuien'))}">${boton('guia', t('guia'))}${boton('core', t('core'))}</span>`;
+}
+
+/**
+ * El PV9 hablando con Core (el agente de retoques de la carta; carta/guia.js «hablar con Core»): la conversación de este
+ * navegador, lo que va contestando y el archivo que toca mientras edita, «señalar» con lo señalado como etiquetas que se
+ * quitan, el campo y «mandar». `c`: { con, turnos, pensando, error, borrador, senalado: [{ etiqueta }], senalando }.
+ */
+function htmlCore(c) {
+  const turno = (m) => {
+    if (m.role === 'user') return `<li class="guia-yo"><b>${t('guiaYo')}</b> ${escapar(m.texto)}${(m.senalado ?? []).map((e) => ` <span class="core-etiqueta">${escapar(e)}</span>`).join('')}</li>`;
+    const tocando = m.tocando?.ruta ? `<small class="core-tocando" role="status">${escapar(t(m.tocando.edita ? 'coreEditando' : 'coreLeyendo', { archivo: m.tocando.ruta }))}</small>` : '';
+    const cambiados = m.archivos?.length ? `<small class="core-cambiados">${escapar(t('coreCambiados', { archivos: m.archivos.join(', ') }))}</small>` : '';
+    const pensando = !m.hecho && !m.texto && !tocando ? `<span class="guia-pensando" role="status">${t('guiaPensando')}</span>` : '';
+    return `<li class="guia-claude"><b>${t('core')}</b> ${escapar(m.texto ?? '')}${pensando}${tocando}${cambiados}${m.error ? `<span class="aviso" role="alert">${escapar(m.error)}</span>` : ''}</li>`;
+  };
+  const turnos = (c.turnos ?? []).map(turno).join('');
+  const senalado = (c.senalado ?? []).map((s, i) => `<span class="core-etiqueta">${escapar(s.etiqueta)}<button type="button"${nodo('control')} data-core-quitar="${i}" title="${attr(t('coreQuitar'))}" aria-label="${attr(t('coreQuitar'))}">×</button></span>`).join('');
+  return `<section class="guia guia-core"${nodo('guia')} data-guia aria-label="${attr(t('core'))}">
+    <header class="guia-cabeza"><h4>${t('core')}</h4>${htmlConQuien('core')}<small class="ayuda">${escapar(t('coreVia'))}</small>${c.turnos?.length ? `<button type="button"${nodo('control')} data-core-nueva title="${attr(t('coreNuevaTitulo'))}"${c.pensando ? ' disabled' : ''}>${t('coreNueva')}</button>` : ''}</header>
+    <ol class="guia-historial" aria-live="polite">${turnos || `<li class="nada">${t('coreVacia')}</li>`}</ol>
+    ${c.error ? `<p class="aviso" role="alert">${escapar(c.error)}</p>` : ''}
+    <div class="core-senalado">${senalado}<button type="button"${nodo('control')} data-core-senalar aria-pressed="${Boolean(c.senalando)}" title="${attr(t('coreSenalarTitulo'))}">${t(c.senalando ? 'coreSenalando' : 'coreSenalar')}</button></div>
+    <form class="guia-form" data-core-form><input type="text" name="texto" data-core-texto value="${attr(c.borrador ?? '')}" placeholder="${attr(t('corePide'))}" aria-label="${attr(t('corePide'))}" autocomplete="off"${c.pensando ? ' disabled' : ''}><button type="submit"${c.pensando ? ' disabled' : ''}>${t('coreMandar')}</button></form>
+    <small class="ayuda">${escapar(t('coreAyuda'))}</small>
   </section>`;
 }
 

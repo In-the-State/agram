@@ -203,6 +203,11 @@ export function instalar(raiz, m) {
     if ((el = b('[data-guia-vaciar]'))) { e.preventDefault(); m.guiaVaciar?.(); return; }
     if ((el = b('[data-guia-exportar]'))) { e.preventDefault(); m.guiaExportar?.(); return; }
     if ((el = b('[data-guia-importar]'))) { e.preventDefault(); m.guiaImportar?.(); return; }
+    // Hablar con Core (solo con el servidor de retoques, retoques/): con quién, señalar, quitar lo señalado y conversación nueva.
+    if ((el = b('[data-guia-con]'))) { e.preventDefault(); m.guiaCon?.(el.dataset.guiaCon); return; }
+    if ((el = b('[data-core-senalar]'))) { e.preventDefault(); m.coreSenalar?.(); return; }
+    if ((el = b('[data-core-quitar]'))) { e.preventDefault(); m.coreQuitar?.(Number(el.dataset.coreQuitar)); return; }
+    if ((el = b('[data-core-nueva]'))) { e.preventDefault(); if (!el.disabled) m.coreNueva?.(); return; }
     for (const que of ['aceptar', 'modificar', 'rechazar']) {
       if ((el = b(`[data-propuesta-${que}]`))) { e.preventDefault(); m.propuesta?.(que, el.dataset[`propuesta${que[0].toUpperCase()}${que.slice(1)}`]); return; }
     }
@@ -524,6 +529,7 @@ export function instalar(raiz, m) {
     else if (f.matches('[data-copia-form]')) m.copia?.(f);
     else if (f.matches('[data-libro-privado-form]')) m.libroPrivadoCrear?.(f);
     else if (f.matches('[data-guia-form]')) m.guiaPreguntar?.(f.querySelector('[data-guia-pregunta]')?.value ?? '');
+    else if (f.matches('[data-core-form]')) m.corePreguntar?.(f.querySelector('[data-core-texto]')?.value ?? '');
   });
   on('change', (e) => {
     const t = e.target;

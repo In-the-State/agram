@@ -9,6 +9,7 @@ import { arrancar } from '../servidor/prueba/servidor.mjs';
 import { crearGuia, llamarAAnthropic, LIMITE_CONTEXTO, PREGUNTAS_POR_MINUTO, MAX_TOKENS, MODELO_POR_DEFECTO } from '../servidor/supabase/funciones/guia/api.js';
 import { hashDeClave, generarClaveLectura } from '../servidor/supabase/funciones/eventos/api.js';
 import * as G from '../carta/guia.js';
+import { htmlGuia } from '../carta/dom.js';
 import { contrato, salida, direccion } from '../src/index.js';
 import { crearEvento } from '../src/evento.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
@@ -352,4 +353,79 @@ test('la función de Deno no lleva secretos: la clave del proveedor sale de Deno
   assert.ok(!/sk-ant-[A-Za-z0-9]/.test(ts + readFileSync(new URL('../servidor/supabase/funciones/guia/api.js', import.meta.url), 'utf8')));
   assert.equal(MODELO_POR_DEFECTO, 'claude-sonnet-5-5');
   assert.equal(MAX_TOKENS, 800);
+});
+
+// ---------- hablar con Core (solo con el servidor de retoques, retoques/) ----------
+
+test('Core: el mensaje lleva lo pedido, el entorno delante del contexto y lo señalado con su etiqueta', () => {
+  const m = G.mensajeACore({ texto: '  título más grande ', contexto: 'la carta de texto', entorno: { libro: 'ejemplo', foco: { X: 'abc', pv: 9 }, modo: 'matriz' }, senalado: [{ nodo: { tipo: 'pv', pv: 3, X: 'abc' }, etiqueta: 'pv · PV 3' }] });
+  assert.equal(m.texto, 'título más grande');
+  assert.ok(m.contexto.startsWith('entorno: {"libro":"ejemplo","foco":{"X":"abc","pv":9},"modo":"matriz"}\n\nla carta de texto'));
+  assert.deepEqual(m.senalado, [{ tipo: 'pv', pv: 3, X: 'abc', etiqueta: 'pv · PV 3' }]);
+  assert.deepEqual(G.mensajeACore({ texto: 'x' }), { texto: 'x', contexto: '', senalado: [] });
+});
+
+test('Core: cada trozo cambia el turno (texto que se suma, el archivo que toca, el final con los cambiados, el error tal cual)', () => {
+  let turno = { role: 'core', texto: '' };
+  for (const trozo of [{ tipo: 'texto', texto: 'Pongo ' }, { tipo: 'archivo', ruta: 'carta/estilo.css', herramienta: 'Read' }]) turno = G.conTrozo(turno, trozo);
+  assert.deepEqual(turno.tocando, { ruta: 'carta/estilo.css', edita: false });
+  turno = G.conTrozo(G.conTrozo(turno, { tipo: 'archivo', ruta: 'carta/estilo.css', herramienta: 'Edit' }), { tipo: 'texto', texto: 'el azul.' });
+  assert.equal(turno.tocando.edita, true);
+  assert.equal(turno.texto, 'Pongo el azul.');
+  turno = G.conTrozo(turno, { tipo: 'rechazo', ruta: 'src/x.js' });
+  const fin = G.conTrozo(turno, { tipo: 'fin', archivos: ['carta/estilo.css'] });
+  assert.deepEqual([fin.hecho, fin.tocando, fin.archivos, fin.rechazos], [true, null, ['carta/estilo.css'], ['src/x.js']]);
+  const error = G.conTrozo({ role: 'core', texto: '' }, { tipo: 'error', motivo: 'Core está con otro mensaje' });
+  assert.deepEqual([error.hecho, error.error], [true, 'Core está con otro mensaje']);
+  assert.deepEqual(G.conTrozo({ texto: 'a' }, { tipo: 'otro' }), { texto: 'a' });
+});
+
+test('Core: la conversación se guarda aparte de la de la guía, sin lo de mientras contesta; el sitio vuelve tras recargar', () => {
+  const almacen = almacenFalso();
+  const turnos = [{ role: 'user', texto: 'hola', senalado: ['pv · PV 3'] }, { role: 'core', texto: 'hecho', tocando: { ruta: 'carta/app.js', edita: true }, archivos: ['carta/app.js'], hecho: true }, { role: 'nadie', texto: 'x' }];
+  assert.equal(G.guardarCore(almacen, turnos), true);
+  assert.deepEqual(G.cargarCore(almacen), [turnos[0], { role: 'core', texto: 'hecho', archivos: ['carta/app.js'], hecho: true }]);
+  assert.deepEqual([...almacen.m.keys()], [G.CLAVES_CORE.conversacion]);
+  assert.ok(!G.CLAVES_CORE.conversacion.startsWith('agram.guia.'), 'no es la de la guía');
+  G.guardarCore(almacen, Array.from({ length: 80 }, (_, i) => ({ role: 'user', texto: String(i) })));
+  assert.equal(G.cargarCore(almacen).length, G.TURNOS_CORE);
+  G.vaciarCore(almacen);
+  assert.deepEqual(G.cargarCore(almacen), []);
+  almacen.setItem(G.CLAVES_CORE.conversacion, '{roto');
+  assert.deepEqual(G.cargarCore(almacen), []);
+
+  const sesion = almacenFalso();
+  assert.equal(G.leerSitio(sesion), null);
+  const sitio = G.sitioDe({ foco: { X: 'abc', pv: 9 }, niveles: { 9: 3, 1: 2 }, profundidad: { 4: [1, 2] }, paginas: {} }, { libro: 'ejemplo', con: 'core' });
+  G.guardarSitio(sesion, sitio);
+  assert.deepEqual(G.leerSitio(sesion), { libro: 'ejemplo', foco: { X: 'abc', pv: 9 }, niveles: { 9: 3, 1: 2 }, profundidad: { 4: [1, 2] }, paginas: {}, con: 'core' });
+  assert.equal(G.sitioDe({ foco: { X: 'abc' } }, { libro: 'x', con: 'otra' }).con, 'guia');
+  sesion.setItem(G.CLAVES_CORE.sitio, JSON.stringify({ libro: 'x', foco: {} }));
+  assert.equal(G.leerSitio(sesion), null);
+});
+
+test('Core en el PV9: sin servidor de retoques, la guía de siempre; con él, «guía» o «Core», señalar con etiquetas que se quitan y el archivo que toca', () => {
+  const base = { historial: [], pensando: false, pendiente: '', error: '', borrador: '', preguntas: [], via: 'server', ejemplo: true, propuestas: { aqui: 0, fuera: [] } };
+  const deSiempre = htmlGuia(base);
+  assert.doesNotMatch(deSiempre, /data-guia-con|data-core/);
+  const core = { con: 'guia', turnos: [], pensando: false, error: '', borrador: '', senalado: [], senalando: false };
+  const conGuia = htmlGuia({ ...base, core });
+  assert.match(conGuia, /data-guia-pregunta/);
+  assert.match(conGuia, /data-guia-con="guia" aria-pressed="true"/);
+  assert.match(conGuia, /data-guia-con="core" aria-pressed="false"/);
+  assert.equal(conGuia.replace(/<span class="guia-con"[\s\S]*?<\/span>/, ''), deSiempre, 'con «guía», lo de siempre más el conmutador');
+  const turnos = [{ role: 'user', texto: 'azul <b>', senalado: ['pv · PV 3'] }, { role: 'core', texto: 'Pongo', tocando: { ruta: 'carta/estilo.css', edita: true } }];
+  const conCore = htmlGuia({ ...base, core: { ...core, con: 'core', turnos, pensando: true, senalado: [{ etiqueta: 'foco · anverso' }], senalando: true } });
+  assert.doesNotMatch(conCore, /data-guia-pregunta/);
+  assert.match(conCore, /data-guia-con="core" aria-pressed="true"/);
+  assert.match(conCore, /azul &lt;b&gt;/);
+  assert.match(conCore, /<span class="core-etiqueta">pv · PV 3<\/span>/);
+  assert.match(conCore, /editando carta\/estilo\.css/);
+  assert.match(conCore, /foco · anverso<button[^>]*data-core-quitar="0"/);
+  assert.match(conCore, /data-core-senalar aria-pressed="true"[^>]*>toca un elemento…/);
+  assert.match(conCore, /data-core-texto[^>]* disabled/);
+  const hecho = htmlGuia({ ...base, core: { ...core, con: 'core', turnos: [{ role: 'core', texto: 'Listo.', archivos: ['carta/estilo.css'], hecho: true }, { role: 'core', texto: '', error: 'Core está con otro mensaje', hecho: true }] } });
+  assert.match(hecho, /cambiado: carta\/estilo\.css/);
+  assert.match(hecho, /role="alert">Core está con otro mensaje/);
+  assert.match(hecho, /data-core-nueva/);
 });
