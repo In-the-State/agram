@@ -160,7 +160,7 @@
     {"ref":"6ca50905d9242646b8c92ebf365d470b079504a010a36f7e17ac349425e59d75"},
     {"ref":"bfa0bd7f5cc4455648e32c3eef1993b2a4c88817a8c09d7c109145e4619cfcf8"},
     {"ref":"b40be0667c53f6d16a0e70ccefe4f9f6cd23ffa805a039e85c6a71f388bbec45"},
-    {"ref":"d205e8a1593fba55e39dd5865cd42d07081faf91af8cea5aa4db6740a102594c"},
+    {"ref":"37e1a6ea87b66eaa8d359ba194238db2dce7ba3fdab0d6b96936dd8fea065029"},
     {"ref":"c2929237612e7b1144e7c449d45b09bc9ece5137e7139523ecc5b60f8f10ffb1"},
     {"ref":"03ccc721272e9d7b44c684b44edb1edd66b6ed7a3d9127c87418aa84aa47d072"},
     {"ref":"4b3900df598d65e0917b8d817b819b0f924dbdc7bfcd81bfbcbe109e796a01a8"},
@@ -175,7 +175,7 @@
     {"ref":"cd8c375175c656c4c902ebc420b043e942d15779825914a349b7103af3dd35cb"},
     {"ref":"a787f172195bcdb8aab325702d7068aa596df552b5ffec8753e0816b002abd0b"},
     {"ref":"c63bc40ef1a4ef5644854d87c2ee868000f8aca50b4b8c13998ff2b21d7d364f"},
-    {"ref":"b92923d963f23aec17b8d443e29a5fc734c1ca6d279d3303a7a57ae450894f85"},
+    {"ref":"e88c2fde454b15c9e3a59717a5f6e8b7e169a2302d0aca23072e7ec455a01086"},
     {"ref":"a4a7ee336d00e8f8ac80e00c3091581e00e2eb4427a13330256ab00c948d6f65"},
     {"ref":"8ea6617c4b2c38dbfd21bb08d73942853d0b4ab49bf9c36e3ed95e7905ff6f83"},
     {"ref":"8122ff9f971064ac80ccd3fa0501b47b645f482fa5757ef574020c4e48f57e42"},
@@ -194,7 +194,7 @@
     {"ref":"706c2b221357cfecf1da17e7950946aa07500b3ea1781f333dd83d48ef6a5fcb"},
     {"ref":"5f9154481910e70d57910d731c34c88fb307908e6dbf0ecffc1176b533334b4f"},
     {"ref":"a381740ec9d938f541dd43d1b304222360ca996c20412f671c55ae7300cafbc2"},
-    {"ref":"8114171631a40f71fd2d6cd8e49da31e41366ea1c511da7b0d27ea48950bf559"},
+    {"ref":"3f41094a2ff698bac5b035720e3cd10296832117584dba84049475306bde1afc"},
     {"ref":"63fde500a64adb766c107af75bca662aa4a58301dec5aed3f7c1b09afdeadc36"},
     {"ref":"02fb7e952496cfe9afc8913b907a890f2731aee278d4aeddaeaaf8ec2728c7bb"},
     {"ref":"225f76aaefff9340405606bcc1d0ae8968c4be3a122005fff1ea1f1918f922be"},
@@ -2032,7 +2032,7 @@
           ["«exterior settings»: dónde viaja, se guarda y se sella el libro (docs/CONTRATO.md §16.2 bis); sus ajustes viven en un registro de este tipo en el 9 del alta, junto al de preferencias y al de la guía. Sin url, nada va por ese camino"],
           ["optional"],
           ["arrival"],
-          ["the x-only keys (hex, separated by spaces) of the lines that seal this ledger, one per occupant: first the own keys of each level, in the order of the levels (epoch.7.6.1), then the others (those of a parent that seals, the rotated ones); a link of a seal in cascade reaches its level only if the key of its header is one of these or an observer key (VG 17-11, «firm»); read from the root account of the ledger, the identity of the genesis; empty, none is declared"]
+          ["the line keys that seal this ledger, as pairs [level, key], one occupant per pair: each pair written as its level and its x-only key one after the other, separated by spaces («1 7d3b… 4 1e8a…»; a colon, a comma or a semicolon also separate), the level one of the cascade (epoch.7.6.1) and the key 64 hexadecimal characters; a rotated key is another pair with the same level, and a person alone writes her key in a pair for each of her levels; a link of a seal in cascade reaches its level only if the key of its header is written for THAT level (VG 17-11, «firm»; the level a link says is not signed, only its key binds it): observer keys and a loose key without a level reach no level; read from the root account of the ledger, the identity of the genesis; empty, none is declared"]
         ]
       ],
       [
@@ -3198,8 +3198,8 @@
           "template exterior settings param guide url help: la dirección base de la guía (la pasarela de AARPIA: POST {dirección}/guia); vacío, la guía se pide al servidor de las preferencias (la función de Supabase)",
           "template exterior settings param guide url placeholder: http://127.0.0.1:8788",
           "template exterior settings param line keys label: claves de línea",
-          "template exterior settings param line keys help: las claves x-only (hex, separadas por espacios) de las líneas que sellan este libro: primero las propias de cada nivel, en el orden de los niveles, y detrás las demás (las de un padre que sella, las rotadas); un eslabón de un sello en cascada solo alcanza su nivel si la clave de su cabecera es una de estas o la de un observador; se leen de la cuenta raíz del eje, la identidad del génesis; vacío, ninguna declarada",
-          "template exterior settings param line keys placeholder: 7d3b… 1e8a…",
+          "template exterior settings param line keys help: las claves de línea que sellan este libro, en pares [nivel, clave], un ocupante por par: cada par, su nivel y su clave x-only seguidos, separados por espacios («1 7d3b… 4 1e8a…»; también separan los dos puntos, la coma o el punto y coma), el nivel uno de la cascada (epoch.7.6.1) y la clave de 64 caracteres hexadecimales; una clave rotada es otro par con el mismo nivel, y la persona sola anota su clave en un par por cada nivel suyo; un eslabón de un sello en cascada solo alcanza su nivel si la clave de su cabecera está anotada para ESE nivel (el nivel que dice el eslabón no va firmado: solo lo ata la clave); las de un observador y una clave suelta, sin nivel, no dan ninguno; se leen de la cuenta raíz del eje, la identidad del génesis; vacío, ninguna declarada",
+          "template exterior settings param line keys placeholder: 1 7d3b… 4 1e8a…",
           "template opinion: opinión",
           "template opinion param opinion label: opinión",
           "template opinion param opinion help: lo que la persona dice sobre lo que estaba mirando",

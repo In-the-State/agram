@@ -736,6 +736,7 @@ export const TEXTOS = Object.freeze({
     ajusteNoEsNumero: '«{ajuste}»: «{valor}» no es un número mayor que 0; no se ha guardado nada',
     ajusteNoEsNumeroSimple: '«{ajuste}»: «{valor}» no es un número; no se ha guardado nada',
     ajusteNoEsClave: '«{ajuste}»: «{valor}» no es una clave x-only (64 caracteres hexadecimales); no se ha guardado nada',
+    ajusteNoEsParDeLinea: '«{ajuste}»: «{valor}» no va en un par de nivel y clave (como «1 7d3b… 4 1e8a…»: el nivel, un número, y detrás su clave x-only de 64 caracteres hexadecimales); no se ha guardado nada',
     configuracionGuardada: 'configuración guardada como un registro de mi alta',
     escrito: 'escrito {id} en {pv} sobre {X}',
     unRatoEnLaCarta: 'un rato en la carta',

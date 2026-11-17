@@ -138,7 +138,7 @@ test('carta-reglas: poner en vigor solo cuando la prueba llega; en vigor, la ver
   const { eje, hace } = m;
   const obs = await observadorDePrueba();
   const casa = await generarClaves();
-  await declararExterior(eje, { lineas: [casa.publica], t: m.reloj() });
+  await declararExterior(eje, { lineas: [[3, casa.publica]], t: m.reloj() });
   const p = await m.propone('ana', MARGEN);
   await hace('apoyar', p.id, 'ana');
   const e = await hace('aprobar', p.id, 'ana');
@@ -153,7 +153,7 @@ test('carta-reglas: poner en vigor solo cuando la prueba llega; en vigor, la ver
   assert.equal(intento.asentado, null, 'y si se fuerza, la regla lo rechaza con su motivo');
   assert.ok(intento.motivos.length > 0);
   // Llega el sello de la aprobación: un eslabón de nivel 3 firmado con una clave de línea del libro.
-  eje.marcarSello(e.id, await selloEnCascada(e.id, { observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] }));
+  eje.marcarSello(e.id, await selloEnCascada(e.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] }));
   d = cambioDelLibro(eje, p.id, 'ana', ES);
   assert.equal(d.firmeza.llega, true);
   assert.ok(que(d).includes('poner'));

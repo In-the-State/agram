@@ -90,7 +90,7 @@ test('estado del pedido propio: pendiente, fuera de plazo sin alcanzar, a tiempo
   for (const [k, [capas, bloque, estado, llegada]] of casos.entries()) {
     const { eje: e2, obs: o2, escribe: w2 } = await demo();
     const x = await w2(['minuto'], T(2));
-    e2.marcarSello(x.id, await selloEnCascada(x.id, { observador: o2, capas, instante: iso(bloque) }));
+    e2.marcarSello(x.id, await selloEnCascada(x.id, { libro: e2.genesisId, observador: o2, capas, instante: iso(bloque) }));
     const f = contrato.firmeza(e2, x.id, { ahora: iso(t0 + 99999) });
     const p = f.pedidos.find((q) => q.origen === 'propio');
     assert.deepEqual([p.estado, p.llegada], [estado, iso(llegada)], 'caso ' + k);
@@ -148,7 +148,7 @@ test('el suelo (plazoDeSuelo: el plazo más largo de 7.5) y pedidoDeLote: el niv
   assert.deepEqual(contrato.pedidoDeLote(eje, [eje.genesisId]), { nivel: 4, plazo: iso(S(eje.obtener(eje.genesisId).t) + 31536000) }, 'nadie pide nada: el suelo');
   assert.equal(contrato.pedidoDeLote(eje, ['00'.repeat(32)]), null);
   // Alcanzado a tiempo todo: «a tiempo».
-  eje.marcarSello(m.id, await selloEnCascada(m.id, { observador: obs, capas: [{ nivel: 2, hora: S(m.t) + 30 }, { nivel: 4, hora: S(m.t) + 40 }], instante: iso(S(m.t) + 50) }));
+  eje.marcarSello(m.id, await selloEnCascada(m.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 2, hora: S(m.t) + 30 }, { nivel: 4, hora: S(m.t) + 40 }], instante: iso(S(m.t) + 50) }));
   const f = contrato.firmeza(eje, m.id);
   assert.deepEqual(f.pedidos.map((p) => [p.origen, p.estado]), [['suelo', 'a tiempo'], ['propio', 'a tiempo']]);
   assert.equal(f.plazo, 'a tiempo');
@@ -158,18 +158,19 @@ test('una prueba mejor sustituye a la anterior: la que alcanza más niveles pasa
   const { eje, obs, escribe } = await demo();
   const r = await escribe(['minuto'], T(2));
   const taproot = await selloCompleto(r.id, { observador: obs, instante: '2026-11-10T12:00:00.000Z' });
-  const cascada = await selloEnCascada(r.id, { observador: obs, capas: [{ nivel: 1 }, { nivel: 2 }, { nivel: 4 }], instante: '2026-11-10T13:00:00.000Z' });
-  const peor = await selloEnCascada(r.id, { observador: obs, capas: [{ nivel: 4 }], instante: '2026-11-10T11:00:00.000Z' });
+  const cascada = await selloEnCascada(r.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 1 }, { nivel: 2 }, { nivel: 4 }], instante: '2026-11-10T13:00:00.000Z' });
+  const peor = await selloEnCascada(r.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 4 }], instante: '2026-11-10T11:00:00.000Z' });
   assert.deepEqual([nivelesDeSello(taproot.decupla), nivelesDeSello(cascada.decupla), nivelesDeSello(peor.decupla), nivelesDeSello(null)], [1, 3, 1, 0]);
   assert.equal(eje.marcarSello(r.id, taproot), true);
   assert.equal(eje.marcarSello(r.id, cascada), true, 'más reciente, pero mejor: sustituye');
   assert.equal(eje.sello(r.id).hash, cascada.hash);
-  // Sus eslabones de nivel 1 y 2 no tienen la clave declarada (VG 17-11, «firm lee grados»): solo el último, por «sealed».
-  assert.deepEqual(contrato.firmeza(eje, r.id).capas.map((c) => c.estado), ['saltada', 'saltada', 'saltada', 'alcanzada']);
+  // Sus eslabones no tienen la clave de línea de su nivel: hasta la enmienda «5 bis» (17-11) «sealed» daba el último; ahora,
+  // por la vía «cascada», solo con los pares de toda la cadena, así que ningún nivel. Lo pedido (lo que mira esta prueba) no cambia.
+  assert.deepEqual(contrato.firmeza(eje, r.id).capas.map((c) => c.estado), ['pendiente', 'pendiente', 'pendiente', 'pendiente']);
   assert.equal(eje.marcarSello(r.id, peor), false, 'más antigua, pero peor: no sustituye');
   assert.equal(eje.sello(r.id).hash, cascada.hash);
   // A igual alcance, la más antigua (como antes).
-  const igual = await selloEnCascada(r.id, { observador: obs, capas: [{ nivel: 1 }, { nivel: 3 }, { nivel: 4 }], instante: '2026-11-10T12:30:00.000Z' });
+  const igual = await selloEnCascada(r.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 1 }, { nivel: 3 }, { nivel: 4 }], instante: '2026-11-10T12:30:00.000Z' });
   assert.equal(eje.marcarSello(r.id, igual), true);
   assert.equal(eje.sello(r.id).hash, igual.hash);
   void pagaElCoste;
