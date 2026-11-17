@@ -429,3 +429,21 @@ test('Core en el PV9: sin servidor de retoques, la guía de siempre; con él, «
   assert.match(hecho, /role="alert">Core está con otro mensaje/);
   assert.match(hecho, /data-core-nueva/);
 });
+
+test('Core: la línea de cambios de fondo, plegable, con las entradas escapadas (las escribe un agente)', () => {
+  assert.equal(G.fondoDe(null), null);
+  assert.deepEqual(G.fondoDe({ total: 2.7, sesionesSinCrecer: -1, entradas: [{ titulo: 'x'.repeat(300), clase: 'época', estado: 'pendiente', texto: 'no se pinta' }, null] }), {
+    total: 2, sesionesSinCrecer: 0, entradas: [{ titulo: 'x'.repeat(200), clase: 'época', estado: 'pendiente' }, { titulo: '', clase: '', estado: '' }],
+  });
+  const base = { historial: [], pensando: false, pendiente: '', error: '', borrador: '', preguntas: [], via: 'server', ejemplo: true, propuestas: { aqui: 0, fuera: [] } };
+  const core = { con: 'core', turnos: [], pensando: false, error: '', borrador: '', senalado: [], senalando: false };
+  assert.doesNotMatch(htmlGuia({ ...base, core }), /data-core-fondo/, 'sin la lista aún, no hay línea');
+  const fondo = G.fondoDe({ total: 1, sesionesSinCrecer: 2, entradas: [{ titulo: '2026-11-17 · <img src=x onerror=alert(1)>', clase: 'regla o parámetro', estado: 'por gobierno en el libro vivo' }] });
+  const cerrada = htmlGuia({ ...base, core: { ...core, fondo } });
+  assert.match(cerrada, /<details class="core-fondo" data-core-fondo><summary>cambios de fondo: 1 · sesiones sin crecer: 2<\/summary>/);
+  assert.match(cerrada, /&lt;img src=x onerror=alert\(1\)&gt;<\/b> · regla o parámetro · por gobierno en el libro vivo/);
+  assert.doesNotMatch(cerrada, /<img/);
+  assert.match(htmlGuia({ ...base, core: { ...core, fondo, fondoAbierto: true } }), /data-core-fondo open>/);
+  assert.match(htmlGuia({ ...base, core: { ...core, fondo: G.fondoDe({ total: 0, sesionesSinCrecer: 0, entradas: [] }) } }), /cambios de fondo: 0 · sesiones sin crecer: 0<\/summary><p class="nada">ninguno todavía/);
+  assert.doesNotMatch(htmlGuia({ ...base, core: { ...core, con: 'guia', fondo } }), /data-core-fondo/, 'solo en «Core»');
+});

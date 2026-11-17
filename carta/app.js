@@ -70,7 +70,7 @@ const estado = {
   guia: { alta: null, historial: [], borrador: '', pensando: false, pendiente: '', error: '', con: 'guia' },
   // Hablar con Core desde el PV9 (solo con el servidor de retoques, retoques/; carta/guia.js «hablar con Core»): la
   // conversación de este navegador (null hasta cargarla), lo escrito sin mandar, lo señalado y si el próximo toque señala.
-  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false },
+  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false, fondo: null, fondoAbierto: false },
   // El 3 por tema (encargo pv3): el botón de cada caja ({ [caja]: 'todos' | 'doy' | 'recibo' }) y el sitio abierto
   // ({ X, lugar }: la cruceta del propio nodo, el personaje del sitio) o null.
   filtrosDelTres: {}, sitio: null,
@@ -466,7 +466,17 @@ function datosCore() {
   if (!c.turnos) {
     c.turnos = guia.cargarCore(almacenLocal()).map((m) => (m.role === 'core' && !m.hecho ? { ...m, hecho: true, error: m.error || t('coreCortado') } : m));
   }
-  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando };
+  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando, fondo: c.fondo, fondoAbierto: c.fondoAbierto };
+}
+
+/** La lista de cambios de fondo del servidor de retoques (al cargar y al acabar cada respuesta de Core). */
+async function refrescarFondo() {
+  const r = retoques();
+  if (!r?.fondo) return;
+  const f = guia.fondoDe(await r.fondo());
+  if (!f) return;
+  estado.core.fondo = f;
+  pintarGuia();
 }
 
 /** Repinta la guía en el próximo cuadro (los trozos de Core llegan muy seguidos). */
@@ -1899,6 +1909,7 @@ const manejadores = {
     c.pensando = false;
     guia.guardarCore(almacenLocal(), c.turnos);
     pintarGuia();
+    void refrescarFondo();
   },
   /** «Señalar»: el siguiente toque en la carta señala ese elemento (otra vez, lo deja). */
   coreSenalar() {
@@ -2374,6 +2385,9 @@ async function arrancar() {
     // Hablar con Core: lo escrito se recuerda, «señalar» intercepta el siguiente toque y el sitio se guarda al irse (recargar).
     raiz.addEventListener('input', (e) => { if (e.target.matches?.('[data-core-texto]')) estado.core.borrador = e.target.value; });
     instalarSenalar();
+    // La lista de cambios de fondo: si está abierta se queda abierta al repintar; se pide al cargar.
+    raiz.addEventListener('toggle', (e) => { if (e.target.matches?.('[data-core-fondo]')) estado.core.fondoAbierto = e.target.open; }, true);
+    void refrescarFondo();
     window.addEventListener('pagehide', guardarSitioDeRetoques);
     document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') guardarSitioDeRetoques(); });
   }

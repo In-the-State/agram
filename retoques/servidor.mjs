@@ -26,6 +26,7 @@ import { dirname, extname, join, relative, resolve, sep, isAbsolute } from 'node
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { Agente, leerClave } from './agente.mjs';
+import { resumenDelFondo, conMensaje, entradasDe, leerTexto, leerSesiones, guardarSesiones, sesionesSinCrecer } from './fondo.mjs';
 
 const AQUI = dirname(fileURLToPath(import.meta.url));
 export const RAIZ = resolve(AQUI, '..');
@@ -154,6 +155,14 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
   const LLAVE = llave ?? randomBytes(32).toString('hex');
   const datos = join(raiz, 'retoques', '.datos');
   const core = agente ?? new Agente({ raiz, datos, modelo, orden, claveApi });
+  // El fondo y las sesiones (retoques/fondo.mjs): esta sesión empieza con lo que hay ahora en la lista.
+  const rutaFondo = join(datos, 'fondo.md');
+  const rutaSesiones = join(datos, 'sesiones.json');
+  const totalDelFondo = () => entradasDe(leerTexto(rutaFondo)).length;
+  const sesion = { inicio: new Date().toISOString(), fondoAlEmpezar: totalDelFondo() };
+  const apuntarMensaje = () => {
+    try { guardarSesiones(rutaSesiones, conMensaje(leerSesiones(rutaSesiones), { ...sesion, fondoAhora: totalDelFondo() })); } catch (e) { console.error('retoques: no se guardan las sesiones:', e?.message ?? e); }
+  };
   const sesiones = new Map(); // resumen hex de la cookie → caduca (ms)
   const llamadas = []; // instantes de las llamadas del último minuto
   const entrar = { intentos: [], fallos: 0, hasta: 0 };
@@ -252,6 +261,13 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
     if (req.method !== 'GET' && req.method !== 'HEAD') return vacia(res, 405);
     const seg = segmentosDe(req.url);
     if (!seg) return vacia(res, 400);
+    if (seg.length === 1 && seg[0] === 'sitio.json' && !existsSync(join(raiz, 'sitio.json')) && existsSync(join(datos, 'sitio.json'))) {
+      // Las cuentas nuevas del ensayo, apuntadas a su puerta sin tocar el repositorio (lo único de .datos que se sirve).
+      let cuerpo;
+      try { cuerpo = readFileSync(join(datos, 'sitio.json')); } catch { return vacia(res, 404); }
+      res.writeHead(200, { ...cabecerasBase, 'content-type': TIPOS['.json'] });
+      return res.end(req.method === 'HEAD' ? undefined : cuerpo);
+    }
     if (seg.length === 1 && seg[0] === 'sw.js') {
       res.writeHead(200, { ...cabecerasBase, 'content-type': TIPOS['.js'] });
       return res.end(req.method === 'HEAD' ? undefined : SW_BAJA);
@@ -302,8 +318,10 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
     if (!igual(req.headers[CABECERA_LLAVE], LLAVE)) return vacia(res, 401);
     const m = req.method;
     if (ruta === '/retoques/estado' && m === 'GET') {
-      return json(res, 200, { agente: core.vivo, ocupado: core.ocupado, conversacion: Boolean(core.sesion), rama: ramaActual(), ramaDeRetoques: rama, sinGuardar: sinGuardar(), modelo: modelo ?? null, claveApi: Boolean(claveApi) });
+      const sesiones = leerSesiones(rutaSesiones);
+      return json(res, 200, { agente: core.vivo, ocupado: core.ocupado, conversacion: Boolean(core.sesion), rama: ramaActual(), ramaDeRetoques: rama, sinGuardar: sinGuardar(), modelo: modelo ?? null, claveApi: Boolean(claveApi), fondo: totalDelFondo(), sesionesSinCrecer: sesionesSinCrecer(sesiones) });
     }
+    if (ruta === '/retoques/fondo' && m === 'GET') return json(res, 200, resumenDelFondo(leerTexto(rutaFondo), leerSesiones(rutaSesiones)));
     if (ruta === '/retoques/eventos' && m === 'GET') {
       res.writeHead(200, { ...cabecerasBase, 'content-type': 'text/event-stream; charset=utf-8', connection: 'keep-alive' });
       res.write(': hola\n\n');
@@ -343,6 +361,7 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
     res.writeHead(200, { ...cabecerasBase, 'content-type': 'application/x-ndjson; charset=utf-8' });
     const escribir = (trozo) => { try { res.write(JSON.stringify(trozo) + '\n'); } catch { /* la pestaña se fue: Core sigue */ } };
     await core.enviar(entrada, escribir);
+    apuntarMensaje();
     res.end();
     soltarRetenidos();
   }

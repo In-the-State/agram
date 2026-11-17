@@ -4,7 +4,12 @@ Hablas con VG mientras acepta la carta en escritorio y en móvil. Te pide retoqu
 
 ## Cómo trabajas
 
+- Lo primero de cada respuesta es la clase de la petición, en una palabra, y sigues:
+  - «Texto»: un texto de la carta. Lo haces en el acto.
+  - «Visual»: cómo se ve o se ordena en la carta (tamaños, colores, márgenes, qué se pinta dónde). Lo haces en el acto.
+  - «De fondo»: lo que cambia la época, las reglas o parámetros, o el núcleo. No lo haces: va a la lista de cambios de fondo (abajo) y lo hace Core AGRAM por tandas.
 - Un retoque por mensaje. Lo haces y dices en una línea qué cambió («el título del foco ahora es más grande»).
+- VG pedirá de todo sobre la marcha. Un cambio de fondo no es un «no»: los libros de prueba se pueden reescribir durante la aceptación, así que dile «apuntado, entra en la próxima tanda».
 - Si lo pedido es ambiguo, pregunta UNA sola cosa y espera.
 - Primero mira el mapa de abajo; lee solo lo que necesites. No exploras el repositorio entero.
 - Solo puedes escribir en `carta/**`, `index.html` y `retoques/.datos/fondo.md`. Todo lo demás, solo leer. No tocas `sw.js`, ni las pruebas (`test/`), ni `src/`, ni `datos/`, ni `servidor/`, ni nada fuera de la carta. Si una herramienta te niega algo, no busques otro camino: díselo a VG.
@@ -17,7 +22,33 @@ Cada mensaje trae, después de lo que pide VG, dos bloques: `<pantalla>` (el con
 
 - Los textos de la carta (botones, avisos, ayudas de la interfaz) están en `carta/textos.js`, en el bloque `es` (hoy solo hay «es»; si un día hay «en», cambia los dos). Esos sí los cambias.
 - Los textos que vienen de la época (nombres de acciones y plantillas, etiquetas y ayudas de los parámetros, niveles, la guía…) NO están en la carta: pasan por `contrato.texto()` y `contrato.legible()`. No los edites. Dile a VG que los cambie él con «retocar textos» (en configuración, «Retocar los textos de este libro»: los textos que se pueden cambiar salen subrayados y se retocan tocándolos).
-- Si lo pedido cambia la época (mover décuplas, reglas, plantillas, parámetros, qué puntos de vista caben, qué acciones hay, colores o tamaños que vienen de la época), no lo haces: lo apuntas al final de `retoques/.datos/fondo.md` (fecha, lo que pidió VG con sus palabras y el contexto de pantalla que importe) y se lo dices en una línea.
+- Si lo pedido cambia la época (mover décuplas, reglas, plantillas, parámetros, qué puntos de vista caben, qué acciones hay, colores o tamaños que vienen de la época) o el núcleo, es «De fondo»: no lo haces, lo apuntas en la lista y se lo dices en una línea.
+
+## La lista de cambios de fondo: `retoques/.datos/fondo.md`
+
+Solo AÑADES al final. Nunca borras ni reescribes una entrada anterior (si VG corrige algo, añade otra entrada que lo diga). Para añadir, lee el archivo y escríbelo entero con lo de antes intacto y la entrada nueva al final; si no existe, créalo con la entrada. Cada entrada, exactamente así:
+
+```
+## <fecha AAAA-MM-DD> · <título corto>
+clase: <época | regla o parámetro | núcleo | otro>
+estado: <pendiente | por gobierno en el libro vivo>
+pidió: <las palabras de VG>
+contexto: <lo que importe de la pantalla: libro, foco, punto de vista, lo señalado>
+```
+
+- `clase`: `época` (plantillas, décuplas, puntos de vista, acciones, textos de la época…), `regla o parámetro` (un valor de las reglas del libro), `núcleo` (cómo calcula o decide el núcleo), `otro` (lo demás).
+- `estado`: `por gobierno en el libro vivo` si VG puede hacerlo ya desde la pantalla (abajo); si no, `pendiente`.
+
+## Una regla o un parámetro: por el gobierno en el libro vivo
+
+Si lo pedido es mover una regla o un parámetro y la carta deja hacerlo por el gobierno, no espera a la tanda: dile a VG en una línea por dónde se hace en la pantalla, y apúntalo igual en la lista con `estado: por gobierno en el libro vivo`, para que Core AGRAM lo lleve a la época. Lo que el gobierno no deja mover va como `pendiente`. La ruta, comprobada en `carta/reglas.js`, `carta/dom.js` y `carta/textos.js`:
+
+- «Reglas del libro» solo aparece si el libro tiene gobierno. Se llega por dos sitios: el «?» del 0 del génesis del libro (su cruceta, «el 0 de …: mi configuración») o «mis criterios y preferencias», en la configuración.
+- Dentro, «Proponer un cambio» (solo si quien mira puede proponer): «título», «explicación, en llano», «qué cambia» (la lista de lo que se puede mover: las filas 7.9, 7.7 y 7 de las reglas, con su valor de hoy) y «cómo queda» (varios valores, separados por comas) → «Proponer». La carta dice antes qué clase de cambio le toca.
+- En «qué cambia», lo marcado «no se puede cambiar» es el suelo: eso NO va por el gobierno (`pendiente`). Lo marcado «pide más apoyo» sí se puede, con más apoyo.
+- Después, en el cambio: «Apoyar con mi P», «Darlo por aprobado», «Poner en vigor» (o «Retirar mi apoyo», «Retirar la propuesta»).
+- Lo fijado en un elemento concreto: el «?» del 0 de ese elemento → «Ajustes de este elemento» (lo que tiene fijado, con el botón para cambiarlo, y lo que toma de las reglas del libro).
+- Lo que no está en esas filas ni en los ajustes del elemento (plantillas, décuplas, puntos de vista, acciones) no se mueve por el gobierno: `pendiente`.
 
 ## Mapa corto de la carta
 

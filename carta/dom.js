@@ -1160,7 +1160,8 @@ function htmlConQuien(con) {
 /**
  * El PV9 hablando con Core (el agente de retoques de la carta; carta/guia.js «hablar con Core»): la conversación de este
  * navegador, lo que va contestando y el archivo que toca mientras edita, «señalar» con lo señalado como etiquetas que se
- * quitan, el campo y «mandar». `c`: { con, turnos, pensando, error, borrador, senalado: [{ etiqueta }], senalando }.
+ * quitan, el campo y «mandar»; arriba, plegada, la lista de cambios de fondo (texto de un agente: siempre escapado).
+ * `c`: { con, turnos, pensando, error, borrador, senalado: [{ etiqueta }], senalando, fondo, fondoAbierto }.
  */
 function htmlCore(c) {
   const turno = (m) => {
@@ -1171,9 +1172,13 @@ function htmlCore(c) {
     return `<li class="guia-claude"><b>${t('core')}</b> ${escapar(m.texto ?? '')}${pensando}${tocando}${cambiados}${m.error ? `<span class="aviso" role="alert">${escapar(m.error)}</span>` : ''}</li>`;
   };
   const turnos = (c.turnos ?? []).map(turno).join('');
+  const f = c.fondo;
+  const entradas = f?.entradas?.length ? `<ol>${f.entradas.map((e) => `<li><b>${escapar(e.titulo)}</b> · ${escapar(e.clase || '—')} · ${escapar(e.estado || '—')}</li>`).join('')}</ol>` : `<p class="nada">${escapar(t('coreFondoVacio'))}</p>`;
+  const fondo = f ? `<details class="core-fondo" data-core-fondo${c.fondoAbierto ? ' open' : ''}><summary>${escapar(t('coreFondo', { total: f.total, sin: f.sesionesSinCrecer }))}</summary>${entradas}</details>` : '';
   const senalado = (c.senalado ?? []).map((s, i) => `<span class="core-etiqueta">${escapar(s.etiqueta)}<button type="button"${nodo('control')} data-core-quitar="${i}" title="${attr(t('coreQuitar'))}" aria-label="${attr(t('coreQuitar'))}">×</button></span>`).join('');
   return `<section class="guia guia-core"${nodo('guia')} data-guia aria-label="${attr(t('core'))}">
     <header class="guia-cabeza"><h4>${t('core')}</h4>${htmlConQuien('core')}<small class="ayuda">${escapar(t('coreVia'))}</small>${c.turnos?.length ? `<button type="button"${nodo('control')} data-core-nueva title="${attr(t('coreNuevaTitulo'))}"${c.pensando ? ' disabled' : ''}>${t('coreNueva')}</button>` : ''}</header>
+    ${fondo}
     <ol class="guia-historial" aria-live="polite">${turnos || `<li class="nada">${t('coreVacia')}</li>`}</ol>
     ${c.error ? `<p class="aviso" role="alert">${escapar(c.error)}</p>` : ''}
     <div class="core-senalado">${senalado}<button type="button"${nodo('control')} data-core-senalar aria-pressed="${Boolean(c.senalando)}" title="${attr(t('coreSenalarTitulo'))}">${t(c.senalando ? 'coreSenalando' : 'coreSenalar')}</button></div>

@@ -496,6 +496,8 @@ export const TEXTOS = Object.freeze({
     coreLeyendo: 'leyendo {archivo}',
     coreCambiados: 'cambiado: {archivos}',
     coreCortado: 'la respuesta se cortó al recargar',
+    coreFondo: 'cambios de fondo: {total} · sesiones sin crecer: {sin}',
+    coreFondoVacio: 'ninguno todavía',
     guiaViaServidor: 'por el servidor del libro compartido',
     guiaViaEjemplo: 'ejemplo con datos inventados: aquí no hay libro compartido, así que la guía no tiene servidor; solo contesta por la vía directa, con tu clave',
     guiaSinServidorEjemplo: 'en el ejemplo no hay libro compartido: la guía no tiene a dónde preguntar; crea tu cuenta o pon tu clave de Anthropic en configuración',

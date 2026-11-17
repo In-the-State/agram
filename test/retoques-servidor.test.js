@@ -16,6 +16,7 @@ import { createHash } from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { crearServidor, segmentosDe, excluido, avisoDe, inyectar, SW_BAJA, COOKIE, CABECERA_LLAVE } from '../retoques/servidor.mjs';
 import { mensajeDe, argumentos } from '../retoques/agente.mjs';
+import { entradasDe, sesionesSinCrecer, conMensaje, resumenDelFondo } from '../retoques/fondo.mjs';
 
 const FALSO = join(dirname(fileURLToPath(import.meta.url)), 'ayudas-agente-falso.mjs');
 const INDICE = '<!doctype html>\n<html><head><title>x</title>\n</head><body><main id="carta"></main></body></html>\n';
@@ -432,4 +433,86 @@ test('clave de VG: archivo ausente o vacío, el mensaje acaba en error y Core no
   try {
     assert.equal(JSON.parse((await pedir(m.puerto, '/retoques/estado', { cabeceras: conLlave(m.llave) })).cuerpo).claveApi, false);
   } finally { await m.fin(); }
+});
+
+// ---------- la lista de cambios de fondo y las sesiones sin crecer ----------
+
+const FONDO = `# Cambios de fondo
+
+## 2026-11-17 · mover el 3 al lado
+clase: época
+estado: pendiente
+pidió: el 3 al otro lado
+contexto: foco abc · PV9
+
+## 2026-11-17 · <b>más apoyo</b>
+clase: regla o parámetro
+estado: por gobierno en el libro vivo
+pidió: que pida más apoyo
+`;
+
+test('fondo: las entradas de fondo.md, las sesiones sin crecer y una sesión más (puro)', () => {
+  const e = entradasDe(FONDO);
+  assert.equal(e.length, 2);
+  assert.deepEqual(e[0], { titulo: '2026-11-17 · mover el 3 al lado', clase: 'época', estado: 'pendiente', texto: 'pidió: el 3 al otro lado\ncontexto: foco abc · PV9' });
+  assert.equal(e[1].titulo, '2026-11-17 · <b>más apoyo</b>', 'como texto: escapar lo hace quien pinta');
+  assert.equal(e[1].estado, 'por gobierno en el libro vivo');
+  assert.deepEqual(entradasDe(''), []);
+  assert.equal(entradasDe('## ' + 'x'.repeat(500)).at(0).titulo.length, 200);
+  const s = (a, b) => ({ inicio: 'x', mensajes: 1, fondoAlEmpezar: a, fondoAlAcabar: b });
+  assert.equal(sesionesSinCrecer([]), 0);
+  assert.equal(sesionesSinCrecer([s(0, 2), s(2, 2), s(2, 2)]), 2);
+  assert.equal(sesionesSinCrecer([s(2, 2), s(2, 3)]), 0);
+  assert.equal(sesionesSinCrecer([s(0, 0), s(0, 1), s(1, 1)]), 1);
+  let lista = conMensaje([], { inicio: 'a', fondoAlEmpezar: 0, fondoAhora: 0 });
+  lista = conMensaje(lista, { inicio: 'a', fondoAlEmpezar: 0, fondoAhora: 1 });
+  assert.deepEqual(lista, [{ inicio: 'a', mensajes: 2, fondoAlEmpezar: 0, fondoAlAcabar: 1 }]);
+  lista = conMensaje(lista, { inicio: 'b', fondoAlEmpezar: 1, fondoAhora: 1 });
+  assert.equal(lista.length, 2);
+  assert.equal(sesionesSinCrecer(lista), 1);
+  const r = resumenDelFondo(FONDO, lista);
+  assert.deepEqual([r.total, r.sesiones, r.sesionesSinCrecer, r.entradas.length], [2, 2, 1, 2]);
+});
+
+test('fondo: GET /retoques/fondo con la llave; cada mensaje a Core apunta la sesión; otra sesión sin crecer se cuenta; /sitio.json desde .datos', async () => {
+  const m = await montar({ vigilar: false });
+  let otro = null;
+  try {
+    assert.equal((await pedir(m.puerto, '/retoques/fondo')).estado, 401);
+    const vacio = JSON.parse((await pedir(m.puerto, '/retoques/fondo', { cabeceras: conLlave(m.llave) })).cuerpo);
+    assert.deepEqual(vacio, { total: 0, sesiones: 0, sesionesSinCrecer: 0, entradas: [] });
+    assert.equal((await mensaje(m, 'FONDO: mueve la décupla')).at(-1).tipo, 'fin');
+    assert.equal((await mensaje(m, 'otra cosa')).at(-1).tipo, 'fin');
+    const f = JSON.parse((await pedir(m.puerto, '/retoques/fondo', { cabeceras: conLlave(m.llave) })).cuerpo);
+    assert.equal(f.total, 1);
+    assert.deepEqual(f.entradas[0], { titulo: '2026-11-17 · mover una décupla', clase: 'época', estado: 'pendiente', texto: 'pidió: muévela\ncontexto: foco abc' });
+    assert.equal(f.sesiones, 1);
+    assert.equal(f.sesionesSinCrecer, 0);
+    const sesiones = JSON.parse(readFileSync(join(m.dir, 'retoques', '.datos', 'sesiones.json'), 'utf8'));
+    assert.equal(sesiones.length, 1);
+    assert.deepEqual([sesiones[0].mensajes, sesiones[0].fondoAlEmpezar, sesiones[0].fondoAlAcabar], [2, 0, 1]);
+    assert.ok(!existsSync(join(m.dir, 'retoques', '.datos', 'sesiones.json.nuevo')));
+    const estado = JSON.parse((await pedir(m.puerto, '/retoques/estado', { cabeceras: conLlave(m.llave) })).cuerpo);
+    assert.deepEqual([estado.fondo, estado.sesionesSinCrecer], [1, 0]);
+    // Otro arranque del servidor sobre el mismo árbol: una sesión que no hace crecer la lista.
+    otro = crearServidor({ raiz: m.dir, puerto: 0, vigilar: false, orden: { comando: process.execPath, args: [FALSO] } });
+    const p2 = await otro.escuchar();
+    const sinMensajes = JSON.parse((await pedir(p2, '/retoques/fondo', { cabeceras: conLlave(otro.llave) })).cuerpo);
+    assert.equal(sinMensajes.sesiones, 1, 'sin mensajes a Core, no es una sesión');
+    await pedir(p2, '/retoques/core', { metodo: 'POST', cabeceras: conLlave(otro.llave), cuerpo: { texto: 'nada de fondo' } });
+    const f2 = JSON.parse((await pedir(p2, '/retoques/fondo', { cabeceras: conLlave(otro.llave) })).cuerpo);
+    assert.deepEqual([f2.total, f2.sesiones, f2.sesionesSinCrecer], [1, 2, 1]);
+    // /sitio.json: el de .datos solo si en la raíz no hay; nada más de .datos se sirve.
+    assert.equal((await pedir(m.puerto, '/sitio.json')).estado, 404);
+    writeFileSync(join(m.dir, 'retoques', '.datos', 'sitio.json'), '{"sync url":"http://127.0.0.1:1"}');
+    const sitio = await pedir(m.puerto, '/sitio.json');
+    assert.equal(sitio.estado, 200);
+    assert.match(sitio.cabeceras['content-type'], /json/);
+    assert.equal(sitio.cuerpo, '{"sync url":"http://127.0.0.1:1"}');
+    writeFileSync(join(m.dir, 'sitio.json'), '{"de":"la raiz"}');
+    assert.equal((await pedir(m.puerto, '/sitio.json')).cuerpo, '{"de":"la raiz"}');
+    for (const ruta of ['/retoques/.datos/sitio.json', '/retoques/.datos/fondo.md', '/retoques/.datos/sesiones.json', '/.datos/sitio.json']) {
+      assert.notEqual((await pedir(m.puerto, ruta, { cabeceras: conLlave(m.llave) })).estado, 200, ruta);
+    }
+  } finally { await otro?.cerrar(); await m.fin(); }
 });

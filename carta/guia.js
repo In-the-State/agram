@@ -456,6 +456,19 @@ export function conTrozo(turno, trozo) {
   return t2;
 }
 
+/**
+ * La lista de cambios de fondo que da el servidor de retoques (GET /retoques/fondo), con forma y topes para pintarla:
+ * { total, sesionesSinCrecer, entradas: [{ titulo, clase, estado }] } o null. Lo de dentro es texto que escribe un agente
+ * (retoques/.datos/fondo.md): quien lo pinta lo escapa.
+ */
+export function fondoDe(r) {
+  if (!r || typeof r !== 'object') return null;
+  const n = (v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+  const texto = (v, max) => String(v ?? '').slice(0, max);
+  const entradas = (Array.isArray(r.entradas) ? r.entradas : []).slice(-200).map((e) => ({ titulo: texto(e?.titulo, 200), clase: texto(e?.clase, 60), estado: texto(e?.estado, 60) }));
+  return { total: n(r.total), sesionesSinCrecer: n(r.sesionesSinCrecer), entradas };
+}
+
 /** ¿Edita (o solo lee)? La herramienta de un trozo 'archivo'. */
 export const editaCon = (herramienta) => /^(Edit|Write|MultiEdit|NotebookEdit)$/.test(String(herramienta ?? ''));
 

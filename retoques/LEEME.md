@@ -15,7 +15,11 @@ node retoques/servidor.mjs --rama beta-retoques [--puerto 8790] [--modelo <model
 - `--modelo`: el del agente; sin él, el que traiga Claude Code.
 - Ctrl+C para parar: el agente se cierra con el servidor.
 
-Lo que guarda va a `retoques/.datos/` (fuera de git y nunca servido): `opiniones.jsonl` (una opinión por línea), `sesion.json` (el id de la conversación, para retomarla) y `fondo.md` (lo que pide cambiar la época, que el agente no hace).
+Lo que guarda va a `retoques/.datos/` (fuera de git y nunca servido): `opiniones.jsonl` (una opinión por línea), `sesion.json` (el id de la conversación, para retomarla), `fondo.md` (la lista de cambios de fondo, que el agente escribe y no hace) y `sesiones.json` (las sesiones de retoques).
+
+- **La lista de fondo** (`retoques/fondo.mjs`): cada entrada de `fondo.md` empieza por `## <fecha> · <título>` y sigue con `clase:`, `estado:`, `pidió:` y `contexto:`; solo se añade al final. `GET /retoques/fondo` da `{ total, sesiones, sesionesSinCrecer, entradas: [{ titulo, clase, estado, texto }] }` y `estado` añade `fondo` y `sesionesSinCrecer`. En el PV9, en «Core», una línea plegable la enseña.
+- **Las sesiones**: una sesión es un arranque del servidor en que Core recibió al menos un mensaje (`{ inicio, mensajes, fondoAlEmpezar, fondoAlAcabar }`, actualizada al acabar cada mensaje: `.nuevo` y renombrar). «Sesiones sin crecer»: cuántas seguidas, desde la última, acabaron con las mismas entradas con que empezaron. La primera vuelta de la aceptación acaba cuando deja de crecer (un par de sesiones) o cuando VG dice «cerramos».
+- **`sitio.json` del ensayo**: si existe `retoques/.datos/sitio.json` y no hay `sitio.json` en la raíz, se sirve en `/sitio.json` (las cuentas nuevas del ensayo apuntan a su puerta sin tocar el repositorio). Es lo único de `.datos` que se sirve.
 
 ## El agente de la carta: la orden exacta
 

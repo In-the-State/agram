@@ -60,6 +60,10 @@
       const r = await llamar('/retoques/estado');
       return r.ok ? r.json() : { ok: false, estado: r.status };
     },
+    /** La lista de cambios de fondo: { total, sesiones, sesionesSinCrecer, entradas: [{ titulo, clase, estado, texto }] } o null. */
+    async fondo() {
+      try { const r = await llamar('/retoques/fondo'); return r.ok ? await r.json() : null; } catch { return null; }
+    },
     /** Manda una opinión de «opinar» a retoques/.datos/opiniones.jsonl. → true si llegó. */
     async opinion(opinion) {
       if (!llave) return false;
