@@ -12,7 +12,7 @@ import { tmpdir } from 'node:os';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { crearServidor, CABECERA_LLAVE } from '../retoques/servidor.mjs';
-import { instantesDePasadas, huellaDeFila, EJE } from '../retoques/ensayo.mjs';
+import { instantesDePasadas, huellaDeFila, EJE, lineasDeAvisos, LINEAS_DE_AVISOS } from '../retoques/ensayo.mjs';
 import { EJE_GUIA, CARA, caraDeLaGuia, comprobarPasos, idDeLaEpocaDeLaGuia } from '../retoques/guia-ensayo.mjs';
 import { zonas, pasosDeGuia, sugerenciasDeGuia } from '../src/guia-libro.js';
 import { acciones, sincronia } from '../src/index.js';
@@ -434,6 +434,45 @@ test('ensayo (VG 17-11): con la correspondencia nueva y una tabla con detalle y 
     assert.equal(leerCompartido().length, n);
   } finally {
     delete globalThis.localStorage;
+    await m?.s.cerrar();
+    p.borrar();
+  }
+});
+
+test('ensayo: tras el recuento, cada aviso y cada «no puede» en su línea, recortada a 300 caracteres, como mucho 20 y «y N más»; nunca 64 hexadecimales seguidos', async () => {
+  // Lo puro: tapa lo que parece una clave o la llave, recorta y pone el tope.
+  const k = 'ab'.repeat(32);
+  const l = lineasDeAvisos(['fila x: con ' + k + ' dentro', 'z'.repeat(400)], [{ paso: { fila: 'y' }, motivo: 'firma\nrota ' + k.toUpperCase() }]);
+  assert.deepEqual(l.slice(0, 1), ['ensayo:   aviso: fila x: con ‹oculto› dentro']);
+  assert.equal(l[1].length, 'ensayo:   '.length + LINEAS_DE_AVISOS.caracteres);
+  assert.ok(l[1].endsWith('…'));
+  assert.equal(l[2], 'ensayo:   no puede: fila y: firma rota ‹oculto›');
+  const muchos = lineasDeAvisos(Array.from({ length: 23 }, (_, i) => 'a' + i), [{ paso: { cosa: 'C' }, motivo: 'm' }]);
+  assert.equal(muchos.length, LINEAS_DE_AVISOS.tope + 1);
+  assert.equal(muchos.at(-1), 'ensayo:   y 4 más');
+  // En el arranque: una tabla con 25 fases desconocidas.
+  const rara = Array.from({ length: 25 }, (_, i) => fila('r' + i, 'Casa Norte', 'Puertas', 'Tarea inventada ' + i, 'rara'));
+  const p = preparar(rara);
+  let m;
+  try {
+    m = await arrancar(p);
+    assert.match(m.dicho[0], /^ensayo: volcado en 1 pasada: \d+ registros escritos, 25 avisos$/);
+    const delVolcado = m.dicho.filter((x) => !x.startsWith('ensayo: guía de ensayo'));
+    assert.equal(delVolcado.length, 1 + LINEAS_DE_AVISOS.tope + 1);
+    assert.equal(delVolcado[1], 'ensayo:   aviso: fila r0: fase «rara» desconocida; se queda en propuesta');
+    assert.equal(delVolcado.at(-1), 'ensayo:   y 5 más');
+    const claves = JSON.parse(readFileSync(p.ensayo.claves, 'utf8'));
+    for (const linea of m.dicho) {
+      assert.ok(!/[0-9a-fA-F]{64}/.test(linea), 'sin 64 hexadecimales');
+      for (const x of [claves.duena.privada, ...Object.values(claves.cosas).map((c) => c.privada), m.s.llave]) assert.ok(!linea.includes(x));
+    }
+    await m.s.cerrar();
+    const puerto = m.puerto;
+    // Las filas cambiadas: también cada aviso.
+    writeFileSync(p.ensayo.tabla, JSON.stringify(rara.map((f) => (f.id === 'r0' ? { ...f, fase: 'otra rara' } : f))));
+    m = await arrancar(p, { puerto });
+    assert.deepEqual(m.dicho, ['ensayo: volcado de 1 filas cambiadas: 0 registros escritos, 1 avisos', 'ensayo:   aviso: fila r0: fase «otra rara» desconocida; se queda en propuesta']);
+  } finally {
     await m?.s.cerrar();
     p.borrar();
   }

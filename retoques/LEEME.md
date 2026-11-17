@@ -63,6 +63,16 @@ Tiempos: el primer mensaje, con el proceso arrancando, ~13 s con el modelo por d
 
 Nada montado: ni túnel ni programas nuevos. Los pasos del túnel están en `agram-equipo/PLAN_ACEPTACION.md`, sección L. El servidor ya está listo para ir detrás: `--publico <host>` acepta `Host: <host>` y `Origin: https://<host>`; por ese host no se sirve nada sin la llave (ni los archivos): una página mínima para pegarla y, al acertar, una cookie de sesión propia (HttpOnly, Secure, SameSite=Strict); las llamadas siguen pidiendo además la cabecera con la llave; intentos limitados por minuto y espera creciente tras varios fallos.
 
+**Entrar desde el móvil con un QR** (VG 17-11: la llave no se teclea ni viaja por chat). En el PC, abre
+
+```
+http://localhost:<puerto>/retoques/movil#llave=<la llave>&publico=<el nombre público>
+```
+
+(la llave y el nombre son los que ya imprime la consola al arrancar con `--publico`; la consola no cambia). La página (`retoques/movil.html`, con el codificador propio `retoques/qr.mjs`: modo byte, corrección M, versiones 1 a 10) no pide nada al servidor ni guarda nada: lee su fragmento, lo valida (64 hexadecimales; el nombre, letras, cifras, puntos y guiones), lo quita de la barra de direcciones y pinta el QR de `https://<nombre público>/#llave=<llave>`, sin enseñar la llave como texto, con «Ocultar». Su política de contenido no deja pedir nada (`connect-src 'none'`; el script en línea, por su resumen). Solo se sirve por la cara local (`localhost` o `127.0.0.1`); por el nombre público, 404 siempre, con sesión o sin ella. Sin un fragmento válido, solo dice que se abre desde la sesión de Core AGRAM.
+
+En el móvil que ya pasó el correo de Cloudflare, la cámara abre `https://<nombre público>/#llave=…`: la página mínima lee `#llave=`, la quita de la barra, la manda sola (`POST /retoques/entrar`), recibe la cookie de sesión y recarga la carta: **entra sin tocar nada**. Si el correo aún no se ha pasado, Cloudflare Access redirige a su página y, al volver, el fragmento puede perderse (no viaja al servidor): pasado el correo, se lee el QR otra vez.
+
 ## El ensayo: el libro del roadmap (`--ensayo`)
 
 `--ensayo <carpeta> --tabla <ruta> --claves <ruta>` (las tres juntas, y las tres FUERA del repositorio; si no, el servidor no arranca). Lo hace `retoques/ensayo.mjs`:
@@ -80,7 +90,7 @@ Nada montado: ni túnel ni programas nuevos. Los pasos del túnel están en `agr
   - El libro es el del almacén.
   - Solo si la tabla cambió (su SHA-256, en `<carpeta>/ensayo.json` con la huella de cada fila) se vuelcan, y solo las filas cambiadas (`volcar(…, { filas })`). La pantalla manda en las demás.
   - Si la «sync url» de este arranque es otra (otro puerto, o con o sin `--publico`), la dueña escribe sus preferencias nuevas.
-- **La consola** dice una línea por volcado (registros y avisos, sin texto de las filas).
+- **La consola** dice una línea por volcado (registros y avisos) y, debajo, cada aviso y cada «no puede» en una línea propia (recortada a 300 caracteres; como mucho 20, con «y N más»). Lo que parezca una clave o la llave (64 hexadecimales seguidos) sale tapado.
 - **La «sync url»** es `https://<publico>/ensayo` con `--publico`, y si no, `http://localhost:<puerto>/ensayo`. La carta no admite una ruta relativa ahí: `src/sincronia.js` (`urlHttp`) y `carta/sitio.js` exigen `http(s)://`. Con `--publico`, también el portátil ha de entrar por el nombre público.
 - **La guía de ensayo** (`retoques/guia-ensayo.mjs`; `agram-equipo/DISENO_ZONAS_GUIA.md` §5) es el segundo libro, de la misma dueña y con su misma clave, con la época hija del libro de la guía (`datos/epocas/guia-libro/`).
   - Se crea la primera vez, en su propio almacén (`<carpeta>/guia.json`) y con su propia clave de lectura (en `ensayo.json`). Se sirve en `/ensayo/guia/…`, con las mismas garantías que `/ensayo`: solo 127.0.0.1 o el nombre de `--publico` con su sesión, y la clave de lectura del eje.

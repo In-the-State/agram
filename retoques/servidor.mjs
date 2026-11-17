@@ -118,6 +118,22 @@ function git(raiz, args) {
   return { ok: r.status === 0, salida: (r.stdout ?? '').trim(), error: (r.stderr ?? '').trim() || String(r.error?.message ?? '') };
 }
 
+/**
+ * La página del QR para entrar desde el móvil (retoques/movil.html y el codificador retoques/qr.mjs): solo por la cara
+ * local; por el nombre público, 404 siempre. Su política de contenido no deja pedir nada a nadie (connect-src 'none'):
+ * el único script en línea va por su resumen, y el módulo del QR, del mismo sitio.
+ */
+const MOVIL = (() => {
+  const html = readFileSync(join(AQUI, 'movil.html'));
+  const guion = /<script type="module">([\s\S]*?)<\/script>/.exec(html.toString('utf8'))?.[1] ?? '';
+  const resumenDelGuion = createHash('sha256').update(guion, 'utf8').digest('base64');
+  const politica = "default-src 'none'; script-src 'self' 'sha256-" + resumenDelGuion + "'; style-src 'unsafe-inline'; connect-src 'none'; img-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
+  return Object.freeze({
+    '/retoques/movil': { cuerpo: html, tipo: 'text/html; charset=utf-8', politica },
+    '/retoques/qr.mjs': { cuerpo: readFileSync(join(AQUI, 'qr.mjs')), tipo: 'text/javascript; charset=utf-8', politica: "default-src 'none'" },
+  });
+})();
+
 const PAGINA_LLAVE = `<!doctype html>
 <html lang="es"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>AGRAM · retoques</title>
@@ -436,6 +452,14 @@ export function crearServidor({ raiz = RAIZ, puerto = 8790, rama = null, modelo 
       const cara = caraDe(req);
       if (!cara) return vacia(res, 403);
       const ruta = String(req.url ?? '').split('?')[0];
+      // La página del QR (y su codificador): solo por la cara local; por el nombre público, 404 con sesión o sin ella.
+      if (Object.hasOwn(MOVIL, ruta)) {
+        req.resume();
+        if (cara !== 'local' || (req.method !== 'GET' && req.method !== 'HEAD')) return vacia(res, 404);
+        const a = MOVIL[ruta];
+        res.writeHead(200, { ...cabecerasBase, 'content-type': a.tipo, 'content-security-policy': a.politica, 'x-frame-options': 'DENY' });
+        return res.end(req.method === 'HEAD' ? undefined : a.cuerpo);
+      }
       if (cara === 'publica' && !conSesion(req)) {
         if (ruta === '/retoques/entrar' && req.method === 'POST') return entrarPublico(req, res);
         req.resume();
