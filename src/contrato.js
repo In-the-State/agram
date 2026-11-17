@@ -3965,4 +3965,8 @@ export { configuracionDeFormato, AJUSTES_DE_FORMATO } from './acciones.js';
 // Las zonas de la cara y la guía mínima (§12.8; VG 17-11 por Core State, DISENO_ZONAS_GUIA pieza 1): sus lecturas viven en
 // guia-libro.js y se exponen aquí con el resto de lo que lee la carta (el ciclo con guia-libro solo vale en tiempo de llamada).
 export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_LA_GUIA, TOPES_DE_ZONA } from './guia-libro.js';
+// La nota de detalle de un registro (§12.9; VG 17-11, la escribe el volcado): su lectura vive en nota-detalle.js.
+export { notaDeDetalle, partirNota, NOTA } from './nota-detalle.js';
+// Las invitaciones de un libro (§12.11): las pendientes para una clave, y si ya hay un alta con ella.
+export { invitacionesParaClave, altaConClave, invitacionPendiente } from './invitaciones.js';
 export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)

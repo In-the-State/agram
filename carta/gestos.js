@@ -213,6 +213,8 @@ export function instalar(raiz, m) {
     if ((el = b('[data-core-quitar]'))) { e.preventDefault(); m.coreQuitar?.(Number(el.dataset.coreQuitar)); return; }
     if ((el = b('[data-core-nueva]'))) { e.preventDefault(); if (!el.disabled) m.coreNueva?.(); return; }
     if ((el = b('[data-core-ensayo]'))) { e.preventDefault(); if (!el.disabled) m.coreEnsayo?.(); return; }
+    // «Copiar» el comando de un paso de la ficha de detalle: copia lo que se ve.
+    if ((el = b('[data-copiar]'))) { e.preventDefault(); m.copiar?.(el); return; }
     // Las zonas de la cara y los pasos de una guía (carta/guias.js): solo navegan o abren un formulario relleno.
     if ((el = b('[data-zona]'))) { e.preventDefault(); m.zona?.(el.dataset.x ?? xDe(el), el.dataset.zona); return; }
     if ((el = b('[data-guia-paso]'))) { e.preventDefault(); m.guiaPaso?.(el.dataset.guiaPaso); return; }
@@ -251,6 +253,12 @@ export function instalar(raiz, m) {
     // Varios libros (A24; carta/libros.js): «Tus libros», entrar y volver, el libro privado y la copia de todos.
     if ((el = b('[data-libro]'))) { e.preventDefault(); if (!el.disabled) m.libro?.(el.dataset.libro); return; }
     if ((el = b('[data-libro-otro]'))) { e.preventDefault(); m.libroOtro?.(); return; }
+    // Entrar en un libro al que me han invitado (carta/invitado.js): abrirlo, el archivo, aceptar, reintentar, añadirlo.
+    if ((el = b('[data-libro-invitado]'))) { e.preventDefault(); m.invitado?.(); return; }
+    if ((el = b('[data-invitado-archivo]'))) { e.preventDefault(); if (!el.disabled) m.invitadoArchivo?.(); return; }
+    if ((el = b('[data-invitado-aceptar]'))) { e.preventDefault(); if (!el.disabled) m.invitadoAceptar?.(el.dataset.invitadoAceptar); return; }
+    if ((el = b('[data-invitado-reintentar]'))) { e.preventDefault(); if (!el.disabled) m.invitadoReintentar?.(); return; }
+    if ((el = b('[data-invitado-anadir]'))) { e.preventDefault(); if (!el.disabled) m.invitadoAnadir?.(); return; }
     if ((el = b('[data-libro-entrar]'))) { e.preventDefault(); m.libroEntrar?.(el.dataset.libroEntrar, el.dataset.foco || null); return; }
     if ((el = b('[data-libro-volver]'))) { e.preventDefault(); m.libroVolver?.(el.dataset.libroVolver, el.dataset.foco || null); return; }
     if ((el = b('[data-libro-anunciar]'))) { e.preventDefault(); m.libroAnunciar?.(el.dataset.libroAnunciar, el.dataset.foco || null); return; }
@@ -549,6 +557,7 @@ export function instalar(raiz, m) {
     else if (f.matches('[data-restaurar]')) m.restaurar?.(f);
     else if (f.matches('[data-copia-form]')) m.copia?.(f);
     else if (f.matches('[data-libro-privado-form]')) m.libroPrivadoCrear?.(f);
+    else if (f.matches('[data-invitado-form]')) m.invitadoBuscar?.(f);
     else if (f.matches('[data-guia-form]')) m.guiaPreguntar?.(f.querySelector('[data-guia-pregunta]')?.value ?? '');
     else if (f.matches('[data-core-form]')) m.corePreguntar?.(f.querySelector('[data-core-texto]')?.value ?? '');
   });

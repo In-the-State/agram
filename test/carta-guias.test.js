@@ -12,7 +12,7 @@ import * as contrato from '../src/contrato.js';
 import { serializar } from '../src/persistencia.js';
 import { LibrosDelDispositivo, sugerenciasDeMisGuias, estadoDeLosPasos, pasoDelLibro, esMiGuia, libroDeEntrada, TOPE_DE_LIBROS, TOPE_DE_PASOS } from '../carta/guias.js';
 import { arbol } from '../carta/carta.js';
-import { html, htmlCamino } from '../carta/dom.js';
+import { html, htmlCamino, htmlFicha } from '../carta/dom.js';
 
 const ZONA = 'a zone of the face';
 const PASO = 'a step of the guide';
@@ -209,4 +209,31 @@ test('la cara con zonas: una capa de la carta con un botón por zona, la etiquet
   if (ajena.ok) await g.anadir(ajena.evento);
   assert.equal(contrato.zonas(g, guia.id).length, 3);
   assert.equal((await arbol({ foco: { X: guia.id, pv: 0 } }, g, 'lectora', GRANDE)).centro.zonas.length, 3, 'la carta no la rodea: tampoco la pinta');
+});
+
+// ---------- la ficha de detalle (contrato.notaDeDetalle, §12.9) ----------
+
+test('la ficha de detalle: bajo el título del registro abierto, todo como texto; Copiar solo donde se puede; sin nota, nada', async () => {
+  const eje = await libro(null);
+  const tarea = await hacer(eje, 'anchor here', eje.genesisId, { title: 'Probar la carta' });
+  const sin = await arbol({ foco: { X: tarea.id, pv: 0 } }, eje, 'vg', GRANDE);
+  assert.ok(!('ficha' in sin.centro) && !html(sin).includes('class="ficha"'), 'sin nota, el nodo no cambia');
+  await hacer(eje, 'anchor here', tarea.id, { title: 'nota de detalle', content: ['nota de detalle: j1', 'base: Lo pide <b>la dueña</b>', 'paso 1: Arrancar', 'paso 1 comando: node s.mjs --puerto 9999 && echo "<x>"', 'paso 1 ruta: retoques/una/ruta/muy/larga', 'paso 1 ve: la portada', 'paso 2: Truco', 'paso 2 comando: rm ‮-rf', 'detalle: una línea', 'quien: Core Inventado', 'depende a1: Escribir la guía'] });
+  const a = await arbol({ foco: { X: tarea.id, pv: 0 } }, eje, 'vg', GRANDE);
+  assert.equal(a.centro.ficha.base, 'Lo pide <b>la dueña</b>');
+  const h = html(a);
+  // Justo bajo el título (el h1 de la representación), antes de lo demás.
+  const h1 = h.indexOf('</h1>');
+  assert.ok(h1 > 0 && h.indexOf('<section class="ficha"') > h1 && h.indexOf('<section class="ficha"') < h.indexOf('class="campo campo-0'), 'la ficha va bajo el título');
+  const f = htmlFicha(a.centro.ficha);
+  assert.ok(f.includes('En qué se basa') && f.includes('Lo pide &lt;b&gt;la dueña&lt;/b&gt;') && !f.includes('<b>la dueña'), 'como texto, escapado');
+  assert.ok(f.includes('<code class="ficha-comando">node s.mjs --puerto 9999 &amp;&amp; echo &quot;&lt;x&gt;&quot;</code><button type="button" class="ficha-copiar"'), 'el comando en monoespaciado, con Copiar');
+  assert.ok(f.includes('<code class="ficha-ruta">retoques/una/ruta/muy/larga</code>'));
+  assert.ok(f.includes('Verás: la portada') && f.includes('Pregunta a: Core Inventado') && f.includes('Depende de') && f.includes('<code>a1</code> Escribir la guía'));
+  assert.ok(f.includes('<p>una línea</p>'), 'el detalle, como párrafos');
+  assert.ok(f.includes('Ficha escrita por vg'), 'al pie, quién la escribió');
+  assert.equal((f.match(/data-copiar/g) ?? []).length, 1, 'el comando con caracteres que engañan no se ofrece para copiar');
+  assert.ok(f.includes('<code class="ficha-comando">rm -rf</code>') && f.includes('traía caracteres que engañan'), 'se enseña sin ellos y marcado');
+  assert.match(CSS, /\.ficha-comando,\.ficha-ruta\{[^}]*white-space:pre-wrap;overflow-wrap:anywhere/, 'comandos y rutas largas saltan dentro de su caja');
+  assert.equal(htmlFicha(null), '');
 });

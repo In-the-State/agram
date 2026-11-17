@@ -218,6 +218,33 @@ function htmlCaraConZonas(cara, c) {
   return `<span class="cara-con-zonas">${cara}<span class="zonas-capa" role="group" aria-label="${attr(t('zonasDeLaCara'))}">${botones}</span></span>`;
 }
 
+/**
+ * La ficha de detalle de un registro (contrato.notaDeDetalle, §12.9; la escribe el volcado): en qué se basa, sus pasos
+ * (qué hace, el comando con «Copiar», la ruta y qué se verá), el detalle, a quién preguntar, de qué depende (solo texto)
+ * y, al pie, quién la escribió. Todo como texto escapado, nunca HTML de la nota. Una línea que traía caracteres que
+ * engañan sale sin ellos y marcada; un comando así no se ofrece para copiar. «Copiar» copia lo que se ve (app.js copiar).
+ */
+export function htmlFicha(f) {
+  if (!f) return '';
+  const marcadas = new Set(f.enganosas ?? []);
+  const sinCopiar = new Set(f.sinCopiar ?? []);
+  const marca = (sitio) => (marcadas.has(sitio) ? ` <small class="ficha-enganosa" title="${attr(t('fichaEnganosaTitulo'))}">${t('fichaEnganosa')}</small>` : '');
+  const base = f.base ? `<section class="ficha-base"><h4>${t('fichaBase')}</h4><p>${escapar(f.base)}${marca('base')}</p></section>` : '';
+  const paso = (p, i) => {
+    const n = i + 1;
+    const comando = p.comando ? `<div class="ficha-comando-fila"><code class="ficha-comando">${escapar(p.comando)}</code>${sinCopiar.has(n) ? '' : `<button type="button" class="ficha-copiar"${nodo('control')} data-copiar title="${attr(t('fichaCopiarTitulo'))}">${t('fichaCopiar')}</button>`}${marca('paso ' + n + ' comando')}</div>` : '';
+    const ruta = p.ruta ? `<div class="ficha-ruta-fila"><code class="ficha-ruta">${escapar(p.ruta)}</code>${marca('paso ' + n + ' ruta')}</div>` : '';
+    const ve = p.ve ? `<p class="ficha-ve">${escapar(t('fichaVeras', { que: p.ve }))}${marca('paso ' + n + ' ve')}</p>` : '';
+    return `<li class="ficha-paso"><p class="ficha-hace">${escapar(p.hace ?? '')}${marca('paso ' + n)}</p>${comando}${ruta}${ve}</li>`;
+  };
+  const pasos = f.pasos?.length ? `<section class="ficha-pasos"><h4>${t('fichaPasos')}</h4><ol>${f.pasos.map(paso).join('')}</ol></section>` : '';
+  const detalle = f.detalle?.length ? `<section class="ficha-detalle">${f.detalle.map((d, i) => `<p>${escapar(d)}${marca('detalle ' + (i + 1))}</p>`).join('')}</section>` : '';
+  const quien = f.quien ? `<p class="ficha-quien">${escapar(t('fichaPregunta', { quien: f.quien }))}${marca('quien')}</p>` : '';
+  const depende = f.depende?.length ? `<section class="ficha-depende"><h4>${t('fichaDepende')}</h4><ul>${f.depende.map((d) => `<li><code>${escapar(d.id)}</code> ${escapar(d.texto ?? '')}${marca('depende ' + d.id)}</li>`).join('')}</ul></section>` : '';
+  const pie = f.autor ? `<footer class="ficha-pie"><small>${escapar(t('fichaEscrita', { autor: f.autor }))}</small></footer>` : '';
+  return `<section class="ficha"${nodo('ficha')} aria-label="${attr(t('fichaTitulo'))}">${base}${pasos}${detalle}${quien}${depende}${pie}</section>`;
+}
+
 /** Una representación del 0 como HTML: texto, la imagen que cabe (solo llega con recurso en animado), la de un archivo adjunto (su URL local) o el HTML aislado. */
 function htmlRepresentacion(rep, { clase = 'rep', nombre = null } = {}) {
   if (!rep) return `<span class="${clase} rep-vacia">—</span>`;
@@ -684,7 +711,59 @@ export function htmlTusLibros(l) {
   return `<details class="tus-libros"${nodo('control')} data-tus-libros><summary>${escapar(t('tusLibros'))}${abierto ? ` · <b>${escapar(abierto.etiqueta)}</b>` : ''}</summary>
     <ul class="tus-libros-lista" data-propios>${propios}</ul>${otras}
     <p class="tus-libros-otro"><button type="button" data-libro-otro>${escapar(t('libroAbrirOtro'))}</button></p>
+    <p class="tus-libros-otro"><button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button></p>
   </details>`;
+}
+
+/**
+ * «Entrar en un libro al que me han invitado» (carta/invitado.js; DISENO_CARTA_VARIOS_LIBROS §4.9, el lado de quien entra).
+ * Primero los datos: el archivo de la invitación o los tres campos a mano (la clave de lectura, de tipo contraseña y nunca
+ * rellena). Luego lo que dice el libro bajado: qué libro es, y mi alta (solo «Añadirlo a tus libros») o mis invitaciones
+ * (quién invita, con qué nombre entro, qué me da, lo que cuesta; «Aceptar» y «Ahora no») o ninguna (mi clave pública,
+ * para copiarla). Todo lo del libro como texto escapado: es dato de fuera. `v`: la vista de app.js invitadoDe.
+ */
+export function htmlInvitado(v) {
+  if (!v) return '';
+  const mensajes = (v.aviso ? `<p class="aviso" role="alert">${escapar(v.aviso)}</p>` : '') + (v.exito ? `<p class="exito" role="status">${escapar(v.exito)}</p>` : '');
+  const ocupado = v.ocupado ? ' disabled aria-busy="true"' : '';
+  let cuerpo;
+  if (v.paso === 'datos') {
+    cuerpo = `<p class="ayuda">${escapar(t('invitadoAyuda'))}</p>
+      <p><button type="button"${nodo('control')} data-invitado-archivo${ocupado}>${escapar(t('invitadoCargarArchivo'))}</button></p>
+      <form class="invitado-datos" data-invitado-form autocomplete="off">
+        <p class="ayuda">${escapar(t('invitadoAMano'))}</p>
+        <div class="campo"><label for="invitado-url">${escapar(t('invitadoUrl'))}</label><input id="invitado-url" name="url" type="url" inputmode="url" spellcheck="false" autocapitalize="off" value="${attr(v.url ?? '')}" placeholder="https://…"></div>
+        <div class="campo"><label for="invitado-eje">${escapar(t('invitadoEje'))}</label><input id="invitado-eje" name="eje" type="text" spellcheck="false" autocapitalize="off" value="${attr(v.eje ?? '')}"></div>
+        <div class="campo"><label for="invitado-clave">${escapar(t('invitadoClave'))}</label><input id="invitado-clave" name="claveLectura" type="password" autocomplete="off" spellcheck="false" autocapitalize="off" value=""></div>
+        <p><button type="submit"${ocupado}>${escapar(t('invitadoBuscar'))}</button></p>
+      </form>`;
+  } else {
+    const x = v.vista ?? {};
+    const libro = `<p class="invitado-libro">${escapar(t('invitadoElLibro', { nombre: x.libro?.nombre ?? t('invitadoSinNombre'), genesis: x.libro?.genesis ?? '' }))}</p>`;
+    if (x.miAlta) {
+      cuerpo = `${libro}<p>${escapar(t('invitadoYaEstas', { nombre: x.miAlta.identidad }))}</p><p class="invitado-botones"><button type="button"${nodo('control')} data-invitado-anadir${ocupado}>${escapar(t('invitadoAnadir'))}</button><button type="button" data-cerrar>${escapar(t('invitadoAhoraNo'))}</button></p>`;
+    } else if (x.invitaciones?.length) {
+      const una = (i) => {
+        const da = i.da?.length ? i.da.join(', ') : t('invitadoNoDaNada');
+        const coste = i.coste ? t('invitadoCoste', { cantidad: i.coste.cantidad, escala: i.coste.escala }) : t('invitadoSinCoste');
+        const quien = i.quienInvita ? t('invitadoQuienConNombre', { nombre: i.quienInvita, id: i.autor }) : i.autor;
+        const reintentar = v.pendiente === i.id ? `<button type="button"${nodo('control')} data-invitado-reintentar${ocupado}>${escapar(t('invitadoReintentar'))}</button>` : `<button type="button"${nodo('control')} data-invitado-aceptar="${attr(i.id)}"${ocupado}>${escapar(t('invitadoAceptar'))}</button>`;
+        return `<li class="invitado-invitacion"><dl>
+          <dt>${escapar(t('invitadoQuienInvita'))}</dt><dd>${escapar(quien)}</dd>
+          <dt>${escapar(t('invitadoEntrasComo'))}</dt><dd><code>${escapar(i.invitado)}</code></dd>
+          <dt>${escapar(t('invitadoTeDa'))}</dt><dd>${escapar(da)}</dd>
+          <dt>${escapar(t('invitadoCuesta'))}</dt><dd>${escapar(coste)}</dd>
+        </dl><p class="invitado-botones">${reintentar}<button type="button" data-cerrar>${escapar(t('invitadoAhoraNo'))}</button></p></li>`;
+      };
+      cuerpo = `${libro}<ul class="invitado-invitaciones">${x.invitaciones.map(una).join('')}</ul>`;
+    } else {
+      cuerpo = `${libro}<p>${escapar(t('invitadoNinguna'))}</p><div class="copiable"><code class="invitado-clave-publica">${escapar(v.publica ?? '')}</code><button type="button" class="ficha-copiar"${nodo('control')} data-copiar>${escapar(t('fichaCopiar'))}</button></div><p class="invitado-botones"><button type="button" data-cerrar>${escapar(t('cerrar'))}</button></p>`;
+    }
+  }
+  return `<div class="formulario-fondo" data-cerrar><section class="formulario invitado"${nodo('invitado')} role="dialog" aria-label="${attr(t('invitadoEntrar'))}">
+    <header><h2>${escapar(t('invitadoEntrar'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    ${mensajes}${cuerpo}
+  </section></div>`;
 }
 
 /**
@@ -1379,6 +1458,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
       <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}${c.zonas?.length ? ' con-zonas' : ''}">${c.zonas?.length ? htmlCaraConZonas(htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta }), c) : htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
+      ${htmlFicha(c.ficha)}
       ${htmlCuentaDelBanco(c.cuenta)}
       ${arbol.secuencia ? htmlFilas(arbol, c) : `<label class="campo campo-0 campo-unico"${nodo('campo', { d: 0 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(t('nuevoAquiMarcador', { que: c.textoDelFoco ?? c.representacion?.texto ?? '' }))}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>`}
       ${leido}
@@ -2154,7 +2234,7 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
       <p class="ayuda">${escapar(t('arranqueIntro'))}</p>
       ${htmlBotonEnsayo(ensayo)}${entrar}${motivos}
       <div class="opciones">
-        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>`}
+        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button><button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>`}
         ${emparejarBoton}
         <button type="button" data-arranque="restaurar">${t('restaurarUnaCuenta')}</button>
         <button type="button" data-arranque="ejemplo">${t('probarConEjemplo')}</button>
@@ -2225,7 +2305,7 @@ export function html(arbol, extra = {}) {
     ${a.apilada ? htmlDigitos(a.secuencia) : ''}
     ${htmlAro(a.aro)}
     ${htmlSitio(a.sitio, a, extra)}
-    ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}${htmlPuente(extra.puente)}
+    ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}${htmlPuente(extra.puente)}${htmlInvitado(extra.invitado)}
     ${htmlFormulario(a.formulario)}
     ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
     ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true, emparejar: extra.emparejar, ensayo: extra.ensayo }) : ''}

@@ -1024,6 +1024,15 @@ Por qué no la colocación del diseño (0 título, 1 parámetros, 4 la acción, 
 
 **Lo que hay que saber del núcleo tal como está.** Un paso anclado en el 4 de la guía es, para la matriz del 4 (`ejecuciones`, §4.2 bis), un registro de su fábrica; una zona anclada en el 0 es un hijo más del elemento (como lo que ancla «anchor here»), y `representaciones` no la toma por una representación rica (su 1 no es [tamaño, formato]).
 
+### 12.9 La nota de detalle de un registro: `notaDeDetalle` y `partirNota` (VG 17-11)
+
+La escribe el volcado (`ejemplos/volcado/volcar.mjs`, `docs/notas/VOLCADO.md`): un registro con `anchor here` en el 0 de la tarea, título «nota de detalle», y en su 1 líneas «etiqueta: valor» (la primera, «nota de detalle: <id de la fila>»; `base`, `paso N`, `paso N comando|ruta|ve`, `detalle`, `quien`, `depende <id>`). La lectura vive en `src/nota-detalle.js` y se expone aquí. El volcado la importa; la búsqueda por el id de la fila sigue en el volcado.
+
+- `notaDeDetalle(eje, X)` → la última nota de detalle que **el autor de X** ancló en su 0, partida: `{ fila, base, pasos: [{ hace, comando?, ruta?, ve? }], detalle, quien, depende: [{ id, texto }], autor, id }`. Da `null` si X no está, si no tiene nota o si la última es la vacía («sin detalle: …»). Una nota de otra persona no cuenta nunca.
+- `partirNota(lineas)` → la nota partida, o `null` si es la vacía o no dice nada.
+- **Limpieza**: los textos pasan por la misma limpieza que la etiqueta de una zona (`RE_TEXTO_ENGANOSO` de `guia-libro.js`, §12.8). Una línea con caracteres de control o de dirección del texto se da sin ellos y su sitio va en `enganosas` («base», «paso 1 comando», «detalle 2», «depende a1»…). Un comando así va además en `sinCopiar` (el número de su paso): la carta no lo ofrece para copiar. Las dos listas solo salen si tienen algo.
+- **En la carta**: al abrir un registro con nota, la ficha se pinta bajo su título (`dom.js htmlFicha`), toda como texto.
+
 ### 12.10 Las dependencias como cadenas en el 7: `cadenas(eje, X)` (Core AGRAM 17-11, decidido con VG)
 
 En el libro del roadmap, las tareas que se esperan unas a otras se ven en el 7 como cadenas, una fila por secuencia, y las independientes aparte. Va en la **época hija del libro del roadmap** (`datos/epocas/roadmap/`, su `LEEME.md`; `npm run epoca:roadmap`), no en la 0. Código: `src/cadenas.js` (puro, sin DOM), expuesto también por `contrato`. Pruebas: `test/cadenas.test.js`. Diseño: `docs/notas/CADENAS.md`.
@@ -1042,6 +1051,13 @@ En el libro del roadmap, las tareas que se esperan unas a otras se ven en el 7 c
 - En un libro cuya época no tiene «this goes after» (la 0 a secas), vacío.
 
 **El 7**: la época del roadmap trae su propia fila del 7 en `epoch.8.7.1` (una colección: sustituye a la de la 0 por su nombre, el 7), con forma **`cadenas`** en sequenced y mapped y `measures` = «this goes after»; `divisionDelMundo(eje, 7)` da `forma: 'cadenas'` y ninguna banda. El 7 de los demás libros sigue siendo `franjas`. Pintarla es de la carta (una fila por cadena, de izquierda a derecha, las independientes aparte; compactada por `primeroSinHacer`).
+
+### 12.11 Las invitaciones de un libro: `invitacionesParaClave` y `altaConClave` (DISENO_CARTA_VARIOS_LIBROS §4.9)
+
+Son lecturas puras de `src/invitaciones.js`, expuestas aquí. Las usa la carta para «Entrar en un libro al que me han invitado» (`carta/invitado.js`). `invitacionesA` e `invitacionPendiente` viven también ahí y el volcado las importa.
+
+- `invitacionesParaClave(eje, publica, { t })` → las invitaciones (`eje.invitar` con `clave`) cuya clave declarada para el invitado (`contexto.claves`) es `publica`, cuyo invitado aún no tiene alta y que no han caducado en `t`: `[{ id, autor, invitado (su 3.1: con qué nombre entro), da (su 1, como textos), hasta, tema, t }]`.
+- `altaConClave(eje, publica)` → `{ identidad, alta }` si ya hay en el libro un alta con esa clave, o `null`.
 
 ## 13. Para decidir VG
 
