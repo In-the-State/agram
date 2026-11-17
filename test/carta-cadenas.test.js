@@ -90,6 +90,27 @@ test('la anterior de fuera, apagada; las descartadas, en una línea al final; to
   assert.match(e, /&lt;img src=x onerror=alert\(1\)&gt;/);
 });
 
+test('en ancho, una cadena que no cabe enseña los pasos que quepan en torno al primero sin hacer, no solo tres', async () => {
+  const eje = await libro(epocaRoadmap());
+  const p = await hacer(eje, 'anchor here', eje.genesisId, { title: 'Proyecto largo' });
+  const pasos = [];
+  for (let k = 1; k <= 12; k++) {
+    pasos.push(await tarea(eje, p.id, 'L' + k));
+    if (k > 1) await despues(eje, pasos[k - 1], [pasos[k - 2]]);
+  }
+  // 1200 px de hueco como mucho: caben 7 tarjetas de 160; se enseñan 6 y los «+n».
+  let c = (await siete(eje, eje.genesisId, ORDENADOR)).r.cadenas[0];
+  const caben = c.visibles.length + 1;
+  assert.ok(caben > 3 && caben < 12, 'en ancho caben más de tres y no todos: ' + caben);
+  assert.deepEqual([c.visibles[0].nodo.texto, c.antes, c.despues], ['L1', 0, 12 - c.visibles.length], 'sin nada hecho: desde el primero, hacia delante');
+  for (const k of [0, 1, 2, 3]) await hacer(eje, 'close', pasos[k].id, {});
+  c = (await siete(eje, eje.genesisId, ORDENADOR)).r.cadenas[0];
+  assert.deepEqual([c.visibles[0].nodo.texto, c.antes, c.visibles.length], ['L4', 3, caben - 1], 'uno antes del primero sin hacer (L5) y los siguientes que quepan');
+  for (const k of [4, 5, 6, 7, 8, 9, 10]) await hacer(eje, 'close', pasos[k].id, {});
+  c = (await siete(eje, eje.genesisId, ORDENADOR)).r.cadenas[0];
+  assert.deepEqual([c.visibles.at(-1).nodo.texto, c.despues, c.visibles.length], ['L12', 0, caben - 1], 'al final de la cadena, se rellena hacia atrás');
+});
+
 test('a 400 px: el primer paso sin hacer, uno antes y uno después, con «+n» a cada lado; abierta, entera en vertical; toda hecha, el último', async () => {
   const { eje, t } = await roadmap();
   let { r, h } = await siete(eje, eje.genesisId, MOVIL);

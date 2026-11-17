@@ -2381,7 +2381,8 @@ function estadoDeCadenaEnLlano(p, titulo) {
  * Las celdas de la forma «cadenas» (el 7 del libro del roadmap): lo que da contrato.cadenas(eje, R), con cada paso
  * como la tarjeta normal de su registro (nodoOcupante: se abre al tocar como cualquier otra), su estado en llano y los
  * títulos de lo que une. Una fila por cadena; si no cabe entera en el hueco (una tarjeta por MEDIDAS.tarjeta), se
- * compacta: el primer paso sin hacer (primeroSinHacer), uno antes y uno después, y lo demás contado a cada lado
+ * compacta: el primer paso sin hacer (primeroSinHacer), uno antes y uno después (y, en ancho, los siguientes que quepan
+ * dejando sitio a los «+n»; si se acaban, los de antes), y lo demás contado a cada lado
  * (`antes`, `despues`); toda hecha, el último paso. Una cadena abierta (estado.cadenasAbiertas[clave], que alterna
  * «+n») va entera, en vertical. `clave` es el id de su primer paso. → { cadenas: [{ clave, sale, pasos, visibles,
  * antes, despues, abierta }], independientes, descartadas: [texto], sinTareas, pagina: null }.
@@ -2408,6 +2409,9 @@ function cadenasDeRejilla(eje, R, pv, d, g, ctx, { hueco } = {}) {
       const foco = c.primeroSinHacer ?? pasos.length - 1;
       desde = c.primeroSinHacer === null ? foco : Math.max(0, foco - 1);
       hasta = Math.min(pasos.length, foco + (c.primeroSinHacer === null ? 1 : 2));
+      // En ancho se enseñan los que quepan dejando sitio a los «+n»: primero hacia delante y, si se acaban, hacia atrás.
+      hasta = Math.min(pasos.length, Math.max(hasta, desde + caben - 1));
+      desde = Math.max(0, Math.min(desde, hasta - (caben - 1)));
     }
     return { clave, sale: c.sale ? titulo(c.sale) : null, pasos, visibles: pasos.slice(desde, hasta), antes: desde, despues: pasos.length - hasta, abierta: Boolean(abiertas[clave]) };
   });
