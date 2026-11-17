@@ -1139,6 +1139,17 @@ function htmlOpiniones(o) {
  * cual, las preguntas hechas de la época como botones, el campo de pregunta y «preguntar». `g`: { historial, pensando,
  * pendiente, error, borrador, preguntas, via }; sin `g` (no hay eje) no se pinta. La app repinta solo esta sección.
  */
+/**
+ * «Entrar en el libro del roadmap» (el ensayo del servidor de retoques), en el panel Core y en la bienvenida: `e` { entrando,
+ * error } o null (no hay ensayo, o esta pantalla ya tiene esa cuenta: nada). Mientras entra, apagado y «entrando…»; si
+ * falló, el motivo debajo y el botón otra vez pulsable.
+ */
+export function htmlBotonEnsayo(e) {
+  if (!e) return '';
+  const error = e.error && !e.entrando ? `<span class="aviso" role="alert" data-core-ensayo-error>${escapar(t('coreEnsayoFallo', { motivo: e.error }))}</span>` : '';
+  return `<p class="core-ensayo"><button type="button"${nodo('control')} data-core-ensayo title="${attr(t('coreEnsayoTitulo'))}"${e.entrando ? ' aria-busy="true" disabled' : ''}>${escapar(t(e.entrando ? 'coreEnsayoEntrando' : 'coreEnsayo'))}</button>${error}</p>`;
+}
+
 export function htmlGuia(g) {
   if (!g) return '';
   if (g.core?.con === 'core') return htmlCore(g.core);
@@ -1182,7 +1193,7 @@ function htmlCore(c) {
   const f = c.fondo;
   const entradas = f?.entradas?.length ? `<ol>${f.entradas.map((e) => `<li><b>${escapar(e.titulo)}</b> · ${escapar(e.clase || '—')} · ${escapar(e.estado || '—')}</li>`).join('')}</ol>` : `<p class="nada">${escapar(t('coreFondoVacio'))}</p>`;
   const fondo = f ? `<details class="core-fondo" data-core-fondo${c.fondoAbierto ? ' open' : ''}><summary>${escapar(t('coreFondo', { total: f.total, sin: f.sesionesSinCrecer }))}</summary>${entradas}</details>` : '';
-  const ensayo = c.ensayo ? `<p class="core-ensayo"><button type="button"${nodo('control')} data-core-ensayo title="${attr(t('coreEnsayoTitulo'))}"${c.ensayo.entrando ? ' disabled' : ''}>${escapar(t(c.ensayo.entrando ? 'coreEnsayoEntrando' : 'coreEnsayo'))}</button></p>` : '';
+  const ensayo = htmlBotonEnsayo(c.ensayo);
   const senalado = (c.senalado ?? []).map((s, i) => `<span class="core-etiqueta">${escapar(s.etiqueta)}<button type="button"${nodo('control')} data-core-quitar="${i}" title="${attr(t('coreQuitar'))}" aria-label="${attr(t('coreQuitar'))}">×</button></span>`).join('');
   return `<section class="guia guia-core"${nodo('guia')} data-guia aria-label="${attr(t('core'))}">
     <header class="guia-cabeza"><h4>${t('core')}</h4>${htmlConQuien('core')}<small class="ayuda">${escapar(t('coreVia'))}</small>${c.turnos?.length ? `<button type="button"${nodo('control')} data-core-nueva title="${attr(t('coreNuevaTitulo'))}"${c.pensando ? ' disabled' : ''}>${t('coreNueva')}</button>` : ''}</header>
@@ -1386,21 +1397,23 @@ function htmlRoseton(r, { enSuSitio = false } = {}) {
   </button>`;
 }
 /** El doble toque: la misma vista del rosetón ampliado a pantalla completa, con lo que el núcleo da de esa posición de mi alta. */
-function htmlRosetonPantalla(lista) {
+function htmlRosetonPantalla(lista, guia = null) {
   const r = lista.find((x) => x.nivel >= NIVEL.bloque && x.ocupantes);
   if (!r) return '';
+  // El 9 (la cruz de abajo: el camino) lleva también la guía con su «guía | Core», como su tarjeta a nivel bloque.
+  const conGuia = GEOMETRIA[r.pv]?.grupo === 'cruz' && GEOMETRIA[r.pv]?.fila === 'abajo' ? htmlGuia(guia) : '';
   const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
   return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
     <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span>${r.ocupantes.total ? `<small>${escapar(r.ocupantes.total)}</small>` : ''}<button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
-    <ul>${filas}</ul>${htmlCartera(r.cartera)}
+    <ul>${filas}</ul>${htmlCartera(r.cartera)}${conGuia}
   </section>`;
 }
 const nav = (lista, clase, enSuSitio = false) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio })).join('')}</nav>`;
 const ARRIBA = [1, 2, 0, 3, 4];
-function htmlRosetones(lista, { apilada = false, parte } = {}) {
+function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
   if (!lista?.length) return '';
   // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa).
-  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista) : '';
+  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista, guia) : '';
   const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
   return mias.length ? nav(mias, `rosetones-${parte}`) : '';
 }
@@ -2039,7 +2052,7 @@ const htmlCeroColumna = (s) => (s?.X ? `<div class="cero-columna"${nodo('control
  * 'restaurar', campos (los del alta, del núcleo), valores, motivos, ocupado }. El formulario de crear se genera de los
  * campos que da cuentas.camposDelAlta (etiquetas y ayudas del núcleo); el de restaurar pide el archivo y la frase.
  */
-export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar = null } = {}) {
+export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar = null, ensayo = null } = {}) {
   if (!ar) return '';
   const motivos = ar.motivos?.length ? `<ul class="motivos" role="alert">${ar.motivos.map((m) => `<li>${escapar(m.mensaje ?? m)}</li>`).join('')}</ul>` : '';
   const volver = sobreCarta ? `<button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button>` : (ar.modo !== 'menu' ? `<button type="button" class="volver-arranque" data-arranque="menu">${t('volver')}</button>` : '');
@@ -2078,7 +2091,7 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
     cuerpo = `<div class="formulario arranque-menu" role="dialog" aria-label="${attr(t('arranqueTitulo'))}">
       <header><h2>${t('arranqueTitulo')}</h2>${volver}</header>
       <p class="ayuda">${escapar(t('arranqueIntro'))}</p>
-      ${entrar}${motivos}
+      ${htmlBotonEnsayo(ensayo)}${entrar}${motivos}
       <div class="opciones">
         ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>`}
         ${emparejarBoton}
@@ -2120,7 +2133,7 @@ export function html(arbol, extra = {}) {
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
   retocando = arbol?.retocar ?? null; // el modo «retocar textos» (A20): solo lo trae el árbol de quien puede retocar
   // Sin eje (nadie ha elegido aún cuenta ni ejemplo): la pantalla de arranque entera.
-  if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false, emparejar: extra.emparejar })}</div>`;
+  if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false, emparejar: extra.emparejar, ensayo: extra.ensayo })}</div>`;
   if (!arbol || arbol.vacio) return `<div class="carta vacia"><p class="aviso">${escapar(arbol?.avisos?.join(' · ') ?? t('sinRegistro'))}</p></div>`;
   const a = { ...arbol };
   const clase = ['carta', a.apilada ? 'carta-apilada' : 'carta-matriz', a.animado ? 'animado' : 'sobrio', `disposicion-${a.disposicion}`].join(' ');
@@ -2154,7 +2167,7 @@ export function html(arbol, extra = {}) {
     ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}${htmlPuente(extra.puente)}
     ${htmlFormulario(a.formulario)}
     ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
-    ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true, emparejar: extra.emparejar }) : ''}
+    ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true, emparejar: extra.emparejar, ensayo: extra.ensayo }) : ''}
     ${htmlCopia(extra.copia)}
     ${htmlLibroPrivado(extra.libroPrivado)}
   </div>`;
@@ -2229,7 +2242,7 @@ function htmlMapa(a, extra, laterales) {
     return `<div class="mapa completa" data-completa="${a.mapa.completa.pv}"><div class="mapa-celdas">${centro}</div><nav class="vecinos" aria-label="${attr(t('pantallaCompleta', { que: a.centro.etiqueta }))}">${a.mapa.completa.vecinos.filter((v) => !v.centro).map(flecha).join('')}${centros.length ? `<span class="vecinos-centro">${centros.map(flecha).join('')}</span>` : ''}</nav></div>`;
   }
   const celdas = a.laterales.filter((n) => n.caja).map((n) => htmlCeldaMapa(n, laterales[n.pv] ?? '')).join('');
-  return `<div class="mapa${a.mapa.matriz ? ' en-matriz' : ''}"><div class="mapa-celdas">${centro}${celdas}</div>${htmlRosetones(a.rosetones, { apilada: false, parte: 'mapa' })}</div>`;
+  return `<div class="mapa${a.mapa.matriz ? ' en-matriz' : ''}"><div class="mapa-celdas">${centro}${celdas}</div>${htmlRosetones(a.rosetones, { apilada: false, parte: 'mapa', guia: a.guia })}</div>`;
 }
 
 /**
