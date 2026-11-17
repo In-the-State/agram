@@ -18,4 +18,4 @@ Lo que escribe cada plantilla (la décupla manda sobre la colocación del diseñ
 
 Las lecturas (`src/guia-libro.js`: `zonas`, `pasosDeGuia`, `guias`, `pasoHecho`, `sugerenciasDeGuia`) buscan las plantillas por su nombre en la época del libro, no por esta época: siguen valiendo si pasan a la 0. Se cambia la fuente y se regenera; `test/guia-libro.test.js` falla si el resultado no está al día con la fuente o con el id de la 0. Todo nombre lleva su 0 en inglés y su texto en español en `textos/es.json` (`sinTraducir('es', { epoca })` de `docs/sin-traducir.mjs` con esta época, limpio: lo comprueba la prueba). Nada real: es genérica.
 
-Ojo si la 0 crece: una colección de la raíz (como el 9.2, las plantillas de datos) se hereda por posición, así que lo propio que se añada detrás tiene que ir después de todas las de la 0.
+Si algún día lleva plantillas de datos propias: el 9.2 se hereda por posición, así que van en un grupo (una décupla cuya cabecera dice «domain templates») en una posición libre detrás de las de la 0, como hace la época state (`docs/CONTRATO.md`, «las plantillas de dominio»).

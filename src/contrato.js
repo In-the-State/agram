@@ -72,7 +72,7 @@
 // transacción, transaccion() y el camino (3c-2a); el libro local (src/local.js), los pasos (src/pasos.js) y los
 // modelos de visualización (src/modelos.js) (3c-2b).
 
-import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0 } from './epocas.js';
+import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0, esPlantillaDeDatos, plantillasDeDominio } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla } from './bqlm.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
@@ -205,14 +205,9 @@ const expresion = (sujeto) => (typeof sujeto === 'string' ? '("' + sujeto + '")'
 /**
  * ¿Es `r` una plantilla? Un registro cuya posición 4 lleva `template`: en su 4 mismo (una lista) o, si su 4 describe
  * el 4 de los datos (una décupla), en su 4.4 (qué se hace con lo que se hace). Como las reglas llevan read, put o las
- * primitivas en su 4.
+ * primitivas en su 4. (Vive en epocas.js, que la usa al validar el 9.2 de una época.)
  */
-export function esPlantilla(r) {
-  if (!Array.isArray(r) || !Array.isArray(r[4])) return false;
-  const cuatro = r[4];
-  if (esLista(cuatro)) return cuatro.includes('template');
-  return Array.isArray(cuatro[4]) && cuatro[4].includes('template');
-}
+export const esPlantilla = (r) => esPlantillaDeDatos(r);
 
 /**
  * ¿Es `p` una plantilla de AJUSTES (VG 13-11, #77: «claves y valores»)? Lo dice la bandera `settings` de su 4.4 (junto a
@@ -228,18 +223,18 @@ export function esDeAjustes(p) {
 export const nombreDePlantilla = (p) => texto(hoja(hoja(p?.[0])));
 
 /**
- * Las plantillas que hay: las de dominio de la época (epoch.9.2, detrás de su cabecera), la de preferencias
- * (epoch.9.3) y las escritas en el eje como registros (un registro con `template` en su 4). Cada una { nombre, registro,
- * donde }: `donde` es su dirección en la época o el id del registro del eje.
+ * Las plantillas que hay: las de dominio de la época (epoch.9.2, detrás de su cabecera, también las de dentro de sus
+ * grupos: una posición del 9.2 cuyo 0.0 dice lo que la cabecera es otra décupla de plantillas; epocas.plantillasDeDominio),
+ * la de preferencias (epoch.9.3) y las escritas en el eje como registros (un registro con `template` en su 4). Cada una
+ * { nombre, registro, donde }: `donde` es su dirección en la época (la completa: 9.2.k o, en un grupo, 9.2.k.j…) o el id
+ * del registro del eje.
  */
 export function plantillas(eje, opciones = {}) {
   opciones = conEpoca(eje, opciones);
   const raiz = raizDe(epocaDe(opciones, eje));
   const fuera = [];
   const dominio = en(raiz, SITIO.plantillas);
-  (Array.isArray(dominio) ? dominio : []).forEach((p, k) => {
-    if (k > 0 && esPlantilla(p)) fuera.push({ nombre: nombreDePlantilla(p), registro: p, donde: direccion([...SITIO.plantillas, k]) });
-  });
+  for (const { registro: p, camino } of plantillasDeDominio(dominio)) fuera.push({ nombre: nombreDePlantilla(p), registro: p, donde: direccion([...SITIO.plantillas, ...camino]) });
   const preferencias = en(raiz, SITIO.preferencias);
   if (esPlantilla(preferencias)) fuera.push({ nombre: nombreDePlantilla(preferencias), registro: preferencias, donde: direccion(SITIO.preferencias) });
   for (const id of eje?.orden ?? []) {

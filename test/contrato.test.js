@@ -930,3 +930,25 @@ test('formaDe: las formas van por modo en epoch.8.7 (VG 12-11, #52): la clave «
   const corta = epocaCon((e) => { const f = e[8][7][1].find((x) => x[0][0] === 1); ponerForma(f, 'sequenced'); ponerForma(f, 'mapped'); ponerForma(f, 'pointed', 'cruceta'); });
   assert.deepEqual(['pointed', 'mapped', 'be'].map((m) => C.formaDe(null, 1, m, { epoca: corta }).de), ['pointed', 'pointed', 'pointed']);
 });
+
+// Core AGRAM 17-11: una posición del 9.2 puede ser un GRUPO de plantillas de dominio (una décupla cuya cabecera, su 0,
+// dice lo mismo que la del 9.2), para que una época hija añada plantillas de datos sin tapar las de su base.
+test('el 9.2 con grupos: plantillas() lee dentro de ellos con su dirección entera; un grupo mal formado no carga («época mal formada»)', async () => {
+  const { cargarEpocaEscrita, plantillasDeDominio, PROFUNDIDAD_DE_GRUPOS } = await import('../src/epocas.js');
+  const M = { ref: EPOCA_0_BTML.id };
+  const cabecera = [['domain templates']];
+  const tipo = (n) => { const p = JSON.parse(JSON.stringify(EPOCA_0_BTML.registro[9][2][1])); p[0][0] = [n]; return p; };
+  const hija = (ocho) => ({ raiz: [['época de grupos 0'], M, M, M, M, M, [['prueba de los grupos del 9.2'], ['hereda'], [EPOCA_0_BTML.id]], M, M, [M, M, [M, M, M, M, M, M, M, M, ocho], M, M, M, M, M, M, M]], registros: [] });
+  const buena = cargarEpocaEscrita(hija([cabecera, tipo('alfa'), [cabecera, tipo('beta'), [cabecera, tipo('gamma')]]]));
+  const donde = Object.fromEntries(C.plantillas(null, { epoca: buena }).map((p) => [p.nombre, p.donde]));
+  assert.deepEqual([donde.account, donde.alfa, donde.beta, donde.gamma], ['9270000000', '9281000000', '9282100000', '9282210000'], 'las de la 0 en su sitio y las de los grupos, con su dirección entera');
+  assert.deepEqual(C.tipo(null, null, 7, { epoca: buena }), C.tipo(null, null, 7), 'el tipo genérico sigue en la cabecera de arriba');
+  assert.equal(plantillasDeDominio(EPOCA_0_BTML.registro[9][2]).length, 7, 'la 0, sin grupos, igual que antes');
+  const mala = (ocho, motivo) => assert.throws(() => cargarEpocaEscrita(hija(ocho)), (e) => /época mal formada/.test(e.message) && motivo.test(e.message), JSON.stringify(ocho).slice(0, 80));
+  mala([tipo('alfa'), tipo('beta')], /9\.2\.8: ni una plantilla de datos .* ni un grupo/);
+  mala([cabecera], /9\.2\.8: un grupo de plantillas sin plantillas/);
+  mala([cabecera, 'suelto'], /9\.2\.8\.1: ni una plantilla/);
+  let honda = [cabecera, tipo('hondo')];
+  for (let i = 0; i < PROFUNDIDAD_DE_GRUPOS; i++) honda = [cabecera, honda];
+  mala(honda, new RegExp('9\\.2\\.8(\\.1){' + PROFUNDIDAD_DE_GRUPOS + '}: un grupo de plantillas más hondo que ' + PROFUNDIDAD_DE_GRUPOS));
+});

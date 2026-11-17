@@ -22,13 +22,14 @@
 //
 // Uso, desde el generar.mjs de cada hija: const g = generadorDeHija({ aqui, nombre: 'state-0' }) y, si se ejecuta,
 // g.principal(process.argv) ([--comprobar]: sin escribir, sale con 1 si los archivos no están al día). Una carpeta sin
-// reglas/ no lleva reglas propias.
+// reglas/ no lleva reglas propias. «<hereda>» vale en cualquier sitio de la raíz, también dentro de un grupo de plantillas
+// de datos del 9.2 (la marca es por dirección: lo de la base en esa misma dirección).
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { basename, join } from 'node:path';
 import { analizar } from '../../src/bqlm.js';
 import { validarPayload } from '../../src/btml.js';
-import { EPOCA_0_BTML, cargarEpocaEscrita, idDeRegistro } from '../../src/epocas.js';
+import { EPOCA_0_BTML, cargarEpocaEscrita, idDeRegistro, plantillasDeDominio } from '../../src/epocas.js';
 import { kebab } from './generar.mjs';
 
 const HEREDA = '<hereda>';
@@ -141,8 +142,10 @@ export function generadorDeHija({ aqui, nombre }) {
       const f = fila[1][fila[1].length - 1];
       if (esFormula(f)) analiza(f, true, `la estación «${fila[0][0]}»`);
     }
-    for (const tipo of Array.isArray(raiz[9]?.[2]) ? raiz[9][2] : []) {
-      if (!Array.isArray(tipo) || !Array.isArray(tipo[0])) continue;
+    // Las plantillas de datos del 9.2, también las de dentro de un grupo (la cabecera de la hija suele ser una marca de
+    // herencia: la etiqueta de los grupos es la de la cabecera de la 0).
+    const etiqueta = EPOCA_0_BTML.registro[9][2][0][0][0];
+    for (const { registro: tipo } of Array.isArray(raiz[9]?.[2]) ? plantillasDeDominio(raiz[9][2], { etiqueta }) : []) {
       for (const d of tipo) if (Array.isArray(d) && Array.isArray(d[2]) && esFormula(d[2][0])) analiza(d[2][0], true, `la plantilla de datos «${tipo[0][0][0]}»`);
     }
     for (const p of plantillas) {

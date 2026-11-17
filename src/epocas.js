@@ -30,6 +30,12 @@ import { erroresDelSuelo } from './suelo.js';
 import { fundirCambio } from './versiones.js';
 import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS, RETOQUES_0_DATOS } from '../datos/epocas/epocas.js';
 
+/**
+ * El tope de profundidad de los grupos de plantillas de dominio del 9.2 (Core AGRAM 17-11): un grupo en el 9.2 es la
+ * profundidad 1, uno dentro de él la 2… hasta 3. Va aquí arriba porque la 0 se carga (y se valida) más abajo.
+ */
+export const PROFUNDIDAD_DE_GRUPOS = 3;
+
 export const PV = Object.freeze([
   'representación', // 0 · PV0, lente libre
   'recursos', // 1 · reino / ciudad
@@ -270,6 +276,10 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id =
   const nombres = Array.isArray(registro[0]) ? registro[0] : [registro[0]];
   const nombre = nombres[0];
   if (!textoNoVacio(nombre)) throw new TypeError('época BTML: falta el nombre en el 0');
+
+  // 9.2: las plantillas de dominio y sus grupos (Core AGRAM 17-11): cada posición, una plantilla o un grupo bien formado.
+  const dominio = erroresDelDominio(registro);
+  if (dominio.length) throw new TypeError(nombre + ': época mal formada: ' + dominio.join('; '));
 
   // 5: las cien reglas cortas.
   const cortas = registro[5];
@@ -521,6 +531,78 @@ export const COLECCIONES = Object.freeze(['2', '9.6.1', '4.3', '1.2.1', '8.7.1']
 /** El id de un registro de la época (y el de su raíz): el hash SHA-256 de su cuerpo canónico, en hexadecimal. */
 export function idDeRegistro(registro) {
   return aHex(sha256(new TextEncoder().encode(canonico(registro))));
+}
+
+// ---------- las plantillas de dominio del 9.2 y sus grupos (Core AGRAM 17-11) ----------
+//
+// El 9.2 es una décupla: 0 la cabecera (0.0 su etiqueta, «domain templates»; 0.1 el tipo genérico por dígito) y, en 1-9,
+// las plantillas de dominio. UNA POSICIÓN PUEDE SER UN GRUPO: una décupla cuyo 0.0 dice lo mismo que el 0.0 de la cabecera
+// del 9.2 no es una plantilla sino otra décupla de plantillas (su 0, la cabecera; detrás, hasta nueve plantillas o grupos,
+// leídos igual), hasta PROFUNDIDAD_DE_GRUPOS. Así una época hija añade plantillas de datos sin tapar las de su base: el 9.2
+// se hereda por posición, y un grupo en una posición libre lleva varias. El grupo se reconoce por su cabecera antes de
+// preguntar si es una plantilla. El tipo genérico por dígito se lee solo en la cabecera de arriba (9.2.0.1). Funciones
+// declaradas (no flechas): la 0 se carga más arriba en este módulo.
+
+/** La primera hoja de un nodo (bajando por los primeros elementos), para la etiqueta de una cabecera. */
+function primeraHojaDe(x) {
+  let n = x;
+  while (Array.isArray(n)) n = n[0];
+  return n;
+}
+
+/**
+ * ¿Es `r` una plantilla de datos? Un registro cuya posición 4 lleva `template`: en su 4 mismo (una lista) o, si su 4
+ * describe el 4 de los datos (una décupla), en su 4.4. (contrato.esPlantilla es esta.)
+ */
+export function esPlantillaDeDatos(r) {
+  if (!Array.isArray(r) || !Array.isArray(r[4])) return false;
+  const cuatro = r[4];
+  if (esLista(cuatro)) return cuatro.includes('template');
+  return Array.isArray(cuatro[4]) && cuatro[4].includes('template');
+}
+
+/** ¿Es `x` un grupo de plantillas de dominio: una décupla cuyo 0.0 es la etiqueta de la cabecera del 9.2? */
+export function esGrupoDePlantillas(x, etiqueta) {
+  return typeof etiqueta === 'string' && Array.isArray(x) && esDecupla(x) && Array.isArray(x[0]) && primeraHojaDe(x) === etiqueta;
+}
+
+/**
+ * Las plantillas de dominio del 9.2, también las de dentro de sus grupos, en su orden: [{ registro, camino }] (`camino`,
+ * los dígitos bajo el 9.2: [k] o [k, j…]). `etiqueta` es la de la cabecera (por defecto, el 0.0 del 9.2 dado). Si se pasa
+ * `errores` (una lista), anota en ella lo que no es ni plantilla ni grupo, un grupo sin plantillas y un grupo más hondo
+ * que PROFUNDIDAD_DE_GRUPOS; `admite(x)` (opcional) deja pasar sin anotarlo lo que no es ni lo uno ni lo otro (una marca
+ * de herencia en una época escrita).
+ */
+export function plantillasDeDominio(nueveDos, { etiqueta, errores = null, admite = null } = {}) {
+  const fuera = [];
+  if (!Array.isArray(nueveDos)) return fuera;
+  const cabecera = etiqueta ?? primeraHojaDe(nueveDos[0]);
+  const anota = (que) => errores?.push(que);
+  const recorrer = (nodo, camino, nivel) => {
+    for (let k = 1; k < nodo.length; k++) {
+      const x = nodo[k];
+      const aqui = '9.2.' + [...camino, k].join('.');
+      if (esGrupoDePlantillas(x, cabecera)) {
+        if (nivel + 1 > PROFUNDIDAD_DE_GRUPOS) { anota(aqui + ': un grupo de plantillas más hondo que ' + PROFUNDIDAD_DE_GRUPOS); continue; }
+        if (x.length < 2) anota(aqui + ': un grupo de plantillas sin plantillas (solo su cabecera)');
+        recorrer(x, [...camino, k], nivel + 1);
+      } else if (esPlantillaDeDatos(x)) fuera.push({ registro: x, camino: [...camino, k] });
+      else if (!(admite && admite(x))) anota(aqui + ': ni una plantilla de datos (con «template» en su 4) ni un grupo (una décupla cuyo 0.0 dice «' + cabecera + '», la etiqueta de la cabecera del 9.2)');
+    }
+  };
+  recorrer(nueveDos, [], 0);
+  return fuera;
+}
+
+/** Los motivos por los que el 9.2 de una época (resuelta) está mal formado: [] si vale (o si no lo tiene). */
+export function erroresDelDominio(raiz) {
+  const nueveDos = Array.isArray(raiz?.[9]) ? raiz[9][2] : undefined;
+  if (nueveDos === undefined) return [];
+  if (!Array.isArray(nueveDos) || !esDecupla(nueveDos)) return ['el 9.2 es una décupla: su cabecera y las plantillas de dominio'];
+  const errores = [];
+  if (typeof primeraHojaDe(nueveDos[0]) !== 'string') errores.push('el 9.2 empieza por su cabecera (9.2.0.0, su etiqueta)');
+  plantillasDeDominio(nueveDos, { errores });
+  return errores;
 }
 
 const RE_ID_EPOCA = /^[0-9a-f]{64}$/;
