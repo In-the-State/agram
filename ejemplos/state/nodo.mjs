@@ -3,13 +3,15 @@
 //
 // El eje nace con la época de la clase state escrita en su libro (Eje.genesis({ epoca }), datos/epocas/state/), y en él:
 //
-//   1. el operador (la cuenta raíz, que monta el nodo) invita al titular, que da de alta su llavero (la cosa cuya clave
-//      custodia StateArk: la que firma);
-//   2. el camino del 9 del nodo, paso a paso y cada uno con su acción: alta del nodo, autoridad, relé, archivo, un
-//      contexto declarado y en servicio;
+//   1. la disposición de referencia (VG 17-11): el TITULAR abre el libro (escribe el génesis: el libro es suyo), da de
+//      alta su llavero (la cosa cuya clave custodia StateArk: la que firma) e invita al operador, que acepta (su alta);
+//   2. el camino del 9 del nodo, paso a paso y cada uno con su acción: el operador da de alta el nodo SOBRE SU PROPIA
+//      ALTA, nombrando al titular, y sigue: autoridad, relé, archivo, un contexto declarado y en servicio;
 //   3. las demás piezas con su papel: el contenedor del TLS (por digest), una puerta, el despliegue de la carta, un worker,
 //      el vigía y el ejecutor (agentes, el vigía con 180 minutos de T) y un eje servido;
-//   4. el titular escribe el criterio «require authorization» en el 2.4 del nodo (y su propio llavero lo firma);
+//   4. el titular escribe el criterio «require authorization» en el 2.4 del nodo (y su propio llavero lo firma). Lo
+//      reservado al autor del génesis (retoques, enlaces del libro, puente, gobierno de la época, exterior con que se
+//      verifica) lo firma el titular: docs/EPOCA_STATE.md §1 bis;
 //   5. el operador pide reiniciar el vigía: queda por autorizar; la firma de otro no vale; el llavero la firma; el
 //      ejecutor lo hace y deja su recibo, que la da por ejecutada;
 //   6. un cambio de núcleo autorizado cuya revalidación falla: el ejecutor lo cierra con error y el núcleo no cambia;
@@ -73,7 +75,7 @@ export async function ejemploNodo({ hasta = null } = {}) {
   const K = CLAVES;
   let minuto = 0;
   const t = () => hora(minuto++);
-  const eje = await Eje.genesis({ identidad: N.operador, foco: ['nodo de ejemplo de la clase state'], t: t(), clave: K.operador.publica, privada: K.operador.privada, exigirFirmas: true, epoca });
+  const eje = await Eje.genesis({ identidad: N.titular, foco: ['nodo de ejemplo de la clase state'], t: t(), clave: K.titular.publica, privada: K.titular.privada, exigirFirmas: true, epoca });
   const ids = { genesis: eje.genesisId };
   const rechazos = [];
   const firmaDe = (quien) => ({ firmar: (ev) => firmar(ev, K[quien].privada) });
@@ -105,13 +107,17 @@ export async function ejemploNodo({ hasta = null } = {}) {
     rechazos.push({ caso, motivos: r.motivos.map((m) => m.mensaje ?? String(m)) });
   }
 
-  // 1. El titular, por invitación del operador, y su llavero (la cosa que firma; su clave la custodia StateArk).
-  const inv = await eje.invitar({ autor: N.operador, invitado: N.titular, clave: K.titular.publica, t: t(), privada: K.operador.privada });
-  ids.altaTitular = (await eje.aceptar(inv, K.titular, { t: t() })).id;
+  // 1. El libro es del titular (su génesis es su alta); da de alta su llavero (la cosa que firma; su clave la custodia
+  // StateArk) e invita al operador, que acepta: su alta. La invitación da lo de siempre (una unidad de R del titular).
+  ids.altaTitular = eje.genesisId;
   await hacer('register a thing', ids.altaTitular, { thing: N.llavero, minutes: 60, key: K.llavero.publica }, N.titular, { cosa: N.llavero, guarda: 'llavero' });
+  const inv = await eje.invitar({ autor: N.titular, invitado: N.operador, clave: K.operador.publica, t: t(), privada: K.titular.privada });
+  ids.invitacionOperador = inv.id;
+  ids.altaOperador = (await eje.aceptar(inv, K.operador, { t: t() })).id;
 
-  // 2. El camino del nodo: alta, autoridad, relé, archivo, contexto, en servicio.
-  const nodo = await hacer('register the node', eje.genesisId, { node: N.nodo, minutes: 60, holder: N.titular }, N.operador, { guarda: 'nodo' });
+  // 2. El camino del nodo: alta (sobre la del operador, que la escribe y es dueño de sus piezas), autoridad, relé,
+  // archivo, contexto, en servicio.
+  const nodo = await hacer('register the node', ids.altaOperador, { node: N.nodo, minutes: 60, holder: N.titular }, N.operador, { guarda: 'nodo' });
   if (hasta === 'nodo') return { eje, ids, claves: K, epoca, rechazos };
   await hacer('register the authority', nodo.id, { thing: N.autoridad, minutes: 1, commit: '0a1b2c3', sha256: 'aa'.repeat(32) }, N.operador, { guarda: 'autoridad' });
   if (hasta === 'autoridad') return { eje, ids, claves: K, epoca, rechazos };

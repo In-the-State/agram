@@ -9,12 +9,32 @@ Para quien monta el eje de un nodo (Core AARPIA). VG 16-11, #124: el nodo, visto
 
 | Identidad | Qué es | Qué escribe |
 |---|---|---|
-| **operador** | la cuenta raíz del eje (el autor del génesis): quien monta el nodo y es dueño de sus piezas. Hoy, la clave del nodo que guarda Core AARPIA. Es también **quien sirve** las anclas (§4 bis) | el alta del nodo, las altas de las piezas, «en servicio», las operaciones, los umbrales y los vencimientos; las conexiones (invitar, grupos, precios, vetos) y las anclas servidas |
-| **titular** | una persona del eje (entra por invitación), nombrada en el 3.2 del alta del nodo | el criterio «require authorization» en el 2.4 del alta del nodo |
+| **operador** | una persona del eje, invitada por el titular (su alta cuelga de esa invitación): quien monta el nodo, escribe su alta **sobre la suya** y es dueño de sus piezas (el dueño del nodo). Hoy, la clave del nodo que guarda Core AARPIA. Es también **quien sirve** las anclas (§4 bis) | el alta del nodo, las altas de las piezas, «en servicio», las operaciones, los umbrales y los vencimientos; las conexiones (invitar, grupos, precios, vetos) y las anclas servidas |
+| **titular** | el dueño del libro: abre el eje (escribe el génesis; su alta es el génesis) e invita al operador; nombrado en el 3.2 del alta del nodo | el génesis, el alta de su llavero, la invitación al operador y el criterio «require authorization» en el 2.4 del alta del nodo; y lo reservado al dueño del libro (§1 bis) |
 | **quien firma** | la identidad que nombra el criterio (su 3): una cosa del titular cuya clave custodia StateArk, o el titular | las autorizaciones (`acciones.autorizar`; en la carta, «por autorizar») |
 | **vigía** | una pieza de papel «agent», declarada agente | las medidas, en el 8 de cada pieza |
 | **ejecutor** | otra pieza «agent», declarada agente: lista cerrada de órdenes, sin shell | los recibos de lo que hace fuera, y los fallos |
 | **conexión** | otro nodo: una persona de este eje, invitada por el dueño del nodo (el operador, que escribió el alta del nodo) al dominio del nodo (§4 bis) | sus relés, en su propia alta, y sus pedidos de ancla, en el 3 del alta del dueño |
+
+## 1 bis. La disposición de referencia y lo reservado al dueño del libro (VG 17-11)
+
+El libro lo abre el **titular** (escribe el génesis) e invita al **operador**, que acepta; el operador da de alta el nodo **sobre su propia alta**, nombrando al titular en el 3.2, monta las piezas, lo pone en servicio y da de alta los agentes; el titular escribe «require authorization». Así lo hace `ejemplos/state/nodo.mjs`, y todo su recorrido (conexiones, anclas pedidas y servidas, mensajes, ejes servidos, la visita, los canales) pasa sin tocar la época state ni la 0: lo del nodo se decide por el **dueño del nodo** (quien escribió su alta: `first (first …).3` en «current connections», «attention price», «attention has a price»), no por el autor del génesis. Una persona invitada tiene el mismo T diario que el autor del génesis (1440 minutos).
+
+Lo que sigue reservado al **autor del génesis** (el titular en esta disposición: firma él, o su guardián):
+
+| Plantilla o ajuste | Lo que lo reserva |
+|---|---|
+| retouch a text | la oferta `first it.5 = first before.5 and first it.3 = me` y la regla «only the owner of the book retouches a text» (`first ev.3 = first (first before.5).3`) |
+| this book hangs from | la oferta `first it.5 = first (first before.1).5 and first (first before.1).3 = me` |
+| open a private book here | la regla «who created a book links it with its genesis» (`first ev.3 = first (first before.5).3 or first (first ev.6.5).3 = first ev.3`) |
+| bring a record from another book, send to another book | se ofrecen sobre un enlace («open a private book here» o «this book hangs from»), que solo escribe el autor del génesis (o, un libro privado, quien escribió dónde se abre); traer pide además, en su oferta, `first it.3 = first (first before.5).3` o el libro privado abierto aquí; reglas «a record is brought from a linked book» y «a send locks what it names» |
+| propose a change | la oferta `first it.5 = first before.5` (sobre el génesis); quien la aprueba: con `epoch.7.9.5` sin nombres, solo cuenta el autor del génesis («support of»: `… count (epoch.7.9.5 where it3 != 0) = 0 and first it.3 = first (first before.5).3`) |
+| support a change, enact a change, put a change in force | por lo de arriba: el apoyo que cuenta es el del autor del génesis |
+| add a parent, remove a parent, set the kind of owner, set a custody default | la oferta `first it.3 = me or first (first before.1).3 = me` y la regla «only the owner sets who keeps it» |
+| connect an account | la oferta `… and me = first (first before.1).3` y la regla «an account lives in its owner's book» |
+| exterior settings (relay, seal, observer keys, line keys, confirmations) | no es una plantilla de transacción: los ajustes **con que se verifica** el libro son los del autor del génesis (`src/exterior.js` `ajustesDelEje`: `eje.obtener(eje.genesisId).autor`; `before.8`; `datos/epocas/puente.mjs` `clavesDeLineaDe`). Los del operador en su alta solo valen para él |
+
+La invitación no es exclusiva: cualquier persona invita (`eje.invitar`, anclada en el 3 de su alta); la del titular al operador es la que pone al operador en el libro.
 
 ## 2. Qué plantilla usar para cada alta de la matriz (CLASE_STATE §2)
 
@@ -39,7 +59,7 @@ Las piezas que no escriben en el libro no declaran clave (una cosa sin clave pue
 
 ## 3. El camino del 9 del nodo
 
-Seis pasos, en orden, cada uno con su acción (#90): **alta del nodo** (register the node), **autoridad** (register the authority), **relé** (register the relay), **archivo** (register the archive), **contextos** (declare a context) y **en servicio** (put in service, en el 9 del nodo). Un paso está hecho cuando hay en su ancla un registro de quien mira (`acciones.camino`): el camino es el del operador, que es quien lo recorre. «follow the path» (PV9) lanza el siguiente.
+Seis pasos, en orden, cada uno con su acción (#90): **alta del nodo** (register the node), **autoridad** (register the authority), **relé** (register the relay), **archivo** (register the archive), **contextos** (declare a context) y **en servicio** (put in service, en el 9 del nodo). Un paso está hecho cuando hay en su ancla un registro de quien mira (`acciones.camino`): el camino es el del operador, que es quien lo recorre (sobre el alta del nodo, que cuelga de la suya). «follow the path» (PV9) lanza el siguiente.
 
 ## 4. Qué escribe un operador: las operaciones (tabla 3.2 de UI_NODO)
 
@@ -160,7 +180,7 @@ El eje es la única fuente: el nodo no lleva en la máquina ninguna lista aparte
 
 ## 7. Publicar la época en un eje vacío
 
-`node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del operador; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **65 registros** (el génesis, la raíz y sus 63 registros: 21 reglas, 10 de ellas lecturas con nombre, y 42 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: algo más de un minuto. El mayor, la raíz, ocupa unos 76 KB (el tope es de 256 KB). Después, las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.
+`node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del titular, que escribe el génesis; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **65 registros** (el génesis, la raíz y sus 63 registros: 21 reglas, 10 de ellas lecturas con nombre, y 42 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: algo más de un minuto. El mayor, la raíz, ocupa unos 76 KB (el tope es de 256 KB). Después, la invitación del titular al operador (§1 bis), las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.
 
 ## 8. Las conversaciones y los canales
 

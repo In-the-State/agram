@@ -339,7 +339,7 @@ test('aguanta: el P de las conversaciones no pesa en un cambio de reglas: el age
   assert.equal(n.pSobre(AG, p), 10000);
   const id = n.eje.epoca().id;
   const m = { ref: id };
-  const propuesta = await n.hecho('propose a change', n.eje.genesisId, { title: 'cambio de prueba', explanation: 'revisión', change: [['cambio de prueba'], m, m, m, m, m, [['propuesto en la revisión'], ['hereda'], [id]]], class: 'ordinary' }, N.operador);
+  const propuesta = await n.hecho('propose a change', n.eje.genesisId, { title: 'cambio de prueba', explanation: 'revisión', change: [['cambio de prueba'], m, m, m, m, m, [['propuesto en la revisión'], ['hereda'], [id]]], class: 'ordinary' }, N.titular); // el dueño del libro: el titular, que escribió el génesis (VG 17-11)
   const leer = (f) => evaluar(f, new ContextoEje(n.eje, { epoch: n.eje.epoca() }), { sujeto: propuesta.id }).valor;
   const apoyo = () => [leer('it.2.6')[0], leer('it.2.8')[0]];
   assert.deepEqual(apoyo(), [0, false]);
@@ -350,7 +350,9 @@ test('aguanta: el P de las conversaciones no pesa en un cambio de reglas: el age
   await n.hecho('support a change', propuesta.id, {}, N.servicio);
   assert.deepEqual(apoyo(), [0, false], 'el servicio (una persona, con el P de sus registros) no es un nombre');
   await n.hecho('support a change', propuesta.id, {}, N.operador);
-  assert.equal(apoyo()[1], true, 'el dueño solo la aprueba');
+  assert.deepEqual(apoyo(), [0, false], 'el operador (invitado; dueño del nodo, no del libro) tampoco');
+  await n.hecho('support a change', propuesta.id, {}, N.titular);
+  assert.equal(apoyo()[1], true, 'el dueño del libro solo la aprueba');
 });
 
 test('aguanta: el P del agente sobre p no alcanza una cuenta: en el libro del nodo solo conecta cuentas su dueño («an account lives in its owner\'s book»)', async () => {
