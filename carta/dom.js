@@ -1773,8 +1773,21 @@ function htmlSalida(s) {
     ${v.sinSello ? `<p class="aviso" data-sin-sello="${attr(v.sinSello)}">${escapar(t('salidaSinSello_' + v.sinSello))}</p>` : ''}${s.sinCuenta ? `<p class="aviso">${escapar(t('salidaSinCuenta'))}</p>` : ''}
     ${siguiente}
     <h3>${escapar(t('salidaAparte'))}</h3><p class="salida-aparte" data-salida-aparte>${escapar(v.aparte)}</p>
+    ${htmlEnlaceAlNuevo(s.enlace, s)}
     <p><button type="button" class="enlace"${nodo('control')} data-puente-abrir title="${attr(t('salidaIrAlPuenteTitulo'))}">${escapar(t('salidaIrAlPuente'))}</button></p>
   </article>`;
+}
+
+/**
+ * En la salida, con el libro nuevo ya abierto: el enlace que cuenta, en este libro, hacia él (puente.enlaceAlNuevo). Hecho,
+ * se dice; si no se puede (génesis que no se rehace, o no se ofrece), se dice por qué; si no, el botón con su coste.
+ */
+function htmlEnlaceAlNuevo(e, s) {
+  if (!e) return '';
+  if (e.hecho) return `<p class="salida-enlace" data-enlazado>${escapar(t('salidaEnlazado'))}</p>`;
+  if (e.sinGenesis) return `<p class="aviso salida-enlace">${escapar(t('salidaSinGenesis'))}</p>`;
+  if (!e.ofrecido) return `<p class="aviso salida-enlace">${escapar(t('salidaNoSeOfreceEnlace'))}</p>`;
+  return `<p class="salida-enlace"><small>${escapar(t('salidaEnlazarAyuda', { coste: e.coste ? textoDeCoste(e.coste) : t('salidaSinCoste') }))}</small> <button type="button"${nodo('accion')} data-salida-enlazar ${s.ocupado || s.buscando ? 'disabled' : ''}>${escapar(t('salidaEnlazar'))}</button></p>`;
 }
 
 // ---------- el puente entre mis libros abiertos (encargo «carta: irme con lo mío y el puente»; carta/puente.js) ----------
@@ -1789,7 +1802,8 @@ const comoTexto = (x) => (typeof x === 'string' ? x : JSON.stringify(x));
 function htmlEnlaceDelPuente(l) {
   const fondo = l.fondo.length ? t('puenteFondo', { lista: l.fondo.map((f) => t('puenteFondoDe', { cantidad: f.texto, quien: f.quienTexto || f.quien })).join(', ') }) : t('puenteSinFondo');
   const claves = l.nivelMasBajo === null ? t('puenteSinClaves') : t('puenteClaves', { n: l.claves, nivel: l.nivelMasBajo });
-  const traer = l.traer && l.abierto ? ` <button type="button"${nodo('accion')} data-puente-traer-de="${attr(l.id)}">${escapar(t('puenteTraerDe', { libro: l.nombre }))}</button>` : '';
+  // Sin claves de línea en el enlace no se trae nada («bringing needs the line keys of the book»): no se ofrece.
+  const traer = l.traer && l.abierto && l.nivelMasBajo !== null ? ` <button type="button"${nodo('accion')} data-puente-traer-de="${attr(l.id)}">${escapar(t('puenteTraerDe', { libro: l.nombre }))}</button>` : '';
   return `<li class="puente-enlace" data-enlace="${attr(l.id)}" data-cuenta="${l.cuenta}">
     <span>${escapar(t('puenteEnlace', { libro: l.nombre, tipo: t('puenteTipo_' + l.tipo), quien: l.quienTexto || l.quien }))}</span>
     <br><small>${escapar(l.grado ? t('puenteGrado', { grado: l.grado }) : t('puenteSinGrado'))} · <b>${escapar(t(l.cuenta ? 'puenteCuenta' : 'puenteNoCuenta'))}</b>${l.delDueno && l.delDueno !== l.id ? ' · ' + escapar(t('puenteDelDueno')) : ''}</small>
@@ -1884,7 +1898,20 @@ export function htmlAjustesDelElemento(a) {
     <p class="ayuda">${escapar(a.texto)}</p>
     <h3>${escapar(t('ajustesFijado'))}</h3>${fijado}
     ${heredado ? `<h3>${escapar(t('ajustesHeredado'))}</h3>${heredado}` : ''}
+    ${htmlBajarP(a.bajarP, boton)}
   </section></div>`;
+}
+
+/**
+ * El sí del dueño para que el P de otro baje a esta cosa (CH1; carta/reglas.js siDelDueno): quién lo tiene, cada uno con
+ * «retirar», y «dejar bajar a alguien». Los botones abren la plantilla de siempre con lo que ya se sabe. '' sin nada.
+ */
+function htmlBajarP(b, boton) {
+  if (!b) return '';
+  const lista = b.quienes.length
+    ? `<ul class="ajustes-lista">${b.quienes.map((q) => `<li class="ajuste" data-si="${attr(q.whom)}"><b>${escapar(q.quien || q.whom)}</b> <small class="ajuste-quien">${escapar(t('siDelDuenoDesde', { cuando: q.cuando }))}</small>${boton(q.retirar, 'siDelDuenoRetirar')}</li>`).join('')}</ul>`
+    : `<p class="ayuda">${escapar(t('siDelDuenoNadie'))}</p>`;
+  return `<h3>${escapar(t('siDelDuenoTitulo'))}</h3><p class="ayuda"><small>${escapar(t('siDelDuenoAyuda'))}</small></p>${lista}${b.dar ? `<p>${boton(b.dar, 'siDelDuenoDar')}</p>` : ''}`;
 }
 
 /**

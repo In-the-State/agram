@@ -15,12 +15,14 @@
 //   · las fórmulas que escriben las reglas y plantillas de la época state que lo exigen (node datos/epocas/state/ayuda.mjs
 //     --escribir, y luego npm run epoca:state); test/reserva-canales.test.js comprueba que los archivos las llevan.
 
-import { readFileSync, writeFileSync, renameSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { formatear } from '../generar.mjs';
-
-const AQUI = dirname(fileURLToPath(import.meta.url));
+/**
+ * ¿Corre en Node? (las pruebas y --escribir). La carta carga este módulo en el navegador (registrosParaUnMensaje), donde
+ * no hay archivos que leer: lo de Node se carga solo en Node, como en datos/epocas/puente.mjs.
+ */
+const EN_NODE = typeof globalThis.process?.versions?.node === 'string';
+const { dirname, join } = EN_NODE ? await import('node:path') : {};
+const { fileURLToPath, pathToFileURL } = EN_NODE ? await import('node:url') : {};
+const AQUI = EN_NODE ? dirname(fileURLToPath(import.meta.url)) : null;
 
 /** La plantilla de la reserva (época 0) y lo que dice su payload: 3.1 quién gasta, 1.0 los modos. */
 export const RESERVA = 'a reserve';
@@ -235,7 +237,8 @@ export function formulaDelCupo() {
   return '=count (epoch where ' + tPersonaINT + ') * ' + de(tINT, tINT) + ' + count (epoch where not ' + tPersonaINT + ') * (' + de(tINT, tDINT) + ' + ' + de(tDINT, tDINT) + ')';
 }
 
-export const ARCHIVOS = Object.freeze({
+/** Los archivos donde --escribir pone las fórmulas; fuera de Node, ninguno. */
+export const ARCHIVOS = Object.freeze(!EN_NODE ? {} : {
   quienEscribe: join(AQUI, 'reglas', 'who-writes-a-message.json'),
   cupo: join(AQUI, 'reglas', 'conversation-quota.json'),
   entra: join(AQUI, 'plantillas', 'message-in.json'),
@@ -245,7 +248,9 @@ export const ARCHIVOS = Object.freeze({
 });
 
 // node datos/epocas/state/ayuda.mjs --escribir: pone las fórmulas en las reglas y en el 4 de las plantillas.
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.argv.includes('--escribir')) {
+if (EN_NODE && import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.argv.includes('--escribir')) {
+  const { readFileSync, renameSync, writeFileSync } = await import('node:fs');
+  const { formatear } = await import('../generar.mjs');
   const poner = (archivo, cambiar) => {
     const registro = JSON.parse(readFileSync(archivo, 'utf8'));
     cambiar(registro);

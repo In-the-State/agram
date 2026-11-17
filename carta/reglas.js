@@ -543,6 +543,31 @@ const AJUSTES = Object.freeze({
   rango: 'set a minimum rank',
   criterio: acciones.SEGUNDO_FACTOR.criterio,
 });
+/**
+ * El sí del dueño para que el P de otro baje a una cosa suya (CH1, VG 17-11; docs/notas/R_EN_CANALES.md, «El P de la R solo
+ * baja a una cosa de otro con el sí de su dueño»): la plantilla y la expresión que da los sí vigentes (it = la cosa; el
+ * último de su dueño por identidad, que dice «yes»), tal como las dice la nota: la época no tiene lectura con nombre.
+ */
+export const SI_DEL_DUENO = 'let P come down here';
+const QUIEN_TIENE_SI = '=(down it) where nth 1 it2.6.5 = "2100000000" and first it2.3 = first it.3 and "let P come down here" in (payload(it2)).4 and it2 = last ((down it) where nth 1 it3.6.5 = "2100000000" and first it3.3 = first it.3 and "let P come down here" in (payload(it3)).4 and first (payload(it3)).3.1 = first (payload(it2)).3.1) and "yes" in (payload(it2)).1.0 and not ("no" in (payload(it2)).1.0)';
+
+/**
+ * Quién tiene el sí del dueño para bajar P a X: [{ id (el registro del sí), whom, quien (en llano), cuando, retirar }], y
+ * `dar`: el botón de la plantilla para dar otro sí (solo si se le ofrece a `yo`, el dueño de X). `retirar` es la misma
+ * plantilla con «no» para esa identidad: cuenta el último. Lo que ya bajó se queda (la nota lo dice).
+ */
+export function siDelDueno(eje, X, yo, opciones = {}) {
+  const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
+  const puede = ofrecida(eje, X, SI_DEL_DUENO, yo, o);
+  const boton = (valores) => (puede ? { nombre: nombreDeAccion(eje, SI_DEL_DUENO, o), accion: SI_DEL_DUENO, X, valores } : null);
+  const quienes = (leer(eje, QUIEN_TIENE_SI, X) ?? []).map(idDe).filter((id) => id && eje.obtener(id)).map((id) => {
+    const r = eje.obtener(id);
+    const whom = primera(en(r.payload, [3, 1]));
+    return { id, whom, quien: quienEs(eje, whom, o), cuando: cuandoEs(eje, r.t, o), retirar: boton({ whom, answer: 'no' }) };
+  });
+  return { quienes, dar: boton({ answer: 'yes' }) };
+}
+
 /** Los parámetros que no son el ajuste (el molde de siempre: cierre, quién, la acción). */
 const DEL_MOLDE = new Set(['criteria', 'who', 'actions']);
 
@@ -638,5 +663,7 @@ export function ajustesDelElemento(eje, X, yo, opciones = {}) {
       heredado.push({ que: nombreDeAccion(eje, AJUSTES.precio, o) + ' · 3.' + zona + '.2', clave: String(primera(g[0]) ?? ''), base: textoDeValor((g[2] ?? []).map((x) => primera(x))), admitidos: '', cambiar: cambiar(AJUSTES.precio, { zone: zona }) });
     }
   }
-  return { X, texto: String(contrato.ceroLegible(eje, X, o)?.texto ?? primera(ev.payload?.[0]) ?? X.slice(0, 8)), fijado, heredado };
+  // El sí del dueño para bajar P aquí (CH1): quién lo tiene y, para el dueño, darlo o retirarlo.
+  const si = siDelDueno(eje, X, yo, o);
+  return { X, texto: String(contrato.ceroLegible(eje, X, o)?.texto ?? primera(ev.payload?.[0]) ?? X.slice(0, 8)), fijado, heredado, bajarP: si.quienes.length || si.dar ? si : null };
 }

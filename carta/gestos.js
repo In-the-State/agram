@@ -49,7 +49,7 @@ const UMBRAL_ARRASTRE = 24;
  *   enviar(form)             enviar el formulario de una acción
  *   reglas() · reglasCambio(id) · reglasVolver() · reglasProponer() · reglasActuar(que, id) · reglasPosicion(posicion, form) · reglasPropuesta(form)
  *                            «Reglas del libro» (A21; carta/reglas.js): abrirla, un cambio, volver a la lista, proponer, sus acciones
- *   salida() · salidaPunto(punto) · salidaFirmar()
+ *   salida() · salidaPunto(punto) · salidaFirmar() · salidaEnlazar()
  *                            «Irme con lo mío» (carta/puente.js): abrirla, con qué reglas nace el libro nuevo, firmar el paso siguiente
  *   puente() · puenteEnviarSerie(serie) · puenteEnviar(form) · puenteTraerDe(enlace) · puenteTraer(id) · puenteRecibir(id)
  *                            el puente entre mis libros (carta/puente.js): la hoja, enviar, traer y recibir
@@ -236,6 +236,7 @@ export function instalar(raiz, m) {
     if ((el = b('[data-salida-abrir]'))) { e.preventDefault(); m.salida?.(); return; }
     if ((el = b('[data-salida-punto]'))) { e.preventDefault(); m.salidaPunto?.(el.dataset.salidaPunto); return; }
     if ((el = b('[data-salida-firmar]'))) { e.preventDefault(); if (!el.disabled) m.salidaFirmar?.(); return; }
+    if ((el = b('[data-salida-enlazar]'))) { e.preventDefault(); if (!el.disabled) m.salidaEnlazar?.(); return; }
     // El puente entre mis libros (carta/puente.js): la hoja, elegir qué enviar, traer de un libro enlazado, traer, recibir.
     if ((el = b('[data-puente-abrir]'))) { e.preventDefault(); m.puente?.(); return; }
     if ((el = b('[data-puente-enviar]'))) { e.preventDefault(); m.puenteEnviarSerie?.(el.dataset.puenteEnviar); return; }
