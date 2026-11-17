@@ -27,6 +27,7 @@ import {
   genesisComoDecupla, bloqueosDeLaVuelta, leerTraido, registroComoDecupla, formulaDeLoEnviado, formulaDeLaPrueba,
 } from '../datos/epocas/puente.mjs';
 import { dosLibros, saldoDe } from '../ejemplos/puente.mjs';
+import { selloEnCascada } from '../ejemplos/ikisai/sellos.mjs';
 
 const ID0 = EPOCA_0_BTML.id;
 const M0 = { ref: ID0 };
@@ -555,4 +556,159 @@ test('aguanta (12): un «open a private book here» de carla sin génesis es un 
   const traida = await grande.anadir((await vueltaFalsa(m, { cuanto: 1, para: claves.bea.publica, enlace: abre })).evento);
   assert.match(await recibeAMano(m, traida, saca(m, 'carla', anuncio.id, 1), { ternas: [['carla', anuncio.id, 1]] }), new RegExp(N.loEnviado));
   assert.deepEqual(saldoDe(grande, 'carla', serie), { libre: 2, bloqueado: 0 });
+});
+
+// ================================ SEGUNDA PASADA (sobre 53a4e1d: los arreglos de RP1, RP2, RP4, RP5 y RP6) ================================
+
+/** Un envío «del pequeño» que vuelve al grande, nunca escrito, sellado con UN solo eslabón: una cabecera de nivel 4 del sellador. */
+async function vueltaSoloNivel4(m, { cuanto, para }) {
+  const payload = ['send', [[m.grande.genesisId], [[m.forastera], [m.grande.genesisId + ':ana'], ['plato'], [m.menu.id]], [cuanto], [para]], ['all announced movements happened'], ['bea'], [P.enviar]];
+  const falsa = await crearEvento({ autor: 'bea', sobre: m.cuelga.id, en: '4000000000', t: m.t(), movimientos: [quemaDelCoste('bea', payload, 'minuto', { eje: m.pequeno })], payload });
+  const proof = (await selloEnCascada(falsa.id, { observador: m.claves.sellador, capas: [{ nivel: 4, grado: 2, red: 0, libro: m.pequeno.genesisId }] })).decupla;
+  return { falsa, proof };
+}
+
+// ---------- RP7 (crítico si el sellador de arriba sella lo que le den): una prueba de un solo eslabón, de nivel 4 ----------
+
+test('RP7: con una prueba de un solo eslabón (una cabecera de nivel 4 firmada por el sellador, sin la casa del libro), cualquiera trae un envío que el grande nunca escribió y acuña 1000 forasteras en el pequeño, y en el grande saca por el enlace de ana lo que carla mandó', { todo: 'HALLAZGO RP7 (crítico si el sellador de nivel 4 sella, para un libro, un hash que le da cualquiera; el ejemplo lo simula así: «firma el lote de hashes que se le da»): PH1 pide que el eslabón 0 lo firme la clave que el enlace anota PARA SU NIVEL, pero no que el eslabón 0 sea el de abajo (la casa del libro). Una prueba cuyo único eslabón es de nivel 4 (el sellador, que los dos enlaces anotan en su 4 y que es el mismo para los dos libros) pasa «bringing needs the line keys» y «comes with its proof»; y el arreglo de RP1 mira justo esa pareja (nivel 4, sellador), que el enlace de ana anota. No hace falta la clave de la casa de ningún libro' }, async () => {
+  const m = await mundo();
+  const { grande, pequeno, claves, abre, serie, cuelga } = m;
+  // (a) Al pequeño: un envío de 1000 que ana nunca escribió, con la cabecera de nivel 4 del sellador como único eslabón.
+  const deVerdad = await m.intenta(grande, P.enviar, { X: abre.id, series: serie, quantity: 1, to: claves.bea.publica }, 'ana');
+  const payload = copia(deVerdad.evento.payload);
+  payload[1][2] = [1000];
+  const falso = await crearEvento({ autor: 'ana', sobre: abre.id, en: '4000000000', t: m.t(), movimientos: deVerdad.evento.movimientos, payload });
+  assert.equal(grande.obtener(falso.id), undefined, 'el grande no lo tiene');
+  const solo4 = (await selloEnCascada(falso.id, { observador: claves.sellador, capas: [{ nivel: 4, grado: 2, red: 0, libro: grande.genesisId }] })).decupla;
+  const traido = await m.traerCon(pequeno, grande, falso, { proof: solo4, link: cuelga.id });
+  if (traido.ok) {
+    const x = await pequeno.anadir(traido.evento);
+    const r = await m.intenta(pequeno, P.recibir, { X: x.id }, 'bea');
+    if (r.ok) await pequeno.anadir(r.evento);
+  }
+  // (b) En el grande: carla manda 3 por el enlace de ana; una vuelta de un solo eslabón de nivel 4 se las lleva a ana.
+  const carla = await miembro(m, 'carla');
+  await darE(m, 'carla', 3);
+  await carla.lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 3, to: claves.bea.publica });
+  const { falsa, proof } = await vueltaSoloNivel4(m, { cuanto: 3, para: claves.ana.publica });
+  const vuelta = await m.traerCon(grande, pequeno, falsa, { proof });
+  if (vuelta.ok) {
+    const x = await grande.anadir(vuelta.evento);
+    const r = await m.intenta(grande, P.recibir, { X: x.id, locks: [['carla', abre.id, 3]] }, 'ana');
+    if (r.ok) await grande.anadir(r.evento);
+  }
+  // Hoy: entra todo (bea, 1000 forasteras; carla, 0). Lo esperado: ninguna de las dos pruebas basta.
+  assert.deepEqual([pequeno.saldo('bea', m.forastera), grande.bloqueado('carla', serie, abre.id)], [0, 3], 'sin la cabecera de la casa del libro no se trae nada');
+});
+
+// ---------- RP8 (bajo): una vuelta saca de una persona más de lo que vuelve, y lo de más queda bloqueado en el enlace ----------
+
+test('RP8: bea recibe una vuelta de 2 sacando 3 de carla (con una terna suya de 1): 1 queda bloqueado a nombre de bea con la salida en el enlace y le sirve en otra vuelta; y con ternas que comparten salida saca de carla 5 diciendo 4', { todo: 'HALLAZGO RP8 (bajo): al quitar «lo que entra por cada salida se libera en el mismo registro» y «lo transferido con una salida no pasa de lo liberado con ella», el cotejo de ternas casa cada liberación con una terna por cantidad y salida, no por quién. Una terna de quien recibe ([bea, enlace, 1]) deja que lo transferido supere lo liberado: lo de más queda bloqueado en el enlace a nombre de quien recibe, fuera de un envío (contra lo que dice «only a send locks for another book»: «un receive que lo libera»). El fondo no pierde nada (sigue bloqueado y sale por otra vuelta), pero quien recibe vacía a una persona concreta más allá de lo que vuelve y se queda un adelanto; y el 1.1 dice de menos (4 dichas, 5 sacadas)' }, async () => {
+  const m = await mundo();
+  const { grande, claves, abre, serie } = m;
+  await m.lanza(grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 10 }, 'ana');
+  const carla = await miembro(m, 'carla');
+  await darE(m, 'carla', 10);
+  await carla.lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 10, to: claves.bea.publica });
+  const de = (cantidad) => mov(m, { de: 'carla', a: 'bea', salida: abre.id, cantidad });
+  const libera = (cantidad) => mov(m, { de: 'bea', a: 'bea', estado: 'liberacion', salida: abre.id, cantidad });
+  const t1 = await grande.anadir((await vueltaFalsa(m, { cuanto: 2, para: claves.bea.publica, enlace: abre })).evento);
+  const masDeLoQueVuelve = await recibeAMano(m, t1, [de(3), libera(1), libera(1)], { ternas: [['carla', abre.id, 3], ['bea', abre.id, 1]] });
+  const queda = grande.bloqueado('bea', serie, abre.id);
+  const t2 = await grande.anadir((await vueltaFalsa(m, { cuanto: 4, para: claves.bea.publica, enlace: abre })).evento);
+  const reparto = await recibeAMano(m, t2, [de(1), de(2), de(2), libera(1), libera(1), libera(2)], { ternas: [['carla', abre.id, 1], ['carla', abre.id, 1], ['carla', abre.id, 2]] });
+  // Hoy: las dos entran, a bea le queda 1 bloqueado en el enlace y carla pierde 8 por dos vueltas de 2 y 4.
+  assert.deepEqual([masDeLoQueVuelve === 'entra', queda, reparto === 'entra', grande.bloqueado('carla', serie, abre.id)], [false, 0, false, 10], 'ni lo transferido supera lo liberado, ni el 1.1 dice de menos');
+});
+
+// ---------- RP9 (medio): una vuelta legítima que pide más de diez bloqueos no entra nunca, y otro puede provocarlo ----------
+
+test('RP9: el fondo de ana tiene 6 en un enlace y 1 en cada uno de otros diez; dan recibe antes su vuelta de 5 eligiendo el bloqueo de 6, y la vuelta de 11 de bea ya pide once bloqueos: no entra nunca (antes cabía en seis)', { todo: 'HALLAZGO RP9 (medio): desde RP6 la regla también tiene el tope de diez ternas, y una vuelta se recibe una sola vez y entera. Una vuelta cuyo importe solo cubren más de diez bloqueos no entra nunca: lo que quien la envió bloqueó en el pequeño y lo bloqueado aquí quedan parados para siempre. Quien recibe otra vuelta antes elige de qué bloqueos saca y puede dejar el fondo en trozos (aquí, dan). El tamaño: la vuelta entera' }, async () => {
+  const m = await mundo();
+  const { grande, claves, abre, serie } = m;
+  await m.lanza(grande, 'issue E tied to X', { X: m.menu.id, denomination: 'plato', quantity: 11 }, 'ana');
+  await m.lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 6, to: claves.bea.publica }, 'ana');
+  for (let k = 0; k < 10; k++) {
+    const L = await otroEnlaceDeAna(m, [[1, claves.casaP.publica], [4, claves.sellador.publica]], 'sala ' + k);
+    await m.lanza(grande, P.enviar, { X: L.id, series: serie, quantity: 1, to: claves.bea.publica }, 'ana');
+  }
+  const dan = await miembro(m, 'dan');
+  const paraDan = await grande.anadir((await vueltaFalsa(m, { cuanto: 5, para: dan.k.publica, enlace: abre })).evento);
+  const paraBea = await grande.anadir((await vueltaFalsa(m, { cuanto: 11, para: claves.bea.publica, enlace: abre })).evento);
+  assert.equal(bloqueosDeLaVuelta(grande, paraBea.id)?.length, 6, 'antes, la de bea cabe en seis bloqueos');
+  await dan.lanza(grande, P.recibir, { X: paraDan.id, locks: [['ana', abre.id, 5]] });
+  const ayuda = bloqueosDeLaVuelta(grande, paraBea.id);
+  const r = await m.intenta(grande, P.recibir, { X: paraBea.id, ...(ayuda ? { locks: ayuda } : {}) }, 'bea');
+  if (r.ok) await grande.anadir(r.evento);
+  assert.equal(grande.saldo('bea', serie), 11, 'la vuelta de bea sigue pudiendo recibirse');
+});
+
+// ---------- Lo que aguanta en la segunda pasada ----------
+
+test('aguanta (13), RP1: un enlace de ana que anota la clave buena del nivel 1 y claves suyas en el 2 y el 4 trae una prueba de nivel 2 y 4, pero no saca lo de carla; ni el enlace de la creadora con las mismas claves saca del fondo de ana, ni el de ana del de la creadora', async () => {
+  const m = await mundo();
+  const { grande, pequeno, claves, abre, serie } = m;
+  const carla = await miembro(m, 'carla');
+  await darE(m, 'carla', 3);
+  await carla.lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 2, to: claves.bea.publica });
+  const { enlace: deBea } = await enlaceDeCreadora(m);
+  await carla.lanza(grande, P.enviar, { X: deBea.id, series: serie, quantity: 1, to: claves.bea.publica });
+  const f2 = await generarClaves();
+  const f4 = await generarClaves();
+  const L2 = await otroEnlaceDeAna(m, [[1, claves.casaP.publica], [2, f2.publica], [4, f4.publica]]);
+  const payload = ['send', [[grande.genesisId], [[m.forastera], [grande.genesisId + ':ana'], ['plato'], [m.menu.id]], [2], [claves.ana.publica]], ['x'], ['bea'], [P.enviar]];
+  const falsa = await crearEvento({ autor: 'bea', sobre: m.cuelga.id, en: '4000000000', t: m.t(), movimientos: [quemaDelCoste('bea', payload, 'minuto', { eje: pequeno })], payload });
+  const proof = (await selloEnCascada(falsa.id, { observador: f4, capas: [{ nivel: 2, grado: 0, claves: f2, libro: pequeno.genesisId }, { nivel: 4, grado: 2, red: 0, libro: pequeno.genesisId }] })).decupla;
+  const tr = await m.traerCon(grande, pequeno, falsa, { link: L2.id, proof });
+  assert.equal(tr.ok, true, 'se trae: el eslabón 0 (nivel 2) lo firma la clave que L2 anota para el 2');
+  const x = await grande.anadir(tr.evento);
+  assert.equal(bloqueosDeLaVuelta(grande, x.id), null);
+  assert.match(await recibeAMano(m, x, saca(m, 'carla', abre.id, 2, 'ana'), { quien: 'ana', privada: claves.ana.privada, ternas: [['carla', abre.id, 2]] }), new RegExp(N.loEnviado), 'abre no anota (2, f2)');
+  // Mismo libro, mismas claves, distinto autor: ni la creadora saca del fondo de ana, ni ana del de la creadora.
+  const porBea = await grande.anadir((await vueltaFalsa(m, { cuanto: 1, para: claves.bea.publica, enlace: deBea })).evento);
+  assert.match(await recibeAMano(m, porBea, saca(m, 'carla', abre.id, 1), { ternas: [['carla', abre.id, 1]] }), new RegExp(N.loEnviado));
+  const porAna = await grande.anadir((await vueltaFalsa(m, { cuanto: 1, para: claves.bea.publica, enlace: abre })).evento);
+  assert.match(await recibeAMano(m, porAna, saca(m, 'carla', deBea.id, 1), { ternas: [['carla', deBea.id, 1]] }), new RegExp(N.loEnviado));
+  assert.deepEqual([grande.bloqueado('carla', serie, abre.id), grande.bloqueado('carla', serie, deBea.id)], [2, 1]);
+});
+
+test('aguanta (14), RP6: las ternas no sirven para sacar de otra serie, de un enlace de ana a otro libro (con las mismas claves), ni para colar una transferencia de carla con la terna de quien recibe', async () => {
+  const m = await mundo();
+  const { grande, claves, abre, serie, sala } = m;
+  const carla = await miembro(m, 'carla');
+  await darE(m, 'carla', 2);
+  await carla.lanza(grande, P.enviar, { X: abre.id, series: serie, quantity: 2, to: claves.bea.publica });
+  const postre = await m.lanza(grande, 'anchor here', { X: sala.id, title: 'postre', content: 'x' }, 'ana');
+  await m.lanza(grande, 'issue E tied to X', { X: postre.id, denomination: 'postre', quantity: 2 }, 'ana');
+  await m.lanza(grande, P.enviar, { X: abre.id, series: 'E:ana/postre@' + postre.id, quantity: 1, to: claves.bea.publica }, 'ana');
+  const tercero = await Eje.genesis({ identidad: 'ana', foco: ['otro libro de ana'], t: m.t(), clave: claves.ana.publica, privada: claves.ana.privada });
+  const alTercero = await m.lanza(grande, ENLACES.abrir, { X: sala.id, book: tercero.genesisId, 'line keys': [[1, claves.casaP.publica], [4, claves.sellador.publica]] }, 'ana');
+  await m.lanza(grande, P.enviar, { X: alTercero.id, series: serie, quantity: 1, to: claves.bea.publica }, 'ana');
+  const t = await grande.anadir((await vueltaFalsa(m, { cuanto: 1, para: claves.bea.publica, enlace: abre })).evento);
+  const otraSerie = { denominacion: 'postre', registro: postre.id };
+  const casos = {
+    'una terna del fondo con el movimiento de otra serie': [[mov(m, { de: 'ana', a: 'bea', salida: abre.id, cantidad: 1, ...otraSerie }), mov(m, { de: 'bea', a: 'bea', estado: 'liberacion', salida: abre.id, cantidad: 1, ...otraSerie })], [['ana', abre.id, 1]]],
+    'una terna de un enlace de ana a otro libro': [saca(m, 'ana', alTercero.id, 1), [['ana', alTercero.id, 1]]],
+    'la terna de bea y una transferencia de carla que no dice': [[mov(m, { de: 'carla', a: 'bea', salida: abre.id, cantidad: 1 }), mov(m, { de: 'bea', a: 'bea', estado: 'liberacion', salida: abre.id, cantidad: 1 })], [['bea', abre.id, 1]]],
+  };
+  for (const [que, [movs, ternas]] of Object.entries(casos)) assert.match(await recibeAMano(m, t, movs, { ternas }), new RegExp(N.loEnviado), que);
+  assert.deepEqual([grande.bloqueado('carla', serie, abre.id), grande.bloqueado('ana', 'E:ana/postre@' + postre.id, abre.id), grande.bloqueado('ana', serie, alTercero.id)], [2, 1, 1]);
+});
+
+test('aguanta (15), RP2: nada deja algo bloqueado con la salida en un enlace fuera de un envío (una transferencia fuera de un recibir, «commit time» con el enlace de plazo, una invitación a un nombre que es el id del enlace, quemar lo bloqueado); y lo legítimo sigue: enviar, recibir la ida y la vuelta, invitar, declarar', async () => {
+  const m = await mundo();
+  const { grande, claves, abre, serie, sala } = m;
+  await enviaYRecibe(m, 3);
+  assert.match(await aMano(grande, 'ana', claves.ana.privada, { sobre: sala.id, t: m.t(), payload: [['se lo paso a bea']], movimientos: [mov(m, { de: 'ana', a: 'bea', salida: abre.id, cantidad: 1 })] }), /only a send locks for another book/, 'una transferencia con la salida en el enlace fuera de un recibir');
+  assert.ok(reglas(await m.intenta(grande, 'commit time', { X: sala.id, series: serie, amount: 1, until: abre.id }, 'ana')).includes('only a send locks for another book'), '«commit time» con el enlace como plazo');
+  await assert.rejects(grande.invitar({ autor: 'ana', invitado: abre.id, clave: (await generarClaves()).publica, t: m.t(), privada: claves.ana.privada }), /only a send locks for another book/, 'una invitación a un nombre que es el id del enlace');
+  assert.match(await aMano(grande, 'ana', claves.ana.privada, { sobre: sala.id, t: m.t(), payload: [['quemo']], movimientos: [mov(m, { de: 'ana', a: null, salida: abre.id, cantidad: 1 })] }), /salida/, 'quemar lo bloqueado para otro libro no es un movimiento');
+  // Lo legítimo: la ida (arriba), la vuelta, una invitación normal, una declaración.
+  const traida = await devuelve(m, 1);
+  await m.lanza(grande, P.recibir, { X: traida.id }, 'bea');
+  const carla = await miembro(m, 'carla');
+  assert.ok(carla.k && grande.alta('carla') !== null, 'carla, invitada, entra');
+  assert.equal((await m.intenta(grande, P.declarar, { X: grande.alta('bea').id, series: serie }, 'bea')).ok, true, 'bea declara lo que le volvió');
+  assert.equal((await m.intenta(grande, P.declarar, { X: grande.alta('ana').id, series: serie }, 'ana')).ok, true, 'ana declara');
+  assert.deepEqual([saldoDe(grande, 'ana', serie), saldoDe(grande, 'bea', serie)], [{ libre: 2, bloqueado: 2 }, { libre: 1, bloqueado: 0 }]);
 });
