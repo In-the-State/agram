@@ -10,19 +10,23 @@
 // Y las ayudas de JS del puente, que no son núcleo: el registro de otro libro como décupla para traerlo
 // (registroComoDecupla), lo traído, leído (leerTraido), y la salida con saldos: cuánto se puede declarar (saldosDe) y
 // los registros de la salida, listos para firmar (planDeSalida; docs/notas/PUENTE.md §11).
+//
+// La carta importa este módulo en el navegador (encargo «carta: irme con lo mío y el puente»): lo de Node (leer y escribir
+// los archivos de reglas, --escribir) solo se carga en Node, y nada de arriba usa el Buffer de Node.
 
-import { readFileSync, renameSync, writeFileSync } from 'node:fs';
-import { dirname, join } from 'node:path';
-import { fileURLToPath, pathToFileURL } from 'node:url';
-import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA } from '../../src/sello.js';
+import { POSICIONES_DEL_SELLO, ETIQUETA_DE_CABECERA, ESLABONES_DE_LA_FORMULA, CAPAS_DE_LA_FORMULA, GRADOS_DE_LA_FORMULA, eslabonesValidos } from '../../src/sello.js';
 import { canonico } from '../../src/evento.js';
 import { claveToken, partirClave } from '../../src/tokens.js';
 import { gradoDelEnlace, cuelgaDe } from '../../src/contrato.js';
 import { epocaEscritaDe } from '../../src/epocas.js';
 import { quemaDelCoste } from '../../src/escritura.js';
-import { formatear } from './generar.mjs';
+import { ajustesDelEje } from '../../src/exterior.js';
 
-const AQUI = dirname(fileURLToPath(import.meta.url));
+/** ¿Corre en Node? (las pruebas y --escribir). En el navegador no hay archivos que leer. */
+const EN_NODE = typeof globalThis.process?.versions?.node === 'string';
+const { dirname, join } = EN_NODE ? await import('node:path') : {};
+const { fileURLToPath, pathToFileURL } = EN_NODE ? await import('node:url') : {};
+const AQUI = EN_NODE ? dirname(fileURLToPath(import.meta.url)) : null;
 
 /** Las cuatro plantillas del puente (lo que dice el 4 de cada registro que escriben). */
 export const PLANTILLAS_DEL_PUENTE = Object.freeze({
@@ -113,7 +117,7 @@ export const SUELO_DEL_PUENTE = Object.freeze([
 
 const P = PLANTILLAS_DEL_PUENTE;
 const L_ = ENLACES;
-const hexDe = (t) => Buffer.from(t, 'utf8').toString('hex');
+const hexDe = (t) => Array.from(new TextEncoder().encode(t), (b) => b.toString(16).padStart(2, '0')).join('');
 /** 65 bytes a cero: con ellos `slice` no se sale de un texto corto (el BQL mínimo no tiene «largo»). */
 const CEROS = '00'.repeat(65);
 
@@ -836,6 +840,93 @@ export function nivelMasBajoDe(enlace) {
   return niveles.length ? Math.min(...niveles) : null;
 }
 
+// ---------- de dónde salen los sellos (encargo «carta: irme con lo mío y el puente», sección 0) ----------
+//
+// Traer pide la prueba de sello del registro en su libro y las claves de línea de ese libro. Las dos están ya en el libro
+// de origen, sin pedir nada al nodo: la prueba es la décupla de la vía «cascada» que guarda eje.sello(id) (la que llega
+// por la sincronía de quien guarda y sella ese libro, src/sincronia.js #sellar, y la que leen «sealed» y «firm»), la misma
+// forma que pide «a brought record comes with its proof»; las claves de línea, las que anota su cuenta raíz en «exterior
+// settings» («line keys»: src/exterior.js ajustesDelEje), las mismas con que «firm» comprueba sus sellos. Un libro sin
+// quien lo selle (sin «seal url», o de demostración) no tiene ni una ni otra: lo que pide su sello espera.
+
+/** Las claves de línea de un libro, pares [nivel, clave]: las de «exterior settings» de su cuenta raíz ([] si no anota ninguna). */
+export function clavesDeLineaDe(eje) {
+  try {
+    return ajustesDelEje(eje).lineas;
+  } catch {
+    return [];
+  }
+}
+
+/** Los pares [nivel, clave] que anota un enlace (el 2 de «open a private book here», el 1.1 de «this book hangs from»), o []. */
+export function paresDelEnlace(enlace) {
+  const a = [].concat(enlace?.payload?.[4] ?? []);
+  const pares = a.includes(L_.abrir) ? enlace.payload[2] : a.includes(L_.cuelga) ? enlace.payload[1]?.[1] : null;
+  return Array.isArray(pares) ? pares.filter((x) => Array.isArray(x) && x.length === 2 && typeof x[0] === 'number' && typeof x[1] === 'string') : [];
+}
+
+/**
+ * ¿Tiene quien lo selle el libro `eje`? null si sí; si no, por qué: 'demostracion' (un libro de demostración no se sella),
+ * 'sinSellador' (su cuenta raíz no dice «seal url»: nadie lo sella) o 'sinClaves' (no anota claves de línea: nada suyo se
+ * puede comprobar en otro libro).
+ */
+export function sinSello(eje) {
+  const genesis = eje?.obtener?.(eje?.genesisId);
+  if (genesis?.contexto?.demostracion === true) return 'demostracion';
+  let sello = null;
+  try {
+    sello = ajustesDelEje(eje).sello;
+  } catch {
+    sello = null;
+  }
+  if (!sello) return 'sinSellador';
+  return clavesDeLineaDe(eje).length ? null : 'sinClaves';
+}
+
+/**
+ * La prueba de sello con que se trae el registro `id` del libro `origen` a otro: la décupla de la vía «cascada» que el
+ * origen ya tiene de ese registro (eje.sello(id).decupla), si sus eslabones valen seguidos desde abajo con las claves
+ * `lineas` (las del enlace por el que se trae; por defecto, las del origen: clavesDeLineaDe), con el libro de origen en la
+ * primera cabecera (sello.eslabonesValidos, como «firm») y uno de ellos dice un nivel a la altura de `nivel` (epoch.8.9.2
+ * del libro de destino). No mira el grado de cada eslabón (epoch.7.6.5): eso lo dice la regla al traer.
+ * → { prueba: la décupla (una copia, para el payload) | null, falta: null | 'sello' | 'claves' | 'nivel' }.
+ */
+export function pruebaParaTraer(origen, id, { lineas = clavesDeLineaDe(origen), nivel = 4 } = {}) {
+  const decupla = origen?.sello?.(id)?.decupla;
+  const q = POSICIONES_DEL_SELLO;
+  if (!Array.isArray(decupla) || ![].concat(decupla[Number(q.via)]).includes(q.cascada)) return { prueba: null, falta: 'sello' };
+  if (!Array.isArray(lineas) || !lineas.length) return { prueba: null, falta: 'claves' };
+  const validos = eslabonesValidos(decupla, id, { libro: origen.genesisId, lineas });
+  const cadena = Array.isArray(decupla[Number(q.cadena)]) ? decupla[Number(q.cadena)] : [];
+  const hoja = (x) => (Array.isArray(x) ? hoja(x[0]) : x);
+  const llega = cadena.slice(0, validos).some((e) => Array.isArray(e) && hoja(e[Number(q.eslabon.nivel)]) >= nivel);
+  return llega ? { prueba: JSON.parse(JSON.stringify(decupla)), falta: null } : { prueba: null, falta: validos ? 'nivel' : 'claves' };
+}
+
+/**
+ * Cuánto queda por recibir de un envío traído `idTraido` (un «bring a record from another book» de un «send to another
+ * book»): `envia`, cuánto dice el envío; `recibido`, lo ya liberado (la vuelta) o acuñado (la ida) por los «receive from
+ * another book» que cuelgan de su 4 (RP9, RP11); `queda`, la diferencia; `vuelta`, si vuelve a este libro (el emisor de la
+ * serie es «<este libro>:…»). null si no es un envío traído.
+ */
+export function porRecibir(eje, idTraido) {
+  const p = eje?.obtener?.(idTraido)?.payload;
+  if (!Array.isArray(p) || ![].concat(p[4] ?? []).includes(P.traer)) return null;
+  const hoja = (x) => (Array.isArray(x) ? hoja(x[0]) : x);
+  const envio = p[1]?.[1]?.[6];
+  if (!Array.isArray(envio) || ![].concat(envio[4] ?? []).includes(P.enviar)) return null;
+  const envia = hoja(envio[1]?.[2]);
+  const emisor = hoja(envio[1]?.[1]?.[1]);
+  const vuelta = typeof emisor === 'string' && emisor.startsWith(eje.genesisId + ':');
+  const cuanto = Number(envia) || 0;
+  const recibos = eje.sobre(idTraido, '4000000000').filter((h) => [].concat(h.payload?.[4] ?? []).includes(P.recibir));
+  // La ida se recibe una vez y entera; la vuelta, en partes: lo liberado por cada recibir (como bloqueosDeLaVuelta).
+  const recibido = vuelta
+    ? recibos.reduce((s, h) => s + (h.movimientos ?? []).filter((m) => m.estado === 'liberacion').reduce((x, m) => x + m.cantidad, 0), 0)
+    : recibos.length ? cuanto : 0;
+  return { envia: cuanto, recibido, queda: Math.max(0, cuanto - recibido), vuelta };
+}
+
 // ---------- la salida con saldos (tramo 4, parte B; agram-equipo/DISENO_TRAMO_4.md §4; docs/notas/PUENTE.md §11) ----------
 
 /** El criterio de cierre que escribe «declare a balance» (su 2): aquí solo sirve para medir cuánto ocupa el registro. */
@@ -983,7 +1074,9 @@ export function planDeSalida(eje, identidad, opciones = {}) {
 export const ARCHIVO = (nombre) => join(AQUI, 'reglas', nombre);
 
 // node datos/epocas/puente.mjs --escribir: pone cada fórmula en el 2 de su regla (el resto del archivo no cambia).
-if (import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.argv.includes('--escribir')) {
+if (EN_NODE && import.meta.url === pathToFileURL(process.argv[1] ?? '').href && process.argv.includes('--escribir')) {
+  const { readFileSync, renameSync, writeFileSync } = await import('node:fs');
+  const { formatear } = await import('./generar.mjs');
   for (const [archivo, f] of Object.entries(FORMULAS)) {
     const ruta = ARCHIVO(archivo);
     const regla = JSON.parse(readFileSync(ruta, 'utf8'));
