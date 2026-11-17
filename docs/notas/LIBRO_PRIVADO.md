@@ -23,6 +23,14 @@ Lecturas (`docs/CONTRATO.md` §7.3): `librosPrivados(eje, id)`, `cuelgaDe(eje)` 
 
 Que el grande guarda y sella sin leer se declara en el pequeño con lo que ya hay: un «add a parent» con la clave de quien sella el grande, `keeps and seals` y `does not read` (`test/libro-privado.test.js`, el ejemplo).
 
+## Con qué reglas nace el pequeño
+
+El pequeño nace con **las reglas que rigen en el grande**, no con las de nacimiento del grande: su época es la del grande con los cambios en vigor ya fundidos (`epocaEscritaDe(grande.epoca(), { porReferencia: true })`, la época por referencia, `VERSIONES.md` §11). No copia la época fundida: escribe en su apertura la época de nacimiento del grande (o, si el grande nació con la 0 del código, la nombra por su id y no la escribe) y, detrás, cada cambio en vigor, y al cargar los vuelve a fundir en orden con la misma función. El resultado es la misma época, con el mismo id, y es su versión de nacimiento: una sola. Si el grande no tiene cambios y nació con la 0, el pequeño nace como hoy, nombrando la 0 sin escribir nada.
+
+**Desde ahí decide él.** Sus reglas las cambian sus miembros con su propio gobierno; un cambio que el grande ponga en vigor después no le llega solo (la época «viva» no se construye: pregunta de gobierno para VG, `DISENO_TRAMO_4.md` §3). Si quiere seguirlo, uno de sus miembros lo propone dentro y se aprueba con su umbral. También puede nacer con la época del grande en un punto anterior (`epocaEscritaDe(grande.versiones()[k].version, { porReferencia: true })`): la de antes de un cambio que no acepta.
+
+Que «this book hangs from» anote ese punto (el registro que puso en vigor el último cambio en el grande) pide un parámetro nuevo en su plantilla, y con él cambiar la época 0: va por el carril de época (`VERSIONES.md` §11, «El punto»).
+
 ## Qué se ve desde fuera
 
 - **Que existe y quién lo abrió.** En el grande, el registro está a la vista de todos los lectores; la carta pinta en «quién guarda esto» una línea por libro privado («un libro privado (abababab) cuelga de aquí; lo abrió bea»), sin enlace, sin las claves y sin la dirección.
@@ -34,7 +42,7 @@ Que el grande guarda y sella sin leer se declara en el pequeño con lo que ya ha
 - **Quitar el enlace.** La época no tiene una forma general de retirar un registro propio: «remove a parent» solo quita padres, «expire something mine» quema E y «expire» o «close» cierran procesos. Hoy un enlace no se quita; rotarlo es escribir otro.
 - **Que solo el dueño escriba «this book hangs from».** Es de la oferta de la plantilla; a mano, otro puede escribirlo (la época lo deja) y `cuelgaDe` no lo cuenta. Impedirlo en la validez pediría una regla nueva, que no se añadió.
 - **Varios registros para el mismo libro** sobre un elemento: vale el último de quien lo abrió (Core, al fundir: quien sella el libro grande se fía de esas claves de línea, y el registro de otra persona no debe cambiarlas). «Quien lo abrió» es el autor del registro más antiguo por instante; quien pueda escribir sobre el elemento con un instante anterior al de la apertura se la quedaría, y eso no lo impide una regla.
-- **La época por referencia.** El pequeño usa la 0 que trae el código o escribe la suya entera; no puede heredar por referencia la del grande (ni sus retoques). Encargo de núcleo.
+- **La época por referencia: hecha en el núcleo** (tramo 4; `VERSIONES.md` §11). Falta la carta: hoy `abrirLibroPrivado` (`carta/libros.js`) abre el pequeño con la 0 que trae el código. Los retoques de textos del grande no van con la época.
 - **La carta con varios libros.** Hecho en la beta (A24, `docs/CONTRATO.md` §14 bis): la carta abre varios libros de la misma clave, «abrir aquí un libro privado» crea el pequeño y escribe los dos lados del enlace (el anuncio, solo si el anfitrión da claves de línea mientras la plantilla pida de una a cuatro), y se entra y se vuelve desde el elemento y desde el génesis, con una sola sincronía viva. Falta invitar a alguien al pequeño y entrar por invitación (otro encargo).
 - **El cifrado de la copia.** En AGRAM no hay cifrado: el formato del sobre es de Core StateArk (V4).
 - **Cómo sella el grande al pequeño**, la frontera con StateArk: el pequeño pide ancla en el grande («ask for an anchor», en construcción) y quien sella el grande ancla las cabeceras firmadas con las claves de línea declaradas aquí.

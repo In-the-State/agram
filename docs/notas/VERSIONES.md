@@ -4,7 +4,7 @@ Core AGRAM, 17-11. Diseño: `agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md` §6.1, con
 
 ## 1. Qué guarda el eje
 
-- **Las versiones de su época**: la de nacimiento (la escrita en su libro o la 0 que trae el código) y una más por cada «put a change in force» aceptado. Cada versión es la anterior con el cambio fundido encima.
+- **Las versiones de su época**: la de nacimiento (la escrita en su libro, con los cambios con que nació si los trae (§11), o la 0 que trae el código) y una más por cada «put a change in force» aceptado. Cada versión es la anterior con el cambio fundido encima.
 - Por versión: la época cargada, la anterior, el registro que la puso en vigor, la propuesta del cambio y la posición (el número de entrada del primer registro que se juzga con ella).
 - Qué propuestas están en vigor (id de la propuesta → id del registro que la puso en vigor): un cambio entra una sola vez.
 
@@ -130,6 +130,71 @@ Un libro sin cambios en vigor no paga nada medible: por registro, el núcleo mir
 - Fundir pide la época de partida entera en memoria: un cambio sobre un libro con muchas versiones se funde sobre la última, no sobre la cadena.
 - Un nombre de 7.9.5 que es una magnitud («nadie 0») pesa su número; cualquier otra hoja, la presión máxima. Una identidad con alta que se escriba como magnitud contaría distinto en la lectura «support», que mira si tiene vistas; el núcleo no tiene eje en el suelo.
 - Un cambio no puede renombrar la época ni cambiar su procedencia (su 0 y su 6 son del cambio).
+
+## 11. La época con cambios al nacer (tramo 4, la época por referencia)
+
+Diseño: `agram-equipo/DISENO_TRAMO_4.md` §2. Un libro puede nacer con la época de otro **en un punto**: no copia la época fundida, vuelve a pasar los cambios. Prueba: `test/epoca-por-referencia.test.js`.
+
+**La forma.** La época escrita gana una parte opcional, y una segunda forma para la época que trae el código:
+
+```text
+{ raiz, registros, cambios: [{ raiz, registros }, …] }   el libro de arriba escribió su época
+{ base: '<id>', cambios: [{ raiz, registros }, …] }      el libro de arriba nació con una época del código
+```
+
+`raiz` y `registros` son la época de nacimiento del libro de arriba tal como él la escribió; `cambios`, sus cambios en vigor en el orden en que entraron, cada uno como lo llevaba su propuesta (la raíz de una época hija y sus registros). Sin `cambios` (o con la lista vacía), todo es como antes, byte a byte: el mismo génesis, los mismos registros de época, los mismos ids.
+
+Si el libro de arriba nació con una época que trae el código (su génesis solo la nombra, como la 0), la forma no lleva raíz ni registros de nacimiento: `base` es el id de esa época. El génesis del libro nuevo nombra ese mismo id en su contexto, como el de un libro nacido con ella, y detrás van **solo los registros de los cambios**. Así el id de la época del libro nuevo es el de la de arriba también en este caso, y un libro grande sin época escrita no hace escribir la 0 entera. `base` se resuelve como el eje resuelve hoy un génesis que nombra ese id (`EPOCAS_POR_ID`, y si no lo conoce, la 0): un id anterior de la 0 (`IDS_ANTERIORES_DE_LA_0`) o uno que el código no conoce dan la 0, y el génesis sigue nombrando el id que se dio. `{ base, cambios: [] }` es un génesis sin época escrita: nombra ese id y no escribe nada (con el id de la 0 de hoy, byte a byte el de un génesis sin `epoca`). Mal formada: ««base» es el id de una época que trae el código (64 hexadecimales)», «una época nombrada por su id («base») no lleva raíz ni registros: la trae el código».
+
+**Las funciones.**
+
+- `epocaEscritaDe(epoca, { porReferencia })`, según la época (`eje.epoca()`, o `eje.versiones()[k].version` para un punto anterior):
+
+  | Época | Da |
+  |---|---|
+  | escrita, sin cambios | `{ raiz, registros }` (lo de siempre) |
+  | escrita, con cambios en vigor (o nacida con ellos) | `{ raiz, registros, cambios }` |
+  | del código (la 0), con cambios en vigor (o nacida con ellos) | `{ base, cambios }` |
+  | la 0 del código, sin cambios | `{ raiz, registros }`, la 0 entera (816 registros, para escribirla en un libro: lo de siempre); con `{ porReferencia: true }`, `{ base, cambios: [] }` |
+
+  Los cambios van en orden; si el libro nació a su vez con cambios, los de su nacimiento van delante. Cada versión guarda ahora el cambio con que se fundió (`version.cambio`, `src/versiones.js`). Sin la opción, la 0 sigue dando su forma entera porque es un contrato (`docs/CONTRATO.md`, «para escribirla en un libro») y la usan pruebas que escriben la 0 retocada en un libro (`versiones`, `retoques`, `revision-gobierno`, `revision-suelo`, `epoca-en-el-eje`). **Quien hace nacer un libro con la época de otro llama `epocaEscritaDe(eje.epoca(), { porReferencia: true })`**: vale sin condiciones y es barato en los tres casos (la 0 sin cambios no escribe nada; la 0 con cambios, solo los cambios; una época escrita, lo de siempre).
+- `cargarEpocaEscrita({ raiz, registros, cambios })` (o `{ base, cambios }`) carga la de nacimiento y funde encima cada cambio, en orden, con `fundirCambio` (la misma función con que el libro de arriba los fundió) y comprueba en cada paso el suelo de la versión anterior (`erroresDelSuelo`, sin clase: no es un cambio del libro, es su nacimiento; no hay clase ni umbral que mirar). Un cambio que no se funde o que no respeta el suelo no abre el libro: «<época>: no abre con el cambio 2 de 3 («<nombre del cambio>»): el cambio …» con el motivo de siempre (§4). Una lista mal formada: «<época>: época mal formada: el cambio 1: …» o «los cambios de la época son una lista de { raiz, registros }».
+- `Eje.genesis({ epoca })` la acepta (también una época cargada o una versión: vale por su forma escrita) y la escribe: los registros de época de siempre (ninguno con `base`) y, detrás, los de cada cambio, con el mismo autor e instante, anclados en el génesis y sin coste. `contexto.epocaEscrita` del génesis cuenta todos.
+
+**Los contextos de los registros de época.**
+
+| Registro | Contexto |
+|---|---|
+| la raíz de nacimiento y sus registros (como siempre) | `{ epoca, registroDeEpoca: true }` |
+| la raíz del cambio k (1, 2…) | `{ epoca, registroDeEpoca: true, cambio: k, raizDelCambio: true }` |
+| cada registro del cambio k | `{ epoca, registroDeEpoca: true, cambio: k }` |
+
+`epoca` es en todos el id de la época de nacimiento (el que nombra el génesis). Con `base` no hay registros de nacimiento: el primero ya es la raíz del cambio 1. Al restaurar (`restaurar`, `Eje.desde`, `eje.reordenar`, `eje.antes(n)`) la lista se rehace de esos contextos. El eje rechaza, con su motivo, un registro de época que los rompe: «los cambios van en orden y sin saltos: tras la época de nacimiento va el cambio 1, no el 2», «los cambios van en orden: tras un registro del cambio 2 no va uno del cambio 1», «el primer registro del cambio 1 es su raíz (raizDelCambio: true en su contexto)», «el cambio 1 ya tiene su raíz: sus demás registros no la dicen», «solo la raíz de un cambio lo dice en su contexto (raizDelCambio: true)», «un registro de un cambio dice en su contexto el número del cambio (1, 2…): «x» no lo es». Un registro repetido se mira dentro de su parte (la de nacimiento o cada cambio): dos cambios pueden traer el mismo registro.
+
+**Lo que resulta.** La época del libro nuevo es idéntica a la versión del de arriba en ese punto (las mismas reglas, condiciones, plantillas, fila 7.9 y raíz resuelta entera) y su id es el de la época de arriba. `eje.versiones()` del nuevo empieza en **una sola versión, la de nacimiento, que ya lleva los cambios**: `eje.versiones()[0].version` es la época entera con los cambios fundidos, sin `anterior`, y su `escrita.cambios` dice con qué cambios nació. Lo que se juzgue con «el suelo de la versión de nacimiento» (la declaración de saldo, decidido 17-11) se juzga en ese libro con ese suelo: el 7.9.6 que dejaron los cambios. Desde ahí el libro es dueño de sus reglas: un cambio propio se funde encima (versión 1) y quien nazca de él hereda los de arriba y los suyos, en orden.
+
+```js
+import { ejemploGobierno } from './ejemplos/gobierno.mjs';
+import { Eje } from './src/eje.js';
+import { epocaEscritaDe } from './src/epocas.js';
+const { eje } = await ejemploGobierno();
+const escrita = epocaEscritaDe(eje.epoca());
+console.log(Object.keys(escrita), escrita.cambios.map((c) => c.raiz[0][0]));
+const nuevo = await Eje.genesis({ identidad: 'bea', foco: ['el libro de bea'], t: '2026-11-18T09:00:00Z', demostracion: true, epoca: escrita });
+const [nacimiento] = nuevo.versiones();
+console.log(nuevo.epoca().id === eje.epoca().id, nuevo.epoca().registro[7][3][0], nuevo.versiones().length, nacimiento.version.escrita.cambios.length);
+console.log(nuevo.registrosDeLaEpoca.map((id) => nuevo.obtener(id).contexto).map(({ cambio, raizDelCambio }) => [cambio ?? 0, raizDelCambio ?? false]));
+```
+
+```text
+[ 'raiz', 'registros', 'cambios' ] [ 'más margen' ]
+true [ 900 ] 1 1
+[ [ 0, false ], [ 1, true ] ]
+```
+
+**El punto.** El diseño quiere que «this book hangs from» anote el id del registro que puso en vigor el último cambio en el libro de arriba. La plantilla no tiene sitio: sus parámetros son 1.0 el libro, 1.1 las claves de línea, 1.2 el origen (opcional), 2 el elemento, 3 quién y 4 la acción. Haría falta un parámetro opcional nuevo, «point», en el payload 5 (no en el 1.3: el 1.2 es opcional y dejaría un hueco), y eso cambia el registro de la plantilla y con él el id de la época 0: va por el carril de época (Core, 17-11). (A mano, un payload 5 entra hoy, porque ninguna regla lo rechaza, pero la plantilla no lo declara, no se ofrece ni se lee.)
+
+**Coste** (medido 17-11 en este portátil, una época hija de la 0 con una regla y n cambios de un parámetro; cada proceso en frío): abrir el libro (génesis y apertura) 0,37 s sin cambios, 0,47 s con 1, 0,91 s con 5 y 2,76 s con 20; restaurarlo en otro proceso, 0,25 / 0,44 / 1,00 / 2,87 s; restaurarlo otra vez en el mismo proceso, 5 a 30 ms (la época resuelta se recuerda). Cada cambio cuesta en frío unos 120 a 190 ms: fundir es cargar la época entera otra vez. Es el límite del diseño: un libro de arriba con cien cambios hace nacer libros con cien cambios escritos (del orden de 12 a 15 s al abrir en frío: extrapolado, sin medir). No hay tope.
 
 ## Para la carta
 

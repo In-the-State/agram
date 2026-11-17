@@ -27,6 +27,7 @@ import { canonico } from './evento.js';
 import { sha256, aHex } from './cripto.js';
 import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve, esFormula } from './bqlm.js';
 import { erroresDelSuelo } from './suelo.js';
+import { fundirCambio } from './versiones.js';
 import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS, RETOQUES_0_DATOS } from '../datos/epocas/epocas.js';
 
 export const PV = Object.freeze([
@@ -559,10 +560,19 @@ export function heredaDe(raiz) {
   return procedenciaDe(raiz).claves.get(HEREDA)?.[0] ?? null;
 }
 
-/** Los errores de forma de una época escrita ({ raiz, registros }), sin resolverla: [] si vale. */
+/**
+ * Los errores de forma de una época escrita ({ raiz, registros }, con `cambios` opcionales; o { base, cambios }, la
+ * época que trae el código nombrada por su id), sin resolverla: [] si vale.
+ */
 export function erroresDeEpocaEscrita(escrita) {
   const errores = [];
   if (!escrita || typeof escrita !== 'object' || Array.isArray(escrita)) return ['una época escrita es { raiz, registros }'];
+  // La época del código nombrada por su id (tramo 4: un libro nacido con ella y con los cambios de otro): sin raíz ni registros.
+  if (escrita.base !== undefined) {
+    if (typeof escrita.base !== 'string' || !RE_ID_EPOCA.test(escrita.base)) errores.push('«base» es el id de una época que trae el código (64 hexadecimales)');
+    if (escrita.raiz !== undefined || escrita.registros !== undefined) errores.push('una época nombrada por su id («base») no lleva raíz ni registros: la trae el código');
+    return [...errores, ...erroresDeCambios(escrita)];
+  }
   const { raiz, registros = [] } = escrita;
   if (!Array.isArray(raiz) || raiz.length < 1 || raiz.length > ARIDAD) return ['la raíz de la época es una décupla de una a diez posiciones'];
   const v = validarPayload(raiz);
@@ -601,6 +611,27 @@ export function erroresDeEpocaEscrita(escrita) {
     const ids = new Set(EPOCAS_POR_ID.keys());
     const tiene = (x) => esMarca(x, ids) || (Array.isArray(x) && x.some(tiene));
     if (raiz.some((x, i) => i !== 6 && tiene(x))) errores.push('una posición marcada con la referencia a una época ({ ref }) en una época que no hereda de ninguna (su 6.1 no lleva «hereda»)');
+  }
+  return [...errores, ...erroresDeCambios(escrita)];
+}
+
+/**
+ * Los errores de forma de los cambios de una época escrita (tramo 4, la época por referencia): cada cambio es una época
+ * hija { raiz, registros }, como el que lleva una propuesta; se funden en orden al cargar (cargarEpocaEscrita).
+ */
+function erroresDeCambios(escrita) {
+  const errores = [];
+  if (escrita.cambios !== undefined) {
+    if (!Array.isArray(escrita.cambios)) errores.push('los cambios de la época son una lista de { raiz, registros }');
+    else {
+      escrita.cambios.forEach((c, k) => {
+        if (!c || typeof c !== 'object' || Array.isArray(c) || c.cambios !== undefined) {
+          errores.push('el cambio ' + (k + 1) + ' no es { raiz, registros }');
+          return;
+        }
+        for (const e of erroresDeEpocaEscrita({ raiz: c.raiz, registros: c.registros ?? [] })) errores.push('el cambio ' + (k + 1) + ': ' + e);
+      });
+    }
   }
   return errores;
 }
@@ -721,6 +752,7 @@ export function cargarEpocaEscrita(escrita, { conocidas = EPOCAS_POR_ID } = {}) 
   const errores = erroresDeEpocaEscrita(escrita);
   const nombre = String(primeraHoja(escrita?.raiz?.[0]) ?? 'época');
   if (errores.length) throw new TypeError(nombre + ': época mal formada: ' + errores.join('; '));
+  if (escrita.base !== undefined || escrita.cambios?.length) return cargarConCambios(escrita, { conocidas, nombre });
   const raiz = congelarCopia(escrita.raiz);
   const id = idDeRegistro(raiz);
   const propios = (escrita.registros ?? []).map((r) => ({ id: idDeRegistro(r), registro: r }));
@@ -762,12 +794,78 @@ export function cargarEpocaEscrita(escrita, { conocidas = EPOCAS_POR_ID } = {}) 
 }
 
 /**
- * La época escrita ({ raiz, registros }) de una época cargada: la que se escribió si la trae (`escrita`), o, para la
- * época 0 que trae el código, su raíz y los registros que alcanza por referencias (reglas, plantillas, modelos y sus
- * piezas, la guía), tal como están en datos/epocas/.
+ * La época escrita con cambios (tramo 4, la época por referencia: agram-equipo/DISENO_TRAMO_4.md §2): carga la de
+ * nacimiento y funde encima cada cambio, en orden, con la misma función con que el libro de arriba los fundió
+ * (src/versiones.js, fundirCambio) y el suelo de la versión anterior (src/suelo.js), sin clase: no es un cambio de este
+ * libro, es su nacimiento (no hay clase ni umbral que mirar). La de nacimiento es { raiz, registros } (la que escribió el
+ * libro de arriba) o, si nació con una época que trae el código, su id: { base, cambios }; ese id se resuelve como lo
+ * resuelve el eje con un génesis que lo nombra (EPOCAS_POR_ID, y si no lo conoce, la 0: también los ids anteriores de la
+ * 0). Un cambio que no se funde o que no respeta el suelo no abre el libro. El resultado es el nacimiento del libro: la
+ * época con los cambios ya fundidos, con el id de la de nacimiento, sin `anterior` (no es una versión del libro: es su
+ * primera), y su `escrita` lleva también `cambios`. { base } sin cambios es la época del código tal cual.
  */
-export function epocaEscritaDe(epoca = EPOCA_0_BTML) {
-  if (epoca?.escrita) return { raiz: epoca.escrita.raiz, registros: [...epoca.escrita.registros] };
+function cargarConCambios(escrita, { conocidas, nombre }) {
+  const porId = escrita.base !== undefined;
+  const nacida = porId ? conocidas.get(escrita.base) ?? EPOCA_0_BTML : cargarEpocaEscrita({ raiz: escrita.raiz, registros: escrita.registros ?? [] }, { conocidas });
+  const lista = escrita.cambios ?? [];
+  if (!lista.length) return nacida;
+  const n = lista.length;
+  let v = nacida;
+  lista.forEach((c, k) => {
+    const cambio = { raiz: c.raiz, registros: c.registros ?? [] };
+    const f = fundirCambio(v, cambio);
+    const motivos = f.motivo ? [f.motivo] : erroresDelSuelo(v, f.version).map((m) => 'el cambio ' + m);
+    if (motivos.length) throw new TypeError((porId ? String(nacida.nombre ?? 'época') : nombre) + ': no abre con el cambio ' + (k + 1) + ' de ' + n + ' («' + String(primeraHoja(c.raiz?.[0])) + '»): ' + motivos.join('; '));
+    v = f.version;
+  });
+  const { anterior: _anterior, nacimiento: _nacimiento, cambio: _cambio, ...epoca } = v;
+  const cambios = Object.freeze(lista.map((c) => Object.freeze({ raiz: congelarCopia(c.raiz), registros: Object.freeze((c.registros ?? []).map(congelarCopia)) })));
+  // Los nombres de la época de nacimiento: los suyos y, si es del código, los ids con que el código la conoce.
+  const alias = [...conocidas].filter(([, e]) => e === nacida).map(([id]) => id);
+  return Object.freeze({
+    ...epoca,
+    escrita: Object.freeze(porId ? { base: escrita.base, cambios } : { raiz: nacida.escrita.raiz, registros: nacida.escrita.registros, cambios }),
+    hereda: nacida.hereda ?? null,
+    base: nacida.base ?? null,
+    ids: Object.freeze([...new Set([...(nacida.ids ?? [nacida.id]), ...alias])]),
+  });
+}
+
+/** ¿Es `epoca` una época que trae el código (la 0, o una registrada por su id sin forma escrita)? */
+const esDelCodigo = (epoca) => !epoca?.escrita && !epoca?.anterior && typeof epoca?.id === 'string' && (epoca === EPOCA_0_BTML || EPOCAS_POR_ID.get(epoca.id) === epoca);
+
+/**
+ * La época escrita de una época cargada, para que otro libro nazca con ella (Eje.genesis({ epoca })):
+ * - una época escrita sin cambios: { raiz, registros }, la que se escribió;
+ * - una versión con cambios en vigor (src/versiones.js) o un nacimiento que los trae (tramo 4, la época por referencia):
+ *   lo que el libro escribió al nacer y sus cambios en vigor en orden, cada uno { raiz, registros }: { raiz, registros,
+ *   cambios } o, si nació con una época que trae el código, { base: su id, cambios } (sin raíz ni registros: el libro
+ *   nuevo la nombra por su id, como el de arriba, y solo escribe los cambios);
+ * - la época 0 que trae el código, sin cambios: su raíz y los registros que alcanza por referencias (reglas, plantillas,
+ *   modelos y sus piezas, la guía), tal como están en datos/epocas/, para escribirla entera en un libro; con
+ *   `{ porReferencia: true }`, { base: su id, cambios: [] }, con la que Eje.genesis la nombra por su id y no escribe
+ *   nada (lo mismo que sin época). `porReferencia` solo cambia este caso (y el de otra época del código, que sin él no
+ *   tiene forma escrita).
+ */
+export function epocaEscritaDe(epoca = EPOCA_0_BTML, { porReferencia = false } = {}) {
+  if (epoca?.anterior) {
+    const cambios = [];
+    let v = epoca;
+    while (v?.anterior) {
+      if (!v.cambio) throw new TypeError('epocaEscritaDe: una versión sin su cambio');
+      cambios.unshift(v.cambio);
+      v = v.anterior;
+    }
+    const nacimiento = esDelCodigo(v) ? { base: v.id } : epocaEscritaDe(v);
+    const { cambios: deNacimiento = [], ...forma } = nacimiento;
+    return { ...forma, cambios: [...deNacimiento, ...cambios] };
+  }
+  if (epoca?.escrita) {
+    const e = epoca.escrita;
+    const cambios = e.cambios ? { cambios: [...e.cambios] } : {};
+    return e.base !== undefined ? { base: e.base, ...cambios } : { raiz: e.raiz, registros: [...e.registros], ...cambios };
+  }
+  if (porReferencia && esDelCodigo(epoca)) return { base: epoca.id, cambios: [] };
   if (epoca !== EPOCA_0_BTML) throw new TypeError('epocaEscritaDe: solo la época 0 o una época cargada de su forma escrita');
   const crudos = new Map([...REGLAS_DE_EPOCA_DATOS, ...PLANTILLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS, ...GUIA_DE_EPOCA_DATOS].map((r) => [r.id, r.registro]));
   const vistos = new Set();
