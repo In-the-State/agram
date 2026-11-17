@@ -1,0 +1,25 @@
+{
+  "permissions": {
+    "defaultMode": "dontAsk",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Edit(./carta/**)",
+      "Edit(./index.html)",
+      "Edit(./retoques/.datos/fondo.md)"
+    ],
+    "deny": [
+      "Bash",
+      "PowerShell",
+      "WebFetch",
+      "WebSearch",
+      "NotebookEdit",
+      "Read(./.git/**)",
+      "Read(./.claude/**)",
+      "Read(./.agram/**)",
+      "Read(./.wrangler/**)",
+      "Read(./be.config.json)"
+    ]
+  }
+}
