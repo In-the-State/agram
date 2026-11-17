@@ -96,6 +96,7 @@ test('a 400 px: el primer paso sin hacer, uno antes y uno después, con «+n» a
   let c = r.cadenas[0];
   assert.deepEqual([c.visibles.map((p) => p.nodo.texto), c.antes, c.despues], [['A1', 'A2'], 0, 2], 'sin nada hecho: el primero y el siguiente');
   assert.match(h, new RegExp(`data-cadena="${c.clave}"[^>]*>\\+2<`));
+  assert.doesNotMatch(h, /el futuro · \d/, 'con las cadenas, la zona del futuro no cuenta tarjetas');
   await hacer(eje, 'close', t.A1.id, {});
   await hacer(eje, 'close', t.A2.id, {});
   ({ r } = await siete(eje, eje.genesisId, MOVIL));
@@ -124,6 +125,7 @@ test('sin tareas, un texto llano; un libro sin la forma sigue con sus franjas; u
   const enMovil = await arbol({ foco: { X: compra.id, pv: 7 } }, eje, 'huesped', MOVIL);
   assert.ok(!enMovil.secuencia.futuro.rejilla, 'en el móvil, el futuro de un libro sin la forma sigue siendo su lista de tarjetas');
   assert.match(html(enMovil), /class="hilo-cartas"/);
+  assert.match(html(enMovil), /el futuro · \d/, 'sin la forma, la cuenta de siempre');
   const nueva = epocaRoadmap();
   const fila = nueva.raiz[8][7][1][0];
   fila[4] = fila[4].map((v) => (v === 'cadenas' ? 'nube' : v));

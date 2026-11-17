@@ -1446,7 +1446,7 @@ function htmlHilo(n) {
   const vacio = cartas.length ? '' : `<li class="hilo-vacio"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</li>`;
   const mas = n.cargarMas ? `<li class="cargar-mas"><button type="button"${nodo('control')} data-cargar-mas="${n.pv}">${escapar(t('cargarMas', { cuantos: n.faltan }))}</button></li>` : '';
   const total = (n.ocupantes?.total ?? 0) + (n.diario?.total ?? 0);
-  const cabeza = `<header class="pv-cabeza hilo-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span><small>${escapar(t(pasado ? 'hiloPasado' : 'hiloFuturo', { n: total }))}</small></header>`;
+  const cabeza = `<header class="pv-cabeza hilo-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.rejilla ? '' : `<small>${escapar(t(pasado ? 'hiloPasado' : 'hiloFuturo', { n: total }))}</small>`}</header>`; // con una forma propia (las cadenas), la cuenta de tarjetas no dice nada
   // Una forma que pinta el hilo (las cadenas del 7 del roadmap) va en lugar de la lista de tarjetas.
   const lista = n.rejilla ? htmlRejilla(n.rejilla, { apilada: true }) : `<ol class="hilo-cartas">${vacio}${cartas.join('')}${mas}</ol>`;
   const clases = ['pv', `pv-${n.pv}`, 'zona-hilo', `zona-${n.hilo}`, `grupo-${n.grupo}`, `lado-${n.lado ?? ''}`, `nivel-${n.nivel}`].join(' ');
