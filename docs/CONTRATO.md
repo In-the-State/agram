@@ -18,7 +18,7 @@ Toda entrada toma el eje y, como última opción, `{ epoca }` (lo que devuelve `
 | los modos y su máximo | `epoch.8.2` |
 | los pasos de tamaño de un PV en Mapped (§4.1) | `epoch.8.6` |
 | la división de cada mundo en pantalla completa (§4.2) | `epoch.8.7` (con las escalas de T de `epoch.1.3`, el calendario de `epoch.7` y los pasos de `epoch.9.8`) |
-| las plantillas de dominio | `epoch.9.2` (0 la cabecera, con el tipo genérico de cada dígito en 9.2.0.1; 9.2.1 «purchase», 9.2.2 «booking») |
+| las plantillas de dominio | `epoch.9.2` (0 la cabecera, con el tipo genérico de cada dígito en 9.2.0.1; 9.2.1 «purchase», 9.2.2 «booking»). **Una posición puede ser un grupo** (Core AGRAM 17-11): una décupla cuyo 0.0 dice lo mismo que la cabecera («domain templates») no es una plantilla sino otra décupla de plantillas (su 0, su cabecera; detrás, hasta nueve plantillas o grupos), hasta tres niveles. Así una época hija añade plantillas de datos sin tapar las de su base (el 9.2 se hereda por posición). El tipo genérico se lee solo en la cabecera de arriba. `plantillas()` da también las de los grupos, con su dirección entera (`9.2.8.1`); una época cuyo 9.2 lleva algo que no es plantilla ni grupo, un grupo sin plantillas o más hondo que tres no carga («época mal formada») |
 | la plantilla «preferences» | `epoch.9.3` (9.3.6 la preferencia `model`, encargo 3c-2b) |
 | los mensajes por idioma y los textos por clave (§8) | `epoch.9.4` (0 la cabecera; 9.4.1 «es»: las reglas, las plantillas, los niveles, los órdenes, los tamaños y los formatos de `legible`; 9.4.2 «en»: solo los formatos canónicos de `legible`) |
 | las representaciones: formatos y tamaños | `epoch.9.5` |

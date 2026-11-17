@@ -180,6 +180,10 @@ conexión nodo-vecino: clave cec70f7c…, relés wss://vecino.ejemplo.invalid ws
 
 El eje es la única fuente: el nodo no lleva en la máquina ninguna lista aparte de conexiones, umbrales ni permisos. No depende del transporte (Nostr, HTTP u otro).
 
+## 6 bis. Sus plantillas de datos, en un grupo (Core AGRAM 17-11)
+
+El 9.2 de una época se hereda por posición, y la 0 ocupa ocho (la cabecera y siete plantillas, «account» la última). La state hereda las ocho tal cual y pone en la 8 un **grupo**: una décupla cuya cabecera dice «domain templates», como la del 9.2, con «node», «piece» y «operation» detrás (`epoch.9.2.8.1` a `9.2.8.3`). La 9 queda libre. Antes «node» ocupaba la 7 y tapaba «account»: en un libro de la clase state no había cuenta del banco (`docs/CONTRATO.md`, la tabla de arriba, «las plantillas de dominio»).
+
 ## 7. Publicar la época en un eje vacío
 
 `node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del titular, que escribe el génesis; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **66 registros** (el génesis, la raíz y sus 64 registros: 22 reglas, 11 de ellas lecturas con nombre, y 42 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: algo más de un minuto. El mayor, la raíz, ocupa unos 76 KB (el tope es de 256 KB). Después, la invitación del titular al operador (§1 bis), las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.

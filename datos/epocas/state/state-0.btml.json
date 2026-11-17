@@ -1,5 +1,5 @@
 {
-  "id": "0fe23dd41a8645c6e3a07735a1c797364b4a673fb4b4e6b690e8a95011ecaf32",
+  "id": "38540840c23107ce405fa4d454672eaef97d4efa07f79e15bd34ff29ff0af7c5",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
   "raiz": [
     [
@@ -156,7 +156,8 @@
         "Core AGRAM 16-11 (encargo «época del nodo»): el camino del 9 del nodo (alta del nodo, autoridad, relé, archivo, contextos, en servicio) es el 9 de la plantilla de datos «node» (epoch.9.2), con una acción por paso (#90); las piezas son cosas del operador con su papel en su 5.1, de una lista cerrada; el criterio «require authorization» y las operaciones de la tabla 3.2 como anuncios del 4.1 que el ejecutor cumple con su recibo (#71.4, con lo que el núcleo ya tiene)",
         "Core AGRAM 16-11 (añadidos del 16-11, puntos 10 a 14): el vigía y el ejecutor son piezas «agent»; el servidor TLS es un «container» con el vencimiento de su certificado en su 7; la carta de cada puerta es un «deployment»; el vigía mide sobre cada pieza («attention has a price» de esta época); el alta de un agente lleva su dotación de T; los umbrales con claves estables; el papel «connection» con tres operaciones con autorización (rehecho el 17-11: la conexión es un invitado)",
         "VG 17-11 (por Core State; agram-equipo/CONTRASTE_V1_V2.md, punto 1 y (b) y (c); encargo «pedir el ancla y la conexión como invitado»): «tienes custodia de quien te ha dado su R»; la R que hace de llave sigue dando P. Pedir el ancla se escribe en el libro del padre («ask for an anchor», el mismo movimiento que «return R (ask for attention)», con el lote del otro libro como datos). La conexión es un invitado con alta en el libro del nodo: la invitación de la época 0 tal cual, por nombre (no hay invitación abierta), al dominio del nodo; permisos = su grupo de atención y su precio; quitar = el veto; sus relés los declara él en su alta («declare my relays»). Lecturas con nombre: «anchors asked» y «current connections». Salen «add a connection», «change a connection's permissions» y «remove a connection»",
-        "Genérica y pública: sirve para cualquier nodo de la clase state; nada real (ni dominios, ni claves, ni máquinas)"
+        "Genérica y pública: sirve para cualquier nodo de la clase state; nada real (ni dominios, ni claves, ni máquinas)",
+        "Core AGRAM 17-11 (la regla del grupo en el 9.2): sus tres plantillas de datos (node, piece, operation) van en un grupo en la posición 8 del 9.2, una décupla cuya cabecera dice «domain templates»; las ocho primeras se heredan de la 0, con «account» en su sitio (antes «node» ocupaba la 7 y la tapaba)"
       ],
       [
         "hereda"
@@ -229,868 +230,878 @@
         {
           "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
         },
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
         [
           [
             [
-              "node"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "0"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "example node",
-              "the name of the node: the 0 of its alta"
+              "domain templates"
             ]
           ],
           [
             [
-              "minutes"
+              [
+                "node"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "0"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "example node",
+                "the name of the node: the 0 of its alta"
+              ]
             ],
             [
-              "number"
+              [
+                "minutes"
+              ],
+              [
+                "number"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "1"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                60,
+                "the minutes of T its operator gave it; its pieces hang from its 1: the authority in 1.2, the relay in 1.3, the other pieces in 1.4, the contexts in 1.5 and the archive in 1.6"
+              ]
             ],
             [
-              "any"
+              [
+                "criteria"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "2"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "all announced movements happened",
+                "its closing template; in its 2.4 its holder writes which templates require authorization and who signs them"
+              ]
             ],
             [
-              "owner"
+              [
+                "who"
+              ],
+              [
+                "identity"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "3"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "operator, node, holder",
+                "3.0 the operator who registered it, 3.1 the identity of the node and 3.2 its holder"
+              ]
             ],
             [
-              "write"
+              [
+                "actions"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "template",
+                "write"
+              ],
+              [
+                "4"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "register the node",
+                "the action that registered it; the operations on the node hang from its 4.1"
+              ]
             ],
             [
-              "1"
+              [
+                "type"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "5"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "node",
+                "the template of the record: node"
+              ]
             ],
             [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              [
+                "origin"
+              ],
+              [
+                "ref"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "read"
+              ],
+              [
+                "6"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "where it comes from: the alta of its operator"
+              ]
             ],
             [
-              "required"
+              [
+                "dates"
+              ],
+              [
+                "instant"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "read"
+              ],
+              [
+                "7"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "its dates: the expiries hang from the 7 of each piece"
+              ]
             ],
             [
-              "arrival"
+              [
+                "measures"
+              ],
+              [
+                "number"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "read"
+              ],
+              [
+                "8"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "what is measured: the measures of its agents hang from the 8 of each piece"
+              ]
             ],
             [
-              60,
-              "the minutes of T its operator gave it; its pieces hang from its 1: the authority in 1.2, the relay in 1.3, the other pieces in 1.4, the contexts in 1.5 and the archive in 1.6"
-            ]
-          ],
-          [
-            [
-              "criteria"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "2"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "all announced movements happened",
-              "its closing template; in its 2.4 its holder writes which templates require authorization and who signs them"
-            ]
-          ],
-          [
-            [
-              "who"
-            ],
-            [
-              "identity"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "3"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "operator, node, holder",
-              "3.0 the operator who registered it, 3.1 the identity of the node and 3.2 its holder"
-            ]
-          ],
-          [
-            [
-              "actions"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "template",
-              "write"
-            ],
-            [
-              "4"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
+              "the path of the node",
               "register the node",
-              "the action that registered it; the operations on the node hang from its 4.1"
-            ]
-          ],
-          [
-            [
-              "type"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "5"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "node",
-              "the template of the record: node"
-            ]
-          ],
-          [
-            [
-              "origin"
-            ],
-            [
-              "ref"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "read"
-            ],
-            [
-              "6"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "where it comes from: the alta of its operator"
-            ]
-          ],
-          [
-            [
-              "dates"
-            ],
-            [
-              "instant"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "read"
-            ],
-            [
-              "7"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "its dates: the expiries hang from the 7 of each piece"
-            ]
-          ],
-          [
-            [
-              "measures"
-            ],
-            [
-              "number"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "read"
-            ],
-            [
-              "8"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "what is measured: the measures of its agents hang from the 8 of each piece"
-            ]
-          ],
-          [
-            "the path of the node",
-            "register the node",
-            "register the authority",
-            "register the relay",
-            "register the archive",
-            "declare a context",
-            "put in service"
-          ]
-        ],
-        [
-          [
-            [
-              "piece"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "0"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "example relay",
-              "the name of the piece: the 0 of its alta"
-            ]
-          ],
-          [
-            [
-              "minutes"
-            ],
-            [
-              "number"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "1"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              180,
-              "the minutes of T its operator gave it (an agent: its endowment)"
-            ]
-          ],
-          [
-            [
-              "criteria"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "2"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "all announced movements happened",
-              "its closing template; an agent, its model in 2.1 and its limits in 2.2; its thresholds hang from its 2.8"
-            ]
-          ],
-          [
-            [
-              "who"
-            ],
-            [
-              "identity"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "3"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "operator, piece",
-              "3.0 the operator, 3.1 the piece"
-            ]
-          ],
-          [
-            [
-              "actions"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "template",
-              "write"
-            ],
-            [
-              "4"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
+              "register the authority",
               "register the relay",
-              "the action that registered it; the operations on the piece hang from its 4.1"
+              "register the archive",
+              "declare a context",
+              "put in service"
             ]
           ],
           [
             [
-              "type"
+              [
+                "piece"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "0"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "example relay",
+                "the name of the piece: the 0 of its alta"
+              ]
             ],
             [
-              "text"
+              [
+                "minutes"
+              ],
+              [
+                "number"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "1"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                180,
+                "the minutes of T its operator gave it (an agent: its endowment)"
+              ]
             ],
             [
-              "any"
+              [
+                "criteria"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "2"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "all announced movements happened",
+                "its closing template; an agent, its model in 2.1 and its limits in 2.2; its thresholds hang from its 2.8"
+              ]
             ],
             [
-              "owner"
+              [
+                "who"
+              ],
+              [
+                "identity"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "3"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "operator, piece",
+                "3.0 the operator, 3.1 the piece"
+              ]
             ],
             [
-              "write"
+              [
+                "actions"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "template",
+                "write"
+              ],
+              [
+                "4"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "register the relay",
+                "the action that registered it; the operations on the piece hang from its 4.1"
+              ]
             ],
             [
-              "5"
+              [
+                "type"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "5"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "piece, relay",
+                "5.0 piece and 5.1 its role: authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger"
+              ]
             ],
             [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              [
+                "data"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "6"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the data of its role: the authority, commit and sha256; a container, digest and image; a deployment, commit, arguments and volume; a context, event and relay; a served ledger, name and genesis"
+              ]
             ],
             [
-              "required"
+              [
+                "expiries"
+              ],
+              [
+                "instant"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "read"
+              ],
+              [
+                "7"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "its expiries hang from its 7: what expires and when"
+              ]
             ],
             [
-              "arrival"
+              [
+                "measures"
+              ],
+              [
+                "number"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "read"
+              ],
+              [
+                "8"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the measures of the agents of its node hang from its 8"
+              ]
             ],
             [
-              "piece, relay",
-              "5.0 piece and 5.1 its role: authority, container, relay, gate, archive, deployment, worker, agent, context, served ledger"
+              [
+                "agent"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "read"
+              ],
+              [
+                "9"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "an agent: «declare agent» hangs from its 9"
+              ]
             ]
           ],
           [
             [
-              "data"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "6"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "the data of its role: the authority, commit and sha256; a container, digest and image; a deployment, commit, arguments and volume; a context, event and relay; a served ledger, name and genesis"
-            ]
-          ],
-          [
-            [
-              "expiries"
-            ],
-            [
-              "instant"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "read"
-            ],
-            [
-              "7"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "its expiries hang from its 7: what expires and when"
-            ]
-          ],
-          [
-            [
-              "measures"
-            ],
-            [
-              "number"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "read"
-            ],
-            [
-              "8"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "the measures of the agents of its node hang from its 8"
-            ]
-          ],
-          [
-            [
-              "agent"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "read"
-            ],
-            [
-              "9"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "an agent: «declare agent» hangs from its 9"
-            ]
-          ]
-        ],
-        [
-          [
-            [
-              "operation"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "0"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "what is asked for, or what was done"
-            ]
-          ],
-          [
-            [
-              "work"
-            ],
-            [
-              "instant"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "1"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "the announced work: 1.0 when and 1.1 how many minutes of its T the executor gives the node; in a receipt, the operation it fulfils"
-            ]
-          ],
-          [
-            [
-              "criteria"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "2"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "all announced movements happened",
-              "its closing template"
-            ]
-          ],
-          [
-            [
-              "who"
-            ],
-            [
-              "identity"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "3"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "operator, executor",
-              "3.0 who asks for it (the operator) and 3.1 who does it (the executor)"
-            ]
-          ],
-          [
-            [
-              "actions"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "template",
-              "write"
-            ],
-            [
-              "4"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "the action; the authorization of who signs and the receipt of the executor hang from its 4"
-            ]
-          ],
-          [
-            [
-              "type"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "5"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "required"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "operation",
-              "the template of the record: operation"
-            ]
-          ],
-          [
-            [
-              "data"
-            ],
-            [
-              "text"
-            ],
-            [
-              "any"
-            ],
-            [
-              "owner"
-            ],
-            [
-              "write"
-            ],
-            [
-              "6"
-            ],
-            [
-              "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
-            ],
-            [
-              "optional"
-            ],
-            [
-              "arrival"
-            ],
-            [
-              "its data: the new version, the commit and sha256 of the core, the key, the url, the permissions; in a receipt, the result and its evidence"
+              [
+                "operation"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "0"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "what is asked for, or what was done"
+              ]
+            ],
+            [
+              [
+                "work"
+              ],
+              [
+                "instant"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "1"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the announced work: 1.0 when and 1.1 how many minutes of its T the executor gives the node; in a receipt, the operation it fulfils"
+              ]
+            ],
+            [
+              [
+                "criteria"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "2"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "all announced movements happened",
+                "its closing template"
+              ]
+            ],
+            [
+              [
+                "who"
+              ],
+              [
+                "identity"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "3"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "operator, executor",
+                "3.0 who asks for it (the operator) and 3.1 who does it (the executor)"
+              ]
+            ],
+            [
+              [
+                "actions"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "template",
+                "write"
+              ],
+              [
+                "4"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "the action; the authorization of who signs and the receipt of the executor hang from its 4"
+              ]
+            ],
+            [
+              [
+                "type"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "5"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "required"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "operation",
+                "the template of the record: operation"
+              ]
+            ],
+            [
+              [
+                "data"
+              ],
+              [
+                "text"
+              ],
+              [
+                "any"
+              ],
+              [
+                "owner"
+              ],
+              [
+                "write"
+              ],
+              [
+                "6"
+              ],
+              [
+                "Core AGRAM 16-11 (#124; encargo «época del nodo»)"
+              ],
+              [
+                "optional"
+              ],
+              [
+                "arrival"
+              ],
+              [
+                "its data: the new version, the commit and sha256 of the core, the key, the url, the permissions; in a receipt, the result and its evidence"
+              ]
             ]
           ]
         ]

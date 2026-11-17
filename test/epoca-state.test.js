@@ -77,6 +77,17 @@ test('hereda de la época 0 definitiva, que no cambia, y la carga el núcleo; sr
   assert.ok(!fuentes.some((s) => /state-0|epocas\/state/.test(s)), 'la época no viaja con el núcleo (#115)');
 });
 
+test('en un libro de la clase state están a la vez «account» de la 0 y las tres plantillas de datos del nodo, estas en un grupo del 9.2 (Core AGRAM 17-11)', async () => {
+  const { eje, ids } = await ejemplo();
+  const donde = Object.fromEntries(contrato.plantillas(eje).map((p) => [p.nombre, p.donde]));
+  assert.equal(donde.account, '9270000000', '«account» en su sitio, el de la 0');
+  assert.deepEqual([donde.node, donde.piece, donde.operation], ['9281000000', '9282000000', '9283000000'], 'las del nodo, en el grupo de la posición 8');
+  for (const n of ['purchase', 'booking', 'guide settings', 'opinion', 'exterior settings', 'format settings']) assert.ok(donde[n], n);
+  assert.equal(epocaState().raiz[9][2][9], undefined, 'la posición 9 del 9.2 queda libre');
+  assert.deepEqual(contrato.plantilla(eje, ids.nodo)[0][0], ['node'], 'el alta del nodo encuentra su plantilla dentro del grupo');
+  assert.equal(contrato.etiqueta(eje, ids.nodo, 0), 'node');
+});
+
 test('todo nombre tiene su traducción al español en llano (sin-traducir limpio) y los textos de la hija mandan sobre los de la base', async () => {
   const epoca = cargarEpocaEscrita(epocaState());
   assert.deepEqual(sinTraducir('es', { epoca }).map((x) => x.clave), []);
