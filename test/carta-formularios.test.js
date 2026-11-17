@@ -10,7 +10,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
-import { arbol, previsualizar, preferencias } from '../carta/carta.js';
+import { arbol, previsualizar, preferencias, enviar, horaDeEscribir, usarReloj } from '../carta/carta.js';
+import { crearCuenta, firmarCon } from '../carta/cuentas.js';
 import { html, htmlGuia, htmlConfiguracion } from '../carta/dom.js';
 import { instalar } from '../carta/gestos.js';
 import { preguntar } from '../carta/guia.js';
@@ -390,4 +391,59 @@ test('la propuesta que sube de escala porque hoy no alcanza la que bastaba lo di
   assert.match(anverso(html(a)), /<small class="aviso" data-sube-de="minuto">hoy no te alcanza la T de minutos: se propone pagar con horas y se quema 1 h en vez de \d+ min<\/small>/);
   // elegida a mano, es su decisión: sin aviso
   assert.doesNotMatch(html(await form('hora')), /data-sube-de/);
+});
+
+// ---------- la hora de escribir: el reloj único de la carta (carta.js horaDeEscribir, usarReloj) ----------
+
+test('reloj de la carta: en una cuenta, dos escrituras llevan la hora de verdad, distinta y nunca por detrás del libro', async () => {
+  const almacen = new Map();
+  globalThis.localStorage = { getItem: (k) => almacen.get(k) ?? null, setItem: (k, v) => almacen.set(k, String(v)), removeItem: (k) => almacen.delete(k) };
+  try {
+    usarReloj('libro');
+    const c = await crearCuenta({ nombre: 'Reloj' });
+    const yo = c.cuenta.identidad;
+    const genesis = Date.parse(c.eje.obtener(c.eje.genesisId).t);
+    const a = await enviar(c.eje, c.cuenta.alta, 'anchor here', { title: 'a', content: 'a' }, yo, firmarCon(c.privada));
+    await new Promise((r) => setTimeout(r, 1100));
+    const antes = Date.now();
+    const b = await enviar(c.eje, c.cuenta.alta, 'anchor here', { title: 'b', content: 'b' }, yo, firmarCon(c.privada));
+    assert.ok(a.asentado && b.asentado, JSON.stringify([a.motivos, b.motivos]));
+    assert.ok(Date.parse(a.asentado.t) >= genesis);
+    assert.ok(Date.parse(b.asentado.t) > Date.parse(a.asentado.t), 'el tiempo avanza: ' + a.asentado.t + ' → ' + b.asentado.t);
+    assert.ok(Date.parse(b.asentado.t) >= antes, 'la hora de ahora');
+    // Con el reloj del aparato atrasado, el mayor t del libro.
+    assert.equal(horaDeEscribir(c.eje, { ahora: 0 }), new Date(c.eje.tMaximo()).toISOString());
+    // Lo que ya pasa t a propósito manda.
+    const fija = new Date(c.eje.tMaximo() + 60_000).toISOString();
+    const d = await enviar(c.eje, c.cuenta.alta, 'anchor here', { title: 'd', content: 'd' }, yo, firmarCon(c.privada), { t: fija });
+    assert.equal(d.asentado?.t, fija);
+  } finally {
+    usarReloj(null);
+    delete globalThis.localStorage;
+  }
+});
+
+test('reloj de la carta: en un ejemplo, sí, no y sí otra vez del dueño entran (un segundo más cada vez, en su día); sin modo, el defecto del núcleo', async () => {
+  try {
+    usarReloj('ejemplo');
+    const { eje, menu } = await ejemploCompra();
+    const dueno = menu.autor;
+    const dia = eje.obtener(eje.genesisId).t.slice(0, 10);
+    const respuestas = [];
+    for (const answer of ['yes', 'no', 'yes']) {
+      const r = await enviar(eje, menu.id, 'let P come down here', { whom: 'huesped', answer }, dueno);
+      assert.ok(r.asentado, answer + ': ' + JSON.stringify(r.motivos));
+      respuestas.push(r.asentado);
+    }
+    assert.equal(new Set(respuestas.map((r) => r.id)).size, 3, 'tres registros distintos: ningún «evento ya registrado»');
+    for (let k = 1; k < respuestas.length; k++) assert.equal(Date.parse(respuestas[k].t) - Date.parse(respuestas[k - 1].t), 1000, 'un segundo más');
+    assert.ok(respuestas.every((r) => r.t.startsWith(dia)), 'el ejemplo se queda en su día');
+    // Sin modo (las pruebas, el núcleo): el mayor t del libro, como siempre.
+    usarReloj(null);
+    assert.equal(horaDeEscribir(eje), undefined);
+    const r = await enviar(eje, menu.id, 'let P come down here', { whom: 'casa', answer: 'yes' }, dueno);
+    assert.equal(r.asentado?.t, new Date(eje.tMaximo()).toISOString().replace('.000Z', 'Z'));
+  } finally {
+    usarReloj(null);
+  }
 });

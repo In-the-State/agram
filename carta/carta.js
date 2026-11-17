@@ -1126,13 +1126,49 @@ export function motivosEnLlano(motivos, eje, opciones = {}) {
   return (motivos ?? []).map((m) => ({ ...m, mensaje: sinNombreInterno(m?.mensaje, eje, opciones) }));
 }
 
+// ---------- la hora de escribir: el reloj único de la carta ----------
+//
+// Sin `t`, el núcleo fecha la candidata con el mayor t del libro (acciones.js relojDe): así lo quieren sus pruebas, pero en
+// la carta el tiempo no avanzaba nunca (todo lo escrito llevaba la hora del génesis). Todas las escrituras de la carta
+// piden aquí su hora: enviar y previsualizar la ponen solas si nadie la da; la app la pasa a lo que escribe por otro
+// camino (escribirDesde, autoejecutar, la opinión anclada). Lo que ya pasa `t` a propósito (la cola con su t, crear una
+// cuenta, una prueba) manda.
+
+/** Cómo da la hora la carta: 'libro' (un libro de verdad), 'ejemplo' o null (sin decir: el defecto del núcleo, el de las pruebas). */
+let modoDelReloj = null;
+
+/** La app lo dice al cambiar de libro: 'libro' (una cuenta, sus libros) o 'ejemplo'. null vuelve al defecto del núcleo. */
+export function usarReloj(modo) {
+  modoDelReloj = modo === 'libro' || modo === 'ejemplo' ? modo : null;
+}
+
+/**
+ * La hora con que la carta escribe en `eje` (ISO) o undefined (sin modo: el núcleo pone la suya). Un libro de verdad, la
+ * de ahora y nunca por detrás del mayor t del libro (con el reloj del aparato atrasado, ese). Un ejemplo se queda en su
+ * día: un segundo después del mayor t del libro, para que dos registros iguales no choquen («evento ya registrado»).
+ */
+export function horaDeEscribir(eje, { ahora = Date.now(), modo = modoDelReloj } = {}) {
+  if (!modo) return undefined;
+  const mayor = eje?.tMaximo?.();
+  const base = Number.isFinite(mayor) ? mayor : null;
+  if (modo === 'ejemplo') return new Date((base ?? ahora) + 1000).toISOString().replace('.000Z', 'Z');
+  return new Date(Math.max(ahora, base ?? ahora)).toISOString();
+}
+
+/** Las opciones con la hora de escribir, si no la traen ya. */
+const conHora = (eje, opciones) => {
+  if (opciones?.t) return opciones;
+  const t = horaDeEscribir(eje);
+  return t ? { ...opciones, t } : opciones;
+};
+
 /**
  * Lanza una acción: construye, firma con `firmar` (una función async (evento) → evento firmado, o nada: el núcleo
  * valida la candidata ya firmada) y valida con acciones.transaccion; si pasa y hay evento, lo asienta con eje.anadir. Devuelve lo que da transaccion
  * más `asentado` (el evento guardado) o, si el eje lo rechaza al asentar, el motivo tal cual.
  */
 export async function enviar(eje, X, accion, valores, yo, firmar, opciones = {}) {
-  const r = await acciones.transaccion(eje, accion, { X, ...valores }, yo, { ...opciones, ...(typeof firmar === 'function' ? { firmar } : {}) });
+  const r = await acciones.transaccion(eje, accion, { X, ...valores }, yo, { ...conHora(eje, opciones), ...(typeof firmar === 'function' ? { firmar } : {}) });
   if (!r.ok || !r.evento) return { ...r, asentado: null };
   try {
     const asentado = await eje.anadir(r.evento); // transaccion ya lo firmó con `firmar`
@@ -1197,7 +1233,7 @@ export async function antesDelMensaje(eje, X, accion, valores, yo, opciones = {}
  * y serie, en el idioma de yo).
  */
 export async function previsualizar(eje, X, accion, valores, yo, firmar, opciones = {}) {
-  const r = await acciones.transaccion(eje, accion, { X, ...valores }, yo, { ...opciones, ...(typeof firmar === 'function' ? { firmar } : {}) });
+  const r = await acciones.transaccion(eje, accion, { X, ...valores }, yo, { ...conHora(eje, opciones), ...(typeof firmar === 'function' ? { firmar } : {}) });
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
   const quien = (x) => (x === null || x === undefined ? t('nadie') : legibleDe(eje, x, ['identity'], o).texto);
   const movimientos = (r.evento?.movimientos ?? []).map((m) => `${quien(m.de)} → ${quien(m.a)} · ${legibleDe(eje, { serie: claveDeSerie(m), cantidad: m.cantidad }, null, o).texto}${m.estado ? ' · ' + m.estado + (m.salida ? ' ' + m.salida : '') : ''}`);

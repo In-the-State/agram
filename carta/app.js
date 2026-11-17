@@ -23,7 +23,7 @@
 // «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, antesDelMensaje, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida } from './dom.js';
 import { instalar } from './gestos.js';
@@ -866,6 +866,9 @@ function irA(X, pv = 0) {
   pintar();
 }
 
+/** La hora de escribir en el libro abierto (carta.js horaDeEscribir, el reloj único), como opción { t } (vacía sin modo). */
+const horaDe = () => { const t = horaDeEscribir(estado.eje); return t ? { t } : {}; };
+
 /** Un eje nuevo en pantalla (una cuenta o un ejemplo): se olvida lo visto y lo abierto. */
 function cambiarDeEje(eje, identidad) {
   guardarLibroLocal();
@@ -1002,6 +1005,7 @@ async function ejeDesdeElLibro(r) {
  */
 function entrarCon({ cuenta, eje, privada, soloLeer }) {
   cambiarDeEje(eje, cuenta.identidad);
+  usarReloj('libro');
   estado.cuenta = { ...cuenta, privada };
   estado.guardian = { sesionCerrada: false, pendiente: null, abriendo: false, criterios: null, noAbrio: false };
   if (cuenta.guardian === true) {
@@ -1017,6 +1021,7 @@ function entrarCon({ cuenta, eje, privada, soloLeer }) {
 
 /** Entra en el ejemplo: el eje guardado en este navegador (si sus claves son las de esta sesión) o uno nuevo. */
 async function entrarEnEjemplo() {
+  usarReloj('ejemplo');
   estado.claves = await cargarClaves();
   let cargado = await persistencia.cargarLocal(CLAVE_EJE);
   if (cargado && estado.claves.casa && JSON.stringify(cargado.clave('casa')) !== JSON.stringify(estado.claves.casa.publica)) cargado = null; // claves de otra sesión
@@ -1121,7 +1126,7 @@ const valoresDe = (form) => Object.fromEntries([...form.querySelectorAll('input[
 async function escribirPreferencias(valores) {
   const p = preferencias(estado.eje, estado.identidad, valores);
   if (!p) throw new Error(t('sinAlta'));
-  await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: p.sobre, en: p.en, payload: p.payload }, privadaDe(estado.identidad));
+  await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: p.sobre, en: p.en, payload: p.payload, ...horaDe() }, privadaDe(estado.identidad));
 }
 
 /**
@@ -1836,10 +1841,10 @@ const manejadores = {
     try {
       await escribirPreferencias(valores);
       const ajustesGuia = guia.ajustesEditables(estado.eje, estado.identidad, valoresGuia);
-      if (ajustesGuia?.cambiado) await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: ajustesGuia.sobre, en: ajustesGuia.en, payload: ajustesGuia.payload }, privadaDe(estado.identidad));
+      if (ajustesGuia?.cambiado) await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: ajustesGuia.sobre, en: ajustesGuia.en, payload: ajustesGuia.payload, ...horaDe() }, privadaDe(estado.identidad));
       // Los ajustes del exterior (relé, archivos, sello): otro registro más en el 9 del alta, con la misma forma que el de la guía.
       const ajustesExterior = guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, valoresExterior);
-      if (ajustesExterior?.cambiado) await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: ajustesExterior.sobre, en: ajustesExterior.en, payload: ajustesExterior.payload }, privadaDe(estado.identidad));
+      if (ajustesExterior?.cambiado) await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: ajustesExterior.sobre, en: ajustesExterior.en, payload: ajustesExterior.payload, ...horaDe() }, privadaDe(estado.identidad));
       if (valoresSegundo.family) {
         const familias = valoresSegundo.family.split(/[\s,]+/).filter(Boolean);
         const r = await enviar(estado.eje, estado.eje.alta(estado.identidad).id, 'second factor', { family: familias.length === 1 ? familias[0] : familias, amount: Number(valoresSegundo.amount || 0), ...(valoresSegundo.holder ? { holder: valoresSegundo.holder } : {}) }, estado.identidad, firmarCon(estado.identidad));
@@ -1860,7 +1865,7 @@ const manejadores = {
     try {
       // Desde el aro de un hueco bajado por dígitos, la dirección entera (estado.aro.en); si no, la posición pv de X.
       const en = nuevo && estado.aro?.X === X && estado.aro?.nuevo === pv && Array.isArray(estado.aro.en) ? estado.aro.en : [pv];
-      const ev = await salida.escribirDesde(estado.eje, { modo: 'pointed', autor: estado.identidad, sobre: X, en: direccion(en), payload: salida.desdePointed(estado.eje, texto) }, privadaDe(estado.identidad));
+      const ev = await salida.escribirDesde(estado.eje, { modo: 'pointed', autor: estado.identidad, sobre: X, en: direccion(en), payload: salida.desdePointed(estado.eje, texto), ...horaDe() }, privadaDe(estado.identidad));
       trasEscribir();
       // Lo escrito desde el centro del aro en edición: hecho, se cierra. Desde el aro de un hueco (issue #22): el elemento
       // nuevo existe y se abre su aro (en su 2, «adjuntar un archivo»), en el mismo sitio.
@@ -1965,7 +1970,7 @@ const manejadores = {
     try {
       const r = registroDeFormato(estado.eje, estado.identidad, { [clave]: valor });
       if (!r) throw new Error(t('sinAlta'));
-      await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: r.sobre, en: r.en, payload: r.payload }, privadaDe(estado.identidad));
+      await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: r.sobre, en: r.en, payload: r.payload, ...horaDe() }, privadaDe(estado.identidad));
       guardar();
       estado.aviso = '';
     } catch (e) {
@@ -2031,7 +2036,7 @@ const manejadores = {
       return;
     }
     try {
-      const r = await acciones.autoejecutar(estado.eje, X, estado.identidad, firmarCon(estado.identidad));
+      const r = await acciones.autoejecutar(estado.eje, X, estado.identidad, firmarCon(estado.identidad), horaDe());
       trasEscribir();
       const hechos = r.hechos.map((h) => nombreDeAccion(h.paso.hacer.plantilla)).join(', ');
       const delGuardian = r.parado ? errorDelGuardian() : null; // parado porque el guardián no firmó: dicho en llano
@@ -2747,7 +2752,7 @@ async function arrancar() {
     // Con «opinions anchor» (los ajustes de la guía), cada opinión se escribe además como un registro anclado en el proyecto.
     async alGuardar(opinion) {
       void retoques()?.opinion(opinion); // con el servidor de retoques, también a retoques/.datos/opiniones.jsonl
-      const r = await externa.anclarOpinion(estado.eje, estado.identidad, opinion, { firmar: firmarCon(estado.identidad) });
+      const r = await externa.anclarOpinion(estado.eje, estado.identidad, opinion, { firmar: firmarCon(estado.identidad), ...horaDe() });
       if (r.ok) trasEscribir();
       return r;
     },
