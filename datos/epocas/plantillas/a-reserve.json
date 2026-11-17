@@ -16,7 +16,7 @@
     [
       ["modes"],
       ["text"],
-      ["any"],
+      ["=not (\"pay\" in (payload(ev)).1.0) or count ((payload(ev)).1.1 where it2 != \"-\") > 0"],
       ["me"],
       ["payload"],
       ["1.0"],
@@ -25,7 +25,7 @@
       [2],
       [
         "return",
-        "how it may spend, one or several of: «return» (what it spends is mine again, available), «burn» (it is burned) and «pay» (it goes to someone of the list of payees)"
+        "how it may spend, one or several of: «return» (what it spends is mine again, available), «burn» (it is burned) and «pay» (it goes to someone of the list of payees, which «pay» needs)"
       ]
     ],
     [

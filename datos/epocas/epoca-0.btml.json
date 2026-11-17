@@ -214,8 +214,8 @@
     {"ref":"35f4cbcb9b7f6375804d7e3aad052ea8d67b7e16366d7e203174bbfffdf07e74"},
     {"ref":"c0826e96b1673d4242442331577fe4729cde38883b0d66b199c1830cf19facbe"},
     {"ref":"251a9578f570b8e6bf6e0f80d5d67ad24c6af39f46d8cb3376f338e893d0d1cb"},
-    {"ref":"099363780e531b5004bb12249ba49f7019aa0150836c69c64e17b7d15512eaf6"},
-    {"ref":"d6364c6134738953dcd1c3145d92fd468b06f8d053ba12e55f5622dc82526742"}
+    {"ref":"142339675bc35e5941d4f9f98052a61ee1efd0b618164f95ae7b44ea5db2173e"},
+    {"ref":"a9eb10c61b789965b13c39ec004f69b513e504c55c147ea1fffdf1583439801c"}
   ],
   [
     [
@@ -2936,7 +2936,7 @@
           "template a reserve param spender label: quién gasta",
           "template a reserve param spender help: quién gasta: la identidad que puede sacar lo que bloqueo con esta reserva como salida, de los modos que dice (una persona o una cosa con clave, también un agente)",
           "template a reserve param modes label: modos",
-          "template a reserve param modes help: cómo puede gastar, uno o varios de: «return» (lo que gasta vuelve a ser mío, disponible), «burn» (se quema) y «pay» (va a alguien de la lista de a quién pagar)",
+          "template a reserve param modes help: cómo puede gastar, uno o varios de: «return» (lo que gasta vuelve a ser mío, disponible), «burn» (se quema) y «pay» (va a alguien de la lista de a quién pagar, que «pay» pide)",
           "template a reserve param payees label: a quién pagar",
           "template a reserve param payees help: con «pay», a quién puede pagar (identidades; nunca a quien gasta); «-» si no hay nadie y la reserva dice hasta cuándo",
           "template a reserve param until label: hasta cuándo",
@@ -3763,7 +3763,7 @@
         {"ref":"9e0b82e0b2aa0466e27698672ea196ec67b3654e7638f89f6dbd9485901c7e56"},
         {"ref":"f2a4884da732c3f554ca8ee520ea4d8b2ec3245949dc0f7e9c5983ad647d18d6"},
         {"ref":"b62f6e646a382a7cc9418c53f61b1e285e2afdd3e1b2950dc33a629988e8dc10"},
-        {"ref":"a224c061d0a3d120f97abe3ddc26fed29a999879a70819d68e8aba7a8df62316"},
+        {"ref":"2c94845811d4c7975b10291227873fa5d27973c52de313e9476e2867588908f3"},
         {"ref":"a04062120355d44e6573cd05056b1a2c239cf923141fe676fa9578352624b14d"},
         {"ref":"5602698c40cb49b6e1691ea8b8541a1f3b6f08c1c6df228d2c6d87d34739e4ba"},
         {"ref":"e1066e2c36dfdafddde3392ab45623a5265c5f6062f07bce718b323534219ed9"},

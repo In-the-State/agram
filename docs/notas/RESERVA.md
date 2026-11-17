@@ -42,9 +42,9 @@ La fórmula sale de `datos/epocas/reserva.mjs` (`excepcionDeLaReserva`).
 Lo que sale de una reserva por mano de quien gasta sale **del modo que la reserva dice**:
 
 - **liberar**, si dice `return`; o si dice `burn` y el registro quema de esa serie y de ese titular **al menos todo lo que libera de él** (más estricto que lo justo: mezclar en un registro una liberación `return` y una `burn` de la misma serie y el mismo titular pide quemar las dos);
-- **transferir**, si dice `pay`, hacia alguien de su 1.1 que **no es quien escribe**; llega bloqueado con la misma salida (el núcleo: lo transferido con salida llega bloqueado con ella, salvo que la salida sea quien lo recibe) y lo suelta quien lo recibe, que es suyo;
+- **transferir**, si dice `pay`, hacia alguien de su 1.1 que **no es quien escribe** ni se llama `-` (revisión de seguridad, hallazgo 2: `-` es el relleno de un hueco, nunca un destinatario; la plantilla, además, no deja `pay` sin lista de a quién pagar); llega bloqueado con la misma salida (el núcleo: lo transferido con salida llega bloqueado con ella, salvo que la salida sea quien lo recibe) y lo suelta quien lo recibe, que es suyo;
 - **quemar**, cubierto por lo que libera, a tiempo, de reservas con `burn` que nombran a quien escribe;
-- si dice **hasta cuándo**, el instante del registro (su `t`) no lo pasa;
+- si dice **hasta cuándo**, ni el instante del registro (su `t`, que elige quien escribe) ni el reloj del libro antes de él (`before.6.0`, el mayor instante ya visto, como «at most a year ahead») lo pasan: antedatar no sirve (hallazgo 3);
 - **nada va hacia quien gasta**.
 
 Va al final de la cadena del 8 y en **7.9.6 junto con la plantilla que lee**, «a reserve». Motivo: sin la guarda, quien gasta sacaría lo reservado de un modo que la reserva no dice; sin la plantilla en el suelo, un cambio podría redefinir qué es una reserva (su 1.0, su 3.1) y abrir la excepción. La fórmula sale de `datos/epocas/reserva.mjs` (`formulaDeLaGuarda`).

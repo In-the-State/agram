@@ -99,7 +99,7 @@ async function casaDeP({ give } = {}) {
 const SIN_SI = /P comes down to a thing of another with its owner's yes/;
 
 /** Quién tiene sí sobre una cosa (it = la cosa): los «let P come down here» vigentes de su dueño, el último por identidad, que dicen «yes». */
-const QUIEN_TIENE_SI = '(down it) where "let P come down here" in (payload(it2)).4 and first it2.3 = first it.3 and it2 = last ((down it) where "let P come down here" in (payload(it3)).4 and first it3.3 = first it.3 and first (payload(it3)).3.1 = first (payload(it2)).3.1) and "yes" in (payload(it2)).1.0 and not ("no" in (payload(it2)).1.0)';
+const QUIEN_TIENE_SI = '(down it) where nth 1 it2.6.5 = "2100000000" and first it2.3 = first it.3 and "let P come down here" in (payload(it2)).4 and it2 = last ((down it) where nth 1 it3.6.5 = "2100000000" and first it3.3 = first it.3 and "let P come down here" in (payload(it3)).4 and first (payload(it3)).3.1 = first (payload(it2)).3.1) and "yes" in (payload(it2)).1.0 and not ("no" in (payload(it2)).1.0)';
 
 // ================================ HALLAZGOS ================================
 
