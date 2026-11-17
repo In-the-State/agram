@@ -266,3 +266,41 @@ test('volcar como personas: lo que no le cabe a una casa en su día queda para o
   const dos = await volcar(eje, muchas, { claves, correspondencia: PERSONAS, t: DIA(2), simular: true });
   assert.ok(dos.escritos.length > 0, 'otro día sigue');
 });
+
+test('volcar como personas (seguridad): una invitación pendiente de otro no se reutiliza: con otra clave, el nombre queda reservado y sus filas a noPuede; con la misma, la dueña escribe la suya; la ajena sale en avisos', async () => {
+  const { eje, claves } = await preparar();
+  const vg = await generarClaves();
+  await eje.aceptar(await eje.invitar({ autor: 'duena', invitado: 'vg', clave: vg.publica, da: [], t: DIA(1, 8), privada: claves.duena.privada }), vg, { t: DIA(1, 8) });
+  // Alfa: vg la invita con otra clave. El núcleo ata la clave al nombre desde la invitación: la dueña no puede invitarla.
+  const otra = await generarClaves();
+  const ajenaAlfa = await eje.invitar({ autor: 'vg', invitado: 'Alfa', clave: otra.publica, da: [], t: DIA(1, 8), privada: vg.privada });
+  // Beta: vg la invita con la clave de Beta. Tampoco se reutiliza (no es de la dueña): la dueña escribe la suya.
+  const ajenaBeta = await eje.invitar({ autor: 'vg', invitado: 'Beta', clave: claves.cosas.Beta.publica, da: [], t: DIA(1, 8), privada: vg.privada });
+  const inf = await volcar(eje, TABLA, { claves, correspondencia: PERSONAS, t: DIA(1, 9) });
+  for (const c of ['Alfa', 'Beta']) assert.ok(inf.avisos.includes('«' + c + '»: hay una invitación de vg para ese nombre que el volcado no usa'), JSON.stringify(inf.avisos));
+  assert.ok(inf.noPuede.filter((x) => x.paso.cosa === 'Alfa').every((x) => x.motivo === 'el nombre Alfa ya lo reserva otra invitación, con otra clave'));
+  assert.ok(!eje.alta('Alfa'), 'Alfa no acepta la invitación ajena');
+  const beta = eje.obtener(eje.alta('Beta').id);
+  assert.notEqual(beta.sobre, ajenaBeta.id);
+  assert.equal(eje.obtener(beta.sobre).autor, 'duena', 'Beta acepta la de la dueña');
+  assert.ok(inf.escritos.some((e) => e.fila === 'b1'));
+  assert.ok(eje.obtener(ajenaAlfa.id));
+});
+
+test('volcar como personas (seguridad): una persona ajena con el nombre de una casa no se toma por la casa; sus filas a noPuede y el resto sigue', async () => {
+  const { eje, claves } = await preparar();
+  const vg = await generarClaves();
+  await eje.aceptar(await eje.invitar({ autor: 'duena', invitado: 'vg', clave: vg.publica, da: [], t: DIA(1, 8), privada: claves.duena.privada }), vg, { t: DIA(1, 8) });
+  const otra = await generarClaves();
+  await eje.aceptar(await eje.invitar({ autor: 'vg', invitado: 'Alfa', clave: otra.publica, da: [], t: DIA(1, 8), privada: vg.privada }), otra, { t: DIA(1, 8) });
+  // Con la clave de Alfa conocida: la persona «Alfa» declara otra.
+  const inf = await volcar(eje, TABLA, { claves, correspondencia: PERSONAS, t: DIA(1, 9) });
+  const deAlfa = inf.noPuede.filter((x) => x.paso.cosa === 'Alfa');
+  assert.equal(deAlfa.length, TABLA.filter((f) => f.equipo === 'Alfa').length);
+  assert.ok(deAlfa.every((x) => x.motivo === 'el nombre Alfa ya es de otra persona en este libro'));
+  assert.ok(!inf.escritos.some((e) => e.cosa === 'Alfa'), 'nada se cuelga de ella');
+  assert.ok(inf.escritos.some((e) => e.cosa === 'Beta' && e.fila === 'b1'), 'el resto sigue');
+  // Sin clave conocida de Alfa (simulación): la invitó vg, ni la dueña ni el autor del génesis.
+  const sim = await volcar(eje, TABLA, { claves: { duena: claves.duena, cosas: {} }, correspondencia: PERSONAS, t: DIA(1, 10), simular: true });
+  assert.ok(sim.noPuede.some((x) => x.paso.cosa === 'Alfa' && x.motivo === 'el nombre Alfa ya es de otra persona en este libro'));
+});

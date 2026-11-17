@@ -9,9 +9,11 @@
 //     "personas" (VG 17-11)               una PERSONA invitada: la dueña la invita (eje.invitar, sin dar nada: lo mínimo
 //                                         que admite la época) y la casa acepta con su clave (eje.aceptar: su alta). Gasta
 //                                         su propio T del día: no hay pasos «dar»; lo que no le quepa hoy queda para otro
-//                                         día. Una casa que ya tiene alta de persona vale, la haya invitado quien la haya
-//                                         invitado (y si hay una invitación suya sin aceptar, la acepta); un nombre con
-//                                         alta de cosa no se vuelca. Sin la clave de la dueña no se invita (paraLaDuena:
+//                                         día. Una persona con el nombre de una casa solo es esa casa si declara su clave
+//                                         (cuando se conoce) o, sin ella, si la invitó la dueña o el autor del génesis; si
+//                                         no, sus filas van a noPuede. Una invitación pendiente solo se acepta si es de la
+//                                         dueña, con la clave de la casa, vigente, del grupo 0 y del dominio de la dueña;
+//                                         la de otro sale en avisos. Un nombre con alta de cosa no se vuelca. Sin la clave de la dueña no se invita (paraLaDuena:
 //                                         «invitar a X»); sin la clave de una casa, sus filas no se escriben (noPuede)
 //   cada proyecto (otra columna)          un registro de la cosa sobre su alta («anchor here»; de una persona, su
 //                                         aceptación): de él cuelgan sus tareas
@@ -110,8 +112,9 @@ export function leerLibro(eje, duena, corr) {
   const proyectos = new Map();
   const tareas = new Map();
   if (corr.como === 'personas') {
-    // Las casas son personas del libro (escribieron su propia alta), las haya invitado quien las haya invitado.
-    for (const id of eje.identidades()) if (eje.esPersona(id) && eje.alta(id)) cosas.set(id, eje.alta(id).id);
+    // Las casas son personas del libro (escribieron su propia alta); con `corr.casaValida` (volcar la pone), solo las que
+    // son de verdad esa casa: su clave, o invitadas por la dueña o por el autor del génesis.
+    for (const id of eje.identidades()) if (eje.esPersona(id) && eje.alta(id) && (!corr.casaValida || corr.casaValida(id))) cosas.set(id, eje.alta(id).id);
   } else {
     for (const id of eje.orden) {
       const ev = eje.obtener(id);
@@ -173,6 +176,7 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
   const pasos = [];
   const avisos = [];
   const sinCambios = [];
+  const ajenas = []; // modo personas: filas cuya casa es el nombre de otra persona del libro
   const vistos = new Set();
   const cosasNuevas = new Set();
   const proyectosNuevos = new Set();
@@ -208,6 +212,7 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
       continue;
     }
     if (!libro.cosas.has(cosa) && !cosasNuevas.has(cosa)) {
+      if (eje.alta(cosa) && corr.como === 'personas' && eje.esPersona(cosa)) { ajenas.push({ fila: fid, cosa }); continue; }
       if (eje.alta(cosa)) {
         avisos.push(corr.como === 'personas'
           ? `fila ${fid}: «${cosa}» ya tiene alta como cosa y no como persona; no se vuelca`
@@ -227,7 +232,7 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
   }
   const desaparecen = [...libro.tareas.keys()].filter((f) => !vistos.has(f));
   for (const f of desaparecen) avisos.push(`fila ${f}: ya no está en la tabla; no se borra`);
-  return { pasos, avisos, sinCambios, desaparecen, libro };
+  return { pasos, avisos, sinCambios, desaparecen, libro, ajenas };
 }
 
 // ---------- escribir un plan ----------
@@ -266,7 +271,7 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, dar = ne
     if (paso.tipo === 'alta' && corr.como === 'personas') {
       // Una persona: la invitación (la de la dueña, o una que ya esté sin aceptar) y su aceptación, firmada con su clave.
       try {
-        let inv = invitacionPendiente(eje, paso.cosa);
+        let inv = invitacionPendiente(eje, paso.cosa, { duena, clave: claves.cosas?.[paso.cosa]?.publica, t });
         if (!inv) {
           inv = await eje.invitar({ autor: duena, invitado: paso.cosa, clave: claves.cosas?.[paso.cosa]?.publica, da: [], t, privada: claves.duena?.privada });
           escritos.push({ paso: { ...paso, tipo: 'invitacion' }, ev: inv });
@@ -329,18 +334,28 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, dar = ne
   return { escritos, fallos, discrepancias };
 }
 
+/** Las invitaciones sin aceptar que nombran a `quien` (su 3.1), de quien sean, por llegada. */
+function invitacionesA(eje, quien) {
+  if (eje.alta(quien)) return [];
+  return eje.orden.map((id) => eje.obtener(id)).filter((ev) => hojas(ev.payload?.[0]).includes('invitation') && hojas(ev.payload?.[3]?.[1])[0] === quien);
+}
+
 /**
- * Una invitación sin aceptar que nombra a `quien` (su 3.1), de quien sea (en la reescritura la escribe VG desde la
- * carta), o null: la última por llegada.
+ * La invitación sin aceptar para `quien` que el volcado puede usar, o null (la última por llegada): la escribió la
+ * dueña, declara la clave de la casa (`clave`, si se conoce), no ha caducado en `t` y su grupo (0) y su dominio (el
+ * alta de la dueña) son los que el volcado pondría. Una de otro, o distinta, no se toca: la dueña escribe otra.
  */
-function invitacionPendiente(eje, quien) {
-  if (eje.alta(quien)) return null;
-  let fuera = null;
-  for (const id of eje.orden) {
-    const ev = eje.obtener(id);
-    if (hojas(ev.payload?.[0]).includes('invitation') && hojas(ev.payload?.[3]?.[1])[0] === quien) fuera = ev;
-  }
-  return fuera;
+function invitacionPendiente(eje, quien, { duena, clave = null, t = null }) {
+  const dominio = eje.alta(duena)?.id;
+  const vale = (ev) => {
+    if (ev.autor !== duena) return false;
+    if (clave && (ev.contexto?.claves?.[quien] ?? null) !== clave) return false;
+    const hasta = hojas(ev.payload?.[7])[0];
+    if (hasta !== undefined && hasta !== 'sin plazo' && !(t && Date.parse(hasta) > Date.parse(t))) return false;
+    if (hojas(ev.payload?.[8])[0] !== 0) return false;
+    return (ev.payload?.[5]?.[0]?.ref ?? null) === dominio;
+  };
+  return invitacionesA(eje, quien).filter(vale).at(-1) ?? null;
 }
 
 /** El T que mueve un registro por quien lo mueve: { quema: { quien: { escala: n } }, da: { quien: { escala: n } } } (lo anunciado no mueve nada). */
@@ -486,16 +501,31 @@ async function volcarPersonas(eje, tabla, corr, opciones) {
   const duena = opciones.duena ?? eje.obtener(eje.genesisId).autor;
   const claves = opciones.claves ?? {};
   const t0 = opciones.t ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const plan = planear(eje, tabla, { duena, corr, filas: opciones.filas ? new Set([...opciones.filas].map(String)) : null });
+  // Una persona con el nombre de una casa solo es esa casa si declara su clave (cuando se conoce) o, sin clave conocida,
+  // si la invitó la dueña o el autor del génesis. Si no, nada se cuelga de ella.
+  const autorDelGenesis = eje.obtener(eje.genesisId)?.autor;
+  const casaValida = (id) => {
+    const k = claves.cosas?.[id]?.publica;
+    if (k) return eje.clave(id) === k;
+    const inv = eje.obtener(eje.alta(id)?.sobre);
+    return Boolean(inv) && (inv.autor === duena || inv.autor === autorDelGenesis);
+  };
+  const corrV = { ...corr, casaValida };
+  const plan = planear(eje, tabla, { duena, corr: corrV, filas: opciones.filas ? new Set([...opciones.filas].map(String)) : null });
   const avisos = [...plan.avisos];
   const paraLaDuena = [];
-  const noPuede = [];
+  const noPuede = plan.ajenas.map(({ fila, cosa }) => ({ paso: { tipo: 'fila', quien: cosa, cosa, fila }, motivo: 'el nombre ' + cosa + ' ya es de otra persona en este libro' }));
   const puedeInvitar = !eje.exigirFirmas || Boolean(claves.duena?.privada);
   const fuera = new Map(); // casa → el motivo por el que sus pasos no se escriben
   for (const casa of new Set(plan.pasos.map((p) => p.cosa))) {
     const nueva = plan.pasos.some((p) => p.cosa === casa && p.tipo === 'alta');
+    if (nueva) {
+      const usable = invitacionPendiente(eje, casa, { duena, clave: claves.cosas?.[casa]?.publica, t: t0 });
+      for (const inv of invitacionesA(eje, casa)) if (inv !== usable) avisos.push(`«${casa}»: hay una invitación de ${inv.autor} para ese nombre que el volcado no usa`);
+    }
     if (eje.exigirFirmas && !claves.cosas?.[casa]?.privada) fuera.set(casa, 'sin la clave de ' + casa);
-    else if (nueva && !puedeInvitar && !invitacionPendiente(eje, casa)) {
+    else if (nueva && claves.cosas?.[casa]?.publica && eje.clave(casa) && eje.clave(casa) !== claves.cosas[casa].publica) fuera.set(casa, 'el nombre ' + casa + ' ya lo reserva otra invitación, con otra clave');
+    else if (nueva && !puedeInvitar && !invitacionPendiente(eje, casa, { duena, clave: claves.cosas?.[casa]?.publica, t: t0 })) {
       fuera.set(casa, casa + ' no tiene alta: la dueña ha de invitarla');
       paraLaDuena.push('invitar a ' + casa);
     }
@@ -503,12 +533,12 @@ async function volcarPersonas(eje, tabla, corr, opciones) {
   for (const paso of plan.pasos) if (fuera.has(paso.cosa)) noPuede.push({ paso, motivo: fuera.get(paso.cosa) });
   const pasos = plan.pasos.filter((p) => !fuera.has(p.cosa));
   // Lo que gasta cada casa (y la dueña al invitar), medido en una copia: lo que allí se escribe es lo que se escribirá.
-  const medida = await escribirPlan(await copia(eje), pasos, { duena, claves, corr, minutos: new Map(), t0 });
+  const medida = await escribirPlan(await copia(eje), pasos, { duena, claves, corr: corrV, minutos: new Map(), t0 });
   const calculado = {};
   for (const { ev } of medida.escritos) juntar(calculado, tDe(ev).quema);
   // Escribir (o simular en una copia).
   const destino = opciones.simular ? await copia(eje) : eje;
-  const r = await escribirPlan(destino, pasos, { duena, claves, corr, minutos: new Map(), t0 });
+  const r = await escribirPlan(destino, pasos, { duena, claves, corr: corrV, minutos: new Map(), t0 });
   const gastado = {};
   for (const { ev } of r.escritos) { const x = tDe(ev); juntar(gastado, x.quema); juntar(gastado, x.da); }
   const sinT = (m) => /T del día agotado|más del que le queda hoy/i.test(m);

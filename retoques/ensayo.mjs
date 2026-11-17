@@ -211,11 +211,14 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
     if (!inf.eje) throw new Error('ensayo: no se pudo leer el libro compartido');
     eje = inf.eje;
     if (eje.alta(identidad)?.id !== eje.genesisId) throw new Error('ensayo: el libro compartido no es de la dueña de --claves');
-    // Un libro volcado antes con las casas como cosas de la dueña no se migra a casas personas (VG 17-11): se niega con el
-    // remedio. Volver a volcarlo es borrar la carpeta del ensayo (compartido.json y ensayo.json) y arrancar otra vez.
+    // Un libro volcado antes con las casas como cosas DE LA DUEÑA no se migra a casas personas (VG 17-11): se niega y
+    // dice el remedio (apartarlo y volcar de nuevo). Un alta de cosa de otro con el nombre de una casa no es eso: se
+    // salta con un aviso (el volcado no vuelca esas filas).
     if (corr.como === 'personas') {
-      const comoCosas = [...new Set(tabla.map((f) => f?.[corr.columnas.cosa]).filter((x) => x !== undefined && x !== null).map((x) => String(corr.nombres[x] ?? x)))].filter((c) => eje.alta(c) && !eje.esPersona(c));
-      if (comoCosas.length) throw new Error('ensayo: el libro compartido tiene ' + comoCosas.length + ' casas como cosas de la dueña (un volcado de antes) y la correspondencia las quiere personas: no se migra; para volver a volcarlo, borra compartido.json y ensayo.json de la carpeta del ensayo');
+      const casas = [...new Set(tabla.map((f) => f?.[corr.columnas.cosa]).filter((x) => x !== undefined && x !== null).map((x) => String(corr.nombres[x] ?? x)))].filter((c) => eje.alta(c) && !eje.esPersona(c));
+      const deLaDuena = casas.filter((c) => eje.alta(c).autor === identidad);
+      if (deLaDuena.length) throw new Error('ensayo: el libro compartido es de la disposición anterior (' + deLaDuena.length + ' casas como cosas de la dueña) y la correspondencia las quiere personas: no se migra; aparta la carpeta del ensayo (compartido.json y ensayo.json) a otro sitio y arranca otra vez para volcar de nuevo');
+      for (const c of casas) if (!deLaDuena.includes(c)) decir('ensayo: aviso: «' + c + '» ya tiene alta como cosa de otro; sus filas no se vuelcan');
     }
     // La «sync url» del libro: la de este arranque (local o la de --publico).
     if (sincronia.destino(eje, identidad)?.url !== url.replace(/\/+$/, '')) {

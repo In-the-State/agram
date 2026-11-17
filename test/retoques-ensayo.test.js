@@ -248,3 +248,47 @@ test('ensayo: dentro de la raíz, rechazado; la cara pública sin sesión no da 
     } finally { await s.cerrar(); }
   } finally { p.borrar(); }
 });
+
+test('ensayo (seguridad): un alta de cosa de otro con el nombre de una casa no para el ensayo (aviso); una de la dueña es un libro de la disposición anterior: se niega y dice apartarlo', async () => {
+  const p = preparar();
+  let m;
+  try {
+    m = await arrancar(p);
+    const puerto = m.puerto;
+    const llave = { [CABECERA_LLAVE]: m.s.llave };
+    const A = await entrar(dispositivo(), JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: llave })).cuerpo));
+    const { generarClaves, firmarPosesion } = await import('../src/autoridad.js');
+    const otro = await generarClaves();
+    const ya = (seg) => new Date(Math.floor(Date.now() / 1000) * 1000 - seg * 1000).toISOString().replace('.000Z', 'Z');
+    const inv = await A.eje.invitar({ autor: A.cuenta.identidad, invitado: 'otro', clave: otro.publica, da: [], t: ya(3), privada: A.privada });
+    await A.eje.aceptar(inv, otro, { t: ya(2) });
+    const cosa = await generarClaves();
+    const tx = await acciones.transaccion(A.eje, 'register a thing', { X: A.eje.alta('otro').id, thing: 'Casa Este', minutes: 1, key: cosa.publica }, 'otro', { firmar: async (ev) => firmar(await firmarPosesion(ev, 'Casa Este', cosa.privada), otro.privada) });
+    assert.equal(tx.ok, true, JSON.stringify(tx.motivos));
+    await A.eje.anadir(tx.evento);
+    globalThis.localStorage = undefined;
+    assert.deepEqual((await A.sinc.sincronizar(A.eje)).errores, []);
+    await m.s.cerrar();
+    writeFileSync(p.ensayo.tabla, JSON.stringify([...TABLA, fila('t5', 'Casa Este', 'Patio', 'Barrer el patio inventado', 'falta')]));
+    m = await arrancar(p, { puerto });
+    assert.ok(m.dicho.includes('ensayo: aviso: «Casa Este» ya tiene alta como cosa de otro; sus filas no se vuelcan'), JSON.stringify(m.dicho));
+    await m.s.cerrar();
+    m = null;
+    // Una cosa de la dueña con el nombre de una casa: el libro es de la disposición anterior.
+    const B = await (async () => { m = await arrancar(p, { puerto }); return entrar(dispositivo(), JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: { [CABECERA_LLAVE]: m.s.llave } })).cuerpo)); })();
+    const vieja = await generarClaves();
+    const tv = await acciones.transaccion(B.eje, 'register a thing', { X: B.eje.alta(B.cuenta.identidad).id, thing: 'Casa Oeste', minutes: 1, key: vieja.publica }, B.cuenta.identidad, { escala: 'segundo', firmar: async (ev) => Q.firmarCon(B.privada)(await firmarPosesion(ev, 'Casa Oeste', vieja.privada)) });
+    assert.equal(tv.ok, true, JSON.stringify(tv.motivos));
+    await B.eje.anadir(tv.evento);
+    globalThis.localStorage = undefined;
+    assert.deepEqual((await B.sinc.sincronizar(B.eje)).errores, []);
+    await m.s.cerrar();
+    m = null;
+    writeFileSync(p.ensayo.tabla, JSON.stringify([...TABLA, fila('t6', 'Casa Oeste', 'Huerto', 'Regar el huerto inventado', 'falta')]));
+    await assert.rejects(arrancar(p, { puerto }), /disposición anterior.*aparta la carpeta del ensayo/);
+  } finally {
+    delete globalThis.localStorage;
+    await m?.s.cerrar();
+    p.borrar();
+  }
+});
