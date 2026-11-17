@@ -163,6 +163,7 @@ test('la cara con zonas: una capa de la carta con un botón por zona, la etiquet
   // La capa cubre la cara entera (el dibujo no recibe toques) y el botón es de la carta (su borde, su letra).
   assert.match(CSS, /\.zonas-capa\{position:absolute;inset:0;z-index:2/);
   assert.match(CSS, /\.zonas-capa>\.zona\{[^}]*border:2px solid var\(--accent\)/);
+  assert.match(CSS, /\.cara-con-zonas:not\(:has\(\.rep-aislada\)\)\{min-height:/, 'una cara de solo texto toma alto para sus botones');
   // Sin zonas: ni campo en el árbol ni capa.
   const sin = await arbol({ foco: { X: g.genesisId, pv: 0 } }, g, 'vg', GRANDE);
   assert.ok(!('zonas' in sin.centro));

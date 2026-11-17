@@ -1042,6 +1042,8 @@ html.mapped body{padding:0}
    letra son los de la carta: se ve que es un botón suyo y no parte del dibujo. */
 .cara-con-zonas{position:relative;display:block;height:100%}
 .zonas-capa{position:absolute;inset:0;z-index:2;display:block}
+/* Una cara sin dibujo (solo su texto) con zonas: la cara toma alto para que sus botones quepan. */
+.cara-con-zonas:not(:has(.rep-aislada)){min-height:min(46vh,420px)}
 .zonas-capa>.zona{position:absolute;left:calc(var(--zx) * .1%);top:calc(var(--zy) * .1%);width:calc(var(--zan) * .1%);height:calc(var(--zal) * .1%);box-sizing:border-box;margin:0;padding:2px 6px;min-height:0;display:flex;align-items:center;justify-content:center;overflow:hidden;font:600 14px/1.2 var(--sans);color:var(--fg);background:color-mix(in srgb,var(--bg) 82%,transparent);border:2px solid var(--accent);border-radius:var(--radio);box-shadow:0 1px 4px rgba(0,0,0,.25);cursor:pointer;text-align:center;overflow-wrap:anywhere}
 .zonas-capa>.zona:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 .guia-pasos{margin-top:8px}

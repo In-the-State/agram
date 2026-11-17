@@ -169,7 +169,9 @@ const claveLocalDe = (id) => (estado.cuenta ? cuentas.CLAVES.local(estado.cuenta
 const PV_CAMINO = Number(Object.keys(GEOMETRIA).find((pv) => GEOMETRIA[pv].grupo === 'cruz' && GEOMETRIA[pv].fila === 'abajo'));
 /** El nombre canónico de una acción del aro (por su id o su nombre): lo que anota el libro local. */
 function canonicoDe(accion) {
-  const p = acciones.plantillaDeTransaccion(accion);
+  // Con la época del libro abierto: una plantilla de una época hija (la de la guía) también tiene nombre.
+  const epoca = typeof estado.eje?.epoca === 'function' ? estado.eje.epoca() : undefined;
+  const p = acciones.plantillaDeTransaccion(accion, epoca ? { epoca } : {}) ?? acciones.plantillaDeTransaccion(accion);
   return p ? acciones.nombreDeAccion(p) : String(accion);
 }
 /** El nombre de una acción del aro (por su id o su nombre canónico) en el idioma de quien mira. */
