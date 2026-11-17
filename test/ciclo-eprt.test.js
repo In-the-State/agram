@@ -146,11 +146,11 @@ test('el génesis no emite T (VG, 8-11: no hay T acumulable): es la época 0 y e
     /nobody mints T/);
   // Puede no emitir nada: su autor es una persona y tiene ya su día.
   const vacio = await Eje.genesis({ demostracion: true, identidad: 'raiz', emision: [], foco: 'g', t: T0 });
-  assert.deepEqual([vacio.esPersona('raiz'), vacio.alta('raiz'), vacio.saldoT('raiz', 'minuto', T0)], [true, { id: vacio.genesisId, t: T0 }, 1440]);
+  assert.deepEqual([vacio.esPersona('raiz'), vacio.alta('raiz'), vacio.saldoT('raiz', 'minuto', T0)], [true, { id: vacio.genesisId, t: T0, autor: 'raiz' }, 1440]);
   assert.deepEqual(vacio.obtener(vacio.genesisId).movimientos, []);
   const { eje, g } = await mundo({ t: T0 });
   assert.equal(eje.serie('T:minuto').emitido, 0);
-  assert.deepEqual(eje.alta('raiz'), { id: g, t: T0 });
+  assert.deepEqual(eje.alta('raiz'), { id: g, t: T0, autor: 'raiz' });
   // Su emisión, sus dos invitaciones y las altas gastaron cuatro minutos y la regla del coste cobró algo más por las posiciones de sus altas de la asignación del día; no hay T explícito.
   assert.equal(eje.saldo('raiz', 'T:minuto'), 0);
   assert.equal(eje.saldoT('raiz', 'minuto', T0), 1416);

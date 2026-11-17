@@ -159,6 +159,8 @@ function fundir(epoca, { raiz, registros }) {
     ids: Object.freeze([...(epoca.ids ?? [epoca.id])]),
     anterior: epoca,
     nacimiento: epoca.nacimiento ?? epoca,
+    // El cambio tal como se escribió (tramo 4: epocaEscritaDe rehace con él la época con cambios de esta versión).
+    cambio: Object.freeze({ raiz, registros: Object.freeze([...registros]) }),
   });
   return { version };
 }
