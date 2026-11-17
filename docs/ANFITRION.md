@@ -82,4 +82,6 @@ Pruebas del núcleo: `test/firmante.test.js`.
 - El servicio de pagos firma con `firmarServicio`. La copia de seguridad no lleva clave privada (la cuenta, el eje y la marca; la clave de lectura, cifrada con la frase como hoy).
 - Los rechazos se dicen en llano (`carta/textos.js`, `guardian…`); `dialog_busy` al crear la cuenta: «El guardián tiene otro diálogo abierto. Ciérralo y vuelve a intentarlo.», y como `cancelled_by_holder` no deja la carta a medias (el formulario conserva lo escrito); el detalle de un fallo desconocido, en la consola.
 
+- **Sin anfitrión**, el emparejamiento por QR ofrece los mismos verbos (`cuentas`, `crearCuenta`, `firmar`, `sesion`; sin `criterios`, `clavesDeLinea`, `pedirSesion` ni `firmarServicio`) y, mientras está vivo, es el guardián de la carta: `carta/guardian-emparejado.js`, `docs/notas/EMPAREJAMIENTO.md` «La pantalla». Con anfitrión no se ofrece emparejar.
+
 Pruebas: `test/carta-guardian.test.js`.

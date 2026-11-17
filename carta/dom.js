@@ -1605,6 +1605,7 @@ export function htmlReglas(v) {
     <header><h2>${escapar(t('reglasTitulo'))}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
     ${v.cambio || v.proponer ? `<p class="reglas-volver"><button type="button" class="enlace"${nodo('control')} data-reglas-volver>${escapar(t('reglasVolver'))}</button></p>` : ''}
     ${mensajes}${cuerpo}
+    <p class="reglas-pie" data-reglas-pie><small>${escapar(t('reglasPie'))}</small></p>
   </section></div>`;
 }
 
@@ -1753,7 +1754,13 @@ export function htmlSincronia(s) {
  */
 export function htmlGuardian(g) {
   if (!g || (!g.soloLeer && !g.sesionCerrada)) return '';
-  if (g.soloLeer) return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(g.sinGuardian ? 'guardianSoloLeerSinGuardian' : 'guardianSoloLeer'))}</p>`;
+  // Sin anfitrión (A25): `emparejar` ofrece emparejar con la app (o, si ya lo estuvo, volver a emparejar: `reemparejar`);
+  // `otraClave`, la app emparejada guarda otra clave.
+  if (g.soloLeer) {
+    const texto = g.otraClave ? 'emparejarOtraClave' : g.sinGuardian ? (g.emparejar ? 'emparejarSoloLeer' : 'guardianSoloLeerSinGuardian') : 'guardianSoloLeer';
+    const emparejar = g.emparejar ? ` <button type="button" class="enlace" data-emparejar title="${attr(t('emparejarConLaAppTitulo'))}">${escapar(t(g.reemparejar ? 'emparejarOtraVez' : 'emparejarConLaApp'))}</button>` : '';
+    return `<p class="aviso aviso-guardian" role="status" data-guardian>${escapar(t(texto))}${emparejar}</p>`;
+  }
   const sinBoton = g.puedeAbrir === false;
   const boton = sinBoton ? '' : ` <button type="button" class="enlace" data-guardian-abrir title="${attr(t('guardianAbrirTitulo'))}"${g.abriendo ? ' disabled aria-busy="true"' : ''}>${escapar(t('guardianAbrir'))}</button>`;
   const noAbrio = g.noAbrio && !g.abriendo ? ` <small data-guardian-no-abrio>${escapar(t('guardianNoAbrio'))}</small>` : '';
@@ -1816,7 +1823,7 @@ const htmlCeroColumna = (s) => (s?.X ? `<div class="cero-columna"${nodo('control
  * 'restaurar', campos (los del alta, del núcleo), valores, motivos, ocupado }. El formulario de crear se genera de los
  * campos que da cuentas.camposDelAlta (etiquetas y ayudas del núcleo); el de restaurar pide el archivo y la frase.
  */
-export function htmlArranque(ar, { cuentas = [], sobreCarta = false } = {}) {
+export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar = null } = {}) {
   if (!ar) return '';
   const motivos = ar.motivos?.length ? `<ul class="motivos" role="alert">${ar.motivos.map((m) => `<li>${escapar(m.mensaje ?? m)}</li>`).join('')}</ul>` : '';
   const volver = sobreCarta ? `<button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button>` : (ar.modo !== 'menu' ? `<button type="button" class="volver-arranque" data-arranque="menu">${t('volver')}</button>` : '');
@@ -1849,12 +1856,16 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false } = {}) {
     </form>`;
   } else {
     const entrar = cuentas.length ? `<ul class="cuentas-lista">${cuentas.map((c) => `<li><button type="button" data-arranque="cuenta:${attr(c.alta)}">${escapar(t('entrarComo', { nombre: c.nombre }))}</button></li>`).join('')}</ul>` : '';
+    // Sin anfitrión (A25): «Emparejar con la app» mientras no hay emparejamiento; con él, crear abre un libro con la clave de la app.
+    const conLaApp = Boolean(emparejar?.vivo);
+    const emparejarBoton = emparejar && !conLaApp ? `<button type="button" data-emparejar title="${attr(t('emparejarConLaAppTitulo'))}">${escapar(t('emparejarConLaApp'))}</button>` : '';
     cuerpo = `<div class="formulario arranque-menu" role="dialog" aria-label="${attr(t('arranqueTitulo'))}">
       <header><h2>${t('arranqueTitulo')}</h2>${volver}</header>
       <p class="ayuda">${escapar(t('arranqueIntro'))}</p>
       ${entrar}${motivos}
       <div class="opciones">
-        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${t('crearMiCuenta')}</button>`}
+        ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>`}
+        ${emparejarBoton}
         <button type="button" data-arranque="restaurar">${t('restaurarUnaCuenta')}</button>
         <button type="button" data-arranque="ejemplo">${t('probarConEjemplo')}</button>
       </div>
@@ -1885,7 +1896,7 @@ export function htmlCopia(c) {
  * `cuentas` y `cuenta` (mis cuentas en este navegador y la abierta, o null en un ejemplo), `arranque` (la pantalla de
  * crear, restaurar o probar, sola si no hay eje y como diálogo si lo hay), `copia` (el diálogo de la copia de seguridad),
  * `sincronia` (la línea del libro compartido, o null), `claveLectura` (en una cuenta, la de este navegador o ''),
- * `anfitrion` (true si la carta va dentro de una app que firma: carta/anfitrion.js) y `autorizando` (los ids que firma ya).
+ * `anfitrion` (true si la carta va dentro de una app que firma: carta/anfitrion.js), `autorizando` (los ids que firma ya) y `emparejar` (sin anfitrión, A25: { vivo }; la pantalla de arranque ofrece emparejar con la app).
  */
 export function html(arbol, extra = {}) {
   archivoDe = typeof extra.archivo === 'function' ? extra.archivo : () => null; // los archivos adjuntos de esta pestaña (htmlRepresentacion)
@@ -1893,7 +1904,7 @@ export function html(arbol, extra = {}) {
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
   retocando = arbol?.retocar ?? null; // el modo «retocar textos» (A20): solo lo trae el árbol de quien puede retocar
   // Sin eje (nadie ha elegido aún cuenta ni ejemplo): la pantalla de arranque entera.
-  if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false })}</div>`;
+  if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false, emparejar: extra.emparejar })}</div>`;
   if (!arbol || arbol.vacio) return `<div class="carta vacia"><p class="aviso">${escapar(arbol?.avisos?.join(' · ') ?? t('sinRegistro'))}</p></div>`;
   const a = { ...arbol };
   const clase = ['carta', a.apilada ? 'carta-apilada' : 'carta-matriz', a.animado ? 'animado' : 'sobrio', `disposicion-${a.disposicion}`].join(' ');
@@ -1927,7 +1938,7 @@ export function html(arbol, extra = {}) {
     ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}
     ${htmlFormulario(a.formulario)}
     ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
-    ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true }) : ''}
+    ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true, emparejar: extra.emparejar }) : ''}
     ${htmlCopia(extra.copia)}
     ${htmlLibroPrivado(extra.libroPrivado)}
   </div>`;
