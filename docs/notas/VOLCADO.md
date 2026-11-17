@@ -41,6 +41,54 @@ Roadmap de verdad simulado el 17-11 (eje local vacío, una pasada): 253 registro
 
 En el ensayo (`retoques/ensayo.mjs`), el libro del roadmap nace así. Un libro de ensayo ya volcado con las casas como cosas **de la dueña** es de la disposición anterior y **no se migra**: el servidor se niega al arrancar y dice el remedio (apartar `compartido.json` y `ensayo.json` de la carpeta del ensayo y arrancar otra vez para volcar de nuevo). Un alta de cosa de otro con el nombre de una casa no para el ensayo: se salta con un aviso.
 
+
+## La casa de la dueña y la nota de detalle (VG 17-11)
+
+VG quiere sus propios pasos en el libro del roadmap y, al abrir uno, ver en qué se basa, sus comandos, rutas, qué debe ver y a quién preguntar. Todo se **añade** al libro: no cambia la época ni los ids de lo escrito, y volver a pasar la misma tabla no escribe nada.
+
+**La casa de la dueña.** La correspondencia gana `duena`: el nombre de casa que es la dueña del libro (en la del roadmap, `"VG"`; solo en modo personas). Esa casa no se invita ni se da de alta: sus proyectos cuelgan del alta de la dueña y sus filas las escribe ella, con su clave (`claves.duena`) y su escala (el coste de escribir en T de segundo), con los mismos pasos de fase que cualquier otra. Sin la clave de la dueña, sus filas van a «no puede» («sin la clave de la dueña») y queda para ella «volcar las filas de VG (la casa de la dueña) con su clave». Si ese nombre ya tiene alta propia en el libro (volcado antes como otra casa), sus filas van a «no puede» y no se vuelcan encima. En el ensayo, la casa de la dueña no tiene clave propia en el archivo de claves.
+
+**La nota de detalle.** Columnas opcionales, nombradas en `columnas` de la correspondencia (en la del roadmap, con su mismo nombre):
+
+| Columna | Qué es |
+|---|---|
+| `base` | una frase: en qué se basa |
+| `pasos` | una lista ordenada de `{ hace, comando?, ruta?, ve? }` |
+| `detalle` | la alternativa: un texto (se parte por líneas) o una lista de líneas ya hechas |
+| `quien` | a quién preguntar |
+| `depende` | una lista de ids de fila, de cualquier casa |
+
+Una fila con alguna de ellas lleva **una** nota colgada de su tarea (en su 0), escrita por su casa con `anchor here`: su 0 es el título `nota de detalle` y su 1, líneas «etiqueta: valor» en este orden:
+
+```
+nota de detalle: <id de la fila>
+base: <base>
+paso 1: <hace>
+paso 1 comando: <comando>
+paso 1 ruta: <ruta>
+paso 1 ve: <ve>
+paso 2: …
+detalle: <una línea>            (una por línea)
+quien: <quien>
+depende <id>: <texto de esa fila en la tabla>   (una por dependencia)
+```
+
+Las que no se dan no se escriben. Manda la última nota: si el detalle de la tabla cambia (o el texto de una fila de la que depende), se escribe otra; si no cambia, nada. Si la tabla retira todo el detalle de una fila, se escribe una nota vacía: `nota de detalle: <id>` y `sin detalle: la tabla ya no da detalle de esta fila`. La nota no es una corrección: no lleva la etiqueta del id de la fila, y la lectura de la última corrección (`leerLibro`) la aparta. Por eso la columna del id no puede llamarse como una etiqueta de la nota (`base`, `detalle`, `quien`, …). Las dependencias, por ahora, solo viven como líneas de esta nota; la relación de verdad, navegable y en el 7, es otra pieza con época propia.
+
+**La lectura** (pura): `notaDeDetalle(eje, x, { correspondencia | columna })`, con `x` el id de la tarea (o su registro) o el id de la fila → `{ fila, base, pasos: [{ hace, comando?, ruta?, ve? }], detalle: [líneas], quien, depende: [{ id, texto }] }`, o `null` si no tiene nota o la última está vacía.
+
+**Las comprobaciones** (`comprobarTabla`), antes de escribir nada: un id de `depende` que no está en la tabla, una fila que depende de sí misma, un ciclo, la forma de las columnas de detalle y estos topes. Si alguna falla, **no se escribe nada**: el informe trae `comprobacion` (la lista) y un aviso por cada error («la tabla no se vuelca: …»). En el ensayo, una tabla que no pasa no arranca el primer volcado; con el libro ya hecho, se dice en la consola y el libro sigue como estaba.
+
+| Tope | Valor |
+|---|---|
+| base | 500 caracteres |
+| pasos | 30, y cada parte (hace, comando, ruta, ve) 500 caracteres |
+| detalle | 60 líneas de 500 caracteres |
+| quien | 200 caracteres |
+| depende | 30 filas; un id con «: » o un salto de línea no se puede escribir en la nota |
+
+En el ensayo, cuando cambia una fila, también se vuelven a mirar las que dependen de ella (su nota copia su texto).
+
 ## Cómo se llama
 
 ```

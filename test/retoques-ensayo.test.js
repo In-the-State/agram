@@ -19,7 +19,7 @@ import { acciones, sincronia } from '../src/index.js';
 import { firmar } from '../src/autoridad.js';
 import * as Q from '../carta/cuentas.js';
 import * as S from '../carta/sincronia.js';
-import { leerLibro, correspondenciaDe, PLANTILLAS } from '../ejemplos/volcado/volcar.mjs';
+import { leerLibro, correspondenciaDe, PLANTILLAS, notaDeDetalle } from '../ejemplos/volcado/volcar.mjs';
 
 const FALSO = join(dirname(fileURLToPath(import.meta.url)), 'ayudas-agente-falso.mjs');
 const CORR = correspondenciaDe(JSON.parse(readFileSync(new URL('../ejemplos/volcado/correspondencia-roadmap.json', import.meta.url), 'utf8')));
@@ -393,6 +393,47 @@ test('la guía de ensayo de otra época: el servidor no arranca y dice apartarla
     await assert.rejects(arrancar(p), /la guía de ensayo es de otra época .*aparta guia\.json/);
     assert.equal(readFileSync(rutaGuia, 'utf8'), antes, 'no se reescribe ni se borra');
   } finally {
+    await m?.s.cerrar();
+    p.borrar();
+  }
+});
+
+test('ensayo (VG 17-11): con la correspondencia nueva y una tabla con detalle y filas de la dueña, el arranque añade solo lo nuevo al libro que ya hay; la casa de la dueña no tiene clave propia', async () => {
+  const p = preparar();
+  let m;
+  try {
+    m = await arrancar(p);
+    const puerto = m.puerto;
+    const leerCompartido = () => JSON.parse(readFileSync(join(p.ensayo.carpeta, 'compartido.json'), 'utf8')).eventos[EJE];
+    const antes = leerCompartido().map((e) => e.id);
+    await m.s.cerrar();
+    const conDetalle = [
+      ...TABLA.map((f) => (f.id === 't2' ? { ...f, base: 'Una base inventada', pasos: [{ hace: 'Abrir la pantalla inventada', ve: 'el marco' }], quien: 'Core Inventado', depende: ['t1'] } : f)),
+      { ...fila('v1', 'VG', 'Mis pasos', 'Mirar el roadmap inventado', 'falta'), detalle: ['una línea inventada'], depende: ['t2'] },
+    ];
+    writeFileSync(p.ensayo.tabla, JSON.stringify(conDetalle));
+    m = await arrancar(p, { puerto });
+    assert.equal(m.dicho.length, 1, JSON.stringify(m.dicho));
+    assert.match(m.dicho[0], /^ensayo: volcado de 2 filas cambiadas: \d+ registros escritos, 0 avisos$/);
+    const despues = leerCompartido().map((e) => e.id);
+    assert.deepEqual(despues.slice(0, antes.length), antes, 'lo de antes, igual');
+    const claves = JSON.parse(readFileSync(p.ensayo.claves, 'utf8'));
+    assert.ok(!('VG' in claves.cosas), 'la casa de la dueña firma con la clave de la dueña');
+    const llave = { [CABECERA_LLAVE]: m.s.llave };
+    const B = await entrar(dispositivo(), JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: llave })).cuerpo));
+    const libro = leerLibro(B.eje, B.cuenta.identidad, CORR);
+    const v1 = B.eje.obtener(libro.tareas.get('v1').id);
+    assert.equal(v1.autor, B.cuenta.identidad, 'la fila de VG la escribe la dueña');
+    assert.equal(notaDeDetalle(B.eje, 't2', { correspondencia: CORR }).base, 'Una base inventada');
+    assert.deepEqual(notaDeDetalle(B.eje, 'v1', { correspondencia: CORR }).depende, [{ id: 't2', texto: 'Lijar el marco inventado' }]);
+    await m.s.cerrar();
+    // Otro arranque con la misma tabla: nada.
+    const n = leerCompartido().length;
+    m = await arrancar(p, { puerto });
+    assert.deepEqual(m.dicho, []);
+    assert.equal(leerCompartido().length, n);
+  } finally {
+    delete globalThis.localStorage;
     await m?.s.cerrar();
     p.borrar();
   }

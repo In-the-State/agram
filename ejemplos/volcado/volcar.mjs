@@ -26,6 +26,16 @@
 //     ejecutada   «deliver» sobre el anuncio: la cosa trabaja (quema) lo anunciado
 //     cerrada     «close» en el 4 de la tarea: la cosa dice que todo lo anunciado ha pasado
 //   un texto o un dato que cambia         otro «anchor here» de la cosa sobre la tarea, con el texto y los datos nuevos
+//   la casa de la dueña («duena» en la    VG 17-11: esa casa no se invita ni se da de alta; sus proyectos cuelgan del alta
+//   correspondencia; modo personas)       de la dueña y sus filas las escribe ella, con su clave y su escala
+//   el detalle de una fila (columnas      UNA nota colgada de la tarea, escrita por su casa con «anchor here» (título
+//   opcionales base, pasos, detalle,      «nota de detalle»; en su 1, «etiqueta: valor»: la línea que la identifica, la
+//   quien y depende)                      base, cada paso numerado, el detalle, quién y una línea por dependencia). Manda
+//                                         la última: si el detalle cambia, otra nota; si la tabla lo retira, una nota
+//                                         vacía que lo dice. No es una corrección: no lleva la etiqueta del id de la fila.
+//                                         Lectura pura: notaDeDetalle(eje, fila o tarea). Antes de escribir se comprueba la
+//                                         tabla (dependencias que no existen, de sí misma, ciclos y TOPES); si falla, no
+//                                         se escribe nada
 //
 // Lo leen el motor y el contrato: la estación del anuncio (acciones.estacionDeAnuncio: propuesta, autorizada, ejecutada)
 // y el cierre (motor.cerrado). Nada de la tabla está escrito aquí: qué columna es cada cosa y a qué paso lleva cada fase
@@ -83,7 +93,14 @@ const sumar = (cuenta, quien, escala, n) => { cuenta[quien] ??= {}; cuenta[quien
 /** Los dos modos del alta de cada casa: cosas de la dueña (el defecto) o personas invitadas por ella (VG 17-11). */
 export const MODOS = Object.freeze(['cosas', 'personas']);
 
-/** La correspondencia con sus defectos comprobada: { columnas: { id, cosa, proyecto, texto, fase, datos }, fases, nombres, minutosAnunciados, cuando, como }. */
+/** Las columnas opcionales del detalle de una fila (VG 17-11): su nombre en la correspondencia. */
+export const COLUMNAS_DE_DETALLE = Object.freeze(['base', 'pasos', 'detalle', 'quien', 'depende']);
+
+/**
+ * La correspondencia con sus defectos comprobada: { columnas: { id, cosa, proyecto, texto, fase, datos, base?, pasos?,
+ * detalle?, quien?, depende? }, fases, nombres, minutosAnunciados, cuando, como, duena }. «duena» (opcional) es el nombre
+ * de casa que es la dueña del libro.
+ */
 export function correspondenciaDe(c = {}) {
   const col = c.columnas ?? {};
   for (const k of ['id', 'cosa', 'proyecto', 'texto', 'fase']) if (typeof col[k] !== 'string' || !col[k]) throw new Error('correspondencia: falta la columna «' + k + '»');
@@ -93,11 +110,209 @@ export function correspondenciaDe(c = {}) {
   if (!Number.isInteger(minutos) || minutos < 1) throw new Error('correspondencia: minutosAnunciados ha de ser un entero positivo');
   const como = c.como ?? MODOS[0];
   if (!MODOS.includes(como)) throw new Error('correspondencia: «como» es ' + MODOS.join(' o ') + ', no «' + como + '»');
-  return { columnas: { ...col, datos: Array.isArray(col.datos) ? col.datos : [] }, fases, nombres: c.nombres ?? {}, minutosAnunciados: minutos, cuando: c.cuando ?? null, como };
+  for (const k of COLUMNAS_DE_DETALLE) if (col[k] !== undefined && (typeof col[k] !== 'string' || !col[k])) throw new Error('correspondencia: la columna «' + k + '» es un nombre de columna');
+  if (ETIQUETAS_DE_NOTA.has(col.id) || /^(paso|depende) /.test(col.id)) throw new Error('correspondencia: la columna del id no puede llamarse como una etiqueta de la nota de detalle («' + col.id + '»)');
+  const duena = c.duena ?? null;
+  if (duena !== null && (typeof duena !== 'string' || !duena)) throw new Error('correspondencia: «duena» es el nombre de la casa de la dueña');
+  return { columnas: { ...col, datos: Array.isArray(col.datos) ? col.datos : [] }, fases, nombres: c.nombres ?? {}, minutosAnunciados: minutos, cuando: c.cuando ?? null, como, duena };
 }
 
 /** Los datos de una fila como el 1 de su registro: «etiqueta: valor», el id primero. */
 const datosDe = (fila, col) => [col.id, ...col.datos].map((k) => k + SEP + String(fila[k] ?? ''));
+
+// ---------- la nota de detalle (VG 17-11) ----------
+
+/** El título de la nota y las etiquetas de su 1, en el orden en que se escriben. */
+export const NOTA = Object.freeze({
+  titulo: 'nota de detalle',
+  marca: 'nota de detalle', // la primera línea: «nota de detalle: <id de la fila>»
+  base: 'base',
+  paso: 'paso', // «paso 1: …», «paso 1 comando: …», «paso 1 ruta: …», «paso 1 ve: …»
+  detalle: 'detalle',
+  quien: 'quien',
+  depende: 'depende', // «depende <id>: <texto de esa fila>»
+  vacia: 'sin detalle', // la nota que dice que la tabla retiró el detalle
+});
+const ETIQUETAS_DE_NOTA = new Set([NOTA.marca, NOTA.base, NOTA.detalle, NOTA.quien, NOTA.vacia, NOTA.paso, NOTA.depende]);
+const PARTES_DE_UN_PASO = Object.freeze(['comando', 'ruta', 've']);
+const TEXTO_DE_LA_NOTA_VACIA = 'la tabla ya no da detalle de esta fila';
+
+/** Los topes del detalle de una fila (comprobados antes de escribir nada; docs/notas/VOLCADO.md). */
+export const TOPES = Object.freeze({ base: 500, pasos: 30, parte: 500, detalle: 60, linea: 500, quien: 200, depende: 30 });
+
+const hayValor = (v) => v !== undefined && v !== null && !(typeof v === 'string' && v.trim() === '') && !(Array.isArray(v) && v.length === 0);
+const comoTexto = (v) => (typeof v === 'string' || typeof v === 'number' ? String(v) : null);
+
+/** ¿Lleva la fila alguna columna de detalle? */
+const tieneDetalle = (fila, col) => COLUMNAS_DE_DETALLE.some((k) => col[k] && hayValor(fila?.[col[k]]));
+
+/** Las líneas del detalle de una fila, como texto: las de «detalle» (un texto, partido por líneas, o una lista). */
+const lineasDelDetalle = (v) => (Array.isArray(v) ? v.map((x) => comoTexto(x) ?? '') : String(v).split(/\r?\n/)).filter((x) => x.trim() !== '');
+
+/** Los ids de los que depende una fila (la columna «depende»: una lista; un id suelto también vale). */
+const dependeDe = (fila, col) => (col.depende && hayValor(fila?.[col.depende]) ? [].concat(fila[col.depende]).map(String) : []);
+
+/**
+ * Las comprobaciones de la tabla antes de escribir nada (VG 17-11): un id de «depende» que no está en la tabla, una
+ * fila que depende de sí misma, un ciclo, la forma de las columnas de detalle y sus topes. → la lista de errores ([] si
+ * todo está bien), cada uno una frase que dice la fila.
+ */
+export function comprobarTabla(tabla, corr) {
+  const { columnas: col } = corr;
+  const errores = [];
+  if (!Array.isArray(tabla)) return ['la tabla ha de ser una lista de filas'];
+  const ids = new Set(tabla.map((f) => f?.[col.id]).filter(hayValor).map(String));
+  const grafo = new Map();
+  const largo = (x, tope, que, fid) => { if (x !== null && x.length > tope) errores.push(`fila ${fid}: ${que} pasa de ${tope} caracteres`); };
+  for (const fila of tabla) {
+    if (!hayValor(fila?.[col.id]) || !tieneDetalle(fila, col)) continue;
+    const fid = String(fila[col.id]);
+    if (col.base && hayValor(fila[col.base])) {
+      if (comoTexto(fila[col.base]) === null) errores.push(`fila ${fid}: la base ha de ser un texto`);
+      largo(comoTexto(fila[col.base]), TOPES.base, 'la base', fid);
+    }
+    if (col.pasos && hayValor(fila[col.pasos])) {
+      const pasos = fila[col.pasos];
+      if (!Array.isArray(pasos)) errores.push(`fila ${fid}: los pasos han de ser una lista de { hace, comando?, ruta?, ve? }`);
+      else {
+        if (pasos.length > TOPES.pasos) errores.push(`fila ${fid}: más de ${TOPES.pasos} pasos`);
+        pasos.forEach((paso, k) => {
+          if (!paso || typeof paso !== 'object' || Array.isArray(paso) || comoTexto(paso.hace) === null || !String(paso.hace).trim()) { errores.push(`fila ${fid}: el paso ${k + 1} no dice qué hace («hace»)`); return; }
+          const sobra = Object.keys(paso).filter((x) => x !== 'hace' && !PARTES_DE_UN_PASO.includes(x));
+          if (sobra.length) errores.push(`fila ${fid}: el paso ${k + 1} trae partes que no son hace, comando, ruta ni ve (${sobra.join(', ')})`);
+          for (const parte of ['hace', ...PARTES_DE_UN_PASO]) {
+            if (paso[parte] === undefined) continue;
+            if (comoTexto(paso[parte]) === null) errores.push(`fila ${fid}: el paso ${k + 1} lleva un «${parte}» que no es un texto`);
+            else largo(String(paso[parte]), TOPES.parte, `el «${parte}» del paso ${k + 1}`, fid);
+          }
+        });
+      }
+    }
+    if (col.detalle && hayValor(fila[col.detalle])) {
+      const v = fila[col.detalle];
+      if (comoTexto(v) === null && !(Array.isArray(v) && v.every((x) => comoTexto(x) !== null))) errores.push(`fila ${fid}: el detalle ha de ser un texto o una lista de líneas`);
+      else {
+        const lineas = lineasDelDetalle(v);
+        if (lineas.length > TOPES.detalle) errores.push(`fila ${fid}: el detalle pasa de ${TOPES.detalle} líneas`);
+        for (const l of lineas) largo(l, TOPES.linea, 'una línea del detalle', fid);
+      }
+    }
+    if (col.quien && hayValor(fila[col.quien])) {
+      if (comoTexto(fila[col.quien]) === null) errores.push(`fila ${fid}: «quien» ha de ser un texto`);
+      largo(comoTexto(fila[col.quien]), TOPES.quien, '«quien»', fid);
+    }
+    const dep = col.depende && hayValor(fila[col.depende]) ? [].concat(fila[col.depende]) : [];
+    if (dep.some((x) => comoTexto(x) === null)) { errores.push(`fila ${fid}: «depende» ha de ser una lista de ids de fila`); continue; }
+    if (dep.length > TOPES.depende) errores.push(`fila ${fid}: depende de más de ${TOPES.depende} filas`);
+    for (const d of dep.map(String)) {
+      if (d === fid) errores.push(`fila ${fid}: depende de sí misma`);
+      else if (!ids.has(d)) errores.push(`fila ${fid}: depende de «${d}», que no está en la tabla`);
+      else if (d.includes(SEP) || /[\r\n]/.test(d)) errores.push(`fila ${fid}: el id «${d}» no se puede escribir en una línea de la nota (lleva «: » o un salto de línea)`);
+    }
+    grafo.set(fid, dep.map(String).filter((d) => d !== fid && ids.has(d)));
+  }
+  // Ciclos: un recorrido en profundidad; cada ciclo se dice una vez, por sus filas en orden.
+  const estado = new Map();
+  const dichos = new Set();
+  const visitar = (n, camino) => {
+    estado.set(n, 'abierto');
+    for (const m of grafo.get(n) ?? []) {
+      if (estado.get(m) === 'abierto') {
+        const ciclo = [...camino.slice(camino.indexOf(m)), m];
+        const clave = [...ciclo.slice(0, -1)].sort().join('\0');
+        if (!dichos.has(clave)) { dichos.add(clave); errores.push('un ciclo de dependencias: ' + ciclo.join(' → ')); }
+      } else if (!estado.has(m)) visitar(m, [...camino, m]);
+    }
+    estado.set(n, 'cerrado');
+  };
+  for (const n of grafo.keys()) if (!estado.has(n)) visitar(n, [n]);
+  return errores;
+}
+
+/**
+ * Las líneas de la nota de detalle de una fila, en orden, o null si la fila no lleva detalle. `textos`: Map id de fila
+ * → su texto en la tabla (para las líneas de sus dependencias).
+ */
+export function lineasDeNota(fila, corr, textos = new Map()) {
+  const { columnas: col } = corr;
+  if (!tieneDetalle(fila, col)) return null;
+  const fid = String(fila[col.id]);
+  const l = [NOTA.marca + SEP + fid];
+  if (col.base && hayValor(fila[col.base])) l.push(NOTA.base + SEP + String(fila[col.base]));
+  if (col.pasos && Array.isArray(fila[col.pasos])) {
+    fila[col.pasos].forEach((paso, k) => {
+      l.push(NOTA.paso + ' ' + (k + 1) + SEP + String(paso.hace));
+      for (const parte of PARTES_DE_UN_PASO) if (hayValor(paso[parte])) l.push(NOTA.paso + ' ' + (k + 1) + ' ' + parte + SEP + String(paso[parte]));
+    });
+  }
+  if (col.detalle && hayValor(fila[col.detalle])) for (const x of lineasDelDetalle(fila[col.detalle])) l.push(NOTA.detalle + SEP + x);
+  if (col.quien && hayValor(fila[col.quien])) l.push(NOTA.quien + SEP + String(fila[col.quien]));
+  for (const d of dependeDe(fila, col)) l.push(NOTA.depende + ' ' + d + SEP + (textos.get(d) ?? ''));
+  return l;
+}
+
+/** Las líneas de la nota vacía de una fila: la tabla retiró su detalle. */
+const lineasDeNotaVacia = (fid) => [NOTA.marca + SEP + fid, NOTA.vacia + SEP + TEXTO_DE_LA_NOTA_VACIA];
+
+/** Las líneas del 1 de un registro (las hojas de texto, en orden). */
+const lineasDe = (ev) => hojas(ev?.payload?.[1]).filter((x) => typeof x === 'string');
+
+/** ¿Es `ev` una nota de detalle (de la fila `fid`, si se da)? Su título y su primera línea lo dicen. */
+const esNota = (ev, fid = null) => {
+  if (!tiene(ev, PLANTILLAS.registro) || texto0(ev) !== NOTA.titulo) return false;
+  const primera = lineasDe(ev)[0] ?? '';
+  return fid === null ? primera.startsWith(NOTA.marca + SEP) : primera === NOTA.marca + SEP + fid;
+};
+
+/** La última nota de detalle de una tarea (de su autor, en su 0), o null. */
+const ultimaNota = (eje, tarea, fid = null) => eje.sobre(tarea.id, EN_0).filter((h) => h.autor === tarea.autor && esNota(h, fid)).at(-1) ?? null;
+
+/** Una nota partida: { fila, base, pasos: [{ hace, comando?, ruta?, ve? }], detalle: [líneas], quien, depende: [{ id, texto }] }, o null si está vacía. */
+export function partirNota(lineas) {
+  const nota = { fila: null, base: null, pasos: [], detalle: [], quien: null, depende: [] };
+  let algo = false;
+  for (const l of lineas) {
+    const i = l.indexOf(SEP);
+    if (i < 0) continue;
+    const etiqueta = l.slice(0, i);
+    const valor = l.slice(i + SEP.length);
+    if (etiqueta === NOTA.marca) { nota.fila = valor; continue; }
+    if (etiqueta === NOTA.vacia) return null;
+    algo = true;
+    let m;
+    if (etiqueta === NOTA.base) nota.base = valor;
+    else if (etiqueta === NOTA.detalle) nota.detalle.push(valor);
+    else if (etiqueta === NOTA.quien) nota.quien = valor;
+    else if ((m = /^paso (\d+)(?: (comando|ruta|ve))?$/.exec(etiqueta))) {
+      const k = Number(m[1]) - 1;
+      nota.pasos[k] ??= { hace: '' };
+      if (m[2]) nota.pasos[k][m[2]] = valor; else nota.pasos[k].hace = valor;
+    } else if (etiqueta.startsWith(NOTA.depende + ' ')) nota.depende.push({ id: etiqueta.slice(NOTA.depende.length + 1), texto: valor });
+  }
+  nota.pasos = nota.pasos.filter(Boolean);
+  return algo ? nota : null;
+}
+
+/**
+ * Lectura pura (para la carta y las pruebas): la última nota de detalle de una fila, ya partida (partirNota), o null.
+ * `x` es el id del registro de la tarea (o el registro), o el id de la fila; con el id de la fila, la tarea es el primer
+ * registro que lleva esa etiqueta (la columna del id: opciones.columna, o la de opciones.correspondencia; por defecto «id»).
+ */
+export function notaDeDetalle(eje, x, opciones = {}) {
+  const colId = opciones.columna ?? opciones.correspondencia?.columnas?.id ?? 'id';
+  let tarea = typeof x === 'object' && x ? eje.obtener(x.id) : eje.obtener(x);
+  let fid = null;
+  if (!tarea) {
+    fid = String(x);
+    for (const id of eje.orden) {
+      const ev = eje.obtener(id);
+      if (tiene(ev, PLANTILLAS.registro) && !esNota(ev) && etiquetas(ev)[colId] === fid) { tarea = ev; break; }
+    }
+    if (!tarea) return null;
+  }
+  const nota = ultimaNota(eje, tarea, fid);
+  return nota ? partirNota(lineasDe(nota)) : null;
+}
 
 // ---------- lo que ya hay en el libro ----------
 
@@ -123,24 +338,30 @@ export function leerLibro(eje, duena, corr) {
       if (typeof nombre === 'string' && eje.alta(nombre)?.id === ev.id) cosas.set(nombre, ev.id);
     }
   }
+  // La casa de la dueña (VG 17-11): sus proyectos cuelgan del alta de la dueña y los escribe ella.
+  if (corr.duena) { cosas.delete(duena); cosas.set(corr.duena, eje.alta(duena)?.id); }
   for (const [cosa, alta] of cosas) {
-    for (const p of eje.sobre(alta, EN_0).filter((h) => h.autor === cosa && tiene(h, PLANTILLAS.registro))) {
+    const autor = cosa === corr.duena ? duena : cosa;
+    if (!alta) continue;
+    for (const p of eje.sobre(alta, EN_0).filter((h) => h.autor === autor && tiene(h, PLANTILLAS.registro) && !esNota(h))) {
       const clave = cosa + '\0' + texto0(p);
       if (!proyectos.has(clave)) proyectos.set(clave, p.id);
-      for (const t of eje.sobre(p.id, EN_0).filter((h) => h.autor === cosa && tiene(h, PLANTILLAS.registro))) {
+      for (const t of eje.sobre(p.id, EN_0).filter((h) => h.autor === autor && tiene(h, PLANTILLAS.registro))) {
         const fila = etiquetas(t)[col.id];
         if (fila === undefined || tareas.has(fila)) continue;
         // Lo último que dice la cosa de la tarea: la tarea o su última corrección (otro «anchor here» suyo sobre ella).
-        const ultima = [t, ...eje.sobre(t.id, EN_0).filter((h) => h.autor === cosa && tiene(h, PLANTILLAS.registro) && etiquetas(h)[col.id] === fila)].at(-1);
-        const anuncio = eje.sobre(t.id, ANUNCIO).find((h) => h.autor === cosa && tiene(h, PLANTILLAS.propuesta)) ?? null;
-        const sobreAnuncio = anuncio ? eje.sobre(anuncio.id).filter((h) => h.autor === cosa) : [];
+        // Una nota de detalle no es una corrección: no lleva la etiqueta del id de la fila (y se aparta por si acaso).
+        const ultima = [t, ...eje.sobre(t.id, EN_0).filter((h) => h.autor === autor && tiene(h, PLANTILLAS.registro) && !esNota(h) && etiquetas(h)[col.id] === fila)].at(-1);
+        const nota = ultimaNota(eje, t, fila);
+        const anuncio = eje.sobre(t.id, ANUNCIO).find((h) => h.autor === autor && tiene(h, PLANTILLAS.propuesta)) ?? null;
+        const sobreAnuncio = anuncio ? eje.sobre(anuncio.id).filter((h) => h.autor === autor) : [];
         const pasos = {
           propuesta: Boolean(anuncio),
           autorizada: sobreAnuncio.some((h) => tiene(h, PLANTILLAS.autorizada)),
           ejecutada: sobreAnuncio.some((h) => tiene(h, PLANTILLAS.ejecutada)),
-          cerrada: eje.sobre(t.id).some((h) => h.autor === cosa && tiene(h, PLANTILLAS.cerrada)),
+          cerrada: eje.sobre(t.id).some((h) => h.autor === autor && tiene(h, PLANTILLAS.cerrada)),
         };
-        tareas.set(fila, { id: t.id, cosa, proyecto: texto0(p), texto: texto0(ultima), datos: etiquetas(ultima), anuncio: anuncio?.id ?? null, pasos });
+        tareas.set(fila, { id: t.id, cosa, autor, proyecto: texto0(p), texto: texto0(ultima), datos: etiquetas(ultima), anuncio: anuncio?.id ?? null, pasos, nota: nota ? lineasDe(nota) : null });
       }
     }
   }
@@ -173,6 +394,9 @@ export function estacionDe(eje, tareaId) {
 export function planear(eje, tabla, { duena, corr, filas = null }) {
   const { columnas: col, fases, nombres } = corr;
   const libro = leerLibro(eje, duena, corr);
+  const autorDe = (cosa) => (cosa === corr.duena ? duena : cosa);
+  // Los textos de toda la tabla (aunque haya filtro de filas), para las líneas de las dependencias de las notas.
+  const textos = new Map((Array.isArray(tabla) ? tabla : []).filter((f) => hayValor(f?.[col.id]) && hayValor(f?.[col.texto])).map((f) => [String(f[col.id]), String(f[col.texto])]));
   const pasos = [];
   const avisos = [];
   const sinCambios = [];
@@ -205,9 +429,12 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
       const cambia = ya.texto !== texto || antes.join('\n') !== datos.join('\n');
       const n = nivelDe(ya.pasos);
       const nuevos = [];
-      if (cambia) nuevos.push({ tipo: 'correccion', quien: ya.cosa, cosa: ya.cosa, fila: fid, tarea: ya.id, texto, datos });
+      if (cambia) nuevos.push({ tipo: 'correccion', quien: ya.autor, cosa: ya.cosa, fila: fid, tarea: ya.id, texto, datos });
+      // La nota: otra si el detalle cambia; una vacía si la tabla lo retira; nada si no cambia.
+      const nota = lineasDeNota(fila, corr, textos) ?? (ya.nota && partirNota(ya.nota) ? lineasDeNotaVacia(fid) : null);
+      if (nota && (ya.nota ?? []).join('\n') !== nota.join('\n')) nuevos.push({ tipo: 'nota', quien: ya.autor, cosa: ya.cosa, fila: fid, tarea: ya.id, lineas: nota });
       if (quiere < n) avisos.push(`fila ${fid}: la fase «${fase}» (${destino}) retrocede desde ${PASOS[n]}; no se deshace`);
-      for (let p = n + 1; p <= quiere; p++) nuevos.push({ tipo: PASOS[p], quien: ya.cosa, cosa: ya.cosa, fila: fid, tarea: ya.id, anuncio: ya.anuncio, texto });
+      for (let p = n + 1; p <= quiere; p++) nuevos.push({ tipo: PASOS[p], quien: ya.autor, cosa: ya.cosa, fila: fid, tarea: ya.id, anuncio: ya.anuncio, texto });
       if (nuevos.length) pasos.push(...nuevos); else sinCambios.push(fid);
       continue;
     }
@@ -225,10 +452,12 @@ export function planear(eje, tabla, { duena, corr, filas = null }) {
     const clave = cosa + '\0' + proyecto;
     if (!libro.proyectos.has(clave) && !proyectosNuevos.has(clave)) {
       proyectosNuevos.add(clave);
-      pasos.push({ tipo: 'proyecto', quien: cosa, cosa, proyecto });
+      pasos.push({ tipo: 'proyecto', quien: autorDe(cosa), cosa, proyecto });
     }
-    pasos.push({ tipo: 'tarea', quien: cosa, cosa, proyecto, fila: fid, texto, datos });
-    for (let p = 0; p <= quiere; p++) pasos.push({ tipo: PASOS[p], quien: cosa, cosa, fila: fid, texto });
+    pasos.push({ tipo: 'tarea', quien: autorDe(cosa), cosa, proyecto, fila: fid, texto, datos });
+    const nota = lineasDeNota(fila, corr, textos);
+    if (nota) pasos.push({ tipo: 'nota', quien: autorDe(cosa), cosa, fila: fid, lineas: nota });
+    for (let p = 0; p <= quiere; p++) pasos.push({ tipo: PASOS[p], quien: autorDe(cosa), cosa, fila: fid, texto });
   }
   const desaparecen = [...libro.tareas.keys()].filter((f) => !vistos.has(f));
   for (const f of desaparecen) avisos.push(`fila ${f}: ya no está en la tabla; no se borra`);
@@ -291,6 +520,7 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, dar = ne
       case 'proyecto': X = ids.alta.get(paso.cosa); params = { title: paso.proyecto }; break;
       case 'tarea': X = ids.proyecto.get(paso.cosa + '\0' + paso.proyecto); params = { title: paso.texto, content: paso.datos }; break;
       case 'correccion': X = tarea; params = { title: paso.texto, content: paso.datos }; break;
+      case 'nota': X = tarea; params = { title: NOTA.titulo, content: paso.lineas }; break;
       case 'propuesta': X = tarea; params = { what: paso.texto, when: corr.cuando ?? t0, units: corr.minutosAnunciados }; break;
       case 'autorizada': X = paso.anuncio ?? ids.anuncio.get(paso.fila); params = {}; break;
       case 'ejecutada': X = tarea; params = { announcement: paso.anuncio ?? ids.anuncio.get(paso.fila) }; break;
@@ -398,7 +628,16 @@ function conDar(pasos, cosas, duena) {
  */
 export async function volcar(eje, tabla, opciones = {}) {
   const corr = correspondenciaDe(opciones.correspondencia);
+  // Las comprobaciones de la tabla (VG 17-11): si alguna falla, no se escribe nada y el informe lo dice.
+  const errores = comprobarTabla(tabla, corr);
+  if (errores.length) {
+    return {
+      simulado: Boolean(opciones.simular), escritos: [], sinCambios: [], avisos: errores.map((e) => 'la tabla no se vuelca: ' + e),
+      noPuede: [], paraLaDuena: [], desaparecen: [], comprobacion: errores, t: { calculado: {}, gastado: {}, dado: {} }, eje,
+    };
+  }
   if (corr.como === 'personas') return volcarPersonas(eje, tabla, corr, opciones);
+  if (corr.duena) throw new Error('correspondencia: la casa de la dueña («duena») solo se vuelca en modo personas');
   const duena = opciones.duena ?? eje.obtener(eje.genesisId).autor;
   const claves = opciones.claves ?? {};
   const t0 = opciones.t ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
@@ -518,6 +757,13 @@ async function volcarPersonas(eje, tabla, corr, opciones) {
   const puedeInvitar = !eje.exigirFirmas || Boolean(claves.duena?.privada);
   const fuera = new Map(); // casa → el motivo por el que sus pasos no se escriben
   for (const casa of new Set(plan.pasos.map((p) => p.cosa))) {
+    if (casa === corr.duena) {
+      // La casa de la dueña: sus filas las firma ella; sin su clave quedan para ella (como las invitaciones).
+      // Un libro donde ese nombre ya tiene alta propia (volcado antes como otra casa): no se vuelca encima.
+      if (casa !== duena && eje.alta(casa)) { fuera.set(casa, 'el nombre ' + casa + ' ya tiene alta propia en este libro: la casa de la dueña no se vuelca encima'); continue; }
+      if (eje.exigirFirmas && !claves.duena?.privada) { fuera.set(casa, 'sin la clave de la dueña'); paraLaDuena.push('volcar las filas de ' + casa + ' (la casa de la dueña) con su clave'); }
+      continue;
+    }
     const nueva = plan.pasos.some((p) => p.cosa === casa && p.tipo === 'alta');
     if (nueva) {
       const usable = invitacionPendiente(eje, casa, { duena, clave: claves.cosas?.[casa]?.publica, t: t0 });
@@ -576,6 +822,7 @@ export function pintar(inf) {
     l.push('no puede (' + inf.noPuede.length + '):', ...Object.entries(porMotivo).map(([m, n]) => '  - ' + n + ' × ' + m));
   }
   if (inf.paraLaDuena.length) l.push('queda para la dueña:', ...inf.paraLaDuena.map((a) => '  - ' + a));
+  if (inf.comprobacion?.length) l.unshift('LA TABLA NO SE VUELCA (' + inf.comprobacion.length + ' errores): no se escribe nada');
   return l.join('\n');
 }
 
@@ -612,7 +859,7 @@ async function principal(argv) {
   // Sin claves (simulando): claves de prueba en memoria para la dueña y cada cosa de la tabla.
   if (!a.claves) {
     claves.duena = { identidad: duena, privada: (await generarClaves()).privada };
-    for (const f of tabla) { const c = String(corr.nombres[f?.[corr.columnas.cosa]] ?? f?.[corr.columnas.cosa]); claves.cosas[c] ??= await generarClaves(); }
+    for (const f of tabla) { const c = String(corr.nombres[f?.[corr.columnas.cosa]] ?? f?.[corr.columnas.cosa]); if (c !== corr.duena) claves.cosas[c] ??= await generarClaves(); }
   }
   for (const [c, k] of Object.entries(claves.cosas ?? {})) if (k?.privada && !k.publica) claves.cosas[c] = { ...k, publica: publicaDe(k.privada) };
   const t = a.t ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
