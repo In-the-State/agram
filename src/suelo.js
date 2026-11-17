@@ -16,8 +16,10 @@
 //   - la fila 7.9 vale (erroresDeLaFila): los umbrales (7.9.1 y 7.9.2) son números mayores que 0 y menores que 1, y el
 //     de gobierno queda estrictamente por encima del corriente; los niveles (7.9.3 y 7.9.4) son niveles de la época y el
 //     de gobierno no queda por debajo; cada nombre de quién cuenta (7.9.5) pesa más que 0 y no más que la presión máxima;
-//   - con una clase dada (un cambio, no una época de nacimiento): si toca una pieza de gobierno, o añade o sustituye
+//   - con una clase dada (un cambio, no una época de nacimiento): si toca una pieza de gobierno, o añade, sustituye o quita
 //     una condición o una lectura que se guarda (se llame como se llame), la clase es «governance».
+// Y la salida con lo propio (VG 17-11; condicionesDelRegistro, al final): a un registro que nombra «declare a balance»
+// solo se le prueban las reglas del suelo.
 
 import { nombreDeRegla, esLectura, esEscritura, esLecturaDePv, posicionDeLectura, esFormula } from './bqlm.js';
 
@@ -232,6 +234,17 @@ export function erroresDelSuelo(base, resultado, { clase } = {}) {
       if (!q) continue;
       motivos.push((nombresAntes.has(nombreDeRegla(regla)) ? 'sustituye ' : 'añade ') + q + ', y se declara ' + declarada + ': una condición o una lectura que se guarda, nueva o sustituida, se llame como se llame, es de clase «' + CLASE_DE_GOBIERNO + '»');
     }
+    // Tampoco quita (VG 17-11, encargo «la salida con lo propio», B): una condición o una lectura que se guarda de la base
+    // que en el resultado ya no está como tal. El 2 es una colección que no pierde entradas al fundir, así que quitar es
+    // dejar con ese nombre algo que no guarda (una lectura que solo informa); una época completa puede no traerla.
+    const ahora = new Set((resultado?.reglasConId ?? []).map((x) => x.id));
+    const guardanAhora = new Set((resultado?.reglasConId ?? []).filter((x) => queGuarda(x.regla)).map((x) => nombreDeRegla(x.regla)));
+    for (const { id, regla } of base?.reglasConId ?? []) {
+      const n = nombreDeRegla(regla);
+      if (ahora.has(id) || tocadas.includes(n) || guardanAhora.has(n)) continue;
+      const q = queGuarda(regla);
+      if (q) motivos.push('quita ' + q + ', y se declara ' + declarada + ': quitar una condición o una lectura que se guarda, se llame como se llame, es de clase «' + CLASE_DE_GOBIERNO + '»');
+    }
   }
   return motivos;
 }
@@ -282,4 +295,43 @@ export function erroresDeLaFila(epoca) {
     if (!(presion > 0 && maxima !== undefined && presion <= maxima)) motivos.push('deja en quién cuenta (epoch.7.9.5) ' + comoTexto(h) + ' con la presión ' + (presion === undefined ? 'sin un número' : presion) + ': una presión es un número mayor que 0 y no mayor que la máxima de la época (epoch.9.0.0.4, ' + (maxima === undefined ? 'sin un número' : maxima) + ')');
   }
   return motivos;
+}
+
+// ---------- La salida con lo propio (VG 17-11; docs/notas/GOBIERNO.md, «La salida con lo propio») ----------
+// Los dos tercios pueden añadir una regla que deje a una persona sin escribir; a cambio, la declaración de saldo del
+// puente es suelo y se juzga solo con el suelo: que sea de quien la firma, que sea verdad y que pague su T. Qué es una
+// declaración lo dice una regla del suelo, «a declared balance is only that»: un registro que nombra «declare a
+// balance» en su 4 y hace cualquier otra cosa no entra. El núcleo solo decide qué reglas se le prueban.
+
+/** El nombre de la acción (y de la plantilla) de una declaración de saldo, y el de la regla del suelo que dice qué es. */
+export const DECLARAR_SALDO = 'declare a balance';
+export const DECLARACION_SOLO_ESO = 'a declared balance is only that';
+/** Dónde dice un registro su acción: su payload 4, el parámetro «actions» de toda plantilla de la época. */
+const ACCION = 4;
+
+/** ¿Nombra `ev` «declare a balance» en su payload 4? (la misma lectura que `dice` de src/versiones.js). */
+export function nombraDeclaracion(ev) {
+  const x = ev?.payload?.[ACCION];
+  return Array.isArray(x) ? x.includes(DECLARAR_SALDO) : x === DECLARAR_SALDO;
+}
+
+const SOLO_DEL_SUELO = new WeakMap();
+
+/**
+ * Las reglas de validez de `epoca` (su `condiciones`, en el orden del 8) que se le prueban al registro `ev`: todas; y, si
+ * `ev` nombra «declare a balance» en su 4, solo las que se llaman como una pieza del suelo de la época (sueloDe: su
+ * 7.9.6, con lo calculado). Solo si esa época tiene en su suelo la regla «a declared balance is only that» y la trae:
+ * sin ella nadie exigiría la forma de una declaración, y vestir de declaración otro registro saltaría las reglas del
+ * libro; entonces se le prueban todas. Quien decide que un registro «es una declaración» es esa regla, que se le prueba
+ * siempre: si nombra la acción y hace otra cosa, no entra.
+ */
+export function condicionesDelRegistro(epoca, ev) {
+  const todas = Array.isArray(epoca?.condiciones) ? epoca.condiciones : [];
+  if (!nombraDeclaracion(ev) || !epoca || typeof epoca !== 'object') return todas;
+  if (!SOLO_DEL_SUELO.has(epoca)) {
+    const suelo = new Set(sueloDe(epoca));
+    const guarda = suelo.has(DECLARACION_SOLO_ESO) && todas.some((r) => nombreDeRegla(r) === DECLARACION_SOLO_ESO);
+    SOLO_DEL_SUELO.set(epoca, guarda ? Object.freeze(todas.filter((r) => suelo.has(nombreDeRegla(r)))) : todas);
+  }
+  return SOLO_DEL_SUELO.get(epoca);
 }

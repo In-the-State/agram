@@ -32,7 +32,7 @@ console.log(eje.epocaDe(enVigor.id).registro[7][3][0], eje.epoca().registro[7][3
 ```
 
 ```text
-[ [ 0, null, '568a8aac' ], [ 1, 'f59ede28', '5596cc4d' ] ]
+[ [ 0, null, '03492193' ], [ 1, 'bc09a0b3', '564edcb3' ] ]
 [ 600 ] [ 900 ] true
 ```
 
@@ -71,6 +71,7 @@ Los motivos salen por la vía de siempre: `eje.motivos(ev)` (con `regla: 'núcle
 | nombres sin presión | «el cambio deja en quién cuenta (epoch.7.9.5) nombres cuyas presiones suman 0: …» (la lectura «support» dividiría por cero) |
 | la clase se queda corta | «el cambio toca «…», que es una pieza de gobierno (epoch.7.9.7), y se declara «ordinary»: un cambio así es de clase «governance»» (también las piezas calculadas: `epoch.9.0.0.4`, `epoch.7.6`) |
 | añade o sustituye una condición o una lectura que se guarda, y es «ordinary» | «el cambio añade la condición «…», y se declara «ordinary»: una condición o una lectura que se guarda, nueva o sustituida, se llame como se llame, es de clase «governance»» (o «sustituye la regla que escribe «…»», o «añade la lectura «…», que se guarda en X.2.4.7») |
+| quita una condición o una lectura que se guarda (deja con su nombre algo que no guarda), y es «ordinary» (la salida con lo propio, B) | «el cambio quita la condición «at most a year ahead», y se declara «ordinary»: quitar una condición o una lectura que se guarda, se llame como se llame, es de clase «governance»» (o «quita la regla que escribe «…»», o «quita la lectura «weight», que se guarda en X.2.4.8») |
 
 **Solo al poner en vigor**, siguiendo el sobre:
 
@@ -88,9 +89,11 @@ Lo de «una sola vez» y «retirada» también lo dicen las reglas de la época 
 
 ## 5. El suelo
 
-`erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o plantillas: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Además mira la fila 7.9 del resultado (`erroresDeLaFila`: umbrales, niveles y presiones, `docs/notas/GOBIERNO.md` §2). Las piezas de gobierno son las de 7.9.7 de la base y del resultado **y lo que leen, calculado** (`piezasDeGobiernoDe`, GOBIERNO.md §6). Con una clase que no es «governance», además, ninguna condición ni lectura que se guarda nueva o sustituida (`reglasConId` del resultado que la base no tiene, por id). Sin `clase` no se mira la clase.
+`erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o plantillas: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Además mira la fila 7.9 del resultado (`erroresDeLaFila`: umbrales, niveles y presiones, `docs/notas/GOBIERNO.md` §2). Las piezas de gobierno son las de 7.9.7 de la base y del resultado **y lo que leen, calculado** (`piezasDeGobiernoDe`, GOBIERNO.md §6). Con una clase que no es «governance», además, ninguna condición ni lectura que se guarda nueva o sustituida (`reglasConId` del resultado que la base no tiene, por id), **ni quitada** (la salida con lo propio, B: una de la base cuyo id el resultado no tiene y con cuyo nombre no queda ninguna que guarde; el 2 no pierde entradas al fundir, así que quitar es dejar con ese nombre una lectura que solo informa). Sin `clase` no se mira la clase.
 
-El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar. En la 0, el suelo son las 17 reglas de VG, las 9 reglas y lecturas del mecanismo del gobierno (anexo de los arreglos, I: «approved», «support», «support of», las cuatro reglas de §5 de GOBIERNO.md y las dos del apoyo) y tres posiciones; `sueloDe` le añade, calculado, toda lectura que una de sus reglas o lecturas nombra en su 1 (hoy, ninguna).
+El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar. En la 0, el suelo son las 17 reglas de VG, las 9 reglas y lecturas del mecanismo del gobierno (anexo de los arreglos, I: «approved», «support», «support of», las cuatro reglas de §5 de GOBIERNO.md y las dos del apoyo), las 2 reglas y la plantilla de la salida con lo propio («a declared balance is true», «a declared balance is only that», «declare a balance»; VG 17-11) y tres posiciones: 32; `sueloDe` le añade, calculado, toda lectura que una de sus reglas o lecturas nombra en su 1 (hoy, ninguna). Las piezas de gobierno de la 0 (7.9.7) incluyen desde entonces la fila del puente, `epoch.8.9`.
+
+**Lo que el suelo decide al validar** (la salida con lo propio, VG 17-11; `docs/notas/GOBIERNO.md` §10): a un registro que nombra «declare a balance» en su payload 4 solo se le prueban las reglas de la época que se llaman como una pieza del suelo de la versión vigente (`src/suelo.js`, `condicionesDelRegistro`, que pide `src/condiciones/reglas.js`, `veredictosDe`), si ese suelo trae «a declared balance is only that»; las condiciones del núcleo en JS y el motor, como siempre. Una regla añadida por un cambio, aunque sea de gobierno, no la alcanza (salvo que se añada al propio 7.9.6: pregunta S8).
 
 **Al cargar una época hija de nacimiento** (`cargarEpocaEscrita`, `src/epocas.js`) se comprueba el mismo suelo, sin la clase: una hija puede ampliarlo, no encogerlo, ni sustituir ni quitar una regla de la lista, ni cambiar una posición de la lista; si lo hace, la carga lanza con «no respeta el suelo de la época de la que hereda: …». Comprobado contra la 7.9.6 real antes de activarlo: la época state (sustituye «second factor» y «attention has a price») y la SIP 0 de StateArk (sustituye «sealed», «paid», «second factor» y «authorized by the holder») no tocan el suelo.
 

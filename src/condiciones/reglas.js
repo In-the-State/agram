@@ -9,7 +9,10 @@
 //
 // Cuándo no se evalúan: en el prefijo de la versión 2 (suelo de persistencia: sus eventos se validan con las
 // reglas de entonces), en un evento mal formado (la forma es suelo: las reglas leen eventos bien formados) y en uno
-// con una referencia a un evento que el eje no tiene (el suelo lo rechaza: VG, 10-11, C1).
+// con una referencia a un evento que el eje no tiene (el suelo lo rechaza: VG, 10-11, C1). Y a un registro que nombra
+// «declare a balance» en su 4 solo se le prueban las del suelo, epoch.7.9.6 (la salida con lo propio, VG 17-11:
+// src/suelo.js, condicionesDelRegistro; docs/notas/GOBIERNO.md); la regla del suelo «a declared balance is only that»
+// exige que no sea otra cosa.
 //
 // PENDIENTE: una regla que no se resuelve no pasa. Si alguna regla falla con un veredicto (RESUELTO), solo cuentan
 // esas; si no, la primera que queda PENDIENTE, en el orden del 8, rechaza con su estado y su motivo (lo que no se
@@ -21,6 +24,7 @@ import { evaluarRegla, nombreDeRegla, POR_LIMITE, CAUSA_LIMITE } from '../bqlm.j
 import { EPOCA_0_BTML } from '../epocas.js';
 import { validarForma } from '../evento.js';
 import { referenciasAusentes } from './evento.js';
+import { condicionesDelRegistro } from '../suelo.js';
 
 /** Las filas del inventario (docs/notas/INVENTARIO_REGLAS.md §2) que cita la procedencia (el 6) de una regla. */
 export function filasDeRegla(regla) {
@@ -45,7 +49,8 @@ export function veredictosDe(ctx, epoca = EPOCA_0_BTML) {
   let v = null;
   if (ctx && ctx.reglas !== 2 && typeof ctx.contextoBqlm === 'function' && ev && typeof ev === 'object' && !validarForma(ev, { tLaxo: ctx.tLaxo }).length && !referenciasAusentes(ctx).length) {
     const c = ctx.contextoBqlm(epoca);
-    v = new Map(epoca.condiciones.map((r) => {
+    // La salida con lo propio (VG 17-11): a una declaración de saldo solo se le prueban las reglas del suelo (src/suelo.js).
+    v = new Map(condicionesDelRegistro(epoca, ev).map((r) => {
       let x;
       try {
         x = evaluarRegla(r, c);
