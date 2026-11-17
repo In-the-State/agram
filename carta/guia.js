@@ -384,3 +384,119 @@ export async function preguntar({ via, ejemplo = false, url, ejeCompartido, clav
 /** Dónde está el libro compartido de quien mira, para la vía servidor: { url, eje } o null (sincronia.destinoDelLibro: la «sync url», no la del relé). */
 export const destinoDe = (eje, yo) => sincronia.destinoDelLibro(eje, yo);
 
+
+// ---------- hablar con Core (el servidor de retoques, retoques/; solo cuando está) ----------
+//
+// Con el servidor local de retoques (retoques/servidor.mjs), el PV9 habla además con «Core»: un agente de Claude Code
+// dedicado a la carta, que edita sus archivos. La carta no llama a nada por su cuenta: lo hace el cliente que inyecta
+// el servidor (window.agramRetoques). Aquí, lo puro: la conversación guardada en este navegador (aparte de la de la
+// guía; no va al eje), el cuerpo de cada mensaje, cómo cada trozo de la respuesta cambia el turno y el sitio de la
+// carta para volver a él tras recargar.
+
+/** Las claves de la conversación con Core (localStorage) y del sitio de la carta (sessionStorage: sobrevive a recargar). */
+export const CLAVES_CORE = Object.freeze({ conversacion: 'agram.retoques.core', sitio: 'agram.retoques.sitio' });
+/** Cuántos turnos de la conversación con Core se guardan. */
+export const TURNOS_CORE = 60;
+
+const turnoValido = (x) => x && (x.role === 'user' || x.role === 'core') && typeof x.texto === 'string';
+
+/** La conversación con Core guardada en este navegador: [{ role: 'user' | 'core', texto, senalado?, archivos?, error?, hecho? }]. */
+export function cargarCore(almacen) {
+  try {
+    const v = JSON.parse(almacen?.getItem(CLAVES_CORE.conversacion) ?? 'null');
+    return Array.isArray(v) ? v.filter(turnoValido).slice(-TURNOS_CORE) : [];
+  } catch {
+    return [];
+  }
+}
+
+/** Guarda los últimos TURNOS_CORE turnos (sin lo que solo vale mientras contesta: qué archivo está tocando). */
+export function guardarCore(almacen, turnos) {
+  try {
+    almacen?.setItem(CLAVES_CORE.conversacion, JSON.stringify((turnos ?? []).filter(turnoValido).slice(-TURNOS_CORE).map(({ tocando, ...resto }) => resto)));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+export function vaciarCore(almacen) {
+  try { almacen?.removeItem(CLAVES_CORE.conversacion); } catch { /* sin almacenamiento */ }
+}
+
+/**
+ * El cuerpo de un mensaje a Core: { texto, contexto, senalado }. `contexto`: el de contexto() (lo que hay en pantalla);
+ * `entorno`: libro, foco, punto de vista, modo y tamaño (opinar.entornoDe y el estado de la carta), que va delante del
+ * contexto como una línea de datos; `senalado`: [{ nodo (opinar.clasificar), etiqueta (opinar.legible) }].
+ */
+export function mensajeACore({ texto, contexto: ctx = '', entorno = null, senalado = [] } = {}) {
+  const lineaEntorno = entorno && typeof entorno === 'object' ? 'entorno: ' + JSON.stringify(entorno) : '';
+  return {
+    texto: String(texto ?? '').trim(),
+    contexto: [lineaEntorno, String(ctx ?? '')].filter(Boolean).join('\n\n'),
+    senalado: (senalado ?? []).map((s) => ({ ...(s?.nodo ?? {}), etiqueta: s?.etiqueta ?? '' })),
+  };
+}
+
+/**
+ * Cómo un trozo de la respuesta de Core cambia el turno en curso (puro: devuelve el turno nuevo). 'texto' se añade;
+ * 'archivo' dice qué toca ahora ({ ruta, edita: si lo edita o solo lo lee }); 'rechazo' lo apunta; 'fin' cierra con los archivos
+ * cambiados; 'error', con el motivo tal cual.
+ */
+export function conTrozo(turno, trozo) {
+  const t2 = { ...turno };
+  switch (trozo?.tipo) {
+    case 'texto': t2.texto = (t2.texto ?? '') + String(trozo.texto ?? ''); break;
+    case 'archivo': t2.tocando = { ruta: String(trozo.ruta ?? ''), edita: editaCon(trozo.herramienta) }; break;
+    case 'rechazo': t2.rechazos = [...(t2.rechazos ?? []), String(trozo.ruta ?? '')]; break;
+    case 'fin': t2.tocando = null; t2.hecho = true; t2.archivos = Array.isArray(trozo.archivos) ? trozo.archivos.map(String) : []; break;
+    case 'error': t2.tocando = null; t2.hecho = true; t2.error = String(trozo.motivo ?? ''); if (Array.isArray(trozo.archivos)) t2.archivos = trozo.archivos.map(String); break;
+    default: break;
+  }
+  return t2;
+}
+
+/**
+ * La lista de cambios de fondo que da el servidor de retoques (GET /retoques/fondo), con forma y topes para pintarla:
+ * { total, sesionesSinCrecer, entradas: [{ titulo, clase, estado }] } o null. Lo de dentro es texto que escribe un agente
+ * (retoques/.datos/fondo.md): quien lo pinta lo escapa.
+ */
+export function fondoDe(r) {
+  if (!r || typeof r !== 'object') return null;
+  const n = (v) => (Number.isFinite(v) && v >= 0 ? Math.floor(v) : 0);
+  const texto = (v, max) => String(v ?? '').slice(0, max);
+  const entradas = (Array.isArray(r.entradas) ? r.entradas : []).slice(-200).map((e) => ({ titulo: texto(e?.titulo, 200), clase: texto(e?.clase, 60), estado: texto(e?.estado, 60) }));
+  return { total: n(r.total), sesionesSinCrecer: n(r.sesionesSinCrecer), entradas };
+}
+
+/** ¿Edita (o solo lee)? La herramienta de un trozo 'archivo'. */
+export const editaCon = (herramienta) => /^(Edit|Write|MultiEdit|NotebookEdit)$/.test(String(herramienta ?? ''));
+
+const objetoPlano = (x) => (x && typeof x === 'object' && !Array.isArray(x) ? JSON.parse(JSON.stringify(x)) : {});
+
+/** El sitio de la carta para volver a él tras recargar: { libro, foco: { X, pv }, niveles, profundidad, paginas, con }. */
+export function sitioDe(estado, { libro, con = 'guia' } = {}) {
+  return {
+    libro: String(libro ?? ''),
+    foco: { X: estado?.foco?.X ?? null, pv: Number(estado?.foco?.pv) || 0 },
+    niveles: objetoPlano(estado?.niveles),
+    profundidad: objetoPlano(estado?.profundidad),
+    paginas: objetoPlano(estado?.paginas),
+    con: con === 'core' ? 'core' : 'guia',
+  };
+}
+
+export function guardarSitio(almacen, sitio) {
+  try { almacen?.setItem(CLAVES_CORE.sitio, JSON.stringify(sitio)); return true; } catch { return false; }
+}
+
+/** El sitio guardado, o null si no hay o no tiene forma. */
+export function leerSitio(almacen) {
+  try {
+    const s = JSON.parse(almacen?.getItem(CLAVES_CORE.sitio) ?? 'null');
+    if (!s || typeof s.libro !== 'string' || typeof s.foco?.X !== 'string') return null;
+    return sitioDe(s, { libro: s.libro, con: s.con });
+  } catch {
+    return null;
+  }
+}

@@ -67,7 +67,10 @@ const estado = {
   // servidor, eje compartido o clave de lectura), y lo que enseña la línea de estado (sinc.lineaDeEstado) o null.
   sincronia: null, lineaSincronia: null,
   // La guía del PV9: la conversación de la alta en pantalla, lo escrito sin enviar y lo que está pasando.
-  guia: { alta: null, historial: [], borrador: '', pensando: false, pendiente: '', error: '' },
+  guia: { alta: null, historial: [], borrador: '', pensando: false, pendiente: '', error: '', con: 'guia' },
+  // Hablar con Core desde el PV9 (solo con el servidor de retoques, retoques/; carta/guia.js «hablar con Core»): la
+  // conversación de este navegador (null hasta cargarla), lo escrito sin mandar, lo señalado y si el próximo toque señala.
+  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false, fondo: null, fondoAbierto: false },
   // El 3 por tema (encargo pv3): el botón de cada caja ({ [caja]: 'todos' | 'doy' | 'recibo' }) y el sitio abierto
   // ({ X, lugar }: la cruceta del propio nodo, el personaje del sitio) o null.
   filtrosDelTres: {}, sitio: null,
@@ -446,7 +449,81 @@ function datosGuia() {
     aqui: evaluadas.filter((e) => e.sobre === estado.foco.X).length,
     fuera: evaluadas.filter((e) => e.sobre !== estado.foco.X).map((e) => (e.sobre ? { ...e, sobreTexto: ceroDe(estado.eje, e.sobre, { idioma: idioma() }, contrato.legible(estado.eje, { ref: e.sobre }, null, { idioma: idioma() }).texto) } : e)),
   };
-  return { historial: g.historial, pensando: g.pensando, pendiente: g.pendiente, error: g.error, borrador: g.borrador, preguntas: guia.preguntasRapidas(estado.eje, idioma()), via: aj.via, ejemplo: !estado.cuenta, propuestas };
+  return { historial: g.historial, pensando: g.pensando, pendiente: g.pendiente, error: g.error, borrador: g.borrador, preguntas: guia.preguntasRapidas(estado.eje, idioma()), via: aj.via, ejemplo: !estado.cuenta, propuestas, ...(retoques() ? { core: datosCore() } : {}) };
+}
+
+// ---------- hablar con Core (solo con el servidor de retoques, retoques/) ----------
+
+/** El cliente que inyecta el servidor local de retoques (retoques/cliente.js), si está y tiene llave; si no, null y la carta queda como siempre. */
+const retoques = () => (globalThis.agramRetoques?.tieneLlave?.() ? globalThis.agramRetoques : null);
+const almacenSesion = () => { try { return globalThis.sessionStorage; } catch { return undefined; } };
+/** El libro en pantalla, para el sitio guardado: el alta de la cuenta o «ejemplo». */
+const libroDeAhora = () => (estado.cuenta ? estado.cuenta.alta : 'ejemplo');
+
+/** Lo que pinta htmlCore: la conversación (cargada la primera vez; lo que quedó a medias al recargar, cortado) y lo señalado. */
+function datosCore() {
+  const c = estado.core;
+  if (!c.turnos) {
+    c.turnos = guia.cargarCore(almacenLocal()).map((m) => (m.role === 'core' && !m.hecho ? { ...m, hecho: true, error: m.error || t('coreCortado') } : m));
+  }
+  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando, fondo: c.fondo, fondoAbierto: c.fondoAbierto };
+}
+
+/** La lista de cambios de fondo del servidor de retoques (al cargar y al acabar cada respuesta de Core). */
+async function refrescarFondo() {
+  const r = retoques();
+  if (!r?.fondo) return;
+  const f = guia.fondoDe(await r.fondo());
+  if (!f) return;
+  estado.core.fondo = f;
+  pintarGuia();
+}
+
+/** Repinta la guía en el próximo cuadro (los trozos de Core llegan muy seguidos). */
+let marcoGuia = 0;
+const pintarGuiaPronto = () => { if (!marcoGuia) marcoGuia = requestAnimationFrame(() => { marcoGuia = 0; pintarGuia(); }); };
+
+/** El sitio de la carta (libro, foco, punto de vista, tamaños, con quién habla el PV9), para volver a él tras recargar. */
+function guardarSitioDeRetoques() {
+  if (!retoques() || !estado.eje || !estado.foco.X) return;
+  guia.guardarSitio(almacenSesion(), guia.sitioDe(estado, { libro: libroDeAhora(), con: estado.guia.con }));
+}
+
+/** Tras recargar con el servidor de retoques: el mismo foco, punto de vista y tamaños si es el mismo libro, y el PV9 donde estaba. */
+async function volverAlSitio() {
+  const s = guia.leerSitio(almacenSesion());
+  if (!s || s.libro !== libroDeAhora() || !estado.eje?.obtener(s.foco.X)) return;
+  estado.foco = { ...s.foco };
+  estado.niveles = s.niveles;
+  estado.profundidad = s.profundidad;
+  estado.paginas = s.paginas;
+  estado.guia.con = s.con;
+  await pintar();
+  if (s.con === 'core') raiz.querySelector('[data-guia]')?.scrollIntoView?.({ block: 'nearest' });
+}
+
+/**
+ * «Señalar»: con el botón pulsado, el siguiente toque en la carta (fuera del PV9) no hace lo suyo: se clasifica como en
+ * «opinar» (opinar.clasificar) y va, como etiqueta, con el próximo mensaje a Core. Los eventos se paran en captura, como
+ * hace opinar.instalar.
+ */
+function instalarSenalar() {
+  const tipos = ['click', 'dblclick', 'contextmenu', 'mousedown', 'pointerdown', 'pointerup', 'pointermove', 'pointercancel'];
+  const alEvento = (e) => {
+    if (!estado.core.senalando) return;
+    const objetivo = e.target;
+    if (!objetivo?.closest || !raiz.contains(objetivo) || objetivo.closest('.guia')) return;
+    e.stopPropagation();
+    e.stopImmediatePropagation?.();
+    if (e.type === 'click' || e.type === 'mousedown' || e.type === 'contextmenu' || e.type === 'dblclick') e.preventDefault();
+    if (e.type !== 'click') return;
+    const nodo = opinar.clasificar(objetivo);
+    const etiqueta = opinar.legible(nodo, opinar.entornoDe(objetivo));
+    estado.core.senalado = [...estado.core.senalado, { nodo, etiqueta }].slice(-5);
+    estado.core.senalando = false;
+    pintarGuia();
+  };
+  for (const tipo of tipos) document.addEventListener(tipo, alEvento, true);
 }
 
 /** Repinta solo la sección de la guía (repintarlo todo borraría lo que se está escribiendo y el desplazamiento). */
@@ -1797,6 +1874,64 @@ const manejadores = {
     const q = guia.preguntasRapidas(estado.eje, idioma())[i];
     if (q) return manejadores.guiaPreguntar(q);
   },
+  /** Con quién habla el PV9: la guía o Core (solo con el servidor de retoques). */
+  guiaCon(con) {
+    estado.guia.con = con === 'core' && retoques() ? 'core' : 'guia';
+    pintarGuia();
+  },
+  /** Manda a Core lo escrito, con el contexto de la pantalla (guia.contexto), el entorno (opinar.entornoDe) y lo señalado; la respuesta se pinta según llega. */
+  async corePreguntar(pedido) {
+    const r = retoques();
+    const c = estado.core;
+    const texto = String(pedido ?? '').trim();
+    if (!r || !texto || c.pensando || !estado.eje) return;
+    datosCore();
+    const aj = guia.ajustes(estado.eje, estado.identidad);
+    const carta = raiz.querySelector('[data-nodo="carta"]');
+    const deLaCarta = carta ? opinar.entornoDe(carta) : {};
+    const entorno = { libro: estado.cuenta ? { nombre: estado.cuenta.nombre, alta: estado.cuenta.alta } : 'ejemplo', yo: estado.identidad, ...deLaCarta, foco: { ...estado.foco, X0: deLaCarta.foco?.X0 ?? null }, niveles: estado.niveles };
+    let contexto = '';
+    try { contexto = await guia.contexto(estado, estado.eje, estado.identidad, { ...medidas(), cuenta: Boolean(estado.cuenta), tope: aj.contexto }); } catch (e) { contexto = String(e?.message ?? e); }
+    const senalado = c.senalado;
+    const cuerpo = guia.mensajeACore({ texto, contexto, entorno, senalado });
+    c.turnos = [...c.turnos, { role: 'user', texto, senalado: senalado.map((s) => s.etiqueta) }, { role: 'core', texto: '' }];
+    Object.assign(c, { pensando: true, borrador: '', senalado: [], senalando: false, error: '' });
+    guia.guardarCore(almacenLocal(), c.turnos);
+    pintarGuia();
+    const turnos = c.turnos;
+    await r.core(cuerpo, (trozo) => {
+      if (c.turnos !== turnos) return; // una conversación nueva entre medias
+      c.turnos[c.turnos.length - 1] = guia.conTrozo(c.turnos[c.turnos.length - 1], trozo);
+      if (trozo.tipo !== 'texto') guia.guardarCore(almacenLocal(), c.turnos);
+      if (trozo.tipo === 'fin' || trozo.tipo === 'error') c.pensando = false;
+      pintarGuiaPronto();
+    });
+    c.pensando = false;
+    guia.guardarCore(almacenLocal(), c.turnos);
+    pintarGuia();
+    void refrescarFondo();
+  },
+  /** «Señalar»: el siguiente toque en la carta señala ese elemento (otra vez, lo deja). */
+  coreSenalar() {
+    estado.core.senalando = !estado.core.senalando;
+    pintarGuia();
+  },
+  /** Quitar una etiqueta de lo señalado. */
+  coreQuitar(i) {
+    estado.core.senalado = estado.core.senalado.filter((_, j) => j !== i);
+    pintarGuia();
+  },
+  /** Una conversación nueva con Core: la del agente y la de este navegador. */
+  async coreNueva() {
+    const r = retoques();
+    if (!r || estado.core.pensando) return;
+    const hecho = await r.nueva();
+    if (hecho.ok) {
+      guia.vaciarCore(almacenLocal());
+      Object.assign(estado.core, { turnos: [], error: '' });
+    } else estado.core.error = hecho.motivo ?? '';
+    pintarGuia();
+  },
   /** Vaciar la conversación de esta alta. */
   guiaVaciar() {
     const alta = altaDeGuia();
@@ -2219,6 +2354,7 @@ async function arrancar() {
     raiz, cuenta: () => estado.cuenta?.nombre ?? 'ejemplo', alCambiar: () => { void pintar(); },
     // Con «opinions anchor» (los ajustes de la guía), cada opinión se escribe además como un registro anclado en el proyecto.
     async alGuardar(opinion) {
+      void retoques()?.opinion(opinion); // con el servidor de retoques, también a retoques/.datos/opiniones.jsonl
       const r = await externa.anclarOpinion(estado.eje, estado.identidad, opinion, { firmar: firmarCon(estado.identidad) });
       if (r.ok) trasEscribir();
       return r;
@@ -2245,6 +2381,16 @@ async function arrancar() {
   });
   // Lo escrito en la pregunta de la guía se recuerda (un repintado entero no lo pierde).
   raiz.addEventListener('input', (e) => { if (e.target.matches?.('[data-guia-pregunta]')) estado.guia.borrador = e.target.value; });
+  if (retoques()) {
+    // Hablar con Core: lo escrito se recuerda, «señalar» intercepta el siguiente toque y el sitio se guarda al irse (recargar).
+    raiz.addEventListener('input', (e) => { if (e.target.matches?.('[data-core-texto]')) estado.core.borrador = e.target.value; });
+    instalarSenalar();
+    // La lista de cambios de fondo: si está abierta se queda abierta al repintar; se pide al cargar.
+    raiz.addEventListener('toggle', (e) => { if (e.target.matches?.('[data-core-fondo]')) estado.core.fondoAbierto = e.target.open; }, true);
+    void refrescarFondo();
+    window.addEventListener('pagehide', guardarSitioDeRetoques);
+    document.addEventListener('visibilitychange', () => { if (document.visibilityState === 'hidden') guardarSitioDeRetoques(); });
+  }
   // El libro compartido: al volver la red y cada 30 s con la pestaña visible (la cola decide si toca reintentar).
   window.addEventListener('online', () => { if (estado.sincronia) void sincronizar(); });
   setInterval(() => { if (estado.sincronia && document.visibilityState === 'visible') void sincronizar(); }, sinc.CADA);
@@ -2256,6 +2402,7 @@ async function arrancar() {
   else if (u && lista.some((c) => c.alta === u)) await entrarEnCuenta(u);
   else if (lista.length) await entrarEnCuenta(lista[lista.length - 1].alta);
   else { estado.arranque = { modo: 'menu' }; await pintar(); }
+  if (retoques()) await volverAlSitio();
   if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
     navigator.serviceWorker.register('./sw.js').catch(() => { /* sin SW: la web funciona igual con red */ });
   }
