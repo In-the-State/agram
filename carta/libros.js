@@ -20,11 +20,8 @@ import { clavesDeLinea } from './anfitrion.js';
 
 const { LIBRO_PRIVADO } = contrato;
 
-// ---------- Lo que el núcleo no exporta todavía ----------
-// Los nombres de los parámetros de las dos plantillas del enlace (datos/epocas/plantillas: «open a private book here» y
-// «this book hangs from»; docs/notas/LIBRO_PRIVADO.md; el génesis del 5 y el punto, docs/notas/PUENTE.md §10.2 y §10.5).
-// Hueco del núcleo: exportarlos junto a contrato.LIBRO_PRIVADO. Mientras, la carta (y sus pruebas) los toman de aquí.
-export const PARAMETROS = Object.freeze({ libro: 'book', claves: 'line keys', direccion: 'headers url', elemento: 'element', genesis: 'genesis', punto: 'point' });
+// Los nombres de los parámetros de las dos plantillas del enlace: del núcleo (contrato.PARAMETROS_DEL_ENLACE).
+export const PARAMETROS = contrato.PARAMETROS_DEL_ENLACE;
 
 const corto = (id) => String(id ?? '').slice(0, 8);
 

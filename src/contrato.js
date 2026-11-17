@@ -2826,6 +2826,13 @@ export function quienGuarda(eje, yo, sobre, opciones = {}) {
 export const LIBRO_PRIVADO = Object.freeze({ abrir: 'open a private book here', cuelga: 'this book hangs from', retirar: 'withdraw a link', en: '9100000000', cuelgaEn: '9500000000' });
 
 /**
+ * Los nombres de los parámetros de las dos plantillas del enlace (datos/epocas/plantillas: «open a private book here» y «this
+ * book hangs from»; el génesis del 5 y el punto, docs/notas/PUENTE.md §10.2 y §10.5): quien escribe un enlace (la carta,
+ * planDeSalida) los toma de aquí y no los repite a mano.
+ */
+export const PARAMETROS_DEL_ENLACE = Object.freeze({ libro: 'book', claves: 'line keys', direccion: 'headers url', elemento: 'element', genesis: 'genesis', punto: 'point' });
+
+/**
  * ¿Está retirado el enlace `r`? (encargo «arreglos del puente», PH4): de él cuelga un «withdraw a link» de su mismo autor,
  * como lo mira la regla «a record is brought from a linked book». Solo lo que cuelga del enlace, no el libro.
  */
