@@ -767,7 +767,7 @@ test('#22: mantener sobre un hueco vacío abre el aro con un input nuevo (crea e
   const dos = b.aro.huecos.find((x) => x.pv === 2);
   const nombres = [dos.accion, ...dos.otras].map((x) => A.plantillaDeTransaccion(x.id)?.[0][0]);
   // Detrás solo queda el sí del dueño («let P come down here», VG 17-11): el elemento es de quien lo acaba de escribir.
-  assert.deepEqual(nombres.slice(-2), ['attach a file', 'let P come down here']);
+  assert.deepEqual(nombres.slice(-3), ['attach a file', 'attach art to this element', 'let P come down here']); // + «attach art to this element» (encargo «arte propio»)
   assert.notEqual(nombres[0], 'attach a file');
   assert.match(html(b), /data-lanzar="[0-9a-f]{64}" data-x="[0-9a-f]{64}">attach a file/);
   // El formulario de la acción dice qué parámetros salen del archivo (la app abre el selector en vez del formulario).

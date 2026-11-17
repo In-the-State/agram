@@ -18,6 +18,7 @@ import { evaluar } from '../src/bqlm.js';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
+import * as A from '../src/acciones.js';
 
 const minuto = (de, cantidad) => (cantidad === undefined ? pagaElCoste(de) : { token: 'T', escala: 'minuto', cantidad, de, a: null });
 const T = '2026-11-07T18:00:00Z';
@@ -408,6 +409,49 @@ test('#25: el arte propio de un registro es su modelo parcial (piezas ancladas p
   // SEG-14 también aquí: el recurso acotado.
   await eje.escribir({ autor, sobre: menu.id, en: '5000000000', t: T, movimientos: [minuto(autor)], payload: [['marco'], [1, 'svg'], [4], ['centro'], ['once', 1], [5], ['javascript:alert(1)']] });
   assert.ok(!propio(eje, menu.id).piezas.some((x) => x.tipo === 'marco'), 'un recurso no admitido se descarta');
+});
+
+test('#25, la plantilla «attach art to this element» (época 0): ancla el adjunto como pieza propia del elemento; de quien no es su autor no da pieza; html no', async () => {
+  const { eje, menu } = await ejemploCompra();
+  const autor = eje.obtener(menu.id).autor;
+  const otro = autor === 'huesped' ? 'casa' : 'huesped';
+  const archivo = 'archivo:' + 'd'.repeat(64);
+  const p = A.plantillaDeTransaccion('attach art to this element');
+  assert.ok(p, 'está en epoch.9.6');
+  assert.deepEqual(p[8], [2, 9], 'en el sitio 2, junto a «attach a file» (2, 6)');
+  assert.ok(A.acciones(eje, menu.id, 2, autor).some((a) => a.nombre === 'attach art to this element'), 'se ofrece al autor de X');
+  assert.ok(!A.acciones(eje, menu.id, 2, otro).some((a) => a.nombre === 'attach art to this element'), 'a otro, no (coherencia: su pieza no contaría)');
+  // Un toque: el archivo (y su formato, que la carta saca de la subida); los defectos dan un icono propio en el 5 con «*».
+  const r = await A.transaccion(eje, 'attach art to this element', { X: menu.id, file: archivo, format: 'svg' }, autor, { t: T });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  assert.deepEqual([r.evento.sobre, r.evento.en], [menu.id, '5000000000']);
+  assert.deepEqual(validarPayload(r.evento.payload), { ok: true, errores: [] });
+  await eje.anadir(r.evento);
+  const suyo = propio(eje, menu.id);
+  assert.ok(suyo, 'el elemento lleva arte propio');
+  assert.deepEqual([...new Set(suyo.piezas.map((x) => x.pv))].sort(), [1, 2, 3, 4, 5, 6, 7, 8, 9]);
+  assert.deepEqual([suyo.piezas[0].tipo, suyo.piezas[0].formato, suyo.piezas[0].recurso, suyo.piezas[0].donde], ['elemento', 'svg', archivo, r.evento.id]);
+  const cadena = modelo(eje, 'huesped', { elemento: menu.id });
+  const q = pieza(cadena, 'elemento', 7, 3, 'centro', { rol: 'cuenta-futuro' });
+  assert.deepEqual([q.recurso, q.origen, q.propio], [archivo, menu.id, true], 'responde con origen X');
+  // En un mundo concreto: anclada en esa posición de X, y sirve ahí.
+  const enTres = await A.transaccion(eje, 'attach art to this element', { X: menu.id, file: 'archivo:' + 'e'.repeat(64), format: 'image', type: 'fondo', world: 3 }, autor, { t: T });
+  assert.ok(enTres.ok, JSON.stringify(enTres.motivos));
+  assert.equal(enTres.evento.en, '3000000000');
+  await eje.anadir(enTres.evento);
+  assert.deepEqual(propio(eje, menu.id).piezas.filter((x) => x.tipo === 'fondo').map((x) => x.pv), [3]);
+  // La misma escritura de quien no es el autor de X: entra en el libro (cualquiera escribe), pero no da pieza.
+  const ajena = await A.transaccion(eje, 'attach art to this element', { X: menu.id, file: 'archivo:' + 'f'.repeat(64), format: 'svg', type: 'marco' }, otro, { t: T });
+  assert.ok(ajena.ok, JSON.stringify(ajena.motivos));
+  await eje.anadir(ajena.evento);
+  assert.ok(!propio(eje, menu.id).piezas.some((x) => x.recurso === 'archivo:' + 'f'.repeat(64)), 'lo que ancla otro no es su arte');
+  // html no: la plantilla no lo deja y, escrito a mano, la lectura no da pieza.
+  const html = await A.transaccion(eje, 'attach art to this element', { X: menu.id, file: 'archivo:' + '1'.repeat(64), format: 'html' }, autor, { t: T });
+  assert.equal(html.ok, false);
+  await eje.escribir({ autor, sobre: menu.id, en: '5000000000', t: T, movimientos: [minuto(autor)], payload: [['marco'], [[0], ['html']], [['*']], ['centro'], [['once'], [1]], ['*'], ['https://otro.invalid/marco.html']] });
+  assert.ok(!propio(eje, menu.id).piezas.some((x) => x.tipo === 'marco'), 'un html (y que no es un adjunto) no da pieza');
+  // Un tipo que la cabecera no tiene, tampoco.
+  assert.equal((await A.transaccion(eje, 'attach art to this element', { X: menu.id, file: archivo, format: 'svg', type: 'no-es-un-tipo' }, autor, { t: T })).ok, false);
 });
 
 test('#25: un adjunto «archivo:<sha256>» (el formato del encargo pv0) es un recurso admitido del eje; lo demás que parece un adjunto, no', () => {

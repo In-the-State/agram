@@ -367,6 +367,15 @@ function preparar(eje, plantilla, X, yo, params, { t, epoca, idioma }) {
       colocar();
     }
   }
+  // Un hueco del ancla que llena un defecto (encargo «arte propio»: el mundo donde sirve la pieza, «*» → su 5): el ancla
+  // se vuelve a llenar con los defectos puestos.
+  const rutaConDefectos = conHuecos(ruta ?? '0', valores);
+  if (rutaConDefectos !== rutaLlena) {
+    const d2 = rutaConDefectos.split('.').map(Number);
+    const en2 = d2.every((d) => Number.isInteger(d) && d >= 0 && d <= 9) && d2.length <= 10 ? direccion(d2) : null;
+    if (en2) candidata.en = en2;
+    else motivos.push({ regla: nombre, mensaje: motivoDe('anchor not a position', { name: nombre, path: rutaConDefectos }, { idioma, epoca }) });
+  }
   if (sinAncla) {
     const r = valores0(eje, epoca, formulaRegistro, candidata, yo, X);
     if (typeof r !== 'string' || !eje.obtener(r)) motivos.push({ regla: nombre, mensaje: motivoDe('anchor not in ledger', { name: nombre, formula: String(formulaRegistro) }, { idioma, epoca }) });

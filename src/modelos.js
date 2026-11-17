@@ -191,15 +191,17 @@ export function leerPieza(registro, { pv = null, cabecera: cab, ...opciones } = 
   const tipo = texto(hoja(registro[PIEZA.tipo]));
   const t = c.tipos.find((x) => x.tipo === tipo);
   if (!t) return null;
-  const [tamanoCrudo, formatoOForma] = hojas(registro[PIEZA.medida]);
+  // Lo que escribe una plantilla de transacción va en su forma canónica, cada hoja entre corchetes ([[0], ["svg"]]: el
+  // 1.0 y el 1.1; encargo «arte propio»): se lee igual que la lista de hojas de los modelos de la época ([0, "svg"]).
+  const [tamanoCrudo, formatoOForma] = hojas(registro[PIEZA.medida]).map(hoja);
   const tamano = typeof tamanoCrudo === 'number' ? tamanoCrudo : 0;
   const esFormato = typeof formatoOForma === 'string' && c.formatos.includes(formatoOForma);
-  const [claveCruda, subclaveCruda] = hojas(registro[PIEZA.clave]);
+  const [claveCruda, subclaveCruda] = hojas(registro[PIEZA.clave]).map(hoja);
   const clave = typeof claveCruda === 'number' || (typeof claveCruda === 'string' && claveCruda) ? claveCruda : CUALQUIERA;
   const subclave = texto(subclaveCruda) ?? null;
   const rangoCrudo = hoja(registro[PIEZA.rango]);
   const variante = texto(hoja(registro[PIEZA.variante])) ?? c.variantes[0] ?? null;
-  const [repeticion, fotogramasCrudo] = hojas(registro[PIEZA.tiempo]);
+  const [repeticion, fotogramasCrudo] = hojas(registro[PIEZA.tiempo]).map(hoja);
   const tiempo = registro[PIEZA.tiempo] !== undefined;
   const fotogramas = typeof fotogramasCrudo === 'number' ? fotogramasCrudo : 1;
   const recurso = hojas(registro[PIEZA.recurso]);
