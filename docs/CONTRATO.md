@@ -1033,6 +1033,13 @@ La escribe el volcado (`ejemplos/volcado/volcar.mjs`, `docs/notas/VOLCADO.md`): 
 - **Limpieza**: los textos pasan por la misma limpieza que la etiqueta de una zona (`RE_TEXTO_ENGANOSO` de `guia-libro.js`, §12.8). Una línea con caracteres de control o de dirección del texto se da sin ellos y su sitio va en `enganosas` («base», «paso 1 comando», «detalle 2», «depende a1»…). Un comando así va además en `sinCopiar` (el número de su paso): la carta no lo ofrece para copiar. Las dos listas solo salen si tienen algo.
 - **En la carta**: al abrir un registro con nota, la ficha se pinta bajo su título (`dom.js htmlFicha`), toda como texto.
 
+### 12.10 Las invitaciones de un libro: `invitacionesParaClave` y `altaConClave` (DISENO_CARTA_VARIOS_LIBROS §4.9)
+
+Son lecturas puras de `src/invitaciones.js`, expuestas aquí. Las usa la carta para «Entrar en un libro al que me han invitado» (`carta/invitado.js`). `invitacionesA` e `invitacionPendiente` viven también ahí y el volcado las importa.
+
+- `invitacionesParaClave(eje, publica, { t })` → las invitaciones (`eje.invitar` con `clave`) cuya clave declarada para el invitado (`contexto.claves`) es `publica`, cuyo invitado aún no tiene alta y que no han caducado en `t`: `[{ id, autor, invitado (su 3.1: con qué nombre entro), da (su 1, como textos), hasta, tema, t }]`.
+- `altaConClave(eje, publica)` → `{ identidad, alta }` si ya hay en el libro un alta con esa clave, o `null`.
+
 ## 13. Para decidir VG
 
 Del encargo 3c-2a:

@@ -61,6 +61,7 @@ import { firmar, firmarPosesion, generarClaves, publicaDe } from '../../src/auto
 import { esAnunciado, ESCALAS_REALES } from '../../src/tokens.js';
 // La nota de detalle (su forma y su lectura) vive en el núcleo (src/nota-detalle.js, CONTRATO §12.9): aquí se escribe.
 import { NOTA, partirNota, esNotaDeDetalle as esNota, ultimaNotaDeDetalle } from '../../src/nota-detalle.js';
+import { invitacionesA, invitacionPendiente } from '../../src/invitaciones.js';
 
 export { NOTA, partirNota };
 
@@ -524,29 +525,7 @@ async function escribirPlan(eje, pasos, { duena, claves, corr, minutos, dar = ne
   return { escritos, fallos, discrepancias };
 }
 
-/** Las invitaciones sin aceptar que nombran a `quien` (su 3.1), de quien sean, por llegada. */
-function invitacionesA(eje, quien) {
-  if (eje.alta(quien)) return [];
-  return eje.orden.map((id) => eje.obtener(id)).filter((ev) => hojas(ev.payload?.[0]).includes('invitation') && hojas(ev.payload?.[3]?.[1])[0] === quien);
-}
-
-/**
- * La invitación sin aceptar para `quien` que el volcado puede usar, o null (la última por llegada): la escribió la
- * dueña, declara la clave de la casa (`clave`, si se conoce), no ha caducado en `t` y su grupo (0) y su dominio (el
- * alta de la dueña) son los que el volcado pondría. Una de otro, o distinta, no se toca: la dueña escribe otra.
- */
-function invitacionPendiente(eje, quien, { duena, clave = null, t = null }) {
-  const dominio = eje.alta(duena)?.id;
-  const vale = (ev) => {
-    if (ev.autor !== duena) return false;
-    if (clave && (ev.contexto?.claves?.[quien] ?? null) !== clave) return false;
-    const hasta = hojas(ev.payload?.[7])[0];
-    if (hasta !== undefined && hasta !== 'sin plazo' && !(t && Date.parse(hasta) > Date.parse(t))) return false;
-    if (hojas(ev.payload?.[8])[0] !== 0) return false;
-    return (ev.payload?.[5]?.[0]?.ref ?? null) === dominio;
-  };
-  return invitacionesA(eje, quien).filter(vale).at(-1) ?? null;
-}
+// Las invitaciones (invitacionesA, invitacionPendiente) son lecturas del núcleo: src/invitaciones.js (CONTRATO §12.10).
 
 /** El T que mueve un registro por quien lo mueve: { quema: { quien: { escala: n } }, da: { quien: { escala: n } } } (lo anunciado no mueve nada). */
 function tDe(ev) {

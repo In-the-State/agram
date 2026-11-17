@@ -3967,3 +3967,5 @@ export { configuracionDeFormato, AJUSTES_DE_FORMATO } from './acciones.js';
 export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_LA_GUIA, TOPES_DE_ZONA } from './guia-libro.js';
 // La nota de detalle de un registro (§12.9; VG 17-11, la escribe el volcado): su lectura vive en nota-detalle.js.
 export { notaDeDetalle, partirNota, NOTA } from './nota-detalle.js';
+// Las invitaciones de un libro (§12.10): las pendientes para una clave, y si ya hay un alta con ella.
+export { invitacionesParaClave, altaConClave, invitacionPendiente } from './invitaciones.js';

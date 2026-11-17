@@ -47,6 +47,7 @@ import { leerLocal, guardarLocal } from './cuentas.js';
 import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMovibles, proponer as proponerCambio, ajustesDelElemento, conGobierno } from './reglas.js';
 import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
+import * as invitado from './invitado.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -92,6 +93,7 @@ const estado = {
   // El puente entre mis libros abiertos (carta/puente.js): la hoja abierta ({ otros: Map libro → { cuenta, eje } | { motivo },
   // enviar: { serie } | null, traer: { enlace } | null, aviso, motivos, exito, ocupado }) o null.
   puente: null,
+  invitado: null, // el diálogo de «Entrar en un libro al que me han invitado» (carta/invitado.js)
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -356,6 +358,7 @@ function extraDe() {
     // «Reglas del libro» y «Ajustes de este elemento» (A21): sus vistas, y la entrada desde la configuración y desde el génesis.
     reglas: estado.reglas && estado.eje ? reglasDe() : undefined,
     puente: estado.puente && estado.eje ? puenteSeguro() : undefined,
+    invitado: estado.invitado ? invitadoDe() : undefined,
     ajustesElemento: estado.ajustes && estado.eje ? ajustesDelElemento(estado.eje, estado.ajustes.X, estado.identidad) ?? undefined : undefined,
     entradaReglas: estado.eje ? conGobierno(estado.eje) : false, genesisId: estado.eje?.genesisId,
     parteConfiguracion: estado.config || undefined, arranque: estado.arranque, ensayo: estado.arranque ? botonEnsayo() ?? undefined : undefined, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
@@ -932,6 +935,80 @@ const misEntradas = () => (estado.cuenta ? cuentas.cuentas().filter((c) => cuent
 /** ¿Firma la cuenta abierta? (una del navegador con su clave, o una del guardián que no está solo para leer) */
 const firmaLaCuenta = () => Boolean(estado.cuenta && (estado.cuenta.guardian === true ? estado.cuenta.firmante : estado.cuenta.privada));
 /** Lo que el árbol sabe de mis libros (carta.js opciones.libros): las entradas de mi clave, si puedo abrir uno privado y si el anfitrión da claves. */
+// ---------- entrar en un libro al que me han invitado (carta/invitado.js; DISENO_CARTA_VARIOS_LIBROS §4.9) ----------
+
+/**
+ * Lo que la carta tiene del libro al que entro mientras dura el diálogo: los datos de la invitación (la clave de lectura
+ * aparte, aquí y no en `estado`: nunca se pinta ni va a un error), el eje bajado y su sincronía. Se olvida al cerrar.
+ */
+let delInvitado = null; // { datos: { url, eje, claveLectura }, eje, sincronia, alta?: el alta firmada que falta subir }
+
+function cerrarInvitado() {
+  estado.invitado = null;
+  delInvitado = null;
+}
+
+/** La vista del diálogo (dom.js htmlInvitado): lo de estado.invitado, sin la clave de lectura. */
+function invitadoDe() {
+  const e = estado.invitado;
+  return { paso: e.paso, url: e.url ?? '', eje: e.eje ?? '', vista: e.vista ?? null, aviso: e.aviso ?? '', exito: e.exito ?? '', ocupado: Boolean(e.ocupado), publica: estado.cuenta?.publica ?? '', pendiente: e.pendiente ?? null };
+}
+
+/** Baja el libro de los datos ya validados y deja su vista; lo que falle se dice, sin la clave. */
+async function buscarInvitacion(datos) {
+  const e = estado.invitado;
+  if (!e || !estado.cuenta) return;
+  e.ocupado = true; e.aviso = ''; e.url = datos.url; e.eje = datos.eje;
+  pintar();
+  const r = await invitado.bajarLibro(datos);
+  if (estado.invitado !== e) return;
+  e.ocupado = false;
+  if (!r.eje) { e.aviso = t('invitadoNoBaja', { motivo: r.motivo }); pintar(); return; }
+  delInvitado = { datos, eje: r.eje, sincronia: r.sincronia };
+  e.vista = invitado.vistaDeInvitacion(r.eje, estado.cuenta.publica);
+  e.paso = 'vista';
+  pintar();
+}
+
+/** El firmante con que acepto en el libro bajado: con guardián, el suyo (sobre ese eje); si no, mi clave. Nada del guardián cambia. */
+function firmanteDelInvitado(eje) {
+  if (estado.cuenta?.guardian === true) return guardian && !estado.cuenta.soloLeer ? firmanteDeCuenta(guardian, estado.cuenta.publica, { eje: () => eje, dialogo: true }) : null;
+  return estado.cuenta?.privada ?? null;
+}
+
+/**
+ * Sube el alta firmada y, si el servidor la tiene, guarda el libro como otro de esta cuenta (su destino y su clave de
+ * lectura) y entra en él. Si no la tiene, lo dice y deja «Reintentar la subida» (la misma alta, ya firmada).
+ */
+async function subirAltaDelInvitado() {
+  const e = estado.invitado;
+  const d = delInvitado;
+  if (!e || !d?.alta) return;
+  e.ocupado = true; e.aviso = '';
+  pintar();
+  let informe = null;
+  try { informe = await d.sincronia.sincronizar(d.eje); } catch { informe = null; }
+  if (estado.invitado !== e) return;
+  e.ocupado = false;
+  const subida = Boolean(informe?.subidos?.includes(d.alta.id)) || Boolean(informe && !informe.pendientes?.includes?.(d.alta.id) && !informe.rechazados?.some((x) => x.id === d.alta.id) && d.eje.eventos.has(d.alta.id) && !informe.sinRed && !informe.errores?.length);
+  if (!subida) {
+    const rechazo = informe?.rechazados?.find((x) => x.id === d.alta.id);
+    e.aviso = rechazo ? t('invitadoRechazada', { motivo: String(rechazo.motivo ?? '').split(d.datos.claveLectura).join('…') }) : informe?.sinRed ? t('invitadoSinRed') : t('invitadoNoSubio');
+    e.pendiente = d.alta.inv;
+    pintar();
+    return;
+  }
+  const quien = d.alta.identidad;
+  const cuenta = { nombre: e.vista?.libro?.nombre || quien, idioma: estado.cuenta.idioma, identidad: quien, alta: d.alta.id, publica: estado.cuenta.publica, ...(estado.cuenta.guardian === true ? { guardian: true } : {}) };
+  const ok = await cuentas.guardarCuenta({ cuenta, eje: d.eje, privada: estado.cuenta.privada, claveLectura: d.datos.claveLectura }, { recordar: false });
+  cuentas.guardarEstadoSincronia(d.alta.id, d.sincronia.serializar());
+  if (!ok) { e.aviso = t('sinAlmacenamiento'); pintar(); return; }
+  cerrarInvitado();
+  await entrarEnCuenta(d.alta.id);
+  estado.exito = t('invitadoDentro', { nombre: cuenta.nombre });
+  pintar();
+}
+
 // ---------- las zonas de la cara y la guía mínima (carta/guias.js; DISENO_ZONAS_GUIA §4) ----------
 
 /** Los ejes de mis otros libros en este dispositivo, leídos una vez mientras su texto guardado no cambie. */
@@ -1485,6 +1562,7 @@ const manejadores = {
     else if (estado.formulario) estado.formulario = null;
     else if (estado.reglas) estado.reglas = null;
     else if (estado.puente) estado.puente = null;
+    else if (estado.invitado && !estado.invitado.ocupado) cerrarInvitado();
     else if (estado.ajustes) estado.ajustes = null;
     else if (estado.sitio) estado.sitio = null;
     else if (estado.aro) estado.aro = null;
@@ -2332,7 +2410,7 @@ const manejadores = {
    * navegador no deja, lo selecciona para copiarlo a mano. No escribe nada en el libro.
    */
   async copiar(boton) {
-    const code = boton?.closest?.('.ficha-comando-fila')?.querySelector('code.ficha-comando');
+    const code = boton?.closest?.('.ficha-comando-fila, .copiable')?.querySelector('code');
     if (!code) return;
     const texto = code.textContent;
     try {
@@ -2642,6 +2720,89 @@ const manejadores = {
     if (!alta || alta === estado.cuenta?.alta) return;
     limpiarMensajes();
     await entrarEnCuenta(alta);
+  },
+  /** «Entrar en un libro al que me han invitado»: el diálogo, en el paso de los datos. Solo con una cuenta (alguien con clave). */
+  invitado() {
+    if (!estado.cuenta) return;
+    limpiarMensajes();
+    delInvitado = null;
+    if (estado.arranque && estado.eje) estado.arranque = null; // desde la pantalla de arranque: el diálogo va sobre la carta
+    estado.invitado = { paso: 'datos', aviso: '', ocupado: false };
+    pintar();
+  },
+  /** «Cargar el archivo de la invitación»: el selector de archivos; un .json con exactamente { url, eje, claveLectura }. */
+  invitadoArchivo() {
+    const e = estado.invitado;
+    if (!e) return;
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = '.json,application/json';
+    input.hidden = true;
+    input.addEventListener('change', async () => {
+      const elegido = input.files?.[0];
+      input.remove();
+      if (!elegido || estado.invitado !== e) return;
+      if (elegido.size > invitado.TOPE_ARCHIVO) { e.aviso = t('invitadoArchivoMalo'); pintar(); return; }
+      let texto = '';
+      try { texto = await elegido.text(); } catch { texto = ''; }
+      const r = invitado.leerArchivoDeInvitacion(texto);
+      if (!r.datos) { e.aviso = r.motivo; pintar(); return; }
+      await buscarInvitacion(r.datos);
+    }, { once: true });
+    input.addEventListener('cancel', () => input.remove(), { once: true });
+    document.body.append(input);
+    input.click();
+  },
+  /** Los tres datos a mano: se validan y se busca la invitación. */
+  async invitadoBuscar(form) {
+    const e = estado.invitado;
+    if (!e || e.ocupado) return;
+    const v = (n) => form?.querySelector?.('[name="' + n + '"]')?.value ?? '';
+    const r = invitado.datosDeInvitacion({ url: v('url'), eje: v('eje'), claveLectura: v('claveLectura') });
+    if (!r.datos) { e.aviso = r.motivo; e.url = v('url'); e.eje = v('eje'); pintar(); return; }
+    await buscarInvitacion(r.datos);
+  },
+  /** «Aceptar»: mi alta (eje.aceptar) firmada con el firmante de la cuenta, en el libro bajado; luego se sube. */
+  async invitadoAceptar(id) {
+    const e = estado.invitado;
+    const d = delInvitado;
+    if (!e || !d || e.ocupado || !estado.cuenta) return;
+    const inv = e.vista?.invitaciones?.find((i) => i.id === id);
+    if (!inv) return;
+    const firmante = firmanteDelInvitado(d.eje);
+    if (!firmante) { e.aviso = t('invitadoSinFirma'); pintar(); return; }
+    e.ocupado = true; e.aviso = '';
+    pintar();
+    try {
+      const ahora = new Date().toISOString();
+      const ultimo = d.eje.orden.length ? d.eje.obtener(d.eje.orden.at(-1))?.t : null;
+      const tAlta = ultimo && Date.parse(ultimo) >= Date.parse(ahora) ? new Date(Date.parse(ultimo) + 1000).toISOString() : ahora;
+      const alta = await d.eje.aceptar(id, { publica: estado.cuenta.publica, privada: firmante }, { t: tAlta });
+      d.alta = { id: alta.id, identidad: inv.invitado, inv: id };
+    } catch (err) {
+      e.ocupado = false;
+      e.aviso = t('invitadoNoAcepta', { motivo: String(err?.message ?? err).split(d.datos.claveLectura).join('…') });
+      pintar();
+      return;
+    }
+    await subirAltaDelInvitado();
+  },
+  /** «Reintentar la subida»: la misma alta, ya firmada, otra vez al servidor. */
+  invitadoReintentar() { return subirAltaDelInvitado(); },
+  /** «Añadirlo a tus libros»: mi alta ya está en ese libro con mi clave; se guarda como otro libro de esta cuenta y se entra. */
+  async invitadoAnadir() {
+    const e = estado.invitado;
+    const d = delInvitado;
+    const mia = e?.vista?.miAlta;
+    if (!e || !d || !mia || e.ocupado || !estado.cuenta) return;
+    const cuenta = { nombre: e.vista.libro?.nombre || mia.identidad, idioma: estado.cuenta.idioma, identidad: mia.identidad, alta: mia.alta, publica: estado.cuenta.publica, ...(estado.cuenta.guardian === true ? { guardian: true } : {}) };
+    const ok = await cuentas.guardarCuenta({ cuenta, eje: d.eje, privada: estado.cuenta.privada, claveLectura: d.datos.claveLectura }, { recordar: false });
+    cuentas.guardarEstadoSincronia(mia.alta, d.sincronia.serializar());
+    if (!ok) { e.aviso = t('sinAlmacenamiento'); pintar(); return; }
+    cerrarInvitado();
+    await entrarEnCuenta(mia.alta);
+    estado.exito = t('invitadoDentro', { nombre: cuenta.nombre });
+    pintar();
   },
   /** «Abrir otro libro»: la pantalla de arranque de hoy, sobre la carta. */
   libroOtro() { return manejadores.arranque('menu'); },

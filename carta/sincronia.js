@@ -23,6 +23,7 @@ import { sincronia, sello as selloDeTiempo, pago as pagos } from '../src/index.j
 import * as cuentas from './cuentas.js';
 import { t } from './textos.js';
 import { errorDeSesionCerrada } from './anfitrion.js';
+import { destinoGuardado } from './invitado.js';
 
 const { Sincronia } = sincronia;
 
@@ -53,7 +54,9 @@ const mismoDestino = (datos, d) => datos && datos.url === d.url && datos.eje ===
  */
 export function abrir({ alta, eje, yo, fetch = fetchDeLaPlataforma(), ahora, firmante = {}, sesion } = {}) {
   if (!alta || !eje) return null;
-  const d = sincronia.destino(eje, yo);
+  // El destino lo dice la configuración de `yo` en el eje; un libro al que entré por una invitación aún no la tiene: su
+  // destino es el guardado al entrar (el de su sincronía, cuentas.estadoSincronia), con la misma validación.
+  const d = sincronia.destino(eje, yo) ?? destinoGuardado(cuentas.estadoSincronia(alta));
   if (!d) return null;
   const claveLectura = cuentas.claveLectura(alta);
   if (!claveLectura) return null;
