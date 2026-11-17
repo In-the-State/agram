@@ -447,3 +447,13 @@ test('Core: la línea de cambios de fondo, plegable, con las entradas escapadas 
   assert.match(htmlGuia({ ...base, core: { ...core, fondo: G.fondoDe({ total: 0, sesionesSinCrecer: 0, entradas: [] }) } }), /cambios de fondo: 0 · sesiones sin crecer: 0<\/summary><p class="nada">ninguno todavía/);
   assert.doesNotMatch(htmlGuia({ ...base, core: { ...core, con: 'guia', fondo } }), /data-core-fondo/, 'solo en «Core»');
 });
+
+test('Core: «Entrar en el libro del roadmap» solo con el ensayo y sin esa cuenta en la pantalla', () => {
+  const base = { historial: [], pensando: false, pendiente: '', error: '', borrador: '', preguntas: [], via: 'server', ejemplo: true, propuestas: { aqui: 0, fuera: [] } };
+  const core = { con: 'core', turnos: [], pensando: false, error: '', borrador: '', senalado: [], senalando: false };
+  assert.doesNotMatch(htmlGuia({ ...base, core }), /data-core-ensayo/);
+  assert.doesNotMatch(htmlGuia({ ...base, core: { ...core, ensayo: null } }), /data-core-ensayo/);
+  assert.match(htmlGuia({ ...base, core: { ...core, ensayo: { entrando: false } } }), /<button type="button" data-nodo="control" data-core-ensayo title="[^"]+">Entrar en el libro del roadmap<\/button>/);
+  assert.match(htmlGuia({ ...base, core: { ...core, ensayo: { entrando: true } } }), /data-core-ensayo[^>]* disabled>entrando en el libro del roadmap…/);
+  assert.doesNotMatch(htmlGuia({ ...base, core: { ...core, con: 'guia', ensayo: { entrando: false } } }), /data-core-ensayo/, 'solo en «Core»');
+});

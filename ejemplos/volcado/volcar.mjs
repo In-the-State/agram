@@ -144,9 +144,10 @@ export function estacionDe(eje, tareaId) {
 
 /**
  * Compara la tabla con el libro y da los pasos que faltan, en orden, y los avisos. Cada paso: { tipo, quien, cosa,
- * fila?, proyecto?, ... }; tipo: alta, proyecto, tarea, correccion o uno de PASOS.
+ * fila?, proyecto?, ... }; tipo: alta, proyecto, tarea, correccion o uno de PASOS. Con `filas` (un Set de ids de fila),
+ * solo esas filas: las demás no se miran (ni se corrigen ni cuentan como desaparecidas).
  */
-export function planear(eje, tabla, { duena, corr }) {
+export function planear(eje, tabla, { duena, corr, filas = null }) {
   const { columnas: col, fases, nombres } = corr;
   const libro = leerLibro(eje, duena, corr);
   const pasos = [];
@@ -163,6 +164,7 @@ export function planear(eje, tabla, { duena, corr }) {
     const fid = String(id);
     if (vistos.has(fid)) { avisos.push(`fila ${fid}: id repetido; solo cuenta la primera`); continue; }
     vistos.add(fid);
+    if (filas && !filas.has(fid)) continue;
     const texto = String(fila[col.texto]);
     if (texto.startsWith('=')) { avisos.push(`fila ${fid}: el texto empieza por «=» y se leería como fórmula; no se vuelca`); continue; }
     const cosa = String(nombres[fila[col.cosa]] ?? fila[col.cosa]);
@@ -315,7 +317,8 @@ function conDar(pasos, cosas, duena) {
 /**
  * Vuelca `tabla` (una lista de filas) en `eje`. opciones: { duena (la identidad dueña; por defecto la autora del
  * génesis), claves: { duena: { privada }, cosas: { nombre: { publica, privada } } }, correspondencia, t (el instante del
- * primer registro; uno por segundo después), simular }. Antes de escribir mide lo que gasta cada cosa en una copia del
+ * primer registro; uno por segundo después), simular, filas (ids de fila: solo esas; las demás no se tocan aunque en el
+ * libro digan otra cosa que la tabla) }. Antes de escribir mide lo que gasta cada cosa en una copia del
  * eje (allí la dueña le da todo el T de minuto que le queda) y la dueña le da lo justo: al darla de alta, el mínimo de
  * la lista de «register a thing»; el resto, o lo que le falte a una cosa que ya tiene alta, con «give T to a thing of
  * mine». Si a la dueña no le llega su T de minuto del día, las cosas que no caben se quedan para otro día (en el
@@ -327,7 +330,7 @@ export async function volcar(eje, tabla, opciones = {}) {
   const duena = opciones.duena ?? eje.obtener(eje.genesisId).autor;
   const claves = opciones.claves ?? {};
   const t0 = opciones.t ?? new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const plan = planear(eje, tabla, { duena, corr });
+  const plan = planear(eje, tabla, { duena, corr, filas: opciones.filas ? new Set([...opciones.filas].map(String)) : null });
   const avisos = [...plan.avisos];
   const paraLaDuena = [];
   const noPuede = [];

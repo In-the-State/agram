@@ -5,7 +5,7 @@ Un servidor local para la aceptación de la carta: sirve la carta con recarga au
 ## Arrancar
 
 ```
-node retoques/servidor.mjs --rama beta-retoques [--puerto 8790] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>]
+node retoques/servidor.mjs --rama beta-retoques [--puerto 8790] [--modelo <modelo>] [--publico <host>] [--clave-api <ruta>] [--ensayo <carpeta> --tabla <ruta> --claves <ruta>]
 ```
 
 - `--clave-api <ruta>`: un archivo FUERA del repositorio cuya primera línea es la clave de API de VG. Core gasta de ella, no de la cuenta de Claude Code de este equipo. Si la ruta cae dentro de la raíz servida, el servidor no arranca. Sin esta opción, la consola avisa de que Core gasta de la cuenta del equipo.
@@ -63,6 +63,30 @@ Tiempos: el primer mensaje, con el proceso arrancando, ~13 s con el modelo por d
 
 Nada montado: ni túnel ni programas nuevos. Los pasos del túnel están en `agram-equipo/PLAN_ACEPTACION.md`, sección L. El servidor ya está listo para ir detrás: `--publico <host>` acepta `Host: <host>` y `Origin: https://<host>`; por ese host no se sirve nada sin la llave (ni los archivos): una página mínima para pegarla y, al acertar, una cookie de sesión propia (HttpOnly, Secure, SameSite=Strict); las llamadas siguen pidiendo además la cabecera con la llave; intentos limitados por minuto y espera creciente tras varios fallos.
 
+## El ensayo: el libro del roadmap (`--ensayo`)
+
+`--ensayo <carpeta> --tabla <ruta> --claves <ruta>` (las tres juntas, y las tres FUERA del repositorio; si no, el servidor no arranca). Lo hace `retoques/ensayo.mjs`:
+
+- **El libro compartido** se sirve en `/ensayo/…` por el mismo puerto, con el contrato de siempre (`servidor/supabase/funciones/eventos/api.js`, el almacén de `servidor/prueba/servidor.mjs`), guardado en `<carpeta>/compartido.json`.
+  - Quién entra: lo mismo que a los archivos de la carta (en la cara pública, solo con la sesión). Además valen la clave de lectura del eje y las firmas.
+  - Crear ejes, nunca desde fuera: `…/ejes` da 404 y el secreto es aleatorio en cada arranque.
+  - Límites de `/ensayo`: 600 llamadas por minuto (una carta nueva baja unos cientos de registros y pide su recibo uno a uno) y 256 KB por cuerpo (el tope del contrato). Las escrituras por eje siguen en 60 por minuto. El volcado, hecho por dentro, no tiene ese tope.
+- **El primer arranque** (almacén vacío):
+  - La cuenta de la dueña nace como la crea la carta (`crearCuenta`, idioma «es», con «sync url» y «sync ledger»).
+  - La tabla se vuelca con `ejemplos/volcado/volcar.mjs` en pasadas de días seguidos, la última hoy (medido antes en un libro de prueba; tope de 10). Ningún registro queda con fecha futura.
+  - Todo se carga en el libro compartido registro a registro con la sincronía de `src/sincronia.js`.
+  - Si el archivo de `--claves` no existe, se crea con claves nuevas (la dueña `duena` y una por cosa de la tabla). Las cosas nuevas de una tabla cambiada se añaden.
+- **Los arranques siguientes**:
+  - El libro es el del almacén.
+  - Solo si la tabla cambió (su SHA-256, en `<carpeta>/ensayo.json` con la huella de cada fila) se vuelcan, y solo las filas cambiadas (`volcar(…, { filas })`). La pantalla manda en las demás.
+  - Si la «sync url» de este arranque es otra (otro puerto, o con o sin `--publico`), la dueña escribe sus preferencias nuevas.
+- **La consola** dice una línea por volcado (registros y avisos, sin texto de las filas).
+- **La «sync url»** es `https://<publico>/ensayo` con `--publico`, y si no, `http://localhost:<puerto>/ensayo`. La carta no admite una ruta relativa ahí: `src/sincronia.js` (`urlHttp`) y `carta/sitio.js` exigen `http(s)://`. Con `--publico`, también el portátil ha de entrar por el nombre público.
+- **La dueña entra:**
+  - `GET /retoques/ensayo/cuenta` (con la llave) da la copia de su cuenta (`exportarCuenta`) y una frase aleatoria de ese arranque. No se guarda ni se escribe en la consola.
+  - En el PV9, en «Core», «Entrar en el libro del roadmap» sale si `estado` dice `ensayo: true` y esta pantalla no tiene esa cuenta (`ensayoAlta`). Restaura la cuenta, la abre y sincroniza.
+  - Las claves de las cosas no van en la copia: la carta de hoy no deja a la dueña escribir como sus cosas (en una cuenta no hay selector de identidad).
+
 ## Pruebas
 
-`node --test --test-concurrency=2 test/retoques-servidor.test.js` (con un agente falso, `test/ayudas-agente-falso.mjs`; ni Claude Code ni red). `test/retoques.test.js` es otra cosa (retocar un texto de la época).
+`node --test --test-concurrency=2 test/retoques-servidor.test.js` y `test/retoques-ensayo.test.js` (con un agente falso, `test/ayudas-agente-falso.mjs`, una tabla inventada y carpetas temporales; ni Claude Code ni red). `test/retoques.test.js` es otra cosa (retocar un texto de la época).

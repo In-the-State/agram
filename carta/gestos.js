@@ -208,6 +208,7 @@ export function instalar(raiz, m) {
     if ((el = b('[data-core-senalar]'))) { e.preventDefault(); m.coreSenalar?.(); return; }
     if ((el = b('[data-core-quitar]'))) { e.preventDefault(); m.coreQuitar?.(Number(el.dataset.coreQuitar)); return; }
     if ((el = b('[data-core-nueva]'))) { e.preventDefault(); if (!el.disabled) m.coreNueva?.(); return; }
+    if ((el = b('[data-core-ensayo]'))) { e.preventDefault(); if (!el.disabled) m.coreEnsayo?.(); return; }
     for (const que of ['aceptar', 'modificar', 'rechazar']) {
       if ((el = b(`[data-propuesta-${que}]`))) { e.preventDefault(); m.propuesta?.(que, el.dataset[`propuesta${que[0].toUpperCase()}${que.slice(1)}`]); return; }
     }
