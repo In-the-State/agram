@@ -8,7 +8,10 @@
 //   2. el puente entre dos libros abiertos de la misma cuenta: el grado de cada enlace, traer, enviar y recibir; un enlace que
 //      no cuenta no ofrece nada; lo traído no fiable se dice y no se enseña; sin sello del otro libro, la espera con su frase;
 //   3. los arreglos de la revisión: el punto vuelve del libro nuevo; la marca de la entrada no deja nacer un segundo libro;
-//      «sin destino» por el filtro de verdad; datos hostiles escapados; la prueba para traer, en memoria.
+//      «sin destino» por el filtro de verdad; datos hostiles escapados; la prueba para traer, en memoria;
+//   4. segunda pasada: la reserva antes del primer mensaje; el sí del dueño para bajar P; enviar del viejo al nuevo con el
+//      enlace de quien creó el libro; el guardián firmando en el libro nuevo; leerTraido con una hora fuera de rango; un
+//      registro firmado para un libro no entra en otro de la misma clave; la previa del libro privado con la época del grande.
 // Claves y libros de PRUEBA, generados en cada prueba; nada real.
 
 import { test } from 'node:test';
@@ -16,16 +19,53 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { Eje } from '../src/eje.js';
 import { Sincronia } from '../src/sincronia.js';
-import { generarClaves } from '../src/autoridad.js';
-import { PLANTILLAS_DEL_PUENTE as P, pruebaParaTraer, clavesDeLineaDe, paresDelEnlace, sinSello, porRecibir, registroComoDecupla, saldosDe, ESPERAS_DE_LA_SALIDA } from '../datos/epocas/puente.mjs';
+import { createHash } from 'node:crypto';
+import { generarClaves, firmar as firmarEvento } from '../src/autoridad.js';
+import { contrato, autoridad, epocaEscritaDe } from '../src/index.js';
+import { schnorr } from '../src/vendor/noble-secp256k1.js';
+import { aHex, deHex } from '../src/cripto.js';
+import { ejemploNodo, N, CLAVES, hora, claveDePrueba } from '../ejemplos/state/nodo.mjs';
+import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
+import { cupo } from '../datos/epocas/state/ayuda.mjs';
+import { PLANTILLAS_DEL_PUENTE as P, pruebaParaTraer, clavesDeLineaDe, paresDelEnlace, sinSello, porRecibir, registroComoDecupla, saldosDe, leerTraido, ESPERAS_DE_LA_SALIDA } from '../datos/epocas/puente.mjs';
 import { dosLibros } from '../ejemplos/puente.mjs';
-import { libroViejo, beaConLoSuyo, silenciarABea } from '../ejemplos/salida.mjs';
+import { libroViejo, beaConLoSuyo, silenciarABea, conRegla } from '../ejemplos/salida.mjs';
 import { selloEnCascada, declararExterior } from './ayudas-sello.js';
 import * as PU from '../carta/puente.js';
 import * as Q from '../carta/cuentas.js';
-import { reglasDelLibro } from '../carta/reglas.js';
-import { htmlReglas, htmlPuente } from '../carta/dom.js';
-import { enviar } from '../carta/carta.js';
+import * as L from '../carta/libros.js';
+import { reglasDelLibro, siDelDueno, SI_DEL_DUENO, ajustesDelElemento } from '../carta/reglas.js';
+import { htmlReglas, htmlPuente, htmlAjustesDelElemento } from '../carta/dom.js';
+import { enviar, antesDelMensaje } from '../carta/carta.js';
+
+const { PARAMETROS } = L;
+
+/** El guardián simulado (como el de test/carta-libros.test.js): una clave en memoria por cuenta; apunta cada firma con su libro. */
+function guardianDePrueba() {
+  const privadas = new Map();
+  const llamadas = { firmar: [] };
+  const sha = (texto) => createHash('sha256').update(texto, 'utf8').digest('hex');
+  const conCodigo = (code) => Object.assign(new Error('el guardián dice ' + code), { code });
+  return {
+    llamadas,
+    firmante: () => null,
+    async crearCuenta() {
+      const par = await generarClaves();
+      privadas.set(par.publica, par.privada);
+      return { publica: par.publica };
+    },
+    async cuentas() { return [...privadas.keys()].map((publica) => ({ nombre: 'importada', publica })); },
+    async firmar({ publica, libro, canonico, id, segundoFactor }) {
+      llamadas.firmar.push({ publica, libro, id, segundoFactor });
+      const privada = privadas.get(publica);
+      if (!privada) throw conCodigo('unknown_account');
+      if (sha(canonico) !== id) throw conCodigo('id_mismatch');
+      return { id, firma: aHex(schnorr.sign(deHex(id), deHex(privada), globalThis.crypto.getRandomValues(new Uint8Array(32)))) };
+    },
+    async sesion() { return { abierta: true, caduca: null }; },
+    async criterios({ registros }) { return { aceptados: registros.length }; },
+  };
+}
 import { canonico } from '../src/evento.js';
 import { quemaDelCoste } from '../src/escritura.js';
 import { t } from '../carta/textos.js';
@@ -295,8 +335,8 @@ async function dosLibrosMios({ nombreB = 'Ana privado', denominacion = 'plato' }
   const lineasB = [[1, clavesB.casa.publica], [4, clavesB.sellador.publica]];
   const firmarB = Q.firmarCon(b.privada);
   await declararExterior(b.eje, { sello: 'https://sello.invalid', lineas: lineasB, privada: b.privada, t: reloj() });
-  const abre = await escribe(A.eje, sala.id, 'open a private book here', { book: b.eje.genesisId, 'line keys': lineasB }, yo, firmarA);
-  const cuelga = await escribe(b.eje, b.eje.genesisId, 'this book hangs from', { book: A.eje.genesisId, element: sala.id, 'line keys': A.lineas }, yo, firmarB);
+  const abre = await escribe(A.eje, sala.id, 'open a private book here', { [PARAMETROS.libro]: b.eje.genesisId, [PARAMETROS.claves]: lineasB }, yo, firmarA);
+  const cuelga = await escribe(b.eje, b.eje.genesisId, 'this book hangs from', { [PARAMETROS.libro]: A.eje.genesisId, [PARAMETROS.elemento]: sala.id, [PARAMETROS.claves]: A.lineas }, yo, firmarB);
   await Q.guardarCuenta({ cuenta: A.cuenta, eje: A.eje, privada: A.privada });
   await Q.guardarCuenta({ cuenta: b.cuenta, eje: b.eje, privada: b.privada }, { recordar: false });
   return { A, B: b, yo, sala, menu, abre, cuelga, firmarA, firmarB, serie: 'E:' + yo + '/' + denominacion + '@' + menu.id };
@@ -516,4 +556,159 @@ test('puente: la prueba para traer se guarda en memoria por libro, registro y ta
   const tras = PU.pruebaGuardada(m.grande, menu.id, { lineas, nivel: 4 });
   assert.notEqual(tras, una, 'el libro de origen creció: se vuelve a mirar');
   assert.deepEqual(tras, una);
+});
+
+// ---------- 4. segunda pasada: la reserva, el sí del dueño, enviar al nuevo, seguridad y lo que quedó sin comprobar ----------
+
+/** El nodo de ejemplo de la época state con una persona p, su casa de 4 plazas y una conversación con el agente de la casa. */
+async function nodoConP() {
+  const { eje, ids } = await ejemploNodo();
+  let minuto = 6000;
+  const tt = () => hora(minuto++);
+  const claveDe = (q) => CLAVES[q] ?? claveDePrueba(q);
+  const firmarDe = (q) => (ev) => firmarEvento(ev, claveDe(q).privada);
+  const p = 'persona-p';
+  const inv = await eje.invitar({ autor: N.operador, invitado: p, clave: claveDe(p).publica, da: [{ token: 'R', cantidad: 2 }], t: tt(), privada: CLAVES.operador.privada });
+  await eje.aceptar(inv, claveDe(p), { t: tt() });
+  const alta = eje.alta(p).id;
+  const conv = (await enviar(eje, ids.agenteCasa, 'open a conversation', { title: 'hola' }, p, firmarDe(p), { t: tt() })).asentado;
+  assert.ok(conv, 'la conversación');
+  const casa = await escribirPagando(eje, { autor: p, sobre: alta, en: '1000000000', t: tt(), movimientos: [pagaElCoste(p)], payload: [['casa'], ['de p'], [4]] }, claveDe(p).privada);
+  return { eje, ids, p, alta, conv, casa, tt, firmarDe };
+}
+
+test('reserva: antes del primer «message in» la carta escribe la reserva que hace falta (registrosParaUnMensaje), y el mensaje entra; después, nada', async () => {
+  const n = await nodoConP();
+  // Sin la reserva, el mensaje no entra (falta la salida del bloqueo).
+  const sin = await enviar(n.eje, n.conv.id, 'message in', { text: 'hola sin reserva' }, n.p, n.firmarDe(n.p), { t: n.tt() });
+  assert.equal(sin.asentado, null, 'sin reserva no entra');
+  const antes = await antesDelMensaje(n.eje, n.conv.id, 'message in', { text: 'hola' }, n.p);
+  assert.equal(antes.sinAyuda, undefined);
+  assert.deepEqual(antes.registros.map((r) => [r.plantilla, r.X, r.valores.spender, r.valores.modes]), [['a reserve', n.conv.id, N.agenteCasa, 'return']]);
+  assert.ok(antes.registros[0].coste, 'con su coste a la vista');
+  for (const x of antes.registros) assert.ok((await enviar(n.eje, x.X, x.plantilla, x.valores, n.p, n.firmarDe(n.p), { t: n.tt() })).asentado);
+  const m = await enviar(n.eje, n.conv.id, 'message in', { text: 'hola' }, n.p, n.firmarDe(n.p), { t: n.tt() });
+  assert.ok(m.asentado, JSON.stringify(m.motivos));
+  assert.equal(cupo(n.eje, n.conv.id), 1, 'el agente tiene una unidad para contestar, de la reserva del otro lado');
+  assert.deepEqual((await antesDelMensaje(n.eje, n.conv.id, 'message in', { text: 'otra' }, n.p)).registros, [], 'la reserva ya está');
+  assert.deepEqual((await antesDelMensaje(n.eje, n.conv.id, 'message out', { text: 'respuesta' }, N.agenteCasa)).registros, [], 'contestar sin «give» no reserva');
+  assert.deepEqual((await antesDelMensaje(n.eje, n.alta, 'anchor here', { title: 'x' }, n.p)).registros, [], 'lo que no es un mensaje, nada');
+  const out = await enviar(n.eje, n.conv.id, 'message out', { text: 'respuesta' }, N.agenteCasa, n.firmarDe(N.agenteCasa), { t: n.tt() });
+  assert.ok(out.asentado, 'una respuesta gasta una unidad: ' + JSON.stringify(out.motivos));
+  assert.equal(cupo(n.eje, n.conv.id), 0);
+});
+
+test('el sí del dueño: «Ajustes de este elemento» dice quién puede bajar su P a mi cosa, lo da y lo retira con la plantilla; a otro no se le ofrece', async () => {
+  const n = await nodoConP();
+  let s = siDelDueno(n.eje, n.casa.id, n.p);
+  assert.deepEqual(s.quienes, []);
+  assert.deepEqual([s.dar?.accion, s.dar?.X, s.dar?.valores], [SI_DEL_DUENO, n.casa.id, { answer: 'yes' }]);
+  assert.equal(siDelDueno(n.eje, n.casa.id, N.agenteCasa).dar, null, 'al que no es el dueño no se le ofrece');
+  // Darlo: lo que hace el formulario de siempre con lo que trae el botón (whom lo elige el dueño).
+  const si = await enviar(n.eje, n.casa.id, SI_DEL_DUENO, { ...s.dar.valores, whom: N.agenteCasa }, n.p, n.firmarDe(n.p), { t: n.tt() });
+  assert.ok(si.asentado, JSON.stringify(si.motivos));
+  s = siDelDueno(n.eje, n.casa.id, n.p);
+  assert.deepEqual(s.quienes.map((q) => [q.whom, q.id, q.retirar?.valores]), [[N.agenteCasa, si.asentado.id, { whom: N.agenteCasa, answer: 'no' }]]);
+  const a = ajustesDelElemento(n.eje, n.casa.id, n.p);
+  const h = htmlAjustesDelElemento(a);
+  assert.ok(h.includes(t('siDelDuenoTitulo')) && h.includes(t('siDelDuenoRetirar')) && h.includes(t('siDelDuenoDar')));
+  assert.match(h, /data-sitio-lanzar="let P come down here"/);
+  // Retirarlo: otro con «no» para la misma identidad; cuenta el último.
+  const no = await enviar(n.eje, n.casa.id, SI_DEL_DUENO, s.quienes[0].retirar.valores, n.p, n.firmarDe(n.p), { t: n.tt() });
+  assert.ok(no.asentado, JSON.stringify(no.motivos));
+  assert.deepEqual(siDelDueno(n.eje, n.casa.id, n.p).quienes, []);
+  // Un nombre hostil se pinta como texto.
+  const malo = htmlAjustesDelElemento({ ...a, bajarP: { quienes: [{ id: 'x', whom: '"><script>', quien: '<script>x', cuando: '<b>', retirar: null }], dar: null } });
+  assert.doesNotMatch(malo, /<script>/);
+  assert.ok(malo.includes('&lt;script&gt;x') && malo.includes('&lt;b&gt;'));
+});
+
+test('salida: enviar del libro viejo al nuevo, con el enlace de quien creó el libro (su génesis en el 5), escrito desde la carta', async () => {
+  const K = { ana: await generarClaves(), bea: await generarClaves() };
+  const firmarDe = (q) => (ev) => firmarEvento(ev, K[q].privada);
+  const viejo = await Eje.genesis({ identidad: 'ana', foco: ['el viejo'], t: reloj(), clave: K.ana.publica, privada: K.ana.privada });
+  const inv = await viejo.invitar({ autor: 'ana', invitado: 'bea', clave: K.bea.publica, da: [{ token: 'R', cantidad: 2 }], t: reloj(), privada: K.ana.privada });
+  await viejo.aceptar(inv, K.bea, { t: reloj() });
+  const nota = await escribe(viejo, viejo.alta('bea').id, 'anchor here', { title: 'pan', content: 'el pan de bea' }, 'bea', firmarDe('bea'));
+  await escribe(viejo, viejo.alta('ana').id, 'give own R', { quantity: 1 }, 'bea', firmarDe('bea'));
+  await escribe(viejo, nota.id, 'issue E tied to X', { denomination: 'pan', quantity: 3 }, 'bea', firmarDe('bea'));
+  const serie = 'E:bea/pan@' + nota.id;
+  // El libro nuevo de bea, con la época que da el plan y su clave.
+  const genesis = PU.salidaDe(viejo, 'bea').plan.pasos.find((p) => p.que === 'genesis');
+  const nuevo = await Eje.genesis({ ...genesis.params, t: reloj(), clave: K.bea.publica, privada: K.bea.privada });
+  const e = PU.enlaceAlNuevo(viejo, 'bea', nuevo);
+  assert.deepEqual([e.hecho, e.sinGenesis, e.ofrecido, e.X], [null, false, true, viejo.alta('bea').id]);
+  assert.ok(Array.isArray(e.valores[PARAMETROS.genesis]), 'bea no es la dueña: lleva el génesis del nuevo en el 5');
+  assert.ok(PU.costeDelEnlaceAlNuevo(viejo, 'bea', nuevo));
+  const r = await PU.enlazarNuevo(viejo, 'bea', nuevo, firmarDe('bea'), { t: reloj() });
+  assert.ok(r.asentado, JSON.stringify(r.motivos));
+  const g = contrato.gradoDelEnlace(viejo, r.asentado.id);
+  assert.deepEqual([g.grado, g.cuenta], ['de quien creó el libro', true]);
+  assert.equal(PU.enlaceAlNuevo(viejo, 'bea', nuevo).hecho, r.asentado.id, 'ya enlazado: no se ofrece otra vez');
+  // Y por él se envía: la carta ofrece el destino (mi libro nuevo) y el envío entra.
+  const mios = [{ alta: 'nuevo', libro: nuevo.genesisId, nombre: 'Lo mío' }];
+  const destinos = PU.destinosDeEnvio(PU.enlacesDelLibro(viejo, 'bea', { mios }), PU.loQueCruza(viejo, 'bea').find((c) => c.serie === serie));
+  assert.deepEqual(destinos.map((d) => d.enlace), [r.asentado.id]);
+  const envio = await PU.enviarAOtroLibro(viejo, 'bea', { enlace: r.asentado.id, serie, cantidad: 2, publica: K.bea.publica, firmar: firmarDe('bea'), t: reloj() });
+  assert.ok(envio.asentado, JSON.stringify(envio.motivos));
+  assert.equal(viejo.bloqueado('bea', serie, r.asentado.id), 2);
+});
+
+test('salida: con el guardián (camino B), el libro nuevo lo firma el guardián diciendo ese libro', async () => {
+  await conAlmacen(async () => {
+    const g = guardianDePrueba();
+    const c = await Q.crearCuenta({ nombre: 'Eva', guardian: g, t: reloj() });
+    const yo = c.cuenta.identidad;
+    const genesis = PU.salidaDe(c.eje, yo, { nombre: 'Lo mío' }).plan.pasos.find((p) => p.que === 'genesis');
+    const r = await PU.abrirLibroDeSalida({ cuenta: { ...c.cuenta, guardian: true }, guardian: g, paso: genesis, viejo: c.eje.genesisId, t: reloj() });
+    assert.ok(r.firmante, 'el firmante del guardián');
+    assert.equal(r.privada, undefined, 'ninguna clave en el navegador');
+    const cuelga = PU.salidaDe(c.eje, yo, { nombre: 'Lo mío', nuevo: r.eje }).plan.pasos.find((p) => p.que === 'cuelga');
+    assert.equal(cuelga.estado, 'listo');
+    const antes = g.llamadas.firmar.length;
+    const hecho = await PU.firmarPaso(r.eje, cuelga, autoridad.firmanteDeEventos(r.firmante, { publica: c.cuenta.publica }), { t: reloj() });
+    assert.ok(hecho.asentado, JSON.stringify(hecho.motivos));
+    const firma = g.llamadas.firmar.slice(antes).at(-1);
+    assert.equal(firma.libro, r.eje.genesisId, 'el guardián firma diciendo el libro nuevo');
+    assert.equal(firma.publica, c.cuenta.publica);
+  });
+});
+
+test('leerTraido: una hora de cabecera que no cabe en una fecha se lee «no fiable», sin fecha, y la carta lo pinta sin romperse', async () => {
+  const m = await dosLibros();
+  const menu = await m.lanza(m.grande, 'anchor here', { X: m.sala.id, title: 'menú', content: 'el menú' }, 'ana');
+  const sello = await selloEnCascada(menu.id, {
+    observador: m.claves.sellador, capas: [{ nivel: 1, grado: 0, claves: m.claves.casaG, libro: m.grande.genesisId }, { nivel: 4, grado: 2, red: 0, libro: m.grande.genesisId, hora: 1e15 }],
+  });
+  const r = await m.traerCon(m.pequeno, m.grande, menu, { proof: sello.decupla });
+  assert.equal(r.ok, true, 'la regla no mira la hora: ' + JSON.stringify(r.motivos?.map((x) => x.mensaje)));
+  const x = await m.pequeno.anadir(r.evento);
+  const l = leerTraido(m.pequeno, x.id);
+  assert.deepEqual([l.fiable, l.firme, l.contexto, l.movimientos], [false, null, null, null]);
+  assert.match(l.causa, /hora/);
+  const [traido] = PU.traidosDelLibro(m.pequeno, 'bea', { mios: [] });
+  const h = htmlPuente({ enlaces: [], cruza: [], enviar: null, traer: null, traidos: [traido], motivos: [] });
+  assert.match(h, /data-no-fiable/);
+});
+
+test('seguridad de varios libros: un registro firmado para un libro no entra en otro de la misma clave', async () => {
+  await conAlmacen(async () => {
+    const m = await dosLibrosMios();
+    const { A, B } = m;
+    // «this book hangs from» de B (cuelga de su génesis) y la sala de A, firmados con la misma clave, en el otro libro.
+    await assert.rejects(A.eje.anadir(B.eje.obtener(m.cuelga.id)), 'el enlace de B no entra en A');
+    await assert.rejects(B.eje.anadir(A.eje.obtener(m.sala.id)), 'la sala de A no entra en B');
+    await assert.rejects(B.eje.anadir(A.eje.obtener(A.eje.genesisId)), 'ni el génesis (el alta) de A');
+    assert.equal(B.eje.obtener(m.sala.id) ?? null, null);
+  });
+});
+
+test('previaDelLibroPrivado mide con la época del libro grande (con un cambio en vigor, la suya)', async () => {
+  const m = await libroViejo();
+  await silenciarABea(m);
+  const previa = await L.previaDelLibroPrivado(m.viejo, m.viejo.alta('ana').id, 'ana', { t: reloj() });
+  assert.ok(previa.cuelga, 'lo que cuesta escribir de qué cuelga, medido');
+  const prueba = await Eje.genesis({ demostracion: true, identidad: 'ana', foco: 'x', t: reloj(), epoca: epocaEscritaDe(m.viejo.epoca(), { porReferencia: true }) });
+  assert.equal(prueba.epoca().id, m.viejo.epoca().id, 'la del grande');
+  assert.ok(conRegla(prueba, 'not bea'), 'con su cambio en vigor');
 });

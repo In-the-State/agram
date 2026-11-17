@@ -21,6 +21,7 @@
 //   abrirLibroDeSalida({ … })                       → el génesis del libro nuevo, como otro libro de esta cuenta
 //   costeDelPaso(eje, paso) · firmarPaso(eje, paso, firmar)  → lo que cuesta un paso de escribir y firmarlo, por el camino de siempre
 //   guardarLibroNuevo({ cuenta, eje })              → guarda el libro nuevo tras escribir en él (no es el abierto)
+//   enlaceAlNuevo(viejo, yo, nuevo) · enlazarNuevo(…) → en el viejo, el enlace que cuenta hacia mi libro nuevo (para enviarle)
 //   enlacesDelLibro(eje, yo, { mios })              → los enlaces a mis libros de este dispositivo: grado, si cuenta, fondo
 //   loQueCruza(eje, yo)                             → lo mío que puede ir a otro libro (la familia del puente, disponible)
 //   enviarAOtroLibro · traerDeOtroLibro · recibirDeOtroLibro → las tres escrituras del puente
@@ -31,8 +32,9 @@ import { contrato, acciones } from '../src/index.js';
 import { claveToken, partirClave } from '../src/tokens.js';
 import {
   PLANTILLAS_DEL_PUENTE as PL, ENLACES, ANCLA_DE_LO_TRAIDO, saldosDe, planDeSalida, leerTraido, bloqueosDeLaVuelta, registroComoDecupla,
-  pruebaParaTraer, clavesDeLineaDe, paresDelEnlace, nivelMasBajoDe, porRecibir, sinSello,
+  pruebaParaTraer, clavesDeLineaDe, paresDelEnlace, nivelMasBajoDe, porRecibir, sinSello, genesisComoDecupla,
 } from '../datos/epocas/puente.mjs';
+import { PARAMETROS } from './libros.js';
 import * as cuentas from './cuentas.js';
 import { enviar, motivosEnLlano, ceroDe } from './carta.js';
 
@@ -259,6 +261,40 @@ export async function firmarPaso(eje, paso, firmar, opciones = {}) {
 export function guardarLibroNuevo({ cuenta, eje }) {
   cuentas.guardarEje({ alta: cuenta.alta }, eje);
   return cuentas.completarEntrada(cuenta, eje);
+}
+
+// ---------- enviar del libro viejo al nuevo (docs/notas/PUENTE.md §10.2 y §10.4) ----------
+
+/**
+ * El enlace que cuenta, en el libro viejo, hacia mi libro nuevo: un «open a private book here» sobre mi alta en el viejo (un
+ * elemento mío) con el libro nuevo y sus claves de línea (clavesDeLineaDe; sin ellas, ninguna: se puede enviar, pero no
+ * traer de vuelta). Si no soy el dueño del viejo, lleva en su 5 el génesis del nuevo (genesisComoDecupla): así cuenta el
+ * de quien creó el libro (§10.2, «who created a book links it with its genesis»). → { hecho (el enlace que ya cuenta, si lo
+ * hay), X, valores, ofrecido } o null si no tengo alta en el viejo o no hay libro nuevo.
+ */
+export function enlaceAlNuevo(viejo, yo, nuevo) {
+  const alta = viejo?.alta?.(yo);
+  if (!alta || !nuevo?.genesisId) return null;
+  const ya = contrato.librosPrivados(viejo, alta.id, { puente: true }).find((l) => l.libro === nuevo.genesisId && l.cuenta);
+  const lineas = clavesDeLineaDe(nuevo);
+  const dueno = viejo.obtener(viejo.genesisId)?.autor === yo;
+  // Un génesis que no se puede rehacer (con campos propios, o de demostración sin clave) no lo enlaza su creador: sinGenesis.
+  const g = dueno ? null : genesisComoDecupla(nuevo.obtener(nuevo.genesisId));
+  const valores = { [PARAMETROS.libro]: nuevo.genesisId, [PARAMETROS.claves]: lineas.length ? lineas : 0, ...(g ? { [PARAMETROS.genesis]: g } : {}) };
+  return { hecho: ya?.id ?? null, X: alta.id, valores, sinGenesis: !dueno && !g, ofrecido: ofrecida(viejo, alta.id, ENLACES.abrir, yo) };
+}
+
+/** Lo que cuesta escribir el enlace al nuevo en el viejo, o null. */
+export function costeDelEnlaceAlNuevo(viejo, yo, nuevo, o = {}) {
+  const e = enlaceAlNuevo(viejo, yo, nuevo);
+  return e && !e.hecho && !e.sinGenesis ? costeDe(viejo, e.X, ENLACES.abrir, e.valores, yo, o) : null;
+}
+
+/** Escribe en el viejo el enlace al nuevo (enlaceAlNuevo), por el camino de siempre. → lo que da enviar. */
+export async function enlazarNuevo(viejo, yo, nuevo, firmar, opciones = {}) {
+  const e = enlaceAlNuevo(viejo, yo, nuevo);
+  if (!e || e.hecho || e.sinGenesis) return { ok: false, asentado: null, motivos: [] };
+  return escribir(viejo, e.X, ENLACES.abrir, e.valores, yo, firmar, opciones);
 }
 
 // ---------- el puente entre mis libros abiertos (paso 3 del plan del puente) ----------

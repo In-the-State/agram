@@ -22,8 +22,9 @@ const { LIBRO_PRIVADO } = contrato;
 
 // ---------- Lo que el núcleo no exporta todavía ----------
 // Los nombres de los parámetros de las dos plantillas del enlace (datos/epocas/plantillas: «open a private book here» y
-// «this book hangs from»; docs/notas/LIBRO_PRIVADO.md). Hueco del núcleo: exportarlos junto a contrato.LIBRO_PRIVADO.
-export const PARAMETROS = Object.freeze({ libro: 'book', claves: 'line keys', direccion: 'headers url', elemento: 'element' });
+// «this book hangs from»; docs/notas/LIBRO_PRIVADO.md; el génesis del 5 y el punto, docs/notas/PUENTE.md §10.2 y §10.5).
+// Hueco del núcleo: exportarlos junto a contrato.LIBRO_PRIVADO. Mientras, la carta (y sus pruebas) los toman de aquí.
+export const PARAMETROS = Object.freeze({ libro: 'book', claves: 'line keys', direccion: 'headers url', elemento: 'element', genesis: 'genesis', punto: 'point' });
 
 const corto = (id) => String(id ?? '').slice(0, 8);
 
@@ -90,8 +91,10 @@ export async function previaDelLibroPrivado(eje, X, yo, opciones = {}) {
   const elemento = ceroDe(eje, X, { opciones }, corto(X)) ?? corto(X);
   let cuelga = null;
   try {
-    // Un libro de demostración (sin clave): solo sirve para medir; nunca se guarda ni se firma nada en él.
-    const prueba = await Eje.genesis({ demostracion: true, identidad: yo, foco: String(elemento), t: opciones.t ?? new Date().toISOString() });
+    const epoca = epocaEscritaDe(eje.epoca(), { porReferencia: true });
+    // Un libro de demostración (sin clave): solo sirve para medir; nunca se guarda ni se firma nada en él. Nace con la época
+    // del libro grande, como nacerá el pequeño (abrirLibroPrivado): con otra, la plantilla y su coste podrían ser otros.
+    const prueba = await Eje.genesis({ demostracion: true, identidad: yo, foco: String(elemento), t: opciones.t ?? new Date().toISOString(), ...(epoca ? { epoca } : {}) });
     cuelga = costeDe(prueba, prueba.genesisId, LIBRO_PRIVADO.cuelga, { [PARAMETROS.libro]: eje.genesisId, [PARAMETROS.elemento]: X }, yo, opciones);
   } catch {
     cuelga = null;

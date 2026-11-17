@@ -23,7 +23,7 @@
 // «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, antesDelMensaje, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida } from './dom.js';
 import { instalar } from './gestos.js';
@@ -398,7 +398,10 @@ function salidaDe() {
   const vista = puente.salidaDe(estado.eje, estado.identidad, { punto: s.punto, nuevo: s.nuevo?.eje ?? null, nombre, idioma: idioma() });
   const p = vista?.siguiente;
   const ejeDelPaso = p?.libro === 'viejo' ? estado.eje : s.nuevo?.eje;
-  return { vista, nombre, coste: p && p.que !== 'genesis' ? puente.costeDelPaso(ejeDelPaso, p) : null, nuevo: s.nuevo ? { nombre: s.nuevo.cuenta.nombre } : null, sinCuenta: !firmaLaCuenta(), ocupado: s.ocupado || s.bloqueado, buscando: s.buscando };
+  // Enviar del viejo al nuevo pide en el viejo un enlace que cuente hacia el nuevo (puente.enlaceAlNuevo).
+  const e = s.nuevo?.eje ? puente.enlaceAlNuevo(estado.eje, estado.identidad, s.nuevo.eje) : null;
+  const enlace = e ? { hecho: Boolean(e.hecho), sinGenesis: e.sinGenesis, ofrecido: e.ofrecido, coste: puente.costeDelEnlaceAlNuevo(estado.eje, estado.identidad, s.nuevo.eje) } : null;
+  return { vista, nombre, enlace, coste: p && p.que !== 'genesis' ? puente.costeDelPaso(ejeDelPaso, p) : null, nuevo: s.nuevo ? { nombre: s.nuevo.cuenta.nombre } : null, sinCuenta: !firmaLaCuenta(), ocupado: s.ocupado || s.bloqueado, buscando: s.buscando };
 }
 
 /** salidaDe, a salvo: si leer falla (un libro o un sello ajeno mal formado), la hoja lo dice y queda libre. */
@@ -1440,6 +1443,21 @@ const manejadores = {
     // Ejecutar desde el 4 (VG 12-11, decisión 7): la T se quema en la denominación que enseña el formulario (la propuesta o
     // la que sale de la escala elegida); el botón no se bloquea por el rango: apagado también se pulsa.
     const denominacion = f.ejecutar ? (f.escala ?? acciones.ejecucion(estado.eje, f.accion, { X: f.X, ...valores }, estado.identidad, { idioma: idioma() }).denominacion ?? undefined) : undefined;
+    // Un mensaje de una conversación pide antes la reserva de quien escribe (docs/notas/R_EN_CANALES.md): se escribe aquí,
+    // con su coste a la vista y confirmada; si no entra, el mensaje no se intenta.
+    const antes = await antesDelMensaje(estado.eje, f.X, f.accion, valores, estado.identidad, { idioma: idioma() });
+    for (const x of antes.registros) {
+      if (!(await confirmarEnPagina(t('reservaAntes', { coste: x.coste ? textoDelCoste(x.coste) : t('salidaSinCoste') })))) return;
+      const rr = await enviar(estado.eje, x.X, x.plantilla, x.valores, estado.identidad, firmarCon(estado.identidad));
+      if (!rr.asentado) {
+        f.motivos = [{ mensaje: t('reservaNoEntra', { motivo: motivosConGuardian(motivosEnLlano(rr.motivos, estado.eje)).map((m) => m.mensaje).join('; ') }) }];
+        f.resultado = null;
+        pintar();
+        return;
+      }
+      trasEscribir();
+      estado.exito = t('reservaHecha');
+    }
     const r = await enviar(estado.eje, f.X, f.accion, valores, estado.identidad, firmarCon(estado.identidad), denominacion ? { denominacion } : {});
     if (r.ok && r.asentado) {
       // Una cosa dada de alta nace también con su HTML básico en el PV0 (VG 14-11, #84), como mi cuenta.
@@ -1609,6 +1627,29 @@ const manejadores = {
           if (estado.reglas) estado.reglas.exito = t('salidaHecho', { n: p.n }) + (r.asentado.firma ? ' ' + t('firmado') : '');
         } else if (estado.reglas) estado.reglas.motivos = motivosConGuardian(r.motivos ?? []);
       }
+    } catch (e) {
+      if (estado.reglas) estado.reglas.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
+    } finally {
+      s.ocupado = false;
+    }
+    pintar();
+  },
+  /** En el libro viejo, el enlace que cuenta hacia mi libro nuevo (para enviarle la E y los registros), confirmado con su coste. */
+  async salidaEnlazar() {
+    const s = estado.reglas?.salida;
+    if (!s?.nuevo?.eje || s.ocupado || s.buscando || !firmaLaCuenta()) return;
+    const coste = puente.costeDelEnlaceAlNuevo(estado.eje, estado.identidad, s.nuevo.eje);
+    if (!(await confirmarEnPagina(t('salidaEnlazarConfirmar', { nombre: s.nuevo.cuenta.nombre, coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') })))) return;
+    limpiarMensajes();
+    s.ocupado = true;
+    try {
+      await pintar();
+      const r = await puente.enlazarNuevo(estado.eje, estado.identidad, s.nuevo.eje, firmarCon(estado.identidad));
+      if (r.asentado) {
+        trasEscribir();
+        marcarNuevos();
+        if (estado.reglas) estado.reglas.exito = t('salidaEnlazadoHecho') + (r.asentado.firma ? ' ' + t('firmado') : '');
+      } else if (estado.reglas) estado.reglas.motivos = motivosConGuardian(r.motivos ?? []);
     } catch (e) {
       if (estado.reglas) estado.reglas.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
     } finally {

@@ -1142,6 +1142,54 @@ export async function enviar(eje, X, accion, valores, yo, firmar, opciones = {})
   }
 }
 
+// ---------- la reserva antes del mensaje (docs/notas/R_EN_CANALES.md; docs/notas/RESERVA.md) ----------
+
+/** Las plantillas de mensaje de la época state que bloquean en una reserva (las demás no piden nada antes). */
+export const MENSAJES_QUE_RESERVAN = Object.freeze(['message in', 'message in from an agent', 'message out']);
+
+/**
+ * La ayuda de la época state (datos/epocas/state/ayuda.mjs: registrosParaUnMensaje), cargada la primera vez que hace falta.
+ * null si no se puede cargar: en el navegador, mientras ese módulo cargue arriba lo de Node (node:fs), no se carga, y la
+ * carta escribe el mensaje como antes (sin reserva, la regla lo rechaza y lo dice).
+ */
+let ayudaDeLosCanales;
+async function ayudaDeCanales() {
+  if (ayudaDeLosCanales === undefined) {
+    try {
+      ayudaDeLosCanales = await import('../datos/epocas/state/ayuda.mjs');
+    } catch {
+      ayudaDeLosCanales = null;
+    }
+  }
+  return ayudaDeLosCanales;
+}
+
+/**
+ * Lo que hay que escribir ANTES de un mensaje para que entre (R_EN_CANALES: «antes de meter el primer mensaje en una
+ * conversación, una reserva»): los registros que da registrosParaUnMensaje menos el propio mensaje, cada uno con lo que
+ * cuesta (acciones.ejecucion), en orden. Nada para una acción que no es un mensaje, ni si la reserva ya está.
+ * → { registros: [{ plantilla, X, valores, coste }], sinAyuda? (no se pudo cargar la ayuda) }.
+ */
+export async function antesDelMensaje(eje, X, accion, valores, yo, opciones = {}) {
+  const p = acciones.plantillaDeTransaccion(accion, opciones);
+  const nombre = p ? acciones.nombreDeAccion(p) : String(accion);
+  if (!MENSAJES_QUE_RESERVAN.includes(nombre)) return { registros: [] };
+  const ayuda = await ayudaDeCanales();
+  if (!ayuda?.registrosParaUnMensaje) return { registros: [], sinAyuda: true };
+  const lista = ayuda.registrosParaUnMensaje(eje, X, yo, { ...valores, plantilla: nombre });
+  return {
+    registros: lista.slice(0, -1).map(({ plantilla, params }) => {
+      const { X: donde, ...resto } = params;
+      let coste = null;
+      try {
+        const e = acciones.ejecucion(eje, plantilla, params, yo, opciones);
+        coste = e?.ok ? { exigido: e.exigido, denominacion: e.denominacion } : null;
+      } catch { /* sin coste a la vista: se dice */ }
+      return { plantilla, X: donde, valores: resto, coste };
+    }),
+  };
+}
+
 /**
  * Previsualiza una acción (un paso del camino, encargo «datos3»): construye, firma con `firmar` y valida con
  * acciones.transaccion, como enviar, pero no asienta nada (docs/CONTRATO.md §12.3: transaccion valida sin asentar).
