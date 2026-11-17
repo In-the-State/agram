@@ -53,6 +53,8 @@ Trece reglas nuevas, en la cadena del 8 detrás de «a change comes into force w
 | **the tied record of E crossed before** | el requisito de E (si `epoch.8.9.3` lo nombra para E): la serie forastera de E queda atada al registro traído, del libro de origen, de su registro atado allí |
 | **a declared balance is true** | quien declara tiene, de esa serie, al menos lo que dice (disponible y bloqueado, sobre el libro de antes) |
 
+**La declaración de saldo es suelo** (la salida con lo propio, VG 17-11; `docs/notas/GOBIERNO.md` §10). «a declared balance is true», la regla nueva **«a declared balance is only that»** (detrás de ella en la cadena del 8: un registro que nombra «declare a balance» se ancla en el 8 de la propia alta, lleva el payload de la plantilla y nada más y solo quema T) y la plantilla «declare a balance» están en 7.9.6, y a una declaración solo se le prueban las reglas del suelo: ningún cambio de reglas le quita a nadie declarar lo que tiene. Llevarse la E y los registros como tales de modo que salgan del libro sigue bajo las reglas del libro (las de esta sección no son suelo).
+
 Tres reglas de E dejan fuera la serie forastera, que la crea su «receive» y no su emisor (que está en otro libro): **E is minted by and to its issuer**, **minting E needs own R issued** y **minting E needs P on its record**. Ninguna de las tres está en el suelo (7.9.6).
 
 **Nunca se suelta más de lo que se bloqueó**: cada envío se recibe una vez; la vuelta suelta solo cuánto vuelve; la serie forastera solo la crea su recibir (no hay más forastera que la enviada) y el libro no suelta más de lo bloqueado con esa salida.
@@ -66,7 +68,7 @@ Tres reglas de E dejan fuera la serie forastera, que la crea su «receive» y no
 | 8.9.2 | el nivel de firmeza que pide traer un registro (de `epoch.7.6.1`) | `4` |
 | 8.9.3 | los requisitos de cada familia, en el orden de 8.9.1: nombres de reglas | `[["the tied record of E crossed before"]]` |
 
-Abrir una familia es un cambio de época: añadirla a 8.9.1 y dar sus reglas en 8.9.3; el mecanismo no se toca. La regla del requisito de E se mira solo si 8.9.3 la nombra para E (`lookup(epoch.8.9.1, epoch.8.9.3, "E")`). **Ninguna de las cuatro posiciones se ha puesto en el suelo (7.9.6) ni entre las piezas de gobierno (7.9.7)**: decidirlo es de VG.
+Abrir una familia es un cambio de época: añadirla a 8.9.1 y dar sus reglas en 8.9.3; el mecanismo no se toca. La regla del requisito de E se mira solo si 8.9.3 la nombra para E (`lookup(epoch.8.9.1, epoch.8.9.3, "E")`). **La fila es pieza de gobierno** (VG 17-11, la salida con lo propio): `epoch.8.9` está en 7.9.7, así que qué familias cruzan, a qué nivel y con qué requisitos solo lo cambia un cambio «governance» («el cambio toca «epoch.8.9», que es una pieza de gobierno (epoch.7.9.7), y se declara «ordinary»…»). No es suelo.
 
 ## 6. El núcleo: lo mínimo
 
