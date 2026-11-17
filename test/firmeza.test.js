@@ -119,9 +119,9 @@ test('la fórmula de «sealed» une las dos vías: sealed.json lleva exactamente
 test('sello en cascada de uno y de dos eslabones con la clave del observador declarada: «sealed» verdadero; cabe en el presupuesto', async () => {
   const obs = await observadorDePrueba();
   const { eje, e1, e2, e3 } = await ejeDePrueba(obs);
-  eje.marcarSello(e1.id, await selloEnCascada(e1.id, { observador: obs, altura: 5 }));
-  eje.marcarSello(e2.id, await selloEnCascada(e2.id, { observador: obs, altura: 6, capas: [{ nivel: 1, otros: 2 }, { nivel: 4, otros: 3 }], otrasTx: 2 }));
-  eje.marcarSello(e3.id, await selloEnCascada(e3.id, { observador: obs, altura: 7, capas: [{ nivel: 1, otros: 1 }, { nivel: 2, otros: 1 }, { nivel: 3 }, { nivel: 4, otros: 2 }] }));
+  eje.marcarSello(e1.id, await selloEnCascada(e1.id, { libro: eje.genesisId, observador: obs, altura: 5 }));
+  eje.marcarSello(e2.id, await selloEnCascada(e2.id, { libro: eje.genesisId, observador: obs, altura: 6, capas: [{ nivel: 1, otros: 2 }, { nivel: 4, otros: 3 }], otrasTx: 2 }));
+  eje.marcarSello(e3.id, await selloEnCascada(e3.id, { libro: eje.genesisId, observador: obs, altura: 7, capas: [{ nivel: 1, otros: 1 }, { nivel: 2, otros: 1 }, { nivel: 3 }, { nivel: 4, otros: 2 }] }));
   const ctx = new ContextoEje(eje, { epoch: EPOCA_0_BTML });
   for (const [e, n] of [[e1, 1], [e2, 2], [e3, 4]]) {
     assert.equal(eje.sello(e.id).decupla[9].length, n);
@@ -135,7 +135,7 @@ test('sello en cascada de uno y de dos eslabones con la clave del observador dec
   // Una clave de arriba que no es la del observador declarado: falso.
   const otro = await observadorDePrueba();
   const { eje: b, e1: y1 } = await ejeDePrueba(obs);
-  b.marcarSello(y1.id, await selloEnCascada(y1.id, { observador: otro, capas: [{ nivel: 1 }, { nivel: 4 }] }));
+  b.marcarSello(y1.id, await selloEnCascada(y1.id, { libro: b.genesisId, observador: otro, capas: [{ nivel: 1 }, { nivel: 4 }] }));
   assert.deepEqual(leer(b, y1.id, 5).valor, [false]);
 });
 
@@ -145,7 +145,7 @@ test('las seis manipulaciones del vector del SIP dan falso; sin cabecera del blo
   const capas = [{ nivel: 1, claves: casa, otros: 2 }, { nivel: 4, numero: 1, otros: 2 }];
   const { eje, e1, e2 } = await ejeDePrueba(obs);
   // Otro id: la prueba es de e2 (en su lote está e1), copiada en e1 con su id.
-  const deE2 = await selloEnCascada(e2.id, { observador: obs, capas: [{ ...capas[0], ids: [e1.id] }, capas[1]] });
+  const deE2 = await selloEnCascada(e2.id, { libro: eje.genesisId, observador: obs, capas: [{ ...capas[0], ids: [e1.id] }, capas[1]] });
   eje.marcarSello(e1.id, { ...deE2, decupla: selloDe.decuplaDeSello(deE2.prueba, e1.id) });
   assert.deepEqual(leer(eje, e1.id, 5).valor, [false], 'otro id');
   const otra = await selloEnCascada('ef'.repeat(32), { observador: obs, capas });
@@ -157,22 +157,29 @@ test('las seis manipulaciones del vector del SIP dan falso; sin cabecera del blo
     ['sin el eslabón de arriba', (q) => { q.prueba.cadena.pop(); }],
   ]) {
     const { eje: b, e1: y1 } = await ejeDePrueba(obs);
-    b.marcarSello(y1.id, await selloEnCascada(y1.id, { observador: obs, capas, cambiar }));
+    b.marcarSello(y1.id, await selloEnCascada(y1.id, { libro: b.genesisId, observador: obs, capas, cambiar }));
     assert.ok(b.sello(y1.id).decupla, que + ': la décupla se guarda');
     assert.deepEqual(leer(b, y1.id, 5).valor, [false], que);
     assert.equal(contrato.verificado(b, y1.id).sello, false, que);
   }
-  // Lo que falta deja PENDIENTE, como en la vía «taproot».
+  // Lo que falta: sin la cabecera del bloque la décupla no lleva 7, 8 ni 9. Hasta el 17-11 quedaba PENDIENTE, como en la vía
+  // «taproot»; desde la enmienda al punto 5 (Core AGRAM con Core StateArk: el libro de la primera cabecera, S.9.0.0.8, se
+  // mira justo detrás de la hoja, donde lo pone formula_sealed del vector), una cadena que no está da falso.
   const { eje: b, e1: y1 } = await ejeDePrueba(obs);
-  b.marcarSello(y1.id, await selloEnCascada(y1.id, { observador: obs, capas, cambiar: (q) => { delete q.prueba.cabecera; } }));
-  assert.equal(leer(b, y1.id, 5).estado, 'PENDIENTE');
+  b.marcarSello(y1.id, await selloEnCascada(y1.id, { libro: b.genesisId, observador: obs, capas, cambiar: (q) => { delete q.prueba.cabecera; } }));
+  assert.deepEqual([leer(b, y1.id, 5).estado, leer(b, y1.id, 5).valor], ['RESUELTO', [false]]);
+  // La vía «taproot» no cambia: lo que le falta la deja PENDIENTE.
+  const { eje: bt, e1: yt } = await ejeDePrueba(obs);
+  bt.marcarSello(yt.id, await selloCompleto(yt.id, { observador: obs, cambiar: (q) => { delete q.prueba.cabecera; } }));
+  assert.equal(leer(bt, yt.id, 5).estado, 'PENDIENTE');
 });
 
 /**
  * Un contexto sobre un eje real en el que `it` es un registro de mentira cuyo 5 es `id` y cuyo 6.8.2 trae la décupla
  * `decupla` (la de los vectores, que sellan ids que no son de este eje); lo demás (before.8.6, las décuplas puras), del eje.
+ * Con `libro`, before.5 (el id de este libro, el que «sealed» y «firm» piden a la primera cabecera) es ese, el del vector.
  */
-function contextoConSello(eje, id, decupla) {
+function contextoConSello(eje, id, decupla, libro) {
   const real = new ContextoEje(eje, { epoch: EPOCA_0_BTML });
   const IT = { k: 'vector' };
   const SEIS = { k: 'vector6' };
@@ -181,6 +188,7 @@ function contextoConSello(eje, id, decupla) {
   const falsos = new Set([IT, SEIS, OCHO]);
   const ctx = Object.create(real);
   ctx.ocupantes = (nodo, camino, presupuesto) => {
+    if (libro && nodo?.k === 'before' && camino[0] === 5) return camino.length > 1 ? real.ocupantes(libro, camino.slice(1), presupuesto) : [libro];
     if (!falsos.has(nodo)) return real.ocupantes(nodo, camino, presupuesto);
     const [d, ...resto] = camino;
     const dentro = paso(nodo, d);
@@ -200,12 +208,23 @@ test('los vectores de StateArk (vectores/cascada, solo lectura) sobre un eje rea
   const f = regla('sealed')[2].at(-1);
   // La parte «cascada» de mi fórmula es, letra por letra, la que StateArk fija en su vector (sin el «=» de delante).
   assert.equal(f.slice(1, f.indexOf(' or not ("cascada" in ')), v.formula_sealed.formula, 'formulaCascada() y formula_sealed del vector');
-  const sellado = (d, id = d[4]) => { const { ctx, it } = contextoConSello(eje, id, d); return evaluar(f, ctx, { sujeto: it }); };
+  const sellado = (d, id = d[4], libro = d[9]?.[0]?.[0]?.[8]) => { const { ctx, it } = contextoConSello(eje, id, d, libro); return evaluar(f, ctx, { sujeto: it }); };
   for (const n of ['un_eslabon', 'dos_eslabones']) {
     const d = v[n].decupla;
     assert.deepEqual(selloDe.decuplaDeSello(v[n].prueba, v[n].prueba.id), d, n + ': decuplaDeSello da, tal cual, la décupla del vector (cabecera v2; nivel, grado y red en el 9.k.1)');
-    const r = sellado(d);
+    const r = sellado(d, d[4], v[n].libro);
     assert.deepEqual([r.estado, r.valor], ['RESUELTO', [true]], n + ': ' + r.motivo);
+    // La primera cabecera es de otro libro (VG 17-11, enmienda al punto 5 con Core StateArk): falso, no PENDIENTE.
+    const otro = sellado(d, d[4], v.libros.stateark === v[n].libro ? v.libros.casa : v.libros.stateark);
+    assert.deepEqual([otro.estado, otro.valor], ['RESUELTO', [false]], n + ', leído desde otro libro: ' + otro.motivo);
+  }
+  // La «forjada» del grupo casa_del_libro (la federación firma en el libro de la casa diciendo nivel 1): cuadra en hashes,
+  // firmas y libro, y «sealed» la da por buena (los pares son cosa de «firm»).
+  if (v.casa_del_libro?.forjada) {
+    const fj = v.casa_del_libro.forjada;
+    assert.deepEqual(selloDe.decuplaDeSello(fj.prueba, fj.prueba.id), fj.decupla, 'forjada: decuplaDeSello da la del vector');
+    assert.deepEqual(sellado(fj.decupla, fj.decupla[4], v.casa_del_libro.casa_rotada.libro).valor, [true], 'la forjada pasa «sealed» en su libro');
+    assert.deepEqual(sellado(fj.decupla, fj.decupla[4], v.libros.stateark).valor, [false], 'y no en otro');
   }
   const dos = v.dos_eslabones.decupla;
   const una = v.un_eslabon.decupla;
@@ -225,7 +244,7 @@ test('los vectores de StateArk (vectores/cascada, solo lectura) sobre un eje rea
   }
   // Sin el observador declarado, falso.
   const { eje: sin } = await ejeDePrueba(null);
-  const { ctx, it } = contextoConSello(sin, dos[4], dos);
+  const { ctx, it } = contextoConSello(sin, dos[4], dos, v.dos_eslabones.libro);
   assert.deepEqual(evaluar(f, ctx, { sujeto: it }).valor, [false]);
 });
 
@@ -245,10 +264,10 @@ test('«firm» está en X.6.8.9, es una lectura y su fórmula es formulaDeFirmez
   assert.ok(contrato.mensaje(null, r, 'es') !== r[9].at(-1), 'su 9 en español (epoch.9.4)');
 });
 
-/** Un eje de demostración: g da E y emite R; cada registro con lo que mueve. `lineas`, las claves de línea que declara la raíz. */
+/** Un eje de demostración: g da E y emite R; cada registro con lo que mueve. `lineas`, las claves de línea que declara la raíz: pares [nivel, claves]. */
 async function demo(observador, lineas = []) {
   const eje = await Eje.genesis({ demostracion: true, identidad: 'g', t: T(0), foco: 'raíz', emision: [{ token: 'R', cantidad: 1e6 }, { token: 'E', denominacion: 'minuto', cantidad: 1e6 }] });
-  if (observador) await declararExterior(eje, { observadores: [observador.publica], lineas: lineas.map((c) => c.publica), t: T(1) });
+  if (observador) await declararExterior(eje, { observadores: [observador.publica], lineas: lineas.map(([n, c]) => [n, c.publica]), t: T(1) });
   const coste = await eje.escribir({ autor: 'g', sobre: eje.genesisId, t: T(2), payload: ['solo su coste'], movimientos: [pagaElCoste('g')] });
   const r = await eje.escribir({ autor: 'g', sobre: eje.genesisId, t: T(3), payload: ['R'], movimientos: [pagaElCoste('g'), { token: 'R', emisor: 'g', cantidad: 5, de: null, a: 'g' }] });
   const e = await eje.escribir({ autor: 'g', sobre: eje.genesisId, t: T(4), payload: ['E'], movimientos: [pagaElCoste('g'), { token: 'E', emisor: 'g', denominacion: 'minuto', cantidad: 3, de: 'g', a: eje.genesisId }] });
@@ -274,7 +293,7 @@ test('alcanzada, exigida y firme: el recibo de llegada alcanza el nivel 1; el se
   const rele = await releDePrueba();
   const casa = await generarClaves();
   const fed = await generarClaves();
-  const { eje, coste, r, e } = await demo(obs, [casa, fed]);
+  const { eje, coste, r, e } = await demo(obs, [[1, casa], [2, fed], [4, obs]]);
   for (const x of [coste, r, e]) eje.marcarRecibo(x.id, reciboFirmado(rele, { semilla: x.id }));
   // Solo con el recibo: la casa.
   assert.deepEqual([contrato.firmeza(eje, coste.id).alcanzada, contrato.firmeza(eje, coste.id).firme], [1, true]);
@@ -283,7 +302,7 @@ test('alcanzada, exigida y firme: el recibo de llegada alcanza el nivel 1; el se
   assert.deepEqual(leer(eje, r.id, 9).valor, [false]);
   // Con el sello en cascada del nivel 1 al 4, pasando por el 2 (los eslabones de frontera con StateArk: casa [1, 0],
   // federación [2, 1], el que llega a Bitcoin [4, 2, 0]): alcanzados, y el 3 saltado.
-  eje.marcarSello(r.id, await selloEnCascada(r.id, { observador: obs, altura: 4, capas: [{ nivel: 1, otros: 1, grado: 0, claves: casa }, { nivel: 2, otros: 1, grado: 1, claves: fed }, { nivel: 4, grado: 2, red: 0 }] }));
+  eje.marcarSello(r.id, await selloEnCascada(r.id, { libro: eje.genesisId, observador: obs, altura: 4, capas: [{ nivel: 1, otros: 1, grado: 0, claves: casa }, { nivel: 2, otros: 1, grado: 1, claves: fed }, { nivel: 4, grado: 2, red: 0 }] }));
   const fr = contrato.firmeza(eje, r.id);
   assert.deepEqual(fr.capas.map((c) => c.estado), ['alcanzada', 'alcanzada', 'saltada', 'alcanzada']);
   assert.deepEqual([fr.alcanzada, fr.exigida, fr.firme, fr.confirmaciones], [4, 2, true, 1]);
@@ -301,22 +320,28 @@ test('alcanzada, exigida y firme: el recibo de llegada alcanza el nivel 1; el se
   // «firm» casa los niveles como números (nth 0 epoch.7.6.1 en los 9.k.1): un sello en cascada que no vale (firmado arriba
   // por un observador no declarado) con un eslabón de nivel 1 de clave declarada alcanza el primer nivel, y basta a lo que
   // solo paga su coste.
-  const { eje: n, coste: c1 } = await demo(obs, [casa]);
-  n.marcarSello(c1.id, await selloEnCascada(c1.id, { observador: await observadorDePrueba(), capas: [{ nivel: 1, grado: 0, claves: casa }, { nivel: 4 }] }));
+  const { eje: n, coste: c1 } = await demo(obs, [[1, casa]]);
+  n.marcarSello(c1.id, await selloEnCascada(c1.id, { libro: n.genesisId, observador: await observadorDePrueba(), capas: [{ nivel: 1, grado: 0, claves: casa }, { nivel: 4 }] }));
   assert.deepEqual(leer(n, c1.id, 5).valor, [false]);
   assert.deepEqual(leer(n, c1.id, 9).valor, [true], 'el BQL casa el número del nivel');
   assert.deepEqual([contrato.firmeza(n, c1.id).alcanzada, contrato.firmeza(n, c1.id).firme], [1, true]);
   // Del 9.k.1 «firm» lee solo el primer ocupante: un grado o una red que valen lo mismo que un nivel no alcanzan ese nivel.
-  const { eje: q, r: r2 } = await demo(obs, [casa]);
-  q.marcarSello(r2.id, await selloEnCascada(r2.id, { observador: await observadorDePrueba(), capas: [{ nivel: 1, grado: 2, red: 3, claves: casa }, { nivel: 4 }] }));
+  const { eje: q, r: r2 } = await demo(obs, [[1, casa]]);
+  q.marcarSello(r2.id, await selloEnCascada(r2.id, { libro: q.genesisId, observador: await observadorDePrueba(), capas: [{ nivel: 1, grado: 2, red: 3, claves: casa }, { nivel: 4 }] }));
   assert.deepEqual(leer(q, r2.id, 9).valor, [false], 'R exige el nivel 2, y el 2 de ese eslabón es su grado');
   assert.deepEqual([contrato.firmeza(q, r2.id).alcanzada, contrato.firmeza(q, r2.id).firme, contrato.firmeza(q, r2.id).capas[0].grado, contrato.firmeza(q, r2.id).capas[0].red], [1, false, 'provider', 3], 'una red que no es una posición de 7.6.6, tal cual');
-  // Un sello al que le falta la cabecera del bloque: «sealed» PENDIENTE, y «firm» también (firmeza() no lo da en firme).
+  // Un sello en cascada al que le falta la cabecera del bloque: hasta el 17-11, «sealed» PENDIENTE y «firm» también; desde la
+  // enmienda al punto 5 (el libro de la primera cabecera, detrás de la hoja), «sealed» es falso y «firm» sigue con el recibo,
+  // que alcanza el primer nivel: lo que solo paga su coste queda en firme. Por la vía «taproot», PENDIENTE como antes.
   const { eje: b, coste: c2 } = await demo(obs);
   b.marcarRecibo(c2.id, reciboFirmado(rele, { semilla: c2.id }));
-  b.marcarSello(c2.id, await selloEnCascada(c2.id, { observador: obs, cambiar: (q) => { delete q.prueba.cabecera; } }));
-  assert.equal(leer(b, c2.id, 9).estado, 'PENDIENTE');
-  assert.equal(contrato.firmeza(b, c2.id).firme, false);
+  b.marcarSello(c2.id, await selloEnCascada(c2.id, { libro: b.genesisId, observador: obs, cambiar: (q) => { delete q.prueba.cabecera; } }));
+  assert.deepEqual([leer(b, c2.id, 5).valor, leer(b, c2.id, 9).valor, contrato.firmeza(b, c2.id).firme], [[false], [true], true]);
+  const { eje: bt, coste: ct } = await demo(obs);
+  bt.marcarRecibo(ct.id, reciboFirmado(rele, { semilla: ct.id }));
+  bt.marcarSello(ct.id, await selloCompleto(ct.id, { observador: obs, cambiar: (q) => { delete q.prueba.cabecera; } }));
+  assert.equal(leer(bt, ct.id, 9).estado, 'PENDIENTE');
+  assert.equal(contrato.firmeza(bt, ct.id).firme, false);
 });
 
 // ---------- 4 · en duda: la bifurcación ----------
@@ -324,19 +349,19 @@ test('alcanzada, exigida y firme: el recibo de llegada alcanza el nivel 1; el se
 test('«en duda»: dos cabeceras con el mismo número de la misma clave, comprobadas sin libro; la cadena que pasa por un número igual o mayor queda en duda, y «sealed» y «firm» no cambian', async () => {
   const obs = await observadorDePrueba();
   const { eje, e1, e2 } = await ejeDePrueba(obs);
-  eje.marcarSello(e1.id, await selloEnCascada(e1.id, { observador: obs, capas: [{ nivel: 1 }, { nivel: 4, numero: 1 }] }));
-  eje.marcarSello(e2.id, await selloEnCascada(e2.id, { observador: obs, capas: [{ nivel: 4, numero: 0 }] }));
+  eje.marcarSello(e1.id, await selloEnCascada(e1.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 1 }, { nivel: 4, numero: 1 }] }));
+  eje.marcarSello(e2.id, await selloEnCascada(e2.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 4, numero: 0 }] }));
   const antes = [leer(eje, e1.id, 5).valor, leer(eje, e1.id, 9).valor];
   assert.equal(contrato.firmeza(eje, e1.id).enDuda, false);
-  const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32) }, obs);
-  const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32) }, obs);
+  const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32), libro: eje.genesisId }, obs);
+  const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), libro: eje.genesisId }, obs);
   const comprobada = selloDe.bifurcacion({ a: a.decupla, b: b.decupla });
-  assert.deepEqual([comprobada.clase, comprobada.acusado, comprobada.libro, comprobada.numero], ['dos cabeceras con el mismo número', obs.publica, LIBRO_DE_PRUEBA, 1]);
+  assert.deepEqual([comprobada.clase, comprobada.acusado, comprobada.libro, comprobada.numero], ['dos cabeceras con el mismo número', obs.publica, eje.genesisId, 1]);
   // No lo es: otro número, otra clave, otro libro (una línea es libro y clave), la misma cabecera dos veces, una firma mala, otro id.
   assert.equal(selloDe.bifurcacion({ a: a.decupla, b: cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), libro: '2c'.repeat(32) }, obs).decupla }), null);
   const otro = await observadorDePrueba();
-  assert.equal(selloDe.bifurcacion({ a: a.decupla, b: cabeceraDeLoteFirmada({ numero: 2, raiz: 'bb'.repeat(32) }, obs).decupla }), null);
-  assert.equal(selloDe.bifurcacion({ a: a.decupla, b: cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32) }, otro).decupla }), null);
+  assert.equal(selloDe.bifurcacion({ a: a.decupla, b: cabeceraDeLoteFirmada({ numero: 2, raiz: 'bb'.repeat(32), libro: eje.genesisId }, obs).decupla }), null);
+  assert.equal(selloDe.bifurcacion({ a: a.decupla, b: cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), libro: eje.genesisId }, otro).decupla }), null);
   assert.equal(selloDe.bifurcacion({ a: a.decupla, b: a.decupla }), null);
   assert.equal(selloDe.bifurcacion({ a: a.decupla, b: Object.assign([...b.decupla], { 6: a.decupla[6] }) }), null);
   assert.equal(selloDe.bifurcacion({ a: a.decupla, b: b.decupla, id: '00'.repeat(32) }), null);
@@ -366,7 +391,7 @@ test('la carta pinta en el reverso una estación por capa, con su estado y la ex
   const obs = await observadorDePrueba();
   const rele = await releDePrueba();
   const casa = await generarClaves();
-  const { eje, r } = await demo(obs, [casa]);
+  const { eje, r } = await demo(obs, [[1, casa], [4, obs]]);
   const ORDENADOR = { ancho: 1920, alto: 1080 };
   const reverso = async () => {
     const a = await arbolEnIdioma({ foco: { X: r.id, pv: 5 } }, eje, 'g', ORDENADOR, { idioma: 'es' });
@@ -391,7 +416,7 @@ test('la carta pinta en el reverso una estación por capa, con su estado y la ex
   assert.match(h, /data-resumen="usable"/);
   // Sellado en cascada por los niveles 1 y 4 (casa [1, 0] y el que llega a Bitcoin [4, 2, 0]): el 2 y el 3 saltados, el 4
   // con sus confirmaciones; en firme. El grado y la red, con sus nombres en la carta.
-  eje.marcarSello(r.id, await selloEnCascada(r.id, { observador: obs, altura: 3, capas: [{ nivel: 1, otros: 1, grado: 0, claves: casa }, { nivel: 4, numero: 1, grado: 2, red: 0 }] }));
+  eje.marcarSello(r.id, await selloEnCascada(r.id, { libro: eje.genesisId, observador: obs, altura: 3, capas: [{ nivel: 1, otros: 1, grado: 0, claves: casa }, { nivel: 4, numero: 1, grado: 2, red: 0 }] }));
   ({ h } = await reverso());
   assert.deepEqual([1, 2, 3, 4].map((c) => estacion(h, c)[1]), ['alcanzada', 'saltada', 'saltada', 'alcanzada']);
   assert.match(h, /data-nivel="1"[^>]*><span class="estacion-firmeza-nombre">nivel 1 · segundo<\/span> · <small class="estacion-firmeza-grado">local<\/small><\/li>/, 'el grado, con su nombre');
@@ -399,8 +424,8 @@ test('la carta pinta en el reverso una estación por capa, con su estado y la ex
   assert.match(estacion(h, 4)[3], /^nivel 4 · día: alcanzada · con proveedor · red de pruebas$/);
   assert.match(h, /<div class="firmeza" data-resumen="firme"[^>]*>.*>en firme<\/small><\/div>/s);
   // Una bifurcación de la línea del observador en el número 1: en duda.
-  const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32) }, obs);
-  const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32) }, obs);
+  const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32), libro: eje.genesisId }, obs);
+  const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), libro: eje.genesisId }, obs);
   assert.equal(eje.marcarBifurcacion({ a: a.decupla, b: b.decupla }), true);
   ({ h } = await reverso());
   assert.match(h, /<div class="firmeza" data-resumen="enDuda"[^>]*>.*<small class="firmeza-resumen" title="en duda: [^"]*">en duda<\/small><\/div>/s);
@@ -441,12 +466,35 @@ test('7.6.4, 7.6.5 y 7.6.6 en la época 0: los grados de menor a mayor, el exigi
 test('«line keys», la 9 de «exterior settings»: se declara en la cuenta raíz, la lee ajustesDelEje y es before.8.9', async () => {
   const obs = await observadorDePrueba();
   const casa = await generarClaves();
-  const { eje } = await demo(obs, [casa]);
+  const fed = await generarClaves();
+  const { eje } = await demo(obs, [[1, casa], [4, fed]]);
   const exterior = await import('../src/exterior.js');
   assert.equal(exterior.AJUSTES.lineas, 'line keys');
-  assert.deepEqual(exterior.ajustesDelEje(eje).lineas, [casa.publica]);
-  assert.deepEqual(evaluar('=before.8.9', new ContextoEje(eje, { epoch: EPOCA_0_BTML })).valor, [casa.publica]);
-  assert.deepEqual(evaluar('=before.8.6', new ContextoEje(eje, { epoch: EPOCA_0_BTML })).valor, [obs.publica]);
+  // Pares [nivel, clave] (encargo «las claves de línea, por nivel»), un ocupante por par: 9.k.0 el nivel, 9.k.1 la clave.
+  assert.deepEqual(exterior.ajustesDelEje(eje).lineas, [[1, casa.publica], [4, fed.publica]]);
+  const ctx = new ContextoEje(eje, { epoch: EPOCA_0_BTML });
+  assert.deepEqual(evaluar('=count before.8.9', ctx).valor, [2]);
+  assert.deepEqual(evaluar('=before.8.9.0', ctx).valor, [1, 4]);
+  assert.deepEqual(evaluar('=before.8.9.1', ctx).valor, [casa.publica, fed.publica]);
+  assert.deepEqual(evaluar('=lookup(before.8.9.0, before.8.9.1, 4)', ctx).valor, [fed.publica]);
+  assert.deepEqual(evaluar('=before.8.6', ctx).valor, [obs.publica]);
+  // La lectura: un nivel seguido de su clave es un par; lo demás no cuenta.
+  const k = (c) => c.repeat(64);
+  assert.deepEqual(exterior.lineasDe('1 ' + k('a') + ' 4:' + k('B') + ', 1;' + k('a')), [[1, k('a')], [4, k('b')]], 'separadores, minúsculas y sin repetidos');
+  assert.deepEqual(exterior.lineasDe([1, k('a'), 2, k('c')]), [[1, k('a')], [2, k('c')]], 'hojas seguidas');
+  assert.deepEqual(exterior.lineasDe([[3, k('d')]]), [[3, k('d')]], 'un par como lista');
+  // La carta avisa al guardar lo que no forma par (y deja pasar los pares).
+  const { avisosDeAjustes } = await import('../carta/guia.js');
+  const campos = [{ clave: 'line keys', etiqueta: 'quién sella cada nivel' }];
+  assert.deepEqual(avisosDeAjustes(campos, { 'line keys': '1 ' + k('a') + ' 4:' + k('b') }), []);
+  const avisos = avisosDeAjustes(campos, { 'line keys': k('c') + ' 2 ' + k('d') });
+  assert.equal(avisos.length, 1);
+  assert.match(avisos[0], /quién sella cada nivel.*par de nivel y clave/);
+  assert.ok(avisos[0].includes(k('c')) && !avisos[0].includes(k('d')), 'cita solo la clave suelta');
+  assert.deepEqual(exterior.lineasDe(k('a') + ' ' + k('b')), [], 'claves sueltas, a la manera de antes: ninguna');
+  assert.deepEqual(exterior.lineasDe('0 ' + k('a') + ' -1 ' + k('a') + ' 1.5 ' + k('a') + ' x ' + k('a') + ' 2 ' + k('a').slice(1)), [], 'niveles o claves mal formados');
+  assert.deepEqual(exterior.lineasDe(k('e') + ' 2 ' + k('f') + ' 3'), [[2, k('f')]], 'lo que no forma par se salta');
+  assert.deepEqual([exterior.lineasDe(undefined), exterior.lineasDe(''), exterior.lineasDe(7)], [[], [], []]);
 });
 
 test('un nivel de en medio se alcanza por la cadena sin «sealed», con la clave declarada; sin declararla o con una firma rota debajo, no', async () => {
@@ -456,27 +504,28 @@ test('un nivel de en medio se alcanza por la cadena sin «sealed», con la clave
   const fed = await generarClaves();
   const capas = [{ nivel: 1, grado: 0, claves: casa, otros: 1 }, { nivel: 2, grado: 1, claves: fed, otros: 1 }, { nivel: 4, grado: 2, red: 0 }];
   // Arriba firma un observador que nadie declara: «sealed» es falso, pero el eslabón de nivel 2 vale y su clave está declarada.
-  const { eje, r } = await demo(obs, [casa, fed]);
-  eje.marcarSello(r.id, await selloEnCascada(r.id, { observador: ajeno, capas }));
+  const { eje, r } = await demo(obs, [[1, casa], [2, fed]]);
+  eje.marcarSello(r.id, await selloEnCascada(r.id, { libro: eje.genesisId, observador: ajeno, capas }));
   assert.deepEqual(leer(eje, r.id, 5).valor, [false], '«sealed» falso');
   const f = coinciden(eje, r.id, null, 'nivel 2 sin «sealed»');
   assert.deepEqual([f.firme, f.alcanzada, f.exigida, f.capas.map((c) => c.estado)], [true, 2, 2, ['alcanzada', 'alcanzada', 'pendiente', 'pendiente']]);
   assert.deepEqual([f.capas[1].clave, f.capas[1].grado], [fed.publica, 'shared']);
   // La clave de la federación sin declarar: el nivel 2 no se alcanza (el 1 sí, por la casa).
-  const { eje: b, r: rb } = await demo(obs, [casa]);
-  b.marcarSello(rb.id, await selloEnCascada(rb.id, { observador: ajeno, capas }));
+  const { eje: b, r: rb } = await demo(obs, [[1, casa]]);
+  b.marcarSello(rb.id, await selloEnCascada(rb.id, { libro: b.genesisId, observador: ajeno, capas }));
   const fb = coinciden(b, rb.id, null, 'clave sin declarar');
   assert.deepEqual([fb.firme, fb.alcanzada, fb.capas[1].estado], [false, 1, 'pendiente']);
   // La firma de la casa rota (otra hora, la misma firma): ni el 1 ni el 2, aunque sus claves estén declaradas.
-  const { eje: c, r: rc } = await demo(obs, [casa, fed]);
-  c.marcarSello(rc.id, await selloEnCascada(rc.id, { observador: ajeno, capas, cambiar: (q) => { q.prueba.cadena[0].cabecera.hora += 1; } }));
+  const { eje: c, r: rc } = await demo(obs, [[1, casa], [2, fed]]);
+  c.marcarSello(rc.id, await selloEnCascada(rc.id, { libro: c.genesisId, observador: ajeno, capas, cambiar: (q) => { q.prueba.cadena[0].cabecera.hora += 1; } }));
   assert.ok(Array.isArray(c.sello(rc.id).decupla[9]), 'la cadena se guarda');
   const fc = coinciden(c, rc.id, null, 'firma rota debajo');
   assert.deepEqual([fc.firme, fc.alcanzada], [false, null]);
-  // La clave de la federación declarada como observador también cuenta (before.8.6).
+  // La clave de la federación declarada solo como observador (before.8.6) ya no cuenta para la cadena (antes del encargo «las
+  // claves de línea, por nivel» sí contaba, para cualquier nivel).
   const { eje: d, r: rd } = await demo(fed);
-  d.marcarSello(rd.id, await selloEnCascada(rd.id, { observador: ajeno, capas }));
-  assert.deepEqual([coinciden(d, rd.id, null, 'clave en observer keys').alcanzada, contrato.firmeza(d, rd.id).firme], [2, true]);
+  d.marcarSello(rd.id, await selloEnCascada(rd.id, { libro: d.genesisId, observador: ajeno, capas }));
+  assert.deepEqual([coinciden(d, rd.id, null, 'clave solo en observer keys').alcanzada, contrato.firmeza(d, rd.id).firme], [null, false]);
 });
 
 test('grado exigido 1 en una época hija: alcanzado con grado 1 y 2, no con 0, ni sin grado, ni con un texto; el recibo no vale para el primero; «sealed» sí para el último', async () => {
@@ -488,8 +537,8 @@ test('grado exigido 1 en una época hija: alcanzado con grado 1 y 2, no con 0, n
   const casa = await generarClaves();
   const fed = await generarClaves();
   for (const [grado, alcanza] of [[1, true], [2, true], [0, false], [undefined, false], ['shared', false], [7, false]]) {
-    const { eje, r } = await demo(obs, [casa, fed]);
-    eje.marcarSello(r.id, await selloEnCascada(r.id, { observador: ajeno, capas: [{ nivel: 1, grado: 1, claves: casa }, { nivel: 2, ...(grado === undefined ? {} : { grado }), claves: fed }, { nivel: 4 }] }));
+    const { eje, r } = await demo(obs, [[1, casa], [2, fed]]);
+    eje.marcarSello(r.id, await selloEnCascada(r.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 1, claves: casa }, { nivel: 2, ...(grado === undefined ? {} : { grado }), claves: fed }, { nivel: 4 }] }));
     const f = coinciden(eje, r.id, hija, 'grado ' + grado);
     assert.equal(f.capas[1].estado === 'alcanzada', alcanza, 'grado ' + grado);
     assert.equal(f.firme, alcanza, 'grado ' + grado);
@@ -506,7 +555,7 @@ test('grado exigido 1 en una época hija: alcanzado con grado 1 y 2, no con 0, n
   b.marcarSello(e.id, await selloCompleto(e.id, { observador: obs }));
   assert.deepEqual([coinciden(b, e.id, hija, '«sealed» por taproot').firme, contrato.firmeza(b, e.id, { epoca: hija }).alcanzada], [true, 4]);
   const { eje: c, e: ec } = await demo(obs);
-  c.marcarSello(ec.id, await selloEnCascada(ec.id, { observador: obs, capas: [{ nivel: 4 }] }));
+  c.marcarSello(ec.id, await selloEnCascada(ec.id, { libro: c.genesisId, observador: obs, capas: [{ nivel: 4 }] }));
   const fc = coinciden(c, ec.id, hija, '«sealed» por cascada sin grado');
   assert.deepEqual([fc.firme, fc.alcanzada, fc.capas[3].grado], [true, 4, undefined], 'alcanzado por «sealed», no por la cadena: sin grado ni clave');
 });
@@ -515,9 +564,9 @@ test('la persona sola: cuatro cabeceras locales, sin Bitcoin, alcanzan el nivel 
   const obs = await observadorDePrueba();
   const ajeno = await observadorDePrueba();
   const claves = await Promise.all([1, 2, 3].map(() => generarClaves()));
-  const { eje, e } = await demo(obs, [...claves, ajeno]);
+  const { eje, e } = await demo(obs, [...claves.map((c, k) => [k + 1, c]), [4, ajeno]]);
   // Sus cuatro líneas, cada una [n, 0]; arriba no hay observador de Bitcoin declarado (la décupla se cierra con uno de mentira).
-  eje.marcarSello(e.id, await selloEnCascada(e.id, { observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: claves[0] }, { nivel: 2, grado: 0, claves: claves[1] }, { nivel: 3, grado: 0, claves: claves[2] }, { nivel: 4, grado: 0 }] }));
+  eje.marcarSello(e.id, await selloEnCascada(e.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: claves[0] }, { nivel: 2, grado: 0, claves: claves[1] }, { nivel: 3, grado: 0, claves: claves[2] }, { nivel: 4, grado: 0 }] }));
   assert.deepEqual(leer(eje, e.id, 5).valor, [false], 'sin Bitcoin: «sealed» falso');
   const f = coinciden(eje, e.id, null, 'la persona sola');
   assert.deepEqual([f.firme, f.alcanzada, f.exigida], [true, 4, 4]);
@@ -535,8 +584,8 @@ test('«firm» recorre la cadena una vez y cabe en los límites: cuatro eslabone
   // El peor caso: E exige el nivel 4 y «sealed» es falso (arriba firma uno que no es observador), así que se recorre la cadena
   // entera: con la clave de arriba declarada como de línea, verdadero en el cuarto; con su firma rota, falso tras el cuarto.
   for (const [que, cambiar, valor] of [['cuatro válidos', null, true], ['el último roto', (q) => { q.prueba.cadena[3].cabecera.firma = q.prueba.cadena[2].cabecera.firma; }, false]]) {
-    const { eje, e } = await demo(obs, [...claves, ajeno]);
-    eje.marcarSello(e.id, await selloEnCascada(e.id, { observador: ajeno, capas, ...(cambiar ? { cambiar } : {}) }));
+    const { eje, e } = await demo(obs, [...claves.map((c, k) => [k + 1, c]), [4, ajeno]]);
+    eje.marcarSello(e.id, await selloEnCascada(e.id, { libro: eje.genesisId, observador: ajeno, capas, ...(cambiar ? { cambiar } : {}) }));
     assert.equal(eje.sello(e.id).decupla[9].length, 4);
     const p = new Presupuesto();
     const r = evaluar(f, new ContextoEje(eje, { epoch: EPOCA_0_BTML }), { sujeto: { k: 'reg', id: e.id }, presupuesto: p });
@@ -546,4 +595,126 @@ test('«firm» recorre la cadena una vez y cabe en los límites: cuatro eslabone
     medidas[que] = { ocupantes: p.usados, bytes: p.bytes };
   }
   console.log('# coste de «firm» (' + f.length + ' caracteres): ' + JSON.stringify(medidas) + ' de ' + LIMITES.ocupantes + ' ocupantes y ' + LIMITES.bytes + ' bytes');
+});
+
+// ---------- 7 · las claves de línea, por nivel (Core AGRAM 17-11, encargo «las claves de línea, por nivel») ----------
+//
+// El nivel y el grado que dice un eslabón (su 9.k.1) van fuera de la firma de su cabecera: solo los ata la clave. «line keys»
+// son pares [nivel, clave] y un eslabón solo cuenta si su clave está anotada para el nivel que dice; las «observer keys» ya no
+// cuentan para la cadena; la primera cabecera nombra este libro.
+
+test('el ataque: una clave anotada para el nivel 3 que firma un eslabón que dice el 1 o el 2 no da ese nivel (antes del arreglo lo daba); el mismo eslabón diciendo el 3, sí', async () => {
+  const obs = await observadorDePrueba();
+  const ajeno = await observadorDePrueba();
+  const k3 = await generarClaves();
+  // Arriba firma uno que nadie declara: «sealed» es falso y decide la cadena.
+  const { eje, coste, r } = await demo(obs, [[3, k3]]);
+  eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: k3 }, { nivel: 4 }] }));
+  eje.marcarSello(r.id, await selloEnCascada(r.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 2, grado: 1, claves: k3 }, { nivel: 4 }] }));
+  // Antes del arreglo, k3 estaba en before.8.9 y valía para cualquier nivel: el coste quedaba en firme en el 1 y r en el 2.
+  const fc = coinciden(eje, coste.id, null, 'k3 diciendo el nivel 1');
+  const fr = coinciden(eje, r.id, null, 'k3 diciendo el nivel 2');
+  assert.deepEqual([fc.firme, fc.alcanzada, fr.firme, fr.alcanzada], [false, null, false, null]);
+  // El mismo k3 diciendo su nivel, el 3 (que cubre el 2 que exige r): en firme.
+  const { eje: b, r: rb } = await demo(obs, [[3, k3]]);
+  b.marcarSello(rb.id, await selloEnCascada(rb.id, { libro: b.genesisId, observador: ajeno, capas: [{ nivel: 3, grado: 1, claves: k3 }, { nivel: 4 }] }));
+  const fb = coinciden(b, rb.id, null, 'k3 diciendo el nivel 3');
+  assert.deepEqual([fb.firme, fb.alcanzada, fb.capas[2].clave], [true, 3, k3.publica]);
+});
+
+test('una clave de observador que firma una cabecera de la cadena no da firmeza por la cadena; el sellador de arriba, anotado como [4, su clave], sí da su nivel por la cadena', async () => {
+  const obs = await observadorDePrueba();
+  const ajeno = await observadorDePrueba();
+  const { eje, coste } = await demo(obs);
+  eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: obs }, { nivel: 4 }] }));
+  const f = coinciden(eje, coste.id, null, 'el observador firma el nivel 1');
+  assert.deepEqual([f.firme, f.alcanzada], [false, null]);
+  // El sellador de la línea compartida firma la cabecera de nivel 4 con la clave del observador: «sealed» alcanza el último
+  // nivel igual, pero la cadena (y con ella su clave, su grado y su red en firmeza()) solo si está anotado [4, su clave].
+  const k1 = await generarClaves();
+  for (const [lineas, porCadena] of [[[[1, k1]], false], [[[1, k1], [4, obs]], true]]) {
+    const { eje: b, e } = await demo(obs, lineas);
+    b.marcarSello(e.id, await selloEnCascada(e.id, { libro: b.genesisId, observador: obs, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 4, grado: 2, red: 0 }] }));
+    const fe = coinciden(b, e.id, null, 'el sellador de arriba ' + (porCadena ? 'anotado' : 'sin anotar'));
+    assert.deepEqual([fe.firme, fe.alcanzada, fe.capas[3].clave, fe.capas[3].grado], [true, 4, porCadena ? obs.publica : undefined, porCadena ? 'provider' : undefined]);
+  }
+});
+
+test('una clave suelta, sin nivel, en «line keys» no da firmeza de ningún nivel', async () => {
+  const obs = await observadorDePrueba();
+  const ajeno = await observadorDePrueba();
+  const k1 = await generarClaves();
+  const { eje, coste } = await demo(obs);
+  // A la manera de antes: solo la clave.
+  await declararExterior(eje, { observadores: [obs.publica], lineas: [k1.publica], t: T(5) });
+  const exterior = await import('../src/exterior.js');
+  assert.deepEqual(exterior.ajustesDelEje(eje).lineas, []);
+  assert.deepEqual(evaluar('=count before.8.9', new ContextoEje(eje, { epoch: EPOCA_0_BTML })).valor, [0]);
+  eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 4 }] }));
+  const f = coinciden(eje, coste.id, null, 'clave suelta');
+  assert.deepEqual([f.firme, f.alcanzada], [false, null]);
+  // Con su nivel delante, sí.
+  await declararExterior(eje, { observadores: [obs.publica], lineas: [[1, k1.publica]], t: T(6) });
+  assert.deepEqual([coinciden(eje, coste.id, null, 'el mismo par').firme, contrato.firmeza(eje, coste.id).alcanzada], [true, 1]);
+});
+
+test('una clave rotada (dos pares del mismo nivel): lo sellado con la vieja sigue firme, y lo sellado con la nueva también', async () => {
+  const obs = await observadorDePrueba();
+  const ajeno = await observadorDePrueba();
+  const vieja = await generarClaves();
+  const nueva = await generarClaves();
+  for (const [que, claves] of [['la vieja', vieja], ['la nueva', nueva]]) {
+    const { eje, coste } = await demo(obs, [[1, vieja], [1, nueva]]);
+    eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves }, { nivel: 4 }] }));
+    const f = coinciden(eje, coste.id, null, que);
+    assert.deepEqual([f.firme, f.alcanzada, f.capas[0].clave], [true, 1, claves.publica], que);
+  }
+  // Sin la vieja anotada (solo la nueva), lo sellado con la vieja ya no.
+  const { eje, coste } = await demo(obs, [[1, nueva]]);
+  eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: vieja }, { nivel: 4 }] }));
+  assert.equal(coinciden(eje, coste.id, null, 'la vieja sin anotar').firme, false);
+});
+
+test('el eslabón 0 con el libro de otro no vale: ni «sealed» ni la cadena', async () => {
+  const obs = await observadorDePrueba();
+  const ajeno = await observadorDePrueba();
+  const k1 = await generarClaves();
+  for (const [que, observador] of [['con el observador declarado arriba', obs], ['con uno que nadie declara arriba', ajeno]]) {
+    const { eje, coste } = await demo(obs, [[1, k1], [4, obs]]);
+    eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: 'cd'.repeat(32), observador, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 4 }] }));
+    assert.deepEqual(leer(eje, coste.id, 5).valor, [false], que + ': «sealed»');
+    const f = coinciden(eje, coste.id, null, que);
+    assert.deepEqual([f.firme, f.alcanzada], [false, null], que);
+    // El mismo sello en este libro: en firme.
+    const { eje: b, coste: cb } = await demo(obs, [[1, k1], [4, obs]]);
+    b.marcarSello(cb.id, await selloEnCascada(cb.id, { libro: b.genesisId, observador, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 4 }] }));
+    assert.equal(coinciden(b, cb.id, null, que + ', en este libro').firme, true);
+  }
+  // Solo el eslabón 0 se mira: uno de arriba de otro libro (la línea compartida firma varios) no cambia nada.
+  const { eje, coste } = await demo(obs, [[1, k1], [4, obs]]);
+  eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 4, libro: 'cd'.repeat(32) }] }));
+  assert.deepEqual([leer(eje, coste.id, 5).valor, coinciden(eje, coste.id, null, 'arriba, otro libro').firme], [[true], true]);
+});
+
+test('restaurar y reordenar dan los mismos veredictos de «sealed», «firm» y firmeza()', async () => {
+  const { serializar, restaurar } = await import('../src/persistencia.js');
+  const obs = await observadorDePrueba();
+  const ajeno = await observadorDePrueba();
+  const k1 = await generarClaves();
+  const k3 = await generarClaves();
+  const { eje, coste, r, e } = await demo(obs, [[1, k1], [3, k3], [4, obs]]);
+  // El ataque (k3 diciendo el 1), el nivel 3 con su clave y el que llega a Bitcoin con su libro.
+  eje.marcarSello(coste.id, await selloEnCascada(coste.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: k3 }, { nivel: 4 }] }));
+  eje.marcarSello(r.id, await selloEnCascada(r.id, { libro: eje.genesisId, observador: ajeno, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 3, grado: 1, claves: k3 }, { nivel: 4 }] }));
+  eje.marcarSello(e.id, await selloEnCascada(e.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 1, grado: 0, claves: k1 }, { nivel: 4, grado: 2, red: 0 }] }));
+  const ids = [coste.id, r.id, e.id];
+  const huella = (x) => ids.map((id) => { const f = contrato.firmeza(x, id); return [leer(x, id, 5).valor, leer(x, id, 9).valor, f.firme, f.alcanzada, f.capas.map((c) => [c.estado, c.clave ?? null])]; });
+  const esperada = huella(eje);
+  assert.deepEqual(esperada.map((h) => h[2]), [false, true, true]);
+  const conSellos = (x) => { for (const id of ids) x.marcarSello(id, eje.sello(id)); return x; };
+  assert.deepEqual(huella(conSellos(await restaurar(serializar(eje)))), esperada, 'restaurado');
+  const otro = await Eje.desde(eje.orden.map((id) => eje.obtener(id)));
+  const { rechazados } = await otro.reordenar([...eje.orden]);
+  assert.deepEqual(rechazados, []);
+  assert.deepEqual(huella(conSellos(otro)), esperada, 'reordenado');
 });

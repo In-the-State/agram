@@ -48,7 +48,7 @@ export const NIVEL_PEDIDO = '(count (epoch where ' + CLASE + ' = "governance") *
  * solo vale anclado en un «enact a change» que aún no está en vigor, de una propuesta de clase «ordinary» o «governance»,
  * y, si el nivel que pide su clase no es 0, con la prueba de sello del «enact a change» en su payload 1.1 que lo cubre
  * (sello.formulaDeSelloDelDato: «sealed» entero, o la cadena de «firm» hasta ese nivel con la clave de la cabecera
- * declarada en before.8.9 o before.8.6).
+ * anotada para su nivel en before.8.9, pares [nivel, clave], y la primera cabecera de este libro).
  */
 export function formulaDePonerEnVigor() {
   const P = PLANTILLAS_DE_GOBIERNO;

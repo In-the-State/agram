@@ -1975,7 +1975,9 @@ function familiasSentenciadas(ev) {
  *   capas      uno por nivel de 7.6, en su orden, con `ritmo` (el nombre de la escala de T de su 7.6.2: «segundo»… «dia»)
  *              y su estado, el mismo que dice «firm» nivel a nivel (VG 17-11, encargo «firm lee grados»): «alcanzada» (por
  *              la cadena: un eslabón de ese nivel, con todos los de debajo válidos, su grado a la altura del exigido en
- *              7.6.5 y la clave de su cabecera declarada en «line keys» u «observer keys» de la cuenta raíz; el primero,
+ *              7.6.5 y la clave de su cabecera anotada para ese nivel en «line keys» de la cuenta raíz, pares [nivel,
+ *              clave] (VG 17-11, encargo «las claves de línea, por nivel»: las «observer keys» ya no cuentan para la
+ *              cadena), y la primera cabecera de la cadena nombra este libro (su 8, el id del génesis); el primero,
  *              también con su recibo de llegada si no se le exige grado; el último, también con «sealed»), «saltada» (por
  *              debajo del más alto alcanzado, y no alcanzado) o «pendiente» (por encima); en cada nivel alcanzado por la
  *              cadena, `clave` (la de la cabecera que lo alcanza), `grado` y `red` (los que dice ese eslabón detrás de su
@@ -2014,16 +2016,17 @@ export function firmeza(eje, id, opciones = {}) {
   const ultima = tabla.length - 1;
   // Lo que dice «firm» (VG 17-11, encargo «firm lee grados»; formulaDeFirmeza), nivel a nivel. Por la cadena: el primer
   // eslabón j, de los que valen seguidos desde abajo (sello.eslabonesValidos), que dice ese nivel, con su grado a la altura
-  // del exigido y la clave de su cabecera declarada (before.8.9 o before.8.6 de la cuenta raíz).
+  // del exigido y la clave de su cabecera anotada para ese nivel (before.8.9 de la cuenta raíz, pares [nivel, clave]), con la
+  // primera cabecera de este libro (eslabonesValidos con `libro`: 0 si no).
   const { grados, exigidos, redes } = gradosDe(epoca);
   const exterior = ajustesDelEje(eje, opciones);
-  const declaradas = new Set([...exterior.lineas, ...exterior.observadores]);
+  const anotadas = new Set(exterior.lineas.map(([nivel, clave]) => nivel + ' ' + clave));
   const porCadena = new Map();
-  for (const e of cadena.slice(0, eslabonesValidos(sello, id))) {
+  for (const e of cadena.slice(0, eslabonesValidos(sello, id, { libro: eje.genesisId }))) {
     const k = tabla.findIndex((c) => c.nivel === hoja(e[1]));
     const clave = Array.isArray(e[0]) ? e[0][5] : null;
     const [, grado, red] = hojas(e[1]);
-    if (k < 0 || porCadena.has(k) || !declaradas.has(clave) || !gradoLlega(grado, exigidos[k], grados)) continue;
+    if (k < 0 || porCadena.has(k) || !anotadas.has(tabla[k].nivel + ' ' + clave) || !gradoLlega(grado, exigidos[k], grados)) continue;
     porCadena.set(k, { clave, grado: canonicoDe(grado, grados), red: grado === undefined ? null : canonicoDe(red, redes) });
   }
   const alcanza = tabla.map((c, k) => porCadena.has(k) || (k === 0 && recibido && exigidos[0] === 0) || (k === ultima && v.sello === true));

@@ -107,7 +107,8 @@ const RE_CLAVE_X = /^[0-9a-f]{64}$/i;
 
 /**
  * Los avisos de lo escrito en un formulario de ajustes antes de guardarlo (repaso beta #13): un número que no lo es (o,
- * con `positivo`, que no es mayor que 0) y unas claves del observador que no son x-only (64 hex). Sin esto, el ajuste
+ * con `positivo`, que no es mayor que 0), unas claves del observador que no son x-only (64 hex) y unas claves de línea que
+ * no van en pares de nivel y clave. Sin esto, el ajuste
  * volvía al defecto o se guardaba tal cual sin decir nada. `campos`: los de ajustesEditablesDe o preferencias
  * ({ clave, etiqueta, numero }); `valores`: { clave: texto }. → [texto del aviso] (vacío: todo en regla).
  */
@@ -120,9 +121,19 @@ export function avisosDeAjustes(campos, valores, { positivo = true } = {}) {
     const malos = c.numero ? dado.split(/\s+/).filter((x) => !(Number.isFinite(Number(x)) && (!positivo || Number(x) > 0))) : [];
     if (malos.length) {
       avisos.push(t(positivo ? 'ajusteNoEsNumero' : 'ajusteNoEsNumeroSimple', { ajuste: c.etiqueta ?? c.clave, valor: malos.join(' ') }));
-    } else if (c.clave === 'observer keys' || c.clave === 'line keys') {
+    } else if (c.clave === 'observer keys') {
       const mal = dado.split(/\s+/).filter((x) => !RE_CLAVE_X.test(x));
       if (mal.length) avisos.push(t('ajusteNoEsClave', { ajuste: c.etiqueta ?? c.clave, valor: mal.join(' ') }));
+    } else if (c.clave === 'line keys') {
+      // Pares [nivel, clave] (encargo «las claves de línea, por nivel»): cada nivel, un entero ≥ 1, seguido de su clave; lo
+      // que no forme un par (una clave suelta, a la manera de antes) no cuenta (src/exterior.js lineasDe) y se avisa.
+      const trozos = dado.split(/[\s,;:]+/).filter(Boolean);
+      const mal = [];
+      for (let k = 0; k < trozos.length; k++) {
+        if (/^[1-9][0-9]{0,8}$/.test(trozos[k]) && RE_CLAVE_X.test(trozos[k + 1] ?? '')) k++;
+        else mal.push(trozos[k]);
+      }
+      if (mal.length) avisos.push(t('ajusteNoEsParDeLinea', { ajuste: c.etiqueta ?? c.clave, valor: mal.join(' ') }));
     }
   }
   return avisos;

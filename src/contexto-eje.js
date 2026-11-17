@@ -971,13 +971,15 @@ export class ContextoEje {
         return [];
       case 'exterior': {
         // before.8: 1 relay url, 2 blossom url, 3 seal url, 6 observer keys (una por ocupante, hex x-only en minúsculas),
-        // 7 confirmations, 8 guide url, 9 line keys (una por ocupante, hex x-only en minúsculas; VG 17-11): las posiciones de la
-        // plantilla «exterior settings» (epoch.9.2.5), ya leídas.
+        // 7 confirmations, 8 guide url, 9 line keys (un par [nivel, clave] por ocupante, 9.k.0 el nivel y 9.k.1 la clave hex
+        // x-only en minúsculas; VG 17-11, encargo «las claves de línea, por nivel»): las posiciones de la plantilla «exterior
+        // settings» (epoch.9.2.5), ya leídas.
         const n = this.#eje.orden?.length ?? 0;
         if (typeof lectorDelExterior !== 'function') throw pendiente('before.8: los ajustes del exterior no se pueden leer (no se ha cargado src/exterior.js)');
         if (this.#exterior?.n !== n) this.#exterior = { n, a: lectorDelExterior(this.#eje, this.#epocaCargada ? { epoca: this.#epocaCargada } : {}) };
         const { a } = this.#exterior;
-        const v = { 1: a.relevo, 2: a.archivos, 3: a.sello, 6: a.observadores, 7: a.confirmaciones, 8: a.guia, 9: a.lineas }[d];
+        if (d === 9) return (a.lineas ?? []).map((par) => ({ k: 'dec', id: null, camino: [], v: [...par] }));
+        const v = { 1: a.relevo, 2: a.archivos, 3: a.sello, 6: a.observadores, 7: a.confirmaciones, 8: a.guia }[d];
         return v === null || v === undefined ? [] : Array.isArray(v) ? [...v] : [v];
       }
       case 'llave':

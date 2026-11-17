@@ -245,7 +245,9 @@ test('gobierno: poner en vigor con prueba: la que no cubre el registro, la de un
   const obs = await observadorDePrueba();
   const casa = await generarClaves();
   const fuera = await generarClaves();
-  await declararExterior(eje, { lineas: [casa.publica], t: m.reloj() });
+  const abajo = await generarClaves();
+  // Las claves de línea, pares [nivel, clave] (encargo «las claves de línea, por nivel»): casa sella el nivel 3; abajo, el 1.
+  await declararExterior(eje, { lineas: [[3, casa.publica], [1, abajo.publica]], t: m.reloj() });
   const p = await m.propone();
   await lanza(P.apoyar, { X: p.id }, 'ana');
   const e = await lanza(P.aprobar, { X: p.id }, 'ana');
@@ -253,13 +255,18 @@ test('gobierno: poner en vigor con prueba: la que no cubre el registro, la de un
   const con = async (sello) => intenta(P.poner, { X: e.id, ...(sello ? { proof: sello.decupla } : {}) }, 'ana');
   assert.deepEqual(reglas(await con(null)), regla, 'sin prueba, con el nivel 3 pedido');
   // Una prueba buena, pero de otro registro.
-  assert.deepEqual(reglas(await con(await selloEnCascada(p.id, { observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] }))), regla, 'no cubre ese registro');
+  assert.deepEqual(reglas(await con(await selloEnCascada(p.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] }))), regla, 'no cubre ese registro');
   // Firmada por una clave que el libro no nombra (ni en sus claves de línea ni en las del observador).
-  assert.deepEqual(reglas(await con(await selloEnCascada(e.id, { observador: obs, capas: [{ nivel: 3, claves: fuera }, { nivel: 4 }] }))), regla, 'clave que el libro no nombra');
+  assert.deepEqual(reglas(await con(await selloEnCascada(e.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 3, claves: fuera }, { nivel: 4 }] }))), regla, 'clave que el libro no nombra');
   // Con clave nombrada, pero solo hasta el nivel 2 (el de arriba lo firma un observador que el libro no declara).
-  assert.deepEqual(reglas(await con(await selloEnCascada(e.id, { observador: obs, capas: [{ nivel: 2, claves: casa }, { nivel: 4 }] }))), regla, 'no llega al nivel 3');
-  // La buena: un eslabón de nivel 3 firmado por una clave de línea del libro.
-  const buena = await selloEnCascada(e.id, { observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] });
+  assert.deepEqual(reglas(await con(await selloEnCascada(e.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 2, claves: casa }, { nivel: 4 }] }))), regla, 'no llega al nivel 3');
+  // Con una clave anotada para otro nivel (el 1) que dice el 3 en su eslabón: antes del arreglo entraba en vigor (cualquier
+  // clave de «line keys» valía para cualquier nivel); ahora, no.
+  assert.deepEqual(reglas(await con(await selloEnCascada(e.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 3, claves: abajo }, { nivel: 4 }] }))), regla, 'clave de otro nivel');
+  // La buena, pero con la primera cabecera de otro libro: no vale.
+  assert.deepEqual(reglas(await con(await selloEnCascada(e.id, { libro: 'cd'.repeat(32), observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] }))), regla, 'el eslabón 0 de otro libro');
+  // La buena: un eslabón de nivel 3 firmado por la clave de línea del libro para el nivel 3.
+  const buena = await selloEnCascada(e.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] });
   const r = await con(buena);
   assert.equal(r.ok, true, JSON.stringify(r.motivos));
   assert.deepEqual(r.evento.payload[1][1], buena.decupla, 'la décupla de sello va en su 1.1');
@@ -267,15 +274,15 @@ test('gobierno: poner en vigor con prueba: la que no cubre el registro, la de un
   assert.deepEqual(reglas(await con(buena)), [...regla, null], 'una vez: lo dice la regla y, por su cuenta, el núcleo (A23)');
   // De gobierno: nivel 4. Por defecto la plantilla toma el sello que el libro guarda del registro (su 6.8.2); el entero
   // (el observador declarado: llega a Bitcoin) pasa.
-  await declararExterior(eje, { lineas: [casa.publica], observadores: [obs.publica], t: m.reloj() });
+  await declararExterior(eje, { lineas: [[3, casa.publica], [1, abajo.publica]], observadores: [obs.publica], t: m.reloj() });
   // ana retira su apoyo a la primera (ya en vigor: no cambia nada) para tener libre su P.
   await lanza(P.retirarApoyo, { X: p.id }, 'ana');
   const g = await m.propone('ana', 'governance', 'de gobierno');
   await lanza(P.apoyar, { X: g.id }, 'ana');
   const eg = await lanza(P.aprobar, { X: g.id }, 'ana');
-  const solo3 = await selloEnCascada(eg.id, { observador: await observadorDePrueba(), capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] });
+  const solo3 = await selloEnCascada(eg.id, { libro: eje.genesisId, observador: await observadorDePrueba(), capas: [{ nivel: 3, claves: casa }, { nivel: 4 }] });
   assert.deepEqual(reglas(await intenta(P.poner, { X: eg.id, proof: solo3.decupla }, 'ana')), regla, 'el 3 no basta a un cambio de gobierno');
-  eje.marcarSello(eg.id, await selloEnCascada(eg.id, { observador: obs, capas: [{ nivel: 1, claves: casa }, { nivel: 4 }] }));
+  eje.marcarSello(eg.id, await selloEnCascada(eg.id, { libro: eje.genesisId, observador: obs, capas: [{ nivel: 1, claves: casa }, { nivel: 4 }] }));
   const porDefecto = await intenta(P.poner, { X: eg.id }, 'ana');
   assert.equal(porDefecto.ok, true, JSON.stringify(porDefecto.motivos));
   assert.equal(porDefecto.evento.payload[1][1][6], 'cascada', 'la del 6.8.2 del registro');

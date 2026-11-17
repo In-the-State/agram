@@ -348,7 +348,10 @@ export function formulaDeSellado(p = POSICIONES_DEL_SELLO) {
  * unidos con «or»: cada rama ata su largo con la posición siguiente vacía (`count S.9.n = 0`), comprueba cada cabecera
  * (bien formada y v2, su camino «sip» desde el id o desde el hash de la de abajo llega a su raíz, y su firma con su propia
  * clave) y que el hash de la de arriba es el compromiso y su clave está declarada (before.8.6, la del observador). Las
- * claves de las capas de abajo no se miran. Sin primitivas nuevas.
+ * claves de las capas de abajo no se miran. Y la primera cabecera nombra este libro (`first S.9.0.0.8 = first before.5`,
+ * el id del génesis; enmienda de Core AGRAM con Core StateArk, 17-11, encargo «las claves de línea, por nivel»; detrás de la
+ * hoja, en el mismo sitio que `formula_sealed` de los vectores de StateArk: una cadena de otro libro da falso, no PENDIENTE,
+ * aunque le falte algo). Sin primitivas nuevas.
  */
 function formulaCascada(p, d = delRegistro(p)) {
   const { S, en, E, c, H, eslabon } = piezasDeCascada(p, d);
@@ -359,6 +362,7 @@ function formulaCascada(p, d = delRegistro(p)) {
   const C = '(first cabecera(bytes(first ' + en('cabecera') + ')))';
   return '("' + p.cascada + '" in ' + en('via')
     + ' and bytes(first ' + en('id') + ') = bytes(first ' + d.hoja + ')'
+    + ' and ' + delLibro(c)
     + ' and cat(bytes("' + p.p2tr + '"), taptweak(bytes(first ' + en('interna') + '), tapleaf(cat(bytes("' + p.compromiso + '"), bytes(first ' + en('compromisoCascada') + '))), ' + en('hermanosTaproot') + ')) = first (nth (first ' + en('vout') + ') ' + T + '.2).1'
     + ' and merkle(first ' + T + '.5, ' + en('ladosBitcoin') + ', ' + en('hermanosBitcoin') + ', "bitcoin") = first ' + C + '.3'
     + ' and hex(first ' + C + '.7) = first ' + en('hash')
@@ -395,13 +399,16 @@ function piezasDeCascada(p, d = delRegistro(p)) {
  * Cuántos eslabones de la cadena de un sello en cascada (su décupla, la de decuplaDeSello) valen seguidos desde abajo, con
  * los pasos de eslabon(k) de piezasDeCascada, los que mira «firm»: el sello es de vía «cascada», su hoja es `id`, y cada
  * eslabón, hasta ESLABONES_DE_LA_FORMULA, es una cabecera de lote v2 bien formada cuyo camino «sip» desde el id (el
- * primero) o desde el hash de la de abajo llega a su raíz y cuya firma vale con su propia clave. 0 si no hay ninguno.
+ * primero) o desde el hash de la de abajo llega a su raíz y cuya firma vale con su propia clave. Con `libro` (el id de este
+ * libro, el de su génesis), además, la primera cabecera nombra ese libro (su 8; VG 17-11, encargo «las claves de línea, por
+ * nivel»: «firm» lo exige); si no, 0. 0 si no hay ninguno.
  * La lectura de JS de lo mismo que la fórmula (contrato.firmeza la usa para decir lo mismo que la regla).
  */
-export function eslabonesValidos(decupla, id) {
+export function eslabonesValidos(decupla, id, { libro } = {}) {
   const q = POSICIONES_DEL_SELLO;
   if (!Array.isArray(decupla) || ![].concat(decupla[Number(q.via)]).includes(q.cascada) || decupla[Number(q.id)] !== id || !hexO(id, 64)) return 0;
   const cadena = Array.isArray(decupla[Number(q.cadena)]) ? decupla[Number(q.cadena)] : [];
+  if (libro !== undefined && !(Array.isArray(cadena[0]) && leerCabeceraDeLote(cadena[0][Number(q.eslabon.cabecera)])?.libro === libro)) return 0;
   let anterior = deHex(id);
   let n = 0;
   for (; n < Math.min(cadena.length, ESLABONES_DE_LA_FORMULA); n++) {
@@ -437,8 +444,10 @@ export const GRADOS_DE_LA_FORMULA = 3;
  *     0 a j valen (eslabon(k) de piezasDeCascada, el de «sealed»), el j dice ese nivel (el primer ocupante de su 9.j.1),
  *     su grado (el segundo, un NÚMERO: la posición en 7.6.4) llega al exigido (lo exigido es 0, o el grado es una posición
  *     de 7.6.4 igual o mayor: con «in», que no da ERROR con un texto ni con un hueco: «no alcanzado»), y la clave de su
- *     cabecera está declarada (before.8.9, las «line keys», o before.8.6, las «observer keys», de la cuenta raíz); las
- *     claves de los eslabones de debajo de j no se miran, como en «sealed»;
+ *     cabecera está anotada PARA ESE NIVEL en before.8.9 (las «line keys» de la cuenta raíz, pares [nivel, clave]; VG 17-11,
+ *     encargo «las claves de línea, por nivel»: el nivel y el grado que dice el eslabón no van firmados, solo los ata la
+ *     clave; las «observer keys», before.8.6, ya no cuentan para la cadena); y la primera cabecera nombra este libro (su 8
+ *     es before.5, el id del génesis); las claves de los eslabones de debajo de j no se miran, como en «sealed»;
  *   el primero, además, con su recibo de llegada («received», X.6.8.4), si lo exigido en él es 0;
  *   el último, además, con «sealed» (X.6.8.5), por cualquiera de las dos vías, sea cual sea el grado exigido.
  * Exige el nivel de la familia más alta que mueve con sus propias sentencias (it.1, lo declarado y no anunciado): lo que
@@ -447,13 +456,13 @@ export const GRADOS_DE_LA_FORMULA = 3;
  * por escribir, por recibir E o R: no son sentencias del registro, no están en su 1). Sin nada, el primero.
  * «firm» es verdadera si algún nivel alcanzado está a la altura del exigido o por encima (uno de arriba cubre los de abajo).
  * La cadena se recorre UNA vez, de abajo arriba (cada firma se verifica una sola vez): `e0 and (vale(0) or e1 and (vale(1)
- * or …))`, con vale(j) lo barato (la clave declarada, y que el nivel que dice j, con su grado, llega al exigido o por
- * encima). Primero «sealed» (lo que le falta un dato la deja PENDIENTE, como antes), luego la cadena, luego el recibo.
+ * or …))`, con vale(j) lo barato (que el nivel que dice j, con su grado, llega al exigido o por encima y que la clave de
+ * su cabecera está anotada para ese nivel). Primero «sealed» (lo que le falta un dato la deja PENDIENTE, como antes), luego la cadena, luego el recibo.
  * Sin sello ni recibo, falsa.
  */
 export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   const { en, E, c, eslabon } = piezasDeCascada(p);
-  const { capa, exigido, nivelDe, llega, declarada } = piezasDeNivel(p, E, c);
+  const { capa, exigido, nivelDe, llega, anotada } = piezasDeNivel(p, E, c);
   const familia = (j) => '(nth ' + j + ' epoch.7.6.3)';
   const sellado = 'count (first it.6).8.2 > 0 and first (first it.6).8.5';
   const recibido = 'count (first it.6).8.1 > 0 and first (first it.6).8.4';
@@ -462,21 +471,20 @@ export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
   const mueve = (j) => 'count (it.1 where not (' + coste + ') and (' + FAMILIAS.map((f) => familia(j) + ' = "' + f + '" and ' + f + ' in it2.0.0.0').join(' or ') + ')) > 0';
   // Ningún nivel de encima de k hace falta: el exigido es k o uno de debajo.
   const encima = (k) => Array.from({ length: ultima - k }, (_, i) => ' and not (' + mueve(k + 1 + i) + ')').join('');
-  // vale(j): su clave está declarada y el nivel que dice, con su grado, está a la altura del exigido o por encima. Los niveles,
-  // de arriba abajo: `A(último) or not (mueve último) and (A(penúltimo) or not (mueve penúltimo) and (…))`, así cada «mueve»
-  // sale una vez por eslabón.
-  const niveles = (j) => {
+  // vale(j): el nivel que dice, con su grado, está a la altura del exigido o por encima, y la clave de su cabecera está
+  // anotada para ese nivel. Los niveles, de arriba abajo: `A(último) or not (mueve último) and (A(penúltimo) or not (mueve
+  // penúltimo) and (…))`, así cada «mueve» sale una vez por eslabón.
+  const vale = (j) => {
     let x = '';
     for (let k = 0; k <= ultima; k++) {
-      const a = '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + llega(k, j) + ')';
+      const a = '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + llega(k, j) + ' and ' + anotada(k, j) + ')';
       x = k === 0 ? a : a + ' or not (' + mueve(k) + ') and (' + x + ')';
     }
     return x;
   };
-  const vale = (j) => declarada(j) + ' and (' + niveles(j) + ')';
   let cadena = '';
   for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + ' and (' + vale(j) + (cadena ? ' or ' + cadena : '') + ')';
-  const porLaCadena = '("' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first it.5) and ' + cadena + ')';
+  const porLaCadena = '("' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first it.5) and ' + delLibro(c) + ' and ' + cadena + ')';
   const porElRecibo = '(' + recibido + ' and ' + exigido(0) + ' = 0' + encima(0) + ')';
   return '=(' + sellado + ') or ' + porLaCadena + ' or ' + porElRecibo;
 }
@@ -484,8 +492,9 @@ export function formulaDeFirmeza(p = POSICIONES_DEL_SELLO) {
 /**
  * Las piezas de los niveles que comparten «firm» (formulaDeFirmeza) y la prueba que trae un registro en su payload
  * (formulaDeSelloDelDato): capa(k) el nivel k de epoch.7.6.1, exigido(k) el grado exigido en él (7.6.5), nivelDe(j) y
- * gradoDe(j) lo que dice el 9.j.1 del eslabón j, llega(k, j) que su grado llega al exigido en k y declarada(j) que la clave
- * de su cabecera está en before.8.9 o en before.8.6. Sin el «=».
+ * gradoDe(j) lo que dice el 9.j.1 del eslabón j, llega(k, j) que su grado llega al exigido en k y anotada(k, j) que la clave
+ * de su cabecera está anotada para el nivel k en before.8.9 (las «line keys», pares [nivel, clave]: lookup de sus niveles
+ * y sus claves, en paralelo; VG 17-11, encargo «las claves de línea, por nivel»). Sin el «=».
  */
 function piezasDeNivel(p, E, c) {
   const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
@@ -496,9 +505,12 @@ function piezasDeNivel(p, E, c) {
   // El grado llega al exigido: lo exigido es 0, o el grado es el exigido o uno de los de encima (exigido + 1…), y es una
   // posición de 7.6.4. Con «in»: un grado que falta o que es un texto no es ninguno de esos números (falso, no ERROR).
   const llega = (k, j) => '(' + exigido(k) + ' = 0 or (' + Array.from({ length: GRADOS_DE_LA_FORMULA - 1 }, (_, d) => gradoDe(j) + ' in ' + (d === 0 ? exigido(k) : '(' + exigido(k) + ' + 1'.repeat(d) + ')')).join(' or ') + ') and ' + gradoDe(j) + ' < count epoch.7.6.4)';
-  const declarada = (j) => '(first ' + c(j, 'clave') + ' in before.8.9 or first ' + c(j, 'clave') + ' in before.8.6)';
-  return { capa, exigido, nivelDe, gradoDe, llega, declarada };
+  const anotada = (k, j) => 'first ' + c(j, 'clave') + ' in lookup(before.8.9.0, before.8.9.1, ' + capa(k) + ')';
+  return { capa, exigido, nivelDe, gradoDe, llega, anotada };
 }
+
+/** La primera cabecera de la cadena nombra este libro: su 8 es el id del génesis (before.5; VG 17-11, encargo «las claves de línea, por nivel»). */
+const delLibro = (c) => 'first ' + c(0, 'libro') + ' = first before.5';
 
 /** De dónde leen «sealed» y «firm» el sello de un registro: S, lo que el núcleo lee en su 6.8.2, y su hoja, su 5 (su id). */
 function delRegistro(p) {
@@ -512,20 +524,21 @@ function delRegistro(p) {
  * expresión que da el id que ha de cubrir) en vez de al 6.8.2 de un registro y su 5. Vale si:
  *   la prueba entera vale («sealed» por cualquiera de sus dos vías, con el observador en before.8.6: llega a Bitcoin, el
  *   último nivel, que cubre todos los de abajo); o
- *   por la cadena, como en «firm»: la vía es «cascada», su hoja es `hoja` y hay un eslabón j con los de 0 a j válidos, la
- *   clave de su cabecera en before.8.9 o before.8.6, y un nivel k que el j dice, a la altura de `nivel` o por encima, con su
- *   grado a la altura del exigido en k (epoch.7.6.5).
+ *   por la cadena, como en «firm»: la vía es «cascada», su hoja es `hoja`, la primera cabecera nombra este libro (before.5)
+ *   y hay un eslabón j con los de 0 a j válidos y un nivel k que el j dice, a la altura de `nivel` o por encima, con su
+ *   grado a la altura del exigido en k (epoch.7.6.5) y la clave de su cabecera anotada para ese nivel k en before.8.9 (VG
+ *   17-11, encargo «las claves de línea, por nivel»: las «observer keys» ya no cuentan para la cadena).
  * `nivel` es una expresión BQL que da un número de epoch.7.6.1. Sin recibo de llegada (el registro no lo trae). Sin el «=».
  */
 export function formulaDeSelloDelDato({ sello, hoja, nivel }, p = POSICIONES_DEL_SELLO) {
   const d = { S: sello, hoja };
   const { en, E, c, eslabon } = piezasDeCascada(p, d);
-  const { capa, nivelDe, llega, declarada } = piezasDeNivel(p, E, c);
+  const { capa, nivelDe, llega, anotada } = piezasDeNivel(p, E, c);
   const sellado = '(' + formulaCascada(p, d) + ' or not ("' + p.cascada + '" in ' + en('via') + ') and ' + formulaTaproot(p, d) + ')';
-  const niveles = (j) => Array.from({ length: CAPAS_DE_LA_FORMULA }, (_, k) => '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + capa(k) + ' >= ' + nivel + ' and ' + llega(k, j) + ')').join(' or ');
+  const niveles = (j) => Array.from({ length: CAPAS_DE_LA_FORMULA }, (_, k) => '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + capa(k) + ' >= ' + nivel + ' and ' + llega(k, j) + ' and ' + anotada(k, j) + ')').join(' or ');
   let cadena = '';
-  for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + ' and (' + declarada(j) + ' and (' + niveles(j) + ')' + (cadena ? ' or ' + cadena : '') + ')';
-  const porLaCadena = '("' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first ' + hoja + ') and ' + cadena + ')';
+  for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + ' and ((' + niveles(j) + ')' + (cadena ? ' or ' + cadena : '') + ')';
+  const porLaCadena = '("' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first ' + hoja + ') and ' + delLibro(c) + ' and ' + cadena + ')';
   return '(' + sellado + ' or ' + porLaCadena + ')';
 }
 

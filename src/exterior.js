@@ -7,7 +7,7 @@
 // época); sus etiquetas y ayudas, en es y en, son datos de la época.
 //
 //   AJUSTES                    { plantilla, relevo, archivos, sello, pago, observadores, confirmaciones, guia, lineas }: el nombre de la plantilla y las claves de sus ajustes («relay url», «blossom url»…): un registro de ajustes lleva sus claves en el 1 y sus valores, en paralelo, en el 2 (VG 13-11, #77: sin huecos ni rellenos)
-//   exterior(eje, yo)          → { relevo, archivos, sello, pago, guia, observadores, lineas, confirmaciones }: cada url (http o https, sin la barra final) o null; las claves de los observadores y las de línea (hex x-only, [] si no hay); las confirmaciones (6 por defecto)
+//   exterior(eje, yo)          → { relevo, archivos, sello, pago, guia, observadores, lineas, confirmaciones }: cada url (http o https, sin la barra final) o null; las claves de los observadores (hex x-only, [] si no hay); las de línea, pares [nivel, clave] ([] si no hay: lineasDe); las confirmaciones (6 por defecto)
 //   ajustesDelEje(eje)         lo mismo, leído en el registro de la cuenta RAÍZ del eje (la identidad del génesis): lo que se usa para VERIFICAR (docs/CONTRATO.md §4.4)
 
 import { configuracionDe } from './contrato.js';
@@ -25,6 +25,32 @@ export function claves(x) {
   return [...new Set(trozos.map((k) => k.trim().toLowerCase()).filter((k) => /^[0-9a-f]{64}$/.test(k)))];
 }
 
+/**
+ * Las claves de línea (VG 17-11, encargo «las claves de línea, por nivel»): pares [nivel, clave], la misma forma que anota el
+ * enlace del puente, un ocupante por par. En el registro de ajustes cada valor es una hoja (#77), así que se escriben como
+ * texto, cada par su nivel y su clave seguidos: «1 7d3b… 4 1e8a…» (separados por espacios, comas, punto y coma o dos
+ * puntos: «1:7d3b…, 4:1e8a…» vale igual), o como hojas seguidas (un número y un texto). El nivel, un entero ≥ 1 (el de
+ * epoch.7.6.1 que dice el 9.k.1 del eslabón); la clave, x-only (64 hex). Se leen de izquierda a derecha: un nivel seguido de
+ * una clave es un par; lo demás no cuenta (una clave suelta, a la manera de antes, no da ningún nivel). Sin pares
+ * repetidos, la clave en minúsculas, en el orden escrito. → [[nivel, clave], …].
+ */
+export function lineasDe(x) {
+  const trozos = (Array.isArray(x) ? x.flat() : [x]).flatMap((v) => (typeof v === 'string' ? v.split(/[\s,;:]+/) : typeof v === 'number' ? [v] : [])).filter((v) => v !== '');
+  const nivel = (v) => (typeof v === 'number' ? (Number.isSafeInteger(v) && v >= 1 ? v : null) : /^[1-9][0-9]{0,8}$/.test(v) ? Number(v) : null);
+  const clave = (v) => (typeof v === 'string' && /^[0-9a-f]{64}$/i.test(v) ? v.toLowerCase() : null);
+  const pares = [];
+  const vistos = new Set();
+  for (let k = 0; k < trozos.length; k++) {
+    const n = nivel(trozos[k]);
+    const c = n === null ? null : clave(trozos[k + 1]);
+    if (c === null) continue;
+    k++;
+    if (!vistos.has(n + ' ' + c)) pares.push([n, c]);
+    vistos.add(n + ' ' + c);
+  }
+  return pares;
+}
+
 /** Una url http o https sin la barra final, o null si está vacía o no es una url. */
 export function url(x) {
   const v = Array.isArray(x) ? x.find((h) => typeof h === 'string') : x;
@@ -40,8 +66,7 @@ export function url(x) {
 /**
  * Dónde están los servicios de fuera de `quien`, según su registro «exterior settings» (el último, anclado en el 9 de su
  * alta): { relevo, archivos, sello, pago, guia }, cada uno la url o null si no la ha dicho o no es una url; las claves de los
- * observadores, las de línea (las que sellan este libro: las propias de cada nivel primero, en el orden de los niveles) y
- * las confirmaciones.
+ * observadores, las de línea (las que sellan este libro, pares [nivel, clave]: lineasDe) y las confirmaciones.
  */
 export function exterior(eje, quien, opciones = {}) {
   const c = configuracionDe(eje, quien, AJUSTES.plantilla, opciones);
@@ -53,8 +78,9 @@ export function exterior(eje, quien, opciones = {}) {
     pago: url(c[AJUSTES.pago]),
     guia: url(c[AJUSTES.guia]),
     observadores: claves(c[AJUSTES.observadores]),
-    // VG 17-11 (encargo «firm lee grados»): las claves de línea que sellan este libro, la 9 de «exterior settings».
-    lineas: claves(c[AJUSTES.lineas]),
+    // VG 17-11 (encargos «firm lee grados» y «las claves de línea, por nivel»): las claves de línea que sellan este libro,
+    // la 9 de «exterior settings», como pares [nivel, clave].
+    lineas: lineasDe(c[AJUSTES.lineas]),
     confirmaciones: Number.isInteger(n) && n > 0 ? n : CONFIRMACIONES,
   };
 }

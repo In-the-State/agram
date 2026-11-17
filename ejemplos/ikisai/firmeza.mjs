@@ -16,8 +16,9 @@
 // Los sellos, los recibos y sus claves (el observador, el relé y los firmantes de cada nivel) son INVENTADOS y se fabrican
 // aquí, en cada construcción (ejemplos/ikisai/sellos.mjs): cabeceras de lote v2 firmadas de verdad con esas claves, que las
 // reglas «sealed» y «firm» comprueban. La cuenta raíz declara el observador («observer keys») y las claves de línea de cada
-// nivel («line keys»): «firm» solo cuenta un eslabón cuya clave está declarada. Nada de esto es real: ni el observador, ni
-// la red, ni los bloques.
+// nivel («line keys», pares [nivel, clave]): «firm» solo cuenta un eslabón cuya clave está anotada para el nivel que dice
+// (el observador, que firma la cabecera de nivel 4 de la línea compartida, se anota también como [4, su clave]). Las
+// cabeceras nombran este libro (su génesis). Nada de esto es real: ni el observador, ni la red, ni los bloques.
 
 import { Eje } from '../../src/eje.js';
 import * as A from '../../src/acciones.js';
@@ -64,13 +65,15 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   // Las claves inventadas de fuera: el observador de cabeceras (lo declara ana, la cuenta raíz) y el relé de los recibos.
   const observador = await generarClaves();
   const rele = await generarClaves();
-  // Las claves de línea de cada nivel (inventadas): la casa, la federación y el protocolo; y las de la persona sola, una por
-  // nivel (la de arriba firma también su cabecera de nivel 4). Primero las propias de cada nivel, en su orden.
+  // Las claves de línea de cada nivel (inventadas), como pares [nivel, clave]: la casa, la federación, el protocolo y el
+  // observador, que firma la cabecera de nivel 4 de la línea compartida (VG 17-11: el nivel que dice un eslabón no va
+  // firmado, solo lo ata la clave anotada para él); y las de la persona sola, una por nivel (la de arriba firma también su
+  // cabecera de nivel 4).
   const casa = await generarClaves();
   const federacion = await generarClaves();
   const protocolo = await generarClaves();
   const sola = await Promise.all([1, 2, 3, 4].map(() => generarClaves()));
-  const lineas = [casa, federacion, protocolo, ...sola].map((c) => c.publica).join(' ');
+  const lineas = [[1, casa], [2, federacion], [3, protocolo], [4, observador], ...sola.map((c, k) => [k + 1, c])].map(([n, c]) => n + ' ' + c.publica).join(' ');
   const ajustes = contrato.registroDeAjustes('exterior settings', { 'observer keys': observador.publica, 'line keys': lineas }, { quien: 'ana' });
   await salida.escribirDesde(eje, { modo: 'sequenced', autor: 'ana', sobre: alta, en: direccion([9]), payload: ajustes, t: despues(30) }, priv('ana'));
 
@@ -85,7 +88,7 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
     if (!x.ok) throw new Error(nombre + ' (' + yo + '): ' + x.motivos.map((m) => m.mensaje).join('; '));
     return eje.anadir(x.evento);
   };
-  const sellar = async (ev, capas, bloque, arriba = observador) => eje.marcarSello(ev.id, await selloEnCascada(ev.id, { observador: arriba, capas, instante: bloque }));
+  const sellar = async (ev, capas, bloque, arriba = observador) => eje.marcarSello(ev.id, await selloEnCascada(ev.id, { observador: arriba, capas, instante: bloque, libro: eje.genesisId }));
   // Los eslabones de frontera (VG 17-11): [nivel, grado] con el grado y la red como posiciones de epoch.7.6.4 y 7.6.6.
   const CASA = { nivel: 1, grado: 0, claves: casa };
   const FEDERACION = { nivel: 2, grado: 1, claves: federacion };
@@ -134,9 +137,9 @@ export async function ejemploFirmeza({ claves = {} } = {}) {
   // En duda: la línea del observador se bifurca en su número 1 (dos cabeceras con el mismo número, de la misma clave), y el
   // sello de este registro pasa por su cabecera 1.
   r.enDuda = await escribe('enDuda', ['minuto'], despues(660));
-  eje.marcarSello(r.enDuda.id, await selloEnCascada(r.enDuda.id, { observador, capas: [{ ...CASA, hora: segundos(despues(661)) }, { ...BITCOIN, numero: 1, hora: segundos(despues(3000)) }], instante: despues(3600) }));
-  const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32), hora: segundos(despues(3000)) }, observador);
-  const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), hora: segundos(despues(3001)) }, observador);
+  eje.marcarSello(r.enDuda.id, await selloEnCascada(r.enDuda.id, { observador, libro: eje.genesisId, capas: [{ ...CASA, hora: segundos(despues(661)) }, { ...BITCOIN, numero: 1, hora: segundos(despues(3000)) }], instante: despues(3600) }));
+  const a = cabeceraDeLoteFirmada({ numero: 1, raiz: 'aa'.repeat(32), hora: segundos(despues(3000)), libro: eje.genesisId }, observador);
+  const b = cabeceraDeLoteFirmada({ numero: 1, raiz: 'bb'.repeat(32), hora: segundos(despues(3001)), libro: eje.genesisId }, observador);
   eje.marcarBifurcacion({ a: a.decupla, b: b.decupla });
 
   return { eje, registros: r, peticion, foco: r.colgado.id };
