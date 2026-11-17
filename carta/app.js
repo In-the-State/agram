@@ -71,7 +71,7 @@ const estado = {
   guia: { alta: null, historial: [], borrador: '', pensando: false, pendiente: '', error: '', con: 'guia' },
   // Hablar con Core desde el PV9 (solo con el servidor de retoques, retoques/; carta/guia.js «hablar con Core»): la
   // conversación de este navegador (null hasta cargarla), lo escrito sin mandar, lo señalado y si el próximo toque señala.
-  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false, fondo: null, fondoAbierto: false, ensayo: null, entrandoEnsayo: false },
+  core: { turnos: null, pensando: false, error: '', borrador: '', senalado: [], senalando: false, fondo: null, fondoAbierto: false, ensayo: null, entrandoEnsayo: false, errorEnsayo: '' },
   // El 3 por tema (encargo pv3): el botón de cada caja ({ [caja]: 'todos' | 'doy' | 'recibo' }) y el sitio abierto
   // ({ X, lugar }: la cruceta del propio nodo, el personaje del sitio) o null.
   filtrosDelTres: {}, sitio: null,
@@ -355,7 +355,7 @@ function extraDe() {
     puente: estado.puente && estado.eje ? puenteSeguro() : undefined,
     ajustesElemento: estado.ajustes && estado.eje ? ajustesDelElemento(estado.eje, estado.ajustes.X, estado.identidad) ?? undefined : undefined,
     entradaReglas: estado.eje ? conGobierno(estado.eje) : false, genesisId: estado.eje?.genesisId,
-    parteConfiguracion: estado.config || undefined, arranque: estado.arranque, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
+    parteConfiguracion: estado.config || undefined, arranque: estado.arranque, ensayo: estado.arranque ? botonEnsayo() ?? undefined : undefined, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
     archivo: (id) => archivos.contenido(id), // los archivos adjuntos (el HTML del PV0 en su iframe aislado, las imágenes)
   };
 }
@@ -610,8 +610,14 @@ function datosCore() {
   if (!c.turnos) {
     c.turnos = guia.cargarCore(almacenLocal()).map((m) => (m.role === 'core' && !m.hecho ? { ...m, hecho: true, error: m.error || t('coreCortado') } : m));
   }
-  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando, fondo: c.fondo, fondoAbierto: c.fondoAbierto, ensayo: hayQueEntrarEnElEnsayo() ? { entrando: c.entrandoEnsayo } : null };
+  return { con: estado.guia.con, turnos: c.turnos, pensando: c.pensando, error: c.error, borrador: c.borrador, senalado: c.senalado, senalando: c.senalando, fondo: c.fondo, fondoAbierto: c.fondoAbierto, ensayo: botonEnsayo() };
 }
+
+/** El botón del ensayo (panel Core y bienvenida): { entrando, error } si hay que entrar en él, o null. */
+const botonEnsayo = () => (hayQueEntrarEnElEnsayo() ? { entrando: estado.core.entrandoEnsayo, error: estado.core.errorEnsayo } : null);
+
+/** Repinta lo que enseña el botón del ensayo: la bienvenida (sin libro o con ella abierta), si no la guía. */
+const pintarEnsayo = () => (estado.arranque || !estado.eje ? pintar() : pintarGuia());
 
 /** ¿Sirve el servidor de retoques el libro del roadmap (--ensayo) y esta pantalla aún no tiene esa cuenta? */
 const hayQueEntrarEnElEnsayo = () => Boolean(estado.core.ensayo?.alta) && !cuentas.cuentas().some((x) => x.alta === estado.core.ensayo.alta);
@@ -623,7 +629,7 @@ async function refrescarEnsayo() {
   let e = null;
   try { e = await r.estado(); } catch { /* sin servidor: sin botón */ }
   estado.core.ensayo = e?.ensayo === true && typeof e.ensayoAlta === 'string' ? { alta: e.ensayoAlta } : null;
-  pintarGuia();
+  pintarEnsayo();
 }
 
 /** La lista de cambios de fondo del servidor de retoques (al cargar y al acabar cada respuesta de Core). */
@@ -2289,8 +2295,8 @@ const manejadores = {
     const r = retoques();
     const c = estado.core;
     if (!r?.ensayoCuenta || c.entrandoEnsayo || !hayQueEntrarEnElEnsayo()) return;
-    Object.assign(c, { entrandoEnsayo: true, error: '' });
-    pintarGuia();
+    Object.assign(c, { entrandoEnsayo: true, errorEnsayo: '' });
+    pintarEnsayo();
     try {
       const { copia, frase } = await r.ensayoCuenta();
       const rc = await cuentas.restaurarCuenta(copia, frase);
@@ -2314,8 +2320,8 @@ const manejadores = {
       c.entrandoEnsayo = false;
       await pintar();
     } catch (e) {
-      Object.assign(c, { entrandoEnsayo: false, error: String(e?.message ?? e) });
-      pintarGuia();
+      Object.assign(c, { entrandoEnsayo: false, errorEnsayo: String(e?.message ?? e) });
+      pintarEnsayo();
     }
   },
   /** Una conversación nueva con Core: la del agente y la de este navegador. */

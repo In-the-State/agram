@@ -501,6 +501,7 @@ export const TEXTOS = Object.freeze({
     coreEnsayo: 'Entrar en el libro del roadmap',
     coreEnsayoTitulo: 'abre aquí, como su dueña, el libro del roadmap que sirve el servidor de retoques, y lo sincroniza',
     coreEnsayoEntrando: 'entrando en el libro del roadmap…',
+    coreEnsayoFallo: 'No se ha podido entrar en el libro del roadmap: {motivo}. Puedes volver a intentarlo.',
     guiaViaServidor: 'por el servidor del libro compartido',
     guiaViaEjemplo: 'ejemplo con datos inventados: aquí no hay libro compartido, así que la guía no tiene servidor; solo contesta por la vía directa, con tu clave',
     guiaSinServidorEjemplo: 'en el ejemplo no hay libro compartido: la guía no tiene a dónde preguntar; crea tu cuenta o pon tu clave de Anthropic en configuración',
