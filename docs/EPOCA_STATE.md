@@ -20,6 +20,8 @@ Para quien monta el eje de un nodo (Core AARPIA). VG 16-11, #124: el nodo, visto
 
 El libro lo abre el **titular** (escribe el génesis) e invita al **operador**, que acepta; el operador da de alta el nodo **sobre su propia alta**, nombrando al titular en el 3.2, monta las piezas, lo pone en servicio y da de alta los agentes; el titular escribe «require authorization». Así lo hace `ejemplos/state/nodo.mjs`, y todo su recorrido (conexiones, anclas pedidas y servidas, mensajes, ejes servidos, la visita, los canales) pasa sin tocar la época state ni la 0: lo del nodo se decide por el **dueño del nodo** (quien escribió su alta: `first (first …).3` en «current connections», «attention price», «attention has a price»), no por el autor del génesis. Una persona invitada tiene el mismo T diario que el autor del génesis (1440 minutos).
 
+**Cuál es el nodo del libro.** Como el alta del nodo ya no cuelga del génesis y cualquier persona puede dar de alta uno sobre su propia alta, puede haber varias. El nodo del libro es la primera alta de nodo que nombra como titular (su 3.2) al autor del génesis: `nodoDe(eje)` de `datos/epocas/state/ayuda.mjs` (y `nodosDe(eje)`, todas). Es una lectura de la ayuda, no de la época: no cambia su id.
+
 Lo que sigue reservado al **autor del génesis** (el titular en esta disposición: firma él, o su guardián):
 
 | Plantilla o ajuste | Lo que lo reserva |
@@ -180,7 +182,7 @@ El eje es la única fuente: el nodo no lleva en la máquina ninguna lista aparte
 
 ## 7. Publicar la época en un eje vacío
 
-`node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del titular, que escribe el génesis; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **65 registros** (el génesis, la raíz y sus 63 registros: 21 reglas, 10 de ellas lecturas con nombre, y 42 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: algo más de un minuto. El mayor, la raíz, ocupa unos 76 KB (el tope es de 256 KB). Después, la invitación del titular al operador (§1 bis), las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.
+`node be.mjs epoca --publicar datos/epocas/state/state-0.btml.json` (con la configuración de `be.mjs`: el servidor, el eje vacío y la identidad del titular, que escribe el génesis; `docs/CONTRATO.md` §5 bis y §17). Escribe el génesis y la época en su libro: **66 registros** (el génesis, la raíz y sus 64 registros: 22 reglas, 11 de ellas lecturas con nombre, y 42 plantillas), firmados, y los sube a 55 por minuto con reintento del 429: algo más de un minuto. El mayor, la raíz, ocupa unos 76 KB (el tope es de 256 KB). Después, la invitación del titular al operador (§1 bis), las altas del §2 y el camino del §3, como en `ejemplos/state/nodo.mjs`.
 
 ## 8. Las conversaciones y los canales
 

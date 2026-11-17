@@ -36,6 +36,19 @@ export const interlocutorDe = (eje, conversacion) => [payloadDe(eje, conversacio
 /** Quien escribió el alta de una identidad: ella misma si es una persona; su dueño si es una cosa. */
 export const duenoDe = (eje, identidad) => eje.alta(identidad)?.autor ?? null;
 const esPersona = (eje, identidad) => !eje.alta(identidad) || duenoDe(eje, identidad) === identidad;
+
+/** La plantilla del alta de un nodo: su registro la nombra en su 4 y nombra a su titular en su 3.2. */
+export const ALTA_DEL_NODO = 'register the node';
+/**
+ * Las altas de nodo del libro, por llegada. Cualquier persona da de alta un nodo sobre su propia alta (VG 17-11: el
+ * operador, invitado por el titular), así que puede haber varias y ninguna cuelga directamente del génesis.
+ */
+export const nodosDe = (eje) => (eje.orden ?? []).map((id) => eje.obtener(id)).filter((ev) => Array.isArray(ev?.payload) && [ev.payload[4]].flat(3).includes(ALTA_DEL_NODO));
+/** El nodo del libro: la primera alta de nodo que nombra como titular (su 3.2) al autor del génesis. null si no hay. */
+export function nodoDe(eje) {
+  const titular = eje.obtener(eje.genesisId)?.autor;
+  return nodosDe(eje).find((ev) => [ev.payload[3]?.[2]].flat(3)[0] === titular) ?? null;
+}
 const soloReturn = (p) => {
   const modos = [p?.[1]?.[0]].flat(2);
   return modos.includes('return') && !modos.includes('burn') && !modos.includes('pay');

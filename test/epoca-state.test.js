@@ -17,7 +17,7 @@ import { evaluar, leerRegla } from '../src/bqlm.js';
 import { firmar } from '../src/autoridad.js';
 import { sinTraducir } from '../docs/sin-traducir.mjs';
 import { ejemploNodo, N, CLAVES, hora, claveDePrueba, HUELLA } from '../ejemplos/state/nodo.mjs';
-import { registrosParaUnMensaje, cupo, reservaPara, reservasEn, emisorQueGasta, RESERVA } from '../datos/epocas/state/ayuda.mjs';
+import { registrosParaUnMensaje, cupo, reservaPara, reservasEn, emisorQueGasta, RESERVA, nodoDe, nodosDe } from '../datos/epocas/state/ayuda.mjs';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { escribirPagando, pagaElCoste } from '../ejemplos/ikisai/coste.mjs';
 
@@ -101,6 +101,9 @@ test('el camino del 9 del nodo: seis pasos en orden, una acción cada uno, y se 
   const { eje, ids } = await ejemplo();
   const todo = (await A.camino(eje, ids.nodo, N.operador)).pasos.filter((p) => p.fuente === 'tutorial');
   assert.deepEqual(todo.map((p) => p.hecho), [true, true, true, true, true, true], 'en servicio');
+  // El nodo del libro (VG 17-11: lo da de alta el operador, invitado): el que nombra como titular al autor del génesis.
+  assert.equal(nodoDe(eje)?.id, ids.nodo, 'el nodo del libro, aunque no cuelgue del génesis');
+  assert.equal(nodosDe(eje).length, 1);
   for (const n of CAMINO) assert.ok(!contrato.texto(eje, 'template ' + n, 'es').startsWith('template'), 'nombre llano en español: ' + n);
 });
 
