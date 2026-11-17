@@ -14,7 +14,7 @@ import { plantillaDeTransaccion, estacionDeAnuncio } from './acciones.js';
 import { cerrado, FINES } from './motor.js';
 
 /** Los nombres canónicos que lee esta lectura: la plantilla de la relación y el tipo de una tarea. */
-export const NOMBRES_DE_LAS_CADENAS = Object.freeze({ relacion: 'this goes after', tarea: 'task', cierre: 'close' });
+export const NOMBRES_DE_LAS_CADENAS = Object.freeze({ relacion: 'this goes after', tarea: 'task', cierre: 'close', entrega: 'deliver' });
 
 /**
  * Los finales de una anterior que dejan pasar a la siguiente (motor.cerrado, su `fin`). Un valor por defecto de Core
@@ -23,8 +23,19 @@ export const NOMBRES_DE_LAS_CADENAS = Object.freeze({ relacion: 'this goes after
  */
 export const FINES_QUE_DESBLOQUEAN = Object.freeze(['cumplido', 'decidido']);
 
-/** Los cuatro estados de un paso: hecho (cerrado), en curso (con su anuncio), listo (nada lo espera) y espera (por cuáles). */
-export const ESTADOS_DE_PASO = Object.freeze({ hecho: 'hecho', enCurso: 'en curso', listo: 'listo', espera: 'espera' });
+/**
+ * ¿Desbloquea una anterior ENTREGADA (sin cerrar: su autor escribió su entrega, «deliver», sobre su anuncio)? Decisión de
+ * Core AGRAM (17-11): sí. En el roadmap «hecho» se vuelca como la entrega y solo «comprobado» como cierre; sin esto, toda
+ * la cadena de un paso hecho y sin comprobar saldría en espera. Se cambia AQUÍ. Una anterior cerrada con error o
+ * caducada no desbloquea aunque hubiera entrega antes: manda su cierre (FINES_QUE_DESBLOQUEAN).
+ */
+export const ENTREGADA_DESBLOQUEA = true;
+
+/**
+ * Los cinco estados de un paso, en su orden de precedencia: hecho (cerrado), entregado (su autor escribió su entrega y no
+ * está cerrado), espera (por cuáles), en curso (con su anuncio) y listo (nada lo espera).
+ */
+export const ESTADOS_DE_PASO = Object.freeze({ hecho: 'hecho', entregado: 'entregado', espera: 'espera', enCurso: 'en curso', listo: 'listo' });
 
 /** Los motivos de una arista descartada. */
 export const MOTIVOS_DE_DESCARTE = Object.freeze({ ciclo: 'ciclo', aSiMisma: 'a sí misma', noEsTarea: 'no es una tarea', noEsta: 'no está' });
@@ -45,20 +56,24 @@ const esTarea = (r) => dice(r, 5, NOMBRES_DE_LAS_CADENAS.tarea);
 const CIERRES = Object.freeze([NOMBRES_DE_LAS_CADENAS.cierre, ...FINES.map((f) => f.accion)]);
 
 /**
- * Cómo está una tarea por sí misma: { hecho, fin, estacion }. Hecha si su autor escribió un cierre en su 4 y el motor la
+ * Cómo está una tarea por sí misma: { hecho, fin, entregado, estacion }. Hecha si su autor escribió un cierre en su 4 y el motor la
  * da por cerrada (motor.cerrado: una tarea sin nada anunciado se lee cerrada, así que sin cierre escrito no lo está; como
  * el volcado, ejemplos/volcado/volcar.mjs, estacionDe); `fin`, el del motor (cumplido, error, caducado, decidido).
- * `estacion`, la de su último anuncio en el 4.1 (acciones.estacionDeAnuncio) o null.
+ * `estacion`, la de su último anuncio en el 4.1 (acciones.estacionDeAnuncio) o null. `entregado`: su autor escribió su
+ * entrega, un registro «deliver» en el 4 de un anuncio suyo del 4.1 de la tarea (lo que escribe el paso «ejecutada» del
+ * volcado; el «deliver» de la época 0 ancla en el 4 del anuncio que cumple).
  */
 function comoEsta(eje, t) {
   const autor = new Set([t.autor]);
   const cierre = eje.sobreDe(t.id, EN_EL_CUATRO, autor).some((r) => CIERRES.some((n) => dice(r, 4, n)));
   let c = null;
   try { c = cierre ? cerrado(eje, t.id) : null; } catch { c = null; }
-  const anuncio = eje.sobreDe(t.id, EN_EL_ANUNCIO, autor).at(-1) ?? null;
+  const anuncios = eje.sobreDe(t.id, EN_EL_ANUNCIO, autor);
+  const anuncio = anuncios.at(-1) ?? null;
   let estacion = null;
   try { estacion = anuncio ? estacionDeAnuncio(eje, anuncio.id) ?? null : null; } catch { estacion = null; }
-  return { hecho: c?.cerrado === true, fin: c?.cerrado === true ? c.fin ?? null : null, estacion };
+  const entregado = anuncios.some((a) => eje.sobreDe(a.id, EN_EL_CUATRO, autor).some((r) => dice(r, 4, NOMBRES_DE_LAS_CADENAS.entrega)));
+  return { hecho: c?.cerrado === true, fin: c?.cerrado === true ? c.fin ?? null : null, entregado, estacion };
 }
 
 /**
@@ -95,13 +110,14 @@ function anterioresDe(eje, t) {
  * - las cadenas: cada tarea continúa la cadena de su primera anterior (por llegada) que todavía termina en ella; si
  *   ninguna, abre una cadena nueva, y si tenía anteriores, la cadena dice de cuál `sale` (una bifurcación). Las demás
  *   anteriores de la tarea van en su `une` (una unión). Independiente: una tarea sin anteriores ni siguientes;
- * - el estado de cada paso: «hecho» (cerrado: su autor escribió un cierre y el motor lo da por cerrado; `fin` dice
- *   cómo), «espera» (alguna anterior no está hecha con un final de FINES_QUE_DESBLOQUEAN; `espera` dice cuáles), «en
+ * - el estado de cada paso, en este orden: «hecho» (cerrado: su autor escribió un cierre y el motor lo da por cerrado;
+ *   `fin` dice cómo), «entregado» (su autor escribió su entrega y no está cerrado), «espera» (alguna anterior no está
+ *   hecha con un final de FINES_QUE_DESBLOQUEAN ni, si ENTREGADA_DESBLOQUEA, entregada; `espera` dice cuáles), «en
  *   curso» (tiene un anuncio en su 4.1; `estacion` dice cuál) o «listo».
  *
  * → { cadenas: [{ sale, pasos: [paso], primeroSinHacer }], independientes: [paso], descartadas: [{ de, a, relacion,
  * motivo }] }, con paso = { id, estado, fin, estacion, espera: [ids], une: [ids], fuera }. `primeroSinHacer` es el
- * índice del primer paso que no está hecho (null si todos lo están): lo que la carta enseña al compactar. Vacío si la
+ * índice del primer paso que no está hecho ni entregado (null si no hay ninguno): lo que la carta enseña al compactar. Vacío si la
  * época del libro no tiene la plantilla de la relación o X no está.
  */
 export function cadenas(eje, X) {
@@ -152,15 +168,17 @@ export function cadenas(eje, X) {
     if (!estados.has(n)) estados.set(n, comoEsta(eje, nodos.get(n)?.t ?? eje.obtener(n)));
     return estados.get(n);
   };
-  const desbloquea = (n) => estadoDe(n).hecho && FINES_QUE_DESBLOQUEAN.includes(estadoDe(n).fin);
+  // Lo que deja pasar a la siguiente: hecha con un final de FINES_QUE_DESBLOQUEAN o, sin cerrar, entregada (ENTREGADA_DESBLOQUEA).
+  const desbloquea = (n) => { const e = estadoDe(n); return e.hecho ? FINES_QUE_DESBLOQUEAN.includes(e.fin) : ENTREGADA_DESBLOQUEA && e.entregado; };
   const paso = (n, une = []) => {
     const e = estadoDe(n);
     const fuera = nodos.get(n).fuera;
     // Una anterior de fuera dice su estado verdadero: se leen sus propias anteriores (un salto, solo para saber si
     // espera; no entran en la cadena ni se sigue más allá), en el orden de llegada.
     const suyas = fuera ? anterioresDe(eje, nodos.get(n).t).validas.sort(porLlegada) : anteriores.get(n) ?? [];
-    const espera = suyas.filter((p) => !desbloquea(p));
-    const estado = e.hecho ? ESTADOS_DE_PASO.hecho : espera.length ? ESTADOS_DE_PASO.espera : e.estacion ? ESTADOS_DE_PASO.enCurso : ESTADOS_DE_PASO.listo;
+    // Una tarea hecha no espera a nada; una entregada sí dice lo que no la dejaría pasar (una anterior con error).
+    const espera = e.hecho ? [] : suyas.filter((p) => !desbloquea(p));
+    const estado = e.hecho ? ESTADOS_DE_PASO.hecho : e.entregado ? ESTADOS_DE_PASO.entregado : espera.length ? ESTADOS_DE_PASO.espera : e.estacion ? ESTADOS_DE_PASO.enCurso : ESTADOS_DE_PASO.listo;
     return { id: n, estado, fin: e.fin, estacion: e.estacion, espera, une, fuera };
   };
 
@@ -197,7 +215,7 @@ export function cadenas(eje, X) {
     }
   }
   for (const f of filas) {
-    const k = f.pasos.findIndex((p) => p.estado !== ESTADOS_DE_PASO.hecho);
+    const k = f.pasos.findIndex((p) => p.estado !== ESTADOS_DE_PASO.hecho && p.estado !== ESTADOS_DE_PASO.entregado);
     f.primeroSinHacer = k < 0 ? null : k;
   }
   return { cadenas: filas, independientes, descartadas };

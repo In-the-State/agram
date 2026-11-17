@@ -175,3 +175,32 @@ test('una anterior de fuera dice su estado verdadero: se leen sus propias anteri
   await hacer(eje, 'close', t.A4.id, {});
   assert.deepEqual(estados(eje, cadenas(eje, pb.id)), { A4: 'hecho', B1: 'listo' });
 });
+
+test('entregado: la entrega de su autor (deliver sobre su anuncio) sin cierre desbloquea a las siguientes; un cierre con error después, no', async () => {
+  const { eje, pb, t } = await roadmap();
+  const { ENTREGADA_DESBLOQUEA, ESTADOS_DE_PASO } = await import('../src/cadenas.js');
+  assert.equal(ENTREGADA_DESBLOQUEA, true, 'la decisión, en un solo sitio');
+  assert.deepEqual(Object.values(ESTADOS_DE_PASO), ['hecho', 'entregado', 'espera', 'en curso', 'listo'], 'en su orden de precedencia');
+  const entregar = async (x, quien = 'duena') => {
+    const an = await hacer(eje, 'declare future T', x.id, { what: 'trabajo', when: '2026-11-20T10:00:00Z', units: 30 }, quien);
+    return hacer(eje, 'deliver', x.id, { announcement: an.id }, quien);
+  };
+  await entregar(t.A1);
+  let r = cadenas(eje, eje.genesisId);
+  assert.deepEqual(estados(eje, r), { A1: 'entregado', A2: 'listo', A3: 'listo', A4: 'espera A2,A3', B1: 'espera A4', A5: 'listo' });
+  assert.equal(r.cadenas[0].primeroSinHacer, 1, 'primeroSinHacer salta lo entregado');
+  await entregar(t.A2);
+  await entregar(t.A3);
+  await entregar(t.A4);
+  r = cadenas(eje, pb.id);
+  assert.deepEqual(estados(eje, r), { A4: 'entregado', B1: 'listo' }, 'la anterior de fuera, entregada, también deja pasar');
+  // Un cierre con error después de la entrega: manda el cierre, y no desbloquea.
+  await hacer(eje, 'close with error', t.A1.id, { cause: 'no salió' });
+  r = cadenas(eje, eje.genesisId);
+  assert.deepEqual([estados(eje, r).A1, estados(eje, r).A2, r.cadenas[0].pasos[0].fin], ['hecho', 'entregado A1', 'error'], 'A2 sigue entregada, y su `espera` dice que A1 no la deja pasar');
+  assert.deepEqual(estados(eje, r).A3, 'entregado A1');
+  await hacer(eje, 'close', t.A2.id, {});
+  r = cadenas(eje, eje.genesisId);
+  assert.deepEqual(estados(eje, r).A2, 'hecho');
+  assert.deepEqual(r.cadenas[0].primeroSinHacer, 3, 'salta hechos (A1, A2) y entregados (A4): el primero sin hacer es B1');
+});

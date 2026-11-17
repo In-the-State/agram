@@ -2369,9 +2369,10 @@ function franjasDeRejilla(eje, R, pv, d, g, ctx, { hueco }) {
 /** El texto propio de cada motivo de una arista descartada (contrato.MOTIVOS_DE_DESCARTE). */
 const MOTIVO_DE_DESCARTE = Object.freeze({ [contrato.MOTIVOS_DE_DESCARTE.ciclo]: 'cadenaMotivoCiclo', [contrato.MOTIVOS_DE_DESCARTE.aSiMisma]: 'cadenaMotivoASiMisma', [contrato.MOTIVOS_DE_DESCARTE.noEsta]: 'cadenaMotivoNoEsta', [contrato.MOTIVOS_DE_DESCARTE.noEsTarea]: 'cadenaMotivoNoEsTarea' });
 
-/** El estado de un paso de una cadena, en llano: hecho (y cómo, si no se cumplió), en curso, listo o «espera a …». */
+/** El estado de un paso de una cadena, en llano: hecho (y cómo, si no se cumplió), entregado, en curso, listo o «espera a …». */
 function estadoDeCadenaEnLlano(p, titulo) {
   if (p.estado === 'hecho') return p.fin && p.fin !== 'cumplido' ? t('cadenaHechoCon', { fin: t('cadenaFin_' + p.fin) }) : t('cadenaHecho');
+  if (p.estado === 'entregado') return t('cadenaEntregado');
   if (p.estado === 'espera') return t('cadenaEspera', { que: p.espera.map(titulo).join(', ') });
   return t(p.estado === 'en curso' ? 'cadenaEnCurso' : 'cadenaListo');
 }

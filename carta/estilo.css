@@ -1257,16 +1257,18 @@ html.mapped body{padding:0}
 .emparejar .opciones{display:flex;flex-wrap:wrap;gap:8px}
 /* el 7 del roadmap: las cadenas (forma «cadenas», docs/CONTRATO.md §12.10): una fila por cadena, de izquierda a derecha;
    compactada con «+n» a cada lado; abierta, en columna; los pasos de fuera, apagados; sin colores nuevos */
-.rejilla-cadenas{display:flex;flex-direction:column;gap:10px;min-width:0}
+.rejilla-cadenas{display:flex;flex-direction:column;gap:10px;min-width:0;flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden}
+.rejilla-cadenas>.cadena{flex:0 0 auto}
 .cadena{display:flex;flex-direction:column;gap:4px;min-width:0;padding:6px 8px;border:1px solid var(--rule);border-radius:var(--radio,6px);background:var(--panel)}
 .cadena-cabeza{margin:0;font-size:12px;color:var(--muted)}
 .cadena-pasos{display:flex;flex-direction:row;align-items:flex-start;gap:6px;margin:0;padding:0;list-style:none;min-width:0;overflow:hidden}
 .cadena-pasos.en-columna{flex-direction:column}
-.cadena-paso{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 0;max-width:var(--ancho-tarjeta,160px)}
+.cadena-paso{display:flex;flex-direction:column;gap:2px;min-width:0;flex:1 1 0;max-width:var(--ancho-tarjeta,160px);hyphens:auto}
 .cadena-pasos.en-columna>.cadena-paso{max-width:none}
 .cadena-paso.fuera{opacity:.55}
 .cadena-estado,.cadena-une,.cadena-fuera{font-size:11px;color:var(--muted)}
-.cadena-paso[data-estado="hecho"] .cadena-estado{color:var(--ok)}
+.cadena-paso[data-estado="hecho"] .cadena-estado,.cadena-paso[data-estado="entregado"] .cadena-estado{color:var(--ok)}
+.cadena-paso[data-estado="entregado"] .cadena-estado{font-style:italic}
 .cadena-paso[data-estado="espera"] .cadena-estado{font-style:italic}
 .cadena-mas{flex:0 0 auto;align-self:center}
 .cadena-alternar{font-size:12px;padding:2px 8px;border:1px dashed var(--rule);border-radius:12px;background:var(--bg);color:var(--fg);cursor:pointer}

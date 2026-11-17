@@ -496,7 +496,7 @@ test('con la época del roadmap: el libro nace con ella; las tareas llevan el ti
   assert.equal(eje.orden.length, antes);
 });
 
-test('con la época del roadmap: cambiar un «depende» escribe otra relación y la lectura lo refleja; quitarlos todos, una relación sin 6; «hecho» (deliver) no desbloquea, el cierre sí', async () => {
+test('con la época del roadmap: cambiar un «depende» escribe otra relación y la lectura lo refleja; quitarlos todos, una relación sin 6; «hecho» (deliver) sale entregado y desbloquea, y el cierre la da por hecha', async () => {
   const { eje, claves } = await prepararConEpoca();
   await volcar(eje, T_CAD, { claves, correspondencia: CADENAS, t: DIA(1) });
   // c4 ya solo depende de c3.
@@ -504,10 +504,11 @@ test('con la época del roadmap: cambiar un «depende» escribe otra relación y
   const dos = await volcar(eje, solo3, { claves, correspondencia: CADENAS, t: DIA(1, 10) });
   assert.deepEqual(dos.escritos.map((e) => e.fila + ' ' + e.tipo), ['c4 nota', 'c4 relacion']);
   assert.deepEqual(cadenasPorFila(eje).cadenas, [{ sale: null, pasos: [['c1', 'hecho'], ['c2', 'en curso']] }, { sale: 'c1', pasos: [['c3', 'en curso'], ['c4', 'espera']] }]);
-  // «lista» (en el roadmap, «hecho»: deliver) en c3: el motor no la da por cerrada sin el cierre; c4 sigue esperando.
+  // «lista» (en el roadmap, «hecho»: deliver) en c3: sin el cierre no está hecha, pero su autor la entregó: sale
+  // «entregado» y desbloquea a c4 (Core AGRAM 17-11: src/cadenas.js, ENTREGADA_DESBLOQUEA).
   const lista3 = solo3.map((f) => (f.ref === 'c3' ? { ...f, que: f.que, etapa: 'lista' } : f));
   await volcar(eje, lista3, { claves, correspondencia: CADENAS, t: DIA(1, 11) });
-  assert.deepEqual(cadenasPorFila(eje).cadenas[1].pasos, [['c3', 'en curso'], ['c4', 'espera']]);
+  assert.deepEqual(cadenasPorFila(eje).cadenas[1].pasos, [['c3', 'entregado'], ['c4', 'en curso']]);
   // «revisada» (en el roadmap, «comprobado»: close) en c3: desbloquea a c4.
   const cerrada3 = solo3.map((f) => (f.ref === 'c3' ? { ...f, etapa: 'revisada' } : f));
   await volcar(eje, cerrada3, { claves, correspondencia: CADENAS, t: DIA(1, 12) });
