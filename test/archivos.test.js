@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { arrancar } from '../servidor/prueba/servidor.mjs';
 import { LIMITE_ARCHIVO, TIPOS, POLITICA, tipoPorContenido, crearArchivos } from '../servidor/supabase/funciones/archivos/api.js';
-import { Archivos, tipoDeArchivo, formatoDeTipo, LIMITE, LIMITE_HTML } from '../carta/archivos.js';
+import { Archivos, tipoDeArchivo, formatoDeTipo, LIMITE, LIMITE_HTML, adjuntarConAccion } from '../carta/archivos.js';
+import { crearCuenta, firmarCon } from '../carta/cuentas.js';
 import * as A from '../src/acciones.js';
 import * as C from '../src/contrato.js';
 import * as modelos from '../src/modelos.js';
@@ -177,4 +178,32 @@ test('«attach a file» (PV2, no preferente): escribe una representación rica a
   const enCompra = await A.transaccion(eje, adjuntar.id, { X: compra.id, file: ref, format: 'html' }, 'huesped');
   await eje.anadir(enCompra.evento);
   assert.equal(C.representaciones(eje, compra.id).some((x) => x.formato === 'html'), false);
+});
+
+test('carta/archivos.js adjuntarConAccion: con la plantilla de arte, un .html no llega al servidor (motivo en llano) y un .svg sí, y se escribe firmado', async () => {
+  const almacen = new Map();
+  globalThis.localStorage = { getItem: (k) => almacen.get(k) ?? null, setItem: (k, v) => almacen.set(k, String(v)), removeItem: (k) => almacen.delete(k) };
+  try {
+    // Una cuenta con clave: la candidata sin firmar falla solo en la firma, que se pone al final.
+    const c = await crearCuenta({ nombre: 'Arte' });
+    const yo = c.cuenta.identidad;
+    const destino = () => ({ url: servidor.url, eje: 'archivos', claveLectura: clave });
+    const a = new Archivos({ destino });
+    const campos = [{ nombre: 'file', archivo: 'ref' }, { nombre: 'format', archivo: 'format' }];
+    const ARTE = 'attach art to this element';
+    const html = new TextEncoder().encode('<!doctype html><p>arte que no vale</p>');
+    const r = await adjuntarConAccion(a, { eje: c.eje, X: c.cuenta.alta, accion: ARTE, campos, archivo: { nombre: 'arte.html', bytes: html }, yo, firmar: firmarCon(c.privada) });
+    assert.equal(r.ok, false);
+    assert.equal(r.sinSubir, true);
+    assert.match(r.motivos.map((m) => m.mensaje).join(' '), /html no/);
+    assert.equal((await bajar(sha(html))).status, 404, 'el .html no llegó al servidor');
+    const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>');
+    const s = await adjuntarConAccion(a, { eje: c.eje, X: c.cuenta.alta, accion: ARTE, campos, archivo: { nombre: 'arte.svg', bytes: svg }, yo, firmar: firmarCon(c.privada) });
+    assert.ok(s.asentado, JSON.stringify(s.motivos));
+    assert.ok(s.asentado.firma, 'firmado sobre el registro final');
+    assert.equal(s.adjunto.referencia, 'archivo:' + sha(svg));
+    assert.equal((await bajar(sha(svg))).status, 200, 'el .svg sí llegó');
+  } finally {
+    delete globalThis.localStorage;
+  }
 });

@@ -40,7 +40,7 @@ import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas 
 import { instalar as instalarEmparejar } from './emparejar.js';
 import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
-import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
+import { Archivos, adjuntarHtmlInicial, adjuntarConAccion, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
@@ -1080,18 +1080,15 @@ function elegirArchivo(X, accion, campos) {
 async function adjuntarArchivo(X, accion, campos, elegido) {
   limpiarMensajes();
   try {
-    const tipo = tipoDeArchivo(elegido.name, elegido.type);
-    const formato = tipo ? formatoDeTipo(tipo) : null;
-    if (tipo && !formato) throw new Error(t('archivoSinFormato', { tipo }));
-    const a = await archivos.adjuntar(elegido);
-    const valores = Object.fromEntries(campos.map((c) => [c.nombre, c.archivo === 'format' ? formato : a.referencia]));
-    const r = await enviar(estado.eje, X, accion, valores, estado.identidad, firmarCon(estado.identidad));
+    // Primero se comprueba que la acción entraría con este archivo (su id, calculado aquí); solo entonces se sube.
+    const r = await adjuntarConAccion(archivos, { eje: estado.eje, X, accion, campos, archivo: elegido, yo: estado.identidad, firmar: firmarCon(estado.identidad) });
+    const a = r.adjunto;
     if (r.ok && r.asentado) {
       trasEscribir();
       estado.exito = t(a.sinRed ? 'archivoPendiente' : 'archivoAdjuntado', { id: a.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
       tocar(X, 'hecho ' + canonicoDe(accion));
       marcarNuevos();
-    } else estado.aviso = enLlano(motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje).join(' · '));
+    } else estado.aviso = enLlano((r.motivos ?? []).map((m) => m.mensaje).join(' · '));
   } catch (e) {
     estado.aviso = enLlano(String(e.message ?? e), e);
   }

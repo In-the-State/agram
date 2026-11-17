@@ -1162,6 +1162,21 @@ const conHora = (eje, opciones) => {
   return t ? { ...opciones, t } : opciones;
 };
 
+/** La regla de la época que pide la firma de quien tiene clave: la única que una candidata sin firmar no puede pasar todavía. */
+const REGLA_DE_LA_FIRMA = 'who has a key signs';
+
+/**
+ * ¿Entraría esta acción, a falta de la firma? Construye y valida la candidata SIN firmar (acciones.transaccion sin `firmar`)
+ * y da por buena la que solo falla en la firma de quien tiene clave: esa la pone después quien firma (la clave, el
+ * guardián) sobre el registro final. Para comprobar antes de hacer algo que no se deshace (subir un archivo). Nada se
+ * firma ni se escribe. → { ok, motivos } (los motivos, sin el de la firma).
+ */
+export async function validarSinFirmar(eje, X, accion, valores, yo, opciones = {}) {
+  const r = await acciones.transaccion(eje, accion, { X, ...valores }, yo, conHora(eje, opciones));
+  const motivos = (r.motivos ?? []).filter((m) => m?.regla !== REGLA_DE_LA_FIRMA);
+  return { ok: Boolean(r.ok) || (Boolean(r.evento) && motivos.length === 0), motivos };
+}
+
 /**
  * Lanza una acción: construye, firma con `firmar` (una función async (evento) → evento firmado, o nada: el núcleo
  * valida la candidata ya firmada) y valida con acciones.transaccion; si pasa y hay evento, lo asienta con eje.anadir. Devuelve lo que da transaccion
