@@ -6,8 +6,10 @@
 //                         servidor/prueba/servidor.mjs (almacenEnMemoria), guardado en <carpeta>/compartido.json, sin
 //                         abrir otro puerto. Crear ejes solo desde dentro, con un secreto aleatorio de cada arranque.
 //   el volcado            con el almacén vacío: un eje nuevo (la cuenta de la dueña, como la crea la carta, con «sync url»
-//                         y «sync ledger») y la tabla volcada con ejemplos/volcado/volcar.mjs en pasadas de días
-//                         seguidos (el T de un día no alcanza para todo), la última hoy; luego se carga en el libro
+//                         y «sync ledger») y la tabla volcada con ejemplos/volcado/volcar.mjs (las casas como personas
+//                         invitadas por la dueña, cada una con su T del día: VG 17-11; correspondencia-roadmap.json) en
+//                         pasadas de días seguidos si a alguna casa no le alcanza su T de un día (normalmente basta una),
+//                         la última hoy. Un libro ya volcado con las casas como cosas no se migra: se niega con el remedio; luego se carga en el libro
 //                         compartido registro a registro con la sincronía de src/sincronia.js (la misma puerta que la
 //                         carta). En los arranques siguientes, solo si la tabla cambió (su SHA-256) y solo sus filas
 //                         cambiadas: la pantalla manda en las demás.
@@ -209,6 +211,15 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
     if (!inf.eje) throw new Error('ensayo: no se pudo leer el libro compartido');
     eje = inf.eje;
     if (eje.alta(identidad)?.id !== eje.genesisId) throw new Error('ensayo: el libro compartido no es de la dueña de --claves');
+    // Un libro volcado antes con las casas como cosas DE LA DUEÑA no se migra a casas personas (VG 17-11): se niega y
+    // dice el remedio (apartarlo y volcar de nuevo). Un alta de cosa de otro con el nombre de una casa no es eso: se
+    // salta con un aviso (el volcado no vuelca esas filas).
+    if (corr.como === 'personas') {
+      const casas = [...new Set(tabla.map((f) => f?.[corr.columnas.cosa]).filter((x) => x !== undefined && x !== null).map((x) => String(corr.nombres[x] ?? x)))].filter((c) => eje.alta(c) && !eje.esPersona(c));
+      const deLaDuena = casas.filter((c) => eje.alta(c).autor === identidad);
+      if (deLaDuena.length) throw new Error('ensayo: el libro compartido es de la disposición anterior (' + deLaDuena.length + ' casas como cosas de la dueña) y la correspondencia las quiere personas: no se migra; aparta la carpeta del ensayo (compartido.json y ensayo.json) a otro sitio y arranca otra vez para volcar de nuevo');
+      for (const c of casas) if (!deLaDuena.includes(c)) decir('ensayo: aviso: «' + c + '» ya tiene alta como cosa de otro; sus filas no se vuelcan');
+    }
     // La «sync url» del libro: la de este arranque (local o la de --publico).
     if (sincronia.destino(eje, identidad)?.url !== url.replace(/\/+$/, '')) {
       const p = preferencias(eje, identidad, { 'sync url': url, 'sync ledger': EJE });

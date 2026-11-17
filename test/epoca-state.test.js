@@ -285,7 +285,7 @@ test('la lectura «anchors asked»: por pedido, quién, libro, clave, nivel, cab
   assert.deepEqual(lectura(eje, 'anchors asked', ids.autoridad), []);
 });
 
-test('conexiones: el invitado al nodo con R del dueño está vigente, con su clave, sus relés, su grupo y su precio; el titular y la visita, invitados a otra cosa, no', async () => {
+test('conexiones: el invitado al nodo con R del dueño está vigente, con su clave, sus relés, su grupo y su precio; la visita, invitada a otra cosa, y el operador, invitado por el titular, no', async () => {
   const { eje, ids } = await ejemplo();
   assert.deepEqual(lectura(eje, 'current connections', ids.nodo).map(idDe), [N.vecino]);
   const de = (q) => leer(eje, DE_LA_CONEXION[q], ids.conexion).valor;
@@ -296,7 +296,8 @@ test('conexiones: el invitado al nodo con R del dueño está vigente, con su cla
   assert.deepEqual(de('r'), [2], 'le dieron 3, devolvió 2 al pedir dos anclas y el dueño le dio 1 al servir la primera');
   assert.equal(eje.obtener(ids.conexion).sobre, ids.invitacionConexion, 'su alta cuelga de la invitación');
   assert.deepEqual(eje.obtener(ids.invitacionConexion).payload[5], [{ ref: ids.nodo }], 'al dominio del nodo');
-  assert.ok(eje.saldo(N.titular, 'R:' + N.operador) > 0 && eje.saldo(N.visita, 'R:' + N.operador) > 0, 'tienen R del dueño, pero no son conexiones del nodo');
+  assert.ok(eje.saldo(N.visita, 'R:' + N.operador) > 0, 'la visita tiene R del dueño, pero no es conexión del nodo');
+  assert.ok(eje.saldo(N.operador, 'R:' + N.titular) > 0, 'el operador tiene R del titular (su invitación), y tampoco');
 });
 
 test('conexiones: el veto la quita, y quedarse sin R también', async () => {
@@ -424,10 +425,10 @@ test('con criterio, mover de grupo, poner el precio de un grupo y vetar a una co
 
 test('con criterio, lo que no es del dominio del nodo no espera: una invitación del dueño a otra cosa, mover a quien no es conexión, y lo que escribe otro', async () => {
   const { eje, ids } = await ejemploNodo();
-  // Una invitación del dueño fuera del dominio del nodo (como la del titular o la de la visita).
+  // Una invitación del dueño fuera del dominio del nodo (como la de la visita); y la del titular al operador.
   const { inv } = await invitarAlNodo(eje, ids, 'invitado-a-otra-cosa', 1700, { dominio: null });
   assert.equal(A.segundoFactor(eje, inv.id).exige, false);
-  assert.equal(A.segundoFactor(eje, eje.obtener(ids.altaTitular).sobre).exige, false, 'la invitación del titular');
+  assert.equal(A.segundoFactor(eje, ids.invitacionOperador).exige, false, 'la invitación del titular al operador');
   assert.equal(A.segundoFactor(eje, eje.obtener(ids.altaVisita).sobre).exige, false, 'la invitación de la visita');
   // Mover de grupo a quien no es una conexión (la visita).
   const mover = await lanzar(eje, 'move to group', eje.alta(N.operador).id, { whom: N.visita, zone: 4 }, N.operador, 1702);
@@ -1169,4 +1170,18 @@ test('la R en los canales: restaurar el eje y reordenarlo dan lo mismo', async (
   assert.deepEqual(r2.rechazados.map((x) => casa.indexOf(x.id)), [2, 3], 'el «message out» delante de su reserva; y el «le doy 2» siguiente, que contaba con la R que aquel le devolvía');
   assert.match(r2.rechazados[0].motivo, /nobody moves tokens of others/);
   assert.match(r2.rechazados[1].motivo, /insuficiente/);
+});
+test('la disposición de referencia (VG 17-11): el titular abre el libro e invita al operador; el alta del nodo cuelga de la del operador y la escribe él; el titular escribe el criterio; lo del dueño del libro sigue siendo del titular', async () => {
+  const { eje, ids } = await ejemplo();
+  assert.equal(eje.obtener(eje.genesisId).autor, N.titular, 'el génesis lo escribe el titular');
+  assert.equal(ids.altaTitular, eje.genesisId);
+  const inv = eje.obtener(ids.invitacionOperador);
+  assert.deepEqual([inv.autor, inv.sobre, eje.obtener(ids.altaOperador).sobre, eje.obtener(ids.altaOperador).autor], [N.titular, eje.genesisId, inv.id, N.operador]);
+  const nodo = eje.obtener(ids.nodo);
+  assert.deepEqual([nodo.autor, nodo.sobre, nodo.payload[3][2]], [N.operador, ids.altaOperador, [N.titular]], 'sobre el alta del operador, nombrando al titular');
+  assert.equal(eje.obtener(ids.criterio).autor, N.titular);
+  // Lo reservado al autor del génesis: «retouch a text» se ofrece al titular sobre el génesis, no al operador.
+  const ofrece = (q) => A.acciones(eje, eje.genesisId, null, q).map((a) => a.nombre);
+  assert.ok(ofrece(N.titular).includes('retouch a text') && !ofrece(N.operador).includes('retouch a text'));
+  assert.equal(eje.saldoT(N.operador, 'minuto', '2026-11-17T08:00:00Z'), 1440, 'el operador invitado tiene su T del día');
 });
