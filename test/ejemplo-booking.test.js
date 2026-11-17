@@ -83,11 +83,14 @@ test('ejemplo Ikisai: una reserva de alojamiento recorre el eje entero (saldos, 
   // tiene P sobre el Alojamiento porque lo escribió; recepción, sobre su registro «atiende», que cuelga de él.
   assert.equal(alojamiento.sobre, eje.genesisId);
   assert.deepEqual([atiende.autor, atiende.sobre], ['recepcion', alojamiento.id]);
-  assert.deepEqual([eje.poderSobre(CASA, alojamiento.id), eje.poderSobre('recepcion', atiende.id)], [10, 10]);
-  // Libre, diez menos lo comprometido con las plazas (1 la casa, 3 recepción).
+  // La casa pasó 3 de sus diez P sobre el Alojamiento a recepción al publicar la habitación (en la cuota solo cuenta el P de origen del dueño del
+  // registro; Core AGRAM 17-11, [X] VG pendiente de su palabra); recepción tiene además sus diez sobre «atiende».
+  assert.deepEqual([eje.poderSobre(CASA, alojamiento.id), eje.poderSobre('recepcion', atiende.id)], [7, 10]);
+  // Libre: la casa, siete menos 1 comprometido con las plazas; recepción, sus diez de «atiende» (es voz: no los compromete).
   const libre = (id, ambito) => eje.poderes(id).find((p) => p.ambito === ambito && p.origen === id)?.cantidad;
-  assert.deepEqual([libre(CASA, alojamiento.id), libre('recepcion', atiende.id)], [9, 7]);
-  assert.equal(eje.poderSobre('recepcion', alojamiento.id), 0); // ya no hay P delegado por la casa
+  assert.deepEqual([libre(CASA, alojamiento.id), libre('recepcion', atiende.id)], [6, 10]);
+  assert.equal(eje.poderSobre('recepcion', alojamiento.id), 3); // el P que le pasó la casa, comprometido con las plazas (1 + 2)
+  assert.equal(eje.bloqueado('recepcion', 'P:' + alojamiento.id + '/' + CASA), 3);
   // N2: quien consigue E de su emisor obtiene P sobre el registro de su serie. La huésped recibió en la entrega sus
   // tres noches de plaza, atadas a la habitación: diez P por noche (encargo 3b-bis: la obtención es por cantidad, no por
   // cabeza). No escribió la habitación ni nadie le dio P (antes de la entrega no tenía ninguno; lo comprueba el test del ciclo).
@@ -98,13 +101,14 @@ test('ejemplo Ikisai: una reserva de alojamiento recorre el eje entero (saldos, 
   assert.deepEqual(alojamiento.payload, ['Alojamiento', ['plazas por noche'], 4]);
   assert.deepEqual(ALOJAMIENTO, alojamiento.payload);
   // El P comprometido con cada plaza (todas las noches): la casa la de matrimonio (1, sobre su Alojamiento) y
-  // recepción la individual (1) y la litera (2), sobre su registro.
+  // recepción la individual (1) y la litera (2), con el P de origen casa que la casa le pasó sobre el Alojamiento (en la
+  // cuota solo cuenta el P de origen del dueño del registro; Core AGRAM 17-11, [X] VG pendiente de su palabra).
   const kCasa = 'P:' + alojamiento.id + '/' + CASA;
-  const kRecepcion = 'P:' + atiende.id + '/recepcion';
+  const kRecepcion = kCasa;
   const porPlaza = (id, k) => [PLAZAS.matrimonio, PLAZAS.individual, PLAZAS.litera].map((p) => eje.bloqueado(id, k, familiaPlaza(habitacion.id, p)));
   assert.deepEqual([porPlaza(CASA, kCasa), porPlaza('recepcion', kRecepcion)], [[1, 0, 0], [0, 1, 2]]);
   assert.equal(familiaPlaza(habitacion.id, PLAZAS.litera), 'E:casa/1200000000@*@' + habitacion.id);
-  assert.deepEqual(respaldo.movimientos.slice(1).map((m) => [m.de, m.estado, m.cantidad, m.ambito, m.salida]), Object.entries(RESPALDA_RECEPCION).map(([k, n]) => ['recepcion', 'bloqueo', n, atiende.id, familiaPlaza(habitacion.id, Number(k))]));
+  assert.deepEqual(respaldo.movimientos.slice(1).map((m) => [m.de, m.estado, m.cantidad, m.ambito, m.salida]), Object.entries(RESPALDA_RECEPCION).map(([k, n]) => ['recepcion', 'bloqueo', n, alojamiento.id, familiaPlaza(habitacion.id, Number(k))]));
   // La cuota (VG, 9-11, D1): el P que comprometen los emisores de cada plaza frente a todo el comprometido con las
   // plazas del Alojamiento (4), por su capacidad (4), da justo la capacidad de cada plaza: 1, 1 y 2.
   const comprometido = [PLAZAS.matrimonio, PLAZAS.individual, PLAZAS.litera].map((p) => eje.bloqueosCon(familiaPlaza(habitacion.id, p)).filter((b) => b.clave.startsWith('P:')).reduce((s, b) => s + b.cantidad, 0));
@@ -543,14 +547,17 @@ test('E atada al recurso (R2): 4 plazas por noche; un segundo emisor no añade u
   assert.equal(eje.poderSobre('recepcion', habitacion.id), 10);
   // Y su R propia (emitir E exige R propia emitida, VG 9-11, D2).
   await eje.escribir({ autor: 'recepcion', sobre: atiende.id, t: T, payload: 'R de recepción', movimientos: [minutos('recepcion'), { token: 'R', emisor: 'recepcion', cantidad: 5, de: null, a: 'recepcion' }] });
-  // Recepción emite su propia litera de una noche, comprometiendo con ella P de su registro.
+  // Recepción emite su propia litera de una noche, comprometiendo con ella P que la casa le pasa sobre el Alojamiento: en
+  // la cuota solo cuenta el P de origen del dueño del registro (Core AGRAM 17-11, hallazgo 1 de la revisión de la reserva;
+  // [X] VG: recomendación aplicada, pendiente de su palabra). El P de su registro «atiende» (de origen recepción) es voz.
+  await eje.escribir({ autor: CASA, sobre: alojamiento.id, t: T, payload: 'P para la litera de recepción', movimientos: [minutos(CASA), { token: 'P', ambito: alojamiento.id, origen: CASA, cantidad: 6, de: CASA, a: 'recepcion' }] });
   const otra = (noche, { t = T, cantidad = 1 } = {}) => {
     const denominacion = denominacionPlaza(PLAZAS.litera, noche);
     return {
       autor: 'recepcion', sobre: habitacion.id, t, payload: 'otra litera el ' + noche,
       movimientos: [
         minutos('recepcion'),
-        { token: 'P', ambito: atiende.id, cantidad: 2, de: 'recepcion', a: 'recepcion', estado: 'bloqueo', salida: 'E:recepcion/' + denominacion + '@' + habitacion.id },
+        { token: 'P', ambito: alojamiento.id, origen: CASA, cantidad: 2, de: 'recepcion', a: 'recepcion', estado: 'bloqueo', salida: 'E:recepcion/' + denominacion + '@' + habitacion.id },
         { token: 'E', emisor: 'recepcion', denominacion, registro: habitacion.id, cantidad, de: null, a: 'recepcion' },
       ],
     };
@@ -580,7 +587,7 @@ test('E atada al recurso (R2): 4 plazas por noche; un segundo emisor no añade u
 
 test('con claves, cada identidad firma lo suyo y el eje se reconstruye verificando todo', async () => {
   const claves = { casa: await generarClaves(), recepcion: await generarClaves(), huesped: await generarClaves() };
-  const { eje, habitacion, atiende, reserva } = await ejemploReserva({ claves });
+  const { eje, habitacion, alojamiento, reserva } = await ejemploReserva({ claves });
   for (const id of eje.orden) {
     const ev = eje.obtener(id);
     assert.ok(ev.firma, 'sin firma: ' + ev.autor);
@@ -592,8 +599,9 @@ test('con claves, cada identidad firma lo suyo y el eje se reconstruye verifican
   assert.deepEqual(otro.orden, eje.orden);
   assert.equal(otro.saldo(CASA, EUR), 365);
   assert.equal(libres(otro, habitacion.id, PLAZAS.individual, '2026-11-21'), 0);
-  // El P de recepción sobre su registro «atiende», comprometido aún con las plazas (1 + 2).
-  assert.equal(otro.bloqueado('recepcion', 'P:' + atiende.id + '/recepcion'), 3);
+  // El P que la casa pasó a recepción sobre el Alojamiento (de origen casa), comprometido aún con las plazas (1 + 2): en la
+  // cuota solo cuenta el P de origen del dueño del registro (Core AGRAM 17-11; [X] VG, pendiente de su palabra).
+  assert.equal(otro.bloqueado('recepcion', 'P:' + alojamiento.id + '/' + CASA), 3);
   assert.equal(cerrado(otro, reserva.id).cerrado, true);
   assert.equal(totalDe(otro, reserva).texto, '165 EUR');
   assert.deepEqual(ocupacion(otro, reserva.id).map((o) => o.cabe), [true]);

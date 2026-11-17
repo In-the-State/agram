@@ -52,23 +52,39 @@ async function mundo() {
 
 const P_ = (ambito, cantidad, de, a, origen) => ({ token: 'P', ambito, origen, cantidad, de, a });
 
-// ---------- 1 (grave): el sí del dueño se saltaba subiendo ----------
+// ---------- 1 (grave): el P de otro origen ocupaba la capacidad de la casa ----------
+// Cerrado en la cuota del tope (src/condiciones/tope.js, topeYCuota): en la cuota solo cuenta el P comprometido cuyo
+// origen es quien escribió el registro que declara la capacidad. El P de otro origen (el de escribir un hijo, conseguir E,
+// recibir R o subir) es voz: ni da cuota ni diluye la de nadie. Subir sigue siendo libre (VG). [X] VG: recomendación de
+// Core AGRAM 17-11 aplicada, pendiente de su palabra.
 
-test('1a: bea cuelga un registro de la casa de ana, obtiene diez P en él y los sube a la casa: sin el sí de ana no entra, y ana emite sus cuatro plazas', {
-  todo: 'HALLAZGO 1 REPRODUCIDO, SIN CERRAR: quitar la exención de «subir» en «P comes down to a thing of another with its owner’s yes» (decisión 1a) rompe flujos que las pruebas dan por buenos: test/cuenta-banco.test.js (tres casos: bea escribe una nota en la cuenta de ana, obtiene diez P en ella y los sube a la cuenta con «reposition P toward X» para ordenar pagos: la cuenta compartida, «bea tiene P: lo decide VG»; el caso de seguridad y el ejemplo «cuenta» hacen lo mismo) y test/reglas-3b.test.js («una cosa reposiciona su P como cualquiera»: robot sube su P de su pieza a X). Por la regla del encargo («si rompe flujos legítimos, para») no se ha cerrado: decide Core',
-}, async () => {
+const serieDe = (emisor, registro) => 'E:' + emisor + '/noche@' + registro;
+const conMiR = (m, quien) => m.aMano(quien, m.eje.alta(quien).id, [{ token: 'R', emisor: quien, cantidad: 1, de: null, a: quien }], { payload: [['mi R']] });
+
+test('1a: bea cuelga un registro de la casa de ana, sube a la casa los diez P que le nacen (subir es libre) y no emite ninguna plaza: su P no es de origen ana; ana emite sus cuatro', async () => {
   const m = await mundo();
   const hijo = await m.aMano('bea', m.casa.id, [], { payload: [['un hijo de la casa']] });
   assert.equal(m.eje.poderSobre('bea', hijo.id), 10, 'escribir un registro da diez P en él');
   const sube = await m.aMano('bea', hijo.id, [P_(hijo.id, 10, 'bea', null, 'bea'), P_(m.casa.id, 1, null, 'bea', 'bea')]);
-  assert.match(String(sube), SIN_SI, 'subir a una cosa ajena ya no está exento');
-  assert.equal(m.eje.poderSobre('bea', m.casa.id), 0);
-  await m.aMano('bea', m.eje.alta('bea').id, [{ token: 'R', emisor: 'bea', cantidad: 1, de: null, a: 'bea' }], { payload: [['mi R']] });
-  assert.equal(await m.emite('bea'), 0, 'bea no emite E atada a la casa');
+  assert.ok(sube.id, 'subir no pide nada: ' + String(sube));
+  assert.equal(m.eje.poderSobre('bea', m.casa.id), 1);
+  await conMiR(m, 'bea');
+  assert.equal(await m.emite('bea'), 0, 'bea no emite E atada a la casa: su P (de origen bea) no da cuota');
+  // Ni a mano, bloqueando su P de la casa con la salida de su serie.
+  const aMano = await m.aMano('bea', m.casa.id, [{ ...P_(m.casa.id, 1, 'bea', 'bea', 'bea'), estado: 'bloqueo', salida: serieDe('bea', m.casa.id) }, { token: 'E', emisor: 'bea', denominacion: 'noche', registro: m.casa.id, cantidad: 1, de: null, a: 'bea' }]);
+  assert.match(String(aMano), /cuota de E:bea\/noche@.* origen ana/);
   assert.equal(await m.emite('ana'), 4, 'ana emite sus cuatro plazas');
-  // Con el sí de ana a bea, sube (lo que ella decide).
-  await m.hecho('let P come down here', { X: m.casa.id, whom: 'bea' });
-  assert.equal((await m.aMano('bea', hijo.id, [P_(hijo.id, 10, 'bea', null, 'bea'), P_(m.casa.id, 1, null, 'bea', 'bea')])).id !== undefined, true, 'con el sí, sube');
+});
+
+test('1a: bea emite sobre su propio hijo de la casa, bloqueando los diez P que le nacen en él con la salida de su serie: la casa no le da cuota y ana emite sus cuatro', async () => {
+  for (const capacidadDelHijo of [false, true]) {
+    const m = await mundo();
+    const hijo = await m.aMano('bea', m.casa.id, [], { payload: capacidadDelHijo ? [['un hijo'], ['de bea'], [4]] : [['un hijo']] });
+    await conMiR(m, 'bea');
+    const emiteEnElHijo = (cantidad) => m.aMano('bea', hijo.id, [{ ...P_(hijo.id, 10, 'bea', 'bea', 'bea'), estado: 'bloqueo', salida: serieDe('bea', hijo.id) }, { token: 'E', emisor: 'bea', denominacion: 'noche', registro: hijo.id, cantidad, de: null, a: 'bea' }]);
+    assert.match(String(await emiteEnElHijo(4)), /cuota de E:bea\/noche@.* en el registro .* origen ana/, capacidadDelHijo ? 'con capacidad en el hijo' : 'sin capacidad en el hijo');
+    assert.equal(await m.emite('ana'), 4, 'ana emite sus cuatro plazas');
+  }
 });
 
 test('1a: de una mirada al registro entero del mismo registro sigue sin pedir nada (r.d → r)', async () => {
@@ -82,38 +98,60 @@ test('1a: de una mirada al registro entero del mismo registro sigue sin pedir na
   assert.ok(r.id, String(r));
 });
 
-test('1b: quien compra una plaza de la casa (diez P en su mirada 1) no emite E atada a la casa sin el sí de ana', {
-  todo: 'HIPÓTESIS 1b REPRODUCIDA: zoe, con la E comprada a ana, emite tres plazas atadas a la casa. Cerrarlo en «minting E needs P on its record» (emitir E atada a un registro ajeno pide el sí de su dueño) rompe dos flujos que las pruebas dan por buenos: en test/ejemplo-booking.test.js la casa da a recepción una noche de litera y con ella diez P sobre la habitación, y recepción emite su propia litera atada a la habitación; en test/e-atada.test.js (R2·2) la casa delega P en su registro a «socia», que emite atada a él. Por la regla del encargo («si rompe flujos legítimos, para») no se ha cerrado: decide Core (p. ej. aceptar como consentimiento el P cuyo origen es el dueño del registro, que cubre a «socia» pero no a recepción)',
-}, async () => {
+test('1b: quien compra una plaza de la casa (diez P en su mirada 1, de origen suyo) no emite E atada a la casa; ana emite las que le quedan', async () => {
   const m = await mundo();
-  const una = await m.hecho('issue E tied to X', { X: m.casa.id, denomination: 'noche', quantity: 1 });
-  assert.ok(una);
-  const serie = { token: 'E', emisor: 'ana', denominacion: 'noche', registro: m.casa.id };
-  assert.ok((await m.aMano('ana', m.casa.id, [{ ...serie, cantidad: 1, de: 'ana', a: 'zoe' }])).id, 'ana le vende una plaza a zoe');
+  assert.ok(await m.hecho('issue E tied to X', { X: m.casa.id, denomination: 'noche', quantity: 1 }));
+  assert.ok((await m.aMano('ana', m.casa.id, [{ token: 'E', emisor: 'ana', denominacion: 'noche', registro: m.casa.id, cantidad: 1, de: 'ana', a: 'zoe' }])).id, 'ana le vende una plaza a zoe');
   assert.equal(m.eje.poderSobre('zoe', m.casa.id), 10, 'recibir la E de su emisor da diez P en la mirada 1 de la casa');
-  await m.aMano('zoe', m.eje.alta('zoe').id, [{ token: 'R', emisor: 'zoe', cantidad: 1, de: null, a: 'zoe' }], { payload: [['mi R']] });
-  assert.equal(await m.emite('zoe'), 0, 'zoe no emite: «minting E needs P on its record» pide el sí de ana sobre lo que no escribió');
+  await conMiR(m, 'zoe');
+  assert.equal(await m.emite('zoe'), 0, 'zoe no emite: su P es de origen zoe');
   assert.equal(await m.emite('ana'), 3, 'ana emite las tres que le quedan');
-  // Con el sí de ana a zoe, sí (lo decide ana).
-  const otra = await mundo();
-  await otra.hecho('issue E tied to X', { X: otra.casa.id, denomination: 'noche', quantity: 1 });
-  await otra.aMano('ana', otra.casa.id, [{ token: 'E', emisor: 'ana', denominacion: 'noche', registro: otra.casa.id, cantidad: 1, de: 'ana', a: 'zoe' }]);
-  await otra.aMano('zoe', otra.eje.alta('zoe').id, [{ token: 'R', emisor: 'zoe', cantidad: 1, de: null, a: 'zoe' }], { payload: [['mi R']] });
-  await otra.hecho('let P come down here', { X: otra.casa.id, whom: 'zoe' });
-  assert.ok(await otra.emite('zoe') >= 1, 'con el sí de ana, zoe emite');
 });
 
-test('1c: un extraño cuelga un registro de la cuenta de ana, sube su P a la cuenta y escribe una orden en su 4: no entra', {
-  todo: 'HIPÓTESIS 1c REPRODUCIDA (con la exención de subir tal como está, dani sube su P a la cuenta y ordena); depende de 1a, que no se ha cerrado. '+'HALLAZGO 1 REPRODUCIDO, SIN CERRAR: quitar la exención de «subir» en «P comes down to a thing of another with its owner’s yes» (decisión 1a) rompe flujos que las pruebas dan por buenos: test/cuenta-banco.test.js (tres casos: bea escribe una nota en la cuenta de ana, obtiene diez P en ella y los sube a la cuenta con «reposition P toward X» para ordenar pagos: la cuenta compartida, «bea tiene P: lo decide VG»; el caso de seguridad y el ejemplo «cuenta» hacen lo mismo) y test/reglas-3b.test.js («una cosa reposiciona su P como cualquiera»: robot sube su P de su pieza a X). Por la regla del encargo («si rompe flujos legítimos, para») no se ha cerrado: decide Core',
-}, async () => {
+test('1, el caso bueno: ana pasa P suyo de la casa a bea (el origen sigue siendo ana) y bea emite en proporción con la plantilla', async () => {
+  const m = await mundo();
+  const k = 'P:' + m.casa.id + '/ana';
+  assert.equal(m.eje.saldo('ana', k), 10, 'ana tiene diez P sobre la casa, de origen ana');
+  assert.ok((await m.aMano('ana', m.casa.id, [P_(m.casa.id, 5, 'ana', 'bea', 'ana')])).id, 'ana le pasa cinco');
+  await conMiR(m, 'bea');
+  // bea compromete uno de los suyos de origen ana (la plantilla elige ese) y ana uno suyo: dos de cuatro, la mitad.
+  const r = await m.intenta('issue E tied to X', { X: m.casa.id, denomination: 'noche', quantity: 1 }, 'bea');
+  assert.ok(r.ev, r.texto);
+  assert.ok(r.ev.movimientos.some((x) => x.token === 'P' && x.estado === 'bloqueo' && x.origen === 'ana'), 'bloquea P de origen ana: ' + JSON.stringify(r.ev.movimientos));
+  // ana emite las tres que quedan (cada una compromete una más: 3 suyos frente a 1 de bea, cuota 3 de 4), y la casa está llena.
+  assert.equal(await m.emite('ana'), 3);
+  assert.equal(await m.emite('bea'), 0, 'tope de la casa: cuatro');
+  // Sin lo que ana le pasó, bea no habría emitido: el P suyo de origen bea no cuenta (1a).
+});
+
+test('1: no se fabrica P de origen ajeno: escribir un registro, conseguir E, recibir R o reposicionar dejan a bea con P de origen bea; un paso que cambia el origen no entra', async () => {
+  const m = await mundo();
+  const hijo = await m.aMano('bea', m.casa.id, [], { payload: [['un hijo']] });
+  await m.hecho('issue E tied to X', { X: m.casa.id, denomination: 'noche', quantity: 1 });
+  await m.aMano('ana', m.casa.id, [{ token: 'E', emisor: 'ana', denominacion: 'noche', registro: m.casa.id, cantidad: 1, de: 'ana', a: 'bea' }]);
+  await m.hecho('give own R', { X: m.eje.alta('bea').id, amount: 1 });
+  await m.aMano('bea', hijo.id, [P_(hijo.id, 5, 'bea', null, 'bea'), P_(m.casa.id, 0.5, null, 'bea', 'bea')]);
+  const origenes = new Set(m.eje.poderes('bea').map((x) => x.origen));
+  assert.deepEqual([...origenes], ['bea'], 'todo su P es de origen bea: ' + JSON.stringify(m.eje.poderes('bea')));
+  // Reposicionar cambiando el origen (quema suyo y acuña «de ana»): no entra.
+  const cambia = await m.aMano('bea', hijo.id, [P_(hijo.id, 5, 'bea', null, 'bea'), P_(m.casa.id, 0.5, null, 'bea', 'ana')]);
+  assert.match(String(cambia), /P is repositioned one step at a time/);
+  // Ni mover P de origen ana que no tiene.
+  assert.ok(!(await m.aMano('bea', m.casa.id, [P_(m.casa.id, 1, 'ana', 'bea', 'ana')])).id, 'nadie mueve lo de ana');
+  assert.equal(m.eje.saldo('bea', 'P:' + m.casa.id + '/ana'), 0);
+});
+
+test('1c (lo decidido por VG, V6): quien cuelga un registro de una cuenta ajena gana P sobre ella subiendo y ordena; el titular aprueba en su banco', async () => {
   const m = await mundo();
   const cuenta = await m.hecho('connect an account', { X: m.eje.alta('ana').id, name: 'cuenta de ana', bank: 'Banco de Ejemplo' });
   const hijo = await m.aMano('dani', cuenta.id, [], { payload: [['me cuelgo']] });
   assert.equal(m.eje.poderSobre('dani', hijo.id), 10);
-  assert.match(String(await m.aMano('dani', hijo.id, [P_(hijo.id, 10, 'dani', null, 'dani'), P_(cuenta.id, 1, null, 'dani', 'dani')])), SIN_SI);
-  assert.equal(m.eje.poderSobre('dani', cuenta.id), 0);
-  assert.match(String(await m.aMano('dani', cuenta.id, [], { en: '4000000000', payload: [['orden'], ['paga 100']] })), /acting on an account needs P on it/);
+  assert.ok((await m.aMano('dani', hijo.id, [P_(hijo.id, 10, 'dani', null, 'dani'), P_(cuenta.id, 1, null, 'dani', 'dani')])).id, 'subir es libre');
+  assert.equal(m.eje.poderSobre('dani', cuenta.id), 1);
+  const orden = await m.aMano('dani', cuenta.id, [], { en: '4000000000', payload: [['orden'], ['paga 100']] });
+  assert.ok(orden.id, 'con P sobre la cuenta, ordena (docs/notas/CUENTA_BANCO.md, punto 4): ' + String(orden));
 });
+
 
 // ---------- 2 (grave): pagar a la identidad «-» ----------
 
