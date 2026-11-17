@@ -49,6 +49,26 @@ export const EJE = 'roadmap';
 export const CORRESPONDENCIA = join(AQUI, '..', 'ejemplos', 'volcado', 'correspondencia-roadmap.json');
 /** Cuántas pasadas (días seguidos) como mucho en el primer volcado. */
 export const TOPE_DE_PASADAS = 10;
+
+/** Cuántas líneas de avisos dice el arranque, y de cuántos caracteres cada una como mucho. */
+export const LINEAS_DE_AVISOS = Object.freeze({ tope: 20, caracteres: 300 });
+
+/**
+ * Las líneas que dice el arranque tras el recuento: cada aviso y cada «no puede» del volcado, una por línea, recortadas
+ * a 300 caracteres y como mucho 20 (con «y N más»). Nunca una clave ni la llave: todo lo que parezca una (64
+ * hexadecimales seguidos, el formato de las claves, las firmas a medias y la llave) se tapa, aunque sea el id de un
+ * registro. Pura.
+ */
+export function lineasDeAvisos(avisos = [], noPuede = []) {
+  const limpia = (x) => String(x).replace(/[\r\n\t]+/g, ' ').replace(/[0-9a-fA-F]{64,}/g, '‹oculto›');
+  const lineas = [
+    ...[...avisos].map((a) => 'aviso: ' + limpia(a)),
+    ...[...noPuede].map((x) => 'no puede: ' + (x?.paso?.fila ? 'fila ' + limpia(x.paso.fila) + ': ' : x?.paso?.cosa ? limpia(x.paso.cosa) + ': ' : '') + limpia(x?.motivo ?? '')),
+  ].map((l) => (l.length > LINEAS_DE_AVISOS.caracteres ? l.slice(0, LINEAS_DE_AVISOS.caracteres - 1) + '…' : l));
+  const fuera = lineas.slice(0, LINEAS_DE_AVISOS.tope).map((l) => 'ensayo:   ' + l);
+  if (lineas.length > LINEAS_DE_AVISOS.tope) fuera.push('ensayo:   y ' + (lineas.length - LINEAS_DE_AVISOS.tope) + ' más');
+  return fuera;
+}
 /** La identidad de la dueña si el archivo de claves no dice otra (la misma que volcar.mjs). */
 export const DUENA = 'duena';
 const DIA = 86_400_000;
@@ -216,6 +236,7 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
     guardar();
     ultimo = { pasadas: n, escritos: escritos.length, avisos: avisos.size + inf.noPuede.length, filas: [...new Set(escritos.map((e) => e.fila).filter(Boolean))] };
     decir('ensayo: volcado en ' + n + (n === 1 ? ' pasada' : ' pasadas') + ': ' + escritos.length + ' registros escritos, ' + ultimo.avisos + ' avisos');
+    for (const l of lineasDeAvisos(avisos, inf?.noPuede ?? [])) decir(l);
   } else {
     if (!estado.claveLectura) throw new Error('ensayo: falta la clave de lectura del eje en ensayo.json');
     S = nueva();
@@ -255,6 +276,7 @@ export async function montarEnsayo({ carpeta, tabla: rutaTabla, claves: rutaClav
         estado.tabla = pendientes.size ? estado.tabla : sha(textoTabla);
         ultimo = { pasadas: 1, escritos: r.escritos.length, avisos: r.avisos.length + r.noPuede.length, filas: [...new Set(r.escritos.map((e) => e.fila).filter(Boolean))] };
         decir('ensayo: volcado de ' + cambiadas.length + ' filas cambiadas: ' + r.escritos.length + ' registros escritos, ' + ultimo.avisos + ' avisos');
+        for (const l of lineasDeAvisos(r.avisos, r.noPuede)) decir(l);
       } else estado.tabla = sha(textoTabla);
       guardar();
     }

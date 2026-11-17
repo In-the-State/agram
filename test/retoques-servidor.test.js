@@ -349,6 +349,39 @@ test('cara pública: tras varios fallos seguidos, espera (ni la llave buena entr
   } finally { await m.fin(); }
 });
 
+
+// ---------- la página del QR para entrar desde el móvil (retoques/movil.html) ----------
+
+test('la página del QR: por la cara local se sirve con una política que no deja pedir nada; por el nombre público, 404 con sesión o sin ella; la página mínima acepta #llave=', async () => {
+  const m = await montar({ publico: PUBLICO, vigilar: false });
+  try {
+    const p = await pedir(m.puerto, '/retoques/movil');
+    assert.equal(p.estado, 200);
+    assert.match(p.cabeceras['content-type'], /^text\/html/);
+    const csp = p.cabeceras['content-security-policy'];
+    for (const d of ["default-src 'none'", "connect-src 'none'", "frame-ancestors 'none'", "img-src 'none'"]) assert.ok(csp.includes(d), d);
+    // El único script en línea va por su resumen.
+    const guion = /<script type="module">([\s\S]*?)<\/script>/.exec(p.cuerpo)[1];
+    assert.ok(csp.includes("'sha256-" + createHash('sha256').update(guion, 'utf8').digest('base64') + "'"));
+    assert.ok(!/fetch\(|XMLHttpRequest|localStorage|sessionStorage|https?:\/\/(?!www\.w3\.org)[a-z0-9]|import [^;]* from '(?!\.\/qr\.mjs')/.test(guion), 'no pide ni guarda nada ni carga nada de fuera');
+    assert.match(guion, /history\.replaceState/);
+    assert.match(p.cuerpo, /Lee este código con la cámara del móvil\. No lo fotografíes ni lo compartas\./);
+    assert.match(p.cuerpo, />Ocultar</);
+    assert.equal((await pedir(m.puerto, '/retoques/qr.mjs')).estado, 200);
+    assert.equal((await pedir(m.puerto, '/retoques/movil', { host: '127.0.0.1:' + m.puerto })).estado, 200);
+    assert.equal((await pedir(m.puerto, '/retoques/movil', { metodo: 'POST', cuerpo: {} })).estado, 404);
+    // Por el nombre público: 404, sin sesión y con ella.
+    for (const ruta of ['/retoques/movil', '/retoques/qr.mjs']) assert.equal((await pedir(m.puerto, ruta, { host: PUBLICO })).estado, 404, ruta + ' sin sesión');
+    const bien = await pedir(m.puerto, '/retoques/entrar', { metodo: 'POST', host: PUBLICO, cabeceras: { origin: 'https://' + PUBLICO }, cuerpo: { llave: m.llave } });
+    const sesion = String(bien.cabeceras['set-cookie']).split(';')[0];
+    for (const ruta of ['/retoques/movil', '/retoques/qr.mjs']) assert.equal((await pedir(m.puerto, ruta, { host: PUBLICO, cabeceras: { cookie: sesion } })).estado, 404, ruta + ' con sesión');
+    // La página mínima del nombre público lee «#llave=<64 hex>», lo quita de la barra y entra sola.
+    const minima = (await pedir(m.puerto, '/', { host: PUBLICO })).cuerpo;
+    assert.match(minima, /\/llave=\(\[0-9a-f\]\{64\}\)\/\.exec\(location\.hash\)/);
+    assert.match(minima, /history\.replaceState\(null, '', location\.pathname\); l\.value = h\[1\]; entrar\(h\[1\]\);/);
+  } finally { await m.fin(); }
+});
+
 // ---------- la clave de API de VG (--clave-api) ----------
 
 const CLAVE_FALSA = 'sk-ant-falsa-de-prueba-0123456789';

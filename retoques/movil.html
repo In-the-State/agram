@@ -1,0 +1,76 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="referrer" content="no-referrer">
+<title>AGRAM · entrar desde el móvil</title>
+<style>
+  :root { --fondo: #faf7f1; --texto: #2b2620; --suave: #6b6258; --borde: #d8cfc2; }
+  body { font: 17px/1.45 system-ui, sans-serif; margin: 0; background: var(--fondo); color: var(--texto); }
+  main { max-width: 34rem; margin: 0 auto; padding: 24px 16px; text-align: center; }
+  h1 { font-size: 19px; margin: 0 0 12px; }
+  p { margin: 0 0 16px; }
+  .qr { display: block; width: min(88vw, 30rem); height: auto; margin: 0 auto 16px; image-rendering: pixelated; background: #fff; border: 1px solid var(--borde); }
+  button { font: inherit; padding: 8px 18px; border: 1px solid var(--borde); border-radius: 6px; background: #fff; color: var(--texto); cursor: pointer; }
+  .suave { color: var(--suave); font-size: 15px; }
+</style>
+</head>
+<body>
+<main>
+  <h1>AGRAM · entrar desde el móvil</h1>
+  <div id="con" hidden>
+    <svg id="qr" class="qr" role="img" aria-label="código QR para entrar desde el móvil"></svg>
+    <p>Lee este código con la cámara del móvil. No lo fotografíes ni lo compartas.</p>
+    <button id="ocultar" type="button">Ocultar</button>
+  </div>
+  <p id="oculto" class="suave" hidden>Código oculto. Para volver a verlo, ábrelo otra vez desde la sesión de Core AGRAM.</p>
+  <p id="sin" class="suave" hidden>Esta página se abre desde la sesión de Core AGRAM.</p>
+</main>
+<script type="module">
+// La página no pide nada al servidor ni guarda nada: lee su propio fragmento «#llave=<64 hex>&publico=<host>», lo
+// quita de la barra de direcciones y pinta el QR de «https://<host>/#llave=<llave>» (retoques/qr.mjs). La llave no se
+// enseña como texto.
+import { codificar } from './qr.mjs';
+
+const fragmento = location.hash.slice(1);
+history.replaceState(null, '', location.pathname);
+const datos = new URLSearchParams(fragmento);
+const llave = datos.get('llave');
+const publico = datos.get('publico');
+const valido = [...datos.keys()].length === 2
+  && typeof llave === 'string' && /^[0-9a-f]{64}$/.test(llave)
+  && typeof publico === 'string' && publico.length <= 253 && /^[a-z0-9](?:[a-z0-9-]*[a-z0-9])?(?:\.[a-z0-9](?:[a-z0-9-]*[a-z0-9])?)*$/.test(publico);
+
+const $ = (id) => document.getElementById(id);
+if (!valido) {
+  $('sin').hidden = false;
+} else {
+  const q = codificar('https://' + publico + '/#llave=' + llave, { correccion: 'M' });
+  const margen = 4;
+  const lado = q.tamano + 2 * margen;
+  const svg = $('qr');
+  svg.setAttribute('viewBox', '0 0 ' + lado + ' ' + lado);
+  svg.setAttribute('shape-rendering', 'crispEdges');
+  const ns = 'http://www.w3.org/2000/svg';
+  const fondo = document.createElementNS(ns, 'rect');
+  fondo.setAttribute('width', lado);
+  fondo.setAttribute('height', lado);
+  fondo.setAttribute('fill', '#fff');
+  svg.append(fondo);
+  let d = '';
+  q.modulos.forEach((fila, y) => fila.forEach((oscuro, x) => { if (oscuro) d += 'M' + (x + margen) + ' ' + (y + margen) + 'h1v1h-1z'; }));
+  const camino = document.createElementNS(ns, 'path');
+  camino.setAttribute('d', d);
+  camino.setAttribute('fill', '#000');
+  svg.append(camino);
+  $('con').hidden = false;
+  $('ocultar').addEventListener('click', () => {
+    svg.replaceChildren();
+    $('con').remove();
+    $('oculto').hidden = false;
+  });
+}
+</script>
+</body>
+</html>
