@@ -10,6 +10,7 @@
 // conmutador, la cajita y los botones de exportar. Los atributos data-nodo* los escribe carta/dom.js.
 
 import { t } from './textos.js';
+import { confirmarEnPagina } from './confirmar.js';
 
 export const CLAVES = Object.freeze({ activo: 'agram.opinar', opiniones: 'agram.opiniones' });
 /** Cuántos caracteres del texto visible del elemento se guardan. */
@@ -313,7 +314,7 @@ export function instalar({ raiz, cuenta = () => 'ejemplo', alCambiar = () => {},
       const archivo = exportar(lista);
       descargar(archivo);
       decir(t('opinarExportada', { archivo: archivo.nombre }));
-      if (ventana.confirm(t('opinarVaciarConfirmar', { cuantas: lista.length }))) vaciarOpiniones(almacen);
+      if (await confirmarEnPagina(t('opinarVaciarConfirmar', { cuantas: lista.length }), { documento: doc })) vaciarOpiniones(almacen);
     } else if (que === 'copiar' && lista.length) {
       decir(t((await copiarTexto(serializar(lista))) ? 'opinarCopiada' : 'opinarNoCopiada', { cuantas: lista.length }));
     } else if (que === 'borrar') {

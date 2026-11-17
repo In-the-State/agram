@@ -38,6 +38,7 @@ import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio
 import { Emparejamiento, almacenIndexedDB } from './emparejamiento.js';
 import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas } from './guardian-emparejado.js';
 import { instalar as instalarEmparejar } from './emparejar.js';
+import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
 import { Archivos, adjuntarHtmlInicial, TIPOS as TIPOS_DE_ARCHIVO, tipoDeArchivo, formatoDeTipo, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
@@ -2068,7 +2069,7 @@ const manejadores = {
   async olvidar() {
     const c = estado.cuenta;
     if (!c) return;
-    if (!globalThis.confirm(t('olvidarConfirmar', { nombre: c.nombre }))) return;
+    if (!(await confirmarEnPagina(t('olvidarConfirmar', { nombre: c.nombre })))) return;
     const ids = estado.eje?.identidades?.() ?? [c.identidad];
     estado.local = null; // su libro local no se vuelve a guardar
     cambiarDeEje(null, null);
