@@ -73,7 +73,7 @@ Nada montado: ni túnel ni programas nuevos. Los pasos del túnel están en `agr
   - Límites de `/ensayo`: 600 llamadas por minuto (una carta nueva baja unos cientos de registros y pide su recibo uno a uno) y 256 KB por cuerpo (el tope del contrato). Las escrituras por eje siguen en 60 por minuto. El volcado, hecho por dentro, no tiene ese tope.
 - **El primer arranque** (almacén vacío):
   - La cuenta de la dueña nace como la crea la carta (`crearCuenta`, idioma «es», con «sync url» y «sync ledger»).
-  - La tabla se vuelca con `ejemplos/volcado/volcar.mjs` en pasadas de días seguidos, la última hoy (medido antes en un libro de prueba; tope de 10). Ningún registro queda con fecha futura.
+  - La tabla se vuelca con `ejemplos/volcado/volcar.mjs`, con las casas como personas invitadas por la dueña (VG 17-11), en pasadas de días seguidos si a alguna casa no le alcanza su T de un día, la última hoy (medido antes en un libro de prueba; tope de 10; con el roadmap basta una). Un libro de ensayo ya volcado con las casas como cosas no se migra: el arranque se niega y dice el remedio (borrar `compartido.json` y `ensayo.json`). Ningún registro queda con fecha futura.
   - Todo se carga en el libro compartido registro a registro con la sincronía de `src/sincronia.js`.
   - Si el archivo de `--claves` no existe, se crea con claves nuevas (la dueña `duena` y una por cosa de la tabla). Las cosas nuevas de una tabla cambiada se añaden.
 - **Los arranques siguientes**:

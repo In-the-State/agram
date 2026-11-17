@@ -25,6 +25,22 @@ Lo leen el motor y el contrato: `acciones.estacionDeAnuncio` da propuesta, autor
 - Una fila que desaparece no se borra: sale en los avisos.
 - Una fila que cambia de cosa o de proyecto no se mueve: sale en los avisos.
 
+
+## Las casas como personas (VG 17-11; `"como": "personas"`)
+
+VG decidió (17-11) que los Cores y el operador entran en los libros como **personas invitadas**, con su propio T, y no como cosas de la dueña. La correspondencia elige el modo con `como`: `"cosas"` (el defecto, lo de arriba) o `"personas"`. La del roadmap (`correspondencia-roadmap.json`) va en `"personas"`.
+
+- **El alta** es una invitación de la dueña (`eje.invitar`) que **no da nada** (`da: []`; la época lo admite: su 1 dice «nada») y su aceptación por la casa, firmada con su clave (`eje.aceptar`: su alta). La dueña quema el coste de escribir la invitación (15 minutos de su T del día); la casa, el de su aceptación (1 minuto). Las claves se leen igual que en modo cosas: `claves.cosas[nombre]`.
+- **Sin pasos «dar»**: cada casa gasta su propio T del día (1440 minutos). Lo que no le cabe hoy no se escribe: sale en «no puede» con «a X no le llega hoy su T: otro día», y lo escribe una pasada de otro día.
+- **Una casa ya existente** vale si su nombre tiene alta de persona en el libro, la haya invitado quien la haya invitado. Si hay una invitación suya sin aceptar (por ejemplo, de VG desde la carta), la casa la acepta con su clave y no se escribe otra. Un nombre con alta de **cosa** no se vuelca: aviso «ya tiene alta como cosa y no como persona».
+- **Sin la clave de la dueña** (en un eje que exige firmas) no se invita: «queda para la dueña: invitar a X», y los pasos de esa casa van a «no puede». Las casas que ya tienen alta se vuelcan igual con su clave.
+- **Con solo algunas claves de casa** (cada Core vuelca sus filas con su clave): las filas de las casas sin clave van a «no puede» con «sin la clave de X», sin escribir nada.
+- Los proyectos cuelgan del alta de la casa (su aceptación), en su 0, con `anchor here`, que se ofrece a la persona sobre su propia alta. Idempotencia y diferencia, como en modo cosas.
+
+Roadmap de verdad simulado el 17-11 (eje local vacío, una pasada): 253 registros (3 invitaciones, 3 altas, 9 proyectos, 73 tareas, 73 propuestas, 61 autorizadas, 29 ejecutadas, 2 cerradas), 7 avisos, nada en «no puede». La dueña gasta 45 minutos (las tres invitaciones); AGRAM 553, StateArk 525 y AARPIA 469, cada una de su T. **Cabe en una pasada**: antes hacían falta dos porque la dueña repartía su T de minuto entre las tres.
+
+En el ensayo (`retoques/ensayo.mjs`), el libro del roadmap nace así. Un libro de ensayo ya volcado con las casas como cosas **no se migra**: el servidor se niega al arrancar con un mensaje que dice el remedio (borrar `compartido.json` y `ensayo.json` de la carpeta del ensayo para volver a volcarlo).
+
 ## Cómo se llama
 
 ```

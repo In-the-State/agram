@@ -141,6 +141,9 @@ test('volcar: dos casas, tres líneas, las cuatro fases y una desconocida; espej
 test('volcar: la correspondencia del roadmap se lee y una fase que lleva a otro sitio no vale', () => {
   const c = correspondenciaDe(JSON.parse(readFileSync(new URL('../ejemplos/volcado/correspondencia-roadmap.json', import.meta.url), 'utf8')));
   assert.deepEqual(Object.values(c.fases), ['propuesta', 'autorizada', 'ejecutada', 'cerrada']);
+  assert.equal(c.como, 'personas', 'el roadmap: las casas como personas invitadas (VG 17-11)');
+  assert.equal(correspondenciaDe(CORR).como, 'cosas', 'el defecto sigue siendo cosas');
+  assert.throws(() => correspondenciaDe({ ...CORR, como: 'grupos' }), /«como» es cosas o personas/);
   assert.throws(() => correspondenciaDe({ ...CORR, fases: { hecho: 'terminada' } }), /no es un paso/);
   assert.throws(() => correspondenciaDe({ columnas: { id: 'ref' } }), /falta la columna/);
 });
@@ -182,4 +185,84 @@ test('volcar con `filas`: solo esas filas; una que cambió en el libro (en panta
   // Una fila nueva entra aunque sea de una cosa ya dada de alta.
   const nueva = await volcar(eje, [...cambiada, fila('b2', 'Beta', 'Tres', 'Otra más', 'pendiente')], opciones(DIA(2, 11), { filas: new Set(['b2']) }));
   assert.deepEqual(nueva.escritos.filter((e) => e.fila).map((e) => e.fila + ' ' + e.tipo), ['b2 tarea', 'b2 propuesta']);
+});
+
+// ---------- el modo personas (VG 17-11): cada casa es una persona invitada por la dueña, con su propio T ----------
+
+const PERSONAS = { ...CORR, como: 'personas' };
+
+test('volcar como personas: la dueña invita sin dar nada y cada casa acepta con su clave; gasta su propio T (sin «dar»); espejo e idempotencia; una fila cambiada escribe solo la diferencia', async () => {
+  const { eje, claves } = await preparar();
+  const opciones = (t, extra = {}) => ({ claves, correspondencia: PERSONAS, t, ...extra });
+  const uno = await volcar(eje, TABLA, opciones(DIA(1)));
+  const altas = uno.escritos.filter((e) => e.tipo === 'invitacion' || e.tipo === 'alta').map((e) => e.cosa + ' ' + e.tipo + ' ' + e.quien);
+  assert.deepEqual(altas, ['Alfa invitacion duena', 'Alfa alta Alfa', 'Beta invitacion duena', 'Beta alta Beta']);
+  assert.ok(!uno.escritos.some((e) => e.tipo === 'dar'), 'sin pasos «dar»');
+  assert.deepEqual([uno.paraLaDuena, uno.noPuede, uno.t.dado], [[], [], {}]);
+  assert.deepEqual(uno.t.calculado, uno.t.gastado);
+  for (const c of ['Alfa', 'Beta']) {
+    assert.equal(eje.esPersona(c), true, c + ': una persona');
+    const alta = eje.obtener(eje.alta(c).id);
+    const inv = eje.obtener(alta.sobre);
+    assert.deepEqual([alta.autor, alta.firmante, inv.autor, inv.payload[0], inv.payload[1]], [c, c, 'duena', ['invitation'], ['nada']], c + ': la invitación no da nada');
+    assert.ok(uno.t.gastado[c].minuto > 0 && eje.saldoT(c, 'minuto', DIA(1)) === 1440 - uno.t.gastado[c].minuto, c + ': gasta su T del día');
+  }
+  assert.ok(uno.t.gastado.duena.minuto > 0, 'la dueña gasta lo que cuesta escribir las invitaciones');
+  // Lo mismo que en modo cosas: cada fila en su estación, colgada de su proyecto, que cuelga del alta de la casa.
+  const libro = leerLibro(eje, 'duena', correspondenciaDe(PERSONAS));
+  for (const f of TABLA) {
+    const t = libro.tareas.get(f.ref);
+    const ev = eje.obtener(t.id);
+    assert.deepEqual([ev.autor, ev.firmante, eje.obtener(ev.sobre).sobre], [f.equipo, f.equipo, eje.alta(f.equipo).id]);
+    assert.equal(estacionDe(eje, t.id), ESPERADA[f.ref], f.ref);
+  }
+  // Otra vez: nada.
+  const antes = eje.orden.length;
+  const dos = await volcar(eje, TABLA, opciones(DIA(2)));
+  assert.deepEqual([dos.escritos.length, eje.orden.length], [0, antes]);
+  // Una fila cambiada: solo su diferencia.
+  const cambiada = [fila('a1', 'Alfa', 'Uno', 'Escribir la guía entera', 'pendiente'), ...TABLA.slice(1)];
+  const tres = await volcar(eje, cambiada, opciones(DIA(2, 10)));
+  assert.deepEqual(tres.escritos.map((e) => e.fila + ' ' + e.tipo), ['a1 correccion']);
+});
+
+test('volcar como personas: sin la clave de la dueña no se invita (paraLaDuena), pero una casa ya invitada (por quien sea) se vuelca; con solo algunas claves, las demás a noPuede; un nombre con alta de cosa no se vuelca', async () => {
+  const { eje, claves } = await preparar();
+  // Beta la invita otra persona (no la dueña) y acepta: vale.
+  const { firmar } = await import('../src/autoridad.js');
+  const vg = await generarClaves();
+  await eje.aceptar(await eje.invitar({ autor: 'duena', invitado: 'vg', clave: vg.publica, da: [], t: DIA(1, 8), privada: claves.duena.privada }), vg, { t: DIA(1, 8) });
+  await eje.aceptar(await eje.invitar({ autor: 'vg', invitado: 'Beta', clave: claves.cosas.Beta.publica, da: [], t: DIA(1, 8), privada: vg.privada }), claves.cosas.Beta, { t: DIA(1, 8) });
+  // Sin la clave de la dueña: Alfa no se invita; las filas de Beta se vuelcan con su clave.
+  const sinDuena = await volcar(eje, TABLA, { claves: { cosas: claves.cosas }, correspondencia: PERSONAS, t: DIA(1, 9) });
+  assert.deepEqual(sinDuena.paraLaDuena, ['invitar a Alfa']);
+  assert.ok(sinDuena.noPuede.every((x) => x.paso.cosa === 'Alfa' && /la dueña ha de invitarla/.test(x.motivo)));
+  assert.deepEqual([...new Set(sinDuena.escritos.map((e) => e.cosa))], ['Beta']);
+  assert.ok(!eje.alta('Alfa'));
+  // Con solo la clave de Beta (cada Core vuelca sus filas con su clave): las de Alfa, «sin la clave de Alfa», sin escribir.
+  const parcial = await volcar(eje, [...TABLA, fila('b2', 'Beta', 'Tres', 'Otra', 'pendiente')], { claves: { duena: claves.duena, cosas: { Beta: claves.cosas.Beta } }, correspondencia: PERSONAS, t: DIA(1, 10) });
+  assert.ok(parcial.noPuede.length > 0 && parcial.noPuede.every((x) => x.paso.cosa === 'Alfa' && x.motivo === 'sin la clave de Alfa'));
+  assert.deepEqual(parcial.escritos.map((e) => e.fila + ' ' + e.tipo), ['b2 tarea', 'b2 propuesta']);
+  assert.ok(!eje.alta('Alfa'), 'sin la clave de Alfa no se invita ni se escribe nada suyo');
+  // Un nombre con alta de cosa (de la dueña): aviso, no se vuelca.
+  const { firmarPosesion } = await import('../src/autoridad.js');
+  const kGama = await generarClaves();
+  const cosa = await A.transaccion(eje, 'register a thing', { X: eje.alta('duena').id, thing: 'Gama', minutes: 1, key: kGama.publica }, 'duena', { t: DIA(1, 11), escala: 'segundo', firmar: async (ev) => firmar(await firmarPosesion(ev, 'Gama', kGama.privada), claves.duena.privada) });
+  assert.ok(cosa.ok, JSON.stringify(cosa.motivos));
+  await eje.anadir(cosa.evento);
+  const conCosa = await volcar(eje, [fila('g1', 'Gama', 'Cuatro', 'Algo', 'pendiente')], { claves: { duena: claves.duena, cosas: { Gama: await generarClaves() } }, correspondencia: PERSONAS, t: DIA(1, 12), filas: ['g1'] });
+  assert.ok(conCosa.avisos.includes('fila g1: «Gama» ya tiene alta como cosa y no como persona; no se vuelca'), JSON.stringify(conCosa.avisos));
+  assert.deepEqual(conCosa.escritos, []);
+});
+
+test('volcar como personas: lo que no le cabe a una casa en su día queda para otro día', async () => {
+  const { eje, claves } = await preparar();
+  // Una casa con muchas filas largas: su T del día no alcanza.
+  const largo = 'x'.repeat(40);
+  const muchas = Array.from({ length: 40 }, (_, k) => fila('m' + k, 'Alfa', 'Uno', 'Tarea ' + k + ' ' + largo, 'revisada', String(k), largo));
+  const uno = await volcar(eje, muchas, { claves, correspondencia: PERSONAS, t: DIA(1) });
+  assert.ok(uno.noPuede.length > 0, 'algo no cabe hoy');
+  assert.ok(uno.noPuede.some((x) => x.motivo === 'a Alfa no le llega hoy su T: otro día'), JSON.stringify([...new Set(uno.noPuede.map((x) => x.motivo))]));
+  const dos = await volcar(eje, muchas, { claves, correspondencia: PERSONAS, t: DIA(2), simular: true });
+  assert.ok(dos.escritos.length > 0, 'otro día sigue');
 });

@@ -15,7 +15,6 @@ import { crearServidor, CABECERA_LLAVE } from '../retoques/servidor.mjs';
 import { instantesDePasadas, huellaDeFila, EJE } from '../retoques/ensayo.mjs';
 import { acciones, sincronia } from '../src/index.js';
 import { firmar } from '../src/autoridad.js';
-import { ESCALAS_REALES } from '../src/tokens.js';
 import * as Q from '../carta/cuentas.js';
 import * as S from '../carta/sincronia.js';
 import { leerLibro, correspondenciaDe, PLANTILLAS } from '../ejemplos/volcado/volcar.mjs';
@@ -175,15 +174,14 @@ test('ensayo: los arranques siguientes no reescriben; una fila cambiada en la ta
     assert.deepEqual(m.dicho, []);
     assert.deepEqual(m.s.ensayo().ultimo, { pasadas: 0, escritos: 0, avisos: 0, filas: [] });
     assert.equal(total(), n0);
-    // En pantalla, la cosa de t2 cambia su texto (una corrección suya, firmada con su clave; antes, la dueña le da T).
+    // En pantalla, la casa de t2 cambia su texto (una corrección suya, firmada con su clave y con su propio T del día: es
+    // una persona invitada por la dueña, VG 17-11).
     const llave = { [CABECERA_LLAVE]: m.s.llave };
     const cuenta = JSON.parse((await pedir(m.puerto, '/retoques/ensayo/cuenta', { cabeceras: llave })).cuerpo);
     const A = await entrar(dispositivo(), cuenta);
     const claves = JSON.parse(readFileSync(p.ensayo.claves, 'utf8'));
     const casa = 'Casa Norte';
-    const da = await acciones.transaccion(A.eje, PLANTILLAS.dar, { X: A.eje.alta(casa).id, scale: ESCALAS_REALES.indexOf('minuto'), amount: 60 }, A.cuenta.identidad, { escala: 'segundo', firmar: Q.firmarCon(A.privada) });
-    assert.equal(da.ok, true, JSON.stringify(da.motivos));
-    await A.eje.anadir(da.evento);
+    assert.equal(A.eje.esPersona(casa), true, 'la casa es una persona del libro');
     const t2 = leerLibro(A.eje, A.cuenta.identidad, CORR).tareas.get('t2');
     const cambio = await acciones.transaccion(A.eje, PLANTILLAS.registro, { X: t2.id, title: 'Lijar el marco, dicho en pantalla', content: ['id: t2', 'sprint: 1', 'estado: inventado'] }, casa, { firmar: (ev) => firmar(ev, claves.cosas[casa].privada) });
     assert.equal(cambio.ok, true, JSON.stringify(cambio.motivos));
