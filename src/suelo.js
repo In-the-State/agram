@@ -19,7 +19,7 @@
 //   - con una clase dada (un cambio, no una época de nacimiento): si toca una pieza de gobierno, o añade, sustituye o quita
 //     una condición o una lectura que se guarda (se llame como se llame), la clase es «governance».
 // Y la salida con lo propio (VG 17-11; condicionesDelRegistro, al final): a un registro que nombra «declare a balance»
-// solo se le prueban las reglas del suelo.
+// solo se le prueban las reglas del suelo de la versión de nacimiento del libro (S8, encargo «arreglos del puente»).
 
 import { nombreDeRegla, esLectura, esEscritura, esLecturaDePv, posicionDeLectura, esFormula } from './bqlm.js';
 
@@ -319,8 +319,12 @@ const SOLO_DEL_SUELO = new WeakMap();
 
 /**
  * Las reglas de validez de `epoca` (su `condiciones`, en el orden del 8) que se le prueban al registro `ev`: todas; y, si
- * `ev` nombra «declare a balance» en su 4, solo las que se llaman como una pieza del suelo de la época (sueloDe: su
- * 7.9.6, con lo calculado). Solo si esa época tiene en su suelo la regla «a declared balance is only that» y la trae:
+ * `ev` nombra «declare a balance» en su 4, solo las que se llaman como una pieza del suelo de la época DE NACIMIENTO del
+ * libro (sueloDe de `epoca.nacimiento`, la primera versión, o de `epoca` si es ella: su 7.9.6, con lo calculado). S8
+ * (encargo «arreglos del puente»): lo que un cambio añada a 7.9.6 después de nacer el libro no alcanza la declaración; las
+ * reglas del suelo de nacimiento no se quitan ni se sustituyen, así que siguen en la versión vigente con su nombre, y se
+ * prueban las de la vigente. Una época de nacimiento escrita con cambios es esa época entera. Solo si esa época tiene en
+ * su suelo la regla «a declared balance is only that» y la vigente la trae:
  * sin ella nadie exigiría la forma de una declaración, y vestir de declaración otro registro saltaría las reglas del
  * libro; entonces se le prueban todas. Quien decide que un registro «es una declaración» es esa regla, que se le prueba
  * siempre: si nombra la acción y hace otra cosa, no entra.
@@ -329,7 +333,7 @@ export function condicionesDelRegistro(epoca, ev) {
   const todas = Array.isArray(epoca?.condiciones) ? epoca.condiciones : [];
   if (!nombraDeclaracion(ev) || !epoca || typeof epoca !== 'object') return todas;
   if (!SOLO_DEL_SUELO.has(epoca)) {
-    const suelo = new Set(sueloDe(epoca));
+    const suelo = new Set(sueloDe(epoca.nacimiento ?? epoca));
     const guarda = suelo.has(DECLARACION_SOLO_ESO) && todas.some((r) => nombreDeRegla(r) === DECLARACION_SOLO_ESO);
     SOLO_DEL_SUELO.set(epoca, guarda ? Object.freeze(todas.filter((r) => suelo.has(nombreDeRegla(r)))) : todas);
   }

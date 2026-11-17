@@ -10,7 +10,7 @@
 // Cuándo no se evalúan: en el prefijo de la versión 2 (suelo de persistencia: sus eventos se validan con las
 // reglas de entonces), en un evento mal formado (la forma es suelo: las reglas leen eventos bien formados) y en uno
 // con una referencia a un evento que el eje no tiene (el suelo lo rechaza: VG, 10-11, C1). Y a un registro que nombra
-// «declare a balance» en su 4 solo se le prueban las del suelo, epoch.7.9.6 (la salida con lo propio, VG 17-11:
+// «declare a balance» en su 4 solo se le prueban las del suelo de nacimiento del libro, epoch.7.9.6 (la salida con lo propio, VG 17-11; S8:
 // src/suelo.js, condicionesDelRegistro; docs/notas/GOBIERNO.md); la regla del suelo «a declared balance is only that»
 // exige que no sea otra cosa.
 //

@@ -74,6 +74,19 @@ const esEnlace = (L) => '("' + L_.abrir + '" in (payload(' + L + ')).4 or "' + L
 /** La clave K está anotada en el enlace L para el nivel N: uno de sus pares [nivel, clave] (2.p en «open…», 1.1.p en «this book…»). */
 const claveEnNivel = (L, N, K) => Array.from({ length: 4 }, (_, p) => ['2', '1.1'].map((d) => '(first (payload(' + L + ')).' + d + '.' + p + ' = ' + N + ' and last (payload(' + L + ')).' + d + '.' + p + ' = ' + K + ')').join(' or ')).join(' or ');
 
+/** El enlace L anota una clave para el nivel N: uno de sus pares [nivel, clave] (dos ocupantes) dice ese nivel. */
+const anotaNivel = (L, N) => Array.from({ length: 4 }, (_, p) => ['2', '1.1'].map((d) => '(count (payload(' + L + ')).' + d + '.' + p + ' > 1 and first (payload(' + L + ')).' + d + '.' + p + ' = ' + N + ')').join(' or ')).join(' or ');
+
+/**
+ * El enlace L no anota para el nivel N otra clave que K: cada par suyo que dice ese nivel lleva esa clave (si no anota
+ * ninguno para ese nivel, vale). Sin nivel (N vacío) no vale.
+ */
+const soloEsaClave = (L, N, K) => Array.from({ length: 4 }, (_, p) => ['2', '1.1'].map((d) => '(first (payload(' + L + ')).' + d + '.' + p + ' != ' + N + ' or last (payload(' + L + ')).' + d + '.' + p + ' = ' + K + ')').join(' and ')).join(' and ');
+
+/** Lo que cuelga de un enlace L y lo retira: un «withdraw a link» de su mismo autor (src/contrato.js lo lee igual). */
+export const RETIRAR_ENLACE = 'withdraw a link';
+const noRetirado = (L) => 'count ((down ' + L + ') where "' + RETIRAR_ENLACE + '" in (payload(it)).4 and first it.3 = first ' + L + '.3) = 0';
+
 /**
  * Una salida de un movimiento como texto (text de utf8: su valor), que se despliega como el registro que nombra, si lo es
  * (una salida en el 2 de un movimiento solo se despliega si nombra una serie o es un instante).
@@ -94,25 +107,37 @@ const noTraer = 'not ("' + P.traer + '" in ev.4)';
 
 /**
  * «a record is brought from a linked book»: cuelga del 9.8 del génesis y su enlace (1.3) es un registro de este libro, del
- * dueño (el autor del génesis), que nombra el libro de origen (1.0) y es el último de los suyos: un «open a private book
- * here» sin otro posterior del mismo autor para ese libro en el mismo elemento, o un «this book hangs from» en el 9.5 del
- * génesis sin otro posterior. A igualdad de instante, ninguno de los dos vale (el BQL mínimo no ordena textos).
+ * dueño (el autor del génesis), que nombra el libro de origen (1.0), es el último de los suyos y no está retirado. El
+ * último (PH4, arreglos del puente): ningún otro enlace del mismo autor para ese libro, de cualquiera de los dos tipos,
+ * con instante igual o posterior, en el mismo elemento ni en el 9.5 del génesis. El mismo elemento: para un «open a
+ * private book here» (en el 9.1 de su elemento), lo que cuelga de ese elemento; para un «this book hangs from» (en el 9.5
+ * del génesis), el 9.1 del génesis. Un enlace de otro elemento no lo retira (no se recorre el libro). Retirado: de él
+ * cuelga un «withdraw a link» de su autor. A igualdad de instante, ninguno de los dos vale (el BQL mínimo no ordena textos).
  */
 export function formulaDeEnlazado() {
   const L = ENLACE;
-  const posterior = (lista, nombre, libro) => 'count ((' + lista + ') where "' + nombre + '" in (payload(it)).4 and ' + libro + ' and first it.3 = first ' + L + '.3 and it != ' + L + ' and ' + t('it') + ' >= ' + t(L) + ') = 0';
+  const G = '(first before.5)';
+  const sinPosterior = (lista) => 'count ((' + lista + ') where ' + esEnlace('it') + ' and ' + libroEs('it', B) + ' and first it.3 = first ' + L + '.3 and it != ' + L + ' and ' + t('it') + ' >= ' + t(L) + ') = 0';
   return '=' + noTraer + ' or first ev.6.5 = first before.5 and nth 1 ev.6.5 = "' + ANCLA_DE_LO_TRAIDO + '"'
-    + ' and count ' + L + '.5 > 0 and first ' + L + '.3 = first (first before.5).3'
+    + ' and count ' + L + '.5 > 0 and first ' + L + '.3 = first ' + G + '.3'
     + ' and ("' + L_.abrir + '" in (payload(' + L + ')).4 and nth 1 ' + L + '.6.5 = "9100000000" and first (payload(' + L + ')).1.0.0 = ' + B
-    + ' and ' + posterior('down (up ' + L + ')', L_.abrir, 'first (payload(it)).1.0.0 = ' + B)
+    + ' and ' + sinPosterior('down (up ' + L + ')')
     + ' or "' + L_.cuelga + '" in (payload(' + L + ')).4 and first ' + L + '.6.5 = first before.5 and nth 1 ' + L + '.6.5 = "9500000000" and first (payload(' + L + ')).1.0 = ' + B
-    + ' and ' + posterior('(first before.5).9.5', L_.cuelga, 'first (payload(it)).1.0 = ' + B) + ')';
+    + ' and ' + sinPosterior(G + '.9.1') + ')'
+    + ' and ' + sinPosterior(G + '.9.5') + ' and ' + noRetirado(L);
 }
 
-/** «bringing needs the line keys of the book»: el enlace (si lo es) anota al menos un par [nivel, clave]. */
+/** El nivel de la primera cabecera del sello que trae un «bring a record from another book» (su eslabón 0). */
+const NIVEL_DEL_ESLABON_0 = (p = POSICIONES_DEL_SELLO) => '(first ' + SELLO + '.' + p.cadena + '.0.' + p.eslabon.nivel + ')';
+
+/**
+ * «bringing needs the line keys of the book» (PH1, arreglos del puente): el enlace (si lo es) anota una clave para el
+ * nivel de la primera cabecera de la prueba (su eslabón 0, la única cuyo libro se mira); sin ella no hay con qué
+ * comprobar que esa cabecera la firmó el otro libro.
+ */
 export function formulaDeConClaves() {
   const L = ENLACE;
-  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or count (payload(' + L + ')).2.0 > 1 or count (payload(' + L + ')).1.1.0 > 1';
+  return '=' + noTraer + ' or not (count ' + L + '.5 > 0 and ' + esEnlace(L) + ') or ' + anotaNivel(L, NIVEL_DEL_ESLABON_0());
 }
 
 /**
@@ -161,8 +186,12 @@ export function piezasDelEslabon(S, hoja, p = POSICIONES_DEL_SELLO) {
  * el sello llegue a Bitcoin con un observador de este libro («sealed»): las claves de las cabeceras han de ser las de
  * línea del otro libro. Que el ancla descienda del origen de su línea («anchor origin») no es una regla: es un grado de
  * la prueba, que se comprueba fuera (diseño §7 bis).
+ *
+ * Y las de abajo (PH1, arreglos del puente): el eslabón 0, la única cabecera cuyo libro se mira, lo firma una clave que
+ * el enlace anota para su nivel (sin clave anotada para ese nivel, no se trae); cada eslabón entre el 0 y el j, si el
+ * enlace anota claves para su nivel, lo firma esa clave (`intermedios: false` deja solo el 0 y el j: para medir).
  */
-export function formulaDeLaPrueba(p = POSICIONES_DEL_SELLO) {
+export function formulaDeLaPrueba(p = POSICIONES_DEL_SELLO, { intermedios = true } = {}) {
   const { en, E, c, eslabon } = piezasDelEslabon(SELLO, R(0), p);
   const capa = (k) => '(nth ' + k + ' epoch.7.6.1)';
   const exigido = (k) => '(nth ' + k + ' epoch.7.6.5)';
@@ -170,8 +199,10 @@ export function formulaDeLaPrueba(p = POSICIONES_DEL_SELLO) {
   const gradoDe = (j) => '(nth ' + p.enElNivel.grado + ' ' + E(j) + '.' + p.eslabon.nivel + ')';
   const llega = (k, j) => '(' + exigido(k) + ' = 0 or (' + Array.from({ length: GRADOS_DE_LA_FORMULA - 1 }, (_, d) => gradoDe(j) + ' in ' + (d === 0 ? exigido(k) : '(' + exigido(k) + ' + 1'.repeat(d) + ')')).join(' or ') + ') and ' + gradoDe(j) + ' < count epoch.7.6.4)';
   const niveles = (j) => Array.from({ length: CAPAS_DE_LA_FORMULA }, (_, k) => '(' + capa(k) + ' in ' + nivelDe(j) + ' and ' + capa(k) + ' >= first epoch.8.9.2 and ' + llega(k, j) + ' and (' + claveEnNivel(ENLACE, capa(k), 'first ' + c(j, 'clave')) + '))').join(' or ');
+  // La firma de la línea en cada eslabón por debajo del que llega: el 0, con la clave de su nivel; los demás, si el enlace la anota.
+  const deLaLinea = (j) => (j === 0 ? ' and (' + claveEnNivel(ENLACE, nivelDe(0), 'first ' + c(0, 'clave')) + ')' : intermedios ? ' and ' + soloEsaClave(ENLACE, nivelDe(j), 'first ' + c(j, 'clave')) : '');
   let cadena = '';
-  for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + ' and ((' + niveles(j) + ')' + (cadena ? ' or ' + cadena : '') + ')';
+  for (let j = ESLABONES_DE_LA_FORMULA - 1; j >= 0; j--) cadena = eslabon(j) + deLaLinea(j) + ' and ((' + niveles(j) + ')' + (cadena ? ' or ' + cadena : '') + ')';
   return '=' + noTraer + ' or "' + p.cascada + '" in ' + en('via') + ' and bytes(first ' + en('id') + ') = bytes(first ' + R(0) + ')'
     + ' and first ' + c(0, 'libro') + ' = ' + B + ' and ' + cadena;
 }
@@ -204,7 +235,7 @@ export function formulaDeFamilias() {
 }
 
 /**
- * «a send locks what it names»: se ancla en un enlace que nombra el libro de destino (1.0, otro libro); bloquea una sola
+ * «a send locks what it names»: se ancla en un enlace no retirado que nombra el libro de destino (1.0, otro libro); bloquea una sola
  * vez, cuánto dice (1.2), con la salida en el enlace, de la serie cuyas partes dice (1.1.1 su emisor, 1.1.2 su
  * denominación), y nada más que su coste. Su registro atado (1.1.3): si la serie es de aquí, el suyo; si es forastera,
  * solo vuelve a su libro de origen (su emisor empieza por él) y es el registro que trajo aquí el registro al que está
@@ -216,7 +247,7 @@ export function formulaDelEnvio() {
   const atado = 'not ' + forasteraMov('it') + ' and first ' + SP(3) + ' = first it.5'
     + ' or ' + forasteraMov('it') + ' and slice(utf8(first it.0.0.1), 0, 64) = utf8(' + D + ')'
     + ' and "' + P.traer + '" in (payload(first it.5)).4 and first (payload(first it.5)).1.0 = ' + D + ' and first ' + SP(3) + ' = first (payload(first it.5)).1.1.0';
-  return '=' + noEnviar + ' or ' + esEnlace(L) + ' and ' + libroEs(L, D) + ' and ' + D + ' != first before.5'
+  return '=' + noEnviar + ' or ' + esEnlace(L) + ' and ' + libroEs(L, D) + ' and ' + noRetirado(L) + ' and ' + D + ' != first before.5'
     + ' and count (ev.1 where lock in it.4) = 1 and count (ev.1 where mint in it.4 or transfer in it.4 or release in it.4) = 0'
     + ' and count (ev.1 where lock in it.4 and it.1 = first (payload(ev)).1.2 and first ev.6.5 in it.2 and first it.0.0.1 = first ' + SP(1) + ' and first it.0.0.2 = first ' + SP(2) + ' and (' + atado + ')) = 1';
 }
@@ -291,10 +322,25 @@ export function formulaDelRequisitoDeE() {
 
 // ---------- declarar un saldo ----------
 
-/** «a declared balance is true»: quien la escribe tiene, de la serie que dice (1.0), al menos cuánto dice (1.1): disponible y bloqueado. */
+/**
+ * Lo bloqueado de una entrada de la cartera (`entrada`, una expresión) con la salida en un enlace: lo que está en manos de
+ * otro libro (un envío). Se reconoce el enlace en la salida como en «what is locked for another book is released only by
+ * its return». `it` es cada bloqueo de la entrada (su 0, la salida; su 1, cuánto).
+ */
+export const bloqueadoParaOtroLibro = (entrada, it = 'it') => '((' + entrada + ').2 where first (text(utf8(first ' + it + '.0))).5 = (text(utf8(first ' + it + '.0))) and ' + esEnlace('(text(utf8(first ' + it + '.0)))') + ')';
+
+/**
+ * «a declared balance is true»: quien la escribe tiene, de la serie que dice (1.0), al menos cuánto dice (1.1): lo
+ * disponible y lo bloqueado, menos lo bloqueado con la salida en un enlace (PH2, arreglos del puente: eso ya vive en el
+ * otro libro como serie forastera y se declara allí), y después de los movimientos del propio registro (PH3: lo que el
+ * propio registro quema o pasa a otro de esa serie, como la T de su coste).
+ */
 export function formulaDelSaldo() {
-  const entrada = '(first ev.3).1.(first (payload(ev)).1.0)';
-  return '=not ("' + P.declarar + '" in ev.4) or first (payload(ev)).1.1 <= sum (' + entrada + ' each 1) + sum ((' + entrada + ').2 each 1)';
+  const S = 'first (payload(ev)).1.0';
+  const entrada = '(first ev.3).1.(' + S + ')';
+  const sale = '(moves ev where (burn in it.4 or transfer in it.4) and first it.0 = ' + S + ' and it.3.0 = first ev.3 and it.3.1 != first ev.3)';
+  return '=not ("' + P.declarar + '" in ev.4) or first (payload(ev)).1.1 + sum (' + bloqueadoParaOtroLibro(entrada) + ' each 1) + sum (' + sale + ' each 1)'
+    + ' <= sum (' + entrada + ' each 1) + sum ((' + entrada + ').2 each 1)';
 }
 
 // ---------- las reglas de E que no cuentan la serie forastera ----------
@@ -350,11 +396,28 @@ export function registroComoDecupla(ev) {
   return d;
 }
 
+/** ¿Es `texto` el JSON canónico de un solo valor (src/evento.js, canonico)? */
+function esCanonicoDeUnValor(texto) {
+  if (typeof texto !== 'string') return false;
+  try {
+    return canonico(JSON.parse(texto)) === texto;
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Lo traído, leído (diseño §4.1: quién lo escribió allí, qué decía, cuándo quedó en firme): el registro «bring a record
- * from another book» `id` de `eje` → { libro, id, autor, t, payload, firme, enlace, origen } o null. `firme` es la hora
- * (ISO) de la cabecera del primer eslabón que dice un nivel a la altura del que pide la época (epoch.8.9.2), la que da
- * por buena la regla; `origen`, el «anchor origin» que anota el enlace (null: «sin comprobar el origen»).
+ * from another book» `id` de `eje` → { libro, id, autor, t, payload, contexto, movimientos, fiable, causa, firme, enlace,
+ * origen } o null. `firme` es la hora (ISO) de la cabecera del primer eslabón que dice un nivel a la altura del que pide
+ * la época (epoch.8.9.2), la que da por buena la regla; `origen`, el «anchor origin» que anota el enlace (null: «sin
+ * comprobar el origen»).
+ *
+ * El contexto y los movimientos viajan como texto (1.1.7 y 1.1.5) y «a brought record is its body» los mete tal cual en
+ * el cuerpo (PH6, arreglos del puente): si uno de los dos no es el JSON canónico de un solo valor (rehecho con
+ * canonico(JSON.parse(texto)) no da el mismo texto), los mismos bytes podrían partirse de otra forma con el mismo id. Lo
+ * traído se lee entonces «no fiable» (`fiable` false y `causa`, en llano) y no se enseña ni su contexto ni sus
+ * movimientos (null). Ninguna regla los lee.
  */
 export function leerTraido(eje, id) {
   const r = eje?.obtener?.(id);
@@ -371,8 +434,13 @@ export function leerTraido(eje, id) {
   const enlace = eje.obtener(hoja(p[1]?.[3]));
   const lp = enlace?.payload ?? [];
   const origen = [].concat(lp[4] ?? []).includes(L_.abrir) ? hoja(lp[1]?.[0]?.[1]) : hoja(lp[1]?.[2]);
+  const malos = [['el contexto', reg[7]], ['los movimientos', reg[5]]].filter(([, x]) => !esCanonicoDeUnValor(hoja(x))).map(([que]) => que);
+  const fiable = malos.length === 0;
   return {
     libro: hoja(p[1]?.[0]), id: hoja(reg[0]), autor: hoja(reg[1]), t: hoja(reg[4]), payload: reg[6] ?? null,
+    contexto: fiable ? JSON.parse(hoja(reg[7])) : null, movimientos: fiable ? JSON.parse(hoja(reg[5])) : null,
+    fiable,
+    causa: fiable ? null : 'no fiable: ' + malos.join(' y ') + ' que trae no ' + (malos.length > 1 ? 'son' : 'es') + ' el JSON canónico de un solo valor, así que el mismo id podría leerse partido de otra forma; no se enseña' + (malos.length > 1 ? 'n' : ''),
     firme: Number.isFinite(hora) ? new Date(hora * 1000).toISOString() : null,
     enlace: enlace?.id ?? null, origen: typeof origen === 'string' ? origen : null,
   };

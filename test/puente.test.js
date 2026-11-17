@@ -68,7 +68,7 @@ test('puente: el ejemplo entero (traer, enviar, recibir, devolver y declarar un 
   const r = resumen(e);
   assert.deepEqual(r['ana en el grande'], { libre: 3, bloqueado: 2 }, '5 emitidas, 3 enviadas, 1 de vuelta');
   assert.deepEqual(r['bea en el pequeño'], { libre: 2, bloqueado: 1 }, 'recibió 3 y devolvió 1, que queda bloqueado en el pequeño');
-  assert.deepEqual(r['el saldo de bea, traído'], [[e.forastera], [3]]);
+  assert.deepEqual(r['el saldo de bea, traído'], [[e.forastera], [2]], 'lo suyo de aquí: lo bloqueado para volver al grande se declara allí (PH2)');
   const t = leerTraido(e.pequeno, e.menuTraido.id);
   assert.deepEqual([t.libro, t.id, t.autor, t.t, t.enlace, t.origen], [e.grande.genesisId, e.menu.id, 'ana', e.menu.t, e.cuelga.id, null], 'sin «anchor origin»: sin comprobar el origen');
   assert.deepEqual(t.payload, e.menu.payload, 'qué decía');

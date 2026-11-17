@@ -2815,7 +2815,24 @@ export function quienGuarda(eje, yo, sobre, opciones = {}) {
  * el 9.1 de un elemento del libro grande; «this book hangs from» en el 9.5 del génesis del pequeño. Los dos son datos: un
  * libro no lee al otro.
  */
-export const LIBRO_PRIVADO = Object.freeze({ abrir: 'open a private book here', cuelga: 'this book hangs from', en: '9100000000', cuelgaEn: '9500000000' });
+export const LIBRO_PRIVADO = Object.freeze({ abrir: 'open a private book here', cuelga: 'this book hangs from', retirar: 'withdraw a link', en: '9100000000', cuelgaEn: '9500000000' });
+
+/**
+ * ¿Está retirado el enlace `r`? (encargo «arreglos del puente», PH4): de él cuelga un «withdraw a link» de su mismo autor,
+ * como lo mira la regla «a record is brought from a linked book». Solo lo que cuelga del enlace, no el libro.
+ */
+const retirado = (eje, id, autor) => eje.sobre(id).some((h) => h.autor === autor && accionesDelRegistro(h).includes(LIBRO_PRIVADO.retirar));
+
+/** El libro que nombra un enlace de cualquiera de los dos tipos: 1.0.0 («open…», 1.0 los de antes) o 1.0 («this book…», 1 los de antes). */
+const libroDelEnlace = (r) => texto(accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir) ? hoja(hoja(hoja(r?.payload?.[1]))) : hoja(hoja(r?.payload?.[1])));
+
+/**
+ * ¿Hay en `lugar` (los registros de una posición) un enlace de `quien`, de cualquiera de los dos tipos, para `libro`,
+ * posterior a `l` y distinto de él? Lo que la regla llama «posterior» (cruzando los dos tipos).
+ */
+const hayPosterior = (lugar, quien, libro, l) => lugar.some((r) => r.id !== l.id && r.autor === quien
+  && (accionesDelRegistro(r).includes(LIBRO_PRIVADO.abrir) || accionesDelRegistro(r).includes(LIBRO_PRIVADO.cuelga))
+  && libroDelEnlace(r) === libro && despuesDe({ id: r.id, t: r.t }, l));
 
 /** ¿Va `a` después de `b`? Por instante y, a igualdad, por id: «vale el último». */
 const despuesDe = (a, b) => {
@@ -2852,8 +2869,11 @@ function enlaceDe(r, niveles) {
  * Los libros privados que cuelgan de un elemento (VG 17-11: «lo privado dentro de un espacio compartido es otro libro, más
  * pequeño, que cuelga de un elemento»; «quien no está invitado ve que existe y quién lo abrió, no su contenido»). Solo lee
  * este libro: los registros «open a private book here» anclados en el 9.1 del elemento (lo escribe quien puede escribir
- * sobre él). Por libro vale el último **de quien lo abrió** (el autor del primero que lo nombra), por instante y, a
- * igualdad, por id (al rotar una clave): el registro de otro sobre el mismo libro no cambia sus claves. →
+ * sobre él). Por libro vale el último **de quien lo abrió** (el autor del primero que lo nombra) en este elemento, por
+ * instante y, a igualdad, por id (al rotar una clave): el registro de otro sobre el mismo libro no cambia sus claves. Como
+ * la regla «a record is brought from a linked book» (encargo «arreglos del puente», PH4): no vale si su autor lo retiró
+ * («withdraw a link» colgado de él) ni si escribió después, para el mismo libro, un «this book hangs from» (o un enlace
+ * del otro tipo) en el 9.5 del génesis; y un enlace en otro elemento no lo retira (no se mira el libro entero). →
  *   [{ id, libro, claves: [{ nivel, clave }], direccion, quien, t }], por instante; [] si el elemento no está.
  * `libro`, el id del génesis del pequeño; `claves`, sus claves de línea con su nivel (las que declara en sus ajustes: quien
  * sella este libro sabe por ellas qué cabeceras del pequeño anclar); `direccion`, dónde publica sus cabeceras o null;
@@ -2881,13 +2901,19 @@ export function librosPrivados(eje, id, opciones = {}) {
     const antes = porLibro.get(l.libro);
     if (!antes || despuesDe(l, antes)) porLibro.set(l.libro, l);
   }
-  return [...porLibro.values()].sort((a, b) => (despuesDe(a, b) ? 1 : -1));
+  // El último de cada libro, si su autor no lo retiró ni lo dejó atrás con otro enlace en el 9.5 del génesis.
+  const enElGenesis = eje.genesisId ? eje.sobre(eje.genesisId, LIBRO_PRIVADO.cuelgaEn) : [];
+  const vigentes = [...porLibro.values()].filter((l) => !retirado(eje, l.id, l.quien) && !hayPosterior(enElGenesis, l.quien, l.libro, l));
+  return vigentes.sort((a, b) => (despuesDe(a, b) ? 1 : -1));
 }
 
 /**
  * De qué cuelga este libro: el registro «this book hangs from» del 9.5 de su génesis, escrito por el autor del génesis (la
  * plantilla solo se ofrece a él; escrito a mano por otro, aquí no cuenta), el último por instante y, a igualdad, por id. →
- * { libro, elemento, id, t } (los dos, ids de 64 hex del otro libro, que este no lee) o null.
+ * { libro, elemento, id, t } (los dos, ids de 64 hex del otro libro, que este no lee) o null. Como la regla «a record is
+ * brought from a linked book» (encargo «arreglos del puente», PH4): null si ese último lo retiró su autor («withdraw a
+ * link» colgado de él) o si el autor del génesis escribió después, para el mismo libro, un enlace del otro tipo en el 9.1
+ * o el 9.5 del génesis.
  */
 export function cuelgaDe(eje) {
   const genesis = eje?.obtener?.(eje?.genesisId);
@@ -2902,6 +2928,9 @@ export function cuelgaDe(eje) {
     const l = { libro, elemento, id: r.id, t: r.t };
     if (!fuera || despuesDe(l, fuera)) fuera = l;
   }
+  if (!fuera) return null;
+  const lugar = [...eje.sobre(genesis.id, LIBRO_PRIVADO.en), ...eje.sobre(genesis.id, LIBRO_PRIVADO.cuelgaEn)];
+  if (retirado(eje, fuera.id, genesis.autor) || hayPosterior(lugar, genesis.autor, fuera.libro, fuera)) return null;
   return fuera;
 }
 

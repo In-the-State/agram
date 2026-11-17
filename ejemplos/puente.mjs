@@ -4,14 +4,17 @@
 //     de línea);
 //   - el pequeño, de bea, que cuelga de la sala («this book hangs from», con las claves de línea del grande).
 // Cada libro lo sella su línea: una cabecera de nivel 1 firmada por la clave de su casa y una de nivel 4 firmada por el
-// sellador, con un sellador simulado (ejemplos/ikisai/sellos.mjs, como los ejemplos de firmeza: claves inventadas).
+// sellador, con un sellador simulado (ejemplos/ikisai/sellos.mjs, como los ejemplos de firmeza: claves inventadas). Cada
+// enlace anota las dos claves de línea del otro libro con su nivel: la de nivel 1 (la de su primera cabecera, que tiene que
+// estar anotada: encargo «arreglos del puente», PH1) y la de nivel 4.
 // Luego:
 //   1. ana escribe «menú» en la sala y emite 5 E atadas a él; bea lo trae al pequeño («bring a record from another book»);
 //   2. ana envía 3 E a bea («send to another book»: quedan bloqueadas en el grande con la salida en el enlace); bea trae el
 //      envío y lo recibe («receive from another book»): tiene 3 de la serie forastera, atada al menú traído;
 //   3. bea devuelve 1 a ana: lo bloquea en el pequeño, ana trae ese envío al grande y lo recibe: se le suelta 1 de lo
 //      bloqueado (no se crea nada);
-//   4. bea declara su saldo de la serie forastera en el pequeño («declare a balance») y ana lo trae al grande.
+//   4. bea declara su saldo de la serie forastera en el pequeño («declare a balance»: 2, lo suyo de aquí; la que bloqueó
+//      para volver al grande se declara allí) y ana lo trae al grande.
 // Identidades con clave: cada registro va firmado. Nada real.
 //
 //   node ejemplos/puente.mjs
@@ -46,6 +49,7 @@ export async function dosLibros({ clavesDelGrande = true, clavesDelPequeno = tru
     return eje.anadir(r.evento);
   };
   const sala = await lanza(grande, 'anchor here', { X: grande.genesisId, title: 'sala', content: 'la sala del libro grande' }, 'ana');
+  // Las claves de línea de un libro, con su nivel: la de su primera cabecera (nivel 1, su casa) y la de arriba (nivel 4).
   const lineas = (casa) => [[1, casa.publica], [4, claves.sellador.publica]];
   const abre = await lanza(grande, ENLACES.abrir, { X: sala.id, book: pequeno.genesisId, 'line keys': clavesDelPequeno ? lineas(claves.casaP) : 0 }, 'ana');
   const cuelga = await lanza(pequeno, ENLACES.cuelga, { X: pequeno.genesisId, book: grande.genesisId, element: sala.id, 'line keys': clavesDelGrande ? lineas(claves.casaG) : 0 }, 'bea');
