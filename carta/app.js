@@ -30,6 +30,7 @@ import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
 import { t, idiomaDeInterfaz, usarRetoques } from './textos.js';
 import * as cuentas from './cuentas.js';
+import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js'; // la época con que nace «crear mi cuenta» (su guía de inicio; copia generada por npm run epoca:cuenta)
 import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
@@ -2962,7 +2963,9 @@ const manejadores = {
       const ajustes = mio ? Object.fromEntries(Object.entries(ajustesDelSitio.defectos() ?? {}).filter(([k]) => k !== sincronia.CONFIGURACION.eje)) : ajustesDelSitio.defectos();
       // Con el emparejamiento por QR (A25), un libro nuevo con la clave de una cuenta del navegador no pasa por la app.
       const conGuardian = guardian && !(mio && mio.guardian !== true && guardian === emparejado.adaptador);
-      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...(conGuardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
+      // Emparejada con la app (A25), el génesis lo firma la app registro a registro: ese libro nace como hasta ahora, sin la época de cuenta (la firma del génesis emparejado es de otro carril).
+      const porLaApp = Boolean(guardian && emparejado.adaptador && guardian === emparejado.adaptador);
+      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...(porLaApp ? {} : { epoca: EPOCA_DE_CUENTA_DATOS }), ...(conGuardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
       const guardada = await cuentas.guardarCuenta(r);
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');

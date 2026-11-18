@@ -6,11 +6,12 @@ import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { htmlArranque, html } from '../carta/dom.js';
-import { arbol } from '../carta/carta.js';
+import { arbol, ceroDe } from '../carta/carta.js';
 import { TEXTOS, t } from '../carta/textos.js';
 import { contrato } from '../src/index.js';
 import { NIVEL } from '../carta/carta.js';
 import { epocaCuenta } from '../datos/epocas/cuenta/generar.mjs';
+import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js'; // lo que importa la app (la copia generada), no el generador
 
 const almacen = new Map();
 globalThis.localStorage ??= { getItem: (k) => almacen.get(k) ?? null, setItem: (k, v) => almacen.set(k, String(v)), removeItem: (k) => almacen.delete(k) };
@@ -46,13 +47,28 @@ test('arranque: el ejemplo sigue entrándose por el mismo gesto (data-arranque="
   assert.match(readFileSync('carta/dom.js', 'utf8'), /<optgroup label="\$\{attr\(t\('ejemplos'\)\)\}"><option value="ejemplo">\$\{t\('probarConEjemplo'\)\}<\/option><\/optgroup>/);
 });
 
-test('arranque: crear la cuenta aterriza en el 9 de mi alta, con su camino a la vista (y el aviso de la cuenta, si el libro nace con la época de cuenta)', async () => {
-  // Lo que la app hace al crear (app.js, `crear`): foco en mi alta y, de los pesos de la época, el 9 abierto como tarjeta.
+/** Lo que la app llama al crear (app.js, `crear`): crearCuenta con la época de cuenta que importa, la copia generada. */
+const crearComoLaApp = (nombre, extra = {}) => Q.crearCuenta({ nombre, idioma: 'es', htmlInicial: true, epoca: EPOCA_DE_CUENTA_DATOS, ...extra });
+
+test('arranque: «crear mi cuenta» nace con la época del libro de cuenta: la app pasa su copia importable, y esa copia es la época generada', () => {
+  const app = readFileSync('carta/app.js', 'utf8');
+  assert.ok(app.includes("import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js';"));
+  const crear = app.slice(app.indexOf('async crear(form) {'), app.indexOf('async restaurar(form) {'));
+  assert.ok(crear.includes('...(porLaApp ? {} : { epoca: EPOCA_DE_CUENTA_DATOS })'), 'la llamada de crear lleva la época, salvo emparejada con la app (su génesis lo firma la app: otro carril)');
+  assert.ok(crear.includes('const porLaApp = Boolean(guardian && emparejado.adaptador && guardian === emparejado.adaptador);'));
+  assert.deepEqual(EPOCA_DE_CUENTA_DATOS, epocaCuenta(), 'la copia importable es el contenido de cuenta-0.btml.json');
+  assert.ok(!readFileSync('datos/epocas/cuenta/cuenta-0.js', 'utf8').includes("type: 'json'"));
+  // Los libros de ejemplo, la restauración y los libros privados no pasan por esa llamada ni cambian.
+  assert.ok(!/epoca: EPOCA_DE_CUENTA_DATOS/.test(app.replace(crear, '')), 'solo crear');
+});
+
+test('arranque: crear la cuenta aterriza en el 9 de mi alta, con su camino a la vista y el aviso de la guía de inicio, con la época con que nace de verdad', async () => {
+  // Lo que la app hace al crear: foco en mi alta y, de los pesos de la época, el 9 abierto como tarjeta.
   const app = readFileSync('carta/app.js', 'utf8');
   assert.ok(app.includes('estado.foco = { X: r.cuenta.alta, pv: anversoDe(estado.eje) };'));
   assert.ok(app.includes('if (alEmpezar.pv !== null && alEmpezar.tamano !== null) estado.niveles[alEmpezar.pv] = alEmpezar.tamano;'));
-  // Un libro nuevo, como lo crea la app (cuentas.crearCuenta), con la época de cuenta puesta (hoy la app no la pasa: ver informe).
-  const r = await Q.crearCuenta({ nombre: 'Ana Prueba', idioma: 'es', htmlInicial: true, epoca: epocaCuenta() });
+  const r = await crearComoLaApp('Ana Prueba');
+  assert.equal(r.eje.epoca().id, JSON.parse(readFileSync('datos/epocas/cuenta/cuenta-0.ids.json', 'utf8')).epoca, 'el libro nace con la época de cuenta');
   const { alEmpezar } = contrato.pesos(r.eje);
   assert.deepEqual(alEmpezar, { pv: 9, tamano: NIVEL.tarjeta });
   const a = await arbol({ foco: { X: r.cuenta.alta, pv: contrato.sitios(r.eje).centros[0] }, niveles: { [alEmpezar.pv]: alEmpezar.tamano }, rosetones: {} }, r.eje, r.cuenta.identidad, { ancho: 400, alto: 800 });
@@ -63,4 +79,23 @@ test('arranque: crear la cuenta aterriza en el 9 de mi alta, con su camino a la 
   const pintado = html(a, { cuentas: [] });
   assert.ok(pintado.includes('class="camino"'), 'el camino a la vista');
   assert.ok(pintado.includes('tu cuenta está solo aquí: haz un respaldo o únete a un nodo'), 'con el aviso de la guía de inicio');
+  // El alta, como siempre: mi nombre en su 0 y mi clave declarada.
+  assert.equal(ceroDe(r.eje, r.cuenta.alta), 'Ana Prueba');
+});
+
+test('arranque: la cuenta nacida con la época de cuenta se guarda y se vuelve a abrir (la época viaja en el génesis), y se exporta y restaura en una copia', async () => {
+  const r = await crearComoLaApp('Berta Prueba');
+  const id = r.eje.epoca().id;
+  assert.ok(await Q.guardarCuenta(r), 'guardada');
+  const otra = await Q.abrirCuenta(r.cuenta.alta);
+  assert.ok(otra, 'se vuelve a abrir');
+  assert.equal(otra.eje.epoca().id, id, 'la época se relee del libro');
+  assert.equal(otra.eje.orden.length, r.eje.orden.length);
+  const archivo = await Q.exportarCuenta(r, 'una frase de prueba larga', { iteraciones: 1000 });
+  const copia = await Q.restaurarCuenta(JSON.parse(Q.textoDeArchivo(archivo)), 'una frase de prueba larga');
+  assert.equal(copia.eje.epoca().id, id, 'la copia lleva la época');
+  assert.equal(copia.cuenta.alta, r.cuenta.alta);
+  assert.equal(copia.eje.orden.length, r.eje.orden.length);
+  const aviso = (await arbol({ foco: { X: copia.cuenta.alta, pv: 0 }, niveles: { 9: NIVEL.tarjeta }, rosetones: {} }, copia.eje, copia.cuenta.identidad, { ancho: 400, alto: 800 })).camino.pasos[0];
+  assert.equal(aviso.regla, 'this account lives only here', 'el camino sigue con el aviso tras restaurar');
 });

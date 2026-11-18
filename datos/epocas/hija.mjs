@@ -20,6 +20,11 @@
 // Una hija NO viaja con el núcleo (#115): src/ no la importa. Se escribe en el libro del eje al nacer
 // (Eje.genesis({ epoca }) o node be.mjs epoca --publicar <carpeta>/<nombre>.btml.json).
 //
+// Una hija puede pedir además su COPIA IMPORTABLE (`importable: 'NOMBRE_DE_LA_CONSTANTE'`): <nombre>.js, un módulo que
+// exporta la época escrita ({ raiz, registros }, la forma de Eje.genesis({ epoca })) para el navegador, donde la carta no
+// puede leer JSON (en src/ y carta/ no hay `import … with { type: 'json' }`; el patrón de datos/provisional/*.js). Sale del
+// mismo generar y su contenido es el de <nombre>.btml.json: no cambia el id de la época. Sin la opción, no se escribe.
+//
 // Uso, desde el generar.mjs de cada hija: const g = generadorDeHija({ aqui, nombre: 'state-0' }) y, si se ejecuta,
 // g.principal(process.argv) ([--comprobar]: sin escribir, sale con 1 si los archivos no están al día). Una carpeta sin
 // reglas/ no lleva reglas propias. Con prestadas.json, lleva además plantillas (o reglas) y textos de otra hija, leídos de
@@ -45,12 +50,25 @@ const llave = (registro) => {
   return pv * 1000 + n;
 };
 
+/** La copia importable de una hija: un módulo con su época escrita ({ raiz, registros }), para el navegador. */
+function copiaImportable(g, constante, nombre) {
+  return [
+    `// Generado por datos/epocas/hija.mjs desde ${nombre}.raiz.json, reglas/, plantillas/ y textos/ de esta carpeta (época ${g.id}).`,
+    `// No se edita a mano: se cambia la fuente y se ejecuta el generar.mjs de esta carpeta. Es el contenido de ${nombre}.btml.json`,
+    '// (la época escrita que admite Eje.genesis({ epoca })), importable donde no se leen JSON (el navegador).',
+    '',
+    `export const ${constante} = ${JSON.stringify({ raiz: g.raiz, registros: g.registros }, null, 2)};`,
+    '',
+  ].join('\n');
+}
+
 /**
  * El generador de la hija de la carpeta `aqui` cuyos archivos se llaman `nombre` («state-0»: state-0.raiz.json,
  * state-0.btml.json, state-0.ids.json). → { ARCHIVO, ARCHIVO_IDS, generar, archivos, escrita, principal }.
  */
-export function generadorDeHija({ aqui, nombre }) {
+export function generadorDeHija({ aqui, nombre, importable = null }) {
   const ARCHIVO = join(aqui, nombre + '.btml.json');
+  const ARCHIVO_IMPORTABLE = importable ? join(aqui, nombre + '.js') : null;
   const ARCHIVO_IDS = join(aqui, nombre + '.ids.json');
 
   // Lo prestado de otra hija (prestadas.json, opcional): { plantillas: [rutas], textos: { es: [rutas], en: [rutas] } },
@@ -194,6 +212,7 @@ export function generadorDeHija({ aqui, nombre }) {
   /** Lo que se escribe: la época escrita ({ id, hereda, raiz, registros }: la forma de be.mjs epoca --publicar) y sus ids. */
   function archivos(g = generar()) {
     return {
+      ...(ARCHIVO_IMPORTABLE ? { [ARCHIVO_IMPORTABLE]: copiaImportable(g, importable, nombre) } : {}),
       [ARCHIVO]: JSON.stringify({ id: g.id, hereda: g.hereda, raiz: g.raiz, registros: g.registros }, null, 2) + '\n',
       [ARCHIVO_IDS]: JSON.stringify({ epoca: g.id, hereda: g.hereda, registrosAlPublicar: 2 + g.registros.length, reglas: g.reglas, plantillas: g.plantillas }, null, 2) + '\n',
     };
@@ -219,9 +238,9 @@ export function generadorDeHija({ aqui, nombre }) {
       process.exitCode = 1;
     } else {
       for (const [ruta, texto] of Object.entries(fuera)) writeFileSync(ruta, texto);
-      console.log(`\nTodo aceptado: escritos ${basename(ARCHIVO)} y ${basename(ARCHIVO_IDS)}`);
+      console.log(`\nTodo aceptado: escritos ${Object.keys(fuera).map((r) => basename(r)).join(", ")}`);
     }
   }
 
-  return { ARCHIVO, ARCHIVO_IDS, generar, archivos, escrita, principal };
+  return { ARCHIVO, ARCHIVO_IDS, ARCHIVO_IMPORTABLE, generar, archivos, escrita, principal };
 }

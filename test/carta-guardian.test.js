@@ -15,6 +15,8 @@ import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { aHex, deHex } from '../src/cripto.js';
 import { idNip98 } from '../src/pago.js';
 import * as Q from '../carta/cuentas.js';
+import { readFileSync } from 'node:fs';
+import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js';
 import * as S from '../carta/sincronia.js';
 import * as G from '../carta/guia.js';
 import { enviar, preferencias } from '../carta/carta.js';
@@ -429,4 +431,18 @@ test('el aviso de la sesión cerrada: con botón si se puede abrir, sin él (con
   assert.match(noAbrio, /El guardián no ha abierto la sesión\. Inténtalo dentro de un minuto\./);
   assert.doesNotMatch(htmlGuardian({ sesionCerrada: true, puedeAbrir: true, noAbrio: true, abriendo: true }), /no ha abierto/, 'mientras pide, la línea se quita');
   assert.equal(htmlGuardian({ sesionCerrada: false, noAbrio: true }), '', 'abierta, nada');
+});
+
+test('crear una cuenta en el guardián con la época del libro de cuenta (lo que pasa la app al crear): el guardián firma también lo que la época escribe en el génesis, y el libro se rehace exigiendo firmas', async () => {
+  await conAlmacen(async () => {
+    const g = guardianDePrueba();
+    const r = await Q.crearCuenta({ nombre: 'Víctor Gil', idioma: 'en', t: T1, guardian: g, htmlInicial: true, epoca: EPOCA_DE_CUENTA_DATOS });
+    assert.equal(r.eje.epoca().id, JSON.parse(readFileSync('datos/epocas/cuenta/cuenta-0.ids.json', 'utf8')).epoca, 'nace con la época de cuenta');
+    assert.deepEqual(g.llamadas.crear, ['Víctor Gil'], 'una sola cuenta pedida al guardián');
+    assert.deepEqual(g.llamadas.firmar.map((x) => x.id), r.eje.orden, 'cada registro lo firmó el guardián, en orden, también los de la época');
+    for (const id of r.eje.orden) assert.equal(await autoridad.verificar(r.eje.obtener(id), r.publica), true);
+    const conFirmas = await Eje.desde(persistencia.serializar(r.eje).eventos, { exigirFirmas: true });
+    assert.deepEqual(conFirmas.orden, r.eje.orden);
+    assert.equal(conFirmas.epoca().id, r.eje.epoca().id, 'la época se relee del libro');
+  });
 });

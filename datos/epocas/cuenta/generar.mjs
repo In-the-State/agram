@@ -18,10 +18,12 @@ import { dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { generadorDeHija } from '../hija.mjs';
 
-const hija = generadorDeHija({ aqui: dirname(fileURLToPath(import.meta.url)), nombre: 'cuenta-0' });
+// Con su copia importable (cuenta-0.js, EPOCA_DE_CUENTA_DATOS): la carta la importa para que «crear mi cuenta» nazca con ella.
+const hija = generadorDeHija({ aqui: dirname(fileURLToPath(import.meta.url)), nombre: 'cuenta-0', importable: 'EPOCA_DE_CUENTA_DATOS' });
 
 export const ARCHIVO = hija.ARCHIVO;
 export const ARCHIVO_IDS = hija.ARCHIVO_IDS;
+export const ARCHIVO_IMPORTABLE = hija.ARCHIVO_IMPORTABLE;
 
 /** La época del libro de cuenta, generada desde su fuente (sin escribir nada): { raiz, registros, id, hereda, reglas, plantillas, informe, fallos }. */
 export const generar = () => hija.generar();
