@@ -38,5 +38,45 @@
     [
       "what is missing: one row per movement that X still needs and per tally that does not pass, with who has to act and the action that does it"
     ]
+  ],
+  [
+    [
+      "path steps"
+    ],
+    [
+      "X.4.9",
+      "X.7.1",
+      "X.7.4",
+      "before.3",
+      "before.6.0",
+      "epoch.7.0.3.1",
+      "moves"
+    ],
+    [
+      "=(((first it.4).9 with ((((moves (first it.3)) where R in it2.0.0.0 and transfer in it2.4 and it2.0.0.1 = first it.3 and it2.3.1 = first it.3 and it2.3.0 != first it.3 group it2.6.5) each 0) where not first (first it2.7).4 and count (before.3 where first it3.6 = it) > 0) each (row((0 where 1 = 0), (0 where 1 = 0), \"attended\", row(first it.3, (0 where 1 = 0)), \"attend\", it2, (0 where 1 = 0)))) with ((first it.7).1 where count it2.7 > 0 and (first it2.7).0 <= (first before.6.0).0 + first epoch.7.0.3.1) each (row(it2.0, it2.1, \"expiry\", row(it2.0.0.1, (0 where 1 = 0)), \"expire something mine\", it, first it2.7, (0 where 1 = 0), row(\"series\", it2.0))))"
+    ],
+    [
+      "X.9.8"
+    ],
+    [
+      "read"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §6): lo que acciones.camino deducía en JavaScript de las reglas, como una lectura de la época que se materializa en X.9.8 (camino, frente a otros). Provisional hasta la pasada única por la época 0",
+      "Las filas de X.4.9 («what is missing») y, con la misma forma, dos clases más: (1) las peticiones de atención sin atender, si X es un alta: los registros que devuelven R de su dueño (first X.3) a su dueño, de otro, sin la lectura «attended» (su 7.4), con «attend» sobre la petición y el dueño como quien actúa; (2) las caducidades próximas: las series vivas del subárbol de X (X.7.1) que caducan antes de un día del calendario (epoch.7.0.3.1) después del reloj del libro (before.6.0, o el que fije quien lee), con «expire something mine» sobre X, su emisor como quien actúa, su caducidad en el 6 y, en el 8, los parámetros como pares nombre, valor: series y la serie",
+      "Lo que no entra todavía: el tutorial (el 9 del tipo, el de identidad y el de X) y las sugerencias, que siguen en acciones.camino"
+    ],
+    [
+      "epoch 0"
+    ],
+    [
+      "after what is missing"
+    ],
+    [
+      "path steps: what the rules ask on X, one row each, with who has to act and the action that does it"
+    ]
   ]
 ]

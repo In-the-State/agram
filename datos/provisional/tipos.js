@@ -162,5 +162,37 @@ export const TIPOS_PROVISIONALES_DATOS = [
     [
       "one of my books, other than this one"
     ]
+  ],
+  [
+    [
+      "cohort"
+    ],
+    [
+      "text"
+    ],
+    [
+      "=\"siblings\" in it or \"project\" in it or \"genesis\" in it"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §7): provisional hasta la pasada única por la época 0; las cohortes contra las que se compara un registro, las que lee contrato.cohortes() (antes, la validación del parámetro «cohort» de una acción por su nombre); en la pasada, ese parámetro nombra este tipo"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "the cohort X is compared with: siblings, project, genesis"
+    ]
   ]
 ];

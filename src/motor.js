@@ -19,11 +19,11 @@
 import { direccion, esReferencia, indicesDe } from './btml.js';
 import { ocupantes, vector, signo, caminosDe } from './encaje.js';
 import { evaluar as evaluarBqlm, leerRegla, Presupuesto, posicionDeLectura, aplanar, nombreDeRegla } from './bqlm.js';
-import { LECTURAS_PROVISIONALES } from './provisional.js';
+import { LECTURAS_PROVISIONALES, FINALES_PROVISIONALES } from './provisional.js';
 import { ocupantesElegibles } from './elegibles.js';
 import { escribirDesde } from './escritura.js';
 import { partirClave, raizDeAmbito, esAnunciado, claveToken, movimientosReales } from './tokens.js';
-import { contextoDeLectura, leerPosicion } from './contexto-eje.js';
+import { ContextoEje, contextoDeLectura, leerPosicion } from './contexto-eje.js';
 import { epocaDelEje } from './epocas.js';
 
 /**
@@ -235,6 +235,8 @@ export async function registrar(eje, datos, privada) {
 
 /** El contexto del BQL mínimo para leer el eje de ahora (sin candidata). */
 const contexto = (eje) => contextoDeLectura(eje);
+/** La primera hoja de un nodo de datos (bajando por los primeros elementos). */
+const primeraHoja = (x) => (Array.isArray(x) ? primeraHoja(x[0]) : x);
 
 /** Lo que dice la época en epoch.9.0.k (las plantillas): { nombre → fórmula } y el nombre por defecto. */
 function plantillas(k, eje) {
@@ -310,21 +312,20 @@ export function cerrado(eje, X) {
 }
 
 /**
- * Los finales de un proceso que no son «cumplido» (VG 12-11, #71.2; CONVERGENCIA de AARPIA §2.1): `fin` es el valor que
- * `cerrado` da, `plantilla` la de cerrado de la época (epoch.9.0.1) que lo lee y `accion` lo que dice en su 4 el registro
- * que lo escribe, anclado en el 4 del proceso (las plantillas de transacción «close with error», «expire» y, VG 14-11 #80, «close by decision»). El orden
- * es el de prioridad: con error gana a caducado; lo cumplido es lo que lee la plantilla del dueño, después de esos dos, y solo si no lo está, cuenta el cierre por decisión (que no deshace lo cumplido).
+ * Los finales de un proceso que no son «cumplido» (VG 12-11, #71.2; 14-11, #80; CONVERGENCIA de AARPIA §2.1), como DATO
+ * (Core AGRAM 18-11, NUCLEO_6_7_8 decisión 5): las filas de datos/provisional/finales.json (src/provisional.js), que irán a
+ * las filas de las plantillas de cerrado de la época (epoch.9.0.1.1) en su pasada única. Cada uno: `fin` el valor que da
+ * `cerrado`, `plantilla` la de cerrado que lo lee y `accion` lo que dice en su 4 el registro que lo escribe, anclado en el
+ * 4 del proceso. El orden es el de prioridad; los «before» se leen antes que la plantilla del dueño y los «after» solo si
+ * lo cumplido no lo cerró (el cierre por decisión no deshace lo cumplido). El núcleo no nombra ninguna de esas acciones.
  */
-export const FINES = Object.freeze([
-  Object.freeze({ fin: 'error', plantilla: 'closed with error', accion: 'close with error' }),
-  Object.freeze({ fin: 'caducado', plantilla: 'expired', accion: 'expire' }),
-  // El cuarto (VG 14-11, #80): un cierre bueno por decisión del dueño (retirar, archivar), ni cumplido, ni error, ni caducidad.
-  Object.freeze({ fin: 'decidido', plantilla: 'closed by decision', accion: 'close by decision' }),
-]);
+const FINALES = FINALES_PROVISIONALES.map((f) => ({ fin: primeraHoja(f[1]), plantilla: primeraHoja(f[0]), accion: primeraHoja(f[2]), despues: primeraHoja(f[3]) === 'after' }))
+  .filter((f) => typeof f.fin === 'string' && typeof f.plantilla === 'string' && typeof f.accion === 'string');
+export const FINES = Object.freeze(FINALES.map(({ despues: _despues, ...f }) => Object.freeze(f)));
 
-/** Los finales que `cerrado` lee antes que la plantilla del dueño (error y caducado) y el que lee después, solo si no está cumplido (decidido). */
-const FINES_ANTES = FINES.filter((f) => f.fin !== 'decidido');
-const FINES_DESPUES = FINES.filter((f) => f.fin === 'decidido');
+/** Los finales que `cerrado` lee antes que la plantilla del dueño y los que lee después, solo si no está cumplido. */
+const FINES_ANTES = FINES.filter((_, k) => !FINALES[k].despues);
+const FINES_DESPUES = FINES.filter((_, k) => FINALES[k].despues);
 
 /** Quien manda en `quien`: el autor de su alta (una persona, ella misma; una cosa, su dueño). */
 const principalDe = (eje, quien) => {
@@ -390,9 +391,12 @@ function movimientoDelPayload(registro) {
 /** Dónde materializa la época lo que falta (NUCLEO_6_7_8 §6): fábrica · cómo y el siguiente paso, al lado de X.4.8 («stage»). */
 export const LO_QUE_FALTA = 'X.4.9';
 
-/** La lectura que la época materializa en `donde`: la de la época del eje, si la tiene; si no, la provisional (src/provisional.js). */
-function lecturaEn(eje, donde) {
-  const lecturas = epocaDelEje(eje).lecturas ?? [];
+/** Dónde materializa la época lo que piden las reglas en el camino (NUCLEO_6_7_8 §6): camino, frente a otros. */
+export const PASOS_DE_LAS_REGLAS = 'X.9.8';
+
+/** La lectura que materializa `epoca` en `donde`: la suya, si la tiene; si no, la provisional (src/provisional.js) que no se llame como una suya. */
+function lecturaEn(epoca, donde) {
+  const lecturas = epoca.lecturas ?? [];
   const deLaEpoca = lecturas.find((r) => posicionDeLectura(r) === donde);
   const nombres = new Set(lecturas.map((r) => nombreDeRegla(r)));
   return deLaEpoca ?? LECTURAS_PROVISIONALES.find((r) => posicionDeLectura(r) === donde && !nombres.has(nombreDeRegla(r))) ?? null;
@@ -400,22 +404,32 @@ function lecturaEn(eje, donde) {
 
 const primera = (x) => (Array.isArray(x) ? x[0] : x) ?? null;
 
+/** Los parámetros de una fila (su 8: nombre, valor, nombre, valor…), como objeto sin prototipo heredable. */
+function parametrosDeFila(ocho) {
+  const r = Array.isArray(ocho?.[0]) ? ocho[0] : [];
+  const fuera = {};
+  for (let k = 0; k + 1 < r.length; k += 2) {
+    const n = primera(r[k]);
+    if (typeof n === 'string' && n !== '__proto__' && n !== 'constructor' && n !== 'prototype') fuera[n] = primera(r[k + 1]);
+  }
+  return fuera;
+}
+
 /**
- * Lo que falta en X, leído de la época (Core AGRAM 18-11; NUCLEO_6_7_8 §6): la lectura que se materializa en X.4.9
- * («what is missing»; hasta la pasada única por la época 0, la provisional), evaluada sobre X. No depende de quién mira.
- * → { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, sobre, para, hay }] }: una fila por
- * movimiento anunciado que aún no ha pasado y por recuento que no pasa (`sobre` = X). Con `memoria` (una MemoriaDeLectura
- * de src/bqlm.js) se lee como lectura de pantalla: lo ya calculado no se recalcula mientras el libro no cambie; `limites`,
- * los de bqlm.evaluar (para las pruebas). Si no se
- * resuelve (PENDIENTE, PENDIENTE POR LÍMITE o ERROR), ninguna fila y el motivo: nunca «no falta nada».
+ * Las filas de una lectura de la época con la forma de «what is missing» (Core AGRAM 18-11; NUCLEO_6_7_8 §6), evaluada
+ * sobre X: { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, sobre, para, hay,
+ * parametros }] }. `epoca` (por defecto la del eje), `ahora` (el reloj del libro que fija quien lee: before.6.0),
+ * `memoria` (una MemoriaDeLectura de src/bqlm.js: se lee como lectura de pantalla) y `limites` (los de bqlm.evaluar).
+ * Si no se resuelve (PENDIENTE, PENDIENTE POR LÍMITE o ERROR), ninguna fila y el motivo: nunca «no falta nada».
  */
-export function loQueFalta(eje, X, { memoria, limites } = {}) {
+export function filasEn(eje, X, donde, { memoria, limites, epoca, ahora } = {}) {
   const id = typeof X === 'string' ? X : X?.id;
   if (!eje.obtener(id)) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
-  const regla = lecturaEn(eje, LO_QUE_FALTA);
+  const laEpoca = epoca ?? epocaDelEje(eje);
+  const regla = lecturaEn(laEpoca, donde);
   const formula = Array.isArray(regla?.[2]) ? regla[2][regla[2].length - 1] : undefined;
-  if (typeof formula !== 'string') return { estado: 'ERROR', motivo: 'ninguna lectura de la época se materializa en ' + LO_QUE_FALTA, filas: [] };
-  const ctx = contexto(eje);
+  if (typeof formula !== 'string') return { estado: 'ERROR', motivo: 'ninguna lectura de la época se materializa en ' + donde, filas: [] };
+  const ctx = epoca || ahora ? new ContextoEje(eje, { epoch: laEpoca, ...(ahora ? { ahora } : {}) }) : contexto(eje);
   const r = evaluarBqlm(formula, ctx, { sujeto: id, ...(memoria ? { lectura: true, memoria } : {}), ...(limites ? { limites } : {}) });
   if (r.estado !== 'RESUELTO') return { estado: r.estado, ...(r.subtipo ? { subtipo: r.subtipo } : {}), motivo: r.motivo, filas: [] };
   const filas = aplanar(r.valor, ctx).filter(Array.isArray).map((f) => {
@@ -424,9 +438,28 @@ export function loQueFalta(eje, X, { memoria, limites } = {}) {
       serie: primera(f[0]), cantidad: primera(f[1]), porque: primera(f[2]),
       de: (Array.isArray(quien[0]) ? quien[0] : [quien[0]]).filter((x) => x !== undefined && x !== null),
       a: primera(quien[1]), accion: primera(f[4]), sobre: primera(f[5]), para: primera(f[6]), hay: primera(f[7]),
+      parametros: parametrosDeFila(f[8]),
     };
   });
   return { estado: 'RESUELTO', motivo: null, filas };
+}
+
+/**
+ * Lo que falta en X, leído de la época: la lectura que se materializa en X.4.9 («what is missing»; hasta la pasada única
+ * por la época 0, la provisional), con filasEn. Una fila por movimiento anunciado que aún no ha pasado y por recuento que
+ * no pasa (`sobre` = X); no depende de quién mira. Opciones: las de filasEn.
+ */
+export function loQueFalta(eje, X, opciones = {}) {
+  return filasEn(eje, X, LO_QUE_FALTA, opciones);
+}
+
+/**
+ * Lo que piden las reglas en el camino de X (X.9.8, «path steps»; provisional hasta la pasada única): las filas de X.4.9 y,
+ * con la misma forma, las peticiones de atención sin atender (si X es un alta) y las caducidades próximas. Opciones: las
+ * de filasEn (`ahora`, el reloj con que se miran las caducidades).
+ */
+export function pasosDeLasReglas(eje, X, opciones = {}) {
+  return filasEn(eje, X, PASOS_DE_LAS_REGLAS, opciones);
 }
 
 /**

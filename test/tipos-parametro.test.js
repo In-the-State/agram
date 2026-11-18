@@ -68,7 +68,7 @@ test('lo provisional: tipos como dato (JSON), congelados, que se resuelven y no 
   assert.ok(Object.isFrozen(TIPOS_PROVISIONALES) && Object.isFrozen(TIPOS_PROVISIONALES[0][0]));
   const deLa0 = new Set((EPOCA_0_BTML.registro[9][2][0][3] ?? []).map((x) => x[0][0]));
   const nombres = TIPOS_PROVISIONALES.map((x) => x[0][0]);
-  assert.deepEqual(nombres, ['an id', 'a positive number', 'a text', 'an identity with alta', 'another book']);
+  assert.deepEqual(nombres, ['an id', 'a positive number', 'a text', 'an identity with alta', 'another book', 'cohort']);
   for (const n of nombres) {
     assert.ok(!deLa0.has(n), '«' + n + '» ya está en la 0: quítalo de datos/provisional/');
     assert.ok(!Object.hasOwn(TIPOS_BASE, n));
@@ -222,4 +222,13 @@ test('esTipoSimple: un tipo declarado es simple si lo es su base', () => {
   assert.equal(contrato.esTipoSimple(['an id']), true);
   assert.equal(contrato.esTipoSimple(['a positive number']), true);
   assert.equal(contrato.esTipoSimple(['tenfold']), false);
+});
+
+test('cohortes() lee el tipo «cohort» (no el parámetro de una acción por su nombre), y hasta la pasada enumera lo mismo que «change cohort»', () => {
+  assert.deepEqual(contrato.cohortes().map((c) => [c.valor, c.alcance]), [['siblings', 'hermanos'], ['project', 'proyecto'], ['genesis', 'general']]);
+  const param = plantillaDeTransaccion('change cohort')[1].find((p) => Array.isArray(p) && p[0][0] === 'cohort');
+  assert.equal(resolverTipo(['cohort']).validaciones.at(-1).formula, param[2][param[2].length - 1], 'el tipo y el parámetro de la acción dicen lo mismo hasta la pasada única');
+  // Una época que endurece el tipo (solo hermanos y proyecto) cambia las cohortes que se leen.
+  const epoca = epocaConTipos([tipo('cohort', 'cohort', '="siblings" in it or "project" in it')]);
+  assert.deepEqual(contrato.cohortes({ epoca }).map((c) => c.valor), ['siblings', 'project']);
 });

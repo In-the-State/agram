@@ -155,7 +155,7 @@ test('lo que cuesta: con memoria, la primera vez menos y la segunda un paso', as
   }
 });
 
-test('siguiente y camino pasan opciones.memoria a loQueFalta: la segunda vez, X.4.9 sale de la memoria', async () => {
+test('siguiente y camino pasan opciones.memoria a la lectura: la segunda vez sale de la memoria', async () => {
   const { eje, reserva } = await ejemploReserva({ confirmar: false });
   const memoria = new MemoriaDeLectura();
   const antes = siguiente(eje, reserva.id, 'huesped');
@@ -163,7 +163,9 @@ test('siguiente y camino pasan opciones.memoria a loQueFalta: la segunda vez, X.
   const aciertos = memoria.aciertos;
   assert.deepEqual(siguiente(eje, reserva.id, 'casa', { memoria }).faltaDeMi.map((f) => f.plantilla), ['pay']);
   assert.ok(memoria.aciertos > aciertos, 'otra persona, la misma lectura: de la memoria');
-  const a = memoria.aciertos;
+  // camino lee X.9.8 con su reloj: la segunda vez, de la memoria.
   await camino(eje, reserva.id, 'recepcion', { memoria });
+  const a = memoria.aciertos;
+  await camino(eje, reserva.id, 'huesped', { memoria });
   assert.ok(memoria.aciertos > a, 'camino también');
 });

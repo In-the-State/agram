@@ -605,6 +605,14 @@ Lo medido, en ocupantes del presupuesto y pasos:
 Lo que queda:
 
 - **`transaccion` se queda en `siguiente`.** Los ejemplos y sus pruebas escriben con sus movimientos exactos. `plantilla` ya es la acción de la fila («pay»).
-- **X.9.8** (atención y caducidades) no está hecha: «attend» y «expire something mine» siguen en `camino`.
-- **Los finales como dato (decisión 5):** no están hechos, y `FINES` sigue en el motor.
-- **`camino` con otra época:** usa la época del eje para X.4.9, aunque se le pase otra en `opciones`.
+- **El tutorial y las sugerencias** siguen en `camino`, en JavaScript.
+
+**Después (Core AGRAM 18-11):**
+
+- **Lo provisional es una copia importable generada.** `datos/provisional/generar.mjs` escribe `tipos.js`, `lecturas.js` y `finales.js`. No hay módulos JSON en `src/`, y `test/provisional.test.js` comprueba que las copias están al día.
+- **La memoria:** `siguiente` y `camino` aceptan `memoria` y se la pasan a la lectura.
+- **`camino` lee X.9.8** («path steps»: las filas de X.4.9, las peticiones de atención y las caducidades próximas), con la época, el reloj `t` y la memoria que se le pasen. Las acciones salen de las filas, y sus parámetros también (el 8 de la fila: nombre, valor…). «attend» y «expire something mine» dejan de nombrarse.
+- **Los finales del proceso son dato:** `datos/provisional/finales.json` (plantilla de cerrado, fin, acción, antes o después). `motor.FINES` sale de ahí, y el motor no nombra «close with error», «expire» ni «close by decision». Dónde vive la causa de cada final (el 0 o el 2.1 del registro que lo escribe) sigue en `motor.finDe`.
+- **`cohortes()` lee el tipo provisional «cohort»,** no el parámetro de «change cohort». `cohorteEscrita` sigue buscando el registro por esa acción.
+- **La deuda de `nucleo-limpio`** pasa de 27 a 21 nombres.
+- **Pruebas:** `test/camino-reglas.test.js` y `test/provisional.test.js`.
