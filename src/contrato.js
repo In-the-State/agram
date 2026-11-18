@@ -4358,14 +4358,27 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, opcionesDelAparato
   }
   // (c) lo ya escrito en esa posición en los hermanos: lo propio de su payload y lo anclado ahí (por su legible).
   if (!camino) return [];
+  // Solo lo que cabe en el campo (Core AGRAM 19-11: «cantidad» ofrecía identidades): un número donde se pide un número y,
+  // en un parámetro, lo que pasa sus validaciones (las de su tipo y la suya), como en (0).
+  let pasa = (v) => t0 !== TIPO.numero || typeof v === 'number';
+  if (parametro) {
+    const delTipo = tipoDelParametro(parametro, o);
+    const validaciones = [...delTipo.validaciones, ...(typeof formula === 'string' && formula.startsWith('=') ? [{ de: 'parámetro', formula }] : [])];
+    const ctx = new ContextoEje(eje, { epoch: epoca, me: yo });
+    const porTipo = pasa;
+    pasa = (v) => porTipo(v) && valeElValor(validaciones, v, ctx).ok;
+  }
   const escritos = [];
   for (const h of hermanos) {
     for (const x of ocupantesDe(eje, h.id, camino, { orden: 'llegada', exacto: true })) {
       // El 0 de un hermano que escribió una acción se enseña recompuesto en el idioma (ceroParaLeer); el valor, lo escrito.
-      if (x.tipo === 'propio' && esTerminal(x.contenido)) escritos.push({ valor: x.contenido, texto: camino.length === 1 && camino[0] === 0 && x.contenido === ceroDe(eje, h.id, { epoca }) ? ceroParaLeer(eje, h.id, { epoca, idioma }) ?? leer(x.contenido, tipoDato) : leer(x.contenido, tipoDato) });
-      else if (x.tipo === 'escrito') {
-        const cero = leer({ ref: x.evento });
-        if (cero) escritos.push({ valor: cero, texto: cero });
+      if (x.tipo === 'propio' && esTerminal(x.contenido)) {
+        if (!pasa(x.contenido)) continue;
+        escritos.push({ valor: x.contenido, texto: camino.length === 1 && camino[0] === 0 && x.contenido === ceroDe(eje, h.id, { epoca }) ? ceroParaLeer(eje, h.id, { epoca, idioma }) ?? leer(x.contenido, tipoDato) : leer(x.contenido, tipoDato) });
+      } else if (x.tipo === 'escrito') {
+        // Lo anclado ahí: su 0 tal como está escrito es el valor; se enseña en el idioma.
+        const cero = ceroDe(eje, x.evento, { epoca });
+        if (cero && pasa(cero)) escritos.push({ valor: cero, texto: leer({ ref: x.evento }) || cero });
       }
     }
   }

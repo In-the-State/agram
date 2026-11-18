@@ -103,3 +103,13 @@ test('3. los «no» del eje: los fallos de la aritmética del libro tienen forma
   assert.equal(C.motivoEnLlano(eje, { texto: 'algo' }, ES), 'algo');
   assert.equal(C.rechazoEnLlano(eje, new Error('otro'), ES), 'otro');
 });
+
+test('2. en «dar R propia», «cantidad» no ofrece identidades: lo ya escrito en los hermanos solo si cabe en el campo', () => {
+  const { eje, foco } = compra;
+  const plantilla = A.plantillaDeTransaccion('give own R', { epoca: eje.epoca() });
+  const cantidad = A.parametros(plantilla, { ...ES, epoca: eje.epoca() }).find((x) => x.nombre === 'amount');
+  assert.deepEqual(C.opciones(eje, foco, null, { yo: 'casa', ...ES, parametro: { ...cantidad, en: '0000000000' } }), []);
+  // Lo que sí cabe se sigue ofreciendo: el criterio de cerrado, en el idioma.
+  const criterio = A.parametros(plantilla, { ...ES, epoca: eje.epoca() }).find((x) => x.nombre === 'criteria');
+  assert.ok(C.opciones(eje, foco, null, { yo: 'casa', ...ES, parametro: criterio }).length > 0);
+});
