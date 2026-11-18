@@ -1299,3 +1299,35 @@ html.mapped body{padding:0}
 .cadena-mas{flex:0 0 auto;align-self:center}
 .cadena-alternar{font-size:12px;padding:2px 8px;border:1px dashed var(--rule);border-radius:12px;background:var(--bg);color:var(--fg);cursor:pointer}
 .cadenas-vacio,.cadenas-descartadas,.forma-desconocida{margin:4px 0;font-size:12px;color:var(--muted)}
+
+/* La bandeja (A33; carta/bandeja-pantalla.js): la cuenta en el marco de la lente, siempre a la vista; la tira de lo
+   compuesto bajo la cabecera de acciones de donde se compuso; la marca en la ficha de la acción; el 4; y el pie del
+   formulario que va por la bandeja. */
+.bandeja-cuenta{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:15;min-height:40px;padding:6px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--bg);color:var(--fg);font-size:14px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+.bandeja-cuenta.no-entra{border-color:var(--warn);background:var(--warnbg);color:var(--warn)}
+.pv-acciones>button.pendiente,.pv-acciones-desplegadas>button.pendiente{border-style:dashed;border-color:var(--accent)}
+.pv-acciones>button.pendiente::after,.pv-acciones-desplegadas>button.pendiente::after{content:" •";color:var(--accent)}
+.bandeja-tira{flex-basis:100%;list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px;min-width:0}
+.bandeja-item{display:flex;flex-wrap:wrap;align-items:center;gap:4px 8px;padding:4px 8px;border:1px dashed var(--accent);border-radius:8px;background:var(--panel);font-size:13px;min-width:0;overflow-wrap:anywhere}
+.bandeja-item.no-entra{border-color:var(--warn)}
+.bandeja-item.puesta{border-style:dotted;opacity:.85}
+.bandeja-abrir{flex:1 1 auto;min-width:0;text-align:left;background:none;border:0;padding:0;color:inherit;font:inherit;cursor:pointer}
+.bandeja-quitar{min-height:30px;min-width:30px;padding:2px 8px;border:1px solid var(--rule);border-radius:999px;background:var(--bg);color:var(--fg)}
+.bandeja-entra{color:var(--ok);font-size:12px}
+.bandeja-no-entra{color:var(--warn);font-size:12px}
+.bandeja-cuesta,.bandeja-la-pone,.bandeja-en,.bandeja-aqui{color:var(--muted)}
+.bandeja-marca{margin-left:4px;padding:0 5px;border:1px dashed var(--accent);border-radius:999px;font-size:11px;color:var(--fg)}
+.bandeja-cuatro{margin:6px 0;padding:8px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
+.bandeja-cuatro h3{margin:0;font-size:15px}
+.bandeja-lista{margin:0;padding:0;list-style:none;display:grid;gap:4px}
+.bandeja-mueve{margin:2px 0 0;padding-left:16px;flex-basis:100%;font-size:12px}
+.bandeja-cuatro footer{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px}
+.bandeja-total{margin:0;font-weight:600}
+.bandeja-ejecutar{min-height:44px;padding:6px 16px;border:2px solid var(--accent);border-radius:8px;background:var(--accent);color:var(--accent-fg);font-weight:600}
+.bandeja-ejecutar.no-lanza{background:var(--panel2);color:var(--muted);border:1px dashed var(--muted);cursor:not-allowed}
+.bandeja-pie{display:flex;flex-direction:column;gap:6px;width:100%}
+.bandeja-estado{display:flex;flex-direction:column;gap:4px}
+.bandeja-estado h3{margin:0;font-size:14px}
+.bandeja-botones{display:flex;gap:8px}
+.formulario footer .bandeja-botones button{flex:1 1 0}
+.formulario footer .bandeja-botones .bandeja-quitar{background:var(--bg);color:var(--fg);border-color:var(--rule)}

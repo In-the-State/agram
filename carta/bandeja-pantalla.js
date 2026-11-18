@@ -1,0 +1,192 @@
+// La bandeja en pantalla (A33; agram-equipo/DISENO_BANDEJA_PV4.md, pasos 2 y 3): lo que se pinta de la bandeja
+// (carta/bandeja.js) en la lente, sin decidir nada. Dos mitades:
+//
+//   - vistaDeLaBandeja: de lo que dio la prueba en seco (bandeja.probar) a lo que se pinta, con los textos llanos que da
+//     la app (nombres de acciones, quién, cuánto): cada entrada con dónde se compuso, «entra» o su motivo y su resumen
+//     sacado SOLO del candidato (bandeja.resumenDe), y lo de la bandeja entera (cuántas, cuántas no entran, lo que cuesta).
+//   - los html*: la cuenta en el marco de la lente, la tira de pendientes bajo la cabecera de acciones de donde se compuso
+//     (y la marca en la ficha de la acción), la bandeja entera en el 4, y el estado de la entrada y los botones dentro del
+//     formulario (en la bandeja: «listo» y «quitar»; en el aro: el resumen y «ejecutar ahora»).
+//
+// Qué es dato, qué es código: lo compuesto es dato del dispositivo (el borrador); su resumen y estos sitios son lente, y
+// ningún libro los redefine: la bandeja es la salida de emergencia de la persona. Por eso el sitio del 4 es una constante
+// de la lente (PV_DE_LA_BANDEJA) y no sale de la época. Ninguna acción se nombra aquí: todo llega por su id.
+
+import { t } from './textos.js';
+
+/** El punto de vista donde se ejecuta la bandeja (VG 18-11: «ejecutar está en el 4»). De la lente, no de la época. */
+export const PV_DE_LA_BANDEJA = 4;
+
+const escapar = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+const corto = (id) => String(id ?? '').slice(0, 8);
+
+/** Una cantidad de T en segundos, por escalas, como se lee («1 h 11 min»). */
+export function textoDeT(segundos) {
+  const escalas = [['dia', 86400], ['hora', 3600], ['minuto', 60], ['segundo', 1]];
+  let resto = Math.max(0, Math.round(Number(segundos) || 0));
+  const partes = [];
+  for (const [escala, s] of escalas) {
+    const n = Math.floor(resto / s);
+    if (n > 0) { partes.push(t('tPieza_' + escala, { n })); resto -= n * s; }
+  }
+  return partes.length ? partes.join(' ') : t('tPieza_minuto', { n: 0 });
+}
+
+/** El motivo de un item en una línea llana: «falta por rellenar: …» o los mensajes (ya en llano) unidos. */
+function motivoDe(x, llano) {
+  if (x.entra) return null;
+  if (x.faltan) return t('bandejaFalta', { campos: x.faltan.join(', ') || '…' });
+  const ms = llano(x.motivos ?? []).map((m) => m?.mensaje ?? String(m)).filter(Boolean);
+  return ms.length ? ms.join(' · ') : t('bandejaNoEntra');
+}
+
+/**
+ * Lo que se pinta de la bandeja, desde lo que dio bandeja.probar (o probarAhora). `textos`: cómo dice la app las cosas
+ * en el idioma de quien mira ({ nombre(accion), registro(id), quien(identidad), cuanto({ serie, cantidad }), llano(motivos)
+ * }); sin ellos, los ids cortos. `extra`: { motivos, ocupado } (lo que dijo la última vez que se ejecutó). → null si no hay
+ * nada que pintar; si no, { total, noEntran, ok, items, cuesta, motivos, ocupado }. Cada item: { id, puesta, para, accion
+ * (su id), nombre, entra, motivo, donde: { X, pv }, resumen: { nace, sobre, movimientos: [texto], cuesta } }.
+ */
+export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
+  if (!probado || !Array.isArray(probado.items)) return null;
+  const nombre = textos.nombre ?? ((a) => String(a));
+  const registro = textos.registro ?? corto;
+  const quien = textos.quien ?? ((x) => String(x));
+  const cuanto = textos.cuanto ?? ((m) => `${m.cantidad} ${m.serie}`);
+  const llano = textos.llano ?? ((ms) => ms);
+  const porId = new Map(probado.items.filter((x) => x.id !== null).map((x) => [x.id, x]));
+  const items = probado.items.map((x) => {
+    // Lo que pone la bandeja se ve donde se compuso lo que lo necesita.
+    const entrada = x.entrada ?? porId.get(x.para)?.entrada ?? null;
+    const accion = x.puesta ? x.accion : entrada?.accion ?? x.accion;
+    const r = x.resumen;
+    const resumen = r ? {
+      nace: nombre(accion),
+      sobre: r.nace.sobre ? registro(r.nace.sobre) : null,
+      movimientos: r.movimientos.filter((m) => !(m.token === 'T' && m.a === null && m.de === r.nace.autor && !m.estado))
+        .map((m) => t('bandejaMueve', { cuanto: cuanto(m), de: m.de === null ? t('bandejaNadie') : quien(m.de), a: m.a === null ? t('bandejaNadie') : quien(m.a) })),
+      cuesta: r.cuesta.segundos,
+    } : null;
+    return {
+      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: nombre(accion), entra: Boolean(x.entra),
+      motivo: motivoDe(x, llano), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
+    };
+  });
+  const total = items.filter((x) => !x.puesta).length;
+  const motivos = [...llano(probado.motivos ?? []), ...(extra.motivos ?? [])].map((m) => m?.mensaje ?? String(m));
+  if (!total && !motivos.length) return null;
+  return {
+    total, noEntran: items.filter((x) => !x.entra).length, ok: Boolean(probado.ok) && items.length > 0, items,
+    cuesta: probado.cuesta?.segundos ?? items.reduce((s, x) => s + (x.resumen?.cuesta ?? 0), 0), motivos, ocupado: Boolean(extra.ocupado),
+  };
+}
+
+/** Lo compuesto en un sitio (registro X y punto de vista pv), con lo que la bandeja pone para ello. */
+export const delSitio = (v, X, pv) => (v?.items ?? []).filter((x) => x.donde.X === X && x.donde.pv === pv);
+
+/** El orden del 4 de X: primero lo compuesto sobre X (con lo que la bandeja pone para ello), después lo demás, cada parte en su orden. */
+export function ordenDelCuatro(v, X) {
+  const items = v?.items ?? [];
+  const aqui = (x) => x.donde.X === X;
+  return [...items.filter(aqui), ...items.filter((x) => !aqui(x))];
+}
+
+/** ¿Tiene la acción `accion` sobre X una entrada pendiente? (la marca en su ficha). */
+export const tienePendiente = (v, X, accion) => (v?.items ?? []).some((x) => !x.puesta && x.donde.X === X && x.accion === accion);
+
+// ---------- el html ----------
+
+const estadoDe = (x) => (x.entra
+  ? `<span class="bandeja-entra" data-entra>${escapar(t('bandejaEntra'))}</span>`
+  : `<span class="bandeja-no-entra" data-no-entra>${escapar(x.motivo ?? t('bandejaNoEntra'))}</span>`);
+
+/** El resumen de una entrada: qué nace (y sobre qué), qué mueve y lo que cuesta. */
+function htmlResumen(r, { largo = false } = {}) {
+  if (!r) return '';
+  const nace = r.sobre ? t('bandejaNace', { accion: r.nace, sobre: r.sobre }) : r.nace;
+  const mueve = r.movimientos.length ? (largo ? `<ul class="bandeja-mueve">${r.movimientos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : ` · ${escapar(r.movimientos.join(' · '))}`) : '';
+  const cuesta = `<small class="bandeja-cuesta">${escapar(t('bandejaCuesta', { t: textoDeT(r.cuesta) }))}</small>`;
+  return largo ? `<b class="bandeja-nace">${escapar(nace)}</b>${mueve} ${cuesta}` : `<span class="bandeja-nace">${escapar(nace)}</span>${mueve} ${cuesta}`;
+}
+
+/** La cuenta de la bandeja en el marco de la lente: siempre a la vista, distinta si alguna no entra; vacía, nada. Tocarla lleva al 4. */
+export function htmlCuentaDeLaBandeja(v) {
+  if (!v?.total) return '';
+  const texto = v.noEntran ? t('bandejaCuentaNoEntra', { n: v.total, k: v.noEntran }) : t('bandejaCuenta', { n: v.total });
+  return `<button type="button" class="bandeja-cuenta${v.noEntran ? ' no-entra' : ''}" data-nodo="control" data-bandeja-ir title="${escapar(t('bandejaCuentaTitulo'))}">${escapar(texto)}</button>`;
+}
+
+/**
+ * La tira de pendientes bajo la cabecera de acciones de un sitio (X, pv): cada entrada compuesta ahí con su nombre, su
+ * resumen corto y «entra» o su motivo; tocarla vuelve a abrir su formulario y su «×» la quita. Lo que pone la bandeja
+ * se ve, pero no se quita suelto.
+ */
+export function htmlTiraDeLaBandeja(v, X, pv) {
+  const lista = delSitio(v, X, pv);
+  if (!lista.length) return '';
+  const li = (x) => {
+    const cuerpo = `<span class="bandeja-nombre">${escapar(x.nombre)}</span> ${htmlResumen(x.resumen)} ${estadoDe(x)}`;
+    if (x.puesta) return `<li class="bandeja-item puesta${x.entra ? '' : ' no-entra'}" data-bandeja-puesta title="${escapar(t('bandejaPuestaTitulo'))}"><small class="bandeja-la-pone">${escapar(t('bandejaPuesta'))}</small> ${cuerpo}</li>`;
+    return `<li class="bandeja-item${x.entra ? '' : ' no-entra'}"><button type="button" class="bandeja-abrir" data-nodo="accion" data-bandeja-abrir="${escapar(x.id)}" title="${escapar(t('bandejaAbrirTitulo'))}">${cuerpo}</button><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
+  };
+  return `<ul class="bandeja-tira" data-bandeja-tira="${escapar(pv)}" data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTira'))}">${lista.map(li).join('')}</ul>`;
+}
+
+/** En un sitio comprimido (o una fila cerrada): solo cuántas hay compuestas ahí. */
+export function htmlMarcaDeLaBandeja(v, X, pv) {
+  const n = delSitio(v, X, pv).filter((x) => !x.puesta).length;
+  return n ? `<small class="bandeja-marca" data-bandeja-marca="${escapar(pv)}" title="${escapar(t('bandejaMarcaTitulo', { n }))}">${escapar(t('bandejaMarca', { n }))}</small>` : '';
+}
+
+/**
+ * El 4 (DISENO_BANDEJA_PV4, «El 4»): arriba, la bandeja entera del libro, primero lo compuesto sobre X. Cada entrada con
+ * su resumen, «entra» o su motivo y quitar (no lo que pone la bandeja). Abajo, el total y UN botón de ejecutar; si algo no
+ * entra o está a medias, el botón lo dice y no lanza.
+ */
+export function htmlBandejaDelCuatro(v, X) {
+  if (!v?.total) return '';
+  const li = (x) => `<li class="bandeja-item${x.puesta ? ' puesta' : ''}${x.entra ? '' : ' no-entra'}"${x.puesta ? ' data-bandeja-puesta' : ''}>`
+    + `${x.puesta ? `<small class="bandeja-la-pone" title="${escapar(t('bandejaPuestaTitulo'))}">${escapar(t('bandejaPuesta'))}</small> ` : ''}`
+    + `${htmlResumen(x.resumen, { largo: true }) || `<b class="bandeja-nace">${escapar(x.nombre)}</b>`} ${estadoDe(x)}`
+    + `${x.puesta ? '' : ` <button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}">${escapar(t('bandejaQuitar'))}</button>`}</li>`;
+  const lista = ordenDelCuatro(v, X);
+  const aqui = lista.filter((x) => x.donde.X === X).length;
+  const motivos = v.motivos.length ? `<ul class="motivos" role="alert">${v.motivos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '';
+  const boton = v.ok
+    ? `<button type="button" class="bandeja-ejecutar" data-nodo="accion" data-bandeja-ejecutar${v.ocupado ? ' disabled' : ''}>${escapar(t(v.ocupado ? 'bandejaEjecutando' : 'bandejaEjecutar', { n: v.items.length }))}</button>`
+    : `<button type="button" class="bandeja-ejecutar no-lanza" data-nodo="accion" data-bandeja-ejecutar data-no-lanza aria-disabled="true">${escapar(t('bandejaNoSeLanza', { n: v.noEntran }))}</button>`;
+  return `<section class="bandeja-cuatro" data-bandeja-cuatro data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTitulo'))}"><h3>${escapar(t('bandejaTitulo'))}</h3>`
+    + `${aqui && aqui < lista.length ? `<small class="bandeja-aqui">${escapar(t('bandejaPrimeroAqui', { n: aqui }))}</small>` : ''}`
+    + `<ol class="bandeja-lista">${lista.map(li).join('')}</ol>${motivos}`
+    + `<footer><p class="bandeja-total">${escapar(t('bandejaTotal', { t: textoDeT(v.cuesta) }))}</p>${boton}</footer></section>`;
+}
+
+/**
+ * El estado de la entrada dentro de su formulario (se repinta solo, sin tocar los campos: data-bandeja-estado). `e`:
+ * { modo: 'bandeja' | 'ahora', vista (la de vistaDeLaBandeja de esa sola entrada o del borrador), id (la entrada, o null
+ * si aún no se ha tocado nada) }.
+ */
+export function htmlEstadoDeLaEntrada(e) {
+  if (!e) return '<div class="bandeja-estado" data-bandeja-estado></div>';
+  if (e.probando && !e.vista) return `<div class="bandeja-estado" data-bandeja-estado><small>${escapar(t('bandejaProbando'))}</small></div>`;
+  if (e.modo === 'bandeja' && !e.id) return `<div class="bandeja-estado" data-bandeja-estado><small>${escapar(t('bandejaSinEntrada'))}</small></div>`;
+  const items = e.modo === 'ahora' ? e.vista?.items ?? [] : (e.vista?.items ?? []).filter((x) => x.id === e.id || x.para === e.id);
+  if (!items.length) return `<div class="bandeja-estado" data-bandeja-estado>${(e.vista?.motivos ?? []).map((m) => `<p class="bandeja-no-entra">${escapar(m)}</p>`).join('')}</div>`;
+  const li = (x) => `<li class="bandeja-item${x.puesta ? ' puesta' : ''}${x.entra ? '' : ' no-entra'}">${x.puesta ? `<small class="bandeja-la-pone">${escapar(t('bandejaPuesta'))}</small> ` : ''}${htmlResumen(x.resumen, { largo: e.modo === 'ahora' }) || `<b>${escapar(x.nombre)}</b>`} ${estadoDe(x)}</li>`;
+  const titulo = e.modo === 'ahora' ? `<h3>${escapar(t('ahoraResumen'))}</h3>` : `<small class="bandeja-en">${escapar(t('bandejaEnLaBandeja'))}</small>`;
+  const motivos = e.modo === 'ahora' && e.vista?.motivos?.length ? `<ul class="motivos" role="alert">${e.vista.motivos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '';
+  return `<div class="bandeja-estado" data-bandeja-estado role="status">${titulo}<ul class="bandeja-lista">${items.map(li).join('')}</ul>${motivos}</div>`;
+}
+
+/**
+ * El pie del formulario de una acción que va por la bandeja: el estado de su entrada y sus botones. En la bandeja (lanzada
+ * desde un punto de vista): «listo» (cierra) y «quitar» (si ya hay entrada); no hay botón que escriba. En el aro: un solo
+ * «ejecutar ahora» (submit), con el resumen encima.
+ */
+export function htmlPieDeLaBandeja(e) {
+  if (!e) return '';
+  const botones = e.modo === 'ahora'
+    ? `<button type="submit" class="ejecutar-ahora" data-ejecutar-ahora${e.ocupado ? ' disabled' : ''}>${escapar(t(e.ocupado ? 'bandejaEjecutando' : 'ahoraEjecutar'))}</button>`
+    : `<button type="button" class="bandeja-listo" data-nodo="control" data-bandeja-listo title="${escapar(t('bandejaListoTitulo'))}">${escapar(t('bandejaListo'))}</button>${e.id ? `<button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(e.id)}" title="${escapar(t('bandejaQuitarTitulo'))}">${escapar(t('bandejaQuitar'))}</button>` : ''}`;
+  return `<div class="bandeja-pie" data-bandeja-pie>${htmlEstadoDeLaEntrada(e)}<div class="bandeja-botones">${botones}</div></div>`;
+}
