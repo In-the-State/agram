@@ -1,0 +1,35 @@
+[
+  [
+    "my pairings"
+  ],
+  [
+    "under",
+    "down",
+    "close by decision"
+  ],
+  [
+    "=(under it) where \"a pairing\" in (payload(it2)).4 and first it2.3 = first it.3 and count ((down it2) where first it3.3 = first it.3 and (\"a pairing\" in (payload(it3)).4 or \"close by decision\" in (payload(it3)).4)) = 0"
+  ],
+  [
+    "X"
+  ],
+  [
+    "read"
+  ],
+  [
+    "*"
+  ],
+  [
+    "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): con it = mi alta: mis emparejamientos vigentes (sin uno más nuevo mío encima ni revocados con «close by decision»). Lo vigente no mira «valid until»: es un dato que la lente enseña",
+    "Lectura, no condición: no se materializa (su 3 es X) y no rechaza nada"
+  ],
+  [
+    "account book epoch 0"
+  ],
+  [
+    "after my pending invitations"
+  ],
+  [
+    "my pairings: the pairings of the owner of this alta that are in force"
+  ]
+]

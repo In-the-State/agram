@@ -1,0 +1,69 @@
+{
+  "epoca": "8f3c81dafe504c5700702408000b824175e013c209e20f128c008ce47c06fd0e",
+  "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
+  "registrosAlPublicar": 10,
+  "reglas": [
+    {
+      "nombre": "my books",
+      "archivo": "my-books.json",
+      "id": "abf1293d9c3a1559bad2173ddad5e07f09ecd31aeeb640a4f2e95e6efa370949"
+    },
+    {
+      "nombre": "my pairings",
+      "archivo": "my-pairings.json",
+      "id": "324ffef3ce8dbdbccc1b4fa23e87b43c79b328719734df97d4298749f604e5e1"
+    },
+    {
+      "nombre": "my pending invitations",
+      "archivo": "my-pending-invitations.json",
+      "id": "dec026fc960bb502c9111aa9c8f586ba307a91ac6888724f7147898d60ad327c"
+    }
+  ],
+  "plantillas": [
+    {
+      "nombre": "a book of mine",
+      "archivo": "a-book-of-mine.json",
+      "id": "f4028793990c17c37f7de71853054f35d529e4450177b7e1de0b5d8a300130bc",
+      "ocho": [
+        1,
+        40
+      ]
+    },
+    {
+      "nombre": "a zone of the face",
+      "archivo": "../guia-libro/plantillas/a-zone-of-the-face.json",
+      "id": "d7f3518d473a533ca49d9063bf8c509de3d96232c0f19ee67ea1283c34007ac8",
+      "ocho": [
+        2,
+        13
+      ]
+    },
+    {
+      "nombre": "an invitation received",
+      "archivo": "an-invitation-received.json",
+      "id": "aa3249a7a2829443fb60559cd9b8895565917c535f60f606c30c9f9154fd972d",
+      "ocho": [
+        3,
+        40
+      ]
+    },
+    {
+      "nombre": "a pairing",
+      "archivo": "a-pairing.json",
+      "id": "ef833b9466671de157ca1d182542c9c2f67206f44e186463eb58610569d93668",
+      "ocho": [
+        3,
+        41
+      ]
+    },
+    {
+      "nombre": "a step of the guide",
+      "archivo": "../guia-libro/plantillas/a-step-of-the-guide.json",
+      "id": "752d85f335d005c10ff133e1c97549998073b6a1d41fab56051eb07e75f28c1c",
+      "ocho": [
+        4,
+        29
+      ]
+    }
+  ]
+}

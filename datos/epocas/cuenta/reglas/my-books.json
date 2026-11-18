@@ -1,0 +1,35 @@
+[
+  [
+    "my books"
+  ],
+  [
+    "under",
+    "down",
+    "close by decision"
+  ],
+  [
+    "=(under it) where \"a book of mine\" in (payload(it2)).4 and first it2.3 = first it.3 and count ((down it2) where first it3.3 = first it.3 and (\"a book of mine\" in (payload(it3)).4 or \"close by decision\" in (payload(it3)).4)) = 0"
+  ],
+  [
+    "X"
+  ],
+  [
+    "read"
+  ],
+  [
+    "*"
+  ],
+  [
+    "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): con it = mi alta: mis libros vigentes, los «a book of mine» que escribí bajo mi alta sin uno más nuevo mío encima ni un «close by decision» mío (cambiar es escribir la nueva sobre la vieja; olvidar, cerrarla por decisión). Por llegada al libro",
+    "Lectura, no condición: no se materializa (su 3 es X) y no rechaza nada"
+  ],
+  [
+    "account book epoch 0"
+  ],
+  [
+    "after a reserve is spent as it says"
+  ],
+  [
+    "my books: the books of the owner of this alta that are in force"
+  ]
+]

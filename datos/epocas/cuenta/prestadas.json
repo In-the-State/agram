@@ -1,0 +1,14 @@
+{
+  "plantillas": [
+    "../guia-libro/plantillas/a-step-of-the-guide.json",
+    "../guia-libro/plantillas/a-zone-of-the-face.json"
+  ],
+  "textos": {
+    "es": [
+      "../guia-libro/textos/es.json"
+    ],
+    "en": [
+      "../guia-libro/textos/en.json"
+    ]
+  }
+}

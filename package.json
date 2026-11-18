@@ -13,7 +13,8 @@
     "epocas": "node datos/epocas/generar.mjs",
     "epoca:state": "node datos/epocas/state/generar.mjs",
     "epoca:guia-libro": "node datos/epocas/guia-libro/generar.mjs",
-    "epoca:roadmap": "node datos/epocas/roadmap/generar.mjs"
+    "epoca:roadmap": "node datos/epocas/roadmap/generar.mjs",
+    "epoca:cuenta": "node datos/epocas/cuenta/generar.mjs"
   },
   "license": "UNLICENSED"
 }

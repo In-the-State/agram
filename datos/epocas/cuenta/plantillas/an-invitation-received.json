@@ -1,0 +1,302 @@
+[
+  [
+    "an invitation received"
+  ],
+  [
+    [
+      [
+        "name"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "required"
+      ],
+      [
+        1
+      ],
+      [
+        "=first ((payload(it)).0 where \"an invitation received\" in (payload(it)).4 and first it.3 = me)",
+        "the name of the book I am invited to"
+      ]
+    ],
+    [
+      [
+        "invitation"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "required"
+      ],
+      [
+        2
+      ],
+      [
+        "=first ((payload(it)).1.0 where \"an invitation received\" in (payload(it)).4 and first it.3 = me)",
+        "the invitation in that book: its id (64 hexadecimal characters in lower case), a datum"
+      ]
+    ],
+    [
+      [
+        "note"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        3
+      ],
+      [
+        "=first ((payload(it)).2.1 where \"an invitation received\" in (payload(it)).4 and first it.3 = me)",
+        "a note (optional). Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ],
+    [
+      [
+        "criteria"
+      ],
+      [
+        "text"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "required"
+      ],
+      [
+        4
+      ],
+      [
+        "=first epoch.9.0.1.2",
+        "the closing template, as in any anchored record"
+      ]
+    ],
+    [
+      [
+        "who"
+      ],
+      [
+        "identity"
+      ],
+      [
+        "=it = me"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "required"
+      ],
+      [
+        5
+      ],
+      [
+        "=me",
+        "who writes it: the owner of this alta"
+      ]
+    ],
+    [
+      [
+        "actions"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"an invitation received\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "required"
+      ],
+      [
+        6
+      ],
+      [
+        "an invitation received",
+        "the action that wrote it"
+      ]
+    ],
+    [
+      [
+        "book"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it and it != first before.5"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "required"
+      ],
+      [
+        7
+      ],
+      [
+        "=first ((payload(it)).5.0 where \"an invitation received\" in (payload(it)).4 and first it.3 = me)",
+        "the book: the id of its genesis (64 hexadecimal characters in lower case), a datum"
+      ]
+    ],
+    [
+      [
+        "invited by"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.1"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «an invitation received»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        8
+      ],
+      [
+        "=first ((payload(it)).5.1 where \"an invitation received\" in (payload(it)).4 and first it.3 = me)",
+        "who invites: their public key (64 hexadecimal characters, x-only), a datum (optional). Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ]
+  ],
+  [
+    "=first it.5 = first me.6 or \"an invitation received\" in (payload(it)).4 and first it.3 = me"
+  ],
+  [
+    [
+      "me"
+    ],
+    [
+      "person"
+    ]
+  ],
+  [
+    "write"
+  ],
+  [
+    "3"
+  ],
+  [
+    "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): una invitación recibida, en el 3 de mi alta (con quién). Aceptada no se guarda: lo está cuando hay un «a book of mine» mío con el mismo 5.0 (la lectura «my pending invitations»). Solo el dueño de la alta, sobre ella, en modo persona; su 4 es «write». Cambiar: la nueva sobre la vieja; manda la última. Retirar (rechazarla): «close by decision» de la 0",
+    "La décupla (manda sobre el diseño): 0 el nombre del libro; 1.0 la invitación en ese libro (el diseño la quería opcional: un hueco delante del 2; es obligatoria, la invitación siempre tiene id en su libro); 2.0 el criterio de cierre y 2.1 una nota (opcional); 3 quién; 4 «an invitation received»; 5.0 el libro (su génesis) y 5.1 quién invita (su clave pública; opcional, al final). Nunca un secreto"
+  ],
+  [
+    "account book epoch 0"
+  ],
+  [
+    3,
+    40
+  ],
+  [
+    "an invitation received: {me} is invited to {first memo.0}"
+  ]
+]

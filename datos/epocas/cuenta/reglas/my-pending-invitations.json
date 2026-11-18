@@ -1,0 +1,35 @@
+[
+  [
+    "my pending invitations"
+  ],
+  [
+    "under",
+    "down",
+    "close by decision"
+  ],
+  [
+    "=((under it) where \"an invitation received\" in (payload(it2)).4 and first it2.3 = first it.3 and count ((down it2) where first it3.3 = first it.3 and (\"an invitation received\" in (payload(it3)).4 or \"close by decision\" in (payload(it3)).4)) = 0) where count (((under it) where \"a book of mine\" in (payload(it3)).4 and first it3.3 = first it.3 and count ((down it3) where first it4.3 = first it.3 and (\"a book of mine\" in (payload(it4)).4 or \"close by decision\" in (payload(it4)).4)) = 0) where first (payload(it3)).5.0 = first (payload(it2)).5.0) = 0"
+  ],
+  [
+    "X"
+  ],
+  [
+    "read"
+  ],
+  [
+    "*"
+  ],
+  [
+    "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): con it = mi alta: mis invitaciones vigentes que aún no he aceptado: sin un libro mío vigente con el mismo 5.0 (aceptada no se guarda: lo está cuando lo hay)",
+    "Lectura, no condición: no se materializa (su 3 es X) y no rechaza nada"
+  ],
+  [
+    "account book epoch 0"
+  ],
+  [
+    "after my books"
+  ],
+  [
+    "my pending invitations: the invitations received by the owner of this alta that are in force and not accepted yet"
+  ]
+]
