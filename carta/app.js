@@ -25,7 +25,7 @@
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
 import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
-import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida } from './dom.js';
+import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida, filtrarDiccionarioEnPantalla, coincidenciaEnPantalla } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
 import { t, idiomaDeInterfaz, usarRetoques } from './textos.js';
@@ -1456,8 +1456,11 @@ const manejadores = {
     const input = raiz.querySelector('.aro [data-nuevo][data-campo]');
     if (input) input.focus();
   },
-  /** Mantener el centro del aro: editarlo (el input con su valor, la lista del 0 debajo y la del 5 encima); el foco, en el input. */
-  async editarAro() {
+  /**
+   * Mantener el centro del aro: editarlo (el input con su valor, la lista del 0 debajo y la del 5 encima); el foco, en el
+   * input. Con `texto` (teclear con el aro abierto: gestos.js), el input empieza con eso escrito y las listas ya filtradas.
+   */
+  async editarAro({ texto } = {}) {
     if (!estado.aro) return;
     estado.aro = { ...estado.aro, pv: null, editar: true };
     tocar(estado.aro.X, 'aro editar');
@@ -1470,7 +1473,30 @@ const manejadores = {
       if (sobra > 0) lista.style.maxHeight = Math.max(60, r.height - sobra) + 'px';
     }
     const input = raiz.querySelector('.aro [data-campo]');
-    if (input) { input.focus(); input.select?.(); }
+    if (!input) return;
+    input.focus();
+    if (typeof texto === 'string' && texto) {
+      input.value = texto;
+      input.setSelectionRange?.(texto.length, texto.length);
+      filtrarDiccionarioEnPantalla(raiz, texto);
+    } else input.select?.();
+  },
+  /** Escribir en el centro del aro: el diccionario (valores y acciones) se filtra con cada letra, en la pantalla, sin repintar. */
+  filtrarAro(texto) {
+    filtrarDiccionarioEnPantalla(raiz, texto);
+  },
+  /**
+   * Enter en el centro del aro (VG 18-11): si lo escrito coincide entero (sin mayúsculas ni acentos) con una entrada del
+   * diccionario, se elige esa: un valor se escribe (opcion) y una acción se lanza (lanzar, su formulario de siempre).
+   * Devuelve si eligió algo; si no, lo escrito se crea como valor nuevo, como siempre (el change del input: campo).
+   */
+  enterAro(input) {
+    const b = coincidenciaEnPantalla(raiz, input?.value ?? '');
+    if (!b) return false;
+    const X = b.dataset.x ?? estado.aro?.X;
+    if (b.dataset.lanzar !== undefined) manejadores.lanzar(X, b.dataset.lanzar, null);
+    else manejadores.opcion(X, Number(b.dataset.opcion), b.dataset.valor);
+    return true;
   },
   /** Un clic en el centro del aro: cerrarlo y entrar en el elemento (su anverso). */
   aroEntrar(X) {
