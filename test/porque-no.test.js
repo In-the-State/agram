@@ -17,6 +17,7 @@ import { generar, SALIDA } from '../datos/provisional/textos/generar.mjs';
 import { ejemploReserva } from '../ejemplos/ikisai/reserva-booking.mjs';
 import { epocaRoadmap } from '../datos/epocas/roadmap/generar.mjs';
 import { guardarRetoque } from '../carta/carta.js';
+import { clavesDelIdioma } from '../docs/sin-traducir.mjs';
 
 const ES = { idioma: 'es' };
 const T = '2026-11-09T10:00:00Z';
@@ -35,10 +36,15 @@ test('las frases «why …» y el glosario: un dato provisional al día, en los 
   assert.deepEqual(claves('es'), claves('en'), 'las mismas claves en los dos');
   assert.ok(claves('es').filter((k) => k.startsWith('why ')).length >= 12);
   assert.ok(claves('es').filter((k) => k.startsWith('position ')).length >= 25);
+  const de0 = new Set([...clavesDelIdioma('es'), ...clavesDelIdioma('en')]);
   for (const k of claves('es')) {
     // Hoy la 0 no las tiene: se leen de lo provisional. Cuando las tenga, mandará la 0 (fraseDelPorque la mira antes).
-    assert.equal(C.texto(null, k, 'es'), null, k + ' ya está en la época 0: lo provisional iría detrás');
+    assert.ok(!de0.has(k), k + ' ya está en la época 0: lo provisional iría detrás');
     assert.equal(typeof C.fraseDelPorque(k, 'es'), 'string');
+    // contrato.texto lee lo provisional detrás de la época (los textos de las plantillas provisionales), salvo las frases
+    // del porqué y el glosario: esas solo fraseDelPorque, para que un libro no las retoque (decisión 10).
+    if (/^(why|position) /.test(k)) assert.equal(C.texto(null, k, 'es'), null, k);
+    else assert.equal(C.texto(null, k, 'es'), C.fraseDelPorque(k, 'es'), k);
   }
   assert.equal(C.fraseDelPorque('why compare >', 'fr'), C.fraseDelPorque('why compare >', 'en'), 'un idioma sin ellas, el canónico');
 });

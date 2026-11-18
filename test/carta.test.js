@@ -767,11 +767,11 @@ test('#22: mantener sobre un hueco vacío abre el aro con un input nuevo (crea e
   const dos = b.aro.huecos.find((x) => x.pv === 2);
   const nombres = [dos.accion, ...dos.otras].map((x) => A.plantillaDeTransaccion(x.id)?.[0][0]);
   // Detrás solo queda el sí del dueño («let P come down here», VG 17-11): el elemento es de quien lo acaba de escribir.
-  assert.deepEqual(nombres.slice(-3), ['attach a file', 'attach art to this element', 'let P come down here']); // + «attach art to this element» (encargo «arte propio»)
+  assert.deepEqual(nombres.slice(-4), ['attach a file', 'attach art to this element', 'let P come down here', 'a zone of the face']); // + «a zone of the face» (provisional, VG 18-11: irá a la 0) // + «attach art to this element» (encargo «arte propio»)
   assert.notEqual(nombres[0], 'attach a file');
   assert.match(html(b), /data-lanzar="[0-9a-f]{64}" data-x="[0-9a-f]{64}">attach a file/);
   // El formulario de la acción dice qué parámetros salen del archivo (la app abre el selector en vez del formulario).
-  const f = formulario(eje, nuevo.id, dos.otras.at(-2).id, 'huesped', {}, { idioma: 'en' });
+  const f = formulario(eje, nuevo.id, dos.otras.find((x) => A.plantillaDeTransaccion(x.id)?.[0][0] === 'attach art to this element').id, 'huesped', {}, { idioma: 'en' });
   assert.deepEqual(f.campos.filter((c) => c.archivo).map((c) => [c.nombre, c.archivo]), [['file', 'ref'], ['format', 'format']]);
 });
 

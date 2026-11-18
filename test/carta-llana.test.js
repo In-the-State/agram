@@ -359,7 +359,10 @@ test('#87 donde no hay nada que crear el aro no se abre: ni el árbol lo pinta n
   const { eje, compra } = await ejemploCompra();
   // En el 9, desde «padres y copias» (A19, 16-11), quien escribió el registro puede configurar quién lo guarda: eso sí se crea ahí.
   assert.deepEqual(creableEn(eje, compra.id, [9], 'huesped', ES).map((x) => x.nombre), ['añadir un padre', 'decir de quién es', 'decidir cómo se guarda aquí', 'abrir aquí un libro privado']);
-  for (const pv of [0, 5, 6, 9]) {
+  // En el 0, poner nombre (VG 18-11, «name it», provisional: irá a la 0): ancla en el 0 de lo que escribí.
+  assert.deepEqual(creableEn(eje, compra.id, [0], 'huesped', ES).map((x) => x.nombre), ['poner nombre']);
+  assert.deepEqual(creableEn(eje, compra.id, [0], 'cocina', ES), [], 'en el 0 de lo ajeno no hay nada que crear');
+  for (const pv of [5, 6, 9]) {
     if (pv === 9) {
       // Lo ajeno: nada de padres ni copias; solo lo que se ofrece a quien puede escribir sobre el elemento, el libro privado (17-11).
       assert.deepEqual(creableEn(eje, compra.id, [pv], 'cocina', ES).map((x) => x.nombre), ['abrir aquí un libro privado'], 'en el 9 de lo ajeno solo se ofrece el libro privado');

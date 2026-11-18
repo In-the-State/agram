@@ -616,7 +616,8 @@ function resumenDeEpoca(e, eje = null) {
     eje ? (eje.registrosDeLaEpoca.length ? 'escrita en el libro del eje: ' + eje.registrosDeLaEpoca.length + ' registros tras el génesis' : 'no está escrita en el libro: el génesis la referencia (' + corto(eje.obtener(eje.genesisId).contexto?.epoca) + ') y la trae el código') : null,
     propias !== null ? 'registros propios: ' + propias : null,
     'reglas (condiciones): ' + e.condiciones.length + ' · lecturas: ' + e.lecturas.length + ' · escrituras: ' + e.escrituras.length,
-    'plantillas de transacción (9.6): ' + e.transacciones.length,
+    // Las del 9.6; las provisionales (src/provisional.js: irán a la 0 en su pasada única) se cuentan aparte.
+    'plantillas de transacción (9.6): ' + e.transacciones.filter((t) => !t.provisional).length + ' · provisionales: ' + e.transacciones.filter((t) => t.provisional).length,
     'estaciones del anuncio (4.3): ' + filas(r?.[4]?.[3]).map((f) => f[0][0]).join(', '),
     'formas por mundo (8.7): ' + filas(r?.[8]?.[7]?.[1]).map((f) => f[0][0] + ' ' + (Array.isArray(f[4]) ? f[4][Array.isArray(f[3]) ? f[3].indexOf('mapped form') : 1] : '?')).join(' · '),
   ].filter((x) => x !== null);

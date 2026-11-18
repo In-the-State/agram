@@ -55,7 +55,9 @@ test('la época se genera desde su fuente, al día con ella y con el id de la 0;
   assert.deepEqual(g.reglas.map((r) => r.nombre), ['my books', 'my pairings', 'my pending invitations', AVISO]);
   const e = cargarEpocaEscrita(epocaCuenta());
   assert.equal(e.id, g.id);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 5);
+  // Las suyas (las provisionales, VG 18-11, no cuentan: la zona y el paso de la época les ganan por nombre).
+  const propias = (x) => x.transacciones.filter((t) => !t.provisional);
+  assert.equal(propias(e).length, propias(EPOCA_0_BTML).length + 5);
   for (const carpeta of ['src', 'carta']) {
     const fuentes = readdirSync(carpeta).filter((f) => f.endsWith('.js')).map((f) => readFileSync(join(carpeta, f), 'utf8'));
     for (const n of [LIBRO, INVITACION, EMPAREJAMIENTO, 'my books', 'my pending invitations', 'my pairings', AVISO]) assert.ok(!fuentes.some((s) => s.includes(`'${n}'`) || s.includes(`"${n}"`)), `${carpeta}/ no conoce «${n}» por su nombre`);

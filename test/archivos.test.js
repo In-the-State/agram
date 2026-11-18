@@ -155,7 +155,7 @@ test('«attach a file» (PV2, no preferente): escribe una representación rica a
   assert.ok(adjuntar, 'en el sitio 2 del elemento');
   assert.equal(adjuntar.porDefecto, false, 'no preferente');
   // Detrás solo queda el sí del dueño («let P come down here», VG 17-11): el elemento es de quien lo acaba de escribir.
-  assert.deepEqual(lista.slice(-3).map((a) => a.nombre), ['attach a file', 'attach art to this element', 'let P come down here'], 'al final de la lista (con «attach art to this element» detrás, encargo «arte propio»)');
+  assert.deepEqual(lista.slice(-4).map((a) => a.nombre), ['attach a file', 'attach art to this element', 'let P come down here', 'a zone of the face'], 'al final de la lista (con «attach art to this element» detrás, encargo «arte propio»; y la zona, provisional, VG 18-11)');
   const pide = A.parametros(adjuntar.plantilla).filter((p) => A.archivoDe(p)).map((p) => [p.nombre, A.archivoDe(p)]);
   assert.deepEqual(pide, [['file', 'ref'], ['format', 'format']]);
   const ref = modelos.referenciaDeArchivo(sha(HTML));

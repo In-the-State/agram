@@ -182,7 +182,8 @@ const comoTexto = (x) => (x === undefined ? 'nada' : typeof x === 'string' ? '«
 /** Los ids de los registros de la época que se llaman `nombre`: reglas y lecturas del 2 y plantillas del 9.6, ordenados. */
 function idsDe(epoca, nombre) {
   const reglas = (epoca?.reglasConId ?? []).filter((x) => nombreDeRegla(x.regla) === nombre).map((x) => x.id);
-  const plantillas = (Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).filter((x) => primera(x.plantilla?.[0]) === nombre).map((x) => x.id);
+  // Solo las suyas: las provisionales (src/provisional.js) no son de la época (no están en su 9.6).
+  const plantillas = (Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).filter((x) => !x.provisional && primera(x.plantilla?.[0]) === nombre).map((x) => x.id);
   return [...reglas, ...plantillas].sort();
 }
 

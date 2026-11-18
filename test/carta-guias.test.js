@@ -15,6 +15,8 @@ import { arbol } from '../carta/carta.js';
 import { html, htmlCamino, htmlFicha } from '../carta/dom.js';
 
 const ZONA = 'a zone of the face';
+/** Una acción que no hay en el libro de trabajo (la zona ya no vale: VG 18-11, es provisional en todo libro, irá a la 0). */
+const AJENA = 'something of another book';
 const PASO = 'a step of the guide';
 const T = '2026-11-17T10:00:00Z';
 const NO_ESTA = 'ab'.repeat(32);
@@ -44,7 +46,7 @@ async function dosLibros() {
   const destino = await hacer(g, 'anchor here', g.genesisId, { title: 'Un destino' });
   const p1 = await hacer(g, PASO, guia.id, { title: 'Anota aquí', action: 'anchor here', parameters: ['title: mi nota'], why: 'el primero', record: destino.id });
   const p2 = await hacer(g, PASO, guia.id, { title: 'Un hito', action: 'anchor here', parameters: ['title: hito'], why: 'en el trabajo', book: w.genesisId });
-  const p3 = await hacer(g, PASO, guia.id, { title: 'Imposible', action: ZONA, why: 'allí no existe', book: w.genesisId });
+  const p3 = await hacer(g, PASO, guia.id, { title: 'Imposible', action: AJENA, why: 'allí no existe', book: w.genesisId });
   const p4 = await hacer(g, PASO, guia.id, { title: 'Lejos', action: 'anchor here', why: 'en otro sitio', book: NO_ESTA });
   const z1 = await hacer(g, ZONA, guia.id, { label: 'Destino & <b>', x: 50, y: 50, width: 300, height: 100, record: destino.id });
   const z2 = await hacer(g, ZONA, guia.id, { label: 'Empieza', x: 50, y: 400, width: 300, height: 100, record: p1.id });
@@ -125,7 +127,7 @@ test('la tercera fuente del 9: en el libro de trabajo salen los pasos de mi guí
   assert.deepEqual(s.map((x) => x.id), [p2.id, p3.id]);
   assert.equal(s[0].guia, 'Primeros pasos');
   assert.equal(s[0].hecho, false);
-  assert.match(s[1].invalida, /a zone of the face/);
+  assert.match(s[1].invalida, /something of another book/);
   assert.equal(vistos.get(p2.id), 'G', 'la carta sabe a qué libro de guía volver');
   const pasos = async () => (await A.camino(w, alta, 'lectora', { sugerencias: hook, t: T })).pasos.filter((p) => p.guia);
   const [antes, invalido] = await pasos();
@@ -173,7 +175,7 @@ test('el camino de la guía en su libro: cada paso con su estado en su libro; el
   const estado = async () => estadoDeLosPasos(g, guia.id, { entradas, libros, actual: { alta: 'G', eje: g }, yoDe: (e) => e.identidad, decir });
   const e = await estado();
   assert.deepEqual(e.map((x) => [x.titulo, x.estado, x.libro]), [['Anota aquí', 'pendiente', null], ['Un hito', 'pendiente', 'El trabajo'], ['Imposible', 'invalido', 'El trabajo'], ['Lejos', 'noEsta', null]]);
-  assert.equal(e[2].motivo, 'guiaPasoSinAccion:' + ZONA);
+  assert.equal(e[2].motivo, 'guiaPasoSinAccion:' + AJENA);
   await hacer(g, 'anchor here', destino.id, { title: 'mi nota' });
   await hacer(w, 'anchor here', w.alta('lectora').id, { title: 'hito' }, 'lectora');
   almacen.set('eje.W', JSON.stringify(serializar(w)));
