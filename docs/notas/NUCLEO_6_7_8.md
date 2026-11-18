@@ -674,3 +674,29 @@ Cambios que se notan:
 **4. La cohorte elegida es dato.** La lectura provisional «chosen cohort» en X.8.5 (frente a otros · dónde encaja) da una fila: 0 la cohorte y 1 el registro que la dice. Ese registro es el último del dueño de X anclado en su 8 que dice «change cohort» en su 4, y ese nombre está en la fórmula, no en el núcleo. `contrato.cohorteEscrita` lee `(first it.8).5`. «change cohort» sale de `contrato.js`, y la deuda de `nucleo-limpio` baja a 20 nombres.
 
 **5. Dónde vive el dato de cada final es dato.** Las filas de `datos/provisional/finales.json` llevan en su 4 qué dato da el registro que escribe ese final y en qué posición: `["causa", "0"]` para el cerrado con error y el cerrado por decisión, `["plazo", "2.1"]` para el caducado. La procedencia pasa al 5. `motor.finDe` lee esa columna; `cerrado` devuelve `causa` y `plazo` como siempre (null el que no toca) y `siguiente` da el que diga la fila.
+
+**6. El tutorial y las sugerencias de `camino`: diagnóstico (no se cambian).**
+
+*El tutorial* (fuente «tutorial») es la lista de nombres que hay en el 9 de tres sitios, juntos y en este orden:
+
+1. el tipo de X (el tipo que X nombra en su 5, entre los de `epoch.9.2`);
+2. si X es mi alta y su tipo no trae camino propio, la plantilla de identidad (`epoch.3.0.9`);
+3. el payload de X.
+
+Cada nombre que es una acción da un paso mío. Está «hecho» si hay un registro mío, o de una cosa mía, donde esa acción escribe (`hechoEnSuAncla`, con su 5 y sus huecos). Cada nombre que es una regla da un paso que no se lanza. Para una de ellas, `camino` sabe por su nombre qué mirar: «a key is declared at its alta» es si el autor del alta tiene clave. Es el único nombre de regla que queda en `camino`; la guarda solo cuenta acciones y no lo ve.
+
+- **¿Podría ser filas de X.9.8?** La mitad sí.
+  - Qué nombres pide el camino y en qué orden no depende de quién mira. Con `with` y `FILAS(epoch.9.2)` se escribe ya: se busca el tipo por el nombre de su 5. Lo que el §15.2 daba por pendiente hoy se resuelve con el rodeo de las filas.
+  - Lo que depende de quién mira, «hecho por mí o por una cosa mía», no puede ir en una lectura sin `me`. Se quedaría en `camino`, como la comprobación de que la acción se me ofrece: genérico, sobre el 4.1 de la fila.
+  - La regla «a key is declared at its alta» pasaría a ser lo que hay en la fila (su 7: si el alta declara la clave, `count (first it.5) > 1`), sin nombre en el código.
+- **Recomendación:** una quinta clase de filas de X.9.8, «tutorial». El 4 sería la acción y dónde se lanza, el 5 X y el 7 lo que hay para las reglas. `camino` calcularía «hecho» igual para toda fila que tenga acción.
+
+*Las sugerencias* (fuente «sugerencia») no salen del libro que se mira. Son un gancho que pasa quien llama (`opciones.sugerencias`), y hoy tienen dos orígenes:
+
+- **la guía de mi libro de cuenta:** `guia-libro.sugerenciasDeGuia(ejeGuia, ejeAbierto, X, yo)`, que lee los pasos de guía de OTRO libro;
+- **un agente de fuera.**
+
+Cada sugerencia pasa por las mismas reglas: `transaccion` en seco, y `invalida` si no se entiende.
+
+- **¿Podría ser filas de X.9.8?** No. Una lectura del libro abierto no ve el libro de la guía (cruza libros), y un agente de fuera no es dato del libro. Son el borde: el aparato las junta.
+- **Recomendación:** que sigan siendo un gancho, con la forma de una fila (`{ accion, lanzar, parametros, texto, porque }`). Así `camino` las pasaría por el mismo bucle que las filas, con la comprobación en seco que ya llevan. La lectura de los pasos de una guía sí podría ser una lectura del libro de la guía; ese es otro carril, el de la guía.
