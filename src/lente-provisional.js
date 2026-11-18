@@ -7,12 +7,17 @@
 //                        rango } (cada una, su nombre o null)
 //   antesDe(accion)      las acciones que van antes de `accion` (nombre): [] si nada
 //   despuesDe(accion)    las acciones que van después de `accion` (nombre), sobre lo que escribió: [] si nada
+//   lecturaDeLaLente(nombre)  una lectura con nombre que la lente lee y la época aún no tiene (la décupla, molde de una
+//                        regla: su 2 la fórmula), o null (datos/provisional/lecturas-de-la-lente.json)
+//   datosDelSiDelDueno() lo que la lente necesita para el sí del dueño: { accion, lectura (la fórmula) }, o nulls
 //   nivelesDeLosHitos()  los diez niveles nivel.grado de los hitos, en su orden (datos/provisional/hitos.json)
 //   nombreDelHito(nivel, idioma)  el nombre de un hito en un idioma (si no lo hay, en inglés, el canónico); sin idioma, en
 //                        español, como hasta hoy (supuesto: la pasada única decide si el canónico sin idioma pasa a ser el inglés)
 
 import { AJUSTES_PROVISIONALES, ANTES_Y_DESPUES_PROVISIONALES } from './provisional.js';
 import { HITOS_PROVISIONALES_DATOS } from '../datos/provisional/hitos.js';
+import { LECTURAS_DE_LA_LENTE_PROVISIONALES_DATOS } from '../datos/provisional/lecturas-de-la-lente.js';
+import { SI_DEL_DUENO_PROVISIONAL_DATOS } from '../datos/provisional/si-del-dueno.js';
 
 const hoja = (x) => (Array.isArray(x) ? x[0] : x);
 const texto = (x) => (typeof hoja(x) === 'string' ? hoja(x) : null);
@@ -68,3 +73,21 @@ export function nombreDelHito(nivel, idioma = SIN_IDIOMA) {
   }
   return null;
 }
+
+// ---------- las lecturas de la lente y el sí del dueño ----------
+
+const LECTURAS = (Array.isArray(LECTURAS_DE_LA_LENTE_PROVISIONALES_DATOS) ? LECTURAS_DE_LA_LENTE_PROVISIONALES_DATOS : []).filter(Array.isArray);
+
+/** Una lectura con nombre que la lente lee (la décupla, con el molde de una regla de la época), o null. */
+export const lecturaDeLaLente = (nombre) => LECTURAS.find((r) => texto(r?.[0]) === nombre) ?? null;
+
+/** La fórmula de una lectura (lo último de su 2), o null. */
+const formulaDe = (r) => (Array.isArray(r?.[2]) && typeof r[2][r[2].length - 1] === 'string' ? r[2][r[2].length - 1] : null);
+
+const SI = (() => {
+  const d = (Array.isArray(SI_DEL_DUENO_PROVISIONAL_DATOS) ? SI_DEL_DUENO_PROVISIONAL_DATOS : []).find((x) => texto(x?.[0]) === "owner's yes") ?? [];
+  return Object.freeze({ accion: texto(d[1]), lectura: formulaDe(lecturaDeLaLente(texto(d[2]))) });
+})();
+
+/** El sí del dueño (CH1): la acción con que se da o se retira y la fórmula de la lectura que dice quién lo tiene (it = la cosa). */
+export const datosDelSiDelDueno = () => SI;

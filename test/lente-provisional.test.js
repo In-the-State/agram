@@ -57,3 +57,16 @@ test('la carta en inglés dice los hitos en inglés (el cielo del 8 y el camino 
     assert.ok(es.includes('aprendizaje profesional') && !es.includes('professional learning'), 'en español, el ' + pv);
   }
 });
+
+test("el sí del dueño: la acción y la lectura con nombre «who has the owner's yes» son dato, y la lectura tiene el molde de una regla de lectura", async () => {
+  const { nombreDeRegla } = await import('../src/bqlm.js');
+  const d = C.datosDelSiDelDueno();
+  assert.ok(nombresDePlantillas().has(d.accion), 'la acción es de una época');
+  const r = C.lecturaDeLaLente("who has the owner's yes");
+  assert.ok(r, 'la lectura, por su nombre');
+  assert.equal(d.lectura, r[2][0]);
+  assert.ok(d.lectura.startsWith('=') && d.lectura.includes('"' + d.accion + '"'), 'la acción va en la fórmula, no en la lente');
+  assert.equal(nombreDeRegla(r), "who has the owner's yes");
+  assert.equal(r[4][0], 'read');
+  assert.equal(C.lecturaDeLaLente('no existe'), null);
+});
