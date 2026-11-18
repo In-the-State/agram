@@ -672,3 +672,5 @@ Cambios que se notan:
 - **Lo anunciado que una persona ya movió entero** deja de salir como paso suyo.
 
 **4. La cohorte elegida es dato.** La lectura provisional «chosen cohort» en X.8.5 (frente a otros · dónde encaja) da una fila: 0 la cohorte y 1 el registro que la dice. Ese registro es el último del dueño de X anclado en su 8 que dice «change cohort» en su 4, y ese nombre está en la fórmula, no en el núcleo. `contrato.cohorteEscrita` lee `(first it.8).5`. «change cohort» sale de `contrato.js`, y la deuda de `nucleo-limpio` baja a 20 nombres.
+
+**5. Dónde vive el dato de cada final es dato.** Las filas de `datos/provisional/finales.json` llevan en su 4 qué dato da el registro que escribe ese final y en qué posición: `["causa", "0"]` para el cerrado con error y el cerrado por decisión, `["plazo", "2.1"]` para el caducado. La procedencia pasa al 5. `motor.finDe` lee esa columna; `cerrado` devuelve `causa` y `plazo` como siempre (null el que no toca) y `siguiente` da el que diga la fila.

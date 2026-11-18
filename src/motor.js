@@ -235,6 +235,16 @@ export async function registrar(eje, datos, privada) {
 
 /** El contexto del BQL mínimo para leer el eje de ahora (sin candidata). */
 const contexto = (eje) => contextoDeLectura(eje);
+/** El dato que da el registro que escribe un final: { nombre, camino } (el 4 de su fila: [nombre, «0» o «2.1»…]), o null. */
+function datoDelFinal(cuatro) {
+  const [nombre, posicion] = Array.isArray(cuatro) ? cuatro.map((x) => primeraHoja(x)) : [];
+  if (typeof nombre !== 'string' || typeof posicion !== 'string' || !/^\d(\.\d)*$/.test(posicion)) return null;
+  return Object.freeze({ nombre, camino: Object.freeze(posicion.split('.').map(Number)) });
+}
+
+/** Los datos que un final puede dar (los nombres de las filas de finales), con null: la forma de lo que devuelve cerrado. */
+const datosDeLosFinales = () => Object.fromEntries(FINALES.filter((f) => f.dato).map((f) => [f.dato.nombre, null]));
+
 /** La primera hoja de un nodo de datos (bajando por los primeros elementos). */
 const primeraHoja = (x) => (Array.isArray(x) ? primeraHoja(x[0]) : x);
 
@@ -299,14 +309,14 @@ export function cerrado(eje, X) {
   const { porNombre, defecto } = plantillas(1, eje);
   // Los otros dos finales (VG 12-11, #71.2): cerrado con error y caducado, antes que la plantilla del dueño.
   const otro = finDe(eje, id, porNombre, FINES_ANTES);
-  if (otro) return { cerrado: true, plantilla: otro.plantilla, estado: 'RESUELTO', motivo: null, fin: otro.fin, causa: otro.causa, plazo: otro.plazo, registro: otro.registro };
+  if (otro) return { cerrado: true, plantilla: otro.plantilla, estado: 'RESUELTO', motivo: null, fin: otro.fin, ...otro.datos, registro: otro.registro };
   const nombre = delCriterio(eje, id, 7).filter((x) => porNombre.has(x)).pop();
   const plantilla = nombre ?? defecto;
   const r = leer(eje, porNombre.get(plantilla), id);
   const cumplido = r.estado === 'RESUELTO' && r.valor[0] === true;
   // El cierre por decisión (VG 14-11, #80) no deshace lo cumplido: solo cierra lo que aún no lo estaba.
   const decidido = cumplido ? null : finDe(eje, id, porNombre, FINES_DESPUES);
-  if (decidido) return { cerrado: true, plantilla: decidido.plantilla, estado: 'RESUELTO', motivo: null, fin: decidido.fin, causa: decidido.causa, plazo: decidido.plazo, registro: decidido.registro };
+  if (decidido) return { cerrado: true, plantilla: decidido.plantilla, estado: 'RESUELTO', motivo: null, fin: decidido.fin, ...decidido.datos, registro: decidido.registro };
   if (r.estado !== 'RESUELTO') return { cerrado: null, plantilla, estado: r.estado, motivo: r.motivo, fin: null };
   return { cerrado: cumplido, plantilla, estado: 'RESUELTO', motivo: null, fin: cumplido ? 'cumplido' : null };
 }
@@ -317,11 +327,13 @@ export function cerrado(eje, X) {
  * las filas de las plantillas de cerrado de la época (epoch.9.0.1.1) en su pasada única. Cada uno: `fin` el valor que da
  * `cerrado`, `plantilla` la de cerrado que lo lee y `accion` lo que dice en su 4 el registro que lo escribe, anclado en el
  * 4 del proceso. El orden es el de prioridad; los «before» se leen antes que la plantilla del dueño y los «after» solo si
- * lo cumplido no lo cerró (el cierre por decisión no deshace lo cumplido). El núcleo no nombra ninguna de esas acciones.
+ * lo cumplido no lo cerró (el cierre por decisión no deshace lo cumplido). El 4 de cada fila dice qué dato da el registro que
+ * lo escribe y dónde ([nombre, posición]: la causa en su 0, el plazo vencido en su 2.1). El núcleo no nombra ninguna de
+ * esas acciones ni sabe dónde vive cada dato.
  */
-const FINALES = FINALES_PROVISIONALES.map((f) => ({ fin: primeraHoja(f[1]), plantilla: primeraHoja(f[0]), accion: primeraHoja(f[2]), despues: primeraHoja(f[3]) === 'after' }))
+const FINALES = FINALES_PROVISIONALES.map((f) => ({ fin: primeraHoja(f[1]), plantilla: primeraHoja(f[0]), accion: primeraHoja(f[2]), despues: primeraHoja(f[3]) === 'after', dato: datoDelFinal(f[4]) }))
   .filter((f) => typeof f.fin === 'string' && typeof f.plantilla === 'string' && typeof f.accion === 'string');
-export const FINES = Object.freeze(FINALES.map(({ despues: _despues, ...f }) => Object.freeze(f)));
+export const FINES = Object.freeze(FINALES.map(({ despues: _despues, dato: _dato, ...f }) => Object.freeze(f)));
 
 /** Los finales que `cerrado` lee antes que la plantilla del dueño y los que lee después, solo si no está cumplido. */
 const FINES_ANTES = FINES.filter((_, k) => !FINALES[k].despues);
@@ -336,7 +348,7 @@ const principalDe = (eje, quien) => {
 /**
  * ¿Terminó X con error o caducado? La plantilla de cerrado de la época (epoch.9.0.1: «closed with error», «expired»)
  * lee si hay un registro de cierre del dueño de X (o de una cosa suya) anclado en su 4; y este recoge ese registro, su
- * causa (el 0 del de error) y el plazo vencido (el 2.1 del de caducado). null si no.
+ * dato (el que dice su fila de finales: la causa del de error, el plazo vencido del de caducado), en `datos`. null si no.
  */
 function finDe(eje, id, porNombre, fines = FINES) {
   const dueno = eje.obtener(id).autor;
@@ -347,7 +359,11 @@ function finDe(eje, id, porNombre, fines = FINES) {
     if (r.estado !== 'RESUELTO' || r.valor[0] !== true) continue;
     const registro = eje.sobre(id, FABRICA).find((e) => [e.payload?.[4]].flat(Infinity).includes(f.accion) && principalDe(eje, e.autor) === dueno);
     const hoja = (x) => [x].flat(Infinity)[0];
-    return { ...f, registro: registro?.id ?? null, causa: f.fin === 'error' || f.fin === 'decidido' ? hoja(registro?.payload?.[0]) ?? null : null, plazo: f.fin === 'caducado' ? hoja(registro?.payload?.[2]?.[1]) ?? null : null };
+    // El dato que da el registro de ese final (su fila de finales: la causa, el plazo vencido…), en su sitio; los demás, null.
+    const final = FINALES.find((x) => x.fin === f.fin);
+    const datos = datosDeLosFinales();
+    if (final?.dato) datos[final.dato.nombre] = hoja(final.dato.camino.reduce((n, d) => (Array.isArray(n) ? n[d] : undefined), registro?.payload)) ?? null;
+    return { ...f, registro: registro?.id ?? null, datos };
   }
   return null;
 }
@@ -492,7 +508,8 @@ export function siguiente(eje, X, yo, { memoria } = {}) {
   if (!reg) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
   // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) deja de pedir pasos: no falta nada de nadie.
   const cierre = cerrado(eje, id);
-  if (FINES.some((f) => f.fin === cierre.fin)) return { cerrado: true, fin: cierre.fin, ...(cierre.fin === 'caducado' ? { plazo: cierre.plazo } : { causa: cierre.causa }), faltaDeMi: [], espera: [] };
+  const final = FINALES.find((f) => f.fin === cierre.fin);
+  if (final) return { cerrado: true, fin: cierre.fin, ...(final.dato ? { [final.dato.nombre]: cierre[final.dato.nombre] } : {}), faltaDeMi: [], espera: [] };
   const faltaDeMi = [];
   const espera = [];
   // Lo que falta lo dice la lectura de la época en X.4.9 («what is missing», Core AGRAM 18-11; NUCLEO_6_7_8 §6): una fila

@@ -78,6 +78,8 @@ test('los finales del proceso son dato: FINES sale de datos/provisional/finales.
     { fin: 'decidido', plantilla: 'closed by decision', accion: 'close by decision' },
   ]);
   assert.deepEqual(FINES.map((f) => f.accion), FINALES_PROVISIONALES.map((f) => f[2][0]));
+  assert.deepEqual(FINALES_PROVISIONALES.map((f) => f[4]), [['causa', '0'], ['plazo', '2.1'], ['causa', '0']], 'dónde vive el dato de cada final: su 4');
+  assert.ok(!readFileSync('src/motor.js', 'utf8').includes('payload?.[2]?.[1]'), 'el motor no sabe dónde vive el plazo');
   const motor = readFileSync('src/motor.js', 'utf8');
   for (const f of FINES) assert.ok(!motor.includes("'" + f.accion + "'"), 'src/motor.js nombra «' + f.accion + '»');
   // Y siguen funcionando: cerrar por decisión deja el proceso en «decidido».
