@@ -34,7 +34,7 @@ const ARCHIVOS = readdirSync(CARTA).filter((f) => f.endsWith('.js') && f !== 'te
 const NOMBRES_DE_HOY = {
   'app.js': ['move to group', 'register a thing', 'second factor'],
   'carta.js': ['message in', 'message in from an agent', 'message out'],
-  'reglas.js': ['add a parent', 'let P come down here', 'remove a parent', 'set a custody default', 'set a group price', 'set a minimum', 'set a minimum rank', 'set the kind of owner'],
+  'reglas.js': ['let P come down here'],
 };
 
 /**

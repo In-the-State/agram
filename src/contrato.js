@@ -4276,3 +4276,5 @@ export { gestos, validarGesto, DESTINO_GESTO } from './gestos.js';
 export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ENTREGADA_DESBLOQUEA, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)
 // Los sitios y los pesos de la pantalla (docs/notas/SITIOS_Y_PESOS.md): dónde va cada PV y cuánto se enseña, leídos de la época y del archivo de la lente.
 export { sitios, pesos } from './sitios.js';
+// Lo que la lente necesita saber de unas acciones y aún es provisional: las de «Ajustes de este elemento» y lo que va antes y después (src/lente-provisional.js).
+export { accionesDeAjuste, antesDe, despuesDe } from './lente-provisional.js';
