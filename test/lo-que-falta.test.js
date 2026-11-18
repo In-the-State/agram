@@ -169,3 +169,24 @@ test('siguiente y camino pasan opciones.memoria a la lectura: la segunda vez sal
   await camino(eje, reserva.id, 'huesped', { memoria });
   assert.ok(memoria.aciertos > a, 'camino también');
 });
+
+test('X.4.9 por dentro de X.9.8: paga del mismo presupuesto (el coste que se informa es el de verdad) y usa la misma memoria', async () => {
+  const { pasosDeLasReglas } = await import('../src/motor.js');
+  const { eje, reserva } = await ejemploReserva({ confirmar: false });
+  const coste = (f, o = {}) => {
+    const presupuesto = new Presupuesto(1e6, 1e7);
+    const r = f(eje, reserva.id, { presupuesto, ...o });
+    assert.equal(r.estado, 'RESUELTO');
+    return presupuesto.usados;
+  };
+  const sola = coste(loQueFalta);
+  const dentro = coste(pasosDeLasReglas);
+  assert.ok(sola > 2000, 'X.4.9 cuenta también la lectura «stage» que lee por dentro: ' + sola);
+  assert.ok(dentro > sola, 'X.9.8 cuenta X.4.9 por dentro: ' + dentro + ' > ' + sola);
+  const memoria = new MemoriaDeLectura();
+  coste(loQueFalta, { memoria });
+  const conMemoria = coste(pasosDeLasReglas, { memoria });
+  assert.ok(conMemoria < dentro - sola + 200, 'lo de X.4.9 sale de la memoria: ' + conMemoria);
+  // Y el valor es el mismo con y sin memoria.
+  assert.deepEqual(pasosDeLasReglas(eje, reserva.id, { memoria }).filas, pasosDeLasReglas(eje, reserva.id).filas);
+});

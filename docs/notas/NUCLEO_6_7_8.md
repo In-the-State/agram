@@ -616,3 +616,28 @@ Lo que queda:
 - **`cohortes()` lee el tipo provisional «cohort»,** no el parámetro de «change cohort». `cohorteEscrita` sigue buscando el registro por esa acción.
 - **La deuda de `nucleo-limpio`** pasa de 27 a 21 nombres.
 - **Pruebas:** `test/camino-reglas.test.js` y `test/provisional.test.js`.
+
+## Tercera tanda (Core AGRAM 18-11)
+
+**1. El texto de una petición de atención.** Si el payload de la petición es un texto, `camino` ya no enseña su primer carácter: enseña el texto entero, y si es una décupla, su 0.
+
+**2. Lo que cuesta una lectura de pantalla, de verdad.** `motor.filasEn` lee en un contexto de pantalla (`new ContextoEje(eje, { pantalla: { memoria } })`). Así, las lecturas de la época que encuentra por dentro (X.4.9 dentro de X.9.8, «stage» dentro de X.4.9) pagan del mismo presupuesto y usan la misma memoria. Antes, cada una iba con un presupuesto propio que no se contaba y nunca pasaba por la memoria.
+
+- **Las reglas no cambian:** solo un contexto creado para una pantalla lee así, y una regla nunca lo crea.
+- **Una lectura con `keep`** (que en una regla no vale) se sigue leyendo como en una regla.
+- **La memoria se comparte:** un registro de dentro se nombra por su id, y X.4.9 leída sola o por dentro de X.9.8 es la misma entrada de la memoria.
+
+Lo que cuesta ahora, en ocupantes del presupuesto (pasos entre paréntesis), con `ahora` = 2026-11-20T18:00:00Z:
+
+| Lectura | Sin memoria | Con memoria, la primera vez | La segunda |
+|---|---|---|---|
+| Booking, reserva, X.4.9 | 2 806 (1 409) | 802 (594) | 0 (1) |
+| Booking, reserva, X.9.8 | 2 914 (1 478) | 910 (663) | 0 (1) |
+| Booking, habitación, X.4.9 | 1 368 (583) | 348 (173) | 0 (1) |
+| Booking, habitación, X.9.8 | 2 507 (1 298) | 1 159 (847) | 0 (1) |
+| Booking, alta de la casa, X.4.9 | 125 (73) | 125 (73) | 0 (1) |
+| Booking, alta de la casa, X.9.8 | 1 265 (792) | 937 (751) | 0 (1) |
+| Tasks, tarea, X.4.9 | 3 684 (1 659) | 689 (452) | 0 (1) |
+| Tasks, tarea, X.9.8 | 3 800 (1 734) | 805 (527) | 0 (1) |
+
+Con X.4.9 ya en la memoria (por ejemplo, al pintar la fila), X.9.8 de la reserva cuesta 108 en vez de 910. Antes se informaban 1 993 y 3 635 para X.4.9 de Booking y de Tasks: no contaban «stage», que X.4.9 lee por dentro.

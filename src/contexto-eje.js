@@ -49,11 +49,26 @@ import { ARIDAD, esReferencia, esLista, direccion, indicesDe, resolver } from '.
 import { ESCALAS_T, ESCALAS_REALES, SEGUNDOS, claveToken, partirClave, franjaDe, diaCivil, validarMovimiento, esAnunciado } from './tokens.js';
 import { esInstante, msUTC } from './instante.js';
 import { contenido } from './modos.js';
-import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula, limitesDeEpoca } from './bqlm.js';
+import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula, limitesDeEpoca, evaluar, analizar } from './bqlm.js';
 import { epocaDelEje } from './epocas.js';
 import { LECTURAS_PROVISIONALES } from './provisional.js';
 
-/** Quien está al otro lado de una emisión o de un consumo: el símbolo de src/bqlm.js, nunca un texto (SEG-11). */
+/** ¿Lleva un árbol del BQL mínimo un keep en alguna parte? (para no leer en pantalla lo que una regla leería distinto). */
+function llevaKeep(arbol) {
+  const pila = [arbol];
+  while (pila.length) {
+    const n = pila.pop();
+    if (!n || typeof n !== 'object') continue;
+    if (n.n === 'keep') return true;
+    for (const x of Object.values(n)) {
+      if (Array.isArray(x)) pila.push(...x);
+      else if (x && typeof x === 'object' && typeof x.n === 'string') pila.push(x);
+    }
+  }
+  return false;
+}
+
+/** Quién está al otro lado de una emisión o de un consumo: el símbolo de src/bqlm.js, nunca un texto (SEG-11). */
 export { NADIE };
 
 /**
@@ -179,9 +194,14 @@ export class ContextoEje {
   #epocaCargada; // la época cargada (cargarEpocaBtml), si es lo que se dio: la que lee before.8 (sus plantillas)
   #exterior = null; // before.8, los ajustes del exterior de la cuenta raíz, con la longitud del eje al leerlos
   #fuera = 0; // cuántas veces se ha leído una vista de fuera del libro (X.6.8.1-3), que cambia sin cambiar la huella
+  #pantalla = null; // { memoria? }: este contexto es el de una lectura de pantalla (las lecturas de dentro, en la misma cuenta)
 
-  constructor(eje = null, { ev, epoch, me, ahora } = {}) {
+  constructor(eje = null, { ev, epoch, me, ahora, pantalla } = {}) {
     this.#eje = eje ?? null;
+    // Core AGRAM 18-11 (NUCLEO_6_7_8 §6): un contexto creado para una lectura de pantalla (motor.filasEn) lee las lecturas
+    // de la época que encuentra por dentro (X.4.9 dentro de X.9.8, X.4.8 dentro de X.4.9) con el presupuesto de la
+    // evaluación que las pide, para que su coste cuente, y con su memoria (pantalla.memoria). Nunca lo crea una regla.
+    this.#pantalla = pantalla && typeof pantalla === 'object' ? { memoria: pantalla.memoria ?? null } : null;
     this.#ahora = esInstante(ahora) ? ahora : null;
     this.#ev = ev ?? null;
     this.#me = typeof me === 'string' && me ? me : null;
@@ -251,6 +271,27 @@ export class ContextoEje {
     return this.#lecturaEn(letra + '.' + d1 + '.' + d2, sujeto);
   }
 
+/**
+   * Una lectura de dentro, en un contexto de pantalla: con el presupuesto de la evaluación que la pide (su coste cuenta) y,
+   * si la hay, con su memoria (lectura de pantalla, src/bqlm.js §15.4). Una lectura que lleva keep (que en una regla no
+   * vale) se lee como siempre (leerRegla), para que la posición diga lo mismo aquí que en una regla.
+   */
+  #leerEnPantalla(regla, sujeto, presupuesto) {
+    const formula = Array.isArray(regla?.[2]) ? regla[2][regla[2].length - 1] : undefined;
+    let arbol;
+    try {
+      arbol = esFormula(formula) ? analizar(formula, { sujeto: true }) : null;
+    } catch {
+      arbol = null;
+    }
+    if (!arbol || llevaKeep(arbol)) return leerRegla(regla, sujeto, this, presupuesto ? { presupuesto } : {});
+    const { memoria } = this.#pantalla;
+    // Un registro del eje, por su id (como lo nombra quien lee desde fuera, motor.filasEn): así la memoria lo reconoce.
+    const comoSujeto = sujeto && typeof sujeto === 'object' && sujeto.k === 'reg' && typeof sujeto.id === 'string' ? sujeto.id : sujeto;
+    const r = evaluar(formula, this, { sujeto: comoSujeto, ...(presupuesto ? { presupuesto } : {}), ...(memoria ? { lectura: true, memoria } : {}) });
+    return r.estado === 'RESUELTO' ? r : { ...r, motivo: nombreDeRegla(regla) + ': ' + r.motivo };
+  }
+
   /** Lo que dan las lecturas de la época que se materializan en la posición `donde` («X.2.4.8», «A.2.6.8»…) de `sujeto`. */
   #lecturaEn(donde, sujeto) {
     const reglas = this.#lecturas.get(donde);
@@ -263,7 +304,7 @@ export class ContextoEje {
       let r;
       const presupuesto = this.#presupuesto;
       try {
-        r = leerRegla(regla, sujeto, this);
+        r = this.#pantalla ? this.#leerEnPantalla(regla, sujeto, presupuesto) : leerRegla(regla, sujeto, this);
       } finally {
         this.#leyendo.delete(clave);
         this.#presupuesto = presupuesto;

@@ -419,18 +419,21 @@ function parametrosDeFila(ocho) {
  * Las filas de una lectura de la época con la forma de «what is missing» (Core AGRAM 18-11; NUCLEO_6_7_8 §6), evaluada
  * sobre X: { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, sobre, para, hay,
  * parametros }] }. `epoca` (por defecto la del eje), `ahora` (el reloj del libro que fija quien lee: before.6.0),
- * `memoria` (una MemoriaDeLectura de src/bqlm.js: se lee como lectura de pantalla) y `limites` (los de bqlm.evaluar).
+ * `memoria` (una MemoriaDeLectura de src/bqlm.js: se lee como lectura de pantalla, también las lecturas de dentro),
+ * `limites` (los de bqlm.evaluar) y `presupuesto` (un Presupuesto de quien llama: lo que cuesta, también lo de dentro).
  * Si no se resuelve (PENDIENTE, PENDIENTE POR LÍMITE o ERROR), ninguna fila y el motivo: nunca «no falta nada».
  */
-export function filasEn(eje, X, donde, { memoria, limites, epoca, ahora } = {}) {
+export function filasEn(eje, X, donde, { memoria, limites, epoca, ahora, presupuesto } = {}) {
   const id = typeof X === 'string' ? X : X?.id;
   if (!eje.obtener(id)) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
   const laEpoca = epoca ?? epocaDelEje(eje);
   const regla = lecturaEn(laEpoca, donde);
   const formula = Array.isArray(regla?.[2]) ? regla[2][regla[2].length - 1] : undefined;
   if (typeof formula !== 'string') return { estado: 'ERROR', motivo: 'ninguna lectura de la época se materializa en ' + donde, filas: [] };
-  const ctx = epoca || ahora ? new ContextoEje(eje, { epoch: laEpoca, ...(ahora ? { ahora } : {}) }) : contexto(eje);
-  const r = evaluarBqlm(formula, ctx, { sujeto: id, ...(memoria ? { lectura: true, memoria } : {}), ...(limites ? { limites } : {}) });
+  // Un contexto de pantalla: las lecturas que encuentra por dentro (X.4.9 en X.9.8, X.4.8 en X.4.9) pagan del mismo
+  // presupuesto que esta y usan su memoria (contexto-eje, `pantalla`).
+  const ctx = new ContextoEje(eje, { epoch: laEpoca, pantalla: { memoria: memoria ?? null }, ...(ahora ? { ahora } : {}) });
+  const r = evaluarBqlm(formula, ctx, { sujeto: id, ...(memoria ? { lectura: true, memoria } : {}), ...(limites ? { limites } : {}), ...(presupuesto ? { presupuesto } : {}) });
   if (r.estado !== 'RESUELTO') return { estado: r.estado, ...(r.subtipo ? { subtipo: r.subtipo } : {}), motivo: r.motivo, filas: [] };
   const filas = aplanar(r.valor, ctx).filter(Array.isArray).map((f) => {
     const quien = Array.isArray(f[3]?.[0]) ? f[3][0] : [];
