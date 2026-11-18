@@ -57,6 +57,7 @@ import { direccion, esReferencia, esDecupla } from './btml.js';
 import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
 import { recuento, cerrado as cerradoDe } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
+import { resolverTipo, valeElValor } from './tipos.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
 
@@ -241,8 +242,12 @@ function escalaDelParametro(prep) {
   return Number.isSafeInteger(v) && v >= 0 && v < ESCALAS_REALES.length ? ESCALAS_REALES[v] : null;
 }
 
-/** Qué del archivo adjunto pide un parámetro (su 4 «file»): 'ref' (su referencia) o 'format' (su formato); null si no pide un archivo. */
-export const archivoDe = (p) => (p?.destino?.que === 'file' ? p.destino.para : null);
+/**
+ * Qué del archivo adjunto pide un parámetro: su faceta si su tipo es de base file (Core AGRAM 18-11, src/tipos.js: 'ref',
+ * 'format' o 'size') o, como hasta la pasada única por la época 0, lo que dice su 4 «file» ('ref' o 'format'); null si no
+ * pide un archivo.
+ */
+export const archivoDe = (p) => (p?.base === 'file' ? p.faceta : p?.destino?.que === 'file' ? p.destino.para : null);
 
 /** Una posición del registro, «1.2» (lo que no lo es, un hueco con nombre «{parámetro}», no se escribe en él). */
 const RE_POSICION = /^\d(\.\d)*$/;
@@ -255,6 +260,11 @@ const RE_POSICION = /^\d(\.\d)*$/;
  * son las hojas del 9 menos la ayuda (una fórmula «=…» se evalúa sobre it = X, me y la candidata). `nombre` es el
  * canónico (inglés); `etiqueta` y `ayuda`, con `opciones.idioma`, su traducción (epoch.9.4: «template <nombre> param
  * <etiqueta> label | help»).
+ * El tipo (Core AGRAM 18-11, src/tipos.js): `tipo` es su tipo base (el control; lo que lee la carta, como siempre), `declarado`
+ * el tipo declarado por la época que nombra su 1 (o null), `faceta` la de file o book, `validaciones` todas las que tiene
+ * que pasar el valor en su orden (la forma de la faceta, la cadena del tipo de abajo arriba y al final la del parámetro,
+ * `validacion`), `opcionesDelTipo` la fórmula de opciones de su tipo y `errorDeTipo` el motivo si el tipo no se resuelve.
+ * La ayuda, la del parámetro o, si no tiene, la de su tipo.
  */
 export function parametros(plantilla, opciones = {}) {
   const nombre = nombreDeAccion(plantilla);
@@ -262,16 +272,27 @@ export function parametros(plantilla, opciones = {}) {
   const lista = Array.isArray(plantilla?.[1]) ? plantilla[1].filter((p) => Array.isArray(p) && esDecupla(p)) : [];
   return lista.map((p) => {
     const k = texto(hoja(p[0]));
+    const validacion = esFormula(texto(ultima(p[2]))) ? texto(ultima(p[2])) : null;
+    const delTipo = resolverTipo(hojas(p[1]), opciones);
+    // La ayuda es la última hoja del 9 si es un texto; sin ella, la de su tipo; si no, lo de siempre.
+    const ultimaDel9 = ultima(p[9]);
+    const ayuda = (typeof ultimaDel9 === 'string' && !esFormula(ultimaDel9) ? ultimaDel9 : null) ?? delTipo.ayuda ?? texto(ultimaDel9) ?? '';
     return {
       nombre: k,
       etiqueta: t(claves.parametro(nombre, k, 'label'), k),
-      tipo: texto(hoja(p[1])) ?? 'text',
-      validacion: esFormula(texto(ultima(p[2]))) ? texto(ultima(p[2])) : null,
+      tipo: delTipo.base ?? texto(hoja(p[1])) ?? 'text',
+      declarado: delTipo.nombre,
+      base: delTipo.base,
+      faceta: delTipo.faceta,
+      validaciones: Object.freeze([...delTipo.validaciones, ...(validacion ? [Object.freeze({ de: 'parámetro', formula: validacion })] : [])]),
+      opcionesDelTipo: delTipo.opciones,
+      errorDeTipo: delTipo.error,
+      validacion,
       posicion: RE_POSICION.test(texto(hoja(p[5])) ?? '') ? texto(hoja(p[5])) : null,
       // «required if signed»: obligatorio solo si el eje exige firmas (VG 13-11, #75: la clave de una cosa)
       requerido: hoja(p[7]) === 'required' || (hoja(p[7]) === 'required if signed' && (opciones.exigirFirmas ?? opciones.eje?.exigirFirmas) === true),
       defectos: hojas(p[9]).slice(0, -1),
-      ayuda: t(claves.parametro(nombre, k, 'help'), texto(ultima(p[9])) ?? ''),
+      ayuda: t(claves.parametro(nombre, k, 'help'), ayuda),
       orden: Number(hoja(p[8])) || 0,
       destino: destinoDe(p[4]),
     };
@@ -385,12 +406,21 @@ function preparar(eje, plantilla, X, yo, params, { t, epoca, idioma }) {
   // Validar: lo requerido está, y cada valor cumple su 2.
   const ctx = contextoDe(eje, epoca, { ev: candidata, me: yo });
   for (const p of lista) {
+    // Un tipo que no se resuelve (desconocido, un ciclo, más de cuatro saltos, una capa que cambia la base) es un error
+    // de la época: el parámetro no vale nunca.
+    if (p.errorDeTipo) {
+      motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.errorDeTipo, parametro: p.nombre, estado: 'ERROR' });
+      continue;
+    }
     const v = valores[p.nombre];
     if (v === undefined) {
       if (p.requerido) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
       continue;
     }
-    if (p.validacion && !cumple(p.validacion, ctx, sujetoDeValor(v))) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
+    // Todas sus validaciones, en su orden (la forma de la faceta, las de su tipo y la suya): la primera que no pasa lo dice.
+    const r = valeElValor(p.validaciones, v, ctx, { sujeto: sujetoDeValor(v) });
+    // La forma del motivo es la de siempre; cuál de las validaciones no pasó lo dirá el porqué (NUCLEO_6_7_8 §8).
+    if (!r.ok) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
   }
   for (const h of huecos(payload)) motivos.push({ regla: nombre, mensaje: motivoDe('position without value', { name: nombre, position: h }, { idioma, epoca }) });
   return { sobre: candidata.sobre, en: candidata.en, payload, valores, parametros: lista, motivos, candidata };
@@ -438,7 +468,7 @@ export function acciones(eje, X, k, yo, opciones = {}) {
       id,
       etiqueta: textoDe(eje, claves.plantilla(nombre), idioma, { original: nombre, epoca }),
       plantilla,
-      parametros: lista.map((p) => ({ nombre: p.nombre, etiqueta: p.etiqueta, tipo: p.tipo, requerido: p.requerido, ayuda: p.ayuda, posicion: p.posicion, valor: valores[p.nombre], falta: p.requerido && valores[p.nombre] === undefined, archivo: archivoDe(p) })),
+      parametros: lista.map((p) => ({ nombre: p.nombre, etiqueta: p.etiqueta, tipo: p.tipo, requerido: p.requerido, ayuda: p.ayuda, posicion: p.posicion, valor: valores[p.nombre], falta: p.requerido && valores[p.nombre] === undefined, archivo: archivoDe(p), base: p.base, faceta: p.faceta, declarado: p.declarado })),
       porDefecto: fuera.length === 0,
       lectura: esLectura(plantilla),
       camino: esCamino(plantilla),
