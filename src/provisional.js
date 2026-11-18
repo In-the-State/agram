@@ -22,6 +22,7 @@
 import { TIPOS_PROVISIONALES_DATOS as TIPOS } from '../datos/provisional/tipos.js';
 import { LECTURAS_PROVISIONALES_DATOS as LECTURAS } from '../datos/provisional/lecturas.js';
 import { FINALES_PROVISIONALES_DATOS as FINALES } from '../datos/provisional/finales.js';
+import { CADENAS_PROVISIONALES_DATOS as CADENAS } from '../datos/provisional/cadenas.js';
 
 /** Una copia congelada en profundidad: lo provisional no lo cambia nadie al leerlo. */
 function congelada(x) {
@@ -37,3 +38,6 @@ export const LECTURAS_PROVISIONALES = congelada(Array.isArray(LECTURAS) ? LECTUR
 
 /** Los finales de un proceso que no son «cumplido»: [[plantilla de cerrado], [fin], [acción que lo escribe], [before | after], [procedencia]]. */
 export const FINALES_PROVISIONALES = congelada(Array.isArray(FINALES) ? FINALES : []);
+
+/** Lo que encadena las tareas (src/cadenas.js): una décupla, 1 la acción de la relación, 2 dónde ancla, 3 dónde lleva las anteriores, 4 el tipo de una tarea, 5 la acción que la cierra, 7 la que entrega. */
+export const CADENAS_PROVISIONALES = congelada(Array.isArray(CADENAS) ? CADENAS : []);

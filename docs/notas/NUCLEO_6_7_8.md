@@ -700,3 +700,14 @@ Cada sugerencia pasa por las mismas reglas: `transaccion` en seco, y `invalida` 
 
 - **¿Podría ser filas de X.9.8?** No. Una lectura del libro abierto no ve el libro de la guía (cruza libros), y un agente de fuera no es dato del libro. Son el borde: el aparato las junta.
 - **Recomendación:** que sigan siendo un gancho, con la forma de una fila (`{ accion, lanzar, parametros, texto, porque }`). Así `camino` las pasaría por el mismo bucle que las filas, con la comprobación en seco que ya llevan. La lectura de los pasos de una guía sí podría ser una lectura del libro de la guía; ese es otro carril, el de la guía.
+
+**7. «Va antes»: lo que encadena las tareas es dato.** La décupla «chains» de `datos/provisional/cadenas.json` (con su copia generada) dice:
+
+- 1, la acción de la relación («this goes after»);
+- 2, dónde la ancla el autor de la tarea («2.6»);
+- 3, dónde lleva las anteriores («6»);
+- 4, el tipo de una tarea («task»);
+- 5, la acción que la cierra («close»);
+- 7, la que la entrega («deliver»).
+
+`src/cadenas.js` la lee y `NOMBRES_DE_LAS_CADENAS` sale de ahí. Ya no nombra ninguna acción, y la deuda de `nucleo-limpio` baja a 17 nombres. Su sitio final no es la época 0 sino la época que define la relación (hoy, la hija del roadmap). Esa decisión es de la pasada única.

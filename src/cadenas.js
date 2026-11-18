@@ -3,18 +3,27 @@
 //
 //   cadenas(eje, X)   las tareas bajo X repartidas en cadenas (una fila por secuencia) e independientes, con su estado
 //
-// La relación es un registro «this goes after» del autor de la tarea, anclado en su 2.6 (la condición que viene de otros
-// registros): su 6 son las referencias a las tareas de las que va después; manda la última. Una tarea es un registro con
-// el tipo «task» en su 5. La plantilla vive hoy en la época hija del libro del roadmap (datos/epocas/roadmap/; este
-// módulo no la importa) y se busca POR SU NOMBRE en la época del libro: en un libro cuya época no la tiene, la lectura
-// da vacío. Nada de esto escribe ni firma.
+// Qué encadena las tareas es DATO (Core AGRAM 18-11, NUCLEO_6_7_8 tercera tanda, punto 7): la décupla «chains» de
+// datos/provisional/cadenas.json (src/provisional.js), que dice la acción de la relación, dónde la ancla el autor de la
+// tarea, dónde lleva las anteriores, el tipo de una tarea y las acciones que la cierran y la entregan. Hoy: un registro
+// «this goes after» del autor de la tarea, anclado en su 2.6, con las referencias a las anteriores en su 6 (manda la
+// última); una tarea, el tipo «task» en su 5. La acción vive en la época hija del libro del roadmap (este módulo no la
+// importa) y se busca en la época del libro: en un libro cuya época no la tiene, la lectura da vacío. El núcleo no nombra
+// ninguna. Nada de esto escribe ni firma.
 
 import { direccion, esReferencia } from './btml.js';
 import { plantillaDeTransaccion, estacionDeAnuncio } from './acciones.js';
 import { cerrado, FINES } from './motor.js';
+import { CADENAS_PROVISIONALES } from './provisional.js';
 
-/** Los nombres canónicos que lee esta lectura: la plantilla de la relación y el tipo de una tarea. */
-export const NOMBRES_DE_LAS_CADENAS = Object.freeze({ relacion: 'this goes after', tarea: 'task', cierre: 'close', entrega: 'deliver' });
+const primeraHoja = (x) => (Array.isArray(x) ? primeraHoja(x[0]) : x);
+const DATO = CADENAS_PROVISIONALES.find((d) => primeraHoja(d?.[0]) === 'chains') ?? [];
+
+/** Lo que lee esta lectura, de los datos (datos/provisional/cadenas.json): la acción de la relación, el tipo de una tarea y las acciones que la cierran y la entregan. */
+export const NOMBRES_DE_LAS_CADENAS = Object.freeze({ relacion: primeraHoja(DATO[1]) ?? null, tarea: primeraHoja(DATO[4]) ?? null, cierre: primeraHoja(DATO[5]) ?? null, entrega: primeraHoja(DATO[7]) ?? null });
+
+/** Un camino «2.6» de los datos como dígitos, o null. */
+const digitosDe = (x) => (typeof x === 'string' && /^\d(\.\d)*$/.test(x) ? x.split('.').map(Number) : null);
 
 /**
  * Los finales de una anterior que dejan pasar a la siguiente (motor.cerrado, su `fin`). Un valor por defecto de Core
@@ -40,7 +49,9 @@ export const ESTADOS_DE_PASO = Object.freeze({ hecho: 'hecho', entregado: 'entre
 /** Los motivos de una arista descartada. */
 export const MOTIVOS_DE_DESCARTE = Object.freeze({ ciclo: 'ciclo', aSiMisma: 'a sí misma', noEsTarea: 'no es una tarea', noEsta: 'no está' });
 
-const EN_LA_CONDICION = direccion([2, 6]);
+/** Dónde ancla el autor de la tarea su relación (los datos: «2.6»), y dónde lleva la relación las anteriores («6»). */
+const EN_LA_CONDICION = direccion(digitosDe(primeraHoja(DATO[2])) ?? [2, 6]);
+const LAS_ANTERIORES = digitosDe(primeraHoja(DATO[3])) ?? [6];
 const EN_EL_CUATRO = direccion([4]);
 const EN_EL_ANUNCIO = direccion([4, 1]);
 const RE_ID = /^[0-9a-f]{64}$/;
@@ -86,7 +97,7 @@ function anterioresDe(eje, t) {
   const validas = [];
   const malas = [];
   const vistos = new Set();
-  for (const h of relacion ? hojas(relacion.payload[6]) : []) {
+  for (const h of relacion ? hojas(LAS_ANTERIORES.reduce((n, d) => (Array.isArray(n) ? n[d] : undefined), relacion.payload)) : []) {
     const de = esReferencia(h) ? h.ref : typeof h === 'string' && RE_ID.test(h) ? h : null;
     if (!de || vistos.has(de)) continue;
     vistos.add(de);
@@ -123,7 +134,7 @@ function anterioresDe(eje, t) {
 export function cadenas(eje, X) {
   const id = typeof X === 'string' ? X : X?.id;
   const ev = typeof id === 'string' ? eje?.obtener?.(id) : null;
-  if (!ev || typeof eje.epoca !== 'function' || !plantillaDeTransaccion(NOMBRES_DE_LAS_CADENAS.relacion, { epoca: eje.epoca() })) return vacio();
+  if (!ev || typeof eje.epoca !== 'function' || !NOMBRES_DE_LAS_CADENAS.relacion || !plantillaDeTransaccion(NOMBRES_DE_LAS_CADENAS.relacion, { epoca: eje.epoca() })) return vacio();
   const llegada = new Map((eje.orden ?? []).map((x, i) => [x, i]));
   const porLlegada = (a, b) => (llegada.get(a) ?? -1) - (llegada.get(b) ?? -1);
 

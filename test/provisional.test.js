@@ -33,3 +33,13 @@ test('«chosen cohort» en X.8.5: la acción que escribe la cohorte elegida es d
   assert.ok(l[2][0].includes('"change cohort"'));
   assert.ok(!readFileSync('src/contrato.js', 'utf8').includes("'change cohort'"), 'src/contrato.js ya no nombra «change cohort»');
 });
+
+test('las cadenas: lo que encadena las tareas es dato (datos/provisional/cadenas.json) y src/cadenas.js no lo nombra', async () => {
+  const { CADENAS_PROVISIONALES } = await import('../src/provisional.js');
+  const { NOMBRES_DE_LAS_CADENAS } = await import('../src/cadenas.js');
+  const [d] = CADENAS_PROVISIONALES;
+  assert.deepEqual([d[0][0], d[1][0], d[2][0], d[3][0], d[4][0], d[5][0], d[7][0]], ['chains', 'this goes after', '2.6', '6', 'task', 'close', 'deliver']);
+  assert.deepEqual({ ...NOMBRES_DE_LAS_CADENAS }, { relacion: 'this goes after', tarea: 'task', cierre: 'close', entrega: 'deliver' });
+  const fuente = readFileSync('src/cadenas.js', 'utf8');
+  for (const n of ['this goes after', 'task', 'close', 'deliver']) assert.ok(!fuente.includes("'" + n + "'"), 'src/cadenas.js nombra «' + n + '»');
+});
