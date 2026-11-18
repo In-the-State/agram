@@ -1672,7 +1672,7 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
     // primera no cabe, la manda a una segunda línea que no se ve).
     const [primera, ...otras] = [...nombradas, ...resto];
     const masUna = otras.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${otras.length}</summary><div class="pv-acciones-desplegadas">${otras.map(boton).join('')}</div></details>` : '';
-    return `<div class="pv-acciones una-linea"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${masUna}${boton(primera)}</div>${htmlTiraDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;
+    return `<div class="pv-acciones una-linea"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${htmlMarcaDeLaBandeja(bandejaEnPantalla, X, a.pv)}${masUna}${boton(primera)}</div>`;
   }
   const mas = resto.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${resto.length}</summary><div class="pv-acciones-desplegadas">${resto.map(boton).join('')}</div></details>` : '';
   // Bajo la cabecera, lo compuesto en este sitio y aún en la bandeja (A33: «lo compuesto se ve donde se compuso»).

@@ -109,7 +109,7 @@ test('el html: la cuenta (vacía no se pinta; distinta si algo no entra), la tir
   for (const k of ['bandejaCuenta', 'bandejaEjecutar', 'bandejaListo', 'ahoraEjecutar', 'bandejaNoSeLanza']) assert.ok(TEXTOS.es[k], 'texto en textos.js: ' + k);
 });
 
-test('en la carta: compuesto desde el 4 de una compra, la cuenta en el marco, la tira bajo la cabecera del 4, la marca en la ficha y la bandeja arriba del 4; probado sobre el libro de verdad', async () => {
+test('en la carta: compuesto desde el 4 de una compra, la cuenta en el marco, la marca en la línea de acciones del 4, la marca en la ficha y la bandeja arriba del 4; probado sobre el libro de verdad', async () => {
   const { eje, X, a, deLa, b } = await escena();
   const sinNada = html(a, {});
   assert.ok(!sinNada.includes('data-bandeja-ir') && !sinNada.includes('bandeja-tira') && !sinNada.includes('data-bandeja-cuatro'), 'vacía, no se pinta');
@@ -126,8 +126,10 @@ test('en la carta: compuesto desde el 4 de una compra, la cuenta en el marco, la
   assert.equal((h.match(/data-bandeja-ir/g) ?? []).length, 1, 'la cuenta, una vez, en el marco');
   assert.ok(h.indexOf('data-bandeja-ir') < h.indexOf('<div class="escena">'), 'fuera de la escena: en el marco de la lente');
   assert.match(h, /class="bandeja-cuenta no-entra"/, 'una está a medias: la cuenta lo dice');
-  assert.match(h, new RegExp(`<ul class="bandeja-tira" data-bandeja-tira="4" data-x="${X}"`), 'la tira, bajo la cabecera del 4');
-  assert.match(h, new RegExp(`<ul class="bandeja-tira" data-bandeja-tira="3" data-x="${X}"`), 'y bajo la del 3, la que se compuso ahí');
+  // Con todo en bloque, el punto de vista que no es el enfocado enseña una línea: ahí va la marca corta, no la tira (comía el alto del bloque).
+  assert.match(h, /<div class="pv-acciones una-linea"[^>]*data-pv-acciones="4"[^>]*><small class="bandeja-marca" data-bandeja-marca="4"/, 'la marca, en la línea de acciones del 4');
+  assert.match(h, /<div class="pv-acciones una-linea"[^>]*data-pv-acciones="3"[^>]*><small class="bandeja-marca" data-bandeja-marca="3"/, 'y en la del 3, la que se compuso ahí');
+  assert.ok(!h.includes('bandeja-tira'), 'en una línea no hay tira');
   assert.match(h, new RegExp(`class="accion pendiente"[^>]*data-lanzar="${proponer.id}"`), 'la ficha de la acción lleva la marca');
   assert.equal((h.match(/data-bandeja-cuatro/g) ?? []).length, 1, 'la bandeja entera, en el 4');
   const seccion4 = h.slice(h.indexOf('<section class="pv pv-4 '));

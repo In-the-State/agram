@@ -946,6 +946,7 @@ async function pintar() {
     const mismoFoco = ultimo?.X === a?.X;
     ultimo = a;
     document.documentElement.classList.toggle('mapped', enMapped());
+    document.documentElement.lang = idioma();
     raiz.innerHTML = html(a, extra);
     situarAro();
     if (enSecuencia()) colocarSecuencia(antes, mismoFoco);

@@ -1170,7 +1170,7 @@ html.mapped body{padding:0}
 .fila>.pv-acciones:not(.marca){grid-column:1/-1}
 /* Fila cerrada: la marca con cuántas acciones va dentro de la fila, al final (tras el «?», en una columna fija para que los campos de todas las filas se alineen), sin crecer de alto. Si lleva la
    destacada (el siguiente paso, una por pantalla), va debajo, a lo ancho, como un botón más. */
-.filas>.fila{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto 1.9em}
+.filas>.fila{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto minmax(1.9em,auto)}
 .fila>.pv-acciones.marca{grid-row:1;grid-column:4;margin:0;align-self:center;justify-self:end}
 .fila>.pv-acciones.marca:has(>.accion){grid-row:2;grid-column:1/-1;justify-self:start}
 .fila:has(>.sitio-fila):not(:has(>.campo-input))>.fila-cabeza{grid-column:1 / 3}

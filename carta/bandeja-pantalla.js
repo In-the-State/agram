@@ -269,6 +269,11 @@ export function ponerAlDiaEnPantalla(raiz, v) {
       for (const vieja of cabecera.querySelectorAll('.bandeja-marca')) vieja.remove();
       const marca = htmlMarcaDeLaBandeja(v, X, pv);
       if (marca) cabecera.insertAdjacentHTML('beforeend', marca);
+    } else if (cabecera.classList.contains('una-linea')) {
+      // En una línea (un bloque que no es el enfocado): la misma marca, la primera de la línea, para que no la esconda el recorte.
+      for (const vieja of cabecera.querySelectorAll(':scope > .bandeja-marca')) vieja.remove();
+      const marca = htmlMarcaDeLaBandeja(v, X, pv);
+      if (marca) cabecera.insertAdjacentHTML('afterbegin', marca);
     } else {
       const tira = htmlTiraDeLaBandeja(v, X, pv);
       if (tira) cabecera.insertAdjacentHTML('afterend', tira);
