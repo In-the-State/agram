@@ -9,10 +9,10 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import * as Q from '../carta/cuentas.js';
 import * as S from '../carta/sitio.js';
-import { preferencias } from '../carta/carta.js';
-import { ajustesEditablesDe } from '../carta/guia.js';
-import { htmlConfiguracion } from '../carta/dom.js';
-import { sincronia, exterior } from '../src/index.js';
+import { arbol, plantillaDePreferencias, preferencias } from '../carta/carta.js';
+import { html, htmlConfiguracion } from '../carta/dom.js';
+import { sincronia, exterior, acciones } from '../src/index.js';
+import { plantillaDeAjustes } from '../src/ajustes-ofrecidos.js';
 
 const T1 = '2026-11-14T10:00:00Z';
 const SITIO = { 'sync url': 'https://aarpia.ikisai.com/', 'sync ledger': 'nodo-ikisai', 'guide url': 'https://aarpia.ikisai.com' };
@@ -20,6 +20,18 @@ const APP = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
 const EJEMPLO = JSON.parse(readFileSync(new URL('../sitio.ejemplo.json', import.meta.url), 'utf8'));
 
 /** Un fetch simulado que sirve `cuerpo` con ese estado (y recuerda lo pedido). */
+/**
+ * El formulario de la acción de ajustes `nombre` en el 9 de mi alta (VG 18-11: la configuración, acciones en su punto de
+ * vista), pintado con los valores con que lo abre la app (los defectos del sitio que me faltan).
+ */
+async function formularioDeAjustes(eje, yo, nombre, valores = {}) {
+  const alta = eje.alta(yo).id;
+  const accion = plantillaDeAjustes(nombre, acciones.conEpoca(eje, {})).id;
+  const h = html(await arbol({ foco: { X: alta, pv: 9 }, formulario: { X: alta, accion, valores } }, eje, yo, { ancho: 1920, alto: 1080 }));
+  return h.slice(h.indexOf('data-formulario'));
+}
+const PREFERENCIAS = () => plantillaDePreferencias().nombre;
+
 const servir = (estado, cuerpo, pedidos = []) => async (url, opciones) => { pedidos.push({ url, opciones }); return { ok: estado >= 200 && estado < 300, status: estado, text: async () => cuerpo }; };
 
 /** Captura lo que sale por console.warn mientras dura fn. */
@@ -103,30 +115,31 @@ test('sin sitio.json la cuenta nace como hoy: solo su alta, sin destino de sincr
   const aparte = await Q.crearCuenta({ nombre: 'Víctor', t: T1 });
   assert.equal(aparte.eje.orden.length, 1, 'y sin la opción, igual');
   assert.deepEqual(S.faltantes(eje, cuenta.identidad), { preferencias: {}, exterior: {} });
-  const h = htmlConfiguracion(preferencias(eje, cuenta.identidad, S.faltantes(eje, cuenta.identidad).preferencias), { parte: '9', claveLectura: '' });
+  const h = await formularioDeAjustes(eje, cuenta.identidad, PREFERENCIAS(), S.faltantes(eje, cuenta.identidad).preferencias);
+  assert.match(h, /name="sync url"/);
   assert.doesNotMatch(h, /aarpia/);
 });
 
-test('la configuración (parte 9) de una cuenta sin esos ajustes enseña los defectos del sitio y no escribe nada; con el ajuste propio, gana el de la cuenta', async () => {
+test('mis ajustes (el 9 de mi alta, VG 18-11) de una cuenta sin esos ajustes enseñan los defectos del sitio y no escribe nada; con el ajuste propio, gana el de la cuenta', async () => {
   const { cuenta, eje } = await Q.crearCuenta({ nombre: 'Víctor', t: T1 });
   const id = cuenta.identidad;
   S.fijar(SITIO);
   const f = S.faltantes(eje, id);
   assert.deepEqual(f, { preferencias: { 'sync url': 'https://aarpia.ikisai.com', 'sync ledger': 'nodo-ikisai' }, exterior: { 'guide url': 'https://aarpia.ikisai.com' } });
-  const ext = ajustesEditablesDe(exterior.AJUSTES.plantilla, eje, id, f.exterior);
-  const h = htmlConfiguracion(preferencias(eje, id, f.preferencias), { parte: '9', claveLectura: '', exterior: ext });
-  assert.match(h, /name="sync url" type="text" value="https:\/\/aarpia\.ikisai\.com"/);
-  assert.match(h, /name="sync ledger" type="text" value="nodo-ikisai"/);
-  assert.match(h, /guide url[^>]*value="https:\/\/aarpia\.ikisai\.com"/);
-  assert.match(h, /data-clave-lectura type="password" value=""/, 'la clave de lectura, vacía: la mete la persona');
+  const h = await formularioDeAjustes(eje, id, PREFERENCIAS(), f.preferencias);
+  assert.match(h, /name="sync url" type="text"\s+value="https:\/\/aarpia\.ikisai\.com"/);
+  assert.match(h, /name="sync ledger" type="text"\s+value="nodo-ikisai"/);
+  assert.match(await formularioDeAjustes(eje, id, exterior.AJUSTES.plantilla, f.exterior), /name="guide url"[^>]*value="https:\/\/aarpia\.ikisai\.com"/);
+  // la clave de lectura es del dispositivo: sigue en la hoja mínima, vacía (la mete la persona)
+  assert.match(htmlConfiguracion(true, { claveLectura: '' }), /data-clave-lectura type="password" value=""/, 'la clave de lectura, vacía: la mete la persona');
   assert.equal(eje.orden.length, 1, 'mirar no escribe');
   assert.equal(sincronia.destino(eje, id), null, 'hasta que se guarda, no hay destino');
   // La persona guarda otra dirección: gana la suya, y el sitio ya no se ofrece para ese ajuste.
   const { cuenta: c2, eje: e2 } = await Q.crearCuenta({ nombre: 'Luis', ajustes: { 'sync url': 'https://otro.example', 'sync ledger': 'mi-eje' }, t: T1 });
   assert.deepEqual(S.faltantes(e2, c2.identidad).preferencias, {});
   assert.deepEqual(S.faltantes(e2, c2.identidad).exterior, { 'guide url': 'https://aarpia.ikisai.com' }, 'lo que le falta, sí');
-  const h2 = htmlConfiguracion(preferencias(e2, c2.identidad, S.faltantes(e2, c2.identidad).preferencias), { parte: '9', claveLectura: '' });
-  assert.match(h2, /name="sync url" type="text" value="https:\/\/otro\.example"/);
+  const h2 = await formularioDeAjustes(e2, c2.identidad, PREFERENCIAS(), S.faltantes(e2, c2.identidad).preferencias);
+  assert.match(h2, /name="sync url" type="text"\s+value="https:\/\/otro\.example"/);
   S.fijar({});
 });
 
@@ -136,7 +149,8 @@ test('app.js: lee el sitio al arrancar, crea las cuentas con sus defectos y ense
   // Desde varios libros (A24): un libro más de la misma clave no hereda el eje compartido del sitio.
   assert.match(APP, /const ajustes = mio \? [^\n]*sincronia\.CONFIGURACION\.eje[^\n]* : ajustesDelSitio\.defectos\(\);/);
   assert.match(APP, /cuentas\.crearCuenta\(\{[^}]*\bajustes,/);
-  assert.match(APP, /preferencias\(estado\.eje, estado\.identidad, porDefectoDelSitio\(\)\.preferencias\)/);
-  assert.match(APP, /ajustesEditablesDe\(exterior\.AJUSTES\.plantilla, estado\.eje, estado\.identidad, porDefectoDelSitio\(\)\.exterior\)/);
+  // Los defectos del sitio que me faltan abren el formulario de su acción de ajustes (VG 18-11), sin escribir nada.
+  assert.match(APP, /function delSitioPara\(accion\) \{\n  const d = porDefectoDelSitio\(\);\n  if \(ajustesDe\(accion\)\?\.nombre === exterior\.AJUSTES\.plantilla\) return d\.exterior \?\? \{\};[^]*?d\.preferencias/);
+  assert.match(APP, /valores: \{ \.\.\.delSitioPara\(accion\),/);
   assert.doesNotMatch(readFileSync(new URL('../carta/sitio.js', import.meta.url), 'utf8'), /guardarClaveLectura|eval\(|new Function|innerHTML/);
 });

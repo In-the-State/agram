@@ -11,7 +11,8 @@ import { Eje } from '../src/eje.js';
 import { generarClaves } from '../src/autoridad.js';
 import * as G from '../carta/guia.js';
 import { preferencias, arbol as arbolEnIdioma } from '../carta/carta.js';
-import { htmlConfiguracion, html } from '../carta/dom.js';
+import { html } from '../carta/dom.js';
+import { plantillaDeAjustes } from '../src/ajustes-ofrecidos.js';
 import { destinoDe } from '../carta/archivos.js';
 import { t } from '../carta/textos.js';
 import { ejemploCompra, ejemploFabrica } from '../ejemplos/ikisai/compra-food.mjs';
@@ -248,7 +249,7 @@ test('profundidad y «en firme»: (altura del último sello verificado conocido 
   assert.equal(de(e1.id)[2], true);
 });
 
-test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) y en la celda de la matriz del 4, solo si lo está; la configuración trae el desplegable del exterior', async () => {
+test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) y en la celda de la matriz del 4, solo si lo está; los ajustes del exterior son una acción en el 9 de mi alta (VG 18-11)', async () => {
   const { eje, compra, ...resto } = await ejemploCompra();
   await ejemploFabrica(eje, { compra, ...resto }); // las ejecuciones de la matriz del 4 (pagar, servir…)
   // La cuenta raíz (casa) declara su observador de cabeceras: los sellos con su prueba copiada pasan la regla «sealed».
@@ -300,14 +301,14 @@ test('en la carta, «verificado» es una marca discreta: en el reverso (cara 5) 
   assert.match(matriz, /data-en-firme data-confirmaciones="6"[^>]*>◆ en firme<\//);
   assert.match(matriz, /data-confirmaciones="4"[^>]*>◆ verificado · 4 confirmaciones<\//, 'la de altura 3: 6 − 3 + 1');
 
-  // La configuración: el desplegable de los ajustes del exterior, con sus campos (sin `name`: la app los escribe como su registro).
-  const form = htmlConfiguracion(preferencias(eje, 'huesped'), { exterior: G.ajustesEditablesDe(PLANTILLA, eje, 'huesped', {}, { idioma: 'es' }), parte: '9' }); // los ajustes del exterior van en «guía y exterior» (#92)
-  assert.match(form, new RegExp('<details class="exterior-ajustes"[^>]*><summary>' + t('exteriorAjustes') + '</summary>'));
-  for (const clave of ['relay url', 'blossom url', 'seal url']) assert.match(form, new RegExp('data-exterior-campo="' + clave + '"'));
-  assert.doesNotMatch(form, /name="relay url"/);
-  assert.match(form, />relé<\/label>/);
-  assert.equal(htmlConfiguracion(preferencias(eje, 'huesped'), {}).includes('exterior-ajustes'), false, 'sin plantilla de exterior, nada');
-  // Y por la pantalla entera (html con lo que la app sabe): la configuración abierta lleva el desplegable.
-  const entera = html(await arbol({ foco: { X: compra.id, pv: 0 } }, ORDENADOR), { preferencias: preferencias(eje, 'huesped'), exteriorAjustes: G.ajustesEditablesDe(PLANTILLA, eje, 'huesped', {}, { idioma: 'es' }), parteConfiguracion: '9' }); // la parte 9: guía y exterior (#92)
-  assert.match(entera, /data-exterior-campo="seal url"/);
+  // Los ajustes del exterior (VG 18-11): una acción en el 9 de mi alta, «ajustes del exterior», con un campo por ajuste;
+  // rellenarla compone su registro en la bandeja y el 4 lo ejecuta (test/ajustes-como-acciones.test.js).
+  const altaH = eje.alta('huesped').id;
+  const deFuera = plantillaDeAjustes(PLANTILLA, { epoca: eje.epoca?.() }) ?? plantillaDeAjustes(PLANTILLA);
+  const nueve = await arbol({ foco: { X: altaH, pv: 0 }, niveles: { 9: 3 } }, ORDENADOR);
+  assert.ok([...nueve.laterales.find((n) => n.pv === 9).acciones.nombradas, ...nueve.laterales.find((n) => n.pv === 9).acciones.resto].some((a) => a.id === deFuera.id), 'el 9 de mi alta la ofrece');
+  const entera = html(await arbol({ foco: { X: altaH, pv: 9 }, formulario: { X: altaH, accion: deFuera.id, valores: {} } }, ORDENADOR));
+  const form = entera.slice(entera.indexOf('data-formulario'));
+  for (const clave of ['relay url', 'blossom url', 'seal url']) assert.match(form, new RegExp('name="' + clave + '"'));
+  assert.doesNotMatch(form, /data-exterior-campo/);
 });

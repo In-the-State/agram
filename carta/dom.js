@@ -1815,7 +1815,8 @@ function htmlFormulario(f) {
   // BTML en crudo van al reverso (VG 14-11, #89), que se abre a propósito.
   const campo = (c) => {
     const id = 'param-' + c.nombre.replace(/\W+/g, '-');
-    const tipoInput = c.tipo === 'number' ? 'number' : c.tipo === 'instant' ? 'datetime-local' : 'text';
+    // Una lista de números (los tamaños de un ajuste, «1 2 3») no cabe en un input de número: va como texto.
+    const tipoInput = c.tipo === 'number' && !Array.isArray(c.valor) ? 'number' : c.tipo === 'instant' ? 'datetime-local' : 'text';
     const valor = valorDeInput(c);
     const crudo = c.valor === null || c.valor === undefined ? '' : JSON.stringify(c.valor);
     // Con valores posibles (contrato.opciones), un desplegable; «otro…» destapa el input (que es el que se envía).
@@ -1839,7 +1840,8 @@ function htmlFormulario(f) {
   };
   // A la vista, solo lo obligatorio; lo opcional, tras «más».
   // Al ejecutar (#89), solo lo que falta por decidir: lo que ya viene dado queda recogido tras «ya resuelto» (sus inputs siguen, para enviarse).
-  const aparte = f.ejecucion ? (c) => !(c.requerido && c.falta) : (c) => !c.requerido;
+  // Un ajuste (el formulario de una plantilla de ajustes, VG 18-11) no es obligatorio y va a la vista (`aLaVista`).
+  const aparte = f.ejecucion ? (c) => !(c.requerido && c.falta) : (c) => !c.requerido && !c.aLaVista;
   const opcionales = f.campos.filter(aparte);
   const campos = f.campos.filter((c) => !aparte(c)).map(campo).join('')
     + (opcionales.length ? `<details class="mas-parametros"><summary title="${attr(t(f.ejecucion ? 'yaResueltoTitulo' : 'masParametrosTitulo'))}">${tr(f.ejecucion ? 'yaResuelto' : 'masParametros')} · ${opcionales.length}</summary>${opcionales.map(campo).join('')}</details>` : '');
@@ -1865,27 +1867,13 @@ function htmlFormulario(f) {
 }
 
 /**
- * Los ajustes de la guía dentro del formulario de la configuración: los campos de la plantilla de ajustes de la época
- * (sin `name`: la app los lee por data-guia-campo y los escribe como su propio registro en el 9 del alta) y, aparte, la
- * clave de la API (data-clave-ia: solo para la vía directa; vive en este navegador, nunca en el eje).
+ * La clave de la API de la guía en la hoja mínima de la configuración (data-clave-ia: solo para la vía directa; vive en
+ * este navegador, nunca en el eje: es del dispositivo, no una acción). Los demás ajustes de la guía son una acción en el 9
+ * de mi alta (VG 18-11). Sin guía (`clave` no es un texto), nada.
  */
-function htmlAjustesGuia(g) {
-  if (!g) return '';
-  const campos = g.campos.map((c) => `<div class="campo"${nodo('control')}><label for="guia-${c.pv}">${escapar(c.etiqueta)}</label><input id="guia-${c.pv}" data-guia-campo="${attr(c.clave)}" type="text" value="${attr(c.valor)}" placeholder="${attr(c.marcador)}" title="${attr(c.ayuda)}" autocomplete="off"><small class="ayuda">${escapar(c.ayuda)}</small></div>`).join('');
-  const clave = `<div class="campo"${nodo('control')}><label for="guia-clave-ia">${t('guiaClaveIa')}</label><input id="guia-clave-ia" data-clave-ia type="password" value="${attr(g.claveIa ?? '')}" title="${attr(t('guiaClaveIaAyuda'))}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(t('guiaClaveIaAyuda'))}</small></div>`;
-  return `<fieldset class="guia-ajustes"><legend>${t('guiaAjustes')}</legend>${campos}${clave}</fieldset>`;
-}
-
-/**
- * Los ajustes del exterior dentro del formulario de la configuración (docs/CONTRATO.md §16.2 bis, decisión #58): los campos de
- * la plantilla «exterior settings» de la época (relé, archivos, sello; sin `name`: la app los lee por data-exterior-campo y los
- * escribe como su propio registro en el 9 del alta), en un desplegable como el de la guía. Una dirección vacía deja ese camino
- * sin usar y quita la que había (el registro solo lleva los ajustes que tienen valor, VG 13-11, #77).
- */
-function htmlAjustesExterior(g) {
-  if (!g) return '';
-  const campos = g.campos.map((c) => `<div class="campo"${nodo('control')}><label for="exterior-${c.pv}">${escapar(c.etiqueta)}</label><input id="exterior-${c.pv}" data-exterior-campo="${attr(c.clave)}" type="text" value="${attr(c.valor)}" placeholder="${attr(c.marcador)}" title="${attr(c.ayuda)}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(c.ayuda)}</small></div>`).join('');
-  return `<details class="exterior-ajustes"${nodo('control')}${g.campos.some((c) => c.valor) ? ' open' : ''}><summary>${t('exteriorAjustes')}</summary><fieldset class="guia-ajustes">${campos}</fieldset></details>`;
+function htmlClaveIa(clave) {
+  if (typeof clave !== 'string') return '';
+  return `<div class="campo"${nodo('control')}><label for="guia-clave-ia">${t('guiaClaveIa')}</label><input id="guia-clave-ia" data-clave-ia type="password" value="${attr(clave)}" title="${attr(t('guiaClaveIaAyuda'))}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(t('guiaClaveIaAyuda'))}</small></div>`;
 }
 
 /**
@@ -1903,32 +1891,24 @@ function htmlSegundoFactor(sf) {
   return `<details class="segundo-factor"${nodo('control')}${sf.criterios.length ? ' open' : ''}><summary>${t('segundoFactor')}</summary><p class="ayuda">${escapar(t('segundoFactorAyuda'))}</p>${actuales}<fieldset class="guia-ajustes">${campos}</fieldset></details>`;
 }
 
-/** Los ajustes de preferencias que son de la guía y el exterior (el 9 de mi alta) y no de mis criterios: el servidor y el eje compartido. */
-const DE_LA_PARTE_9 = new Set(['sync url', 'sync ledger']);
-
 /**
- * El formulario de la configuración, generado desde la plantilla «preferences»: cada campo por su clave, con su
- * etiqueta en el idioma. En una cuenta (`claveLectura` es una cadena, quizá vacía), además el campo aparte de la clave
- * de lectura del libro compartido: sin `name` (no entra en el registro de preferencias: la app lo lee por
- * data-clave-lectura y lo guarda en el almacén local de la cuenta, nunca en el eje).
+ * La hoja mínima de la configuración (VG 18-11: «la pantalla de configuración pasa a ser acciones en su punto de vista; la
+ * del segundo factor se queda fija por ahora»): solo lo que no es una acción. Lo que escribe un registro de ajustes (mis
+ * preferencias, la guía, el exterior, el formato) ya no está aquí: son acciones en el 9 de mi alta (carta.js
+ * formularioDeAjustes), y la hoja lleva a ellas («mis ajustes», data-config="9"). Quedan el segundo factor tal cual, lo del
+ * dispositivo (la clave de lectura del libro compartido, solo en una cuenta, y la clave de la API de la guía: sin `name`,
+ * la app las lee por data-clave-lectura y data-clave-ia y nunca van al eje), el interruptor de retocar textos y la entrada
+ * a las reglas del libro. `abierta`: cualquier valor no nulo (null o undefined: cerrada).
  */
-export function htmlConfiguracion(p, { motivos = [], claveLectura, guia, exterior, segundoFactor, parte = '2', retocar = null, reglas = false } = {}) {
-  if (!p) return '';
+export function htmlConfiguracion(abierta, { motivos = [], claveLectura, claveIa, segundoFactor, retocar = null, reglas = false } = {}) {
+  if (!abierta) return '';
   const modo = retocar?.activo ? { idioma: retocar.idioma } : null; // el modo «retocar textos» (A20), si está encendido
-  // Un campo con opciones (el modelo, #4) es un desplegable con ellas; los demás, texto.
-  const control = (c) => (c.opciones
-    ? `<select id="pref-${c.pv}" name="${attr(c.clave)}" title="${attr(c.ayuda)}">${c.opciones.map((o) => `<option value="${attr(o.valor)}"${o.valor === c.valor ? ' selected' : ''}>${escapar(o.texto)}</option>`).join('')}</select>`
-    : `<input id="pref-${c.pv}" name="${attr(c.clave)}" type="text" value="${attr(valorInput(Array.isArray(c.valor) ? c.valor.join(' ') : c.valor))}" placeholder="${attr(c.marcador.join(' '))}" title="${attr(c.ayuda)}" autocomplete="off">`);
-  // Separada por posición (VG 14-11, #92): el 2 = mis criterios y preferencias (idioma, sobrio o animado, tamaños, segundo factor); el 9 =
-  // guía y exterior (servidor y eje compartido, clave de lectura, la guía, relé, archivos, sello, observadores, confirmaciones).
-  const del9 = parte === '9';
-  const esDelNueve = (c) => DE_LA_PARTE_9.has(c.clave);
-  const campos = p.campos.filter((c) => esDelNueve(c) === del9).map((c) => `<div class="campo"><label for="pref-${c.pv}">${escapar(c.etiqueta)}</label>${control(c)}<small class="ayuda">${escapar(c.ayuda)}</small></div>`).join('')
-    + (del9 && typeof claveLectura === 'string' ? `<div class="campo"><label for="pref-clave-lectura">${t('claveLectura')}</label><input id="pref-clave-lectura" data-clave-lectura type="password" value="${attr(claveLectura)}" title="${attr(t('claveLecturaAyuda'))}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(t('claveLecturaAyuda'))}</small></div>` : '')
-    + (del9 ? htmlAjustesGuia(guia) + htmlAjustesExterior(exterior) : htmlSegundoFactor(segundoFactor) + htmlRetocarTextos(retocar) + htmlEntradaReglas(reglas));
-  return `<div class="formulario-fondo" data-cerrar><form class="formulario configuracion"${nodo('configuracion')} data-configuracion data-parte="${del9 ? 9 : 2}" aria-label="${attr(t(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios'))}">
-    <header><h2><span class="numero">${del9 ? 9 : 2}</span> ${tr(del9 ? 'ajustesGuiaExterior' : 'configuracionCriterios', {}, modo)}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
-    <p class="ayuda">${tr(del9 ? 'configuracionAyuda9' : 'configuracionAyuda2', {}, modo)}</p>
+  const lectura = typeof claveLectura === 'string' ? `<div class="campo"><label for="pref-clave-lectura">${t('claveLectura')}</label><input id="pref-clave-lectura" data-clave-lectura type="password" value="${attr(claveLectura)}" title="${attr(t('claveLecturaAyuda'))}" autocomplete="off" spellcheck="false"><small class="ayuda">${escapar(t('claveLecturaAyuda'))}</small></div>` : '';
+  const aMisAjustes = `<p class="reglas-entrada"><button type="button"${nodo('control')} data-config="9" title="${attr(t('misAjustesTitulo'))}">${escapar(t('misAjustes'))}</button></p>`;
+  const campos = htmlSegundoFactor(segundoFactor) + lectura + htmlClaveIa(claveIa) + htmlRetocarTextos(retocar) + htmlEntradaReglas(reglas) + aMisAjustes;
+  return `<div class="formulario-fondo" data-cerrar><form class="formulario configuracion"${nodo('configuracion')} data-configuracion aria-label="${attr(t('configuracionFija'))}">
+    <header><h2>${tr('configuracionFija', {}, modo)}</h2><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
+    <p class="ayuda">${tr('configuracionAyudaFija', {}, modo)}</p>
     ${campos}${motivos.length ? `<ul class="motivos" role="alert">${motivos.map((m) => `<li>${escapar(m.mensaje ?? m)}</li>`).join('')}</ul>` : ''}
     <footer><button type="submit">${tr('guardar', {}, modo)}</button></footer>
   </form></div>`;
@@ -2349,8 +2329,10 @@ function htmlInterruptor(i) {
 /**
  * Lo que era la barra superior, ahora las posiciones del 0 de mi alta (VG, 12-11, #38: «la barra desaparece; la
  * configuración general es el personaje del 0»): 0 quién soy (y el ejemplo), 1 cuánto (hoy y «guardar este rato»),
- * 2 la configuración (con qué condición), 4 lo que se hace con la cuenta (la copia de seguridad, olvidar o reiniciar),
- * 5 el estilo (sobrio o animado), 8 opinar (frente a otros) y 9 cómo: lo guardado, el libro compartido y los ajustes de la guía y del exterior.
+ * 2 la hoja mínima de la configuración (con qué condición: el segundo factor y lo del dispositivo), 4 lo que se hace con
+ * la cuenta (la copia de seguridad, olvidar o reiniciar), 5 el estilo (sobrio o animado: un atajo, como el aro), 8 opinar
+ * (frente a otros) y 9 cómo: lo guardado, el libro compartido y «mis ajustes», que lleva al 9 de mi alta, donde mis
+ * preferencias y los ajustes de la guía, del exterior y del formato son acciones (VG 18-11).
  * Cada control conserva su data-* de siempre (data-quien, data-ejemplo, data-englobar, data-config, data-copia,
  * data-olvidar, data-reiniciar, data-preferencia, data-opinar-ctl, data-sincronia). → { [posición]: html }.
  */
@@ -2363,8 +2345,9 @@ function controlesDelCero(arbol, { ejemplos = [], ejemplo = null, guardado = '',
   const propios = cuenta
     ? `<button type="button"${nodo('control')} data-copia title="${attr(t('copiaTitulo'))}">${t('copiaDeSeguridad')}</button><button type="button"${nodo('control')} data-copia-todos title="${attr(t('copiaDeTodosTitulo'))}">${escapar(t('copiaDeTodos'))}</button><button type="button"${nodo('control')} data-olvidar title="${attr(t('olvidarTitulo'))}">${t('olvidar')}</button>`
     : `<button type="button"${nodo('control')} data-reiniciar title="${attr(t('reiniciarTitulo'))}">${t('reiniciar')}</button>`;
-  const config = `<button type="button"${nodo('control')} data-config="2" title="${attr(t('configuracionTitulo'))}">${t('configuracionCriterios')}</button>`;
-  const ajustes = `<button type="button"${nodo('control')} data-config="9" title="${attr(t('ajustesGuiaExteriorTitulo'))}">${t('ajustesGuiaExterior')}</button>`;
+  // VG 18-11: el 2 abre la hoja mínima (lo que no es una acción); el 9 lleva al 9 de mi alta, donde están mis ajustes como acciones.
+  const config = `<button type="button"${nodo('control')} data-config="2" title="${attr(t('configuracionFijaTitulo'))}">${t('configuracionFija')}</button>`;
+  const ajustes = `<button type="button"${nodo('control')} data-config="9" title="${attr(t('misAjustesTitulo'))}">${t('misAjustes')}</button>`;
   return {
     0: quien + ej,
     1: local,
@@ -2494,7 +2477,7 @@ export function html(arbol, extra = {}) {
     ${htmlSitio(a.sitio, a, extra)}
     ${htmlReglas(extra.reglas)}${htmlAjustesDelElemento(extra.ajustesElemento)}${htmlPuente(extra.puente)}${htmlInvitado(extra.invitado)}
     ${htmlFormulario(a.formulario)}
-    ${extra.preferencias ? htmlConfiguracion(extra.preferencias, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, guia: extra.guiaAjustes, exterior: extra.exteriorAjustes, segundoFactor: extra.segundoFactor, parte: extra.parteConfiguracion, retocar: extra.retocarTextos, reglas: extra.entradaReglas }) : ''}${htmlRetoque(a.retoque)}
+    ${htmlConfiguracion(extra.configuracion, { motivos: extra.motivosPreferencias, claveLectura: extra.claveLectura, claveIa: extra.claveIa, segundoFactor: extra.segundoFactor, retocar: extra.retocarTextos, reglas: extra.entradaReglas })}${htmlRetoque(a.retoque)}
     ${extra.arranque ? htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: true, emparejar: extra.emparejar, ensayo: extra.ensayo }) : ''}
     ${htmlCopia(extra.copia)}
     ${htmlLibroPrivado(extra.libroPrivado)}

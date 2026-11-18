@@ -23,7 +23,7 @@
 // «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida, filtrarDiccionarioEnPantalla, coincidenciaEnPantalla, situarDesplegadas } from './dom.js';
 import { instalar } from './gestos.js';
@@ -53,6 +53,7 @@ import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja, escribirP
 import { loQueEncaja } from '../src/soltar.js';
 import { queHacerAlSoltar, entradaAlSoltar, elegirEnPagina } from './soltar.js';
 import { vistaDeLaBandeja, vistaDeLaBandejaPorLibros, textosTrasEjecutar, nombreDeLaEntrada, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { plantillaDeAjustes, entradaDeAjustes, ajustesDeLaEntrada, PV_DE_LOS_AJUSTES } from '../src/ajustes-ofrecidos.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -355,10 +356,58 @@ function repintarBandejaEnFormulario() {
   // Lo compuesto se ve donde se compuso mientras se escribe (VG): la tira, la marca de la ficha, el 4 y la cuenta, al día.
   ponerAlDiaEnPantalla(raiz, vistaBandeja());
 }
+// ---------- la configuración como acciones (VG 18-11; src/ajustes-ofrecidos.js) ----------
+
+/** ¿Es la acción de un formulario una plantilla de ajustes ofrecida donde ancla (el 9 de mi alta)? → { id, nombre } o null. */
+const ajustesDe = (accion) => (estado.eje ? plantillaDeAjustes(accion, acciones.conEpoca(estado.eje, {})) : null);
+/**
+ * Los valores de un formulario de ajustes: los de valoresDelFormulario y, además, vacío ('') cada campo que se dejó vacío.
+ * El formulario enseña todos los ajustes con su valor: uno vacío es uno que se quitó (vuelve a su defecto), como en la hoja.
+ */
+function valoresDeAjustes(form) {
+  const { valores, motivos } = valoresDelFormulario(form);
+  for (const input of form.querySelectorAll('input[name]')) if (input.value.trim() === '' && !(input.name in valores)) valores[input.name] = '';
+  return { valores, motivos };
+}
+/** Los defectos del sitio que le faltan a mi cuenta para esa plantilla de ajustes (los enseña su formulario; no se guardan hasta componer). */
+function delSitioPara(accion) {
+  const d = porDefectoDelSitio();
+  if (ajustesDe(accion)?.nombre === exterior.AJUSTES.plantilla) return d.exterior ?? {};
+  const f = formulario(estado.eje, estado.eje.alta(estado.identidad)?.id, accion, estado.identidad, {});
+  return f?.ajustes?.deMiConfiguracion ? d.preferencias ?? {} : {};
+}
+/**
+ * Lo que compone (o ejecuta ya) un formulario: la acción con sus valores o, si es de ajustes, el registro de ajustes (su
+ * payload, sobre mi alta, en su 9) como entrada de tipo registro. Con avisos de lo escrito (un número que no lo es, una clave
+ * mal escrita: guia.avisosDeAjustes, como la hoja), nada. → { entrada, avisos }.
+ */
+function loQueCompone(f, valores = f.valores ?? {}) {
+  if (!ajustesDe(f.accion)) return { entrada: { accion: f.accion, X: f.X, valores }, avisos: [] };
+  const form = formulario(estado.eje, f.X, f.accion, estado.identidad, valores);
+  const a = form?.ajustes;
+  if (!a?.payload) return { entrada: null, avisos: a ? [] : [t('sinAlta')] };
+  const textos = Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, Array.isArray(v) ? v.join(' ') : String(v ?? '')]));
+  const avisos = guia.avisosDeAjustes(form.campos.map((c) => ({ clave: c.nombre, etiqueta: c.etiqueta, numero: c.numero })), textos, { positivo: !a.deMiConfiguracion });
+  return { entrada: avisos.length ? null : entradaDeAjustes(a.payload, a.sobre, f.donde ?? { X: f.X, pv: PV_DE_LOS_AJUSTES }), avisos };
+}
+
 /** Lo escrito en un formulario de la bandeja pasa al borrador: crea o actualiza su entrada, completa o a medias. */
 function ponerDesdeElFormulario(f, motivos = []) {
   const b = bandeja();
   if (!b || !f) return null;
+  if (ajustesDe(f.accion)) {
+    // Un formulario de ajustes compone un registro de ajustes (entrada de tipo registro). Su entrada es la suya (f.entrada),
+    // o la que ya hay de esa plantilla compuesta en ese sitio; si no, una nueva (dos plantillas de ajustes en el mismo sitio
+    // no se pisan: la bandeja las vería como la misma).
+    const { entrada, avisos } = loQueCompone(f);
+    f.motivos = [...motivos, ...avisos.map((mensaje) => ({ mensaje }))];
+    if (!entrada || motivos.length) return null;
+    const previa = f.entrada ?? entradaDeAjustesEn(f.accion, f.donde)?.id ?? null;
+    const r = b.poner({ ...entrada, ...(previa ? { id: previa } : { nueva: true }) });
+    if (r.ok) f.entrada = r.entrada.id;
+    else estado.aviso = r.motivo;
+    return r;
+  }
   // Completa: lo que faltaba sin defecto ya tiene valor (lo que tiene defecto no falta: lo pone el núcleo al componer).
   const completa = estaCompleta(f.valores, f.faltaban, motivos);
   const r = b.poner({ id: f.entrada ?? null, accion: f.accion, X: f.X, valores: f.valores ?? {}, donde: f.donde ?? { X: f.X, pv: null }, completa });
@@ -366,12 +415,20 @@ function ponerDesdeElFormulario(f, motivos = []) {
   else estado.aviso = r.motivo;
   return r;
 }
+/** La entrada de la bandeja de la plantilla de ajustes `accion` compuesta en `donde`, o null. */
+function entradaDeAjustesEn(accion, donde) {
+  const p = ajustesDe(accion);
+  if (!p || !donde) return null;
+  return bandeja()?.listar().entradas.find((e) => e.donde.X === donde.X && e.donde.pv === donde.pv && ajustesDeLaEntrada(e, acciones.conEpoca(estado.eje, {}))?.id === p.id) ?? null;
+}
+
 /** Prueba en seco lo que haría «ejecutar ahora» con el formulario abierto, y lo repinta en él. */
 async function probarFormularioAhora() {
   const f = estado.formulario;
   if (modoDelFormulario(f) !== 'ahora') return;
   const eje = estado.eje;
-  const r = await probarAhora(eje, estado.identidad, { accion: f.accion, X: f.X, valores: f.valores ?? {} }, opcionesDeLaBandeja()).catch((e) => ({ ok: false, items: [], motivos: [{ mensaje: String(e?.message ?? e) }] }));
+  const { entrada, avisos } = loQueCompone(f);
+  const r = await (entrada ? probarAhora(eje, estado.identidad, entrada, opcionesDeLaBandeja()) : Promise.resolve({ ok: false, items: [], motivos: avisos.map((mensaje) => ({ mensaje })) })).catch((e) => ({ ok: false, items: [], motivos: [{ mensaje: String(e?.message ?? e) }] }));
   if (estado.formulario !== f || estado.eje !== eje) return;
   f.prueba = r;
   repintarBandejaEnFormulario();
@@ -385,6 +442,8 @@ async function trasEjecutar(r) {
     if (despues.length) await adjuntarHtmlInicial(estado.eje, r.eventos[k].id, estado.identidad, firmarCon(estado.identidad), idioma(), {}, { accion: despues[0] });
   }
   trasEscribir(); // guardar y dejar la subida en la cola (la tanda entera)
+  // Un registro de ajustes (VG 18-11, la configuración como acciones) puede cambiar el servidor, el eje compartido o la clave: la sincronía se vuelve a abrir.
+  if (r.items.some((x) => ajustesDeLaEntrada(x.entrada, acciones.conEpoca(estado.eje, {})))) abrirSincronia();
   const firmado = r.eventos.some((e) => e.firma) ? ' ' + t('firmado') : '';
   // Cada entrada dice su nombre según su tipo (un campo, por lo que escribe; un registro, «guardar ajustes»): nunca «null».
   estado.exito = t('bandejaRegistrado', { lista: r.items.map((x, k) => t('registrado', { accion: nombreDeLaEntrada(x.puesta ? null : x.entrada, x.accion, nombreDeAccion), id: r.eventos[k].id.slice(0, 8) })).join(' · ') }) + firmado;
@@ -555,13 +614,13 @@ function extraDe() {
       porEmparejamiento: emparejado.adaptador && (guardian === emparejado.adaptador || (!guardian && emparejado.hubo)) ? (emparejado.emparejamiento?.estado() ? 'vivo' : 'terminado') : undefined } : undefined,
     emparejar: emparejado.emparejamiento ? { vivo: Boolean(emparejado.emparejamiento.estado()), aceptada: Boolean(emparejado.emparejamiento.estado()?.aceptada) } : null,
     leidoTexto: estado.leido && estado.foco.X && estado.eje ? leerTexto(estado.foco.X) : undefined,
-    preferencias: estado.config && estado.eje ? conEtiquetasLlanas(preferencias(estado.eje, estado.identidad, porDefectoDelSitio().preferencias), idioma()) : null, motivosPreferencias: estado.motivosPreferencias,
+    // La hoja mínima de la configuración (VG 18-11): solo lo que no es una acción; mis ajustes son acciones en el 9 de mi alta.
+    configuracion: estado.config && estado.eje ? true : null, motivosPreferencias: estado.motivosPreferencias,
     claveLectura: estado.cuenta && estado.config ? cuentas.claveLectura(estado.cuenta.alta) ?? '' : undefined, sincronia: estado.lineaSincronia,
     cuentas: conEtiquetas(cuentas.cuentas()), cuenta: estado.cuenta ? { nombre: estado.cuenta.nombre, alta: estado.cuenta.alta, identidad: estado.cuenta.identidad } : null,
     // Varios libros (A24): «Tus libros» y el diálogo del libro privado.
     libros: estado.cuenta ? tusLibrosDe() : undefined, libroPrivado: estado.libroPrivado ?? undefined,
-    guiaAjustes: estado.config && estado.eje ? guiaAjustesDe() : undefined,
-    exteriorAjustes: estado.config && estado.eje ? conEtiquetasLlanas(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, porDefectoDelSitio().exterior), idioma()) ?? undefined : undefined,
+    claveIa: estado.config && estado.eje ? claveIaDe() : undefined,
     segundoFactor: estado.config && estado.eje ? segundoFactorDeConfiguracion(estado.eje, estado.identidad) ?? undefined : undefined,
     retocarTextos: estado.config && estado.eje ? retocarTextosDe() : undefined,
     // «Reglas del libro» y «Ajustes de este elemento» (A21): sus vistas, y la entrada desde la configuración y desde el génesis.
@@ -570,7 +629,7 @@ function extraDe() {
     invitado: estado.invitado ? invitadoDe() : undefined,
     ajustesElemento: estado.ajustes && estado.eje ? ajustesDelElemento(estado.eje, estado.ajustes.X, estado.identidad) ?? undefined : undefined,
     entradaReglas: estado.eje ? conGobierno(estado.eje) : false, genesisId: estado.eje?.genesisId,
-    parteConfiguracion: estado.config || undefined, arranque: estado.arranque, ensayo: estado.arranque ? botonEnsayo() ?? undefined : undefined, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
+    arranque: estado.arranque, ensayo: estado.arranque ? botonEnsayo() ?? undefined : undefined, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
     archivo: (id) => archivos.contenido(id), // los archivos adjuntos (el HTML del PV0 en su iframe aislado, las imágenes)
     bandeja: vistaBandeja(), // la bandeja (A33): la cuenta del marco, la tira donde se compuso y el 4
   };
@@ -908,10 +967,9 @@ function pintarGuia() {
   raiz.querySelector('.guia-historial')?.lastElementChild?.scrollIntoView?.({ block: 'nearest' });
 }
 
-/** Los ajustes de la guía para el formulario de configuración: los campos de la época y la clave de la API de este navegador. */
-function guiaAjustesDe() {
-  const a = guia.ajustesEditables(estado.eje, estado.identidad);
-  return a ? { ...conEtiquetasLlanas(a, idioma()), claveIa: guia.claveIa(almacenLocal(), altaDeGuia()) ?? '' } : undefined;
+/** La clave de la API de la guía de este navegador, para la hoja mínima de la configuración (solo si el libro tiene guía y yo, alta). */
+function claveIaDe() {
+  return guia.ajustesEditables(estado.eje, estado.identidad) ? guia.claveIa(almacenLocal(), altaDeGuia()) ?? '' : undefined;
 }
 
 /**
@@ -1498,7 +1556,8 @@ const valoresDe = (form) => Object.fromEntries([...form.querySelectorAll('input[
 
 /**
  * Escribe mis preferencias con estos valores sobre las de ahora, como un registro más en el 9 de mi alta (la plantilla
- * «preferences»): lo que hace la configuración al guardar y lo que hace un interruptor del 5 del 0 de mi alta (antes, de la barra) al tocarlo.
+ * «preferences»): lo que hace un interruptor del 5 del 0 de mi alta al tocarlo. Es un atajo, como el aro (VG 18-11): ejecuta
+ * ya, por el mismo camino que el 4, lo mismo que compone la acción de mis preferencias del 9 de mi alta.
  */
 async function escribirPreferencias(valores) {
   const p = preferencias(estado.eje, estado.identidad, valores);
@@ -1578,7 +1637,7 @@ const manejadores = {
     tocar(estado.foco.X, 'todos ' + delta);
     pintar();
   },
-  /** Un interruptor del 5 del 0 de mi alta (sobrio o animado; antes, de la barra): escribe esa preferencia (sobrio o animado) como lo hace la configuración, y repinta. */
+  /** Un interruptor del 5 del 0 de mi alta (sobrio o animado): un atajo como el aro (VG 18-11): ejecuta ya esa preferencia, por el mismo camino que el 4, y repinta. */
   async preferencia(clave, valor) {
     if (!clave || !estado.eje) return;
     try {
@@ -1745,6 +1804,15 @@ const manejadores = {
     // ese sitio, se abre esa; si no pide nada, la entrada se pone al tocar; si pide algo, el formulario sin botón que
     // escriba (cada cambio es el borrador). Desde el aro (o sus atajos), «ejecutar ahora» por el mismo camino.
     const f = estado.formulario;
+    if (ajustesDe(accion)) {
+      // Una plantilla de ajustes (VG 18-11): su formulario siempre, con los defectos del sitio que me falten. Desde el punto de
+      // vista se compone (la entrada, al cambiar algo; si ya había una de esa plantilla ahí, con sus valores); desde el aro, ahora.
+      const donde = { X: sobre, pv: Number.isInteger(pv) ? pv : PV_DE_LOS_AJUSTES };
+      const previa = aro ? null : entradaDeAjustesEn(accion, donde);
+      Object.assign(f, { modo: aro ? 'ahora' : 'bandeja', donde, entrada: previa?.id ?? null, faltaban: [], valores: { ...delSitioPara(accion), ...(previa ? ajustesDeLaEntrada(previa, acciones.conEpoca(estado.eje, {}))?.valores : {}) } });
+      pintar();
+      return;
+    }
     if (!soloLee(accion) && !aro) {
       const donde = { X: sobre, pv: Number.isInteger(pv) ? pv : null };
       const campos = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, valores)?.campos ?? [] : [];
@@ -1779,7 +1847,7 @@ const manejadores = {
   cambioFormulario(form) {
     const f = estado.formulario;
     if (!f || !form) return;
-    const { valores, motivos } = valoresDelFormulario(form);
+    const { valores, motivos } = ajustesDe(f.accion) ? valoresDeAjustes(form) : valoresDelFormulario(form);
     f.valores = valores;
     const modo = modoDelFormulario(f);
     if (modo === 'bandeja') {
@@ -1797,10 +1865,12 @@ const manejadores = {
     if (!f) return;
     // Cerrar sin tocar nada no deja entrada: solo se pone lo que ya es entrada (algún campo cambió).
     if (form && f.entrada && modoDelFormulario(f) === 'bandeja') {
-      const { valores, motivos } = valoresDelFormulario(form);
+      const { valores, motivos } = ajustesDe(f.accion) ? valoresDeAjustes(form) : valoresDelFormulario(form);
       f.valores = valores;
       ponerDesdeElFormulario(f, motivos);
     }
+    // Un ajuste mal escrito (un número que no lo es) no se compone: el formulario sigue abierto con el aviso.
+    if (ajustesDe(f.accion) && f.motivos?.length) { pintar(); return; }
     estado.formulario = null;
     pintar();
   },
@@ -1991,7 +2061,7 @@ const manejadores = {
   async enviar(form) {
     const f = estado.formulario;
     if (!f) return;
-    const { valores, motivos } = valoresDelFormulario(form);
+    const { valores, motivos } = ajustesDe(f.accion) ? valoresDeAjustes(form) : valoresDelFormulario(form);
     f.valores = valores;
     if (motivos.length) { f.motivos = motivos; f.resultado = null; pintar(); return; }
     // La bandeja (A33): un formulario de la bandeja no escribe (Enter es «listo»); uno de lectura lee sin escribir; lo
@@ -2008,16 +2078,19 @@ const manejadores = {
     }
     // Ejecutar desde el 4 (VG 12-11, decisión 7): la T se quema en la denominación que enseña el formulario (la propuesta o
     // la que sale de la escala elegida); el botón no se bloquea por el rango: apagado también se pulsa.
-    const denominacion = f.ejecutar ? (f.escala ?? acciones.ejecucion(estado.eje, f.accion, { X: f.X, ...valores }, estado.identidad, { idioma: idioma() }).denominacion ?? undefined) : undefined;
+    const denominacion = f.ejecutar && !ajustesDe(f.accion) ? (f.escala ?? acciones.ejecucion(estado.eje, f.accion, { X: f.X, ...valores }, estado.identidad, { idioma: idioma() }).denominacion ?? undefined) : undefined;
+    // Lo que se ejecuta: la acción o, si es de ajustes, su registro (con avisos de lo escrito, nada).
+    const { entrada, avisos } = loQueCompone(f, valores);
+    if (!entrada) { f.motivos = avisos.map((mensaje) => ({ mensaje })); f.resultado = null; pintar(); return; }
     if (f.ocupado) return;
     f.ocupado = true;
     repintarBandejaEnFormulario();
     let r;
     try {
       const opciones = opcionesDeLaBandeja(denominacion ? { denominacion } : {});
-      const prueba = await probarAhora(estado.eje, estado.identidad, { accion: f.accion, X: f.X, valores }, opciones);
+      const prueba = await probarAhora(estado.eje, estado.identidad, entrada, opciones);
       const fallo = prueba.ok ? await subirAntesDeFirmar([valores]) : null;
-      r = fallo ? { ok: false, motivos: [{ mensaje: fallo }] } : await ejecutarAhora(estado.eje, estado.identidad, firmarCon(estado.identidad), { accion: f.accion, X: f.X, valores }, opciones);
+      r = fallo ? { ok: false, motivos: [{ mensaje: fallo }] } : await ejecutarAhora(estado.eje, estado.identidad, firmarCon(estado.identidad), entrada, opciones);
     } catch (e) {
       r = { ok: false, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] };
     }
@@ -2365,49 +2438,46 @@ const manejadores = {
     }
     pintar();
   },
-  /** La configuración, separada por posición (VG 14-11, #92): parte '2' = mis criterios y preferencias, '9' = guía y exterior; cada una guarda solo lo suyo. */
+  /**
+   * La configuración (VG 18-11: «la pantalla de configuración pasa a ser acciones en su punto de vista; la del segundo factor
+   * se queda fija por ahora»). Desde el personaje del 0: '9' lleva al 9 de mi alta, donde mis ajustes (las plantillas de
+   * ajustes de la época: mis preferencias, la guía, el exterior, el formato) son acciones que se componen en la bandeja y
+   * ejecuta el 4; '2' abre la hoja mínima, con lo que no es una acción. Guardar la hoja guarda solo eso: la clave de lectura
+   * y la de la API (en este navegador, nunca en el eje) y, si la familia está escrita, el segundo factor, tal cual.
+   */
   async configurar(form, parte) {
-    if (!form) { estado.config = parte === '9' ? '9' : '2'; estado.motivosPreferencias = []; estado.formulario = null; estado.aro = null; estado.sitio = null; pintar(); return; }
-    const valores = {};
-    for (const input of form.querySelectorAll('input[name], select[name]')) valores[input.name] = input.value.trim().split(/\s+/).filter(Boolean);
-    const valoresGuia = Object.fromEntries([...form.querySelectorAll('[data-guia-campo]')].map((i) => [i.dataset.guiaCampo, i.value]));
-    const valoresExterior = Object.fromEntries([...form.querySelectorAll('[data-exterior-campo]')].map((i) => [i.dataset.exteriorCampo, i.value]));
-    // Un número que no lo es o unas claves del observador mal escritas avisan y no se guarda nada (repaso beta #13).
-    const avisos = [
-      ...guia.avisosDeAjustes(preferencias(estado.eje, estado.identidad)?.campos, Object.fromEntries(Object.entries(valores).map(([k, v]) => [k, v.join(' ')])), { positivo: false }),
-      ...guia.avisosDeAjustes(guia.ajustesEditables(estado.eje, estado.identidad)?.campos, valoresGuia),
-      ...guia.avisosDeAjustes(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad)?.campos, valoresExterior),
-    ];
-    if (avisos.length) { estado.motivosPreferencias = avisos.map((mensaje) => ({ mensaje })); pintar(); return; }
-    // La clave de lectura, aparte: al almacén local de la cuenta, nunca al registro de preferencias (que va en el eje).
+    if (!form && parte === '9') {
+      const alta = estado.eje?.alta(estado.identidad)?.id;
+      if (!alta) { estado.aviso = t('sinAlta'); pintar(); return; }
+      estado.config = false; estado.sitio = null; estado.aro = null; estado.formulario = null;
+      irA(alta, PV_DE_LOS_AJUSTES);
+      return;
+    }
+    if (!form) { estado.config = true; estado.motivosPreferencias = []; estado.formulario = null; estado.aro = null; estado.sitio = null; pintar(); return; }
+    // La clave de lectura, aparte: al almacén local de la cuenta, nunca a un registro (que va en el eje).
     const campoClave = form.querySelector('[data-clave-lectura]');
     if (campoClave && estado.cuenta) cuentas.guardarClaveLectura(estado.cuenta.alta, campoClave.value);
-    // Lo de la guía: la clave de la API, también aparte (solo en este navegador); los demás ajustes son un registro más.
+    // La clave de la API de la guía, también aparte (solo en este navegador).
     const campoIa = form.querySelector('[data-clave-ia]');
     if (campoIa && altaDeGuia()) guia.guardarClaveIa(almacenLocal(), altaDeGuia(), campoIa.value);
     // El segundo factor (VG 12/13-11, #66, #70): un criterio más en el 2.4 de mi alta, con la plantilla «second factor», si la familia está escrita.
     const valoresSegundo = Object.fromEntries([...form.querySelectorAll('[data-segundo-factor-campo]')].map((i) => [i.dataset.segundoFactorCampo, i.value.trim()]));
-    if (!preferencias(estado.eje, estado.identidad, valores)) { estado.motivosPreferencias = [{ mensaje: t('sinAlta') }]; pintar(); return; }
     try {
-      await escribirPreferencias(valores);
-      const ajustesGuia = guia.ajustesEditables(estado.eje, estado.identidad, valoresGuia);
-      if (ajustesGuia?.cambiado) await escribirPorLaBandeja(estado.eje, estado.identidad, firmarCon(estado.identidad), { modo: 'sequenced', sobre: ajustesGuia.sobre, en: ajustesGuia.en, payload: ajustesGuia.payload }, { idioma: idioma(), ...horaDe() });
-      // Los ajustes del exterior (relé, archivos, sello): otro registro más en el 9 del alta, con la misma forma que el de la guía.
-      const ajustesExterior = guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, valoresExterior);
-      if (ajustesExterior?.cambiado) await escribirPorLaBandeja(estado.eje, estado.identidad, firmarCon(estado.identidad), { modo: 'sequenced', sobre: ajustesExterior.sobre, en: ajustesExterior.en, payload: ajustesExterior.payload }, { idioma: idioma(), ...horaDe() });
       if (valoresSegundo.family) {
+        const alta = estado.eje?.alta(estado.identidad)?.id;
+        if (!alta) throw new Error(t('sinAlta'));
         const familias = valoresSegundo.family.split(/[\s,]+/).filter(Boolean);
-        const r = await enviar(estado.eje, estado.eje.alta(estado.identidad).id, 'second factor', { family: familias.length === 1 ? familias[0] : familias, amount: Number(valoresSegundo.amount || 0), ...(valoresSegundo.holder ? { holder: valoresSegundo.holder } : {}) }, estado.identidad, firmarCon(estado.identidad));
+        const r = await enviar(estado.eje, alta, 'second factor', { family: familias.length === 1 ? familias[0] : familias, amount: Number(valoresSegundo.amount || 0), ...(valoresSegundo.holder ? { holder: valoresSegundo.holder } : {}) }, estado.identidad, firmarCon(estado.identidad));
         if (!r.asentado) throw new Error(motivosEnLlano(r.motivos, estado.eje).map((m) => m.mensaje ?? m).join(' · ') || 'second factor');
+        guardar();
       }
-      guardar();
       estado.config = false;
       estado.motivosPreferencias = [];
       estado.exito = t('configuracionGuardada');
     } catch (e) {
       estado.motivosPreferencias = [{ mensaje: enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e) }];
     }
-    // El servidor, el eje compartido o la clave pueden haber cambiado: la sincronía se vuelve a abrir (y sube la configuración).
+    // La clave de lectura puede haber cambiado: la sincronía se vuelve a abrir.
     abrirSincronia();
     pintar();
   },

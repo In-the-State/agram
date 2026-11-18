@@ -55,8 +55,6 @@ test('carta-retoques: el modo no existe para quien no es dueño: ni marcas, ni i
   assert.match(conf, /<input type="checkbox" data-retocar-modo> Retocar los textos de este libro/);
   assert.match(conf, /No hay ningún texto retocado en este libro\./);
   assert.match(htmlConfiguracion(preferencias(eje, 'ana'), { retocar: { ...r, activo: true, idioma: 'es' } }), /data-retocar-modo checked/);
-  // En la parte 9 no va.
-  assert.doesNotMatch(htmlConfiguracion(preferencias(eje, 'ana'), { parte: '9', retocar: { ...r, activo: true, idioma: 'es' } }), /data-retocar-modo/);
   // Un retoque escrito a mano por bea no pasa la regla (la plantilla no se le ofrece, y comprobarRetoque lo dice).
   assert.equal(comprobarRetoque(eje, 'bea', { clave: 'template pay', idioma: 'es', texto: 'abonar' }, ES), t('retoqueNoPuede'));
   const b = await guardarRetoque(eje, 'bea', { clave: 'template pay', idioma: 'es', texto: 'abonar' }, undefined, { t: T(5) });
@@ -260,7 +258,7 @@ test('carta-retoques: con el modo apagado el HTML de la carta es el de antes; en
   const encendida = htmlConfiguracion(p, { retocar: { ...r, activo: true, idioma: 'es' } });
   assert.doesNotMatch(apagada, /data-retocar=/);
   assert.equal(sinMarcas(encendida).replace(' data-retocar-modo checked', ' data-retocar-modo'), apagada);
-  assert.deepEqual(marcas(encendida).map(([c]) => c), ['carta configuracionCriterios', 'carta configuracionAyuda2', 'carta guardar']);
+  assert.deepEqual(marcas(encendida).map(([c]) => c), ['carta configuracionFija', 'carta configuracionAyudaFija', 'carta guardar']);
   // Sin la lista de retocar (quien no puede), la configuración es la de siempre.
   assert.equal(htmlConfiguracion(p, {}), htmlConfiguracion(p, { retocar: null }));
 });

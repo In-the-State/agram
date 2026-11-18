@@ -460,7 +460,7 @@ test('en el escritorio la cuenta va en el marco, fuera de la escena donde están
 test('la app ya no escribe con escribirDesde: preferencias, ajustes de la guía y de fuera y formato van por escribirPorLaBandeja; un registro se nombra en llano', () => {
   const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
   assert.doesNotMatch(app, /escribirDesde\(/);
-  assert.equal((app.match(/escribirPorLaBandeja\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\)/g) ?? []).length, 4, 'preferencias, guía, fuera y formato');
+  assert.equal((app.match(/escribirPorLaBandeja\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\)/g) ?? []).length, 2, 'el interruptor de las preferencias y el formato (VG 18-11: la guía y lo de fuera ya no los escribe la hoja: son acciones del 9 de mi alta que se componen)');
   const reg = { ...item('b1'), accion: null, entrada: { id: 'b1', tipo: 'registro', modo: 'sequenced', en: '9000000000', accion: null, X: 'X1', valores: { payload: [['x']] }, donde: { X: 'X1', pv: 9 }, completa: true, de: [] } };
   const v = vistaDeLaBandeja({ ok: true, items: [reg], motivos: [] }, { nombre: () => 'NO' });
   assert.equal(v.items[0].nombre, t('bandejaRegistro'));
