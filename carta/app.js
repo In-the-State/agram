@@ -49,7 +49,7 @@ import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
 import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja } from './bandeja.js';
-import { vistaDeLaBandeja, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { vistaDeLaBandeja, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -266,7 +266,9 @@ function textosDeLaBandeja() {
   };
 }
 /** Lo que se pinta de la bandeja (la cuenta del marco, la tira donde se compuso y el 4), o null. */
-const vistaBandeja = () => (estado.eje ? vistaDeLaBandeja(estado.bandeja.probado, textosDeLaBandeja(), { motivos: estado.bandeja.motivos, ocupado: estado.bandeja.ocupado }) : null);
+/** El borrador guardado ahora (su texto), o null sin bandeja: con él se sabe si lo que dijo el último intento sigue valiendo. */
+const borradorDeAhora = () => { const b = bandeja(); return b ? leerLocal(b.clave) ?? '' : null; };
+const vistaBandeja = () => (estado.eje ? vistaDeLaBandeja(estado.bandeja.probado, textosDeLaBandeja(), { motivos: motivosDelUltimoIntento({ motivos: estado.bandeja.motivos, de: estado.bandeja.motivosDe ?? null }, borradorDeAhora()), ocupado: estado.bandeja.ocupado }) : null);
 /** ¿Solo lee? (una plantilla de lectura: no escribe nada y no pasa por la bandeja). */
 function soloLee(accion) {
   const epoca = typeof estado.eje?.epoca === 'function' ? estado.eje.epoca() : undefined;
@@ -1805,6 +1807,7 @@ const manejadores = {
     } else {
       const motivos = motivosConGuardian(motivosEnLlano(r.motivos ?? [], estado.eje));
       estado.bandeja.motivos = [{ mensaje: t('bandejaNoRegistrado', { motivo: motivos.map((m) => m.mensaje).join(' · ') }) }];
+      estado.bandeja.motivosDe = borradorDeAhora(); // vale mientras el borrador sea este: quitar o cambiar algo lo deja viejo
     }
     estado.bandeja.clave = null; // otra prueba en seco con lo de ahora
     pintar();

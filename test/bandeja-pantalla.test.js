@@ -365,3 +365,23 @@ test('completa es lo que de verdad falta: lo que tiene defecto no falta («compr
   assert.match(app, /const completa = estaCompleta\(f\.valores, f\.faltaban, motivos\);/);
   assert.equal((app.match(/faltaban = queFaltan\(/g) ?? []).length, 2, 'al lanzar y al reabrir, con el formulario sin nada escrito');
 });
+
+test('el motivo del último intento de ejecutar se va en cuanto cambia el borrador (quitar el miembro que fallaba)', async () => {
+  const { motivosDelUltimoIntento } = await import('../carta/bandeja-pantalla.js');
+  const motivos = [{ mensaje: 'no se ha registrado nada: el archivo no está' }];
+  assert.deepEqual(motivosDelUltimoIntento({ motivos, de: '{"v":1,"a":1}' }, '{"v":1,"a":1}'), motivos, 'mismo borrador: sigue');
+  assert.deepEqual(motivosDelUltimoIntento({ motivos, de: '{"v":1,"a":1}' }, '{"v":1}'), [], 'otro borrador: viejo');
+  assert.deepEqual(motivosDelUltimoIntento({ motivos, de: null }, '{}'), []);
+  // Con la bandeja de verdad: quitar la entrada cambia lo guardado, y el 4 ya no lo enseña.
+  const almacen = memoria();
+  const b = crearBandeja({ almacen, libro: 'g'.repeat(64), cuenta: 'yo' });
+  b.poner({ accion: 'a1', X: 'x'.repeat(64), valores: {} });
+  b.poner({ accion: 'a2', X: 'x'.repeat(64), valores: {}, donde: { X: null, pv: 4 } });
+  const de = almacen.leer(b.clave);
+  b.quitar('b2');
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1')], motivos: [] }, {}, { motivos: motivosDelUltimoIntento({ motivos, de }, almacen.leer(b.clave)) });
+  assert.ok(!htmlBandejaDelCuatro(v, 'X1').includes('el archivo no está'));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /estado\.bandeja\.motivosDe = borradorDeAhora\(\);/);
+  assert.match(app, /motivosDelUltimoIntento\(\{ motivos: estado\.bandeja\.motivos, de: estado\.bandeja\.motivosDe \?\? null \}, borradorDeAhora\(\)\)/);
+});

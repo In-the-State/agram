@@ -58,6 +58,12 @@ export const queFaltan = (campos) => (campos ?? []).filter((c) => c.falta).map((
 export const estaCompleta = (valores, faltaban, motivos = []) => (motivos ?? []).length === 0
   && (faltaban ?? []).every((n) => valores?.[n] !== undefined && valores[n] !== null && valores[n] !== '');
 
+/**
+ * Lo que dijo el último intento de ejecutar, solo mientras el borrador sea el mismo con que se intentó (`de`: el borrador
+ * guardado entonces). Quitar, poner o cambiar una entrada lo deja viejo, y un motivo viejo no se enseña.
+ */
+export const motivosDelUltimoIntento = ({ motivos = [], de = null } = {}, borrador) => (de !== null && de === borrador ? motivos : []);
+
 /** El motivo de un item en una línea llana: «falta por rellenar: …» o los mensajes (ya en llano) unidos. */
 function motivoDe(x, llano, etiqueta = (n) => n) {
   if (x.entra) return null;
