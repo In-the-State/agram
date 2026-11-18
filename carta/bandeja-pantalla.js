@@ -47,6 +47,23 @@ export function etiquetaDeParametro(eje, accion, nombre, { idioma } = {}) {
   return contrato.texto(eje, contrato.claves.parametro(acciones.nombreDeAccion(p), nombre, 'label'), idioma, { original: delNucleo, ...(epoca ? { epoca } : {}) }) ?? delNucleo;
 }
 
+/**
+ * Lo que de verdad le falta a una acción para estar completa: los parámetros que su formulario, sin nada escrito, da por
+ * que faltan (requeridos sin valor ni defecto; los que tienen defecto los pone el núcleo al componer). `campos`: los de
+ * carta.formulario(eje, X, accion, yo, {}). → sus nombres.
+ */
+export const queFaltan = (campos) => (campos ?? []).filter((c) => c.falta).map((c) => c.nombre);
+
+/** ¿Está completa una entrada? Lo escrito se lee sin fallos y cada uno de los que faltaban (queFaltan) tiene ya valor. */
+export const estaCompleta = (valores, faltaban, motivos = []) => (motivos ?? []).length === 0
+  && (faltaban ?? []).every((n) => valores?.[n] !== undefined && valores[n] !== null && valores[n] !== '');
+
+/**
+ * Lo que dijo el último intento de ejecutar, solo mientras el borrador sea el mismo con que se intentó (`de`: el borrador
+ * guardado entonces). Quitar, poner o cambiar una entrada lo deja viejo, y un motivo viejo no se enseña.
+ */
+export const motivosDelUltimoIntento = ({ motivos = [], de = null } = {}, borrador) => (de !== null && de === borrador ? motivos : []);
+
 /** El motivo de un item en una línea llana: «falta por rellenar: …» o los mensajes (ya en llano) unidos. */
 function motivoDe(x, llano, etiqueta = (n) => n) {
   if (x.entra) return null;
@@ -78,7 +95,8 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     const accion = x.puesta ? x.accion : entrada?.accion ?? x.accion;
     // Un campo (tocar un valor) no es una acción: se nombra por lo que escribe.
     const esCampo = !x.puesta && entrada?.tipo === 'campo';
-    const suNombre = esCampo ? t('bandejaCampo', { texto: entrada.valores?.texto ?? '' }) : nombre(accion);
+    const esRegistro = !x.puesta && entrada?.tipo === 'registro';
+    const suNombre = esCampo ? t('bandejaCampo', { texto: entrada.valores?.texto ?? '' }) : esRegistro ? t('bandejaRegistro') : nombre(accion);
     const r = x.resumen;
     const resumen = r ? {
       nace: suNombre,
@@ -88,7 +106,7 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
       cuesta: r.cuesta.segundos,
     } : null;
     return {
-      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : {}), entra: Boolean(x.entra),
+      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : esRegistro ? { tipo: 'registro' } : {}), entra: Boolean(x.entra),
       motivo: motivoDe(x, llano, (n) => etiquetaDe(accion, n)), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
     };
   });
@@ -148,7 +166,7 @@ export function htmlTiraDeLaBandeja(v, X, pv) {
     // El nombre va una vez: el resumen ya empieza por él («comprometer tiempo sobre …»); sin resumen (a medias), solo el nombre.
     const cuerpo = `${x.resumen ? htmlResumen(x.resumen) : `<span class="bandeja-nombre">${escapar(x.nombre)}</span>`} ${estadoDe(x)}`;
     if (x.puesta) return `<li class="bandeja-item puesta${x.entra ? '' : ' no-entra'}" data-bandeja-puesta title="${escapar(t('bandejaPuestaTitulo'))}"><small class="bandeja-la-pone">${escapar(t('bandejaPuesta'))}</small> ${cuerpo}</li>`;
-    if (x.tipo === 'campo') return `<li class="bandeja-item campo${x.entra ? '' : ' no-entra'}"><span class="bandeja-abrir">${cuerpo}</span><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
+    if (x.tipo === 'campo' || x.tipo === 'registro') return `<li class="bandeja-item campo${x.entra ? '' : ' no-entra'}"><span class="bandeja-abrir">${cuerpo}</span><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
     return `<li class="bandeja-item${x.entra ? '' : ' no-entra'}"><button type="button" class="bandeja-abrir" data-nodo="accion" data-bandeja-abrir="${escapar(x.id)}" title="${escapar(t('bandejaAbrirTitulo'))}">${cuerpo}</button><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
   };
   return `<ul class="bandeja-tira" data-bandeja-tira="${escapar(pv)}" data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTira'))}">${lista.map(li).join('')}</ul>`;
@@ -228,8 +246,15 @@ export function ponerAlDiaEnPantalla(raiz, v) {
     const X = cabecera.dataset.x;
     const pv = Number(cabecera.dataset.pvAcciones);
     while (cabecera.nextElementSibling?.matches?.('.bandeja-tira, .bandeja-marca')) cabecera.nextElementSibling.remove();
-    const nuevo = cabecera.classList.contains('marca') ? htmlMarcaDeLaBandeja(v, X, pv) : htmlTiraDeLaBandeja(v, X, pv);
-    if (nuevo) cabecera.insertAdjacentHTML('afterend', nuevo);
+    if (cabecera.classList.contains('marca')) {
+      // Comprimida (una fila cerrada): la marca va dentro de la cabecera, en su misma línea.
+      for (const vieja of cabecera.querySelectorAll('.bandeja-marca')) vieja.remove();
+      const marca = htmlMarcaDeLaBandeja(v, X, pv);
+      if (marca) cabecera.insertAdjacentHTML('beforeend', marca);
+    } else {
+      const tira = htmlTiraDeLaBandeja(v, X, pv);
+      if (tira) cabecera.insertAdjacentHTML('afterend', tira);
+    }
     for (const boton of cabecera.querySelectorAll('[data-lanzar]')) boton.classList.toggle('pendiente', tienePendiente(v, X, boton.dataset.lanzar));
   }
   for (const cuatro of raiz.querySelectorAll('[data-bandeja-cuatro]')) {

@@ -9,7 +9,7 @@ import { Eje } from '../src/eje.js';
 import { generarClaves, firmar, firmarPosesion } from '../src/autoridad.js';
 import * as A from '../src/acciones.js';
 import { SEGUNDOS } from '../src/tokens.js';
-import { crearBandeja, ejecutarAhora, enviarPorLaBandeja, resumenDe, claveDelBorrador, MAXIMO_DE_ENTRADAS, TOPE_POR_REGISTRO } from '../carta/bandeja.js';
+import { crearBandeja, ejecutarAhora, enviarPorLaBandeja, escribirPorLaBandeja, resumenDe, claveDelBorrador, MAXIMO_DE_ENTRADAS, TOPE_POR_REGISTRO } from '../carta/bandeja.js';
 
 const T = (m) => '2026-11-18T10:' + String(m).padStart(2, '0') + ':00Z';
 
@@ -491,4 +491,30 @@ test('enviarPorLaBandeja: lo que hacía enviar (una acción, ya) por el único c
     assert.ok(i >= 0, sitio);
     assert.match(fuente.slice(i, i + 3000), /enviarPorLaBandeja\(/, archivo + ' · ' + sitio);
   }
+});
+
+test('un registro hecho por la lente (preferencias, ajustes, formato) va por la bandeja: el mismo registro que escribirDesde, por el único camino', async () => {
+  const { preferencias } = await import('../carta/carta.js');
+  const salida = await import('../src/escritura.js');
+  const { eje, vg, firmarVg } = await libro();
+  const p = preferencias(eje, 'vg', { language: 'en' });
+  assert.ok(p, 'la plantilla de preferencias da su registro');
+  // El de siempre, sobre un libro gemelo, para comparar.
+  const gemelo = await Eje.desde(eje.orden.map((id) => eje.obtener(id)), { exigirFirmas: true });
+  const t = '2026-11-18T11:00:00Z';
+  const viejo = await salida.escribirDesde(gemelo, { modo: 'sequenced', autor: 'vg', sobre: p.sobre, en: p.en, payload: p.payload, t }, vg.privada);
+  const nuevo = await escribirPorLaBandeja(eje, 'vg', firmarVg, { modo: 'sequenced', sobre: p.sobre, en: p.en, payload: p.payload }, { t });
+  for (const k of ['autor', 'sobre', 'en', 't', 'payload', 'movimientos', 'contexto']) assert.deepEqual(nuevo[k], viejo[k], k);
+  assert.equal(nuevo.id, viejo.id, 'el mismo registro');
+  assert.ok(nuevo.firma);
+  assert.equal(eje.orden.at(-1), nuevo.id);
+  // Lo que no vale no entra y lo dice (como escribirDesde, lanza con los motivos).
+  await assert.rejects(escribirPorLaBandeja(eje, 'vg', firmarVg, { modo: 'pointed', sobre: p.sobre, en: p.en, payload: [] }), /nada que emitir/);
+  await assert.rejects(escribirPorLaBandeja(eje, 'vg', firmarVg, { modo: 'sequenced', sobre: 'f'.repeat(64), en: p.en, payload: p.payload }));
+  // En el borrador también vale: se compone y se ve.
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'vg' });
+  const r = b.poner({ tipo: 'registro', modo: 'sequenced', en: p.en, X: p.sobre, valores: { payload: preferencias(eje, 'vg', { language: 'es' }).payload } });
+  assert.equal(r.ok, true, r.motivo);
+  assert.equal(b.poner({ tipo: 'registro', modo: 'sequenced', en: p.en, X: p.sobre, valores: { payload: 'no' } }).ok, false, 'un registro lleva un payload');
+  assert.equal((await b.probar(eje, 'vg')).ok, true);
 });

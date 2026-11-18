@@ -40,7 +40,7 @@ import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas 
 import { instalar as instalarEmparejar } from './emparejar.js';
 import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
-import { Archivos, adjuntarHtmlInicial, valoresDeArchivo, subirLosNombrados, referenciasEn, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
+import { Archivos, adjuntarHtmlInicial, valoresDeArchivo, subirLosNombrados, faltaParaLosArchivos, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
@@ -48,8 +48,8 @@ import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMov
 import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
-import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja } from './bandeja.js';
-import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja, escribirPorLaBandeja } from './bandeja.js';
+import { vistaDeLaBandeja, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -229,10 +229,12 @@ async function probarBandeja() {
 const archivosElegidos = new Map();
 /** Las opciones de la bandeja: el idioma y lo que la lente sabe que falta fuera del libro (un archivo que ya no está aquí). */
 function opcionesDeLaBandeja(extra = {}) {
-  const revisar = (entrada) => {
-    const faltan = [...referenciasEn(entrada.valores)].filter((ref) => !archivosElegidos.has(ref) && archivos.cache.get(ref.slice('archivo:'.length))?.estado !== 'listo'); // sin bajar nada: lo que ya está en esta pestaña
-    return faltan.length ? t('bandejaArchivoNoEsta') : null;
-  };
+  // Lo que falta fuera del libro, antes de componer: un archivo que ya no está aquí, o elegido aquí y sin servidor donde subirlo.
+  const revisar = (entrada) => faltaParaLosArchivos(entrada.valores, {
+    elegidos: new Set(archivosElegidos.keys()),
+    listo: (id) => archivos.cache.get(id)?.estado === 'listo', // sin bajar nada: lo que ya está en esta pestaña
+    hayServidor: Boolean(destinoDeArchivos()),
+  });
   return { idioma: idioma(), revisar, ...extra };
 }
 /** Lo que ofrece el aparato a un parámetro de base file (contrato.opciones, opcionesDelAparato): los archivos elegidos aquí. */
@@ -266,7 +268,9 @@ function textosDeLaBandeja() {
   };
 }
 /** Lo que se pinta de la bandeja (la cuenta del marco, la tira donde se compuso y el 4), o null. */
-const vistaBandeja = () => (estado.eje ? vistaDeLaBandeja(estado.bandeja.probado, textosDeLaBandeja(), { motivos: estado.bandeja.motivos, ocupado: estado.bandeja.ocupado }) : null);
+/** El borrador guardado ahora (su texto), o null sin bandeja: con él se sabe si lo que dijo el último intento sigue valiendo. */
+const borradorDeAhora = () => { const b = bandeja(); return b ? leerLocal(b.clave) ?? '' : null; };
+const vistaBandeja = () => (estado.eje ? vistaDeLaBandeja(estado.bandeja.probado, textosDeLaBandeja(), { motivos: motivosDelUltimoIntento({ motivos: estado.bandeja.motivos, de: estado.bandeja.motivosDe ?? null }, borradorDeAhora()), ocupado: estado.bandeja.ocupado }) : null);
 /** ¿Solo lee? (una plantilla de lectura: no escribe nada y no pasa por la bandeja). */
 function soloLee(accion) {
   const epoca = typeof estado.eje?.epoca === 'function' ? estado.eje.epoca() : undefined;
@@ -300,7 +304,8 @@ function repintarBandejaEnFormulario() {
 function ponerDesdeElFormulario(f, motivos = []) {
   const b = bandeja();
   if (!b || !f) return null;
-  const completa = motivos.length === 0 && (f.requeridos ?? []).every((n) => f.valores?.[n] !== undefined);
+  // Completa: lo que faltaba sin defecto ya tiene valor (lo que tiene defecto no falta: lo pone el núcleo al componer).
+  const completa = estaCompleta(f.valores, f.faltaban, motivos);
   const r = b.poner({ id: f.entrada ?? null, accion: f.accion, X: f.X, valores: f.valores ?? {}, donde: f.donde ?? { X: f.X, pv: null }, completa });
   if (r.ok) f.entrada = r.entrada.id;
   else estado.aviso = r.motivo;
@@ -1450,7 +1455,7 @@ const valoresDe = (form) => Object.fromEntries([...form.querySelectorAll('input[
 async function escribirPreferencias(valores) {
   const p = preferencias(estado.eje, estado.identidad, valores);
   if (!p) throw new Error(t('sinAlta'));
-  await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: p.sobre, en: p.en, payload: p.payload, ...horaDe() }, privadaDe(estado.identidad));
+  await escribirPorLaBandeja(estado.eje, estado.identidad, firmarCon(estado.identidad), { modo: 'sequenced', sobre: p.sobre, en: p.en, payload: p.payload }, { idioma: idioma(), ...horaDe() }); // el único camino de escribir (A33)
 }
 
 /**
@@ -1695,7 +1700,8 @@ const manejadores = {
     if (!soloLee(accion) && !aro) {
       const donde = { X: sobre, pv: Number.isInteger(pv) ? pv : null };
       const campos = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, valores)?.campos ?? [] : [];
-      Object.assign(f, { modo: 'bandeja', donde, entrada: null, requeridos: campos.filter((c) => c.requerido).map((c) => c.nombre) });
+      const faltaban = queFaltan(estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, {})?.campos : []);
+      Object.assign(f, { modo: 'bandeja', donde, entrada: null, faltaban });
       const previa = bandeja()?.listar().entradas.find((e) => e.accion === accion && e.X === sobre && e.donde.X === donde.X && e.donde.pv === donde.pv);
       if (previa) Object.assign(f, { valores: { ...previa.valores }, entrada: previa.id });
       else if (!campos.some((c) => c.falta)) {
@@ -1766,8 +1772,8 @@ const manejadores = {
   bandejaAbrir(id) {
     const e = bandeja()?.listar().entradas.find((x) => x.id === id);
     if (!e || typeof e.X !== 'string' || !estado.eje?.obtener(e.X)) return;
-    const campos = formulario(estado.eje, e.X, e.accion, estado.identidad, e.valores)?.campos ?? [];
-    estado.formulario = { X: e.X, accion: e.accion, valores: { ...e.valores }, motivos: [], resultado: null, modo: 'bandeja', donde: e.donde, entrada: e.id, requeridos: campos.filter((c) => c.requerido).map((c) => c.nombre) };
+    const faltaban = queFaltan(formulario(estado.eje, e.X, e.accion, estado.identidad, {})?.campos);
+    estado.formulario = { X: e.X, accion: e.accion, valores: { ...e.valores }, motivos: [], resultado: null, modo: 'bandeja', donde: e.donde, entrada: e.id, faltaban };
     estado.aro = null;
     limpiarMensajes();
     pintar();
@@ -1803,6 +1809,7 @@ const manejadores = {
     } else {
       const motivos = motivosConGuardian(motivosEnLlano(r.motivos ?? [], estado.eje));
       estado.bandeja.motivos = [{ mensaje: t('bandejaNoRegistrado', { motivo: motivos.map((m) => m.mensaje).join(' · ') }) }];
+      estado.bandeja.motivosDe = borradorDeAhora(); // vale mientras el borrador sea este: quitar o cambiar algo lo deja viejo
     }
     estado.bandeja.clave = null; // otra prueba en seco con lo de ahora
     pintar();
@@ -2300,10 +2307,10 @@ const manejadores = {
     try {
       await escribirPreferencias(valores);
       const ajustesGuia = guia.ajustesEditables(estado.eje, estado.identidad, valoresGuia);
-      if (ajustesGuia?.cambiado) await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: ajustesGuia.sobre, en: ajustesGuia.en, payload: ajustesGuia.payload, ...horaDe() }, privadaDe(estado.identidad));
+      if (ajustesGuia?.cambiado) await escribirPorLaBandeja(estado.eje, estado.identidad, firmarCon(estado.identidad), { modo: 'sequenced', sobre: ajustesGuia.sobre, en: ajustesGuia.en, payload: ajustesGuia.payload }, { idioma: idioma(), ...horaDe() });
       // Los ajustes del exterior (relé, archivos, sello): otro registro más en el 9 del alta, con la misma forma que el de la guía.
       const ajustesExterior = guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, estado.eje, estado.identidad, valoresExterior);
-      if (ajustesExterior?.cambiado) await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: ajustesExterior.sobre, en: ajustesExterior.en, payload: ajustesExterior.payload, ...horaDe() }, privadaDe(estado.identidad));
+      if (ajustesExterior?.cambiado) await escribirPorLaBandeja(estado.eje, estado.identidad, firmarCon(estado.identidad), { modo: 'sequenced', sobre: ajustesExterior.sobre, en: ajustesExterior.en, payload: ajustesExterior.payload }, { idioma: idioma(), ...horaDe() });
       if (valoresSegundo.family) {
         const familias = valoresSegundo.family.split(/[\s,]+/).filter(Boolean);
         const r = await enviar(estado.eje, estado.eje.alta(estado.identidad).id, 'second factor', { family: familias.length === 1 ? familias[0] : familias, amount: Number(valoresSegundo.amount || 0), ...(valoresSegundo.holder ? { holder: valoresSegundo.holder } : {}) }, estado.identidad, firmarCon(estado.identidad));
@@ -2345,7 +2352,8 @@ const manejadores = {
       // Lo escrito desde el centro del aro en edición: hecho, se cierra. Desde el aro de un hueco (issue #22): el elemento
       // nuevo existe y se abre su aro (en su 2, «adjuntar un archivo»), en el mismo sitio.
       estado.aro = nuevo ? { X: ev.id, pv: null, ancla: estado.aro?.ancla ?? null, editar: false } : null;
-      estado.exito = t(nuevo ? 'creado' : 'escrito', { id: ev.id.slice(0, 8), pv, X: X.slice(0, 8) }) + (ev.firma ? ' ' + t('firmado') : '');
+      // Como la bandeja: qué se ha registrado, sin ids.
+      estado.exito = t(nuevo ? 'creado' : 'escrito', { texto }) + (ev.firma ? ' ' + t('firmado') : '');
       estado.aviso = '';
       tocar(X, 'escribir ' + pv);
       marcarNuevos();
@@ -2445,7 +2453,7 @@ const manejadores = {
     try {
       const r = registroDeFormato(estado.eje, estado.identidad, { [clave]: valor });
       if (!r) throw new Error(t('sinAlta'));
-      await salida.escribirDesde(estado.eje, { modo: 'sequenced', autor: estado.identidad, sobre: r.sobre, en: r.en, payload: r.payload, ...horaDe() }, privadaDe(estado.identidad));
+      await escribirPorLaBandeja(estado.eje, estado.identidad, firmarCon(estado.identidad), { modo: 'sequenced', sobre: r.sobre, en: r.en, payload: r.payload }, { idioma: idioma(), ...horaDe() }); // el único camino de escribir (A33)
       guardar();
       estado.aviso = '';
     } catch (e) {

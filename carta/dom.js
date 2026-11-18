@@ -1654,7 +1654,7 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
   const etiqueta = `role="group" aria-label="${attr(t('franjaTitulo', { que: a.etiqueta ?? '' }))}"`;
   if (marca) {
     const dest = conDestacada && a.destacada ? a.nombradas.concat(a.resto).find((x) => x.id === a.destacada) : null;
-    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small></span>${htmlMarcaDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;
+    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small>${htmlMarcaDeLaBandeja(bandejaEnPantalla, X, a.pv)}</span>`; // la marca de la bandeja, dentro: en la misma línea (A33)
   }
   const nombradas = a.nombradas.filter((x) => x.id !== sin);
   const resto = a.resto.filter((x) => x.id !== sin);
@@ -2383,7 +2383,7 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
       const control = c.opciones
         ? `<select id="${id}" name="${attr(c.nombre)}">${c.opciones.map((o) => `<option value="${attr(o)}" ${o === valor ? 'selected' : ''}>${escapar(o)}</option>`).join('')}</select>`
         : `<input id="${id}" name="${attr(c.nombre)}" type="text" value="${attr(valor)}" required autocomplete="${c.nombre === 'nombre' ? 'name' : 'off'}" placeholder="${attr((c.marcador ?? []).join(' · '))}" title="${attr(c.ayuda ?? '')}">`;
-      return `<div class="campo"><label for="${id}">${escapar(c.etiqueta)} <small class="numero">${c.pv}</small></label>${control}<small class="ayuda">${escapar(c.ayuda ?? '')}</small></div>`;
+      return `<div class="campo"><label for="${id}">${escapar(c.etiqueta)}</label>${control}<small class="ayuda">${escapar(c.ayuda ?? '')}</small></div>`;
     }).join('');
     // Un libro nuevo con mi clave (A24, §4.2): el mismo formulario; la clave es la del libro abierto.
     const titulo = ar.conMiClave ? t('libroNuevoConMiClave') : ar.conClave ? t('personaNueva') : t('crearMiCuenta');
