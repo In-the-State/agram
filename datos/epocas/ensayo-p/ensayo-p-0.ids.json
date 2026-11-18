@@ -1,12 +1,12 @@
 {
-  "epoca": "4facc0c13043feda027988b01e61492cb705c434b72110c2f92409936e5efb35",
+  "epoca": "c217b71b44d15d4d23d79ec23d9dad404dcb486733b901d3af5da1d7f2a21cee",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
-  "registrosAlPublicar": 4,
+  "registrosAlPublicar": 5,
   "reglas": [
     {
       "nombre": "distance",
       "archivo": "distance.json",
-      "id": "e9ce6447fe7e8fa519efd9753ddf9395eeb1f3b1dbb8a0589fde82b7d8ce1772"
+      "id": "4c685b4c086b89a9ec77fe7e55d0a9653e85b452f99836a363773cec7d877135"
     },
     {
       "nombre": "P is repositioned one step at a time",
@@ -14,5 +14,15 @@
       "id": "23469b2e024e93bc5f3bb6964a288c574ffca6ef88ef3d0dd23eabbe4f48c84f"
     }
   ],
-  "plantillas": []
+  "plantillas": [
+    {
+      "nombre": "I put my P behind this",
+      "archivo": "i-put-my-p-behind-this.json",
+      "id": "251456f91906e0d14dcaa6d8fd57dbd5651c62db40de8df88833658d2c0a19f1",
+      "ocho": [
+        2,
+        10
+      ]
+    }
+  ]
 }

@@ -1,5 +1,17 @@
 [
   "P is repositioned one step at a time: P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P (up a tenth, down a tenth more, or sideways to another view of the same record without loss), keeping its origin",
-  "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P put in each view by a holder and by the author of the record (0 the same share, 1 nothing in common)",
-  "template distance from the author: distance from the author"
+  "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P that a holder has locked behind it in each view and the share the author of the record has put in each (0 the same share, 1 nothing in common)",
+  "template distance from the author: distance from the author",
+  "template I put my P behind this: I put my P behind this",
+  "template I put my P behind this param power label: P series",
+  "template I put my P behind this param power help: the P series put behind it: P of mine in the domain of the record, usually in a view of a note of mine hanging from it",
+  "template I put my P behind this param amount label: how much",
+  "template I put my P behind this param amount help: how much P is locked with the record as the exit",
+  "template I put my P behind this param criteria label: closing criteria",
+  "template I put my P behind this param criteria help: the closing template of the record, as in any anchored record",
+  "template I put my P behind this param actions label: action",
+  "template I put my P behind this param actions help: the action that writes the record",
+  "template I put my P behind this param who label: who",
+  "template I put my P behind this param who help: who writes",
+  "template I put my P behind this message: I put my P behind this: {me} puts {first ev.1.1} P behind {first it.0}"
 ]

@@ -1,5 +1,5 @@
 {
-  "id": "4facc0c13043feda027988b01e61492cb705c434b72110c2f92409936e5efb35",
+  "id": "c217b71b44d15d4d23d79ec23d9dad404dcb486733b901d3af5da1d7f2a21cee",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
   "raiz": [
     [
@@ -123,7 +123,7 @@
     ],
     [
       {
-        "ref": "e9ce6447fe7e8fa519efd9753ddf9395eeb1f3b1dbb8a0589fde82b7d8ce1772"
+        "ref": "4c685b4c086b89a9ec77fe7e55d0a9653e85b452f99836a363773cec7d877135"
       },
       {
         "ref": "23469b2e024e93bc5f3bb6964a288c574ffca6ef88ef3d0dd23eabbe4f48c84f"
@@ -176,7 +176,7 @@
                 "distance from the author"
               ],
               [
-                "=sum (((before.3 each 2.1) where first it2.0 = first it.6.5 and count it2.5 > 0 and first it2.3 != first (first it.6.5).3 and count it2.8 > 0) each (it2.1 * (1 - first it2.8))) with sum (((before.3 each 2.1) where first it2.0 = first it.6.5 and count it2.5 > 0 and first it2.3 != first (first it.6.5).3 and count it2.8 > 0) each (it2.1 * first it2.8))"
+                "=sum (((first it.6.5).2.4 where P in it2.0.0.0 and count it2.0.0.5 > 0 and first it2.3 != first (first it.6.5).3 and count it2.9 > 0) each (it2.1 * (1 - first it2.9))) with sum (((first it.6.5).2.4 where P in it2.0.0.0 and count it2.0.0.5 > 0 and first it2.3 != first (first it.6.5).3 and count it2.9 > 0) each (it2.1 * first it2.9))"
               ]
             ]
           ]
@@ -208,8 +208,20 @@
           ],
           [
             "P is repositioned one step at a time: P se reposiciona de un paso en un paso: {first ev.3} acuña P que no es un paso de su propio P (subir una décima, bajar una décima más o pasar a otro punto de vista del mismo registro sin pérdida), conservando su origen",
-            "distance: distancia: la mitad de la suma, sobre los diez puntos de vista de un registro, de la diferencia sin signo entre la proporción de P que pone en cada uno su titular y la que pone el autor del registro (0 el mismo reparto, 1 nada en común)",
-            "template distance from the author: distancia al autor"
+            "distance: distancia: la mitad de la suma, sobre los diez puntos de vista de un registro, de la diferencia sin signo entre la proporción de P que tiene detrás de él cada titular en cada uno (comprometido con el registro como salida) y la que pone el autor del registro (0 el mismo reparto, 1 nada en común)",
+            "template distance from the author: distancia al autor",
+            "template I put my P behind this: pongo mi P detrás de esto",
+            "template I put my P behind this param power label: serie de P",
+            "template I put my P behind this param power help: la serie de P que pongo detrás: P mío en el dominio del registro, normalmente en un punto de vista de una nota mía colgada de él",
+            "template I put my P behind this param amount label: cuánto",
+            "template I put my P behind this param amount help: cuánto P se bloquea con el registro como salida",
+            "template I put my P behind this param criteria label: criterio de cierre",
+            "template I put my P behind this param criteria help: la plantilla de cerrado, como en todo registro anclado",
+            "template I put my P behind this param actions label: acción",
+            "template I put my P behind this param actions help: la acción que escribe el registro",
+            "template I put my P behind this param who label: quién",
+            "template I put my P behind this param who help: quién escribe",
+            "template I put my P behind this message: pongo mi P detrás de esto: {me} pone {first ev.1.1} de P detrás de {first it.0}"
           ]
         ],
         [
@@ -219,9 +231,34 @@
           ],
           [
             "P is repositioned one step at a time: P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P (up a tenth, down a tenth more, or sideways to another view of the same record without loss), keeping its origin",
-            "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P put in each view by a holder and by the author of the record (0 the same share, 1 nothing in common)",
-            "template distance from the author: distance from the author"
+            "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P that a holder has locked behind it in each view and the share the author of the record has put in each (0 the same share, 1 nothing in common)",
+            "template distance from the author: distance from the author",
+            "template I put my P behind this: I put my P behind this",
+            "template I put my P behind this param power label: P series",
+            "template I put my P behind this param power help: the P series put behind it: P of mine in the domain of the record, usually in a view of a note of mine hanging from it",
+            "template I put my P behind this param amount label: how much",
+            "template I put my P behind this param amount help: how much P is locked with the record as the exit",
+            "template I put my P behind this param criteria label: closing criteria",
+            "template I put my P behind this param criteria help: the closing template of the record, as in any anchored record",
+            "template I put my P behind this param actions label: action",
+            "template I put my P behind this param actions help: the action that writes the record",
+            "template I put my P behind this param who label: who",
+            "template I put my P behind this param who help: who writes",
+            "template I put my P behind this message: I put my P behind this: {me} puts {first ev.1.1} P behind {first it.0}"
           ]
+        ]
+      ],
+      {
+        "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+      },
+      [
+        {
+          "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+        },
+        [
+          {
+            "ref": "251456f91906e0d14dcaa6d8fd57dbd5651c62db40de8df88833658d2c0a19f1"
+          }
         ]
       ]
     ]
@@ -232,14 +269,15 @@
         "distance"
       ],
       [
+        "X.2.4",
         "A.2.1",
         "epoch.1.1.1"
       ],
       [
-        "=(epoch where sum (((first it.3).2.1 where first it3.0 = first it.0 and count it3.5 > 0) each 1) > 0 and sum (((first (first it.0).3).2.1 where first it3.0 = first it.0 and count it3.5 > 0) each 1) > 0) each (1 - sum ((0 with 1 with 2 with 3 with 4 with 5 with 6 with 7 with 8 with 9) each (min (sum (((first it.3).2.1 where first it4.0 = first it.0 and it4.5 = it3) each 1) / sum (((first it.3).2.1 where first it4.0 = first it.0 and count it4.5 > 0) each 1) with sum (((first (first it.0).3).2.1 where first it4.0 = first it.0 and it4.5 = it3) each 1) / sum (((first (first it.0).3).2.1 where first it4.0 = first it.0 and count it4.5 > 0) each 1)))))"
+        "=(epoch where first it.3 != first (first it.5).3 and count (((first it.5).2.4 where P in it3.0.0.0 and count it3.0.0.5 > 0 and first it3.3 = first it.3) each 1) > 0 and count (((first (first it.5).3).2.1 where first it3.0 = first it.5 and count it3.5 > 0) each 1) > 0) each (1 - sum ((0 with 1 with 2 with 3 with 4 with 5 with 6 with 7 with 8 with 9) each (min (sum (((first it.5).2.4 where P in it4.0.0.0 and first it4.3 = first it.3 and it4.0.0.5 = it3) each 1) / sum (((first it.5).2.4 where P in it4.0.0.0 and first it4.3 = first it.3 and count it4.0.0.5 > 0) each 1) with sum (((first (first it.5).3).2.1 where first it4.0 = first it.5 and it4.5 = it3) each 1) / sum (((first (first it.5).3).2.1 where first it4.0 = first it.5 and count it4.5 > 0) each 1)))))"
       ],
       [
-        "A.2.1.8"
+        "X.2.4.9"
       ],
       [
         "read"
@@ -248,10 +286,10 @@
         "*"
       ],
       [
-        "VG 18-11, por Core State (ensayo de P): el criterio de una persona sobre un registro son diez medidas, el reparto de su P entre los diez puntos de vista del registro; se compara en proporciones, no en cantidades; cerca del reparto del autor es apoyo, lejos es crítica, y nadie dice el sentido",
-        "Reparto de A sobre X: para cada punto de vista d (el 5 de cada entrada de A.2.1; los dígitos 0 a 9 van escritos en la fórmula, porque el BQL mínimo no enumera las diez etiquetas del 1.1.1: si la época cambia sus puntos de vista, hay que cambiarlos aquí), el P de A en X.d entre todo el P de A en puntos de vista de X (el P sobre el registro entero no cuenta); diez proporciones que suman 1; sin P en puntos de vista de X no hay reparto, y la lectura no da nada",
-        "Distancia de A al autor de X: la mitad de la suma, sobre los diez puntos de vista, de la diferencia sin signo entre la proporción de A y la del autor; como los dos repartos suman 1, es lo mismo que 1 menos la suma de los mínimos, que es lo que escribe la fórmula (el BQL mínimo no tiene valor absoluto). 0 es el mismo reparto; 1, nada en común",
-        "Sujeto: una entrada de A.2.1 (el registro en su 0, el titular en su 3); da lo mismo en todas las entradas del mismo registro de la misma persona. Los it del BQL mínimo cuentan desde fuera: it es la entrada; el where de la época (it2) no la cambia; dentro de él, it3 es la entrada candidata; en el each de los dígitos, it3 es el dígito y it4 la entrada candidata"
+        "VG 18-11, por Core State (ensayo de P; encargo P-3a): poner P detrás de algo no pide permiso a su autor, así que la lectura mira el P que cada persona COMPROMETE con X (bloqueado en su mano con X como salida, «I put my P behind this»), no el que posiciona en X; cerca del reparto del autor es apoyo, lejos es crítica, y nadie dice el sentido",
+        "Reparto de A sobre X, para quien no es el autor: de todo el P de A bloqueado con X como salida y que está en un punto de vista (el 5 de su serie, el 0.0.5; los dígitos 0 a 9 van escritos en la fórmula, porque el BQL mínimo no enumera las diez etiquetas del 1.1.1: si la época cambia sus puntos de vista, hay que cambiarlos aquí), la proporción que hay en cada punto de vista d. El P bloqueado sin punto de vista no cuenta; sin P bloqueado en puntos de vista no hay reparto, y la lectura no da nada. Reparto del autor: su P posicionado en los puntos de vista de X (A.2.1), como en la primera versión de esta lectura. El autor no tiene lectura (no se compara consigo)",
+        "Distancia de A al autor de X: la mitad de la suma, sobre los diez puntos de vista, de la diferencia sin signo entre la proporción de A y la del autor; como los dos repartos suman 1, es lo mismo que 1 menos la suma de los mínimos, que es lo que escribe la fórmula (el BQL mínimo no tiene valor absoluto). 0 es el mismo reparto; 1, nada en común. Se compara en proporciones, no en cantidades",
+        "Sujeto: un compromiso con X (una entrada de X.2.4: 0 la serie, 1 cuánto, 3 el titular, 5 X); da lo mismo en todos los compromisos de la misma persona con X. Se materializa en X.2.4.9 y no en A.2.1.8 (donde estaba): una entrada de A.2.1 es por registro y puede llevar P bloqueado con varias salidas, y la lectura es de A sobre UNA X; el 7 y el 8 de X.2.4 son de «support of» y «weight». Los it del BQL mínimo cuentan desde fuera: it es el compromiso; el where de la época (it2) no lo cambia; dentro de él, it3 es la entrada candidata; en el each de los dígitos, it3 es el dígito y it4 la entrada candidata"
       ],
       [
         "P rehearsal epoch 0"
@@ -260,7 +298,7 @@
         "after weight"
       ],
       [
-        "distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P put in each view by a holder and by the author of the record (0 the same share, 1 nothing in common)"
+        "distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P that a holder has locked behind it in each view and the share the author of the record has put in each (0 the same share, 1 nothing in common)"
       ]
     ],
     [
@@ -303,6 +341,210 @@
       ],
       [
         "P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin"
+      ]
+    ],
+    [
+      [
+        "I put my P behind this"
+      ],
+      [
+        [
+          [
+            "power"
+          ],
+          [
+            "text"
+          ],
+          [
+            "=count before.4.(it) > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.0"
+          ],
+          [
+            "ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"
+          ],
+          [
+            "required"
+          ],
+          [
+            1
+          ],
+          [
+            "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and last (path it where first it3.3 = first it.3) in path (first it2.0.0.1)) each 0)",
+            "the P series put behind it: P of mine in the domain of X, usually in a view of a note of mine hanging from X"
+          ]
+        ],
+        [
+          [
+            "amount"
+          ],
+          [
+            "number"
+          ],
+          [
+            "=it > 0"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "1.1"
+          ],
+          [
+            "ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"
+          ],
+          [
+            "required"
+          ],
+          [
+            2
+          ],
+          [
+            "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and last (path it where first it3.3 = first it.3) in path (first it2.0.0.1)) each 1)",
+            "how much P is locked with X as the exit"
+          ]
+        ],
+        [
+          [
+            "criteria"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "2"
+          ],
+          [
+            "ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"
+          ],
+          [
+            "required"
+          ],
+          [
+            3
+          ],
+          [
+            "=first epoch.9.0.1.2",
+            "the closing template of the record"
+          ]
+        ],
+        [
+          [
+            "actions"
+          ],
+          [
+            "text"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "4"
+          ],
+          [
+            "ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"
+          ],
+          [
+            "required"
+          ],
+          [
+            4
+          ],
+          [
+            "I put my P behind this",
+            "the action"
+          ]
+        ],
+        [
+          [
+            "who"
+          ],
+          [
+            "identity"
+          ],
+          [
+            "any"
+          ],
+          [
+            "me"
+          ],
+          [
+            "payload"
+          ],
+          [
+            "3"
+          ],
+          [
+            "ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"
+          ],
+          [
+            "required"
+          ],
+          [
+            5
+          ],
+          [
+            "=me",
+            "who writes"
+          ]
+        ]
+      ],
+      [
+        "=first it.3 != me and not (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (count (me.1 where P in it2.0.0.0 and it2.1 > 0 and last (path it where first it3.3 = first it.3) in path (first it2.0.0.1)) > 0)"
+      ],
+      [
+        [
+          "me"
+        ],
+        [
+          "person"
+        ]
+      ],
+      [
+        "=lock first memo.1.1 before.4.(first memo.1.0) from me exit it"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "VG 18-11 (por Core State; encargo P-3a): poner P detrás de algo no pide permiso a su autor. Quien no es el autor de X tiene su P en algo suyo dentro del dominio de X (una nota suya colgada de X), lo reparte entre los puntos de vista de SU nota (que es suya) y lo COMPROMETE con X: lo bloquea en su mano con X como salida, igual que «commit P». Su P nunca aterriza en X, así que la regla «P comes down to a thing of another with its owner's yes» no entra en juego. La lectura «distance» lee ese P comprometido (X.2.4.9)",
+        "Molde de «commit P» (época 0, [2, 1]) sin la mirada del voto (aquí no se vota una decisión: no hay nada que decir de mirada; el payload no admite un hueco en el 2, y ahí va, como en «withdraw support», el criterio de cierre por defecto) y con otra condición para ofrecerse: solo sobre un registro de otra persona (el 3 de X no soy yo) y, como allí, no sobre un enlace entre libros («only a send locks for another book»). Parámetros: la serie (por defecto, una mía con P en el dominio de X) y cuánto. Mueve lo mismo que «commit P»: bloquea esa cantidad en mi mano con X como salida; no cambia el titular ni el origen de nada",
+        "[2, 10]: en el punto de vista 2, junto a «commit P» ([2, 1]), detrás de «attach art to this element» ([2, 9]) y antes de «let P come down here» ([2, 12])"
+      ],
+      [
+        "P rehearsal epoch 0"
+      ],
+      [
+        2,
+        10
+      ],
+      [
+        "I put my P behind this: {me} puts {first ev.1.1} P behind {first it.0}"
       ]
     ]
   ]
