@@ -10,10 +10,12 @@ import { dirname } from 'node:path';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { generadorDeHija } from '../hija.mjs';
 
-const hija = generadorDeHija({ aqui: dirname(fileURLToPath(import.meta.url)), nombre: 'ensayo-p-0' });
+// Con su copia importable (ensayo-p-0.js, EPOCA_DE_ENSAYO_P_DATOS): el ejemplo «criterio» de la carta la importa (el navegador no lee JSON).
+const hija = generadorDeHija({ aqui: dirname(fileURLToPath(import.meta.url)), nombre: 'ensayo-p-0', importable: 'EPOCA_DE_ENSAYO_P_DATOS' });
 
 export const ARCHIVO = hija.ARCHIVO;
 export const ARCHIVO_IDS = hija.ARCHIVO_IDS;
+export const ARCHIVO_IMPORTABLE = hija.ARCHIVO_IMPORTABLE;
 
 /** La época de ensayo de P, generada desde su fuente (sin escribir nada): { raiz, registros, id, hereda, reglas, plantillas, informe, fallos }. */
 export const generar = () => hija.generar();
