@@ -51,6 +51,7 @@ import { esInstante, msUTC } from './instante.js';
 import { contenido } from './modos.js';
 import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeLectura, nombreDeRegla, esFormula, leerFormula, limitesDeEpoca } from './bqlm.js';
 import { epocaDelEje } from './epocas.js';
+import { LECTURAS_PROVISIONALES } from './provisional.js';
 
 /** Quien está al otro lado de una emisión o de un consumo: el símbolo de src/bqlm.js, nunca un texto (SEG-11). */
 export { NADIE };
@@ -188,7 +189,12 @@ export class ContextoEje {
     this.#registrosDeEpoca = epoch?.registros instanceof Map ? epoch.registros : new Map();
     this.#idEpoca = typeof epoch?.id === 'string' ? epoch.id : null;
     this.#epocaCargada = epoch && !Array.isArray(epoch) && Array.isArray(epoch.registro) ? epoch : undefined;
-    for (const regla of Array.isArray(epoch?.lecturas) ? epoch.lecturas : []) {
+    // Las de la época y, detrás, las provisionales (src/provisional.js: lo que irá a la 0 en su pasada única) que la época
+    // no tenga con su nombre: lo provisional nunca tapa a la época. Solo con una época cargada (sus lecturas).
+    const deLaEpoca = Array.isArray(epoch?.lecturas) ? epoch.lecturas : [];
+    const nombres = new Set(deLaEpoca.map((r) => nombreDeRegla(r)));
+    const provisionales = deLaEpoca.length ? LECTURAS_PROVISIONALES.filter((r) => !nombres.has(nombreDeRegla(r))) : [];
+    for (const regla of [...deLaEpoca, ...provisionales]) {
       const donde = posicionDeLectura(regla);
       if (typeof donde !== 'string') continue;
       if (!this.#lecturas.has(donde)) this.#lecturas.set(donde, []);

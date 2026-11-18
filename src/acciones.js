@@ -55,8 +55,9 @@ import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
 import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
-import { recuento, cerrado as cerradoDe } from './motor.js';
+import { recuento, cerrado as cerradoDe, loQueFalta } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
+import { resolverTipo, valeElValor } from './tipos.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
 
@@ -79,7 +80,6 @@ const SITIO = Object.freeze({
   estaciones: [4, 2], // [[familia], [qué se hace], [la plantilla que cumple un movimiento anunciado]]
   estacionesDelAnuncio: [4, 3], // [[nombre], [lo que la comprueba: una fórmula con it = el anuncio, o epoch.9.0.0]] (VG 12-11, decisión 8)
   identidad: [3, 0], // la plantilla de identidad: su 9 es el tutorial del alta
-  recuentos: [9, 0, 0, 1], // las plantillas de recuento: [[nombre], [fórmula]]
   dia: [7, 0, 3, 1], // los segundos de un día del calendario
   revisiones: [9, 0, 4, 1], // las lecturas de revisión del modo de ejecución: [[nombre], [fórmula]] (VG 12-11, #71.1)
 });
@@ -241,8 +241,12 @@ function escalaDelParametro(prep) {
   return Number.isSafeInteger(v) && v >= 0 && v < ESCALAS_REALES.length ? ESCALAS_REALES[v] : null;
 }
 
-/** Qué del archivo adjunto pide un parámetro (su 4 «file»): 'ref' (su referencia) o 'format' (su formato); null si no pide un archivo. */
-export const archivoDe = (p) => (p?.destino?.que === 'file' ? p.destino.para : null);
+/**
+ * Qué del archivo adjunto pide un parámetro: su faceta si su tipo es de base file (Core AGRAM 18-11, src/tipos.js: 'ref',
+ * 'format' o 'size') o, como hasta la pasada única por la época 0, lo que dice su 4 «file» ('ref' o 'format'); null si no
+ * pide un archivo.
+ */
+export const archivoDe = (p) => (p?.base === 'file' ? p.faceta : p?.destino?.que === 'file' ? p.destino.para : null);
 
 /** Una posición del registro, «1.2» (lo que no lo es, un hueco con nombre «{parámetro}», no se escribe en él). */
 const RE_POSICION = /^\d(\.\d)*$/;
@@ -255,6 +259,11 @@ const RE_POSICION = /^\d(\.\d)*$/;
  * son las hojas del 9 menos la ayuda (una fórmula «=…» se evalúa sobre it = X, me y la candidata). `nombre` es el
  * canónico (inglés); `etiqueta` y `ayuda`, con `opciones.idioma`, su traducción (epoch.9.4: «template <nombre> param
  * <etiqueta> label | help»).
+ * El tipo (Core AGRAM 18-11, src/tipos.js): `tipo` es su tipo base (el control; lo que lee la carta, como siempre), `declarado`
+ * el tipo declarado por la época que nombra su 1 (o null), `faceta` la de file o book, `validaciones` todas las que tiene
+ * que pasar el valor en su orden (la forma de la faceta, la cadena del tipo de abajo arriba y al final la del parámetro,
+ * `validacion`), `opcionesDelTipo` la fórmula de opciones de su tipo y `errorDeTipo` el motivo si el tipo no se resuelve.
+ * La ayuda, la del parámetro o, si no tiene, la de su tipo.
  */
 export function parametros(plantilla, opciones = {}) {
   const nombre = nombreDeAccion(plantilla);
@@ -262,16 +271,27 @@ export function parametros(plantilla, opciones = {}) {
   const lista = Array.isArray(plantilla?.[1]) ? plantilla[1].filter((p) => Array.isArray(p) && esDecupla(p)) : [];
   return lista.map((p) => {
     const k = texto(hoja(p[0]));
+    const validacion = esFormula(texto(ultima(p[2]))) ? texto(ultima(p[2])) : null;
+    const delTipo = resolverTipo(hojas(p[1]), opciones);
+    // La ayuda es la última hoja del 9 si es un texto; sin ella, la de su tipo; si no, lo de siempre.
+    const ultimaDel9 = ultima(p[9]);
+    const ayuda = (typeof ultimaDel9 === 'string' && !esFormula(ultimaDel9) ? ultimaDel9 : null) ?? delTipo.ayuda ?? texto(ultimaDel9) ?? '';
     return {
       nombre: k,
       etiqueta: t(claves.parametro(nombre, k, 'label'), k),
-      tipo: texto(hoja(p[1])) ?? 'text',
-      validacion: esFormula(texto(ultima(p[2]))) ? texto(ultima(p[2])) : null,
+      tipo: delTipo.base ?? texto(hoja(p[1])) ?? 'text',
+      declarado: delTipo.nombre,
+      base: delTipo.base,
+      faceta: delTipo.faceta,
+      validaciones: Object.freeze([...delTipo.validaciones, ...(validacion ? [Object.freeze({ de: 'parámetro', formula: validacion })] : [])]),
+      opcionesDelTipo: delTipo.opciones,
+      errorDeTipo: delTipo.error,
+      validacion,
       posicion: RE_POSICION.test(texto(hoja(p[5])) ?? '') ? texto(hoja(p[5])) : null,
       // «required if signed»: obligatorio solo si el eje exige firmas (VG 13-11, #75: la clave de una cosa)
       requerido: hoja(p[7]) === 'required' || (hoja(p[7]) === 'required if signed' && (opciones.exigirFirmas ?? opciones.eje?.exigirFirmas) === true),
       defectos: hojas(p[9]).slice(0, -1),
-      ayuda: t(claves.parametro(nombre, k, 'help'), texto(ultima(p[9])) ?? ''),
+      ayuda: t(claves.parametro(nombre, k, 'help'), ayuda),
       orden: Number(hoja(p[8])) || 0,
       destino: destinoDe(p[4]),
     };
@@ -385,12 +405,21 @@ function preparar(eje, plantilla, X, yo, params, { t, epoca, idioma }) {
   // Validar: lo requerido está, y cada valor cumple su 2.
   const ctx = contextoDe(eje, epoca, { ev: candidata, me: yo });
   for (const p of lista) {
+    // Un tipo que no se resuelve (desconocido, un ciclo, más de cuatro saltos, una capa que cambia la base) es un error
+    // de la época: el parámetro no vale nunca.
+    if (p.errorDeTipo) {
+      motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.errorDeTipo, parametro: p.nombre, estado: 'ERROR' });
+      continue;
+    }
     const v = valores[p.nombre];
     if (v === undefined) {
       if (p.requerido) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
       continue;
     }
-    if (p.validacion && !cumple(p.validacion, ctx, sujetoDeValor(v))) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
+    // Todas sus validaciones, en su orden (la forma de la faceta, las de su tipo y la suya): la primera que no pasa lo dice.
+    const r = valeElValor(p.validaciones, v, ctx, { sujeto: sujetoDeValor(v) });
+    // La forma del motivo es la de siempre; cuál de las validaciones no pasó lo dirá el porqué (NUCLEO_6_7_8 §8).
+    if (!r.ok) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
   }
   for (const h of huecos(payload)) motivos.push({ regla: nombre, mensaje: motivoDe('position without value', { name: nombre, position: h }, { idioma, epoca }) });
   return { sobre: candidata.sobre, en: candidata.en, payload, valores, parametros: lista, motivos, candidata };
@@ -438,7 +467,7 @@ export function acciones(eje, X, k, yo, opciones = {}) {
       id,
       etiqueta: textoDe(eje, claves.plantilla(nombre), idioma, { original: nombre, epoca }),
       plantilla,
-      parametros: lista.map((p) => ({ nombre: p.nombre, etiqueta: p.etiqueta, tipo: p.tipo, requerido: p.requerido, ayuda: p.ayuda, posicion: p.posicion, valor: valores[p.nombre], falta: p.requerido && valores[p.nombre] === undefined, archivo: archivoDe(p) })),
+      parametros: lista.map((p) => ({ nombre: p.nombre, etiqueta: p.etiqueta, tipo: p.tipo, requerido: p.requerido, ayuda: p.ayuda, posicion: p.posicion, valor: valores[p.nombre], falta: p.requerido && valores[p.nombre] === undefined, archivo: archivoDe(p), base: p.base, faceta: p.faceta, declarado: p.declarado })),
       porDefecto: fuera.length === 0,
       lectura: esLectura(plantilla),
       camino: esCamino(plantilla),
@@ -1677,7 +1706,10 @@ export async function camino(eje, X, yo, opciones = {}) {
   const estacionDe = new Map(estacionesDeLaEpoca(opciones).map((e) => [e.familia, e]));
   // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) no pide pasos: lo anunciado que quedó pendiente ya no se espera.
   const sinPasos = ['error', 'caducado', 'decidido'].includes(cerradoDe(eje, ev.id).fin);
-  const pendientes = sinPasos ? [] : (valores('("' + ev.id + '").4.8', ctx).valores ?? []).filter((x) => typeof x === 'string').map((id) => eje.obtener(id)).filter(Boolean);
+  // Lo que falta lo dice la lectura de la época en X.4.9 (motor.loQueFalta; Core AGRAM 18-11, NUCLEO_6_7_8 §6): sus filas
+  // nombran los anuncios pendientes, por llegada, y la acción de quien tiene que actuar en cada uno.
+  const filas = sinPasos ? [] : loQueFalta(eje, ev.id).filas;
+  const pendientes = [...new Set(filas.filter((f) => typeof f.sobre === 'string' && f.sobre !== ev.id).map((f) => f.sobre))].map((id) => eje.obtener(id)).filter(Boolean);
   for (const anuncio of pendientes) {
     const a = anuncioDe(anuncio);
     if (!a) continue;
@@ -1689,23 +1721,25 @@ export async function camino(eje, X, yo, opciones = {}) {
       // En llano (época 0 final, #9 del añadido): cuánto por su nombre, de quién y a quién por su 0, con el formato de la
       // época («legible announced movement»); sin destino resuelto (a: null), sin «a» (repaso beta #2: nunca «→ null»).
       const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ? a.que + ': ' : '') + ms.map((m) => movimientoLegible(eje, m, idioma, opciones)).join('; ');
-      const estacion = estacionDe.get(partirClave(ms[0].serie).token);
-      if (de === yo && estacion) {
-        const paso = mio(estacion.plantilla, { announcement: { ref: anuncio.id } });
+      // La acción, la que dice la fila de quien mueve; si ya no le falta nada de ese anuncio, la de la estación de su familia.
+      const accion = filas.find((f) => f.sobre === anuncio.id && f.de.includes(de))?.accion ?? estacionDe.get(partirClave(ms[0].serie).token)?.plantilla;
+      if (de === yo && accion) {
+        const paso = mio(accion, { announcement: { ref: anuncio.id } });
         if (paso) { pasos.push({ fuente: 'reglas', regla: 'stage', ...paso, falta: que, hecho: false, espera: null, anuncio: anuncio.id }); continue; }
       }
       pasos.push({ fuente: 'reglas', regla: 'stage', falta: que, hacer: null, espera: de, hecho: false, anuncio: anuncio.id });
     }
   }
-  // El recuento del dueño, si lo declara y no pasa.
-  const recuentos = hojas(en(raiz, SITIO.recuentos)).filter(Array.isArray).map((x) => hoja(x[0]));
-  const criterio = (valores('(("' + ev.id + '").2 where count it.5 = 0)', ctx).valores ?? []).concat(valores('(("' + ev.id + '").2.2 where count it.5 = 0)', ctx).valores ?? []);
-  if (!sinPasos && criterio.some((x) => recuentos.includes(x))) {
+  // El recuento del dueño que no pasa: su fila de X.4.9 (sobre X), con la acción que lo cumple.
+  const delRecuento = filas.find((f) => f.sobre === ev.id);
+  if (!sinPasos && delRecuento) {
     const c = recuento(eje, ev.id);
     if (c.pasa === false) {
       const que = 'the tally of ' + ev.autor + ' (' + c.plantilla + ') gives ' + c.valor + ' and asks above ' + c.umbral;
-      const ofrecida = acciones(eje, ev, 2, yo, opciones).find((a) => a.nombre === 'commit P');
-      if (ofrecida) { const paso = mio('commit P'); if (paso) pasos.push({ fuente: 'reglas', regla: 'weight', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'weight', falta: que, hacer: null, espera: ev.autor, hecho: false });
+      const nombre = delRecuento.accion;
+      const suya = plantillas.find((p) => p.nombre === nombre);
+      const ofrecida = suya ? acciones(eje, ev, suya.pv, yo, opciones).find((a) => a.nombre === nombre) : null;
+      if (ofrecida) { const paso = mio(nombre); if (paso) pasos.push({ fuente: 'reglas', regla: 'weight', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'weight', falta: que, hacer: null, espera: ev.autor, hecho: false });
     }
   }
   // Las peticiones de atención sin atender: si X es un alta, las de su dueño.

@@ -66,7 +66,7 @@ test('los cuatro pasos sobre los ejemplos: la compra, el menú, la cuenta, la re
   assert.deepEqual(pasos(abierta.eje, abierta.reserva.id).ciclo, { pv: 4, k: 0, de: 2 });
   const { eje: e2, reserva: r2 } = await ejemploReserva({ confirmar: false });
   const { siguiente } = await import('../src/motor.js');
-  const [{ transaccion: tx }] = siguiente(e2, r2.id, 'casa').faltaDeMi.filter((x) => x.plantilla === 'move what was announced');
+  const [{ transaccion: tx }] = siguiente(e2, r2.id, 'casa').faltaDeMi.filter((x) => x.anuncio);
   await e2.escribir({ autor: 'casa', sobre: tx.sobre, en: tx.en, t: '2026-11-09T09:00:00Z', movimientos: [minuto('casa'), ...tx.movimientos.slice(1)], payload: 'Plaza entregada' });
   assert.deepEqual(pasos(e2, r2.id).ciclo, { pv: 4, k: 1, de: 2 }, 'entregadas las plazas (sobre su anuncio), falta el pago');
   // La tarea de Tasks también anuncia movimientos en su 4.1.

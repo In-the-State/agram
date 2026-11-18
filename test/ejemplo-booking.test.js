@@ -323,7 +323,7 @@ test('el ciclo: cada parte escribe su propio movimiento sobre la reserva (la cas
   const deLaCasa = siguiente(eje, reserva.id, CASA);
   assert.deepEqual(deLaCasa.faltaDeMi.map((x) => [x.que, x.anuncio, x.transaccion.sobre]), [[['2026-11-20', '2026-11-21', '2026-11-22'].map((n) => 'mover 1 ' + seriePlaza(habitacion.id, PLAZAS.individual, n) + ' de casa a huesped').join('; '), anuncioNoches.id, anuncioNoches.id]]);
   const deLaHuesped = siguiente(eje, reserva.id, 'huesped');
-  assert.deepEqual(deLaHuesped.faltaDeMi.map((x) => [x.que, x.plantilla]), [['mover 165 ' + EUR + ' de huesped a casa', 'move what was announced']]);
+  assert.deepEqual(deLaHuesped.faltaDeMi.map((x) => [x.que, x.plantilla]), [['mover 165 ' + EUR + ' de huesped a casa', 'pay']]); // la acción de la estación de E (epoch.4.2), por la lectura X.4.9
   assert.equal(deLaHuesped.espera.length, 3);
   // Recepción no tiene nada que mover en esta reserva.
   assert.deepEqual(siguiente(eje, reserva.id, 'recepcion').faltaDeMi, []);

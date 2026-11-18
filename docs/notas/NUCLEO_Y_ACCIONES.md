@@ -6,7 +6,7 @@ Regla de VG: una acción (lo que el código llama «plantilla de transacción»)
 - **Qué cuenta:** solo una cadena literal entera igual al nombre.
 - **Dónde se mide:** `src/*.js` y `src/condiciones/*.js`, sin `vendor`.
 
-**Medida:** 41 nombres distintos, en 45 pares archivo y nombre.
+**Medida:** 41 nombres distintos, en 45 pares archivo y nombre. Desde el núcleo 6 (Core AGRAM 18-11: lo que falta se lee de X.4.9), 40 en 43: «commit P» deja `acciones.js` y `motor.js`.
 
 **Clases:**
 - **A, suelo:** la época 0 lo guarda en su suelo (`epoch.7.9.6`) o en sus piezas de gobierno (`epoch.7.9.7`), y la prueba lo comprueba en los datos. Es una lista cerrada: solo cambia con una decisión.
@@ -23,12 +23,11 @@ Regla de VG: una acción (lo que el código llama «plantilla de transacción»)
 | declare a balance | suelo.js:307 | La declaración de saldo: a ese registro solo se le prueban las reglas del suelo (7.9.6) |
 | propose a change, enact a change, put a change in force, withdraw a change, support a change, withdraw support | versiones.js:19-25 | Gobierno de la época: piezas de gobierno (7.9.7) |
 
-## B: deuda (27 nombres; solo encoge)
+## B: deuda (26 nombres; solo encoge)
 
 | Nombre | Dónde | Motivo |
 |---|---|---|
 | second factor | acciones.js:1174-1175 | **Dudoso.** El segundo factor (SIP 0 de StateArk) por su acción y su lectura. ¿Es suelo de todo libro con guardián, o una acción de la 0 que el código no debería nombrar? |
-| commit P | acciones.js:1707-1708 | El camino ofrece «commit P» para el recuento por su nombre |
 | attend | acciones.js:1717 | El camino ofrece «attend» a las peticiones de atención |
 | expire something mine | acciones.js:1730 | El camino ofrece la caducidad de una serie propia |
 | ask for more firmness | anclas.js:19 | La acción de la 0 que pide más firmeza |
@@ -41,7 +40,6 @@ Regla de VG: una acción (lo que el código llama «plantilla de transacción»)
 | remove someone | elegibles.js:82 | La acción de quitar (pv3) |
 | a zone of the face, a step of the guide | guia-libro.js:22 | Las dos plantillas de la época guia-libro |
 | close with error, expire, close by decision | motor.js:318-321 | **Dudoso.** Los finales del proceso en `motor.cerrado`. ¿Son el formato mismo del proceso, como el alta, o acciones de la 0? Hoy no están en 7.9.6 |
-| commit P | motor.js:446 | El motor arma una «commit P» para lo que falta del recuento |
 | anchor here | nota-detalle.js:31 | La nota de detalle del volcado: la convención de la plantilla más común de la 0 |
 | remove someone, admit someone | tres.js:31-33 | Las cajas del 3: admitir y quitar por su nombre |
 
