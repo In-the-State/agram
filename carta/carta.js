@@ -997,7 +997,7 @@ export function coincidenciaEntera(entradas, texto) {
 
 /**
  * El aro sobre X: ocho sitios, uno por PV lateral, dispuestos como la matriz 3 × 3 sin centro (`celda`: [fila, columna] de
- * GEOMETRIA; el centro es el propio elemento). Cada sitio trae su acción por defecto (`accionPorDefecto`: la primera de
+ * los sitios del libro, sitiosDe(ctx); el centro es el propio elemento). Cada sitio trae su acción por defecto (`accionPorDefecto`: la primera de
  * acciones.acciones, lo que hace un clic), las demás (`alternativas`) y los valores posibles de su posición (`opciones`:
  * contrato.opciones, para escribirlos): lo que despliega el clic mantenido. `accion` y `otras` son los mismos que
  * `accionPorDefecto` y `alternativas`. El centro es el campo del elemento (su 0): `valor` (lo que dice ahora), `opciones0`
@@ -1007,13 +1007,13 @@ export function coincidenciaEntera(entradas, texto) {
  */
 function nodoAro(eje, X, yo, ctx) {
   const abierto = ctx.estado.aro?.pv ?? null;
-  const huecos = LATERALES.map((pv) => {
+  const huecos = sitiosDe(ctx).laterales.map((pv) => {
     const { accion, otras } = accionesDelPv(eje, X, pv, { ...ctx, yo });
     const opciones = opcionesDe(eje, X, pv, ctx);
     return {
       pv,
-      celda: [...GEOMETRIA[pv].celda],
-      lado: ctx.variantes[GEOMETRIA[pv].lado] ?? null,
+      celda: [...sitiosDe(ctx).geometria[pv].celda],
+      lado: ctx.variantes[sitiosDe(ctx).geometria[pv].lado] ?? null,
       etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones),
       accion,
       otras,
@@ -1021,10 +1021,10 @@ function nodoAro(eje, X, yo, ctx) {
       alternativas: otras,
       opciones,
       abierto: abierto === pv && (otras.length > 0 || opciones.length > 0),
-      icono: piezaDe(ctx, PIEZA.icono, CENTROS[1] ?? 5, pv, GEOMETRIA[pv].lado, tamanoDeNivel(1, ctx.opciones), { elemento: X }),
+      icono: piezaDe(ctx, PIEZA.icono, sitiosDe(ctx).centros[1] ?? 5, pv, sitiosDe(ctx).geometria[pv].lado, tamanoDeNivel(1, ctx.opciones), { elemento: X }),
     };
   });
-  const [anverso, reverso] = CENTROS;
+  const [anverso, reverso] = sitiosDe(ctx).centros;
   const texto = representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? corto(X);
   const centro = {
     pv: anverso,

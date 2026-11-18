@@ -26,6 +26,9 @@ import { html } from '../carta/dom.js';
 import * as C from '../src/contrato.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { FOTO } from './ayudas-sitios.mjs';
+import { EPOCA_0_BTML, cargarEpocaBtml, REGISTROS_DE_MODELOS } from '../src/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { LENTE_0_DATOS } from '../datos/lente/lente-0.js';
 
 const T = '2026-11-08T10:00:00Z';
 const YO = 'huesped';
@@ -228,6 +231,34 @@ test('lo muerto que se quitó: apilado, el árbol trae siempre su secuencia y nu
       assert.ok(a.secuencia, 'apilado, con secuencia');
       assert.deepEqual(a.rosetones, [], 'apilado, sin rosetones');
     }
+  }
+});
+
+test('un libro con otros sitios y pesos cambia la carta: la caja y el sitio del aro del 1, el hilo y el orden de Sequenced', async () => {
+  const datos = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
+  const sitios = JSON.parse(JSON.stringify(LENTE_0_DATOS['epoch.9.5.6']));
+  const fila = (pv) => sitios[1].find((f) => f[0][0] === pv);
+  fila(1)[1] = [0, 2]; fila(1)[4] = [2]; // el 1 y el 2 cambian de esquina
+  fila(2)[1] = [0, 0]; fila(2)[4] = [1];
+  fila(6)[4] = [1, 'future']; fila(7)[4] = [2, 'past']; // y el pasado y el futuro, de lado
+  datos[9][5][6] = sitios;
+  datos[9][5][7] = ['una posición BTML no puede quedar vacía: 9.5.7, entre las dos, lleva su nota'];
+  datos[9][5][8] = [['lens'], ['-'], ['-'], Array(10).fill('sequenced order'), [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]];
+  const epoca = cargarEpocaBtml(datos, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], plantillas: JSON.parse(JSON.stringify(PLANTILLAS_DE_EPOCA_DATOS)), id: EPOCA_0_BTML.id });
+  const { eje, compra } = await ejemploCompra();
+  const X = compra.id;
+  const pinta = (estado, [ancho, alto], conEpoca) => arbol({ foco: { X, pv: 0 }, niveles: {}, rosetones: {}, ...estado }, eje, YO, medidasDePantalla(ancho, alto), { t: T, ...(conEpoca ? { epoca } : {}) });
+  const tope = escalaDeTamanos().tope;
+  for (const [con, columna] of [[false, 0], [true, 2]]) {
+    const a = await pinta({ niveles: { 1: tope } }, PANTALLAS.ordenador, con);
+    assert.deepEqual(a.laterales.find((n) => n.pv === 1).celda, [0, columna], 'el 1 en su esquina');
+    assert.equal(a.laterales.find((n) => n.pv === 1).caja.x > 0.5, columna === 2, 'su caja, a ese lado');
+    const aro = await pinta({ aro: { X, pv: null } }, PANTALLAS.ordenador, con);
+    assert.deepEqual(aro.aro.huecos.find((h) => h.pv === 1).celda, [0, columna], 'el sitio del 1 en el aro');
+    const m = await pinta({}, PANTALLAS.movil, con);
+    assert.equal(m.secuencia.pasado?.pv, con ? 7 : 6, 'el pasado del hilo');
+    const orden = m.secuencia.filas.map((x) => x.pv);
+    assert.deepEqual(orden, [...orden].sort((p, q) => (con ? q - p : p - q)), 'el orden de Sequenced');
   }
 });
 
