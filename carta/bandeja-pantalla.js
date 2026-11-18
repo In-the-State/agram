@@ -215,3 +215,29 @@ export function htmlPieDeLaBandeja(e) {
   const archivos = (e.archivos ?? []).map((c) => `<button type="button" class="bandeja-archivo" data-nodo="control" data-bandeja-archivo="${escapar(c.nombre)}" title="${escapar(t('bandejaElegirArchivoTitulo', { campo: c.etiqueta ?? c.nombre }))}">${escapar(t('bandejaElegirArchivo'))}</button>`).join('');
   return `<div class="bandeja-pie" data-bandeja-pie>${archivos ? `<div class="bandeja-archivos">${archivos}</div>` : ''}${htmlEstadoDeLaEntrada(e)}<div class="bandeja-botones">${botones}</div></div>`;
 }
+
+/**
+ * Pone al día lo de la bandeja que hay en pantalla sin repintar la carta (A33, VG: «un formulario a medio rellenar ya es
+ * un borrador» y lo compuesto se ve donde se compuso): mientras se escribe en un formulario no se repinta todo (se perdería
+ * el foco), así que aquí se cambian solo la tira o la marca tras cada cabecera de acciones, la marca de pendiente de cada
+ * ficha, la bandeja del 4 y la cuenta del marco. `raiz`: el contenedor de la carta (querySelector, querySelectorAll).
+ */
+export function ponerAlDiaEnPantalla(raiz, v) {
+  if (!raiz?.querySelectorAll) return;
+  for (const cabecera of raiz.querySelectorAll('.pv-acciones[data-pv-acciones]')) {
+    const X = cabecera.dataset.x;
+    const pv = Number(cabecera.dataset.pvAcciones);
+    while (cabecera.nextElementSibling?.matches?.('.bandeja-tira, .bandeja-marca')) cabecera.nextElementSibling.remove();
+    const nuevo = cabecera.classList.contains('marca') ? htmlMarcaDeLaBandeja(v, X, pv) : htmlTiraDeLaBandeja(v, X, pv);
+    if (nuevo) cabecera.insertAdjacentHTML('afterend', nuevo);
+    for (const boton of cabecera.querySelectorAll('[data-lanzar]')) boton.classList.toggle('pendiente', tienePendiente(v, X, boton.dataset.lanzar));
+  }
+  for (const cuatro of raiz.querySelectorAll('[data-bandeja-cuatro]')) {
+    const nuevo = htmlBandejaDelCuatro(v, cuatro.dataset.x);
+    if (nuevo) cuatro.outerHTML = nuevo;
+    else cuatro.remove();
+  }
+  raiz.querySelector('[data-bandeja-ir]')?.remove();
+  const cuenta = htmlCuentaDeLaBandeja(v);
+  if (cuenta) raiz.querySelector('.carta')?.insertAdjacentHTML('afterbegin', cuenta);
+}

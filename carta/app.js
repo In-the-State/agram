@@ -49,7 +49,7 @@ import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
 import { crearBandeja, ejecutarAhora, probarAhora } from './bandeja.js';
-import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, htmlCuentaDeLaBandeja, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -293,9 +293,8 @@ function repintarBandejaEnFormulario() {
   const datos = pieDelFormulario();
   if (!pie && datos) { pintar(); return; } // el formulario aún no está en pantalla: lo pinta entero el pintado
   if (pie && datos) pie.outerHTML = htmlPieDeLaBandeja(datos);
-  raiz.querySelector('[data-bandeja-ir]')?.remove();
-  const cuenta = htmlCuentaDeLaBandeja(vistaBandeja());
-  if (cuenta) raiz.querySelector('.carta')?.insertAdjacentHTML('afterbegin', cuenta);
+  // Lo compuesto se ve donde se compuso mientras se escribe (VG): la tira, la marca de la ficha, el 4 y la cuenta, al día.
+  ponerAlDiaEnPantalla(raiz, vistaBandeja());
 }
 /** Lo escrito en un formulario de la bandeja pasa al borrador: crea o actualiza su entrada, completa o a medias. */
 function ponerDesdeElFormulario(f, motivos = []) {

@@ -12,7 +12,7 @@ import { instalar } from '../carta/gestos.js';
 import { crearBandeja, probarAhora } from '../carta/bandeja.js';
 import {
   vistaDeLaBandeja, etiquetaDeParametro, delSitio, ordenDelCuatro, tienePendiente, textoDeT, PV_DE_LA_BANDEJA,
-  htmlCuentaDeLaBandeja, htmlTiraDeLaBandeja, htmlMarcaDeLaBandeja, htmlBandejaDelCuatro, htmlEstadoDeLaEntrada, htmlPieDeLaBandeja,
+  htmlCuentaDeLaBandeja, htmlTiraDeLaBandeja, htmlMarcaDeLaBandeja, htmlBandejaDelCuatro, htmlEstadoDeLaEntrada, htmlPieDeLaBandeja, ponerAlDiaEnPantalla,
 } from '../carta/bandeja-pantalla.js';
 import { t, TEXTOS } from '../carta/textos.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
@@ -275,4 +275,57 @@ test('la tira dice el nombre una sola vez (el resumen ya empieza por él); a med
   assert.ok(primera.includes(t('bandejaNace', { accion: 'comprometer tiempo', sobre: 'la compra' })));
   const segunda = tira.slice(tira.indexOf('</li>'));
   assert.equal(segunda.split('comprometer tiempo').length - 1, 1);
+});
+
+/** Un DOM de mentira, lo justo para ponerAlDiaEnPantalla: hermanos, clases, outerHTML e insertAdjacentHTML que se apuntan. */
+function domDeMentira() {
+  const hechos = [];
+  const nodo = (clases, dataset = {}, hijos = []) => {
+    const n = {
+      dataset, hijos, siguiente: null, quitado: false,
+      classList: { contains: (c) => clases.includes(c), toggle: (c, si) => { const i = clases.indexOf(c); if (si && i < 0) clases.push(c); if (!si && i >= 0) clases.splice(i, 1); } },
+      clases,
+      get nextElementSibling() { return n.siguiente && !n.siguiente.quitado ? n.siguiente : null; },
+      matches: (sel) => sel.split(',').some((s) => clases.includes(s.trim().slice(1))),
+      remove: () => { n.quitado = true; hechos.push(['quitar', clases.join(' ')]); },
+      insertAdjacentHTML: (donde, html) => hechos.push(['meter', dataset.x ?? clases.join(' '), html]),
+      querySelectorAll: () => hijos,
+      set outerHTML(html) { hechos.push(['cambiar', dataset.x, html]); },
+    };
+    return n;
+  };
+  const botonA = nodo(['accion'], { lanzar: 'acc-b1' });
+  const botonB = nodo(['accion', 'pendiente'], { lanzar: 'otra' });
+  const cab3 = nodo(['pv-acciones'], { x: 'X1', pvAcciones: '3' }, [botonA, botonB]);
+  const viejaTira = nodo(['bandeja-tira'], { x: 'X1' });
+  cab3.siguiente = viejaTira;
+  const cab6 = nodo(['pv-acciones', 'marca'], { x: 'X1', pvAcciones: '6' });
+  const cuatro = nodo(['bandeja-cuatro'], { x: 'X1' });
+  const carta = nodo(['carta']);
+  const raiz = {
+    querySelectorAll: (sel) => (sel.startsWith('.pv-acciones') ? [cab3, cab6] : sel === '[data-bandeja-cuatro]' ? [cuatro] : []),
+    querySelector: (sel) => (sel === '.carta' ? carta : null),
+  };
+  return { raiz, hechos, botonA, botonB, viejaTira };
+}
+
+test('con el formulario abierto, lo compuesto se ve ya donde se compuso: la tira, la marca de la ficha, el 4 y la cuenta se ponen al día sin repintar', () => {
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1'), item('b2', { pv: 6 })], motivos: [] });
+  const d = domDeMentira();
+  ponerAlDiaEnPantalla(d.raiz, v);
+  assert.equal(d.viejaTira.quitado, true, 'la tira de antes se va');
+  const metidos = d.hechos.filter((h) => h[0] === 'meter');
+  assert.ok(metidos.some((h) => h[1] === 'X1' && h[2].includes('data-bandeja-tira="3"') && h[2].includes('data-bandeja-abrir="b1"')), 'la tira nueva, tras la cabecera del 3');
+  assert.ok(metidos.some((h) => h[1] === 'X1' && h[2].includes('data-bandeja-marca="6"')), 'en el 6 comprimido, la marca');
+  assert.ok(metidos.some((h) => h[1] === 'carta' && h[2].includes('data-bandeja-ir')), 'la cuenta');
+  assert.ok(d.hechos.some((h) => h[0] === 'cambiar' && h[2].includes('data-bandeja-cuatro')), 'el 4');
+  assert.ok(d.botonA.clases.includes('pendiente') && !d.botonB.clases.includes('pendiente'), 'la marca de pendiente en la ficha, y fuera donde ya no hay');
+  // Vacía: se quita todo.
+  const d2 = domDeMentira();
+  ponerAlDiaEnPantalla(d2.raiz, null);
+  assert.equal(d2.viejaTira.quitado, true);
+  assert.ok(!d2.hechos.some((h) => h[0] === 'meter'));
+  assert.ok(d2.hechos.some((h) => h[0] === 'quitar' && h[1] === 'bandeja-cuatro'));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /function repintarBandejaEnFormulario\(\) \{[^]*?ponerAlDiaEnPantalla\(raiz, vistaBandeja\(\)\);/, 'cada cambio de un campo lo pone al día');
 });
