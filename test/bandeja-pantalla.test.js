@@ -453,3 +453,28 @@ test('la app ya no escribe con escribirDesde: preferencias, ajustes de la guía 
   assert.equal(v.items[0].nombre, t('bandejaRegistro'));
   assert.ok(!htmlTiraDeLaBandeja(v, 'X1', 9).includes('data-bandeja-abrir'), 'no tiene formulario que reabrir');
 });
+
+test('cada tipo de entrada dice su nombre (nunca «null»): en la vista y en el mensaje de lo registrado', async () => {
+  const { nombreDeLaEntrada } = await import('../carta/bandeja-pantalla.js');
+  const { direccion } = await import('../src/btml.js');
+
+  const { eje, X, deLa } = await escena();
+  const nombre = (a) => 'N:' + a;
+  assert.equal(nombreDeLaEntrada({ tipo: 'campo', valores: { texto: 'hola' } }, null, nombre), t('bandejaCampo', { texto: 'hola' }));
+  assert.equal(nombreDeLaEntrada({ tipo: 'registro', valores: { payload: [] } }, null, nombre), t('bandejaRegistro'));
+  assert.equal(nombreDeLaEntrada({ accion: 'a1' }, 'a1', nombre), 'N:a1');
+  assert.equal(nombreDeLaEntrada(null, 'reserva', nombre), 'N:reserva', 'lo que pone la bandeja: su acción');
+  assert.ok(!String(nombreDeLaEntrada({}, null, nombre)).includes('null'));
+  // Una tanda de verdad con una acción y un campo: los nombres del mensaje.
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'huesped' });
+  const P = deLa(2).nombradas.find((x) => x.nombre === 'comprometer P');
+  b.poner({ accion: P.id, X, valores: {}, donde: { X, pv: 2 } });
+  b.poner({ tipo: 'campo', en: direccion([6]), X, valores: { texto: 'una nota' }, donde: { X, pv: 6 } });
+  const r = await b.ejecutar(eje, 'huesped', (ev) => ev);
+  assert.equal(r.ok, true, JSON.stringify(r.motivos));
+  const nombres = r.items.map((x) => nombreDeLaEntrada(x.puesta ? null : x.entrada, x.accion, nombre));
+  assert.deepEqual(nombres, ['N:' + r.items[0].accion, t('bandejaCampo', { texto: 'una nota' })]);
+  assert.ok(nombres.every((n) => !n.includes('null')));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /t\('registrado', \{ accion: nombreDeLaEntrada\(x\.puesta \? null : x\.entrada, x\.accion, nombreDeAccion\)/);
+});

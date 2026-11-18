@@ -96,7 +96,7 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     // Un campo (tocar un valor) no es una acción: se nombra por lo que escribe.
     const esCampo = !x.puesta && entrada?.tipo === 'campo';
     const esRegistro = !x.puesta && entrada?.tipo === 'registro';
-    const suNombre = esCampo ? t('bandejaCampo', { texto: entrada.valores?.texto ?? '' }) : esRegistro ? t('bandejaRegistro') : nombre(accion);
+    const suNombre = nombreDeLaEntrada(x.puesta ? null : entrada, accion, nombre);
     const r = x.resumen;
     const resumen = r ? {
       nace: suNombre,
@@ -117,6 +117,16 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     total, noEntran: items.filter((x) => !x.entra).length, ok: Boolean(probado.ok) && items.length > 0, items,
     cuesta: probado.cuesta?.segundos ?? items.reduce((s, x) => s + (x.resumen?.cuesta ?? 0), 0), motivos, ocupado: Boolean(extra.ocupado),
   };
+}
+
+/**
+ * Cómo se llama lo que compone una entrada, según su tipo: un campo, por lo que escribe; un registro de ajustes, «guardar
+ * ajustes»; una acción (o lo que pone la bandeja), su nombre en el idioma (`nombre(accion)`). Nunca «null».
+ */
+export function nombreDeLaEntrada(entrada, accion, nombre = (a) => String(a)) {
+  if (entrada?.tipo === 'campo') return t('bandejaCampo', { texto: entrada.valores?.texto ?? '' });
+  if (entrada?.tipo === 'registro') return t('bandejaRegistro');
+  return accion === null || accion === undefined ? t('bandejaRegistro') : nombre(accion);
 }
 
 /** Lo compuesto en un sitio (registro X y punto de vista pv), con lo que la bandeja pone para ello. */

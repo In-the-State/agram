@@ -49,7 +49,7 @@ import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
 import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja, escribirPorLaBandeja } from './bandeja.js';
-import { vistaDeLaBandeja, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { vistaDeLaBandeja, nombreDeLaEntrada, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -331,7 +331,8 @@ async function trasEjecutar(r) {
   }
   trasEscribir(); // guardar y dejar la subida en la cola (la tanda entera)
   const firmado = r.eventos.some((e) => e.firma) ? ' ' + t('firmado') : '';
-  estado.exito = t('bandejaRegistrado', { lista: r.items.map((x, k) => t('registrado', { accion: nombreDeAccion(x.accion), id: r.eventos[k].id.slice(0, 8) })).join(' · ') }) + firmado;
+  // Cada entrada dice su nombre según su tipo (un campo, por lo que escribe; un registro, «guardar ajustes»): nunca «null».
+  estado.exito = t('bandejaRegistrado', { lista: r.items.map((x, k) => t('registrado', { accion: nombreDeLaEntrada(x.puesta ? null : x.entrada, x.accion, nombreDeAccion), id: r.eventos[k].id.slice(0, 8) })).join(' · ') }) + firmado;
   marcarNuevos();
 }
 
