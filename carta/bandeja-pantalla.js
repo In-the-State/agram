@@ -59,16 +59,19 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     // Lo que pone la bandeja se ve donde se compuso lo que lo necesita.
     const entrada = x.entrada ?? porId.get(x.para)?.entrada ?? null;
     const accion = x.puesta ? x.accion : entrada?.accion ?? x.accion;
+    // Un campo (tocar un valor) no es una acción: se nombra por lo que escribe.
+    const esCampo = !x.puesta && entrada?.tipo === 'campo';
+    const suNombre = esCampo ? t('bandejaCampo', { texto: entrada.valores?.texto ?? '' }) : nombre(accion);
     const r = x.resumen;
     const resumen = r ? {
-      nace: nombre(accion),
+      nace: suNombre,
       sobre: r.nace.sobre ? registro(r.nace.sobre) : null,
       movimientos: r.movimientos.filter((m) => !(m.token === 'T' && m.a === null && m.de === r.nace.autor && !m.estado))
         .map((m) => t('bandejaMueve', { cuanto: cuanto(m), de: m.de === null ? t('bandejaNadie') : quien(m.de), a: m.a === null ? t('bandejaNadie') : quien(m.a) })),
       cuesta: r.cuesta.segundos,
     } : null;
     return {
-      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: nombre(accion), entra: Boolean(x.entra),
+      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : {}), entra: Boolean(x.entra),
       motivo: motivoDe(x, llano), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
     };
   });
@@ -127,6 +130,7 @@ export function htmlTiraDeLaBandeja(v, X, pv) {
   const li = (x) => {
     const cuerpo = `<span class="bandeja-nombre">${escapar(x.nombre)}</span> ${htmlResumen(x.resumen)} ${estadoDe(x)}`;
     if (x.puesta) return `<li class="bandeja-item puesta${x.entra ? '' : ' no-entra'}" data-bandeja-puesta title="${escapar(t('bandejaPuestaTitulo'))}"><small class="bandeja-la-pone">${escapar(t('bandejaPuesta'))}</small> ${cuerpo}</li>`;
+    if (x.tipo === 'campo') return `<li class="bandeja-item campo${x.entra ? '' : ' no-entra'}"><span class="bandeja-abrir">${cuerpo}</span><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
     return `<li class="bandeja-item${x.entra ? '' : ' no-entra'}"><button type="button" class="bandeja-abrir" data-nodo="accion" data-bandeja-abrir="${escapar(x.id)}" title="${escapar(t('bandejaAbrirTitulo'))}">${cuerpo}</button><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
   };
   return `<ul class="bandeja-tira" data-bandeja-tira="${escapar(pv)}" data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTira'))}">${lista.map(li).join('')}</ul>`;
@@ -188,5 +192,8 @@ export function htmlPieDeLaBandeja(e) {
   const botones = e.modo === 'ahora'
     ? `<button type="submit" class="ejecutar-ahora" data-ejecutar-ahora${e.ocupado ? ' disabled' : ''}>${escapar(t(e.ocupado ? 'bandejaEjecutando' : 'ahoraEjecutar'))}</button>`
     : `<button type="button" class="bandeja-listo" data-nodo="control" data-bandeja-listo title="${escapar(t('bandejaListoTitulo'))}">${escapar(t('bandejaListo'))}</button>${e.id ? `<button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(e.id)}" title="${escapar(t('bandejaQuitarTitulo'))}">${escapar(t('bandejaQuitar'))}</button>` : ''}`;
-  return `<div class="bandeja-pie" data-bandeja-pie>${htmlEstadoDeLaEntrada(e)}<div class="bandeja-botones">${botones}</div></div>`;
+  // Un parámetro de archivo (la faceta ref de la base file): el aparato elige el archivo; su referencia y su formato los
+  // pone la app en los campos, y el desplegable del campo ofrece los ya elegidos (contrato.opciones con opcionesDelAparato).
+  const archivos = (e.archivos ?? []).map((c) => `<button type="button" class="bandeja-archivo" data-nodo="control" data-bandeja-archivo="${escapar(c.nombre)}" title="${escapar(t('bandejaElegirArchivoTitulo', { campo: c.etiqueta ?? c.nombre }))}">${escapar(t('bandejaElegirArchivo'))}</button>`).join('');
+  return `<div class="bandeja-pie" data-bandeja-pie>${archivos ? `<div class="bandeja-archivos">${archivos}</div>` : ''}${htmlEstadoDeLaEntrada(e)}<div class="bandeja-botones">${botones}</div></div>`;
 }

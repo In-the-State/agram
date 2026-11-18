@@ -47,12 +47,10 @@ const ESCRITURAS_DE_HOY = {
   'app.js · reclasificar · enviar': 1,
   'app.js · configurar · escribirDesde': 2,
   'app.js · configurar · enviar': 1,
-  'app.js · campo · escribirDesde': 1,
   'app.js · autorizar · anadir': 1,
   'app.js · formato · escribirDesde': 1,
   'app.js · propuesta · enviar': 1,
   'app.js · invitadoAceptar · aceptar': 1,
-  'archivos.js · adjuntarConAccion · enviar': 1,
   'archivos.js · adjuntarHtmlInicial · enviar': 1,
   'bandeja.js · componerUna · anadir': 1, // sobre la vista en seco de la tanda (vistaTanda), no sobre el libro: así la entrada siguiente ve a la anterior
   'bandeja.js · lanzar · anadir': 1, // el camino de ejecutar con una sola entrada: aquí acaban las demás escrituras de esta lista, esta se queda

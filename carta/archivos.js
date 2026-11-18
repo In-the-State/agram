@@ -13,13 +13,14 @@
 //   new Archivos({ destino, fetch, alCambiar })
 //     .preparar({ nombre, tipo, bytes })   → { id, tipo, bytes, referencia } (o lanza con el motivo)
 //     .adjuntar(archivo)                   → { id, tipo, referencia, subido, sinRed } (o lanza): prepara, guarda y sube
+//   valoresDeArchivo(p, campos) · subirLosNombrados(archivos, preparados, valores)   una acción con archivo, por la bandeja
 //     .subirPendientes()                   → cuántos quedan por subir
 //     .contenido(id)                       → lo que hay de un archivo en esta pestaña: { estado, tipo, texto?, url? }
 
 import * as contrato from '../src/contrato.js';
 import { destinoDeArchivos } from '../src/sincronia.js';
 import { referenciaDeArchivo } from '../src/modelos.js';
-import { enviar, validarSinFirmar, motivosEnLlano } from './carta.js';
+import { enviar } from './carta.js';
 import { t, HOLA, holaInicial } from './textos.js';
 
 /** Tope de un archivo (el de la función). */
@@ -84,31 +85,49 @@ try {
 } catch { /* sin WebCrypto (un contexto no seguro) no hay hash que calcular: los iniciales se bajarían como cualquier archivo */ }
 
 /**
+ * Los valores de los parámetros de archivo de una acción con un archivo ya preparado (Archivos.preparar): por la faceta de
+ * cada uno (acciones.archivoDe: la de la base file), «ref» su referencia `archivo:<sha256>`, «format» el formato de la época
+ * con que se representa y «size» sus bytes. `campos`: [{ nombre, archivo }]. Lanza si la época no tiene formato para su tipo.
+ * Así una acción con archivo es una entrada más de la bandeja (A33): el archivo se elige antes de componer, y lo que no
+ * cabe (tipo, tamaño: preparar) se dice entonces.
+ */
+export function valoresDeArchivo(p, campos, opciones = {}) {
+  const formato = formatoDeTipo(p.tipo, opciones);
+  if (!formato) throw new Error(t('archivoSinFormato', { tipo: p.tipo }));
+  const por = { ref: p.referencia, format: formato, size: p.bytes?.length };
+  return Object.fromEntries((campos ?? []).filter((c) => por[c.archivo] !== undefined).map((c) => [c.nombre, por[c.archivo]]));
+}
+
+/** Las referencias `archivo:<sha256>` que nombra un valor, en profundidad (las de unos valores o de un registro). */
+export function referenciasEn(x, fuera = new Set()) {
+  if (typeof x === 'string' && /^archivo:[0-9a-f]{64}$/.test(x)) fuera.add(x);
+  else if (Array.isArray(x)) for (const v of x) referenciasEn(v, fuera);
+  else if (x !== null && typeof x === 'object') for (const v of Object.values(x)) referenciasEn(v, fuera);
+  return fuera;
+}
+
+/**
+ * Antes de firmar lo que nombra archivos de este aparato (A33): sube los preparados (`preparados`: referencia → lo de
+ * preparar) que nombran `valores` (una lista: los de cada entrada que se va a lanzar). Sin red quedan pendientes y se suben
+ * al sincronizar; sin servidor, o si el servidor lo rechaza, lanza y no se lanza nada. → [lo de adjuntarPreparado].
+ */
+export async function subirLosNombrados(archivos, preparados, valores) {
+  const refs = new Set();
+  for (const v of valores ?? []) referenciasEn(v, refs);
+  const subidos = [];
+  for (const ref of refs) {
+    const p = preparados?.get(ref);
+    if (p) subidos.push(await archivos.adjuntarPreparado(p));
+  }
+  return subidos;
+}
+
+/**
  * El HTML básico inicial en el PV0 de una alta (VG 14-11, #84): la plantilla «attach a file» escribe sobre X su
  * representación de tamaño 3 con la referencia `archivo:<sha256>` del HTML de `inicial`; `firmar`, la firma de quien la
  * escribe (o nada). Sirve para una cuenta nueva (cuentas.crearCuenta, con `htmlInicial`) y para una cosa dada de alta.
  * → el registro asentado, o null si no pasó (la alta ya existe: sin su HTML se ve como hasta ahora, su nombre).
  */
-/**
- * Una acción que pide un archivo (un parámetro cuyo 4 es «file»: «adjuntar un archivo», «poner arte propio a este elemento»):
- * prepara el archivo en local (su id, su referencia `archivo:<sha256>`, su formato), comprueba ANTES que la acción entraría
- * con ellos (validarSinFirmar: todo menos la firma) y solo entonces lo sube y escribe la acción, firmada, por el camino de
- * siempre (enviar). Si no entraría, no sube nada y da los motivos en llano. `campos`: los parámetros de archivo de la
- * acción ({ nombre, archivo: 'ref' | 'format' }). → lo que da enviar más `adjunto` (lo de adjuntar), o { ok: false,
- * motivos, sinSubir: true }. Lanza si el archivo no vale (tipo, tamaño) o no hay servidor.
- */
-export async function adjuntarConAccion(archivos, { eje, X, accion, campos, archivo, yo, firmar, opciones = {} }) {
-  const p = await archivos.preparar(archivo);
-  const formato = formatoDeTipo(p.tipo, opciones);
-  if (!formato) throw new Error(t('archivoSinFormato', { tipo: p.tipo }));
-  const valores = Object.fromEntries((campos ?? []).map((c) => [c.nombre, c.archivo === 'format' ? formato : p.referencia]));
-  const v = await validarSinFirmar(eje, X, accion, valores, yo, opciones);
-  if (!v.ok) return { ok: false, asentado: null, sinSubir: true, motivos: motivosEnLlano(v.motivos, eje) };
-  const adjunto = await archivos.adjuntarPreparado(p);
-  const r = await enviar(eje, X, accion, valores, yo, firmar, opciones);
-  return { ...r, motivos: motivosEnLlano(r.motivos, eje), adjunto };
-}
-
 export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opciones = {}) {
   try {
     const x = await inicial(idioma);
