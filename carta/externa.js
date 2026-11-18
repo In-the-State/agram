@@ -150,6 +150,7 @@ function plantillaPorNombre(eje, nombre, o) {
  * el camino con acciones.transaccion.
  */
 export function evaluar(eje, yo, propuesta, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const idioma = idiomaDe(eje, yo, opciones);
   const o = { ...opciones, idioma };
   const sobre = propuesta.sobre === undefined || propuesta.sobre === null ? null : acciones.registroDe(eje, cadena(propuesta.sobre), o);
@@ -219,6 +220,7 @@ const CLASIFICACION = [
  * se rellena con nada. → { accion, parametros } o null si la época no trae la plantilla.
  */
 export function parametrosDeOpinion(eje, opinion, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const g = contrato.guia(null, 'en', opciones);
   const plantilla = g?.opinion && contrato.plantillas(eje, opciones).find((p) => p.nombre === g.opinion);
   const ancla = g?.ancla && acciones.plantillaDeTransaccion(g.ancla, opciones);

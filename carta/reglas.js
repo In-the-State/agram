@@ -86,6 +86,7 @@ export const conGobierno = (eje) => Boolean(eje?.epoca && traePlantilla(eje.epoc
 
 /** ¿Se ofrece la acción `nombre` sobre X a `yo`? (el 2 de su plantilla, en el punto de vista de su 8). */
 function ofrecida(eje, X, nombre, yo, o) {
+  o = acciones.conEpoca(eje, o); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const p = acciones.plantillaDeTransaccion(nombre, o);
   if (!p || !yo) return false;
   const pv = Number(hojas(p[8])[0]);
@@ -576,6 +577,7 @@ const enPuntos = (dir) => String(dir ?? '').replace(/0+$/, '').split('').join('.
 
 /** Los valores de un registro de ajuste en llano: «clave: valor» por cada parámetro de su plantilla que no es del molde. */
 function valoresDeAjuste(eje, ev, nombre, o) {
+  o = acciones.conEpoca(eje, o); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const p = acciones.plantillaDeTransaccion(nombre, o);
   if (!p) return [];
   return acciones.parametros(p, o).filter((x) => !DEL_MOLDE.has(x.nombre) && x.posicion).map((x) => {

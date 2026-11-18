@@ -148,7 +148,7 @@ export function preguntasRapidas(eje, idioma, opciones = {}) {
 
 const traducir = (eje, idioma, nombre) => contrato.texto(eje, contrato.claves.plantilla(nombre), idioma, { original: nombre });
 const nombreDeAccion = (eje, idioma, id) => {
-  const p = acciones.plantillaDeTransaccion(id);
+  const p = acciones.plantillaDeTransaccion(id, acciones.conEpoca(eje, {})); // la época del libro (la de la 0 no trae sus acciones)
   return traducir(eje, idioma, p ? acciones.nombreDeAccion(p) : String(id));
 };
 
