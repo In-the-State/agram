@@ -95,7 +95,8 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     const accion = x.puesta ? x.accion : entrada?.accion ?? x.accion;
     // Un campo (tocar un valor) no es una acción: se nombra por lo que escribe.
     const esCampo = !x.puesta && entrada?.tipo === 'campo';
-    const suNombre = esCampo ? t('bandejaCampo', { texto: entrada.valores?.texto ?? '' }) : nombre(accion);
+    const esRegistro = !x.puesta && entrada?.tipo === 'registro';
+    const suNombre = esCampo ? t('bandejaCampo', { texto: entrada.valores?.texto ?? '' }) : esRegistro ? t('bandejaRegistro') : nombre(accion);
     const r = x.resumen;
     const resumen = r ? {
       nace: suNombre,
@@ -105,7 +106,7 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
       cuesta: r.cuesta.segundos,
     } : null;
     return {
-      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : {}), entra: Boolean(x.entra),
+      id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : esRegistro ? { tipo: 'registro' } : {}), entra: Boolean(x.entra),
       motivo: motivoDe(x, llano, (n) => etiquetaDe(accion, n)), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
     };
   });
@@ -165,7 +166,7 @@ export function htmlTiraDeLaBandeja(v, X, pv) {
     // El nombre va una vez: el resumen ya empieza por él («comprometer tiempo sobre …»); sin resumen (a medias), solo el nombre.
     const cuerpo = `${x.resumen ? htmlResumen(x.resumen) : `<span class="bandeja-nombre">${escapar(x.nombre)}</span>`} ${estadoDe(x)}`;
     if (x.puesta) return `<li class="bandeja-item puesta${x.entra ? '' : ' no-entra'}" data-bandeja-puesta title="${escapar(t('bandejaPuestaTitulo'))}"><small class="bandeja-la-pone">${escapar(t('bandejaPuesta'))}</small> ${cuerpo}</li>`;
-    if (x.tipo === 'campo') return `<li class="bandeja-item campo${x.entra ? '' : ' no-entra'}"><span class="bandeja-abrir">${cuerpo}</span><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
+    if (x.tipo === 'campo' || x.tipo === 'registro') return `<li class="bandeja-item campo${x.entra ? '' : ' no-entra'}"><span class="bandeja-abrir">${cuerpo}</span><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
     return `<li class="bandeja-item${x.entra ? '' : ' no-entra'}"><button type="button" class="bandeja-abrir" data-nodo="accion" data-bandeja-abrir="${escapar(x.id)}" title="${escapar(t('bandejaAbrirTitulo'))}">${cuerpo}</button><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
   };
   return `<ul class="bandeja-tira" data-bandeja-tira="${escapar(pv)}" data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTira'))}">${lista.map(li).join('')}</ul>`;

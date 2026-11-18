@@ -443,3 +443,13 @@ test('en el escritorio la cuenta va en el marco, fuera de la escena donde están
   assert.ok(h.indexOf('data-bandeja-ir') > 0 && h.indexOf('data-bandeja-ir') < h.indexOf('<div class="escena">'));
   assert.ok(h.indexOf('rosetones-mapa') > h.indexOf('<div class="escena">'), 'los rosetones del escritorio, dentro de la escena');
 });
+
+test('la app ya no escribe con escribirDesde: preferencias, ajustes de la guía y de fuera y formato van por escribirPorLaBandeja; un registro se nombra en llano', () => {
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /escribirDesde\(/);
+  assert.equal((app.match(/escribirPorLaBandeja\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\)/g) ?? []).length, 4, 'preferencias, guía, fuera y formato');
+  const reg = { ...item('b1'), accion: null, entrada: { id: 'b1', tipo: 'registro', modo: 'sequenced', en: '9000000000', accion: null, X: 'X1', valores: { payload: [['x']] }, donde: { X: 'X1', pv: 9 }, completa: true, de: [] } };
+  const v = vistaDeLaBandeja({ ok: true, items: [reg], motivos: [] }, { nombre: () => 'NO' });
+  assert.equal(v.items[0].nombre, t('bandejaRegistro'));
+  assert.ok(!htmlTiraDeLaBandeja(v, 'X1', 9).includes('data-bandeja-abrir'), 'no tiene formulario que reabrir');
+});

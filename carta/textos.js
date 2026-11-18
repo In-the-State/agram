@@ -1282,6 +1282,7 @@ export const TEXTOS = Object.freeze({
     bandejaElegirArchivoTitulo: 'elige el archivo de este aparato que va en «{campo}»',
     bandejaArchivoElegido: 'Archivo elegido: {nombre}',
     bandejaArchivoNoEsta: 'el archivo ya no está en este aparato: vuelve a elegirlo',
+    bandejaRegistro: 'guardar ajustes',
   }),
   // The app's own texts in English (VG 19-11): the same keys and the same gaps {…} as the Spanish block, in plain English,
   // without internal jargon. test/textos-ingles.test.js checks that both blocks have the same keys and gaps.
@@ -2485,6 +2486,7 @@ export const TEXTOS = Object.freeze({
     bandejaElegirArchivoTitulo: 'choose the file from this device that goes in “{campo}”',
     bandejaArchivoElegido: 'File chosen: {nombre}',
     bandejaArchivoNoEsta: 'the file is no longer on this device: choose it again',
+    bandejaRegistro: 'save settings',
   }),
 });
 
