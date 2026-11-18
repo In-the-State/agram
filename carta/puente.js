@@ -25,6 +25,8 @@
 //   enlacesDelLibro(eje, yo, { mios })              → los enlaces a mis libros de este dispositivo: grado, si cuenta, fondo
 //   loQueCruza(eje, yo)                             → lo mío que puede ir a otro libro (la familia del puente, disponible)
 //   enviarAOtroLibro · traerDeOtroLibro · recibirDeOtroLibro → las tres escrituras del puente
+//   entradaDeEnviar · entradaDeTraer · entradaDeRecibir → lo mismo, como entrada de la bandeja (VG 18-11: los botones del
+//                                                   puente componen; se ejecuta desde el 4, libro a libro)
 //   traibles(destino, enlace, origen)               → lo que el otro libro tiene sellado y aún no está traído aquí
 //   traidosDelLibro(eje, yo, { mios })              → lo traído, leído, y si se puede recibir y cuánto queda
 
@@ -462,5 +464,26 @@ export function recibirDeOtroLibro(eje, yo, { id, firmar, t } = {}) {
 export function costeDeRecibir(eje, yo, { id }, o = {}) {
   const locks = bloqueosDeLaVuelta(eje, id);
   return costeDe(eje, id, PL.recibir, locks?.length ? { locks } : {}, yo, o);
+}
+
+// ---------- componer en la bandeja (VG 18-11: lo que toca dos libros se acumula y se ejecuta libro a libro) ----------
+//
+// Los botones del puente ya no escriben: componen una entrada en el borrador común (carta/bandeja.js), del libro en que se
+// lanza (el abierto), con lo mismo que escribían las tres escrituras de arriba. Se ejecuta desde el 4.
+
+/** «send to another book» por `enlace`, como entrada de la bandeja: { accion, X, valores }. */
+export const entradaDeEnviar = ({ enlace, serie, cantidad, publica } = {}) => ({ accion: PL.enviar, X: enlace, valores: { series: serie, quantity: Number(cantidad), to: publica } });
+
+/** «bring a record from another book»: el registro `id` de `origen` con su prueba de sello, como entrada; null sin prueba. */
+export function entradaDeTraer(destino, { enlace, origen, id } = {}) {
+  const ev = origen?.obtener?.(id);
+  const { prueba } = ev ? pruebaGuardada(origen, id, { lineas: paresDelEnlace(destino.obtener(enlace)), nivel: nivelDelPuente(destino) }) : { prueba: null };
+  return ev && prueba ? { accion: PL.traer, X: enlace, valores: { record: registroComoDecupla(ev), proof: prueba } } : null;
+}
+
+/** «receive from another book» sobre lo traído `id` (con los bloqueos de los que saca una vuelta), como entrada. */
+export function entradaDeRecibir(eje, { id } = {}) {
+  const locks = bloqueosDeLaVuelta(eje, id);
+  return { accion: PL.recibir, X: id, valores: locks?.length ? { locks } : {} };
 }
 

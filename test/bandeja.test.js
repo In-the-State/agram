@@ -485,7 +485,8 @@ test('enviarPorLaBandeja: lo que hacía enviar (una acción, ya) por el único c
   const sin = await enviarPorLaBandeja(eje, eje.genesisId, 'write to X', { text: 'sin firma' }, 'vg', undefined);
   assert.equal(sin.ok, false);
   assert.equal(eje.orden.length, n + 1);
-  for (const [archivo, sitio] of [['app.js', 'reclasificar'], ['app.js', 'propuesta'], ['reglas.js', 'actuar'], ['reglas.js', 'proponer'], ['carta.js', 'guardarRetoque'], ['archivos.js', 'adjuntarHtmlInicial']]) {
+  // (Soltar en una caja ya no escribe: compone en la bandeja, VG 18-11; test/soltar.test.js.)
+  for (const [archivo, sitio] of [['app.js', 'propuesta'], ['reglas.js', 'actuar'], ['reglas.js', 'proponer'], ['carta.js', 'guardarRetoque'], ['archivos.js', 'adjuntarHtmlInicial']]) {
     const fuente = readFileSync(new URL('../carta/' + archivo, import.meta.url), 'utf8');
     const i = Math.max(fuente.indexOf('async function ' + sitio + '('), fuente.indexOf('async ' + sitio + '('));
     assert.ok(i >= 0, sitio);

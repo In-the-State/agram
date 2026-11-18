@@ -108,6 +108,8 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     return {
       id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : esRegistro ? { tipo: 'registro' } : {}), entra: Boolean(x.entra),
       motivo: motivoDe(x, llano, (n) => etiquetaDe(accion, n)), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
+      // Varios libros: de qué libro es, y si se probó con el id que tendrá lo de otro libro (aún sin escribir).
+      libro: x.libro ?? entrada?.libro ?? null, aviso: x.provisional?.length && x.entra ? t('bandejaProvisional') : null,
     };
   });
   const total = items.filter((x) => !x.puesta).length;
@@ -117,6 +119,46 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     total, noEntran: items.filter((x) => !x.entra).length, ok: Boolean(probado.ok) && items.length > 0, items,
     cuesta: probado.cuesta?.segundos ?? items.reduce((s, x) => s + (x.resumen?.cuesta ?? 0), 0), motivos, ocupado: Boolean(extra.ocupado),
   };
+}
+
+/**
+ * Lo que se pinta de la bandeja con varios libros, desde lo que dio bandeja.probarPorLibros: lo de vistaDeLaBandeja con
+ * los items de todos los libros en el orden de ejecutar, cada uno con su libro, y además `libros`: [{ libro, nombre, n
+ * (entradas propias), ok, abierto }], los pasos en ese orden. `textos` como en vistaDeLaBandeja; `extra`, además,
+ * `emparejada` (la cuenta firma con la app emparejada: cada libro pide su firma) y `abierto` (el libro en pantalla).
+ */
+export function vistaDeLaBandejaPorLibros(probado, textos = {}, extra = {}) {
+  if (!probado || !Array.isArray(probado.libros)) return null;
+  const nombreDelLibro = (l) => l.nombre || t('bandejaLibroSinNombre');
+  const items = probado.libros.flatMap((l) => l.items.map((x) => ({ ...x, libro: l.libro })));
+  const motivos = [...(probado.motivos ?? []), ...probado.libros.flatMap((l) => (probado.libros.length > 1 && l.motivos?.length && l.abierto ? l.motivos.map((m) => ({ ...m, mensaje: t('bandejaLibroCabecera', { libro: nombreDelLibro(l) }) + ': ' + (m?.mensaje ?? String(m)) })) : l.motivos ?? []))];
+  const v = vistaDeLaBandeja({ ok: probado.ok, items, motivos, cuesta: probado.cuesta }, textos, extra);
+  if (!v) return null;
+  const libros = probado.libros.map((l) => ({ libro: l.libro, nombre: nombreDelLibro(l), n: l.items.filter((x) => !x.puesta).length, ok: Boolean(l.ok), abierto: l.abierto !== false }));
+  return { ...v, libros, emparejada: Boolean(extra.emparejada), abierto: extra.abierto ?? null };
+}
+
+/** «primero en el libro tal (2 entradas), después en el libro cual (1 entrada)»: los pasos de ejecutar, uno por libro. */
+export function textoDeLosPasos(libros) {
+  const entradas = (n) => (n === 1 ? t('bandejaEntradasUna') : t('bandejaEntradas', { n }));
+  const pasos = (libros ?? []).map((l, k) => t(k === 0 ? 'bandejaLibroPrimero' : 'bandejaLibroDespues', { libro: l.nombre, entradas: entradas(l.n) })).join(', ');
+  return t('bandejaLibros', { n: (libros ?? []).length, pasos });
+}
+
+/**
+ * Lo que dice el 4 tras ejecutar con varios libros (bandeja.ejecutarPorLibros): lo hecho en cada libro, que YA ESTÁ
+ * HECHO; el libro que falló, con su motivo (`llano(motivos)` → textos); y los que no se intentaron. → [textos].
+ */
+export function textosTrasEjecutar(r, { llano = (ms) => ms.map((m) => m?.mensaje ?? String(m)), lista = (h) => String(h.eventos?.length ?? 0) } = {}) {
+  const libro = (x) => x?.nombre || t('bandejaLibroSinNombre');
+  const fuera = [];
+  if (r?.fallo && (r.hechos ?? []).length) for (const h of r.hechos) fuera.push(t('bandejaLibroHecho', { libro: libro(h), lista: lista(h) }));
+  if (r?.fallo) {
+    const motivo = llano(r.fallo.motivos ?? []).filter(Boolean).join(' · ') || t('bandejaNoEntra');
+    fuera.push(r.fallo.libro ? t('bandejaLibroFallo', { libro: libro(r.fallo), motivo }) : t('bandejaNoRegistrado', { motivo }));
+  }
+  if (r?.fallo && (r.pendientes ?? []).length) fuera.push(t('bandejaLibrosSinIntentar', { libros: r.pendientes.map((p) => '«' + libro(p) + '»').join(', ') }));
+  return fuera;
 }
 
 /**
@@ -189,21 +231,40 @@ export function htmlMarcaDeLaBandeja(v, X, pv) {
 }
 
 /**
+ * La lista del 4: con un solo libro, la de siempre; con varios, los pasos en llano, lo que no se promete, la firma de
+ * cada libro con la app emparejada y, por libro y en el orden de ejecutar, su cabecera y sus entradas.
+ */
+function htmlListaPorLibros(v, lista, li) {
+  const libros = v.libros ?? [];
+  if (libros.length < 2) return `<ol class="bandeja-lista">${lista.map(li).join('')}</ol>`;
+  const pasos = `<p class="bandeja-pasos" data-bandeja-pasos>${escapar(textoDeLosPasos(libros))} ${escapar(t('bandejaLibrosSinPromesa'))}</p>`;
+  const firma = v.emparejada ? `<p class="bandeja-firmas" data-bandeja-firmas>${escapar(t('bandejaLibrosFirma', { n: libros.length }))}</p>` : '';
+  const porLibro = libros.map((l) => `<section class="bandeja-libro${l.libro === v.abierto ? ' abierto' : ''}" data-bandeja-libro="${escapar(l.libro)}"><h4>${escapar(t('bandejaLibroCabecera', { libro: l.nombre }))}</h4>`
+    + `<ol class="bandeja-lista">${lista.filter((x) => x.libro === l.libro).map(li).join('')}</ol></section>`).join('');
+  return pasos + firma + porLibro;
+}
+
+/**
  * El 4 (DISENO_BANDEJA_PV4, «El 4»): arriba, la bandeja entera del libro, primero lo compuesto sobre X. Cada entrada con
  * su resumen, «entra» o su motivo y quitar (no lo que pone la bandeja). Abajo, el total y UN botón de ejecutar; si algo no
- * entra o está a medias, el botón lo dice y no lanza.
+ * entra o está a medias, el botón lo dice y no lanza. Con varios libros (vistaDeLaBandejaPorLibros), los pasos en llano
+ * («primero en el libro tal, después en el libro cual»), que entre libros no se promete nada y, con la app emparejada,
+ * que cada libro pide su firma; la lista, por libro, en el orden de ejecutar.
  */
 export function htmlBandejaDelCuatro(v, X) {
   if (!v?.total) return '';
   const li = (x) => `<li class="bandeja-item${x.puesta ? ' puesta' : ''}${x.aqui ? ' aqui' : ''}${x.entra ? '' : ' no-entra'}"${x.puesta ? ' data-bandeja-puesta' : ''}>`
     + `${x.puesta ? `<small class="bandeja-la-pone" title="${escapar(t('bandejaPuestaTitulo'))}">${escapar(t('bandejaPuesta'))}</small> ` : ''}`
     + `${htmlResumen(x.resumen, { largo: true }) || `<b class="bandeja-nace">${escapar(x.nombre)}</b>`} ${estadoDe(x)}`
+    + `${x.aviso ? ` <small class="bandeja-provisional">${escapar(x.aviso)}</small>` : ''}`
     + `${x.puesta ? '' : ` ${mover(x)}<button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}">${escapar(t('bandejaQuitar'))}</button>`}</li>`;
   // En el orden de la tanda (el de ejecutar: en un todo o nada cuenta), con subir y bajar; lo compuesto sobre X, marcado.
   // Supuesto de Core (reversible): antes, lo de X iba primero; con el orden a mano, la lista es la de la tanda.
   const lista = v.items.map((x) => ({ ...x, aqui: x.donde.X === X }));
-  const propias = lista.filter((x) => !x.puesta);
+  // Subir y bajar, dentro de su libro (cada libro es su propia tanda).
+  const propiasDe = (x) => lista.filter((y) => !y.puesta && y.libro === x.libro);
   const mover = (x) => {
+    const propias = propiasDe(x);
     const k = propias.indexOf(propias.find((y) => y.id === x.id));
     const boton = (delta, clave, titulo, signo, hay) => (hay ? `<button type="button" class="bandeja-mover" data-nodo="control" data-bandeja-mover="${escapar(x.id)}" data-delta="${delta}" title="${escapar(t(titulo))}" aria-label="${escapar(t(titulo))}">${signo}</button>` : '');
     return boton(-1, 'bandejaSubir', 'bandejaSubirTitulo', '↑', k > 0) + boton(1, 'bandejaBajar', 'bandejaBajarTitulo', '↓', k >= 0 && k < propias.length - 1);
@@ -215,7 +276,7 @@ export function htmlBandejaDelCuatro(v, X) {
     : `<button type="button" class="bandeja-ejecutar no-lanza" data-nodo="accion" data-bandeja-ejecutar data-no-lanza aria-disabled="true">${escapar(t('bandejaNoSeLanza', { n: v.noEntran }))}</button>`;
   return `<section class="bandeja-cuatro" data-bandeja-cuatro data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTitulo'))}"><h3>${escapar(t('bandejaTitulo'))}</h3>`
     + `${aqui && aqui < lista.length ? `<small class="bandeja-aqui">${escapar(t('bandejaMarcadoAqui', { n: aqui }))}</small>` : ''}`
-    + `<ol class="bandeja-lista">${lista.map(li).join('')}</ol>${motivos}`
+    + `${htmlListaPorLibros(v, lista, li)}${motivos}`
     + `<footer><p class="bandeja-total">${escapar(t('bandejaTotal', { t: textoDeT(v.cuesta) }))}</p>${boton}</footer></section>`;
 }
 

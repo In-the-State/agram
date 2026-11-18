@@ -17,6 +17,16 @@
 // La referencia a otra entrada pendiente es { pendiente: <id local> }, en X o en cualquier sitio de los valores. Al
 // componer se cambia por el id del candidato ya compuesto de esa entrada; al marcar la tanda, marcarTanda cambia ese id
 // por el definitivo (reescribe los ids enteros).
+//
+// Varios libros (VG 18-11: «vas añadiendo y se acumula; al ejecutar te exige dos o más ejecuciones sucesivas: primero en
+// el libro tal, después en el libro cual»): el BORRADOR COMÚN de una persona (`comun`: su clave pública, o quien mira en
+// un ejemplo) es uno y acumula las entradas de todos sus libros; cada entrada sabe de qué libro es (`libro`, el id de su
+// génesis) y con qué identidad se compone allí (`cuenta`). crearBandeja con `comun` es la bandeja de UN libro sobre ese
+// borrador (lo que se compone, se prueba y se ejecuta allí); probarPorLibros y ejecutarPorLibros recorren el borrador
+// entero, un libro tras otro (planDeLibros: en el orden en que aparecen, salvo que uno se apoye en otro). Cada ejecución
+// es todo o nada en su libro; entre libros no se promete nada: lo hecho en uno queda hecho aunque el siguiente falle.
+// Una entrada que se apoya en lo que escriba otra de otro libro la nombra igual ({ pendiente }); se resuelve con el id
+// real cuando su libro ya se ejecutó (y, en la prueba en seco, con el que tendría: se dice).
 
 import * as acciones from '../src/acciones.js';
 import * as salida from '../src/escritura.js';
@@ -46,6 +56,8 @@ export const TOPE_DE_LA_TANDA = TANDA_TOPES.porPeticion;
 
 /** La clave del borrador en el almacén: el libro (id del génesis) y la cuenta. */
 export const claveDelBorrador = (libro, cuenta) => 'agram.bandeja.' + libro + '.' + cuenta;
+/** La clave del borrador común de una persona (su clave pública, o quien mira en un ejemplo), con las entradas de todos sus libros. */
+export const claveDelBorradorComun = (persona) => 'agram.bandeja.comun.' + persona;
 
 // ---------- el borrador ----------
 
@@ -87,6 +99,8 @@ const esPv = (pv) => pv === null || (Number.isInteger(pv) && pv >= 0 && pv <= 9)
 function fallaDeEntrada(e, ids) {
   if (!esObjetoPlano(e)) return 'la entrada no es un objeto';
   if (!esTextoCorto(e.id)) return 'la entrada no tiene id local';
+  if (e.libro !== undefined && !esTextoCorto(e.libro)) return 'el libro de la entrada es el id de su génesis';
+  if (e.cuenta !== undefined && !esTextoCorto(e.cuenta)) return 'la cuenta de la entrada es quien la compone en su libro';
   if (e.tipo !== undefined && e.tipo !== 'campo' && e.tipo !== 'registro') return 'una entrada es una acción, un campo o un registro';
   if (e.tipo === 'registro') {
     // Un registro que la lente ya trae hecho (preferencias, ajustes de la guía y de fuera, formato): su payload, escrito
@@ -125,7 +139,7 @@ function fallaDeEntrada(e, ids) {
 const vacio = () => ({ v: VERSION_DEL_BORRADOR, siguiente: 1, entradas: [] });
 
 /** Lee el borrador guardado como dato hostil: si algo no cuadra, el vacío (y `ignorado`, por qué). */
-function leerBorrador(almacen, clave) {
+function leerBorrador(almacen, clave, { comun = false } = {}) {
   let texto;
   try {
     texto = almacen?.leer?.(clave) ?? null;
@@ -152,14 +166,14 @@ function leerBorrador(almacen, clave) {
     }
   }
   for (const e of b.entradas) {
-    const falla = fallaDeEntrada(e, ids);
+    const falla = fallaDeEntrada(e, ids) ?? (comun && (e.libro === undefined || e.cuenta === undefined) ? 'en el borrador común cada entrada dice su libro y su cuenta' : null);
     if (falla) return { ...vacio(), ignorado: 'el borrador guardado tiene una entrada que no vale: ' + falla };
   }
   return { v: b.v, siguiente: b.siguiente, entradas: b.entradas.map(limpia) };
 }
 
 /** Solo los campos de una entrada (lo demás que trajera, fuera). */
-const limpia = (e) => ({ id: e.id, ...(e.tipo === 'campo' ? { tipo: 'campo', en: e.en } : e.tipo === 'registro' ? { tipo: 'registro', en: e.en, modo: e.modo } : {}), accion: e.accion, X: e.X, valores: e.valores, donde: { X: e.donde.X, pv: e.donde.pv }, completa: e.completa, de: [...e.de] });
+const limpia = (e) => ({ id: e.id, ...(e.libro !== undefined ? { libro: e.libro, cuenta: e.cuenta } : {}), ...(e.tipo === 'campo' ? { tipo: 'campo', en: e.en } : e.tipo === 'registro' ? { tipo: 'registro', en: e.en, modo: e.modo } : {}), accion: e.accion, X: e.X, valores: e.valores, donde: { X: e.donde.X, pv: e.donde.pv }, completa: e.completa, de: [...e.de] });
 
 function guardarBorrador(almacen, clave, b) {
   const texto = JSON.stringify({ v: VERSION_DEL_BORRADOR, siguiente: b.siguiente, entradas: b.entradas.map(limpia) });
@@ -200,12 +214,23 @@ function enOrden(entradas) {
 /**
  * La bandeja de un libro y una cuenta: su borrador (en `almacen`, { leer(clave) → texto|null, guardar(clave, texto) →
  * bool }) y el camino de lanzarlo. Sin estado propio: cada operación lee el almacén, así que un objeto nuevo sobre el
- * mismo almacén ve lo mismo (recargar).
+ * mismo almacén ve lo mismo (recargar). Con `comun` (la persona), el borrador es el común de todos sus libros: esta
+ * bandeja lista, pone, prueba y ejecuta las entradas de SU libro, y lo demás del borrador lo deja como estaba; quitar y
+ * mover van sobre cualquier entrada del borrador (mover, dentro de su libro).
  */
-export function crearBandeja({ almacen, libro, cuenta }) {
+export function crearBandeja({ almacen, libro, cuenta, comun = null }) {
   if (!esTextoCorto(libro) || !esTextoCorto(cuenta)) throw new Error('crearBandeja: hace falta el libro (id del génesis) y la cuenta');
-  const clave = claveDelBorrador(libro, cuenta);
-  const leer = () => leerBorrador(almacen, clave);
+  if (comun !== null && !esTextoCorto(comun)) throw new Error('crearBandeja: el borrador común es de una persona');
+  const clave = comun ? claveDelBorradorComun(comun) : claveDelBorrador(libro, cuenta);
+  /** Las entradas de esta bandeja: en el común, las de su libro; si no, todas. */
+  const esDeAqui = comun ? (e) => e.libro === libro : () => true;
+  /** El borrador entero (en el común, el de todos los libros). */
+  const leerTodo = () => leerBorrador(almacen, clave, { comun: Boolean(comun) });
+  /** El borrador de esta bandeja: el entero con solo sus entradas. */
+  const leer = () => {
+    const b = leerTodo();
+    return comun ? { ...b, entradas: b.entradas.filter(esDeAqui) } : b;
+  };
   const guardar = (b) => guardarBorrador(almacen, clave, b);
 
   return {
@@ -226,12 +251,14 @@ export function crearBandeja({ almacen, libro, cuenta }) {
      */
     poner({ tipo, en, modo, accion = null, X, valores = {}, donde = {}, completa = true, id = null, nueva = false } = {}) {
       const deCampo = tipo === 'campo' ? { tipo, en } : tipo === 'registro' ? { tipo, en, modo } : {};
-      const b = leer();
+      const b = leerTodo();
+      // En el común, los ids son del borrador entero (una entrada puede nombrar otra de otro libro).
       const ids = new Set(b.entradas.map((e) => e.id));
-      const previa = id !== null ? b.entradas.find((e) => e.id === id) : nueva ? null : b.entradas.find((e) => mismoSitio(e, { ...deCampo, accion, X, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null } }));
+      const propias = b.entradas.filter(esDeAqui);
+      const previa = id !== null ? propias.find((e) => e.id === id) : nueva ? null : propias.find((e) => mismoSitio(e, { ...deCampo, accion, X, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null } }));
       if (id !== null && !previa) return { ok: false, motivo: 'no hay ninguna entrada ' + id + ' en el borrador' };
       if (!previa && b.entradas.length >= MAXIMO_DE_ENTRADAS) return { ok: false, motivo: 'el borrador está lleno: ' + MAXIMO_DE_ENTRADAS + ' entradas' };
-      const entrada = { id: previa ? previa.id : 'b' + b.siguiente, ...deCampo, accion, X, valores, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null }, completa, de: [] };
+      const entrada = { id: previa ? previa.id : 'b' + b.siguiente, ...(comun ? { libro, cuenta } : {}), ...deCampo, accion, X, valores, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null }, completa, de: [] };
       try {
         entrada.de = dependenciasDe(entrada);
       } catch {
@@ -248,11 +275,12 @@ export function crearBandeja({ almacen, libro, cuenta }) {
     },
 
     /**
-     * Quita una entrada y, con ella, las que dependen de ella (de cerca o de lejos).
-     * → { ok, quitadas: [ids, la pedida primero], dependientes: [las que se fueron por depender] } o { ok: false, motivo }.
+     * Quita una entrada y, con ella, las que dependen de ella (de cerca o de lejos; en el común, también las de otros
+     * libros). → { ok, quitadas: [ids, la pedida primero], dependientes: [las que se fueron por depender] } o { ok: false,
+     * motivo }.
      */
     quitar(id) {
-      const b = leer();
+      const b = leerTodo();
       if (!b.entradas.some((e) => e.id === id)) return { ok: false, motivo: 'no hay ninguna entrada ' + id + ' en el borrador', quitadas: [], dependientes: [] };
       const fuera = new Set([id]);
       for (let cambia = true; cambia;) {
@@ -270,33 +298,40 @@ export function crearBandeja({ almacen, libro, cuenta }) {
     },
 
     /**
-     * Mueve una entrada un puesto antes (delta < 0) o después (delta > 0) en el orden de la tanda: en un todo o nada el
-     * orden cuenta. No pasa por delante de una de la que depende ni por detrás de una que depende de ella (al componer,
-     * la que nombra va siempre detrás de la nombrada). → { ok, orden: [ids] } o { ok: false, porque: 'no-esta' | 'borde' |
-     * 'depende' }.
+     * Mueve una entrada un puesto antes (delta < 0) o después (delta > 0) en el orden de la tanda de su libro: en un todo o
+     * nada el orden cuenta. No pasa por delante de una de la que depende ni por detrás de una que depende de ella (al
+     * componer, la que nombra va siempre detrás de la nombrada). → { ok, orden: [ids de su libro] } o { ok: false, porque:
+     * 'no-esta' | 'borde' | 'depende' }.
      */
     mover(id, delta) {
-      const b = leer();
-      const k = b.entradas.findIndex((e) => e.id === id);
-      if (k < 0) return { ok: false, porque: 'no-esta' };
-      const j = k + (delta < 0 ? -1 : 1);
-      if (!delta || j < 0 || j >= b.entradas.length) return { ok: false, porque: 'borde' };
+      const b = leerTodo();
+      const esta = b.entradas.find((e) => e.id === id);
+      if (!esta) return { ok: false, porque: 'no-esta' };
+      // Los puestos de su libro dentro del borrador entero (en el de un solo libro, todos).
+      const puestos = b.entradas.map((e, k) => (e.libro === esta.libro ? k : -1)).filter((k) => k >= 0);
+      const p = puestos.indexOf(b.entradas.indexOf(esta));
+      const q = p + (delta < 0 ? -1 : 1);
+      if (!delta || q < 0 || q >= puestos.length) return { ok: false, porque: 'borde' };
+      const [k, j] = [puestos[p], puestos[q]];
       // Tras el cambio, `va` queda delante de `queda`: no puede depender de ella.
       const [va, queda] = delta < 0 ? [b.entradas[k], b.entradas[j]] : [b.entradas[j], b.entradas[k]];
       if (va.de.includes(queda.id)) return { ok: false, porque: 'depende' };
       const entradas = [...b.entradas];
       [entradas[k], entradas[j]] = [entradas[j], entradas[k]];
       if (!guardar({ siguiente: b.siguiente, entradas })) return { ok: false, porque: 'no-se-guarda' };
-      return { ok: true, orden: entradas.map((e) => e.id) };
+      return { ok: true, orden: entradas.filter((e) => e.libro === esta.libro).map((e) => e.id) };
     },
 
-    /** Vacía el borrador. → bool (si se pudo guardar). */
+    /** Vacía el borrador (en el común, lo de este libro). → bool (si se pudo guardar). */
     vaciar() {
-      const b = leer();
-      return guardar({ siguiente: b.siguiente, entradas: [] });
+      const b = leerTodo();
+      return guardar({ siguiente: b.siguiente, entradas: b.entradas.filter((e) => !esDeAqui(e)) });
     },
 
-    /** Prueba en seco el borrador entero (componer); no toca el libro ni el borrador. */
+    /**
+     * Prueba en seco el borrador (componer); no toca el libro ni el borrador. `opciones.resueltas` (id local → id) y
+     * `opciones.provisionales` (ids locales): lo ya escrito, o lo que se escribiría, en otros libros (probarPorLibros).
+     */
     async probar(eje, yo, opciones = {}) {
       const b = leer();
       const r = await componer(eje, yo, b.entradas, opciones);
@@ -304,17 +339,30 @@ export function crearBandeja({ almacen, libro, cuenta }) {
     },
 
     /**
-     * Lanza el borrador entero, todo o nada (lanzar). Si entra, quita del borrador lo lanzado (lo que no cambió mientras
-     * se firmaba: lo que se retocó entretanto se queda, y se dice en `quedan`).
+     * Lanza el borrador, todo o nada (lanzar). Si entra, quita del borrador lo lanzado (lo que no cambió mientras se
+     * firmaba: lo que se retocó entretanto se queda, y se dice en `quedan`); lo de otros libros, como estaba.
      */
     async ejecutar(eje, yo, firmar, opciones = {}) {
       const b = leer();
       const r = await lanzar(eje, yo, firmar, b.entradas, opciones);
       if (!r.ok) return r;
       const lanzadas = new Map(b.entradas.map((e) => [e.id, JSON.stringify(limpia(e))]));
-      const ahora = leer();
+      const ahora = leerTodo();
       const quedan = ahora.entradas.filter((e) => lanzadas.has(e.id) && lanzadas.get(e.id) !== JSON.stringify(limpia(e))).map((e) => e.id);
-      const restantes = ahora.entradas.filter((e) => !lanzadas.has(e.id) || quedan.includes(e.id));
+      // Lo que se queda y nombraba algo ya escrito (otra entrada de otro libro, o compuesta mientras se firmaba) pasa a
+      // nombrar su id real: la referencia a la entrada se resuelve cuando su libro ya se ha ejecutado.
+      const hechas = new Map(Object.entries(r.ids ?? {}).filter(([id]) => lanzadas.has(id) && !quedan.includes(id)));
+      const fijar = (x) => {
+        if (esRefPendiente(x)) return hechas.get(x.pendiente) ?? x;
+        if (Array.isArray(x)) return x.map(fijar);
+        if (x !== null && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, fijar(v)]));
+        return x;
+      };
+      const restantes = ahora.entradas.filter((e) => !lanzadas.has(e.id) || quedan.includes(e.id)).map((e) => {
+        if (!e.de.some((d) => hechas.has(d))) return e;
+        const n = { ...e, X: fijar(e.X), valores: fijar(e.valores) };
+        return { ...n, de: dependenciasDe(n) };
+      });
       const vaciado = guardar({ siguiente: ahora.siguiente, entradas: restantes });
       return { ...r, quedan, vaciado };
     },
@@ -325,7 +373,7 @@ export function crearBandeja({ almacen, libro, cuenta }) {
 
 /** Las opciones que pasan a acciones.transaccion: sin lo de la bandeja ni `firmar` (la candidata va SIN firmar). */
 function opcionesDeTransaccion(opciones) {
-  const { firmar: _f, firmarTanda: _ft, posesion: _p, topeDePropuesta: _tp, revisar: _r, ...resto } = opciones ?? {};
+  const { firmar: _f, firmarTanda: _ft, posesion: _p, topeDePropuesta: _tp, revisar: _r, resueltas: _rs, provisionales: _pr, ...resto } = opciones ?? {};
   return resto;
 }
 
@@ -472,7 +520,10 @@ function faltanDe(vista, yo, accion, X, valores, opciones) {
  * que una acción exige antes (la reserva de un mensaje: carta.antesDelMensaje, leída sobre la vista, así que no se
  * duplica si ya está en el libro o la puso antes otra entrada) entra como item propio delante, `puesta: true`.
  * → { ok, items: [{ id (local; null en una puesta), puesta, para?, accion, entra, motivos, faltan?, resumen, candidato,
- * bytes }], motivos (los de la bandeja entera: vacía, no cabe), cuesta: { segundos } }.
+ * bytes, provisional? }], motivos (los de la bandeja entera: vacía, no cabe), cuesta: { segundos } }.
+ * Lo de otros libros (varios libros): `opciones.resueltas` (id local → id; un Map o un objeto) da el id de las entradas de
+ * otro libro ya escritas o, en la prueba en seco, el que tendrían; esas últimas van en `opciones.provisionales`, y el
+ * item que se apoya en una lleva `provisional` (sus ids locales): se probó con un id que aún no es el suyo.
  */
 async function componer(eje, yo, entradas, opciones = {}) {
   // La época del libro, para leer sus acciones (lo que hace conEpoca en src/acciones.js).
@@ -480,7 +531,8 @@ async function componer(eje, yo, entradas, opciones = {}) {
   const { vista } = await eje.vistaTanda();
   const { orden, circulares } = enOrden(entradas);
   const items = [];
-  const ids = new Map(); // id local → id del candidato compuesto (solo las que entran)
+  const ids = new Map(opciones.resueltas instanceof Map ? opciones.resueltas : Object.entries(opciones.resueltas ?? {})); // id local → id del candidato compuesto (solo las que entran)
+  const provisionales = new Set(opciones.provisionales ?? []);
   const nombreDe = (accion) => {
     const p = acciones.plantillaDeTransaccion(accion, opcionesDeTransaccion(opciones));
     return p ? acciones.nombreDeAccion(p) : String(accion);
@@ -497,6 +549,8 @@ async function componer(eje, yo, entradas, opciones = {}) {
       continue;
     }
     const sinResolver = e.de.find((d) => !ids.has(d));
+    const deOtroLibro = e.de.filter((d) => provisionales.has(d));
+    if (deOtroLibro.length) base.provisional = deOtroLibro;
     const X = sinResolver ? null : resolver(e.X, ids);
     const valores = sinResolver ? e.valores : resolver(e.valores, ids);
     if (!e.completa) {
@@ -692,6 +746,196 @@ export async function probarAhora(eje, yo, { tipo, en, modo, accion = null, X, v
   const falla = fallaDeEntrada(entrada, new Set());
   if (falla) return { ok: false, items: [], motivos: [motivo(falla)], cuesta: { segundos: 0 } };
   return componer(eje, yo, [entrada], opciones);
+}
+
+// ---------- varios libros (VG 18-11: «primero en el libro tal, después en el libro cual») ----------
+
+/**
+ * El orden en que se ejecutan los libros del borrador común: el orden en que aparece cada uno por primera vez, salvo que
+ * una entrada se apoye en otra de otro libro ({ pendiente } que nombra una entrada de allí): entonces el libro del que
+ * depende va antes (decisión de Core, 18-11). → { libros: [{ libro, cuenta, entradas: [ids locales], despuesDe: [libros]
+ * }], circular } (`circular`: dos libros se esperan el uno al otro; van en el orden en que aparecen y no se ejecutan).
+ */
+export function planDeLibros(entradas) {
+  const libros = [];
+  const porLibro = new Map();
+  for (const e of entradas ?? []) {
+    if (!porLibro.has(e.libro)) {
+      const l = { libro: e.libro, cuenta: e.cuenta, entradas: [] };
+      porLibro.set(e.libro, l);
+      libros.push(l);
+    }
+    porLibro.get(e.libro).entradas.push(e.id);
+  }
+  const libroDe = new Map((entradas ?? []).map((e) => [e.id, e.libro]));
+  const necesita = new Map(libros.map((l) => [l.libro, new Set()]));
+  for (const e of entradas ?? []) {
+    for (const d of e.de ?? []) {
+      const otro = libroDe.get(d);
+      if (otro !== undefined && otro !== e.libro) necesita.get(e.libro).add(otro);
+    }
+  }
+  const conLoQueEspera = (l) => ({ ...l, despuesDe: [...necesita.get(l.libro)] });
+  const orden = [];
+  const puestos = new Set();
+  while (orden.length < libros.length) {
+    const siguiente = libros.find((l) => !puestos.has(l.libro) && [...necesita.get(l.libro)].every((o) => puestos.has(o)));
+    if (!siguiente) return { libros: [...orden, ...libros.filter((l) => !puestos.has(l.libro))].map(conLoQueEspera), circular: true };
+    orden.push(siguiente);
+    puestos.add(siguiente.libro);
+  }
+  return { libros: orden.map(conLoQueEspera), circular: false };
+}
+
+const MOTIVOS_DE_LIBROS = Object.freeze({
+  noAbre: (m) => 'no se puede abrir este libro en este dispositivo' + (m ? ': ' + m : ''),
+  circulo: 'los libros se esperan el uno al otro (una entrada de cada uno se apoya en otra del otro): así no se pueden ejecutar uno tras otro',
+});
+
+/** Abre un libro con lo que da la app, a salvo: { eje, yo, firmar, opciones?, nombre?, hecho? } o { motivo, nombre? }. */
+async function abrirLibro(abrir, l) {
+  try {
+    const a = await abrir(l.libro, l.cuenta);
+    return a?.eje ? a : { motivo: a?.motivo ?? null, nombre: a?.nombre ?? null };
+  } catch (e) {
+    return { motivo: String(e?.message ?? e) };
+  }
+}
+
+/** Los items de las entradas de un libro que no se abre: cada una no entra, con el motivo. */
+function itemsSinAbrir(entradas, l, m) {
+  return entradas.filter((e) => e.libro === l.libro).map((e) => ({
+    id: e.id, puesta: false, accion: e.tipo === 'campo' || e.tipo === 'registro' ? null : e.accion, entrada: limpia(e),
+    entra: false, motivos: [motivo(MOTIVOS_DE_LIBROS.noAbre(m))], candidato: null, resumen: null, bytes: 0,
+  }));
+}
+
+/**
+ * La prueba en seco del borrador común, libro por libro y en el orden de planDeLibros: cada libro por separado, con su
+ * eje, quien mira allí y sus opciones (`abrir(libro, cuenta)` → { eje, yo, opciones?, nombre? } o { motivo }). Lo que se
+ * apoya en una entrada de un libro anterior se prueba con el id que tendría (el de su candidato en seco: `provisional`),
+ * hasta donde se puede; si aquella no entra, dice que depende de ella. Nada se escribe.
+ * → { ok, libros: [{ libro, cuenta, nombre, abierto, ok, items, motivos, cuesta, despuesDe }], motivos, cuesta, ignorado? }.
+ */
+export async function probarPorLibros({ almacen, persona, abrir, opciones = {} } = {}) {
+  const b = leerBorrador(almacen, claveDelBorradorComun(persona), { comun: true });
+  const plan = planDeLibros(b.entradas);
+  const resueltas = new Map();
+  const provisionales = new Set();
+  const libros = [];
+  for (const l of plan.libros) {
+    const a = await abrirLibro(abrir, l);
+    if (!a.eje) {
+      libros.push({ ...l, nombre: a.nombre ?? null, abierto: false, ok: false, items: itemsSinAbrir(b.entradas, l, a.motivo), motivos: [motivo(MOTIVOS_DE_LIBROS.noAbre(a.motivo))], cuesta: { segundos: 0 } });
+      continue;
+    }
+    const vista = crearBandeja({ almacen, libro: l.libro, cuenta: l.cuenta, comun: persona });
+    let r;
+    try {
+      r = await vista.probar(a.eje, a.yo, { ...opciones, ...(a.opciones ?? {}), resueltas, provisionales });
+    } catch (e) {
+      r = { ok: false, items: [], motivos: [motivo(String(e?.message ?? e))], cuesta: { segundos: 0 } };
+    }
+    for (const x of r.items) {
+      if (x.entra && x.id !== null && x.candidato) {
+        resueltas.set(x.id, x.candidato.id);
+        provisionales.add(x.id);
+      }
+    }
+    libros.push({ ...l, nombre: a.nombre ?? null, abierto: true, ok: r.ok, items: r.items, motivos: r.motivos, cuesta: r.cuesta });
+  }
+  const motivos = [...(plan.circular ? [motivo(MOTIVOS_DE_LIBROS.circulo)] : []), ...(libros.length ? [] : [motivo(MOTIVOS.vacia)])];
+  return {
+    ok: libros.length > 0 && libros.every((l) => l.ok) && !plan.circular, libros, motivos,
+    cuesta: { segundos: libros.reduce((s, l) => s + (l.cuesta?.segundos ?? 0), 0) },
+    ...(b.ignorado ? { ignorado: b.ignorado } : {}),
+  };
+}
+
+/**
+ * Ejecuta el borrador común: primero la prueba en seco de todos los libros (si algo no entra, no se ejecuta nada); después
+ * `antesDeEjecutar(probado)` (async → motivo en llano o null: lo que la app hace antes de firmar, como subir los archivos);
+ * después, libro a libro y en orden, la ejecución de cada uno (bandeja.ejecutar: todo o nada en su libro, con su firma),
+ * con lo que se apoya en una entrada ya escrita resuelto con el id real. Al primer libro que falla se para: lo hecho en
+ * los anteriores YA ESTÁ HECHO y ha salido del borrador; lo del que falla y los siguientes sigue en él. Entre libros no se
+ * promete nada. `abrir(libro, cuenta)` → { eje, yo, firmar, opciones?, nombre?, hecho?(r) } (hecho: lo que la app hace
+ * con un libro recién ejecutado, como guardarlo).
+ * → { ok, fase? ('probar' | 'antes' si no se intentó ninguno), hechos: [{ libro, cuenta, nombre, eventos, items, ids, tanda
+ * }], fallo: null | { libro, cuenta, nombre, fase, motivos, items? }, pendientes: [{ libro, cuenta, nombre }] (los que no
+ * se intentaron), ids (id local → id real, de todo lo hecho), probado }.
+ */
+export async function ejecutarPorLibros({ almacen, persona, abrir, opciones = {}, antesDeEjecutar = null } = {}) {
+  const probado = await probarPorLibros({ almacen, persona, abrir, opciones });
+  const resto = (desde) => probado.libros.slice(desde).map((l) => ({ libro: l.libro, cuenta: l.cuenta, nombre: l.nombre }));
+  if (!probado.ok) {
+    const l = probado.libros.find((x) => !x.ok) ?? null;
+    const motivos = [...probado.motivos, ...(l ? [...l.motivos, ...l.items.filter((x) => !x.entra).flatMap((x) => x.motivos.map((m) => ({ ...m, id: x.id, para: x.para ?? null })))] : [])];
+    return { ok: false, fase: 'probar', hechos: [], fallo: { libro: l?.libro ?? null, cuenta: l?.cuenta ?? null, nombre: l?.nombre ?? null, fase: 'probar', motivos, items: l?.items ?? [] }, pendientes: resto(0), ids: {}, probado };
+  }
+  if (typeof antesDeEjecutar === 'function') {
+    let m = null;
+    try {
+      m = await antesDeEjecutar(probado);
+    } catch (e) {
+      m = String(e?.message ?? e);
+    }
+    if (m) return { ok: false, fase: 'antes', hechos: [], fallo: { libro: null, cuenta: null, nombre: null, fase: 'antes', motivos: [motivo(String(m))] }, pendientes: resto(0), ids: {}, probado };
+  }
+  const ids = new Map();
+  const hechos = [];
+  let fallo = null;
+  for (const l of probado.libros) {
+    const a = await abrirLibro(abrir, l);
+    if (!a.eje) {
+      fallo = { libro: l.libro, cuenta: l.cuenta, nombre: a.nombre ?? l.nombre, fase: 'abrir', motivos: [motivo(MOTIVOS_DE_LIBROS.noAbre(a.motivo))] };
+      break;
+    }
+    const vista = crearBandeja({ almacen, libro: l.libro, cuenta: l.cuenta, comun: persona });
+    let r;
+    try {
+      r = await vista.ejecutar(a.eje, a.yo, a.firmar, { ...opciones, ...(a.opciones ?? {}), resueltas: ids });
+    } catch (e) {
+      r = { ok: false, fase: 'ejecutar', motivos: [motivo(String(e?.message ?? e))] };
+    }
+    if (!r.ok) {
+      fallo = { libro: l.libro, cuenta: l.cuenta, nombre: a.nombre ?? l.nombre, ...r };
+      break;
+    }
+    for (const [local, id] of Object.entries(r.ids ?? {})) ids.set(local, id);
+    const hecho = { libro: l.libro, cuenta: l.cuenta, nombre: a.nombre ?? l.nombre, ...r };
+    hechos.push(hecho);
+    try {
+      await a.hecho?.(hecho);
+    } catch { /* lo que la app hace después (guardar) no deshace lo hecho */ }
+  }
+  return { ok: !fallo, hechos, fallo, pendientes: resto(hechos.length + (fallo ? 1 : 0)), ids: Object.fromEntries(ids), probado };
+}
+
+/**
+ * Pasa al borrador común lo que quedó en el borrador de un libro (el de antes del común: claveDelBorrador), con ids nuevos
+ * y sus referencias cambiadas, y deja aquel vacío. Si no cabe, no pasa nada. → cuántas entradas pasó.
+ */
+export function absorberBorradorDeLibro({ almacen, libro, cuenta, persona }) {
+  const viejo = leerBorrador(almacen, claveDelBorrador(libro, cuenta));
+  if (viejo.ignorado || !viejo.entradas.length) return 0;
+  const clave = claveDelBorradorComun(persona);
+  const comun = leerBorrador(almacen, clave, { comun: true });
+  if (comun.ignorado || comun.entradas.length + viejo.entradas.length > MAXIMO_DE_ENTRADAS) return 0;
+  let siguiente = comun.siguiente;
+  const nuevos = new Map(viejo.entradas.map((e) => [e.id, 'b' + siguiente++]));
+  const renombrar = (x) => {
+    if (esRefPendiente(x)) return { pendiente: nuevos.get(x.pendiente) ?? x.pendiente };
+    if (Array.isArray(x)) return x.map(renombrar);
+    if (x !== null && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, renombrar(v)]));
+    return x;
+  };
+  const pasadas = viejo.entradas.map((e) => {
+    const n = { ...limpia(e), id: nuevos.get(e.id), libro, cuenta, X: renombrar(e.X), valores: renombrar(e.valores) };
+    return { ...n, de: dependenciasDe(n) };
+  });
+  if (!guardarBorrador(almacen, clave, { siguiente, entradas: [...comun.entradas, ...pasadas] })) return 0;
+  guardarBorrador(almacen, claveDelBorrador(libro, cuenta), { siguiente: viejo.siguiente, entradas: [] });
+  return pasadas.length;
 }
 
 export { TANDA_MINIMA, TANDA_MAXIMA };
