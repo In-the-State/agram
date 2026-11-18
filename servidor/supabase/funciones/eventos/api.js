@@ -183,17 +183,25 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
   }
 
   /**
-   * ¿Caben `n` escrituras más este minuto en el eje? Si caben, las cuenta todas y devuelve -1; si no, no cuenta ninguna
-   * y devuelve cuántas cabían (el índice del primer miembro que ya no cabe). El mismo contador que pasaElLimite.
+   * Reserva `n` escrituras de este minuto en el eje, todas o ninguna (el mismo contador que pasaElLimite).
+   * → { reserva: { eje, minuto, n } } si caben, o { libres } (cuántas cabían) si no. La reserva se toma sin ninguna espera
+   * entre mirar y contar, así que dos tandas a la vez no pasan juntas del tope aunque quepan por separado; si la tanda no
+   * llega a guardarse (la autoridad la rechaza, el almacén dice que ya estaba, falla), devolverEscrituras la deshace.
    */
-  function cabenEscrituras(eje, n) {
+  function reservarEscrituras(eje, n) {
     const minuto = Math.floor(ahora().getTime() / 60000);
     const v = ventanas.get(eje);
     const usadas = v && v.minuto === minuto ? v.n : 0;
     const libres = Math.max(0, escriturasPorMinuto - usadas);
-    if (n > libres) return libres;
+    if (n > libres) return { libres };
     ventanas.set(eje, { minuto, n: usadas + n });
-    return -1;
+    return { reserva: { eje, minuto, n } };
+  }
+
+  /** Devuelve una reserva que no se gastó. Si el minuto ya cambió, no hay nada que devolver: la ventana es otra. */
+  function devolverEscrituras({ eje, minuto, n }) {
+    const v = ventanas.get(eje);
+    if (v && v.minuto === minuto) v.n = Math.max(0, v.n - n);
   }
 
   async function crearEje(request) {
@@ -291,17 +299,20 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
       comprobados.push(r.evento);
     }
     // 3. Que cabe: las `de` escrituras dentro del tope por minuto, o ninguna.
-    const cabian = cabenEscrituras(nombre, de);
-    if (cabian >= 0) return falla(429, 'la tanda son ' + de + ' escrituras y este minuto solo caben ' + cabian + ' en el eje ' + nombre + ' (tope ' + escriturasPorMinuto + '): no entra ninguna');
+    // Se reservan aquí y solo quedan gastadas si la tanda se guarda (201): rechazada o duplicada, no gasta (precisión 10).
+    const { reserva, libres } = reservarEscrituras(nombre, de);
+    if (!reserva) return falla(429, 'la tanda son ' + de + ' escrituras y este minuto solo caben ' + libres + ' en el eje ' + nombre + ' (tope ' + escriturasPorMinuto + '): no entra ninguna');
     // Guardar todas en un solo paso.
     let filas;
     try {
       filas = await almacen.insertarTanda(nombre, comprobados.map((ev) => ({ id: ev.id, autor: ev.autor, firma: ev.firma, cuerpo: ev })));
     } catch (e) {
+      devolverEscrituras(reserva);
       // La puerta con autoridad juzga la tanda dentro de insertarTanda: { estado, indice, id } (422 reglas, 501 sin tandas).
       if (Number.isInteger(e?.estado) && e.estado >= 400 && e.estado <= 599) return falla(e.estado, e.message, Number.isInteger(e.indice) ? e.indice : null, verificar.esHash(e.id) ? e.id : null);
       throw e;
     }
+    if (!filas) devolverEscrituras(reserva);
     if (filas) {
       if (!Array.isArray(filas) || filas.length !== de) return falla(500, 'el almacén no devolvió un orden por miembro');
       return json(request, 201, { tanda: comprobados[0].id, eventos: comprobados.map((ev, k) => ({ id: ev.id, orden: filas[k].orden, recibido: filas[k].recibido })) });

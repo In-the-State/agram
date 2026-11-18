@@ -19,7 +19,7 @@
 // de cada uno y, al abrir el archivo, se rehace leyendo los 7701 guardados (los que no traen
 // «orden», de antes de la cadena, no cuentan). Un 7703 no entra en la cadena.
 
-import { appendFileSync, existsSync, readFileSync } from 'node:fs';
+import { appendFileSync, existsSync, readFileSync, truncateSync, writeFileSync } from 'node:fs';
 import { firmar, verificar, publicaDe, generarClaves, valores } from './nostr.js';
 import { llegada } from './recibo.js';
 
@@ -52,40 +52,72 @@ export function juzgadosAceptados(eventos) {
   return ids;
 }
 
-/** La marca de tanda (CONTRATO_TANDA de AGRAM: contexto.tanda = { n, de, anterior }) del registro AGRAM de un 7700, o null. */
-function marcaDeTanda(ev) {
-  if (ev.kind !== KIND_EVENTO) return null;
+/**
+ * ¿Declara el registro AGRAM de un 7700 la marca de tanda (contexto.tanda)? Solo sirve para NO admitir suelto, por
+ * NIP-01, a un miembro de tanda (publicar): lo que declara un registro nunca decide dónde empieza o acaba una escritura
+ * del archivo (eso lo dicen las marcas del propio relé, abajo).
+ */
+function declaraTanda(ev) {
+  if (ev.kind !== KIND_EVENTO) return false;
   try {
-    const cuerpo = JSON.parse(ev.content);
-    return cuerpo?.contexto?.tanda ? { id: cuerpo.id, ...cuerpo.contexto.tanda } : null;
-  } catch { return null; }
+    return JSON.parse(ev.content)?.contexto?.tanda !== undefined;
+  } catch { return false; }
 }
 
 /**
- * Los ids Nostr que no se cargan al reabrir: los de una tanda cortada AL FINAL del archivo, y sus recibos. Una tanda se
- * escribe en una sola escritura (guardarVarios: miembro, recibo, miembro, recibo…), así que solo la última puede quedar a
- * medias, y siempre por el final. Se mira solo esa cola: desde el último miembro 1 que no tiene detrás nada ajeno a la
- * tanda. Completa: `de` miembros con n = 1…de, cada «anterior» el id del de antes, y cada uno con su recibo. Lo anterior
- * del archivo nunca se descarta, declare lo que declare un registro.
+ * Las marcas que el RELÉ escribe en su archivo alrededor de una escritura de varios eventos (una tanda, publicarVarios):
+ * una línea { "escritura": "empieza", "lineas": L } antes y { "escritura": "acaba" } después. Son del relé y no de los
+ * registros: nadie de fuera las escribe (un evento es siempre un objeto con «kind»), así que lo que declare un registro
+ * no mueve los límites. Idea y forma de la rama `tanda` de aarpia-transporte (da028ac), escrita aquí.
  */
-export function tandaCortadaAlFinal(eventos) {
-  const fuera = new Set();
-  let inicio = -1;
-  for (let i = eventos.length - 1; i >= 0; i--) {
-    const ev = eventos[i];
-    const m = marcaDeTanda(ev);
-    if (m?.n === 1) { inicio = i; break; }
-    if (!m && ev.kind !== KIND_RECIBO) return fuera; // algo suelto detrás: la última escritura no fue una tanda
+export const EMPIEZA = 'empieza';
+export const ACABA = 'acaba';
+
+/**
+ * Lee el archivo del relé (un Buffer). → { eventos, corte }: los eventos que valen, en orden, y el byte desde el que
+ * cortar el archivo si la ÚLTIMA escritura quedó a medias (una línea truncada al final, o una escritura con su «empieza»
+ * y sin su «acaba»); si no, corte = null. Solo se quita esa última escritura, entera; lo de antes nunca. Una línea rota o
+ * unas marcas descuadradas EN MEDIO del archivo son corrupción, no un corte: lanza. Un archivo de antes de las marcas
+ * (solo eventos, una línea cada uno) se lee igual.
+ */
+export function leerArchivoRele(buffer) {
+  const eventos = [];
+  let corte = null;
+  let bloque = null; // la escritura marcada en curso: { inicio (byte), lineas, pendientes }
+  let pos = 0;
+  while (pos < buffer.length) {
+    let fin = buffer.indexOf(0x0a, pos);
+    if (fin < 0) fin = buffer.length;
+    const inicio = pos;
+    const texto = buffer.subarray(pos, fin).toString('utf8').replace(/\r$/, '');
+    pos = fin + 1;
+    if (!texto.trim()) continue;
+    let x;
+    try {
+      x = JSON.parse(texto);
+    } catch (e) {
+      // Solo la última línea con algo puede estar rota (un corte al escribir); con algo detrás, es corrupción.
+      if (!buffer.subarray(Math.min(pos, buffer.length)).toString('utf8').trim()) {
+        corte = bloque ? bloque.inicio : inicio;
+        return { eventos, corte };
+      }
+      throw new Error('el archivo del relé tiene una línea rota en medio: ' + e.message);
+    }
+    if (x && typeof x === 'object' && !Array.isArray(x) && !('kind' in x) && 'escritura' in x) {
+      if (x.escritura === EMPIEZA && !bloque && Number.isSafeInteger(x.lineas) && x.lineas > 0) bloque = { inicio, lineas: x.lineas, pendientes: [] };
+      else if (x.escritura === ACABA && bloque && bloque.pendientes.length === bloque.lineas) {
+        eventos.push(...bloque.pendientes);
+        bloque = null;
+      } else throw new Error('el archivo del relé tiene marcas de escritura descuadradas');
+      continue;
+    }
+    if (bloque) {
+      bloque.pendientes.push(x);
+      if (bloque.pendientes.length > bloque.lineas) throw new Error('el archivo del relé tiene una escritura más larga de lo marcado');
+    } else eventos.push(x);
   }
-  if (inicio < 0) return fuera;
-  const cola = eventos.slice(inicio);
-  const miembros = cola.filter((ev) => ev.kind === KIND_EVENTO);
-  const conRecibo = new Set(cola.filter((ev) => ev.kind === KIND_RECIBO).flatMap((ev) => valores(ev, 'e')));
-  const marcas = miembros.map(marcaDeTanda);
-  const de = marcas[0].de;
-  const completa = miembros.length === de && marcas.every((m, k) => m && m.de === de && m.n === k + 1 && (k === 0 || m.anterior === marcas[k - 1].id)) && miembros.every((ev) => conRecibo.has(ev.id));
-  if (!completa) for (const ev of miembros) fuera.add(ev.id);
-  return fuera;
+  if (bloque) corte = bloque.inicio; // la última escritura empezó y no acabó: fuera entera
+  return { eventos, corte };
 }
 
 /** Más reciente primero; a igual created_at, por id (como hacen los relés). */
@@ -120,23 +152,21 @@ export class Rele {
     this.alGuardar = alGuardar;
   }
 
-  /** Carga el archivo (si lo hay), verificando cada evento. Devuelve cuántos cargó. */
+  /**
+   * Carga el archivo (si lo hay), verificando cada evento. Devuelve cuántos cargó. Si la última escritura quedó a medias
+   * (leerArchivoRele), se corta del archivo ANTES de escribir nada nuevo, para que lo siguiente no se pegue a una línea
+   * rota; lo cortado se guarda al lado (`<archivo>.cortado-<instante>`) por si hay que mirarlo.
+   */
   async abrir() {
     if (!this.archivo || !existsSync(this.archivo)) return 0;
     let n = 0;
-    const lineas = readFileSync(this.archivo, 'utf8').split(/\r?\n/).filter((l) => l.trim());
-    const leidos = [];
-    for (const [i, linea] of lineas.entries()) {
-      let ev;
-      // Un corte a mitad de escribir deja la ÚLTIMA línea truncada: se descarta (lo de antes ya estaba entero).
-      try { ev = JSON.parse(linea); } catch (e) { if (i === lineas.length - 1) break; throw e; }
-      leidos.push(ev);
+    const contenido = readFileSync(this.archivo);
+    const { eventos: leidos, corte } = leerArchivoRele(contenido);
+    if (corte !== null) {
+      writeFileSync(this.archivo + '.cortado-' + Date.now(), contenido.subarray(corte));
+      truncateSync(this.archivo, corte);
     }
-    // Una tanda se escribe de una vez (guardarVarios): solo la ÚLTIMA escritura puede quedar a medias. Si es una tanda
-    // incompleta, no se carga (ni sus 7700 ni sus 7701). Nada de antes se descarta por lo que declaren los registros.
-    const fuera = tandaCortadaAlFinal(leidos);
     for (const ev of leidos) {
-      if (fuera.has(ev.id) || (ev.kind === KIND_RECIBO && valores(ev, 'e').some((e) => fuera.has(e)))) continue;
       if (this.eventos.has(ev.id)) continue;
       if (!(await verificar(ev))) throw new Error('el archivo del relé tiene un evento que no verifica: ' + ev.id);
       this.eventos.set(ev.id, { ev, llegada: this.siguiente++ });
@@ -191,7 +221,7 @@ export class Rele {
       for (const [eje, eslabon] of cadenas) if (eslabon === undefined) this.cadenas.delete(eje); else this.cadenas.set(eje, eslabon);
       throw e;
     }
-    this.guardarVarios(evs.flatMap((ev, i) => [ev, recibos[i]]));
+    this.guardarVarios(evs.flatMap((ev, i) => [ev, recibos[i]]), { marcado: true });
     return { ok: true, motivo: '', recibos };
   }
 
@@ -200,7 +230,7 @@ export class Rele {
     if (this.eventos.has(ev?.id)) return { ok: true, motivo: 'duplicate: ya estaba', duplicado: true, recibo: this.reciboDe(ev.id) };
     if (!this.kinds.includes(ev?.kind)) return { ok: false, motivo: 'blocked: kind no admitido' };
     if (ev.kind === KIND_RECIBO) return { ok: false, motivo: 'blocked: los recibos 7701 solo los emite el relé' };
-    if (marcaDeTanda(ev)) return { ok: false, motivo: 'blocked: un miembro de una tanda solo entra con la tanda entera (publicarVarios)' };
+    if (declaraTanda(ev)) return { ok: false, motivo: 'blocked: un miembro de una tanda solo entra con la tanda entera (publicarVarios)' };
     if (ev.kind === KIND_EVENTO && this.firmantesDeEvento && !this.firmantesDeEvento.includes(ev.pubkey)) return { ok: false, motivo: 'blocked: con autoridad, un 7700 solo entra por el servicio, ya juzgado' };
     if (ev.kind === KIND_RECHAZO && !this.firmantesDeRechazo.includes(ev.pubkey)) return { ok: false, motivo: 'blocked: los rechazos 7703 solo los firma la autoridad' };
     if (!(await verificar(ev))) return { ok: false, motivo: 'invalid: id o firma' };
@@ -233,10 +263,17 @@ export class Rele {
     this.guardarVarios([ev]);
   }
 
-  /** Guarda en orden, escribe en el archivo de una sola vez y, después de todo, avisa (de forma síncrona, sin cortes). */
-  guardarVarios(evs) {
+  /**
+   * Guarda en orden, escribe en el archivo de una sola vez y, después de todo, avisa (de forma síncrona, sin cortes). Con
+   * `marcado` (una tanda), la escritura va entre las marcas del relé (EMPIEZA con sus líneas, ACABA): al reabrir, sin su
+   * «acaba», se quita entera.
+   */
+  guardarVarios(evs, { marcado = false } = {}) {
     for (const ev of evs) this.eventos.set(ev.id, { ev, llegada: this.siguiente++ });
-    if (this.archivo) appendFileSync(this.archivo, evs.map((ev) => JSON.stringify(ev) + '\n').join(''));
+    if (this.archivo) {
+      const lineas = evs.map((ev) => JSON.stringify(ev) + '\n').join('');
+      appendFileSync(this.archivo, marcado ? JSON.stringify({ escritura: EMPIEZA, lineas: evs.length }) + '\n' + lineas + JSON.stringify({ escritura: ACABA }) + '\n' : lineas);
+    }
     for (const ev of evs) {
       if (this.alGuardar) this.alGuardar(ev); // p. ej. el espejo hacia los relés de la casa (src/espejo.js)
       for (const s of this.subs) if (s.filtros.some((f) => pasaFiltro(ev, f))) s.alLlegar(ev);

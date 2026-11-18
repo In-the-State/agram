@@ -6,7 +6,7 @@
 
 import { test, describe, before, after } from 'node:test';
 import assert from 'node:assert/strict';
-import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync, appendFileSync, readdirSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { arrancar, almacenEnMemoria } from '../servidor/prueba/servidor.mjs';
@@ -536,30 +536,98 @@ describe('simulación de AARPIA (servidor/sim/aarpia: el mismo api.js sobre el r
     }
   });
 
-  test('el relé con archivo: una tanda cortada al final no se carga al reabrir (ni sus recibos); una entera, sí', async () => {
-    const carpeta = mkdtempSync(join(tmpdir(), 'agram-rele-tanda-'));
+  /** Un relé con archivo en una carpeta temporal, el génesis de un libro publicado suelto y cómo envolver más. */
+  async function releConArchivo(prefijo) {
+    const carpeta = mkdtempSync(join(tmpdir(), prefijo));
     const archivo = join(carpeta, 'rele.jsonl');
+    const transporte = clavesNostr();
+    const lib = await libro();
+    const rele = new Rele({ archivo });
+    const sobre = (evento) => envolver({ evento, eje: 'r', privada: transporte.privada });
+    assert.equal((await rele.publicar(await sobre(lib.genesis))).ok, true);
+    const idsAgram = (r) => r.consultar({ kinds: [KIND_EVENTO] }).map((ev) => JSON.parse(ev.content).id);
+    return { carpeta, archivo, lib, rele, sobre, idsAgram, borrar: () => rmSync(carpeta, { recursive: true, force: true }) };
+  }
+
+  test('el relé con archivo: la tanda va entre las marcas del relé; cortada a media escritura, se reabre sin ella, sin perder lo anterior, y el archivo queda listo para seguir', async () => {
+    const r = await releConArchivo('agram-rele-tanda-');
     try {
-      const transporte = clavesNostr();
-      const { claves, genesis } = await libro();
-      const rele = new Rele({ archivo });
-      const sobre = (evento) => envolver({ evento, eje: 'r', privada: transporte.privada });
-      assert.equal((await rele.publicar(await sobre(genesis))).ok, true);
-      const entera = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+      const { lib, rele, sobre, archivo, idsAgram } = r;
+      const entera = await tanda([{ privada: lib.claves.privada, sobre: lib.genesis.id }, { privada: lib.claves.privada, sobre: lib.genesis.id }]);
       assert.equal((await rele.publicarVarios(await Promise.all(entera.map(sobre)))).ok, true);
-      const cortada = await tanda([{ privada: claves.privada, sobre: genesis.id, payload: ['c1'] }, { privada: claves.privada, sobre: genesis.id, payload: ['c2'] }]);
+      const lineasEntera = readFileSync(archivo, 'utf8').trim().split('\n');
+      assert.deepEqual(JSON.parse(lineasEntera.at(-6)), { escritura: 'empieza', lineas: 4 }, 'miembro, recibo, miembro, recibo entre las dos marcas');
+      assert.deepEqual(JSON.parse(lineasEntera.at(-1)), { escritura: 'acaba' });
+      const largoBueno = readFileSync(archivo).length;
+      const cortada = await tanda([{ privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['c1'] }, { privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['c2'] }]);
       assert.equal((await rele.publicarVarios(await Promise.all(cortada.map(sobre)))).ok, true);
-      assert.equal(rele.consultar({ kinds: [KIND_EVENTO] }).length, 5);
-      // Se corta la última escritura: falta el último recibo y la línea anterior queda a medias.
-      const lineas = readFileSync(archivo, 'utf8').trim().split('\n');
-      writeFileSync(archivo, lineas.slice(0, -2).join('\n') + '\n' + lineas.at(-2).slice(0, 40));
+      // Se corta la última escritura a la mitad: sin su «acaba», y con la última línea a medias.
+      const todo = readFileSync(archivo);
+      writeFileSync(archivo, todo.subarray(0, largoBueno + Math.floor((todo.length - largoBueno) / 2)));
       const otra = new Rele({ archivo });
       await otra.abrir();
-      const cargados = otra.consultar({ kinds: [KIND_EVENTO] }).map((ev) => JSON.parse(ev.content).id);
-      assert.deepEqual(new Set(cargados), new Set([genesis.id, ...entera.map((m) => m.id)]));
+      assert.deepEqual(new Set(idsAgram(otra)), new Set([lib.genesis.id, ...entera.map((m) => m.id)]));
       assert.equal(otra.ultimoEslabon('r').orden, 2, 'la cadena sigue en el último recibo de la tanda entera');
+      assert.equal(readFileSync(archivo).length, largoBueno, 'el archivo se corta justo donde empezaba la escritura a medias');
+      assert.ok(readdirSync(r.carpeta).some((n) => n.startsWith('rele.jsonl.cortado-')), 'lo cortado se guarda al lado');
+      // Lo siguiente se escribe detrás, limpio, y se vuelve a abrir.
+      assert.equal((await otra.publicarVarios(await Promise.all(cortada.map(sobre)))).ok, true);
+      const tercera = new Rele({ archivo });
+      await tercera.abrir();
+      assert.equal(idsAgram(tercera).length, 5);
     } finally {
-      rmSync(carpeta, { recursive: true, force: true });
+      r.borrar();
+    }
+  });
+
+  test('el relé con archivo: lo que DECLARA un registro no mueve los límites (una marca de tanda falsa ni quita lo guardado ni mantiene lo cortado); en medio, corrupción', async () => {
+    const r = await releConArchivo('agram-rele-falsa-');
+    try {
+      const { lib, rele, sobre, archivo, idsAgram } = r;
+      // Una tanda cuyos miembros dicen ser 2 de 3 (la marca declarada no cuadra con lo que se escribió): el relé la escribió
+      // entera, entre sus marcas, así que al reabrir se carga entera.
+      const falsa = [
+        await registro({ privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['f1'], contexto: { tanda: { n: 1, de: 3 } } }),
+      ];
+      falsa.push(await registro({ privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['f2'], contexto: { tanda: { n: 2, de: 3, anterior: falsa[0].id } } }));
+      assert.equal((await rele.publicarVarios(await Promise.all(falsa.map(sobre)))).ok, true);
+      // Y detrás, una línea suelta (como de un archivo viejo) cuyo registro declara ser el miembro 1 de una tanda de 2.
+      const suelto = await sobre(await registro({ privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['declara'], contexto: { tanda: { n: 1, de: 2 } } }));
+      appendFileSync(archivo, JSON.stringify(suelto) + '\n');
+      const otra = new Rele({ archivo });
+      await otra.abrir();
+      assert.deepEqual(new Set(idsAgram(otra)), new Set([lib.genesis.id, ...falsa.map((m) => m.id), JSON.parse(suelto.content).id]), 'nada se descarta por lo que declaren');
+      // Una marca del relé descuadrada en medio del archivo es corrupción: no se abre.
+      writeFileSync(archivo, readFileSync(archivo, 'utf8').replace('{"escritura":"acaba"}', '{"escritura":"empieza","lineas":1}'));
+      await assert.rejects(new Rele({ archivo }).abrir(), /descuadradas/);
+    } finally {
+      r.borrar();
+    }
+  });
+
+  test('el relé con archivo: un archivo de antes de las marcas (solo eventos, uno por línea) se sigue abriendo; una última línea rota se corta', async () => {
+    const r = await releConArchivo('agram-rele-viejo-');
+    try {
+      const { lib, rele, sobre, archivo, idsAgram } = r;
+      // Una «tanda» escrita como antes, sin marcas: sus líneas seguidas.
+      const vieja = await tanda([{ privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['v1'] }, { privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['v2'] }]);
+      const sobres = await Promise.all(vieja.map(sobre));
+      const recibos = [];
+      for (const s of sobres) recibos.push(await rele.emitirRecibo(s, new Date()));
+      appendFileSync(archivo, sobres.flatMap((s, i) => [s, recibos[i]]).map((x) => JSON.stringify(x) + '\n').join(''));
+      assert.ok(!readFileSync(archivo, 'utf8').includes('"escritura"'), 'sin marcas del relé');
+      const otra = new Rele({ archivo });
+      await otra.abrir();
+      assert.deepEqual(new Set(idsAgram(otra)), new Set([lib.genesis.id, ...vieja.map((m) => m.id)]));
+      // Una última línea a medias (un corte al escribir, como antes): se quita solo ella.
+      const largo = readFileSync(archivo).length;
+      appendFileSync(archivo, JSON.stringify(await sobre(await registro({ privada: lib.claves.privada, sobre: lib.genesis.id, payload: ['rota'] }))).slice(0, 50));
+      const tercera = new Rele({ archivo });
+      await tercera.abrir();
+      assert.equal(idsAgram(tercera).length, 3);
+      assert.equal(readFileSync(archivo).length, largo);
+    } finally {
+      r.borrar();
     }
   });
 });
@@ -625,4 +693,61 @@ test('el enrutado: POST /eventos/tanda no cae en POST /eventos ni al revés; un 
       await s.cerrar();
     }
   }
+});
+
+test('el tope por minuto se reserva y solo queda gastado si la tanda se guarda: 422 de la puerta con autoridad y null del almacén lo devuelven; dos tandas a la vez no pasan juntas del tope', async () => {
+  const almacen = almacenEnMemoria();
+  const original = almacen.insertarTanda;
+  let modo = 'guardar';
+  almacen.insertarTanda = async (eje, filas) => {
+    if (modo === 'rechazar') throw Object.assign(new Error('tanda rechazada: no pasa las reglas'), { estado: 422, indice: 0, id: filas[0].id });
+    if (modo === 'null') return null;
+    if (modo === 'lento') await new Promise((ok) => setTimeout(ok, 50));
+    return original(eje, filas);
+  };
+  const manejar = crearApi({ almacen, cripto: criptoNucleo, crearEjes: { secreto: 'prueba' }, escriturasPorMinuto: 6, ahora: () => new Date('2026-11-18T16:00:30Z') });
+  const pedir = async (camino, cuerpo, cab = {}) => {
+    const r = await manejar(new Request('http://127.0.0.1' + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cab }, body: JSON.stringify(cuerpo) }));
+    return { estado: r.status, cuerpo: await r.json() };
+  };
+  const { claveLectura } = (await pedir('/eventos/ejes', { eje: 'tope' }, { 'X-Crear-Ejes': 'prueba' })).cuerpo;
+  const cab = { 'X-Clave-Lectura': claveLectura };
+  const { claves, genesis } = await libro();
+  assert.equal((await pedir('/eventos', { eje: 'tope', evento: genesis }, cab)).estado, 201); // 1 de 6
+  let n = 0;
+  const de = (k) => tanda(Array.from({ length: k }, () => ({ privada: claves.privada, sobre: genesis.id, payload: ['t' + ++n] })));
+  const subir = async (eventos) => pedir('/eventos/tanda', { eje: 'tope', eventos }, cab);
+  // Rechazada dentro de insertarTanda (la autoridad): cinco veces una de 5, y no gasta nada.
+  modo = 'rechazar';
+  const cinco = await de(5);
+  for (let i = 0; i < 5; i++) assert.equal((await subir(cinco)).estado, 422);
+  // El almacén dice null (no la guardó): tampoco gasta.
+  modo = 'null';
+  for (let i = 0; i < 3; i++) assert.equal((await subir(cinco)).estado, 500);
+  // Dos tandas de 3 a la vez, cuando quedan 5: cabe una, la otra 429 entera.
+  modo = 'lento';
+  const [a, b] = await Promise.all([subir(await de(3)), subir(await de(3))]);
+  assert.deepEqual([a.estado, b.estado].sort(), [201, 429]);
+  assert.equal(almacen.filas('tope').length, 4);
+  // Quedan 2: una de 2 entra y otra de 1 ya no.
+  modo = 'guardar';
+  assert.equal((await subir(await de(2))).estado, 201);
+  assert.equal((await subir(await de(2))).estado, 429);
+  assert.equal(almacen.filas('tope').length, 6);
+});
+
+test('con autoridad (simulación, núcleo de verdad): una tanda que el núcleo rechaza (422) no gasta escrituras del minuto', async () => {
+  const s = crearServicio({ autoridad: new Autoridad(), escriturasPorMinuto: 3, ahora: () => new Date('2026-11-18T16:00:30Z') });
+  const llamar = async (camino, cuerpo, cab = {}) => {
+    const r = await s.manejar(new Request('http://127.0.0.1' + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cab }, body: JSON.stringify(cuerpo) }));
+    return { estado: r.status, cuerpo: await r.json() };
+  };
+  const { claveLectura } = (await llamar('/eventos/ejes', { eje: 'juez' }, { 'X-Crear-Ejes': 'prueba' })).cuerpo;
+  const cab = { 'X-Clave-Lectura': claveLectura };
+  const lib = await libro();
+  assert.equal((await llamar('/eventos', { eje: 'juez', evento: lib.genesis }, cab)).estado, 201); // 1 de 3
+  const sinCoste = await tanda([{ privada: lib.claves.privada, sobre: lib.genesis.id }, { privada: lib.claves.privada, sobre: lib.genesis.id }]);
+  for (let i = 0; i < 3; i++) assert.equal((await llamar('/eventos/tanda', { eje: 'juez', eventos: sinCoste }, cab)).estado, 422);
+  const r = await llamar('/eventos/tanda', { eje: 'juez', eventos: await validos(lib, 2) }, cab);
+  assert.equal(r.estado, 201, 'quedaban 2: los 422 no gastaron ' + JSON.stringify(r.cuerpo));
 });
