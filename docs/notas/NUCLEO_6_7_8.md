@@ -641,3 +641,32 @@ Lo que cuesta ahora, en ocupantes del presupuesto (pasos entre paréntesis), con
 | Tasks, tarea, X.9.8 | 3 800 (1 734) | 805 (527) | 0 (1) |
 
 Con X.4.9 ya en la memoria (por ejemplo, al pintar la fila), X.9.8 de la reserva cuesta 108 en vez de 910. Antes se informaban 1 993 y 3 635 para X.4.9 de Booking y de Tasks: no contaban «stage», que X.4.9 lee por dentro.
+
+**3. La fila trae lo que hace falta; `camino` no distingue por nombre.** La forma de cada fila de X.4.9 y X.9.8:
+
+| Posición | Qué es |
+|---|---|
+| 0 | qué se mueve |
+| 1 | cuánto |
+| 2 | la regla o lectura que lo pide: su mensaje encabeza el texto |
+| 3 | quién: 3.0 quién actúa (nadie si es quien tenga la acción ofrecida), 3.1 a quién |
+| 4 | qué se hace: 4.0 la acción, 4.1 sobre qué registro se lanza |
+| 5 | el registro del que trata |
+| 6 | para cuándo |
+| 7 | lo que hay |
+| 8 | los parámetros de la acción, como pares nombre, valor |
+| 9 | el texto: piezas que se leen seguidas; detrás, los movimientos legibles si la fila tiene a quién |
+
+`camino` agrupa las filas que solo se diferencian en el movimiento (los de un anuncio que mueve la misma persona). Por cada grupo:
+
+- **Es un paso mío** si me nombra o no nombra a nadie, y si la acción se me ofrece sobre su 4.1.
+- **Si no, es una espera** de quien nombra (o del dueño de X).
+
+Ya no se nombra ninguna regla ni acción en `camino` (`test/camino-reglas.test.js` lo mira).
+
+Cambios que se notan:
+
+- **El recuento** dice «weight» en su 2 y su texto en su 9 («the tally of g with weighted mean gives 0 and asks above 0.4»). Su 3.0 queda vacío: quien tenga «commit P» ofrecida.
+- **La caducidad** lleva en su 2 la regla «E is tied to a record that exists»: su texto empieza ahora por el mensaje de esa regla.
+- **Un paso mío de lo anunciado** pasa por la misma comprobación de oferta que los demás.
+- **Lo anunciado que una persona ya movió entero** deja de salir como paso suyo.

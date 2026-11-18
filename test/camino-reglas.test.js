@@ -36,7 +36,7 @@ test('las peticiones de atención: «attend» es de la fila (el dueño del alta 
   await eje.escribir({ autor: 'ana', sobre: plaza, t: T0, payload: 'mi R', movimientos: [pagaElCoste('ana'), R('ana', 10, null, 'ana'), R('ana', 2, 'ana', 'bea')] });
   const alta = eje.alta('ana').id;
   const peticion = await eje.escribir({ autor: 'bea', sobre: alta, en: '3000000000', t: T0, payload: ['ana, te pido atención'], movimientos: [pagaElCoste('bea'), R('ana', 1, 'bea', 'ana')] });
-  const filas = pasosDeLasReglas(eje, alta).filas.filter((f) => f.porque === 'attended');
+  const filas = pasosDeLasReglas(eje, alta).filas.filter((f) => f.accion === 'attend');
   assert.deepEqual(filas.map((f) => [f.de, f.accion, f.sobre]), [[['ana'], 'attend', peticion.id]]);
   assert.deepEqual(pasosDeLasReglas(eje, plaza).filas, [], 'la plaza no es un alta: no hay peticiones');
   const deAna = (await camino(eje, alta, 'ana')).pasos.filter((p) => p.regla === 'attended');
@@ -44,16 +44,16 @@ test('las peticiones de atención: «attend» es de la fila (el dueño del alta 
   const deBea = (await camino(eje, alta, 'bea')).pasos.filter((p) => p.regla === 'attended');
   assert.deepEqual(deBea.map((p) => [p.hacer, p.espera, p.peticion]), [[null, 'ana', peticion.id]]);
   await eje.escribir({ autor: 'ana', sobre: peticion.id, t: T0, payload: 'te atiendo', movimientos: [pagaElCoste('ana')] });
-  assert.deepEqual(pasosDeLasReglas(eje, alta).filas.filter((f) => f.porque === 'attended'), []);
+  assert.deepEqual(pasosDeLasReglas(eje, alta).filas.filter((f) => f.accion === 'attend'), []);
 });
 
 test('las caducidades próximas: con el reloj de quien lee, «expire something mine» y sus parámetros de la fila', async () => {
   const { eje, habitacion } = await ejemploReserva({ confirmar: false });
-  const sinReloj = pasosDeLasReglas(eje, habitacion.id).filas.filter((f) => f.porque === 'expiry');
-  const conReloj = pasosDeLasReglas(eje, habitacion.id, { ahora: '2026-11-20T18:00:00Z' }).filas.filter((f) => f.porque === 'expiry');
+  const sinReloj = pasosDeLasReglas(eje, habitacion.id).filas.filter((f) => f.accion === 'expire something mine');
+  const conReloj = pasosDeLasReglas(eje, habitacion.id, { ahora: '2026-11-20T18:00:00Z' }).filas.filter((f) => f.accion === 'expire something mine');
   assert.ok(conReloj.length > sinReloj.length, 'el 20 por la tarde caducan más noches que con el reloj del libro');
   const f = conReloj.find((x) => x.para === '2026-11-21T12:00:00Z');
-  assert.deepEqual([f.de, f.accion, f.sobre, f.parametros], [['casa'], 'expire something mine', habitacion.id, { series: f.serie }]);
+  assert.deepEqual([f.de, f.accion, f.lanzar, f.sobre, f.parametros, f.texto], [['casa'], 'expire something mine', habitacion.id, habitacion.id, { series: f.serie }, f.serie + ' expires at 2026-11-21T12:00:00Z']);
   const mia = await camino(eje, habitacion.id, 'casa', { t: '2026-11-20T18:00:00Z' });
   assert.ok(mia.pasos.some((p) => p.hacer?.plantilla === 'expire something mine' && p.hacer.parametros.series === f.serie));
 });
@@ -99,4 +99,14 @@ test('el texto de una petición de atención: su 0 si es una décupla y el texto
   await eje.escribir({ autor: 'bea', sobre: alta, en: '3000000000', t: T0, payload: [['otra vez'], ['x']], movimientos: [pagaElCoste('bea'), R('ana', 1, 'bea', 'ana')] });
   const faltas = (await camino(eje, alta, 'bea')).pasos.filter((p) => p.regla === 'attended').map((p) => p.falta.split(' · ').pop());
   assert.deepEqual(faltas, ['ana, te pido atención', 'otra vez']);
+});
+
+test('camino no distingue las filas por su nombre: ni «stage», ni «attended», ni «weight», ni ninguna acción', () => {
+  const fuente = readFileSync('src/acciones.js', 'utf8');
+  const camino = fuente.slice(fuente.indexOf('export async function camino('), fuente.indexOf('export async function autoejecutar('));
+  assert.ok(camino.length > 1000);
+  for (const nombre of ['stage', 'attended', 'weight', 'expiry', 'attend', 'expire something mine', 'commit P', 'pay', 'deliver']) {
+    assert.ok(!camino.includes("'" + nombre + "'"), 'camino nombra «' + nombre + '»');
+  }
+  assert.ok(!/[\s(]f\.porque\s*[!=]==\s*'/.test(camino), 'camino compara el porqué de una fila con un nombre');
 });

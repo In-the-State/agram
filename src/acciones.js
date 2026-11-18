@@ -55,7 +55,7 @@ import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
 import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
-import { recuento, cerrado as cerradoDe, pasosDeLasReglas } from './motor.js';
+import { recuento, pasosDeLasReglas } from './motor.js';
 import { resolverTipo, valeElValor } from './tipos.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
@@ -1584,27 +1584,6 @@ export function porAutorizar(eje, yo, opciones = {}) {
 
 // ---------- 5. el camino ----------
 
-/**
- * Un movimiento anunciado (un registro en el 4.1 de X): { serie, cantidad, que, de, a }, o null. El anuncio es un
- * movimiento anunciado del libro (VG 12-11, decisión 8; para qué, el 0 del registro); mientras los ejemplos lo escriban
- * como antes, también un payload que imita un movimiento.
- */
-function anuncioDe(registro) {
-  const anunciados = (Array.isArray(registro?.movimientos) ? registro.movimientos : []).filter(esAnunciado);
-  if (anunciados.length) {
-    const que = typeof registro.payload === 'string' ? registro.payload : hojas(registro.payload?.[0]).find((x) => typeof x === 'string') ?? '';
-    const movimientos = anunciados.map((m) => ({ serie: claveToken(m), cantidad: m.cantidad, de: m.de, a: m.a, ...(m.refiere ? { cuando: m.refiere } : {}) }));
-    return { ...movimientos[0], que, movimientos };
-  }
-  const p = registro?.payload;
-  const h = (x) => (Array.isArray(x) ? x[x.length - 1] : x);
-  const serie = h(p?.[0]);
-  const cantidad = h(p?.[1]);
-  const de = h(p?.[3]?.[0]);
-  const a = h(p?.[3]?.[1]);
-  if (typeof serie !== 'string' || typeof cantidad !== 'number' || typeof de !== 'string' || typeof a !== 'string') return null;
-  return { serie, cantidad, que: h(p?.[2]), de, a, movimientos: [{ serie, cantidad, de, a }] };
-}
 
 /** Los nombres que un registro o una plantilla escriben en su 9 (hojas de texto). */
 const nombresDel9 = (decupla) => hojas(Array.isArray(decupla) ? decupla[9] : undefined).filter((x) => typeof x === 'string' && !esFormula(x));
@@ -1700,66 +1679,42 @@ export async function camino(eje, X, yo, opciones = {}) {
     }
   }
 
-  // (2) Las reglas: lo anunciado y pendiente, por estación.
-  const estacionDe = new Map(estacionesDeLaEpoca(opciones).map((e) => [e.familia, e]));
-  // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) no pide pasos: lo anunciado que quedó pendiente ya no se espera.
-  const sinPasos = ['error', 'caducado', 'decidido'].includes(cerradoDe(eje, ev.id).fin);
-  // Lo que piden las reglas lo dice la lectura de la época en X.9.8 (motor.pasosDeLasReglas; Core AGRAM 18-11,
-  // NUCLEO_6_7_8 §6), con la época de este camino y su reloj (las caducidades): las filas de X.4.9 (los anuncios
-  // pendientes, por llegada, y el recuento que no pasa), las peticiones de atención y las caducidades próximas, cada una con
-  // quién tiene que actuar y la acción que lo cumple. Un proceso terminado no da filas de X.4.9. Con opciones.memoria (una
-  // MemoriaDeLectura de quien llama: el contrato, la carta por fila), como lectura de pantalla.
-  const todas = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria }).filas;
-  const filas = sinPasos ? todas.filter((f) => f.porque === 'attended' || f.porque === 'expiry') : todas;
-  const deLaFabrica = filas.filter((f) => f.porque !== 'attended' && f.porque !== 'expiry');
-  const pendientes = [...new Set(deLaFabrica.filter((f) => typeof f.sobre === 'string' && f.sobre !== ev.id).map((f) => f.sobre))].map((id) => eje.obtener(id)).filter(Boolean);
-  for (const anuncio of pendientes) {
-    const a = anuncioDe(anuncio);
-    if (!a) continue;
-    // Un anuncio puede llevar varios movimientos (VG 12-11, decisión 8: las noches de una reserva): un paso por quien los
-    // mueve, con todos los suyos; el mío, con la plantilla de la estación de su familia.
-    const porQuien = new Map();
-    for (const m of a.movimientos) porQuien.set(m.de, [...(porQuien.get(m.de) ?? []), m]);
-    for (const [de, ms] of porQuien) {
-      // En llano (época 0 final, #9 del añadido): cuánto por su nombre, de quién y a quién por su 0, con el formato de la
-      // época («legible announced movement»); sin destino resuelto (a: null), sin «a» (repaso beta #2: nunca «→ null»).
-      const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ? a.que + ': ' : '') + ms.map((m) => movimientoLegible(eje, m, idioma, opciones)).join('; ');
-      // La acción, la que dice la fila de quien mueve; si ya no le falta nada de ese anuncio, la de la estación de su familia.
-      const accion = deLaFabrica.find((f) => f.sobre === anuncio.id && f.de.includes(de))?.accion ?? estacionDe.get(partirClave(ms[0].serie).token)?.plantilla;
-      if (de === yo && accion) {
-        const paso = mio(accion, { announcement: { ref: anuncio.id } });
-        if (paso) { pasos.push({ fuente: 'reglas', regla: 'stage', ...paso, falta: que, hecho: false, espera: null, anuncio: anuncio.id }); continue; }
-      }
-      pasos.push({ fuente: 'reglas', regla: 'stage', falta: que, hacer: null, espera: de, hecho: false, anuncio: anuncio.id });
+  // (2) Las reglas: las filas de la lectura de la época en X.9.8 (motor.pasosDeLasReglas; Core AGRAM 18-11,
+  // NUCLEO_6_7_8 §6 y su tercera tanda), con la época de este camino, su reloj (las caducidades) y opciones.memoria (una
+  // MemoriaDeLectura de quien llama: el contrato, la carta por fila). Cada fila trae lo que hace falta y aquí no se
+  // distingue ninguna por su nombre: quién actúa (su 3.0; nadie, quien tenga la acción ofrecida), la acción y dónde se
+  // lanza (su 4), sus parámetros (su 8), el registro del que trata (su 5) y su texto (su 9, y detrás los movimientos si la
+  // fila los tiene); la regla de su 2 encabeza el texto con su mensaje. Un proceso terminado no da filas de X.4.9.
+  const filas = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria }).filas;
+  // Las filas de un mismo paso (los movimientos de un anuncio que mueve la misma persona): lo mismo en todo menos el movimiento.
+  const grupos = new Map();
+  for (const f of filas) {
+    const llave = JSON.stringify([f.sobre, f.de, f.accion, f.lanzar, f.parametros, f.porque, f.texto]);
+    if (!grupos.has(llave)) grupos.set(llave, []);
+    grupos.get(llave).push(f);
+  }
+  const plantillaPorNombre = new Map(plantillas.map((p) => [p.nombre, p.plantilla]));
+  /** ¿Se ofrece la acción `nombre` sobre `sobre` a quien mira? (su 2, con it = sobre y me = yo) */
+  const seOfrece = (nombre, sobre) => {
+    const c = texto(ultima(plantillaPorNombre.get(nombre)?.[2]));
+    return esFormula(c) && cumple(c, ctx, sujetoDe(sobre));
+  };
+  for (const grupo of grupos.values()) {
+    const f = grupo[0];
+    const movimientos = grupo.filter((x) => x.a !== null && x.serie !== null && x.cantidad !== null).map((x) => movimientoLegible(eje, { serie: x.serie, cantidad: x.cantidad, de: x.de[0] ?? null, a: x.a }, idioma, opciones));
+    const cuerpo = [f.texto, movimientos.join('; ')].filter(Boolean).join(': ');
+    const falta = [f.porque ? mensaje(eje, String(f.porque), idioma, opciones) ?? String(f.porque) : null, cuerpo].filter(Boolean).join(' · ');
+    const sobre = eje.obtener(f.lanzar ?? f.sobre) ?? ev;
+    // De qué registro trata (si no es X): un anuncio del 4.1 de X o, si no, el registro que la fila nombra (una petición).
+    const tratado = eje.obtener(f.sobre);
+    const deQue = tratado && tratado.id !== ev.id ? (tratado.sobre === ev.id && tratado.en === '4100000000' ? { anuncio: tratado.id } : { peticion: tratado.id }) : {};
+    const meToca = typeof f.accion === 'string' && (f.de.length === 0 || f.de.includes(yo)) && seOfrece(f.accion, sobre);
+    const paso = meToca ? mio(f.accion, f.parametros, sobre) : null;
+    if (paso) {
+      pasos.push({ fuente: 'reglas', regla: f.porque, ...paso, falta, hecho: false, espera: null, ...deQue });
+      continue;
     }
-  }
-  // El recuento del dueño que no pasa: su fila de X.4.9 (sobre X), con la acción que lo cumple.
-  const delRecuento = deLaFabrica.find((f) => f.sobre === ev.id);
-  if (!sinPasos && delRecuento) {
-    const c = recuento(eje, ev.id);
-    if (c.pasa === false) {
-      const que = 'the tally of ' + ev.autor + ' (' + c.plantilla + ') gives ' + c.valor + ' and asks above ' + c.umbral;
-      const nombre = delRecuento.accion;
-      const suya = plantillas.find((p) => p.nombre === nombre);
-      const ofrecida = suya ? acciones(eje, ev, suya.pv, yo, opciones).find((a) => a.nombre === nombre) : null;
-      if (ofrecida) { const paso = mio(nombre); if (paso) pasos.push({ fuente: 'reglas', regla: 'weight', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'weight', falta: que, hacer: null, espera: ev.autor, hecho: false });
-    }
-  }
-  // Las peticiones de atención sin atender (si X es un alta, las de su dueño) y las caducidades próximas: sus filas de X.9.8,
-  // con quién tiene que actuar y la acción que lo cumple (la de los datos: el núcleo no la nombra).
-  for (const f of filas.filter((x) => x.porque === 'attended')) {
-    const peticion = eje.obtener(f.sobre);
-    if (!peticion) continue;
-    // Su 0: la primera hoja de su payload si es una décupla; si el payload es un texto, el texto entero (no su primer carácter).
-    const ceroDeLaPeticion = Array.isArray(peticion.payload) ? [peticion.payload[0]].flat(Infinity)[0] : peticion.payload;
-    const que = (mensaje(eje, 'attended', idioma, opciones) ?? 'attended') + ' · ' + String(ceroDeLaPeticion ?? '');
-    const quien = f.de[0] ?? ev.autor;
-    if (quien === yo && f.accion) { const paso = mio(f.accion, f.parametros, peticion); if (paso) pasos.push({ fuente: 'reglas', regla: 'attended', ...paso, falta: que, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'attended', falta: que, hacer: null, espera: quien, hecho: false, peticion: peticion.id });
-  }
-  for (const f of filas.filter((x) => x.porque === 'expiry')) {
-    const que = f.serie + ' expires at ' + f.para;
-    const emisor = f.de[0] ?? null;
-    if (emisor === yo && f.accion) { const paso = mio(f.accion, f.parametros); if (paso) pasos.push({ fuente: 'reglas', regla: 'E is tied to a record that exists', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', falta: que, hacer: null, espera: emisor, hecho: false });
+    pasos.push({ fuente: 'reglas', regla: f.porque, falta, hacer: null, espera: f.de.find((x) => x !== yo) ?? ev.autor, hecho: false, ...deQue });
   }
 
   // (3) Las sugerencias: un gancho sin LLM aquí; cada una pasa por las mismas reglas.

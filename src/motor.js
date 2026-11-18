@@ -404,6 +404,13 @@ function lecturaEn(epoca, donde) {
 
 const primera = (x) => (Array.isArray(x) ? x[0] : x) ?? null;
 
+/** El texto de una fila (su 9: piezas que se leen seguidas, separadas por un espacio), o null. */
+function textoDeFila(nueve) {
+  const r = Array.isArray(nueve?.[0]) ? nueve[0] : [];
+  const piezas = r.flatMap((x) => (Array.isArray(x) ? x : [x])).filter((x) => x !== null && x !== undefined && x !== '').map(String);
+  return piezas.length ? piezas.join(' ') : null;
+}
+
 /** Los parámetros de una fila (su 8: nombre, valor, nombre, valor…), como objeto sin prototipo heredable. */
 function parametrosDeFila(ocho) {
   const r = Array.isArray(ocho?.[0]) ? ocho[0] : [];
@@ -417,8 +424,8 @@ function parametrosDeFila(ocho) {
 
 /**
  * Las filas de una lectura de la época con la forma de «what is missing» (Core AGRAM 18-11; NUCLEO_6_7_8 §6), evaluada
- * sobre X: { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, sobre, para, hay,
- * parametros }] }. `epoca` (por defecto la del eje), `ahora` (el reloj del libro que fija quien lee: before.6.0),
+ * sobre X: { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, lanzar, sobre, para, hay,
+ * parametros, texto }] }: `accion` y `lanzar` (dónde se lanza), su 4.0 y 4.1; `texto`, las piezas de su 9 seguidas. `epoca` (por defecto la del eje), `ahora` (el reloj del libro que fija quien lee: before.6.0),
  * `memoria` (una MemoriaDeLectura de src/bqlm.js: se lee como lectura de pantalla, también las lecturas de dentro),
  * `limites` (los de bqlm.evaluar) y `presupuesto` (un Presupuesto de quien llama: lo que cuesta, también lo de dentro).
  * Si no se resuelve (PENDIENTE, PENDIENTE POR LÍMITE o ERROR), ninguna fila y el motivo: nunca «no falta nada».
@@ -437,11 +444,13 @@ export function filasEn(eje, X, donde, { memoria, limites, epoca, ahora, presupu
   if (r.estado !== 'RESUELTO') return { estado: r.estado, ...(r.subtipo ? { subtipo: r.subtipo } : {}), motivo: r.motivo, filas: [] };
   const filas = aplanar(r.valor, ctx).filter(Array.isArray).map((f) => {
     const quien = Array.isArray(f[3]?.[0]) ? f[3][0] : [];
+    // 4: la acción (4.0) y sobre qué registro se lanza (4.1); una fila de antes trae solo la acción.
+    const accion = Array.isArray(f[4]?.[0]) ? f[4][0] : [f[4], []];
     return {
       serie: primera(f[0]), cantidad: primera(f[1]), porque: primera(f[2]),
       de: (Array.isArray(quien[0]) ? quien[0] : [quien[0]]).filter((x) => x !== undefined && x !== null),
-      a: primera(quien[1]), accion: primera(f[4]), sobre: primera(f[5]), para: primera(f[6]), hay: primera(f[7]),
-      parametros: parametrosDeFila(f[8]),
+      a: primera(quien[1]), accion: primera(accion[0]), lanzar: primera(accion[1]), sobre: primera(f[5]), para: primera(f[6]),
+      hay: primera(f[7]), parametros: parametrosDeFila(f[8]), texto: textoDeFila(f[9]),
     };
   });
   return { estado: 'RESUELTO', motivo: null, filas };
