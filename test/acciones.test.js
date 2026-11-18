@@ -145,9 +145,10 @@ test('transaccion: los motivos legibles, en el idioma de quien lanza (los parám
   // El mismo motivo en inglés si se pide.
   const en = await A.transaccion(eje, 'issue E tied to X', { X: menu.id, denomination: 'racion', quantity: 5 }, 'cocina', { t: T1, idioma: 'en' });
   assert.ok(en.motivos.some((m) => m.mensaje === 'only persons mint: cocina is a thing (its alta was written by casa), and only persons mint'));
-  // Lo que rechaza el libro (la aritmética) llega con su texto: diez raciones a doce euros son más de lo que tiene la huésped.
+  // Lo que rechaza el libro (la aritmética) llega en el idioma (contrato.motivoEnLlano, con la forma del motivo): diez
+  // raciones a doce euros son más de lo que tiene la huésped.
   const w = await A.transaccion(eje, 'apply a resource', { X: menu.id, quantity: 10, price: [['E:casa/EUR'], [12]] }, 'huesped', { t: T1 });
-  assert.deepEqual([w.ok, w.motivos], [false, [{ regla: null, mensaje: 'saldo insuficiente de E:casa/EUR en huesped' }]]);
+  assert.deepEqual([w.ok, w.motivos], [false, [{ regla: null, mensaje: 'Alta de huesped no tiene bastante euros de Casa de ejemplo' }]]);
   // Una plantilla desconocida, o X que no está en el libro.
   assert.equal((await A.transaccion(eje, 'fly', { X: menu.id }, 'huesped')).ok, false);
   assert.equal((await A.transaccion(eje, 'apply a resource', { X: 'f'.repeat(64) }, 'huesped')).ok, false);
@@ -406,7 +407,7 @@ test('camino: las sugerencias pasan por las mismas reglas, el orden sigue el cri
   const encargo = await eje.escribir({ autor: 'cocina', sobre: menu.id, t: T1, payload: ['Encargo caro', ['x'], ['all announced movements happened'], ['cocina', 'huesped']], movimientos: [minuto('cocina')] });
   await eje.escribir({ autor: 'cocina', sobre: encargo.id, en: ANUNCIO, t: T1, payload: [['E:casa/EUR'], [1000], ['pagar'], [['huesped'], ['cocina']]], movimientos: [minuto('cocina')] });
   const auto = await A.autoejecutar(eje, encargo.id, 'huesped', null, { t: T1 });
-  assert.deepEqual([auto.hechos, auto.parado.paso.hacer.plantilla, auto.parado.motivos], [[], 'pay', [{ regla: null, mensaje: 'saldo insuficiente de E:casa/EUR en huesped' }]]);
+  assert.deepEqual([auto.hechos, auto.parado.paso.hacer.plantilla, auto.parado.motivos], [[], 'pay', [{ regla: null, mensaje: 'Alta de huesped no tiene bastante euros de Casa de ejemplo' }]]);
   // Las sugerencias: un gancho sin LLM; cada una se construye y valida, y queda marcada.
   const sugerencias = () => [{ plantilla: 'anchor here', parametros: { title: 'una nota' } }, { plantilla: 'give own R', parametros: { amount: 1 } }];
   const c = await A.camino(eje, menu.id, 'huesped', { t: T1, sugerencias });

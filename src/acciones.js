@@ -54,7 +54,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo, textoDeFila, mensajeEnLlano } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo, textoDeFila, mensajeEnLlano, motivoEnLlano } from './contrato.js';
 import { recuento, pasosDeLasReglas } from './motor.js';
 import { resolverTipo, valeElValor } from './tipos.js';
 
@@ -600,7 +600,8 @@ function movimientosBql(eje, epoca, plantilla, candidata, yo, X, idioma) {
   if (r.estado !== 'RESUELTO') return { movimientos: [], motivos: [{ regla: nombre, mensaje: nombre + ': ' + r.estado + ': ' + r.motivo }] };
   const movimientos = [];
   const motivos = [];
-  const sinSerie = (cantidad) => motivos.push({ regla: nombre, mensaje: motivoDe('no series', { name: nombre, amount: cantidad }, { idioma, epoca }) });
+  // El nombre de la acción en el idioma (no el canónico en inglés).
+  const sinSerie = (cantidad) => motivos.push({ regla: nombre, mensaje: motivoDe('no series', { name: textoDe(eje, claves.plantilla(nombre), idioma, { original: nombre, epoca }), amount: cantidad }, { idioma, epoca }) });
   for (const v of r.movimientos) {
     const serie = serieDe(v.serie);
     if (!serie) { sinSerie(v.cantidad); continue; }
@@ -840,13 +841,19 @@ function mensajeDe(eje, epoca, plantilla, candidata, yo, X, idioma) {
   return rellenar(m, contextoDe(eje, epoca, { ev: candidata, me: yo }), { sujeto: sujetoDe(X) });
 }
 
-/** Los motivos con que el eje rechaza, como { regla, mensaje } en el idioma: una regla de la época, por su nombre y su 9; lo demás, su texto. */
-function motivosDelEje(eje, textos, ev, idioma, opciones) {
+/** Los motivos con que el eje rechazaría el evento, con su forma (eje.motivos); un eje que solo sabe validar, sus textos. */
+const motivosConForma = async (eje, ev) => (typeof eje?.motivos === 'function' ? eje.motivos(ev) : eje.validar(ev));
+
+/** Los motivos con que el eje rechaza, como { regla, mensaje } en el idioma: una regla de la época, por su nombre y su 9; lo demás, en el idioma si trae su forma (contrato.motivoEnLlano), si no su texto. */
+function motivosDelEje(eje, motivos, ev, idioma, opciones) {
   const epoca = epocaDe(opciones, eje);
   const reglas = (epoca.reglasConId ?? []).map((x) => x.regla);
-  return textos.map((t) => {
+  return motivos.map((m) => {
+    const t = typeof m === 'string' ? m : String(m?.texto ?? '');
     const regla = reglas.find((r) => t.startsWith(nombreDeRegla(r) + ': '));
-    if (!regla) return { regla: null, mensaje: t };
+    // Lo que no es una regla de la época (la aritmética del libro, el registro que no cabe): con su forma (que y partes, que
+    // trae eje.motivos sin enumerar), en el idioma (contrato.motivoEnLlano); sin forma, su texto de siempre.
+    if (!regla) return { regla: null, mensaje: typeof m === 'string' ? t : motivoEnLlano(eje, m, { idioma, ev, ...opciones }) || t };
     return { regla: nombreDeRegla(regla), mensaje: mensaje(eje, regla, idioma, { ev, ...opciones }) ?? t };
   });
 }
@@ -961,8 +968,7 @@ async function construirTransaccion(eje, plantilla, cual, params, yo, opciones) 
   } catch (e) {
     return { ok: false, evento: null, motivos: [{ regla: nombre, mensaje: nombre + ': ' + e.message }] };
   }
-  const textos = await eje.validar(evento);
-  const delEje = motivosDelEje(eje, textos, evento, idioma, opciones);
+  const delEje = motivosDelEje(eje, await motivosConForma(eje, evento), evento, idioma, opciones);
   // El segundo factor (VG 12/13-11): si la candidata alcanza un criterio de quien la lanza, el registro se escribe igual y
   // su estación espera la autorización del titular; aquí solo se dice, para avisar.
   // Una lectura del segundo factor que pasa del presupuesto (al calcular la autorización o sobre la candidata) se dice en
@@ -1603,7 +1609,7 @@ export async function autorizar(eje, idPropuesta, cosa, privadaOOpciones, opcion
   } catch (e) {
     return { ok: false, evento: null, motivos: [{ regla: SEGUNDO_FACTOR.criterio, mensaje: String(e.message ?? e) }] };
   }
-  const motivos = motivosDelEje(eje, await eje.validar(evento), evento, idioma, opciones);
+  const motivos = motivosDelEje(eje, await motivosConForma(eje, evento), evento, idioma, opciones);
   return { ok: motivos.length === 0, evento, motivos, transferido, exigido: necesita };
 }
 
