@@ -4,7 +4,7 @@
 // Dos medidas sobre carta/*.js (sin carta/textos.js, que son textos, ni carta/vendor/):
 //
 //   1. NOMBRES: las cadenas literales de la carta que son el nombre canónico de una plantilla de transacción de la época
-//      0 o de una época hija de datos/epocas (state, guia-libro, roadmap). Los nombres salen de los datos al ejecutar la
+//      0 o de una época hija de datos/epocas (state, guia-libro, roadmap, cuenta). Los nombres salen de los datos al ejecutar la
 //      prueba (acciones.plantillasDeTransaccion sobre cada época cargada), nunca de una lista escrita aquí.
 //      Regla contra los falsos positivos: cuenta solo una cadena ENTERA igual al nombre (comillas simples, dobles o una
 //      plantilla `…` sin ${…}); nunca un trozo de una cadena más larga, un comentario ni una expresión regular. Los
@@ -23,11 +23,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync, readdirSync } from 'node:fs';
-import { plantillasDeTransaccion } from '../src/acciones.js';
-import { EPOCA_0_BTML, cargarEpocaEscrita } from '../src/epocas.js';
-import { epocaState } from '../datos/epocas/state/generar.mjs';
-import { epocaGuiaLibro } from '../datos/epocas/guia-libro/generar.mjs';
-import { epocaRoadmap } from '../datos/epocas/roadmap/generar.mjs';
+import { lexico, nombresDePlantillas, nombresEnArchivos, compararNombres, compararEscrituras } from './ayudas-lente.mjs';
 
 const CARTA = new URL('../carta/', import.meta.url);
 const ARCHIVOS = readdirSync(CARTA).filter((f) => f.endsWith('.js') && f !== 'textos.js').sort();
@@ -74,110 +70,10 @@ const ESCRITURAS_DE_HOY = {
   'sincronia.js · ejeDelServidor · anadir': 1, // asienta lo que baja del servidor (escrito por otros), no escribe por su cuenta
 };
 
-// ---------- el léxico: cadenas literales y código sin comentarios ni cadenas ----------
-
-const ANTES_DE_UNA_REGEX = '(,=:[!&|?{};+-*%<>~^';
-const PALABRAS_ANTES_DE_UNA_REGEX = new Set(['return', 'typeof', 'case', 'in', 'of', 'void', 'throw', 'delete', 'else', 'do', 'yield', 'await']);
-
-/** Recorre un fuente JS: → { cadenas: [{ valor, linea }] (sin las plantillas con ${…}), codigo (el fuente con comentarios, cadenas y regex en blanco, mismas líneas) }. */
-function lexico(t) {
-  const cadenas = [];
-  const codigo = t.split('');
-  const blanquear = (a, b) => { for (let k = a; k < b; k++) if (codigo[k] !== '\n') codigo[k] = ' '; };
-  let i = 0;
-  let linea = 1;
-  let previo = '';
-  let palabra = '';
-  const n = t.length;
-  const esPalabra = (c) => /[A-Za-z0-9_$]/.test(c);
-  while (i < n) {
-    const c = t[i];
-    const ini = i;
-    if (c === '\n') { linea++; i++; continue; }
-    if (c === '/' && t[i + 1] === '/') { while (i < n && t[i] !== '\n') i++; blanquear(ini, i); continue; }
-    if (c === '/' && t[i + 1] === '*') {
-      i += 2;
-      while (i < n && !(t[i] === '*' && t[i + 1] === '/')) { if (t[i] === '\n') linea++; i++; }
-      i += 2;
-      blanquear(ini, i);
-      continue;
-    }
-    if (c === '/' && (previo === '' || ANTES_DE_UNA_REGEX.includes(previo) || PALABRAS_ANTES_DE_UNA_REGEX.has(palabra))) {
-      i++;
-      let clase = false;
-      while (i < n && t[i] !== '\n') {
-        if (t[i] === '\\') { i += 2; continue; }
-        if (t[i] === '[') clase = true;
-        else if (t[i] === ']') clase = false;
-        else if (t[i] === '/' && !clase) break;
-        i++;
-      }
-      i++;
-      blanquear(ini, i);
-      previo = '/';
-      palabra = '';
-      continue;
-    }
-    if (c === "'" || c === '"' || c === '`') {
-      const l0 = linea;
-      let valor = '';
-      let conHueco = false;
-      i++;
-      while (i < n && t[i] !== c) {
-        if (t[i] === '\\') { valor += t[i + 1] === 'n' ? '\n' : t[i + 1]; i += 2; continue; }
-        if (c === '`' && t[i] === '$' && t[i + 1] === '{') {
-          conHueco = true;
-          let hondo = 1;
-          i += 2;
-          while (i < n && hondo > 0) {
-            if (t[i] === '{') hondo++;
-            else if (t[i] === '}') hondo--;
-            else if (t[i] === '\n') linea++;
-            i++;
-          }
-          continue;
-        }
-        if (t[i] === '\n') { if (c !== '`') break; linea++; }
-        valor += t[i];
-        i++;
-      }
-      i++;
-      blanquear(ini, i);
-      if (!conHueco) cadenas.push({ valor, linea: l0 });
-      previo = c;
-      palabra = '';
-      continue;
-    }
-    if (/\s/.test(c)) { i++; continue; }
-    if (esPalabra(c)) { palabra = (esPalabra(previo) ? palabra : '') + c; previo = c; i++; continue; }
-    previo = c;
-    palabra = '';
-    i++;
-  }
-  return { cadenas, codigo: codigo.join('') };
-}
-
 // ---------- la medida 1: nombres ----------
 
-/** Los nombres canónicos de las plantillas de transacción: los de la 0 y los de cada época hija de datos/epocas. */
-function nombresDePlantillas() {
-  const nombres = new Set(plantillasDeTransaccion({ epoca: EPOCA_0_BTML }).map((p) => p.nombre));
-  for (const hija of [epocaState(), epocaGuiaLibro(), epocaRoadmap()]) for (const p of plantillasDeTransaccion({ epoca: cargarEpocaEscrita(hija) })) nombres.add(p.nombre);
-  return nombres;
-}
-
 /** Los nombres de plantillas que salen en la carta: { archivo: { nombre: [líneas] } }. */
-function nombresEnLaCarta(nombres) {
-  const fuera = {};
-  for (const f of ARCHIVOS) {
-    for (const { valor, linea } of lexico(readFileSync(new URL(f, CARTA), 'utf8')).cadenas) {
-      if (!nombres.has(valor)) continue;
-      fuera[f] ??= {};
-      (fuera[f][valor] ??= []).push(linea);
-    }
-  }
-  return fuera;
-}
+const nombresEnLaCarta = (nombres) => nombresEnArchivos(CARTA, ARCHIVOS, nombres);
 
 // ---------- la medida 2: escrituras ----------
 
@@ -243,35 +139,27 @@ function escriturasEnLaCarta() {
 test('lente limpia, nombres: ningún nombre de plantilla nuevo en la carta, y los de la lista siguen estando (la deuda solo encoge)', () => {
   const nombres = nombresDePlantillas();
   assert.ok(nombres.size > 50, 'los nombres salen de las épocas (' + nombres.size + ')');
-  const hay = nombresEnLaCarta(nombres);
-  const fallos = [];
-  for (const [f, porNombre] of Object.entries(hay)) {
-    for (const [nombre, lineas] of Object.entries(porNombre)) {
-      if (!NOMBRES_DE_HOY[f]?.includes(nombre)) fallos.push(`carta/${f} nombra la plantilla «${nombre}» (línea ${lineas.join(', ')}): es deuda nueva; la carta no debe conocer plantillas por su nombre`);
-    }
-  }
-  for (const [f, lista] of Object.entries(NOMBRES_DE_HOY)) {
-    for (const nombre of lista) if (!hay[f]?.[nombre]) fallos.push(`carta/${f} ya no nombra «${nombre}»: quítalo de NOMBRES_DE_HOY en test/lente-limpia.test.js`);
-  }
-  assert.deepEqual(fallos, []);
+  assert.deepEqual(compararNombres(nombresEnLaCarta(nombres), NOMBRES_DE_HOY, { nuevo: 'es deuda nueva; la carta no debe conocer acciones por su nombre' }), []);
 });
 
 test('lente limpia, escrituras: ningún sitio nuevo de la carta asienta un registro, y los de la lista siguen estando con las mismas llamadas (la deuda solo encoge)', () => {
-  const hay = escriturasEnLaCarta();
-  const fallos = [];
-  for (const [clave, n] of Object.entries(hay)) {
-    const antes = ESCRITURAS_DE_HOY[clave];
-    const [f, funcion, via] = clave.split(' · ');
-    if (antes === undefined) fallos.push(`carta/${f}, en ${funcion}, escribe un registro por ${via} (${n} ${n === 1 ? 'llamada' : 'llamadas'}): es deuda nueva`);
-    else if (n > antes) fallos.push(`carta/${f}, en ${funcion}, escribe por ${via} ${n} veces y antes ${antes}: es deuda nueva`);
-    else if (n < antes) fallos.push(`carta/${f}, en ${funcion}, ya solo escribe por ${via} ${n} veces (antes ${antes}): baja la cuenta en ESCRITURAS_DE_HOY`);
-  }
-  for (const clave of Object.keys(ESCRITURAS_DE_HOY)) {
-    if (hay[clave] === undefined) {
-      const [f, funcion, via] = clave.split(' · ');
-      fallos.push(`carta/${f}, en ${funcion}, ya no escribe por ${via}: quítalo de ESCRITURAS_DE_HOY en test/lente-limpia.test.js`);
-    }
-  }
-  assert.deepEqual(fallos, []);
+  assert.deepEqual(compararEscrituras(escriturasEnLaCarta(), ESCRITURAS_DE_HOY), []);
 });
 
+
+test('lente limpia, la guarda misma: falla con deuda nueva, con una cuenta que sube o baja y con una entrada de la lista que ya no está (casos simulados en memoria)', () => {
+  const hay = { 'a.js': { 'una acción': [3] } };
+  assert.deepEqual(compararNombres(hay, { 'a.js': ['una acción'] }), [], 'igual: pasa');
+  assert.deepEqual(compararNombres(hay, {}), ['carta/a.js nombra la acción «una acción» (línea 3): es deuda nueva']);
+  assert.deepEqual(compararNombres(hay, { 'a.js': ['una acción', 'otra'] }), ['carta/a.js ya no nombra «otra»: quítalo de NOMBRES_DE_HOY en test/lente-limpia.test.js']);
+  assert.deepEqual(compararNombres({}, { 'b.js': ['x'] }), ['carta/b.js ya no nombra «x»: quítalo de NOMBRES_DE_HOY en test/lente-limpia.test.js'], 'un archivo entero que ya no nombra nada');
+  const e = { 'a.js · f · enviar': 2 };
+  assert.deepEqual(compararEscrituras(e, { 'a.js · f · enviar': 2 }), []);
+  assert.deepEqual(compararEscrituras(e, {}), ['carta/a.js, en f, escribe un registro por enviar (2 llamadas): es deuda nueva']);
+  assert.deepEqual(compararEscrituras(e, { 'a.js · f · enviar': 1 }), ['carta/a.js, en f, escribe por enviar 2 veces y antes 1: es deuda nueva']);
+  assert.deepEqual(compararEscrituras(e, { 'a.js · f · enviar': 3 }), ['carta/a.js, en f, ya solo escribe por enviar 2 veces (antes 3): baja la cuenta en ESCRITURAS_DE_HOY']);
+  assert.deepEqual(compararEscrituras({}, { 'a.js · g · anadir': 1 }), ['carta/a.js, en g, ya no escribe por anadir: quítalo de ESCRITURAS_DE_HOY en test/lente-limpia.test.js']);
+  // Y sobre la carta de verdad: quitar del código lo que está en la lista (simulado: una lista con una entrada de más).
+  assert.ok(compararNombres(nombresEnLaCarta(nombresDePlantillas()), { ...NOMBRES_DE_HOY, 'app.js': [...NOMBRES_DE_HOY['app.js'], 'close'] }).some((x) => x.includes('ya no nombra «close»')));
+  assert.ok(compararEscrituras(escriturasEnLaCarta(), { ...ESCRITURAS_DE_HOY, 'app.js · inventada · enviar': 1 }).some((x) => x.includes('en inventada, ya no escribe por enviar')));
+});
