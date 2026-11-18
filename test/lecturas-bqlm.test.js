@@ -223,8 +223,9 @@ test('by: ordena por un número o un texto, de menor a mayor y los empates por l
   assert.deepEqual(ids(conSujeto('=(under it) by first it2.3', c.ctx, c.uno.id)), [c.uno.id, c.tres.id, c.dos.id]);
   // un by dentro de un where: el elemento del where es it2 y el del by, it3
   assert.equal(conSujeto('=count ((under it) where count ((down it2) by first it3.3) > 0)', c.ctx, c.uno.id).valor[0], 2);
-  // claves
-  assert.equal(conSujeto('=(under it) by first it2.9', c.ctx, c.uno.id).estado, 'PENDIENTE', 'una clave vacía');
+  // claves (el 9 a secas ya no está vacío: desde que el camino se lee en X.9.8 da su lectura; el 0.9 sí lo está)
+  assert.equal(conSujeto('=(under it) by first it2.0.9', c.ctx, c.uno.id).estado, 'PENDIENTE', 'una clave vacía');
+  assert.equal(conSujeto('=(under it) by first it2.9', c.ctx, c.uno.id).estado, 'ERROR', 'una lectura no es una clave');
   assert.equal(conSujeto('=(under it) by it2.6', c.ctx, c.uno.id).estado, 'ERROR', 'una décupla no es una clave');
   assert.match(evaluar('(before.3) by 1', c.ctx).estado, /RESUELTO/);
   assert.throws(() => analizar('it by 1'), /it solo vale dentro de where/);
