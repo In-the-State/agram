@@ -268,6 +268,11 @@ small{color:var(--muted)}
 .aro-edicion .opciones-arriba{bottom:calc(100% + 4px)}
 .aro-edicion .opcion,.hueco .otras .opcion{font-size:12px;width:100%;text-align:left;min-height:30px}
 .aro .opcion{background:color-mix(in oklab,var(--accent) 10%,var(--bg))}
+/* El diccionario del centro del aro (VG 18-11): tras los valores, las acciones de ese punto de vista, con la píldora de los
+   botones de la forma C y una raya fina entre los valores y la primera; el filtro oculta entradas y listas con [hidden]. */
+.aro-edicion .opciones li:not(.con-accion)+li.primera-accion{border-top:1px dashed var(--rule);margin-top:4px;padding-top:6px}
+.aro-edicion .opcion.opcion-accion{border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--fg);padding:3px 10px}
+.aro-edicion .opciones[hidden],.aro-edicion .opciones li[hidden]{display:none}
 .hueco{position:relative;min-width:0;z-index:1}
 .hueco.desplegado{z-index:3}
 .hueco[data-fila="1"]{align-self:center;height:var(--sitio-alto)} /* 6 y 7: a la altura de su chip, en el medio del elemento */
