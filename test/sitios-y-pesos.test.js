@@ -70,6 +70,10 @@ const YA_NO = [
   ['dom.js', 'const ARRIBA ='],
   ['dom.js', 'ordenCruz'],
   ['app.js', 'LATERALES.indexOf(pv)'],
+  ['carta.js', 'export const GEOMETRIA = Object.freeze({'],
+  ['carta.js', 'const esPvDelPasado = (pv) => GEOMETRIA'],
+  ['carta.js', 'const zonaDelHilo = (pv) => (GEOMETRIA'],
+  ['carta.js', 'Object.keys(GEOMETRIA)'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {

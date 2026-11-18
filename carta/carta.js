@@ -46,29 +46,6 @@ export const ANIMAR = Object.freeze({ no: 'no', bucle: 'bucle', una: 'una' });
 const LIMITE_DE_ANIMACIONES = 10;
 
 /**
- * La geometría (diseño de VG). `grupo`: dónde va; `lado`: el índice de la orientación en epoch.9.7.0.3 (0 el centro,
- * 1 el lado del PV1, 2 el del PV2); `fila`: arriba o abajo. Los centros no son laterales: el 0 es el anverso y el 5
- * el reverso. `celda`: [fila, columna] en la matriz 3×3 de Mapped (1 arriba a la izquierda, 8 arriba, 2 arriba a la
- * derecha, 6 izquierda, 7 derecha, 3 abajo a la izquierda, 9 abajo, 4 abajo a la derecha; el 0 y el 5 en el centro);
- * `borde`: dónde va su rosetón en el ordenador (el de cada lateral, su celda; el 0 arriba al centro y el 5 abajo al
- * centro, VG 10-11).
- */
-export const GEOMETRIA = Object.freeze({
-  0: { grupo: 'nucleo', lado: 0, cara: 'anverso', celda: [1, 1], borde: [0, 1] },
-  5: { grupo: 'nucleo', lado: 0, cara: 'reverso', celda: [1, 1], borde: [2, 1] },
-  1: { grupo: 'x', lado: 1, fila: 'arriba', celda: [0, 0] },
-  2: { grupo: 'x', lado: 2, fila: 'arriba', celda: [0, 2] },
-  3: { grupo: 'x', lado: 1, fila: 'abajo', celda: [2, 0] },
-  4: { grupo: 'x', lado: 2, fila: 'abajo', celda: [2, 2] },
-  6: { grupo: 'cruz', lado: 1, fila: 'medio', celda: [1, 0] },
-  7: { grupo: 'cruz', lado: 2, fila: 'medio', celda: [1, 2] },
-  8: { grupo: 'cruz', lado: 0, fila: 'arriba', celda: [0, 1] },
-  9: { grupo: 'cruz', lado: 0, fila: 'abajo', celda: [2, 1] },
-});
-export const CENTROS = Object.freeze(Object.keys(GEOMETRIA).map(Number).filter((pv) => GEOMETRIA[pv].grupo === 'nucleo'));
-export const LATERALES = Object.freeze(Object.keys(GEOMETRIA).map(Number).filter((pv) => GEOMETRIA[pv].grupo !== 'nucleo'));
-
-/**
  * Los sitios y los pesos de la pantalla son dato (docs/notas/SITIOS_Y_PESOS.md): contrato.sitios y contrato.pesos los leen
  * de la época del libro, de la 0 y del archivo de la lente (datos/lente/). El árbol los lee una vez por pintado y los
  * lleva en `ctx.sitios` y `ctx.pesos` (y en `lente`, para el pintado y la app); fuera de un pintado valen los de sin libro.
@@ -77,6 +54,18 @@ const SITIOS_SIN_LIBRO = contrato.sitios(null);
 const PESOS_SIN_LIBRO = contrato.pesos(null);
 const sitiosDe = (ctx) => ctx?.sitios ?? SITIOS_SIN_LIBRO;
 const pesosDe = (ctx) => ctx?.pesos ?? PESOS_SIN_LIBRO;
+
+/**
+ * La geometría de sin libro (diseño de VG; epoch.9.5.6 «places», datos/lente/): por PV, `grupo` (x, cruz o núcleo, de su
+ * celda), `lado` (el índice de la orientación en epoch.9.7.0.3: 0 el centro, 1 el lado del PV1, 2 el del PV2), `fila`
+ * (arriba, medio o abajo; los centros no la tienen), `cara` (el 0 anverso y el 5 reverso), `celda` ([fila, columna] en la
+ * matriz 3×3 de Mapped) y `borde` (dónde va el rosetón del 0 y del 5 en el ordenador). Cada pintado usa la de su libro
+ * (sitiosDe(ctx)); esta vale para las pruebas y fuera de un pintado. CENTROS, el anverso primero; LATERALES, del 1 al 9.
+ */
+export const GEOMETRIA = SITIOS_SIN_LIBRO.geometria;
+export const CENTROS = SITIOS_SIN_LIBRO.centros;
+export const LATERALES = SITIOS_SIN_LIBRO.laterales;
+
 /**
  * El PV que pinta el camino y lleva la guía: el lateral cuya forma en epoch.8.7 es la del camino (FORMAS.camino), en Mapped o en
  * Sequenced. Lo dice la época, no la geometría; null si ninguno.
@@ -500,7 +489,7 @@ function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, posicion = pv,
       X,
       representacion: X ? representacionQueCabe(eje, X, tamano, ctx) : null,
       // Su arte propio (#25) junto a su texto, con marco general y sin él (dom.js lo esconde donde el marco ya lo pone en su hueco).
-      ...(X && GEOMETRIA[posicion] ? conRetrato(retratoDe(ctx.conArte ?? ctx, X, posicion, GEOMETRIA[posicion].lado, tamano)) : {}),
+      ...(X && sitiosDe(ctx).geometria[posicion] ? conRetrato(retratoDe(ctx.conArte ?? ctx, X, posicion, sitiosDe(ctx).geometria[posicion].lado, tamano)) : {}),
       autor: X ? eje.obtener(X).autor : null,
       t: X ? eje.obtener(X).t ?? null : null, // la hora del escrito (la conversación del 3 y las cuentas del 6 y el 7 la enseñan)
     };
@@ -517,7 +506,7 @@ function nodoOcupante(eje, o, tamano, ctx, tipoDato, { pv = null, posicion = pv,
  */
 function anidadosDe(eje, X, tamano, ctx, anidar) {
   const fuera = [];
-  for (const pv of LATERALES) {
+  for (const pv of sitiosDe(ctx).laterales) {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
     if (!o.total) continue;
     const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
@@ -588,8 +577,8 @@ const conRetrato = (retrato) => (retrato ? { icono: retrato } : {});
  * el del 5, donde se ancla el arte de todos los mundos («*»). → { icono } o {} (sin arte propio, el nodo no cambia).
  */
 function retratoDelPulsado(ctx, X, pv, tamano) {
-  const mundo = LATERALES.includes(pv) ? pv : CENTROS[1] ?? 5;
-  return conRetrato(retratoDe(ctx.conArte ?? ctx, X, mundo, GEOMETRIA[mundo]?.lado ?? 0, tamano));
+  const mundo = sitiosDe(ctx).laterales.includes(pv) ? pv : sitiosDe(ctx).centros[1] ?? 5;
+  return conRetrato(retratoDe(ctx.conArte ?? ctx, X, mundo, sitiosDe(ctx).geometria[mundo]?.lado ?? 0, tamano));
 }
 
 /**
@@ -613,7 +602,7 @@ function rolDe(ctx, eje, X, pv) {
  * la superficie (una escena) o contenerse en ella (una figura). → { tipo, formato, recurso, ajuste, … } o null.
  */
 function fondoDelMundo(ctx, pv, tamano, madurez = ctx.madurez) {
-  if (!ctx.animado || !LATERALES.includes(pv)) return null;
+  if (!ctx.animado || !sitiosDe(ctx).laterales.includes(pv)) return null;
   const delArte = ctx.arte ? modelos.fondoDelArte(ctx.arte, pv, madurez?.nivel ?? null, madurez?.de ?? null) : null;
   if (delArte) return { tipo: PIEZA.fondo, formato: delArte.formato, recurso: delArte.recurso, ajuste: delArte.ajuste, paso: delArte.paso, dibujo: delArte.dibujo };
   const p = conRecurso(piezaDe(ctx, PIEZA.fondo, pv, madurez?.nivel ?? null, 0, tamano, { de: madurez?.de ?? undefined }));
@@ -679,7 +668,7 @@ function personajeDelSitio(ctx, eje, X, pv, lado) {
  */
 function sitioDe(ctx, eje, X, lugar, pv) {
   const s = { X, lugar };
-  const personaje = personajeDelSitio(ctx, eje, X, pv, GEOMETRIA[pv]?.lado ?? 0);
+  const personaje = personajeDelSitio(ctx, eje, X, pv, sitiosDe(ctx).geometria[pv]?.lado ?? 0);
   return personaje ? { ...s, personaje } : s;
 }
 
@@ -705,7 +694,7 @@ function sitioCero(eje, ctx, X) {
  * pasa de página, no se carga debajo); la disposición de dentro la dice la división de la época también en el grupo.
  */
 function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secuencia = false, rejilla = true } = {}) {
-  const g = GEOMETRIA[pv];
+  const g = sitiosDe(ctx).geometria[pv];
   const lado = ctx.variantes[g.lado] ?? ctx.variantes[0] ?? null;
   const nodo = {
     tipo: 'pv', pv, X, grupo: g.grupo, lado, fila: g.fila ?? null, nivel,
@@ -812,7 +801,7 @@ function medidaDePasos(pasos, pv) {
 
 /** Los campos del anverso: cada PV lateral con su etiqueta y su primer ocupante en texto legible (lo que rellena el 0 desde los demás). */
 function camposDe(eje, X, ctx) {
-  return LATERALES.map((pv) => {
+  return sitiosDe(ctx).laterales.map((pv) => {
     const o = contrato.ocupantes(eje, X, pv, 0, 1, ctx.opciones);
     const tipo = contrato.tipo(eje, X, pv, ctx.opciones);
     return {
@@ -834,7 +823,7 @@ function camposDe(eje, X, ctx) {
  */
 function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   const ev = eventoDe(eje, X);
-  const g = GEOMETRIA[pv] ?? { grupo: 'nucleo', lado: 0 };
+  const g = sitiosDe(ctx).geometria[pv] ?? { grupo: 'nucleo', lado: 0 };
   const px = Math.min(hueco.ancho, hueco.alto);
   const tamano = tamanoQueCabe(px, medidas, ctx.opciones);
   const base = {
@@ -859,7 +848,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
   // La cabecera del punto de vista que se pinta (VG 18-11, la forma C): el 0 en el anverso, el 5 en el reverso, el abierto
   // en los demás; con todas sus acciones, en el orden de la época.
-  const cabecera = cabeceraDe(eje, X, g.cara === 'anverso' ? CENTROS[0] : g.cara === 'reverso' ? CENTROS[1] ?? 5 : pv, 'abierto', ctx);
+  const cabecera = cabeceraDe(eje, X, g.cara === 'anverso' ? sitiosDe(ctx).centros[0] : g.cara === 'reverso' ? sitiosDe(ctx).centros[1] ?? 5 : pv, 'abierto', ctx);
   if (cabecera) base.acciones = cabecera;
   if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), ...fichaDe(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
@@ -894,7 +883,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // marco alrededor de su bloque de campos. Con rejilla (Mapped), la escena es de la rejilla (el elemento que divide, R);
   // sin ella (Sequenced, un mundo sin división), del centro, con sus ocupantes como subelementos.
   let escena = null;
-  if (ctx.animado && LATERALES.includes(pv)) {
+  if (ctx.animado && sitiosDe(ctx).laterales.includes(pv)) {
     const r = mapa?.rejilla ?? null;
     if (r) sitiosConMuneco(ctx, eje, r, pv).escena = escenaDe(ctx, eje, r.X ?? X, pv, tamano, hijosDeRejilla(ctx, eje, r, pv, tamano), { sitio: r.sitio ?? null });
     else escena = escenaDe(ctx, eje, X, pv, tamano, hijosDeLista(ctx, eje, X, ocupantes.lista, pv, tamano), { sitio: base.sitio ?? null });
@@ -1811,9 +1800,9 @@ function rosetonesDe(eje, yoDatos, ctx, medidas) {
     const nivel = ctx.estado.rosetones?.[pv] ?? NIVEL.comprimido;
     const total = contrato.ocupantes(eje, alta, pv, 0, 0, ctx.opciones).total;
     const nodo = {
-      pv, X: alta, grupo: GEOMETRIA[pv].grupo, lado: ctx.variantes[GEOMETRIA[pv].lado] ?? null, fila: GEOMETRIA[pv].fila ?? null, nivel,
+      pv, X: alta, grupo: sitiosDe(ctx).geometria[pv].grupo, lado: ctx.variantes[sitiosDe(ctx).geometria[pv].lado] ?? null, fila: sitiosDe(ctx).geometria[pv].fila ?? null, nivel,
       // Dónde va en el ordenador (VG, 10-11): en su esquina o lateral, como su PV; el 0 arriba al centro y el 5 abajo.
-      sitio: { fila: (GEOMETRIA[pv].borde ?? GEOMETRIA[pv].celda)[0], columna: (GEOMETRIA[pv].borde ?? GEOMETRIA[pv].celda)[1], centro: CENTROS.includes(pv) },
+      sitio: { fila: (sitiosDe(ctx).geometria[pv].borde ?? sitiosDe(ctx).geometria[pv].celda)[0], columna: (sitiosDe(ctx).geometria[pv].borde ?? sitiosDe(ctx).geometria[pv].celda)[1], centro: sitiosDe(ctx).centros.includes(pv) },
       etiqueta: contrato.etiqueta(eje, alta, pv, ctx.opciones),
       // El número del rosetón son sus OCUPANTES, igual comprimido y ampliado (VG 14-11, #91; Core 16-11); sin ocupantes, sin número.
       // El paso lo cuentan el camino de la tarjeta y el dibujo del marco, no el rosetón.
@@ -1925,7 +1914,7 @@ export function escalaDeTamanos(opciones = {}) {
 const pasoGuardado = (estado, pv, escala) => Math.min(Math.max(estado?.niveles?.[pv] ?? escala.partida, 0), Math.max(0, escala.pasos.length - 1));
 
 /** La fracción de pantalla de un PV en un paso: la de una esquina en la X, la de un lado en la cruz. */
-const fraccionDe = (pv, paso) => (paso ? (GEOMETRIA[pv]?.grupo === 'x' ? paso.esquina : paso.lado) : 0);
+const fraccionDe = (pv, paso, sitios = SITIOS_SIN_LIBRO) => (paso ? (sitios.geometria[pv]?.grupo === 'x' ? paso.esquina : paso.lado) : 0);
 
 /**
  * Lo que cada PV quiere de pantalla, antes de repartirla. «En matriz» si alguno está en el tope (el bloque): entonces
@@ -1935,8 +1924,8 @@ const fraccionDe = (pv, paso) => (paso ? (GEOMETRIA[pv]?.grupo === 'x' ? paso.es
  * foco) quiere, en matriz, la celda de un lado en el tope (el 0 en el centro del 3×3); fuera de ella, lo que quede.
  * → { matriz, efectivo: { [pv]: paso }, lado: { [pv]: número }, columnas: [3], filas: [3] } (lo que quiere cada banda).
  */
-function deseos(niveles, pvs, escala) {
-  const laterales = pvs.filter((pv) => LATERALES.includes(pv));
+function deseos(niveles, pvs, escala, sitios = SITIOS_SIN_LIBRO) {
+  const laterales = pvs.filter((pv) => sitios.laterales.includes(pv));
   const guardado = (pv) => pasoGuardado({ niveles }, pv, escala);
   const matriz = laterales.some((pv) => guardado(pv) >= escala.tope);
   const efectivo = {};
@@ -1944,10 +1933,10 @@ function deseos(niveles, pvs, escala) {
   for (const pv of laterales) {
     const k = guardado(pv);
     efectivo[pv] = matriz && escala.pasos[k]?.datos > 0 ? Math.max(k, escala.conEspacio) : k;
-    lado[pv] = Math.sqrt(Math.max(0, fraccionDe(pv, escala.pasos[efectivo[pv]])));
+    lado[pv] = Math.sqrt(Math.max(0, fraccionDe(pv, escala.pasos[efectivo[pv]], sitios)));
   }
   const centro = matriz ? Math.sqrt(Math.max(0, escala.pasos[escala.tope]?.lado ?? 0)) : 0;
-  const banda = (eje, i) => Math.max(0, ...laterales.filter((pv) => GEOMETRIA[pv].celda[eje] === i).map((pv) => lado[pv]), i === 1 ? centro : 0);
+  const banda = (eje, i) => Math.max(0, ...laterales.filter((pv) => sitios.geometria[pv].celda[eje] === i).map((pv) => lado[pv]), i === 1 ? centro : 0);
   return { matriz, efectivo, lado, columnas: [0, 1, 2].map((i) => banda(1, i)), filas: [0, 1, 2].map((i) => banda(0, i)) };
 }
 
@@ -1975,28 +1964,28 @@ function repartirEje(quiere, fija) {
  * a su esquina o a su lado, y un punto no tiene caja (va junto al foco). `recientes`: los PV tocados uno a uno, del
  * más antiguo al más reciente (el último gana lo suyo).
  */
-export function repartir(niveles, pvs, escala, { recientes = [] } = {}) {
-  const q = deseos(niveles, pvs, escala);
-  const ultimo = [...recientes].reverse().find((pv) => pvs.includes(pv) && LATERALES.includes(pv) && q.lado[pv] > 0);
-  const columnas = repartirEje(q.columnas, ultimo === undefined ? null : GEOMETRIA[ultimo].celda[1]);
-  const filas = repartirEje(q.filas, ultimo === undefined ? null : GEOMETRIA[ultimo].celda[0]);
+export function repartir(niveles, pvs, escala, { recientes = [], sitios = SITIOS_SIN_LIBRO } = {}) {
+  const q = deseos(niveles, pvs, escala, sitios);
+  const ultimo = [...recientes].reverse().find((pv) => pvs.includes(pv) && sitios.laterales.includes(pv) && q.lado[pv] > 0);
+  const columnas = repartirEje(q.columnas, ultimo === undefined ? null : sitios.geometria[ultimo].celda[1]);
+  const filas = repartirEje(q.filas, ultimo === undefined ? null : sitios.geometria[ultimo].celda[0]);
   const inicio = (lista, i) => lista.slice(0, i).reduce((a, b) => a + b, 0);
   const celda = ([f, c]) => ({ x: inicio(columnas, c), y: inicio(filas, f), ancho: columnas[c], alto: filas[f] });
   const cajas = {};
   for (const pv of Object.keys(q.lado).map(Number)) {
     const lado = q.lado[pv];
     if (!(lado > 0)) { cajas[pv] = null; continue; }
-    const r = celda(GEOMETRIA[pv].celda);
+    const r = celda(sitios.geometria[pv].celda);
     if (q.matriz) { cajas[pv] = r; continue; }
     // Pegado a su esquina o a su lado: a la izquierda o arriba en la primera banda, a la derecha o abajo en la última, centrado en la del medio.
-    const [f, c] = GEOMETRIA[pv].celda;
+    const [f, c] = sitios.geometria[pv].celda;
     const ancho = Math.min(lado, r.ancho);
     const alto = Math.min(lado, r.alto);
     const x = c === 0 ? r.x : c === 2 ? r.x + r.ancho - ancho : r.x + (r.ancho - ancho) / 2;
     const y = f === 0 ? r.y : f === 2 ? r.y + r.alto - alto : r.y + (r.alto - alto) / 2;
     cajas[pv] = { x, y, ancho, alto };
   }
-  return { matriz: q.matriz, efectivo: q.efectivo, columnas, filas, cajas, centro: celda(GEOMETRIA[CENTROS[0]].celda), reciente: ultimo ?? null };
+  return { matriz: q.matriz, efectivo: q.efectivo, columnas, filas, cajas, centro: celda(sitios.geometria[sitios.centros[0]].celda), reciente: ultimo ?? null };
 }
 
 /**
@@ -2009,7 +1998,8 @@ export function repartir(niveles, pvs, escala, { recientes = [] } = {}) {
  */
 export function ampliar(estado, pv, delta, opciones = {}) {
   const escala = escalaDeTamanos(opciones);
-  const pvs = opciones.pvs ?? LATERALES;
+  const sitios = opciones.sitios ?? SITIOS_SIN_LIBRO; // los sitios del libro (contrato.sitios); sin ellos, los de sin libro
+  const pvs = opciones.pvs ?? sitios.laterales;
   const niveles = { ...(estado?.niveles ?? {}) };
   const antes = (estado?.recientes ?? []).filter((x) => x !== pv);
   const nuevo = pasoGuardado(estado, pv, escala) + delta;
@@ -2019,17 +2009,17 @@ export function ampliar(estado, pv, delta, opciones = {}) {
   if (escala.completa >= 0 && nuevo >= escala.completa) return { niveles: { ...(estado?.niveles ?? {}) }, recientes: [...(estado?.recientes ?? [])], completa: true };
   niveles[pv] = Math.max(escala.partida, Math.min(escala.tope, nuevo));
   if (delta <= 0) return { niveles, recientes: antes, completa: false };
-  const q = deseos(niveles, pvs, escala);
-  const [f, c] = GEOMETRIA[pv].celda;
+  const q = deseos(niveles, pvs, escala, sitios);
+  const [f, c] = sitios.geometria[pv].celda;
   // Lo que piden los PV en cada banda (sin el foco, que se queda lo que sobre): si no cabe, hay competición.
-  const banda = (eje, i) => Math.max(0, ...Object.keys(q.lado).map(Number).filter((x) => GEOMETRIA[x].celda[eje] === i).map((x) => q.lado[x]));
+  const banda = (eje, i) => Math.max(0, ...Object.keys(q.lado).map(Number).filter((x) => sitios.geometria[x].celda[eje] === i).map((x) => q.lado[x]));
   const desborda = (eje) => banda(eje, 0) + banda(eje, 1) + banda(eje, 2) > 1 + 1e-9;
   const caidos = new Set();
   for (const eje of [1, 0]) {
     if (!desborda(eje)) continue;
     // Los rivales: los tocados antes que comparten su fila (al ensanchar) o su columna (al alargar), en otra banda.
     for (const otro of antes) {
-      const [fo, co] = GEOMETRIA[otro]?.celda ?? [];
+      const [fo, co] = sitios.geometria[otro]?.celda ?? [];
       const rival = eje === 1 ? fo === f && co !== c : co === c && fo !== f;
       // Compite quien está en un paso igual o mayor que el que acaba de alcanzar el más reciente.
       if (rival && !caidos.has(otro) && pasoGuardado({ niveles }, otro, escala) >= niveles[pv] && pasoGuardado({ niveles }, otro, escala) > escala.partida) {
@@ -2048,7 +2038,7 @@ export function ampliar(estado, pv, delta, opciones = {}) {
 export function ampliarTodos(estado, delta, opciones = {}) {
   const escala = escalaDeTamanos(opciones);
   const niveles = { ...(estado?.niveles ?? {}) };
-  for (const pv of opciones.pvs ?? LATERALES) niveles[pv] = Math.max(escala.partida, Math.min(escala.tope, pasoGuardado(estado, pv, escala) + delta));
+  for (const pv of opciones.pvs ?? (opciones.sitios ?? SITIOS_SIN_LIBRO).laterales) niveles[pv] = Math.max(escala.partida, Math.min(escala.tope, pasoGuardado(estado, pv, escala) + delta));
   return { niveles, recientes: [], completa: false };
 }
 
@@ -2066,7 +2056,7 @@ function paginaDe(ctx, eje, X, pv, cuantos) {
   const actual = Math.min(Math.max(1, ctx.estado.paginas?.[pv] ?? 1), de);
   return { actual, de, desde: (actual - 1) * cuantos };
 }
-const esPvDelPasado = (pv) => GEOMETRIA[pv]?.grupo === 'cruz' && GEOMETRIA[pv]?.lado === 1;
+const esPvDelPasado = (pv, ctx) => sitiosDe(ctx).hilo.pasado === pv; // el pasado del hilo (epoch.9.5.6, «time»)
 
 /**
  * Los pasos por los que se ha bajado en la rejilla de un PV (estado.profundidad[pv]), sin pasar de su profundidad: el id
@@ -2141,8 +2131,8 @@ export const LENTE_SIN_LIBRO = Object.freeze({ sitios: SITIOS_SIN_LIBRO, pesos: 
 /** Lo que mide la fila del 3 por tema (encargo pv3): sus hijos son cajas de personas. */
 const MIDE_GRUPOS = 'groups';
 
-/** Las posiciones de un registro (los dígitos de la geometría, del 0 al 9). */
-const POSICIONES = Object.freeze(Object.keys(GEOMETRIA).map(Number).sort((a, b) => a - b));
+/** Las posiciones de un registro: los diez dígitos de la décupla, del 0 al 9 (el lenguaje, no un sitio de la pantalla). */
+const POSICIONES = Object.freeze([...Array(10).keys()]);
 
 /** El estilo propio y el de los de abajo de X (los dos datos, ya saneados; contrato.estilo), una sola vez por registro y mundo. */
 function estiloDe(eje, X, pv, ctx) {
@@ -2186,7 +2176,7 @@ function nodosDeCelda(eje, R, ocupantes, pv, digito, d, ctx, entrar, base = []) 
   const tipoDato = contrato.tipo(eje, R, base.length ? [...base, digito] : digito, ctx.opciones);
   const sobrio = sobrioDe(ctx);
   return ocupantes.map((x) => {
-    const n = nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv: digito, lado: GEOMETRIA[digito]?.lado ?? 0, posicion: digito, anidar: 0 });
+    const n = nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv: digito, lado: sitiosDe(ctx).geometria[digito]?.lado ?? 0, posicion: digito, anidar: 0 });
     n.entra = Boolean(entrar && d.entra && n.tipo === 'referencia' && n.X && tieneHijos(eje, n.X, pv, d.nivel + 1, ctx));
     if (n.X) n.estilo = estiloDe(eje, n.X, pv, ctx);
     return n;
@@ -2203,7 +2193,7 @@ function derivadosDeCelda(eje, h, ctx) {
   const sobrio = sobrioDe(ctx);
   const relacionDe = (n) => (typeof n !== 'number' || n === 0 ? null : n < 0 ? 'arriba' : n === 1 ? 'directo' : 'heredado');
   return (h.derivados ?? []).map((x) => ({
-    ...nodoOcupante(eje, x.valor, tamanoDeNivel(2, ctx.opciones), sobrio, null, { pv: h.digito, lado: GEOMETRIA[h.digito]?.lado ?? 0, posicion: h.digito, anidar: 0 }),
+    ...nodoOcupante(eje, x.valor, tamanoDeNivel(2, ctx.opciones), sobrio, null, { pv: h.digito, lado: sitiosDe(ctx).geometria[h.digito]?.lado ?? 0, posicion: h.digito, anidar: 0 }),
     derivado: true,
     por: x.por.map((p) => p.pv + ' ' + (p.nombre ?? p.regla)).join(' › '),
     relacion: relacionDe(x.por[x.por.length - 1]?.nivel),
@@ -2337,7 +2327,7 @@ function celdasDeConversacion(eje, R, pv, d, g, ctx, opciones) {
   if (!c) return celdasDeHijos(eje, R, pv, d, g, ctx, opciones);
   const sobrio = sobrioDe(ctx);
   const celdas = c.capas.map((k, i) => {
-    const ocupantes = k.items.map((it) => ({ ...nodoOcupante(eje, { ref: it.ref }, tamanoDeNivel(2, ctx.opciones), sobrio, null, { pv: k.capa, lado: GEOMETRIA[k.capa]?.lado ?? 0, posicion: k.capa, anidar: 0 }), ...(it.estado ? { estado: it.estado } : {}), entra: false }));
+    const ocupantes = k.items.map((it) => ({ ...nodoOcupante(eje, { ref: it.ref }, tamanoDeNivel(2, ctx.opciones), sobrio, null, { pv: k.capa, lado: sitiosDe(ctx).geometria[k.capa]?.lado ?? 0, posicion: k.capa, anidar: 0 }), ...(it.estado ? { estado: it.estado } : {}), entra: false }));
     return { fila: i, columna: 0, pv: k.capa, capaDelTres: k.capa, nombre: t(CAPAS[k.capa]), vacio: ocupantes.length === 0, total: ocupantes.length, ocupantes, ocupante: ocupantes[0] ?? null, entra: false, escribir: null };
   });
   return { celdas, vacia: celdas.every((x) => x.vacio), pagina: null, columnas: 1, filas: Math.max(1, celdas.length), persona: { identidad: c.persona, texto: c.texto, caja: c.caja, nombre: c.nombre, alta: R, agenteDe: agenteDe(eje, c.persona, ctx.opciones) } };
@@ -2371,7 +2361,7 @@ function nodoSitio(eje, s, yo, ctx, foco = null) {
       const nombreDelValor = valor ? etiquetaDelValor(p, ctx) : null;
       // VG 14-11, #85: cada celda enseña el 0 de su posición (el nombre de la fila de la época, en el idioma de la cuenta: lo escrito en
       // X.<lugar>.<posición> ya es su valor, porque x.y.0 ocupa la dirección de x.y) y su valor actual o «sin configurar».
-      return { ...p, nombre, valor: nombreDelValor ? t('sitioValor', { que: nombreDelValor, valor }) : valor, celda: GEOMETRIA[p.posicion].celda };
+      return { ...p, nombre, valor: nombreDelValor ? t('sitioValor', { que: nombreDelValor, valor }) : valor, celda: sitiosDe(ctx).geometria[p.posicion].celda };
     }),
   };
 }
@@ -2532,13 +2522,13 @@ function celdasDeMatriz(eje, R, pv, d, g, ctx, { pagina, entrar }) {
 function itemsDeBandas(eje, R, pv, ctx) {
   const items = [];
   const total = contrato.ocupantes(eje, R, pv, 0, 0, ctx.opciones).total;
-  const todos = esPvDelPasado(pv) ? contrato.ocupantes(eje, R, pv, 0, Math.max(1, total), ctx.opciones).ocupantes : contrato.leer(eje, R, pv, { ...ctx.opciones, yo: ctx.yo ?? undefined }).lista.map((x) => x.valor);
+  const todos = esPvDelPasado(pv, ctx) ? contrato.ocupantes(eje, R, pv, 0, Math.max(1, total), ctx.opciones).ocupantes : contrato.leer(eje, R, pv, { ...ctx.opciones, yo: ctx.yo ?? undefined }).lista.map((x) => x.valor);
   const tipoDato = contrato.tipo(eje, R, pv, ctx.opciones);
   const sobrio = sobrioDe(ctx);
-  const nodoRef = (x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv, lado: GEOMETRIA[pv]?.lado ?? 0, posicion: pv, anidar: 0 });
+  const nodoRef = (x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv, lado: sitiosDe(ctx).geometria[pv]?.lado ?? 0, posicion: pv, anidar: 0 });
   const conEstado = (id, nodo) => { const e = contrato.estadoDeEntrada(eje, id, ctx.opciones); return e ? { ...nodo, estado: e } : nodo; };
   for (const x of todos) if (esReferencia(x) && eje.obtener(x.ref)) items.push({ id: x.ref, nodo: conEstado(x.ref, nodoRef(x)) });
-  if (esPvDelPasado(pv)) {
+  if (esPvDelPasado(pv, ctx)) {
     for (const e of contrato.diario(eje, R, 0, 1e9, ctx.opciones).entradas) {
       const m = e.movimientos.map((a) => movimientoEnLlano(eje, a, ctx.opciones)).join(' · ');
       items.push({ id: e.id, nodo: { tipo: 'entrada', pv, texto: m || e.id.slice(0, 8), t: e.t, autor: e.autor, ref: e.id, ...(e.estado ? { estado: e.estado } : {}) } });
@@ -2595,7 +2585,7 @@ function franjasDeRejilla(eje, R, pv, d, g, ctx, { hueco }) {
     b.items = b.cruces.flatMap((c) => c.items);
     b.mas = b.cruces.reduce((n, c) => n + c.mas, 0);
   }
-  if (FORMAS[d.forma].alReves && esPvDelPasado(pv)) bandas.reverse(); // la más lejana a la izquierda, hoy a la derecha
+  if (FORMAS[d.forma].alReves && esPvDelPasado(pv, ctx)) bandas.reverse(); // la más lejana a la izquierda, hoy a la derecha
   return { bandas, hilos, sinBanda, pagina: null };
 }
 
@@ -2710,7 +2700,7 @@ function cieloDeRejilla(eje, R, pv, d, g, ctx, { hueco }) {
   const sinBanda = [];
   const tipoDato = contrato.tipo(eje, R, pv, ctx.opciones);
   const sobrio = sobrioDe(ctx);
-  const estrella = (x) => ({ ...nodoOcupante(eje, { ref: x.ref }, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv, lado: GEOMETRIA[pv]?.lado ?? 0, posicion: pv, anidar: 0 }), ...(x.foco ? { foco: true } : {}), ...(porRango && typeof x.rango === 'number' ? { rango: x.rango } : {}) });
+  const estrella = (x) => ({ ...nodoOcupante(eje, { ref: x.ref }, tamanoDeNivel(2, ctx.opciones), sobrio, tipoDato, { pv, lado: sitiosDe(ctx).geometria[pv]?.lado ?? 0, posicion: pv, anidar: 0 }), ...(x.foco ? { foco: true } : {}), ...(porRango && typeof x.rango === 'number' ? { rango: x.rango } : {}) });
   for (const x of c?.comparables ?? []) {
     const banda = cajaDe(x) === null || cajaDe(x) === undefined ? null : bandas.find((b) => (b.escala ?? b.indice) === cajaDe(x));
     if (banda) banda.items.push(estrella(x)); else sinBanda.push(estrella(x));
@@ -2828,7 +2818,7 @@ const esPersonaOcupante = (eje, o) => o?.tipo === 'hoja' && typeof o.valor === '
  * persona, el de persona del mundo; si no, el del ocupante del mundo (la correspondencia de la cabecera, elementoDelMundo).
  */
 function dibujoDeSubelemento(ctx, eje, o, pv, madurez, tamano, R) {
-  const lado = GEOMETRIA[pv].lado;
+  const lado = sitiosDe(ctx).geometria[pv].lado;
   const dibujo = (dado) => elementoDelMundo(ctx, pv, dado, madurez, lado, tamano, R);
   if (o?.identidad !== undefined) return (eje.esPersona?.(o.identidad) === true && dibujo('persona')) || dibujo('ocupante');
   return (o?.X && retratoDe(ctx, o.X, pv, lado, tamano)) || (esPersonaOcupante(eje, o) && dibujo('persona')) || dibujo('ocupante');
@@ -2842,8 +2832,8 @@ function dibujoDeSubelemento(ctx, eje, o, pv, madurez, tamano, R) {
 function hijosDeRejilla(ctx, eje, r, pv, tamano) {
   const R = r.X ?? ctx.X;
   const madurez = R === ctx.X ? ctx.madurez : contrato.madurez(eje, R, ctx.opciones);
-  const vacio = () => elementoDelMundo(ctx, pv, 'vacio', madurez, GEOMETRIA[pv].lado, tamano, R);
-  const conRetrato = (lista) => lista.find((o) => o?.X && retratoDe(ctx, o.X, pv, GEOMETRIA[pv].lado, tamano)) ?? lista[0];
+  const vacio = () => elementoDelMundo(ctx, pv, 'vacio', madurez, sitiosDe(ctx).geometria[pv].lado, tamano, R);
+  const conRetrato = (lista) => lista.find((o) => o?.X && retratoDe(ctx, o.X, pv, sitiosDe(ctx).geometria[pv].lado, tamano)) ?? lista[0];
   const de = (nombre, lista) => ({ rotulo: String(nombre ?? ''), dibujo: lista.length ? dibujoDeSubelemento(ctx, eje, conRetrato(lista), pv, madurez, tamano, R) : vacio() });
   return [
     ...(r.celdas ?? []).map((c) => ({ pv: c.pv ?? null, ...de(c.nombre ?? c.pv, c.personas ?? c.ocupantes ?? (c.ocupante ? [c.ocupante] : [])) })),
@@ -2860,7 +2850,7 @@ function sitiosConMuneco(ctx, eje, r, pv) {
   const R = r.X ?? ctx.X;
   for (const c of r.celdas ?? []) {
     if (!c.sitio) continue;
-    const pj = personajeDelSitio(ctx, eje, R, pv, GEOMETRIA[pv].lado);
+    const pj = personajeDelSitio(ctx, eje, R, pv, sitiosDe(ctx).geometria[pv].lado);
     if (pj) c.sitio = { ...c.sitio, personaje: pj };
   }
   return r;
@@ -2883,7 +2873,7 @@ function hijosDeLista(ctx, eje, X, lista, pv, tamano) {
  * → { fondo, marco } (cualquiera de los dos, null). En «propio» (#25) no hay arte del modelo: sin marco.
  */
 function escenaDe(ctx, eje, R, pv, tamano, hijos, { sitio = null } = {}) {
-  const lado = GEOMETRIA[pv].lado;
+  const lado = sitiosDe(ctx).geometria[pv].lado;
   const fondo = fondoDelMundo(ctx, pv, tamano);
   const m = ctx.arte ? modelos.marcoDelArte(ctx.arte, pv, contrato.rango(eje, R, ctx.opciones)?.peldano ?? 0) : null;
   if (!m) return { fondo, marco: null };
@@ -2920,8 +2910,8 @@ function rejillaCabe(eje, pv, hueco, medidas, opciones) {
   const g = d ? geometriaDe(d) : null;
   return Boolean(g) && g.columnas * g.filas > 0 && g.columnas * medidas.hueco <= hueco.ancho && g.filas * medidas.hueco <= hueco.alto;
 }
-/** La zona del hilo de un PV en Sequenced: la cruz de en medio, el lado del PV1 el pasado y el del PV2 el futuro (la geometría); null si no es del hilo. */
-const zonaDelHilo = (pv) => (GEOMETRIA[pv]?.grupo === 'cruz' && GEOMETRIA[pv]?.fila === 'medio' ? (GEOMETRIA[pv].lado === 1 ? 'antes' : 'despues') : null);
+/** La zona del hilo de un PV en Sequenced: el pasado (antes) o el futuro (después), como dicen los sitios (epoch.9.5.6, «time»); null si no es del hilo. */
+const zonaDelHilo = (pv, ctx) => (sitiosDe(ctx).hilo.pasado === pv ? 'antes' : sitiosDe(ctx).hilo.futuro === pv ? 'despues' : null);
 
 /**
  * Sequenced (el móvil en vertical, VG 11-11): lo que la columna necesita. Una fila por cada PV de la división (en el
@@ -2936,7 +2926,7 @@ function secuenciaDe(eje, X, pvs, ctx, m) {
   const nodos = {};
   const digitos = pesosDe(ctx).ordenDeSequenced.filter((pv) => pvs.includes(pv)); // en el orden de los pesos («sequenced order»)
   for (const pv of digitos) {
-    const hilo = zonaDelHilo(pv);
+    const hilo = zonaDelHilo(pv, ctx);
     const nivel = hilo || abierta(pv) ? NIVEL.bloque : NIVEL.comprimido;
     // Una zona del hilo cuya forma pinta el hilo (`hilo` en FORMAS: las cadenas del 7 del roadmap) lleva su rejilla.
     const n = nodoLateral(eje, X, pv, nivel, ctx, m, hueco, null, { secuencia: true, rejilla: !hilo || FORMAS[contrato.formaDe(eje, pv, 'sequenced', ctx.opciones)?.forma]?.hilo === true });
@@ -2971,9 +2961,9 @@ function nivelDePaso(k, escala) {
 }
 
 /** El paso de tamaño como lo lleva el árbol: { indice, nombre, texto, fraccion, datos }. */
-const pasoDelArbol = (pv, k, escala) => {
+const pasoDelArbol = (pv, k, escala, sitios = SITIOS_SIN_LIBRO) => {
   const p = escala.pasos[k];
-  return p ? { indice: k, nombre: p.nombre, texto: p.texto ?? p.nombre, fraccion: fraccionDe(pv, p), datos: p.datos } : null;
+  return p ? { indice: k, nombre: p.nombre, texto: p.texto ?? p.nombre, fraccion: fraccionDe(pv, p, sitios), datos: p.datos } : null;
 };
 
 /**
@@ -3056,10 +3046,10 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
   const d = contrato.division(eje, X, { datos: cabenEnPantalla, forma: { ancho: m.ancho, alto: m.alto }, ...opciones });
   const disposiciones = contrato.division(eje, X, { datos: 1, forma: { ancho: 1, alto: 1 }, ...opciones }).disposicion; // la de un hueco cuadrado
   const apilada = d.disposicion !== disposiciones; // más alto que ancho: las franjas apiladas (Sequenced); si no, la matriz (Mapped)
-  const pvsCentro = d.pvs.filter((pv) => CENTROS.includes(pv));
-  const pvsLaterales = d.pvs.filter((pv) => LATERALES.includes(pv));
-  const pvPedido = typeof estado.foco === 'object' && estado.foco && typeof estado.foco.pv === 'number' ? estado.foco.pv : CENTROS[0];
-  const pvCentro = pvsCentro.includes(pvPedido) || !CENTROS.includes(pvPedido) ? pvPedido : pvsCentro[0] ?? CENTROS[0];
+  const pvsCentro = d.pvs.filter((pv) => sitiosDe(ctx).centros.includes(pv));
+  const pvsLaterales = d.pvs.filter((pv) => sitiosDe(ctx).laterales.includes(pv));
+  const pvPedido = typeof estado.foco === 'object' && estado.foco && typeof estado.foco.pv === 'number' ? estado.foco.pv : sitiosDe(ctx).centros[0];
+  const pvCentro = pvsCentro.includes(pvPedido) || !sitiosDe(ctx).centros.includes(pvPedido) ? pvPedido : pvsCentro[0] ?? sitiosDe(ctx).centros[0];
   let laterales;
   let centro;
   let mapa = null;
@@ -3075,7 +3065,7 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     // Mapped: sin scroll; la pantalla se reparte entre los PV por sus pasos de tamaño (epoch.8.6) y se avanza hacia adentro.
     const escala = escalaDeTamanos(ctx.opciones);
     const px = (caja) => ({ ancho: caja.ancho * m.ancho, alto: caja.alto * m.alto });
-    const completa = LATERALES.includes(pvCentro) && pvsLaterales.includes(pvCentro);
+    const completa = sitiosDe(ctx).laterales.includes(pvCentro) && pvsLaterales.includes(pvCentro);
     if (completa) {
       // Un PV a pantalla completa: solo él, con flechas a sus vecinos (la geometría de Mapped) y «volver»; sin rosetones.
       const todo = { ancho: m.ancho, alto: m.alto };
@@ -3085,11 +3075,11 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
       centro = nodoCentro(eje, X, pvCentro, ctx, m, todo, { cuantos, datos: paso?.datos ?? ctx.paso, rejilla });
       laterales = [];
       mapa = {
-        completa: { pv: pvCentro, paso: pasoDelArbol(pvCentro, escala.completa, escala), vecinos: [...pvsLaterales, ...pvsCentro].filter((pv) => pv !== pvCentro).map((pv) => ({ pv, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), fila: GEOMETRIA[pv].celda[0], columna: GEOMETRIA[pv].celda[1], centro: CENTROS.includes(pv) })), volver: CENTROS[0] },
+        completa: { pv: pvCentro, paso: pasoDelArbol(pvCentro, escala.completa, escala, ctx.sitios), vecinos: [...pvsLaterales, ...pvsCentro].filter((pv) => pv !== pvCentro).map((pv) => ({ pv, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), fila: sitiosDe(ctx).geometria[pv].celda[0], columna: sitiosDe(ctx).geometria[pv].celda[1], centro: sitiosDe(ctx).centros.includes(pv) })), volver: sitiosDe(ctx).centros[0] },
         pasos: escala.pasos, matriz: false, columnas: [0, 1, 0], filas: [0, 1, 0], centro: { x: 0, y: 0, ancho: 1, alto: 1 }, puntos: null,
       };
     } else {
-      const r = repartir(estado.niveles ?? {}, pvsLaterales, escala, { recientes: estado.recientes ?? [] });
+      const r = repartir(estado.niveles ?? {}, pvsLaterales, escala, { recientes: estado.recientes ?? [], sitios: ctx.sitios });
       laterales = pvsLaterales.map((pv) => {
         const guardado = pasoGuardado(estado, pv, escala);
         const efectivo = r.efectivo[pv] ?? guardado;
@@ -3098,13 +3088,13 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
         const hueco = caja ? px(caja) : { ancho: m.hueco, alto: m.hueco };
         const cuantos = Math.max(1, Math.min(escala.pasos[efectivo]?.datos ?? 1, capacidad(hueco, m), nivel >= NIVEL.bloque ? ctx.paso : Infinity));
         const n = nodoLateral(eje, X, pv, nivel, ctx, m, hueco, { cuantos });
-        return { ...n, pasoDeTamano: pasoDelArbol(pv, guardado, escala), caja, relleno: Boolean(r.matriz && caja), celda: GEOMETRIA[pv].celda, crece: guardado < (escala.completa >= 0 ? escala.completa : escala.tope), mengua: guardado > escala.partida };
+        return { ...n, pasoDeTamano: pasoDelArbol(pv, guardado, escala, ctx.sitios), caja, relleno: Boolean(r.matriz && caja), celda: sitiosDe(ctx).geometria[pv].celda, crece: guardado < (escala.completa >= 0 ? escala.completa : escala.tope), mengua: guardado > escala.partida };
       });
       centro = nodoCentro(eje, X, pvCentro, ctx, m, px(r.centro));
       // Los puntitos del foco: los diez PV en su paso, junto a la información del foco; tocarlos sube un paso a todos.
       const puntos = d.pvs.map((pv) => {
-        const k = LATERALES.includes(pv) ? pasoGuardado(estado, pv, escala) : null;
-        return { pv, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), paso: k === null ? null : pasoDelArbol(pv, k, escala) };
+        const k = sitiosDe(ctx).laterales.includes(pv) ? pasoGuardado(estado, pv, escala) : null;
+        return { pv, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), paso: k === null ? null : pasoDelArbol(pv, k, escala, ctx.sitios) };
       });
       const niveles = pvsLaterales.map((pv) => pasoGuardado(estado, pv, escala));
       mapa = {
