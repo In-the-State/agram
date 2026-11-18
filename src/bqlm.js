@@ -14,6 +14,14 @@
 //   libro           moves X (los asientos del libro de X, por llegada: de un registro, lo que asentó su transacción,
 //                   también lo que añade el libro; de una identidad, donde es de o a; de una serie, todos los suyos)
 //   orden           M by e (M ordenado por e, de menor a mayor; los empates, por llegada; como where, da it2…)
+//   tablas y relaciones (Core AGRAM 18-11, «la lente solo lee»; docs/BQLM.md §15, pendiente de revisar VG):
+//                   M group e (un grupo por clave, por primera aparición: la clave en las primeras posiciones y los
+//                   miembros en la siguiente) · row(a, b…) (una fila: la lista k en la posición k) · M each (e) (e
+//                   para cada elemento, juntando) · M follow e (M y lo que da e una y otra vez, sin repetir; el
+//                   presupuesto es el tope) · apply(F, X) (la fórmula guardada F con it = cada elemento de X; nunca
+//                   mueve ni escribe; tope de anidamiento propio y sin aplicarse a sí misma) · take n M (los n primeros)
+//                   · A with B (los de A y luego los de B) · M keep cond (como where, pero el elemento cuya condición
+//                   queda PENDIENTE o da ERROR se cae; un límite de cálculo no; solo en una lectura, opciones.lectura)
 //   recuento        count · sum · max · min
 //   aritmética      + - * / floor
 //   comparación     = != < <= > >=
@@ -105,7 +113,23 @@ export const ENLACES = Object.freeze(['from', 'to', 'exit', 'when', 'price']);
  * «put v at X.d, colocar, solo reglas que escriben»; encargo 3b): vale verdadero y anota una escritura, que solo
  * evalúa una regla con «put» en su 4 (evaluarEscritura) o, el nivel en mano, una plantilla (evaluarPlantilla).
  */
-export const PALABRAS = Object.freeze(['first', 'last', 'nth', 'each', 'where', 'by', 'up', 'down', 'path', 'under', 'moves', 'count', 'sum', 'max', 'min', 'floor', 'and', 'or', 'not', 'in', 'put', 'at', ...ENLACES]);
+export const PALABRAS = Object.freeze(['first', 'last', 'nth', 'each', 'where', 'by', 'up', 'down', 'path', 'under', 'moves', 'count', 'sum', 'max', 'min', 'floor', 'and', 'or', 'not', 'in', 'put', 'at', ...ENLACES, 'group', 'follow', 'keep', 'with', 'take']);
+
+/**
+ * Las dos llamadas de lectura (Core AGRAM 18-11; docs/BQLM.md §15): construir una fila y aplicar una fórmula guardada.
+ * Se escriben como las primitivas de verificación, nombre(a, b…), con su número de argumentos ([mínimo, máximo]).
+ */
+export const LLAMADAS_DE_LECTURA = Object.freeze({
+  row: Object.freeze({ forma: 'row(a, b, …)', aridad: [1, 10] }),
+  apply: Object.freeze({ forma: 'apply(F, X)', aridad: [2, 2] }),
+});
+
+/**
+ * Cuántas fórmulas aplicadas puede haber una dentro de otra (apply dentro de una fórmula aplicada…): pasarse es PENDIENTE
+ * POR LÍMITE. Se cambia con opciones.limites.aplicacion. Su sitio final es el 8.8 de la época (pendiente de la pasada
+ * única: la época 0 no se toca en este encargo).
+ */
+export const TOPE_DE_APLICACION = 8;
 
 /**
  * Invariante del núcleo (VG 12-11, decisión 6): los destinos de un `put` en una regla que escribe, lista cerrada.
@@ -265,6 +289,9 @@ export class Presupuesto {
     // Los bytes que procesan las primitivas de verificación (§12): cada una paga lo que lee o produce antes de hacerlo.
     this.topeBytes = topeBytes;
     this.bytes = 0;
+    // Los pasos que han dado las evaluaciones que lo comparten (§15: para medir lo que cuesta una lectura); el tope de
+    // pasos sigue siendo de cada evaluación.
+    this.pasos = 0;
   }
 
   gastar(n = 1) {
@@ -296,17 +323,44 @@ export const hexDe = (o) => (BYTES.has(o) ? aHex(o.b) : undefined);
 
 /** Una décupla pura (la de cabecera(…) o tx(…)): pos[d] es la lista de ocupantes de su posición d. */
 const PURAS = new WeakSet();
-function pura(posiciones) {
+function pura(posiciones, largo) {
   const pos = Array.from({ length: 10 }, (_, d) => Object.freeze(posiciones[d] ?? []));
-  const o = Object.freeze({ pos: Object.freeze(pos) });
+  const o = Object.freeze({ pos: Object.freeze(pos), ...(largo === undefined ? {} : { largo }) });
   PURAS.add(o);
   return o;
 }
 const esPura = (o) => PURAS.has(o);
 
+/**
+ * Una fila (§15): la décupla pura que construyen row(…) y group, con las `largo` primeras posiciones como columnas.
+ * `listas[k]` es la lista de ocupantes de la posición k.
+ */
+const fila = (listas) => pura(Object.fromEntries(listas.map((l, k) => [k, l])), listas.length);
+/** ¿Es `o` una fila de row(…) o de group? */
+export const esFila = (o) => PURAS.has(o) && o.largo !== undefined;
+
+/**
+ * Lo que vale una lista de ocupantes (o un ocupante) para el JavaScript que la recibe (§15): una fila, un array con una
+ * entrada por columna, cada una la lista aplanada de su posición; una décupla pura sin columnas (cabecera, tx), sus diez
+ * posiciones; un número, un texto o un booleano, tal cual; un símbolo, su nombre; unos bytes, su hex; un nodo del
+ * contexto, su valor (el id de un registro) o, si no tiene, cómo se escribe (contexto.texto), o null. Solo lee.
+ */
+export function aplanar(x, contexto) {
+  if (Array.isArray(x)) return x.map((o) => aplanar(o, contexto));
+  if (typeof x === 'number' || typeof x === 'string' || typeof x === 'boolean') return x;
+  if (esSimbolo(x)) return x.simbolo;
+  if (esBytes(x)) return aHex(x.b);
+  if (esPura(x)) return x.pos.slice(0, x.largo ?? 10).map((l) => aplanar(l, contexto));
+  const v = esNodo(x) ? contexto?.valor?.(x) : undefined;
+  if (v !== undefined) return v;
+  return esNodo(x) ? contexto?.texto?.(x) ?? null : null;
+}
+
 const PREFIJAS = new Set(['first', 'last', 'count', 'sum', 'max', 'min', 'floor', 'up', 'down', 'path', 'under', 'moves']);
 const COMPARACIONES = new Set(['=', '!=', '<', '<=', '>', '>=']);
-const RESERVADAS = new Set([...PALABRAS, ...NOMBRES, ...PRIMITIVAS, ...SIMBOLOS_FAMILIA, ...Object.keys(VERIFICACION)]);
+const RESERVADAS = new Set([...PALABRAS, ...NOMBRES, ...PRIMITIVAS, ...SIMBOLOS_FAMILIA, ...Object.keys(VERIFICACION), ...Object.keys(LLAMADAS_DE_LECTURA)]);
+// Las palabras que, como where, se llevan lo que queda a su derecha y dan el siguiente it al elemento (§2, §15).
+const COMO_WHERE = new Set(['where', 'by', 'group', 'follow', 'keep']);
 // Tras un símbolo de primitiva, ¿empieza un operando? Entonces es un verbo (mint 3 R.(me) to me); si no, el símbolo
 // (burn in it.4, it.4 = burn).
 const EMPIEZA_OPERANDO = new Set([...NOMBRES, ...PREFIJAS, 'nth', ...SIMBOLOS_FAMILIA]);
@@ -387,12 +441,13 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
     entrar();
     let base = disyuncion();
     // where y by (VG 12-11, decisión 2 del estudio BQL-transacciones): los dos dan el siguiente it al elemento.
-    while (es('id', 'where') || es('id', 'by')) {
+    // group, follow y keep (Core AGRAM 18-11, §15), igual: agrupar por e, seguir la relación e, filtrar tolerante.
+    while (es('id') && COMO_WHERE.has(ver().v)) {
       const n = ver().v;
       i++;
       nivelWhere++;
       const cond = disyuncion();
-      base = n === 'where' ? { n, base, cond, nivel: nivelWhere } : { n, base, clave: cond, nivel: nivelWhere };
+      base = n === 'where' || n === 'keep' ? { n, base, cond, nivel: nivelWhere } : n === 'follow' ? { n, base, rel: cond, nivel: nivelWhere } : { n, base, clave: cond, nivel: nivelWhere };
       nivelWhere--;
     }
     salir();
@@ -422,13 +477,19 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
     return (es('op') && COMPARACIONES.has(ver().v)) || es('id', 'in');
   }
   function comparacion() {
-    const a = suma();
+    const a = union();
     if (!esComparacion()) return a;
     const op = ver().v;
     i++;
-    const b = suma();
+    const b = union();
     if (esComparacion()) throw fallo('sintaxis: comparaciones encadenadas ' + donde() + ': únelas con and');
     return { n: 'cmp', op, a, b };
+  }
+  /** Juntar listas (§15): A with B, los de A y luego los de B; entre la comparación y la suma. */
+  function union() {
+    let a = suma();
+    while (es('id', 'with')) { i++; a = { n: 'with', a, b: suma() }; }
+    return a;
   }
   function suma() {
     let a = producto();
@@ -449,13 +510,14 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
       salir();
       return { n: 'pref', op, arg };
     }
-    if (es('id', 'nth')) {
+    if (es('id', 'nth') || es('id', 'take')) {
+      const n = ver().v;
       i++;
       entrar();
       const k = prefija();
       const arg = prefija();
       salir();
-      return { n: 'nth', k, arg };
+      return { n, k, arg };
     }
     if (es('op', '-')) {
       i++;
@@ -528,6 +590,17 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
           esperar('op', ')');
           base = { n: 'clave', base, expr, posicionable: true };
         } else base = { n: 'paso', base, digitos: digitos(), posicionable: true };
+      } else if (es('id', 'each') && tokens[i + 1]?.t === 'op' && tokens[i + 1].v === '(') {
+        // M each (e) (§15): e para cada elemento, que es el siguiente it, como en where; se juntan los resultados.
+        i += 2;
+        entrar();
+        nivelWhere++;
+        const e = expresion();
+        const nivel = nivelWhere;
+        nivelWhere--;
+        esperar('op', ')');
+        salir();
+        base = { n: 'mapa', base, e, nivel, posicionable: true };
       } else if (es('id', 'each')) {
         i++;
         base = { n: 'paso', base, digitos: digitos(), posicionable: true, each: true };
@@ -563,6 +636,10 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
         if (!es('op', '(')) throw fallo('sintaxis: ' + tk.v + ' es una primitiva de verificación y se escribe con sus argumentos entre paréntesis: ' + VERIFICACION[tk.v].forma);
         return llamadaPura(tk.v);
       }
+      if (Object.hasOwn(LLAMADAS_DE_LECTURA, tk.v)) {
+        if (!es('op', '(')) throw fallo('sintaxis: ' + tk.v + ' se escribe con sus argumentos entre paréntesis: ' + LLAMADAS_DE_LECTURA[tk.v].forma);
+        return llamadaPura(tk.v, LLAMADAS_DE_LECTURA);
+      }
       if (RESERVADAS.has(tk.v)) throw fallo('sintaxis: «' + tk.v + '» fuera de sitio en ' + tk.pos);
       const llamada = es('op', '(') ? ' (no hay funciones con nombre)' : '';
       throw fallo('no es BQL mínimo: «' + tk.v + '»' + llamada);
@@ -570,7 +647,7 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
     throw fallo('sintaxis: «' + tk.v + '» inesperado en ' + tk.pos);
   }
   /** Una primitiva de verificación (§12): f(a, b…), con su número de argumentos. */
-  function llamadaPura(f) {
+  function llamadaPura(f, tabla = VERIFICACION) {
     i++; // «(»
     entrar();
     const args = [];
@@ -583,7 +660,7 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
     }
     esperar('op', ')');
     salir();
-    const { forma, aridad: [min, max] } = VERIFICACION[f];
+    const { forma, aridad: [min, max] } = tabla[f];
     if (args.length < min || args.length > max) {
       throw fallo('sintaxis: ' + forma + ' lleva ' + (min === max ? min : max === Infinity ? 'al menos ' + min : min + ' o ' + max) + (min === 1 && max === 1 ? ' argumento' : ' argumentos') + ', no ' + args.length);
     }
@@ -649,9 +726,14 @@ export function evaluar(src, contexto, opciones = {}) {
     const { verbo, put } = queMueve(arbol);
     if (verbo && !opciones.mover) throw fallo(verbo + ': solo una plantilla de transacción mueve (la firma quien la lanza); una regla solo lee (invariante del núcleo)');
     if (put && !opciones.mover && !opciones.escribir) throw fallo('put: solo en una regla que escribe (put en su 4) o en una plantilla de transacción');
+    // keep (§15) convierte un PENDIENTE en «se cae»: solo vale en una lectura para la pantalla (opciones.lectura), nunca
+    // con mover ni escribir. Como los verbos, se mira el árbol entero.
+    const lectura = opciones.lectura === true && !opciones.mover && !opciones.escribir;
+    if (!lectura && llevaKeep(arbol)) throw fallo(SOLO_EN_LECTURA);
     const st = {
       ctx: contexto, its: conSujeto ? [opciones.sujeto] : [], pasos: 0, tope: lim.pasos, hilo: lim.hilo, presupuesto: opciones.presupuesto instanceof Presupuesto ? opciones.presupuesto : new Presupuesto(lim.ocupantes, lim.bytes),
       escrituras: opciones.escribir && !opciones.mover ? [] : null, movimientos: opciones.mover ? [] : null,
+      lectura, aplicando: [], topeAplicacion: opciones.limites?.aplicacion ?? TOPE_DE_APLICACION, anidamiento: lim.anidamiento,
     };
     const valor = calcular(arbol, st);
     return { estado: 'RESUELTO', valor, texto: textoDe(valor, contexto), ...(st.escrituras ? { escrituras: st.escrituras } : {}), ...(st.movimientos ? { movimientos: st.movimientos } : {}) };
@@ -687,8 +769,31 @@ export function queMueve(arbol) {
   return fuera;
 }
 
+const SOLO_EN_LECTURA = 'keep: solo en una lectura para la pantalla (opciones.lectura); en una regla, una plantilla o una regla que escribe un PENDIENTE no puede volverse «no»';
+
+const CON_KEEP = new WeakMap();
+/** ¿Lleva la expresión (su árbol) un keep en alguna parte, también donde no se llegaría a evaluar? */
+function llevaKeep(arbol) {
+  if (!arbol || typeof arbol !== 'object') return false;
+  if (CON_KEEP.has(arbol)) return CON_KEEP.get(arbol);
+  let hay = false;
+  const pila = [arbol];
+  while (pila.length && !hay) {
+    const n = pila.pop();
+    if (!n || typeof n !== 'object' || esSimbolo(n)) continue;
+    if (n.n === 'keep') hay = true;
+    for (const x of Object.values(n)) {
+      if (Array.isArray(x)) pila.push(...x);
+      else if (x && typeof x === 'object' && typeof x.n === 'string') pila.push(x);
+    }
+  }
+  CON_KEEP.set(arbol, hay);
+  return hay;
+}
+
 function paso(st, n = 1) {
   st.pasos += n;
+  st.presupuesto.pasos += n;
   if (st.pasos > st.tope) throw porLimite('más de ' + st.tope + ' pasos');
 }
 
@@ -709,7 +814,7 @@ function leer(o, ctx) {
   if (typeof o === 'number' || typeof o === 'boolean') return String(o);
   if (esSimbolo(o)) return o.simbolo;
   if (esBytes(o)) return aHex(o.b);
-  if (esPura(o)) return '«décupla»';
+  if (esPura(o)) return o.largo === undefined ? '«décupla»' : '[' + o.pos.slice(0, o.largo).map((l) => textoDe(l, ctx)).join(' | ') + ']';
   return ctx?.texto?.(o) ?? (valorDe(o, ctx) !== undefined ? String(valorDe(o, ctx)) : '«décupla»');
 }
 
@@ -837,6 +942,65 @@ function calcular(nodo, st) {
       if (new Set(claves.map((v) => typeof v)).size > 1) throw fallo('by: las claves mezclan números y textos');
       return base.map((o, k) => ({ o, k, v: claves[k] })).sort((a, b) => (a.v < b.v ? -1 : a.v > b.v ? 1 : a.k - b.k)).map((x) => x.o);
     }
+    case 'group':
+      return agrupar(nodo, st);
+    case 'follow':
+      return seguir(nodo, st);
+    case 'keep': {
+      // Como where, tolerante (§15): el elemento cuya condición queda PENDIENTE o da ERROR se cae y los demás siguen. Un
+      // límite de cálculo (POR_LIMITE) no se traga: un resultado corto por falta de presupuesto sería mentir.
+      const base = calcular(nodo.base, st);
+      const antes = st.its[nodo.nivel - 1];
+      const fuera = [];
+      try {
+        for (const o of base) {
+          paso(st);
+          st.its[nodo.nivel - 1] = o;
+          let pasa;
+          try {
+            pasa = booleano(calcular(nodo.cond, st), 'keep', ctx);
+          } catch (e) {
+            if (!(e instanceof Parada) || e.subtipo === POR_LIMITE) throw e;
+            continue;
+          }
+          if (pasa) fuera.push(o);
+        }
+      } finally {
+        st.its[nodo.nivel - 1] = antes;
+      }
+      return fuera;
+    }
+    case 'mapa': {
+      // M each (e) (§15): e con el elemento como it (o it2…), y se juntan los resultados en orden.
+      const base = calcular(nodo.base, st);
+      const antes = st.its[nodo.nivel - 1];
+      const fuera = [];
+      try {
+        for (const o of base) {
+          paso(st);
+          st.its[nodo.nivel - 1] = o;
+          fuera.push(...calcular(nodo.e, st));
+        }
+      } finally {
+        st.its[nodo.nivel - 1] = antes;
+      }
+      return fuera;
+    }
+    case 'take': {
+      // Los n primeros (§15).
+      const k = numero(calcular(nodo.k, st), 'take', ctx);
+      if (!Number.isInteger(k) || k < 0) throw fallo('take espera un entero ≥ 0, no ' + k);
+      paso(st);
+      return calcular(nodo.arg, st).slice(0, k);
+    }
+    case 'with': {
+      // Juntar listas (§15): los de A y luego los de B, sin quitar repetidos; cada ocupante cuesta uno del presupuesto.
+      const a = calcular(nodo.a, st);
+      const b = calcular(nodo.b, st);
+      paso(st);
+      st.presupuesto.gastar(a.length + b.length);
+      return [...a, ...b];
+    }
     case 'pref':
       return prefija(nodo.op, calcular(nodo.arg, st), st);
     case 'nth': {
@@ -896,6 +1060,8 @@ function calcular(nodo, st) {
     case 'verbo':
       return mover(nodo, st);
     case 'llamada':
+      if (nodo.f === 'row') return construirFila(nodo, st);
+      if (nodo.f === 'apply') return aplicar(nodo, st);
       return verificar(nodo, st);
     case 'put': {
       // En una plantilla (evaluarPlantilla): el nivel en mano, put v at A.1.(S).1 acuña lo que falte.
@@ -1005,6 +1171,139 @@ function prefija(op, lista, st) {
     default:
       throw fallo('operación desconocida: ' + op);
   }
+}
+
+// ---------- tablas, relaciones y fórmulas guardadas (Core AGRAM 18-11; docs/BQLM.md §15) ----------
+
+/** La clave de un valor para agrupar y para no repetir: su tipo y su valor (los bytes, por su hex; un símbolo, su nombre). */
+function claveDeValor(v) {
+  if (esBytes(v)) return 'x:' + aHex(v.b);
+  if (esSimbolo(v)) return 'y:' + v.simbolo;
+  return typeof v + ':' + String(v);
+}
+
+/** row(a, b…): una fila con la lista de cada argumento en su posición. Paga un paso y un ocupante por cada uno que guarda. */
+function construirFila(nodo, st) {
+  const listas = nodo.args.map((a) => calcular(a, st));
+  paso(st);
+  st.presupuesto.gastar(listas.reduce((s, l) => s + l.length, 0));
+  return [fila(listas)];
+}
+
+/**
+ * M group e: un grupo por clave distinta, por primera aparición; cada uno, una fila con la clave en las primeras
+ * posiciones (una si e da un valor; las de la fila si e da row(…)) y los miembros, por llegada, en la siguiente. Una parte
+ * vacía de la clave es una clave más (a diferencia de by, que la da PENDIENTE): junta lo que no la tiene. Una parte con
+ * más de un ocupante o sin valor (una décupla) es ERROR. Un paso por elemento y un ocupante del presupuesto por grupo.
+ */
+function agrupar(nodo, st) {
+  const { ctx } = st;
+  const base = calcular(nodo.base, st);
+  const antes = st.its[nodo.nivel - 1];
+  const grupos = new Map();
+  try {
+    for (const o of base) {
+      paso(st);
+      st.its[nodo.nivel - 1] = o;
+      const k = calcular(nodo.clave, st);
+      const partes = k.length === 1 && esFila(k[0]) ? k[0].pos.slice(0, k[0].largo) : [k];
+      if (partes.length > 9) throw fallo('group: una clave de ' + partes.length + ' partes no deja sitio a los miembros (como mucho 9)');
+      const claves = partes.map((p) => {
+        if (p.length === 0) return '∅';
+        if (p.length > 1) throw fallo('group: cada parte de la clave es un valor, no una lista de ' + p.length + ' (' + textoDe(p.slice(0, 3), ctx) + (p.length > 3 ? '…' : '') + '); usa first, last, nth o count');
+        const v = valorDe(p[0], ctx);
+        if (v === undefined) throw fallo('group: una décupla no tiene valor; agrupa por una de sus posiciones');
+        return claveDeValor(v);
+      });
+      const clave = JSON.stringify(claves);
+      if (!grupos.has(clave)) {
+        st.presupuesto.gastar(1);
+        grupos.set(clave, { partes: partes.map((p) => p.slice(0, 1)), miembros: [] });
+      }
+      grupos.get(clave).miembros.push(o);
+    }
+  } finally {
+    st.its[nodo.nivel - 1] = antes;
+  }
+  return [...grupos.values()].map((g) => fila([...g.partes, g.miembros]));
+}
+
+/**
+ * M follow e: M y lo que da e (con it = cada nodo) una y otra vez, por niveles, sin repetir: un nodo ya visto, por su
+ * valor (el id de un registro), no se vuelve a dar ni a seguir, así que un ciclo acaba. Cada nodo nuevo cuesta un paso y
+ * un ocupante del presupuesto: ese es el tope (como under); una relación que fabrica valores sin fin acaba en PENDIENTE
+ * POR LÍMITE. Un nodo sin valor (una décupla) es ERROR.
+ */
+function seguir(nodo, st) {
+  const { ctx } = st;
+  const vistos = new Set();
+  const fuera = [];
+  let frente = [];
+  const anotar = (o) => {
+    const v = valorDe(o, ctx);
+    if (v === undefined) throw fallo('follow: sigue registros o valores, no una décupla sin valor');
+    const c = claveDeValor(v);
+    if (vistos.has(c)) return;
+    vistos.add(c);
+    paso(st);
+    st.presupuesto.gastar(1);
+    fuera.push(o);
+    frente.push(o);
+  };
+  for (const o of calcular(nodo.base, st)) anotar(o);
+  const antes = st.its[nodo.nivel - 1];
+  try {
+    while (frente.length) {
+      const ahora = frente;
+      frente = [];
+      for (const o of ahora) {
+        paso(st);
+        st.its[nodo.nivel - 1] = o;
+        for (const r of calcular(nodo.rel, st)) anotar(r);
+      }
+    }
+  } finally {
+    st.its[nodo.nivel - 1] = antes;
+  }
+  return fuera;
+}
+
+/**
+ * apply(F, X): la fórmula guardada F (un texto «=…»; un texto que no es fórmula no se evalúa: ERROR) con it = cada
+ * elemento de X, juntando lo que da. Mismo contexto (me, ev, epoch…), mismos pasos y mismo presupuesto. Nunca mueve ni
+ * escribe: un verbo o un put en F es ERROR siempre, también dentro de una plantilla. Un keep en F, solo en una lectura.
+ * Una F que nombra un registro que no está, PENDIENTE (como leerFormula). Una F que ya se está aplicando (aplicarse a sí
+ * misma, directa o por otra) es ERROR; más de opciones.limites.aplicacion (TOPE_DE_APLICACION) una dentro de otra,
+ * PENDIENTE POR LÍMITE. Un paso por aplicación.
+ */
+function aplicar(nodo, st) {
+  const { ctx } = st;
+  const f = valorDe(uno(calcular(nodo.args[0], st), 'apply: la fórmula', ctx), ctx);
+  if (!esFormula(f)) throw fallo('apply: aplica una fórmula «=…», no «' + leer(f, ctx) + '» (un texto que no es fórmula no se evalúa)');
+  if (st.aplicando.includes(f)) throw fallo('apply: la fórmula se aplica a sí misma (ciclo): «' + (f.length > 40 ? f.slice(0, 40) + '…' : f) + '»');
+  if (st.aplicando.length >= st.topeAplicacion) throw porLimite('apply anidado más de ' + st.topeAplicacion + ' niveles');
+  const arbol = analizada(f, true, st.anidamiento);
+  const { verbo, put } = queMueve(arbol);
+  if (verbo || put) throw fallo('apply: una fórmula aplicada nunca mueve ni escribe (lleva ' + (verbo ?? 'put') + '); mover es de las plantillas de transacción');
+  if (!st.lectura && llevaKeep(arbol)) throw fallo(SOLO_EN_LECTURA);
+  for (const { id } of registrosDeFormula(arbol)) {
+    if (typeof ctx?.payload !== 'function' || ctx.payload(id) === undefined) throw pendiente('apply: referencia a un evento ausente del eje: ' + id.slice(0, 8));
+  }
+  const xs = calcular(nodo.args[1], st);
+  const its = st.its;
+  const fuera = [];
+  st.aplicando.push(f);
+  try {
+    for (const x of xs) {
+      paso(st);
+      st.its = [x];
+      fuera.push(...calcular(arbol, st));
+    }
+  } finally {
+    st.its = its;
+    st.aplicando.pop();
+  }
+  return fuera;
 }
 
 function numeroDe(o, donde, ctx) {
@@ -1498,7 +1797,8 @@ export function leerRegla(regla, sujeto, contexto, opciones = {}) {
   } catch (e) {
     return { estado: e.estado ?? 'ERROR', ...conSubtipo(e), motivo: nombre + ': ' + e.message };
   }
-  const r = evaluar(arbol, contexto, { ...opciones, sujeto });
+  // Una lectura B5 se materializa en posiciones que leen las reglas: keep no (§15), aunque se pida.
+  const r = evaluar(arbol, contexto, { ...opciones, sujeto, lectura: false });
   return r.estado === 'RESUELTO' ? r : { ...r, motivo: nombre + ': ' + r.motivo };
 }
 
@@ -1528,7 +1828,8 @@ export function evaluarRegla(regla, contexto, opciones = {}) {
   } catch (e) {
     return { pasa: false, estado: e.estado ?? 'ERROR', ...conSubtipo(e), motivo: nombre + ': ' + (e.estado ?? 'ERROR') + ': ' + e.message };
   }
-  const r = evaluar(arbol, contexto, opciones);
+  // Una condición no puede volver «no» un PENDIENTE: keep es ERROR aunque se pida opciones.lectura (§15).
+  const r = evaluar(arbol, contexto, { ...opciones, lectura: false });
   if (r.estado !== 'RESUELTO') return { pasa: false, estado: r.estado, ...conSubtipo(r), motivo: nombre + ': ' + r.estado + ': ' + r.motivo };
   if (r.valor.length !== 1 || typeof r.valor[0] !== 'boolean') {
     return { pasa: false, estado: 'ERROR', motivo: nombre + ': la condición no da verdadero o falso, da «' + r.texto + '»' };

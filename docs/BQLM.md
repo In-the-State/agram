@@ -34,6 +34,7 @@ Exacto y nada más. Cualquier otro nombre da ERROR «no es BQL mínimo: «X»»;
 | serie | `T.d`, `R.(x)`, `E.(x).(y)`, `E.(x).(y).(z)`, `P.(x)`, `P.(x).(y)` | la serie como posición de su familia (VG 12-11, decisión 5): `T.1` el T de minuto (el dígito de su escala), `T.8` el futuro, `R.(me)` la R de quien escribe, `E.(emisor).(denominación)[.(registro)]`, `P.(ámbito)[.(origen)]`. Vale la serie (D-SERIE), exista o no: su valor es su clave. Una parte vacía no hace serie (nada) |
 | mover | `mint q S to A`, `transfer q S from A to B`, `lock q S from A exit E`, `release q S from A exit E`, `burn q S from A`, con `when F` (mint, transfer, burn) y `price Pr` (mint) | **solo en una plantilla de transacción** (§11; invariante del núcleo): los cinco símbolos como verbos. Cada uno vale verdadero y anota un movimiento; lo que vale cero o nada no se mueve |
 | verificar | `bytes(h)`, `hex(b)`, `utf8(t)`, `hash(x[, etiqueta])`, `sha256(b)`, `sha256d(b)`, `cat(b, …)`, `slice(b, i, j)`, `reverse(b)`, `le(b)`, `below(a, b)`, `merkle(hoja, lados, hermanos, esquema)`, `ots(x, pasos)`, `cabecera(b)`, `tx(b)`, `signed(firma, mensaje, clave)`, `lookup(claves, valores, clave)`, `payload(X)`, `json(x)`, `text(b)` | las primitivas de verificación (§12; Core AGRAM 12-11, #67, y 13-11, H17-H19): la única excepción a «no hay funciones con nombre». Calculan sobre bytes, un tipo nuevo, o leen dos listas hermanas (`lookup`) o el payload tal cual (`payload`); nunca firman; son lectura |
+| tablas y relaciones | `M group e`, `row(a, b, …)`, `M each (e)`, `M follow e`, `apply(F, X)`, `take n M`, `A with B`, `M keep cond` | agrupar, construir una fila, aplicar una expresión a cada elemento, seguir una relación hasta agotarla, aplicar una fórmula guardada, los n primeros, juntar listas y el filtro tolerante de las lecturas (§15; Core AGRAM 18-11, pendiente de revisar VG) |
 | colocar | `put v at X.d.(k)`, `put v at X.d.(k).e` | en una regla que escribe (`put` en su 4): anota «la posición d.(k) de cada X vale al menos v» (un nivel, un estado BTML; no «añade v») y vale verdadero (§5); con un dígito tras el índice, coloca en esa posición de la entrada k (encargo 3c-2a: el P sobre la mirada e del registro k, `A.2.1.(r).1`). Solo en los destinos de una lista cerrada, `DESTINOS_DE_PUT` (hoy `A.2.1`, la obtención; VG 12-11, decisión 6). En una plantilla, solo el nivel en mano, `put v at A.1.(S).1` (§11) |
 
 `moves`, `under` y `by` entraron el 12-11 (VG, estudio BQL-transacciones, decisiones 1 y 2: «ninguna palabra más por ahora»): leer el libro es una palabra y no una posición (el 1 de un registro ya junta sus movimientos, su payload y sus series vivas), y son las dos que faltaban para el 1, el 6 y el 7 de los puntos de vista. Para todo lo demás sigue la regla de oro: lo concreto es posición.
@@ -45,23 +46,25 @@ Exacto y nada más. Cualquier otro nombre da ERROR «no es BQL mínimo: «X»»;
 ## 2. Gramática
 
 ```text
-expresión   := disyunción (('where' | 'by') disyunción)*   where y by se llevan todo lo que queda a su derecha
+expresión   := disyunción (('where' | 'by' | 'group' | 'follow' | 'keep') disyunción)*   se llevan todo lo que queda a su derecha (§15)
 disyunción  := conjunción ('or' conjunción)*
 conjunción  := negación ('and' negación)*
 negación    := 'not' negación | comparación
-comparación := suma (('=' | '!=' | '<' | '<=' | '>' | '>=' | 'in') suma)?     sin encadenar
+comparación := unión (('=' | '!=' | '<' | '<=' | '>' | '>=' | 'in') unión)?     sin encadenar
+unión       := suma ('with' suma)*                         juntar listas (§15)
 suma        := producto (('+' | '-') producto)*
 producto    := prefija (('*' | '/') prefija)*
 prefija     := ('first' | 'last' | 'count' | 'sum' | 'max' | 'min' | 'floor' | 'up' | 'down' | 'path' | 'under' | 'moves' | '-') prefija
-             | 'nth' prefija prefija
+             | ('nth' | 'take') prefija prefija
              | 'put' suma 'at' posfija                  el destino acaba en '.' '(' expresión ')'
              | posfija
-posfija     := primaria ('.' dígitos | '.' '(' expresión ')' | 'each' dígitos)*
+posfija     := primaria ('.' dígitos | '.' '(' expresión ')' | 'each' dígitos | 'each' '(' expresión ')')*
              | familia ('.' dígito | '.' '(' expresión ')')+   la serie: T una parte, R una, E dos o tres, P una o dos
 verbo       := ('mint' | 'transfer' | 'lock' | 'release' | 'burn') suma prefija enlace*
 enlace      := ('from' | 'to' | 'exit' | 'when' | 'price') suma           cada uno una vez; los que pide y admite cada verbo, §11
 dígitos     := dígito ('.' dígito)*                    cada dígito, uno solo: ev.12 es un error («escribe 1.2»)
-primaria    := número | "texto" | símbolo | verbo | 'ev' | 'epoch' | 'before' | 'me' | 'memo' | 'it' | 'it2' | … | '(' expresión ')'
+llamada     := ('row' | 'apply' | primitiva de verificación) '(' expresión (',' expresión)* ')'   (§12, §15)
+primaria    := llamada | número | "texto" | símbolo | verbo | 'ev' | 'epoch' | 'before' | 'me' | 'memo' | 'it' | 'it2' | … | '(' expresión ')'
 ```
 
 Una posición solo se lee de un nombre, de `it` o de una expresión entre paréntesis: `"12 EUR".1` es un error de sintaxis; `("12 EUR").1` vale 12. Las prefijas se aplican a todo lo que sigue sin operador: `sum (first ev.3).1.(it.0).1` es la suma del camino entero, y `count M >= 1` es `(count M) >= 1`. `where` es lo de menor precedencia: `count (ev.1 where it.4 = burn)` lleva paréntesis; sin ellos, el where filtraría el recuento. Un «=» al principio (la forma de fórmula de una regla) se admite y no cuenta.
@@ -726,3 +729,66 @@ for (const camino of [[1, 1], [1, 2], [2], [3]]) {
 ```
 
 La cuenta lleva en su 1.1 `=(payload("<id de la compra>")).1.2.1 + 2`: la cantidad del precio escrito en la compra («EUR 12») más la propina; su 1.2 es la unidad. Las equivalencias con el V0, la doble ejecución que comprobó que dan lo mismo y lo que no tiene equivalente: `docs/notas/RETIRADA_BQL_V0.md`. Pruebas: `test/formulas-payload.test.js`.
+
+## 15. Tablas, relaciones y fórmulas guardadas (Core, pendiente de revisar VG)
+
+Core AGRAM, 18-11, por la decisión de VG de que la lente deje de decidir en JavaScript lo que se puede escribir como dato («Quizá BQL necesita enriquecerse […]. No pasa nada si hay que añadirle alguna función»). Son ocho piezas, todas de lectura: ninguna escribe, todas se cobran a los pasos y al `Presupuesto` de la evaluación y los tres estados se propagan como en el resto (salvo `keep`, que existe para eso, y solo en una lectura). Pruebas: `test/tablas-bqlm.test.js` (cada palabra y los tres casos del encargo sobre el libro del roadmap, frente a lo que da el JavaScript) y `test/seguridad-bqlm.test.js` (SEG-21 a SEG-27).
+
+| Qué | Se escribe | Vale | Coste y tope |
+|---|---|---|---|
+| agrupar | `M group e` | un grupo por clave distinta, en el orden en que aparece cada clave; cada grupo es una **fila**: la clave en las primeras posiciones (en el 0 si `e` da un valor; en el 0…k-1 si `e` da `row(a, b…)`) y los miembros, por llegada, en la siguiente. `M group it.1` da `[clave, miembros]`; `M group row(a, b)`, `[fila, columna, contenido]` | un paso por elemento y un ocupante por grupo. Una clave de más de 9 partes es ERROR (no deja sitio a los miembros) |
+| fila | `row(a, b, …)` | una fila: una décupla pura cuya posición k es la lista entera del argumento k; se lee con `.d` y `each d` | de 1 a 10 argumentos; un paso y un ocupante por cada uno que guarda |
+| para cada uno | `M each (e)` | `e` con cada elemento como el siguiente `it` (como en `where`), y los resultados juntos en orden. `M each d` es `M each (it.d)` | un paso por elemento, más lo que cueste `e` |
+| seguir | `M follow e` | M y lo que da `e` (con el nodo como el siguiente `it`) una y otra vez, por niveles, **sin repetir**: un nodo ya visto, por su valor (el id de un registro), no se vuelve a dar ni a seguir, así que un ciclo acaba | un paso y un ocupante por nodo nuevo: el tope es el presupuesto, como `under`, no el `hilo`; una relación que fabrica valores sin fin acaba en PENDIENTE POR LÍMITE. Un nodo sin valor (una décupla) es ERROR |
+| aplicar | `apply(F, X)` | la fórmula guardada F con `it` = cada elemento de X (el primer `where` de dentro da `it2`), en el mismo contexto (`me`, `ev`, `epoch`, `before`, `memo`), y lo que da, junto | un paso por aplicación; comparte pasos y presupuesto con quien la llama; tope de anidamiento propio (abajo) |
+| los n primeros | `take n M` | los n primeros de M | n entero ≥ 0 (vacío, PENDIENTE; otra cosa, ERROR); un paso |
+| juntar | `A with B` | los de A y luego los de B, sin quitar repetidos. Va entre la comparación y la suma: `x in A with B` es `x in (A with B)` | un paso y un ocupante por cada uno que junta |
+| filtrar tolerante | `M keep cond` | como `where`, pero el elemento cuya condición queda PENDIENTE, da ERROR o no da verdadero o falso **se cae** y los demás siguen | un paso por elemento. Solo en una lectura para la pantalla (abajo) |
+
+`group`, `follow` y `keep` van como `where` y `by`: se llevan lo que queda a su derecha. `row` y `apply` se escriben como las primitivas de verificación, con sus argumentos entre paréntesis (`LLAMADAS_DE_LECTURA`); `apply` lleva paréntesis y no `to` porque `to` es de los verbos de mover. Las prefijas siguen aplicándose a todo lo que sigue: `down it each (e)` es `down (it each (e))`; se escribe `(down it) each (e)`.
+
+**El primero que no esté vacío** es `first (A with B with C)`, y un «si no» se escribe con `where` sobre un literal: `first ((1 where c) with 2)` es 1 si se cumple c y 2 si no.
+
+**`group` y la clave vacía.** Una parte de la clave que queda vacía es una clave más y junta todo lo que no la tiene (así cae en su sitio la fila «sin posición» de la matriz del 4). Es distinto de `by`, donde una clave vacía es PENDIENTE: ordenar necesita comparar y agrupar no. Una parte con más de un ocupante es ERROR (como G3) y una décupla sin valor, también. Dos filas no se comparan con `=` (una décupla no tiene valor): solo `group` mira las partes de una clave.
+
+**`apply` y su seguridad.** F es un texto que es fórmula (`esFormula`: empieza por `=` y no por `==`); cualquier otra cosa es ERROR y **no se evalúa**. Una fórmula aplicada **nunca mueve ni coloca**: un verbo o un `put` en F es ERROR siempre, también dentro de una plantilla de transacción y aunque no se llegue a evaluar (se mira su árbol entero, como el invariante del §11). Si F nombra un registro que no está, PENDIENTE, como una fórmula del payload (§14). Una F que ya se está aplicando (aplicarse a sí misma, directa o a través de otra) es ERROR; más de **8** una dentro de otra es PENDIENTE POR LÍMITE (`TOPE_DE_APLICACION`, que se cambia con `opciones.limites.aplicacion`). **Su sitio final es el 8.8 de la época**, como sexto límite de «calculation limits», en la pasada única: la época 0 no se ha tocado en este encargo. `apply` es la forma explícita de lo que el §14 no hace por sí solo («sin encadenar»): una fórmula del payload sigue viendo el texto de otra; para evaluarla hay que escribir `apply`.
+
+**`keep`, segura por defecto.** Solo vale con `opciones.lectura: true`, que pasa únicamente quien evalúa una lectura para la pantalla (hoy nadie en el núcleo: el enganche en `contrato.js` es de otro encargo; decisión de Core AGRAM, 18-11). Sin ella, con `mover` o con `escribir`, una fórmula con `keep` en cualquier parte de su árbol es ERROR aunque no se llegue a evaluar, también dentro de una fórmula aplicada; `evaluarRegla` y `leerRegla` (las lecturas B5, que acaban en posiciones que leen las reglas) la quitan aunque se les pase, y `leerFormula` no la pone: en una regla, un PENDIENTE convertido en «no» daría un «sí» con datos que faltan al negarlo o contarlo. Y `keep` **no se traga un límite de cálculo**: si se agotan el presupuesto o los pasos, el tope de `apply` o un `follow` sin fin, toda la lectura queda PENDIENTE POR LÍMITE (un menú vacío por falta de presupuesto sería mentir). El tope del hilo de `path` no es de esos: da un PENDIENTE sin subtipo y `keep` lo deja caer.
+
+**Para el JavaScript que recibe filas**, `aplanar(valor, contexto)` las da como arrays (una entrada por columna, cada una la lista de su posición) y `esFila(o)` las reconoce. `Presupuesto` cuenta además los pasos de las evaluaciones que lo comparten (`presupuesto.pasos`), para medir lo que cuesta una lectura; el tope de pasos sigue siendo el de cada evaluación.
+
+### 15.1 Los tres casos, escritos
+
+Probados en `test/tablas-bqlm.test.js` sobre el libro del roadmap de `test/cadenas.test.js` (la época hija de `datos/epocas/roadmap/`, solo leída), frente a lo que da hoy el JavaScript.
+
+**a) Las acciones que se ofrecen** (`acciones.acciones`): las plantillas de transacción del punto de vista K cuya fórmula del 2 pasa sobre X (`it`, con `me` = quien mira), en el orden de su 8, las N primeras. Una lectura, con `opciones.lectura`:
+
+```text
+=take N (epoch.9.6.1 where first it2.8 = K keep apply(last it2.2, it) by nth 1 it2.8)
+```
+
+Una plantilla cuyo 2 queda PENDIENTE o da ERROR no se ofrece y no tapa las demás (`keep`). **Pendiente de la pasada única:** el filtro del grado del enlace (RP4: enviar y traer no se ofrecen por un enlace que la lectura no da por bueno para el puente) sigue en JavaScript, en `acciones.acciones`; para quitarlo de ahí tendría que escribirse en el 2 de esas plantillas.
+
+**b) Las cadenas del 7.** Las anteriores de una tarea (`it`): la última relación «this goes after» de su autor anclada en su 2.6, y las tareas de su 6:
+
+```text
+=(last (it.2.6 where first it2.3 = first it.3 and "this goes after" in payload(it2).4)) each (payload(it2).6) where "task" in payload(it2).5 and it2 != it
+```
+
+Con ella guardada como texto, ANT: lo que va antes de una tarea, `=it follow apply(ANT, it2)`; lo que continúa desde ella, `=it follow (under up it2 where "task" in payload(it3).5 and it2 in apply(ANT, it3))`; las tareas sin anterior bajo X, `=under it where "task" in payload(it2).5 and count apply(ANT, it2) = 0`; y el orden por dependencias (los empates, por llegada), `… by count (it2 follow apply(ANT, it3))`. Lo que no se escribe de `src/cadenas.js` se queda fuera a propósito: el reparto en filas (una cadena por secuencia, `sale` y `une`, que necesita un acumulador), los estados de cada paso y la «línea» son dibujo, de la lente. Una referencia en el 6 a un registro que no está deja toda la posición PENDIENTE («referencia a un evento ausente del eje»), así que las anteriores de esa tarea quedan PENDIENTE (y con `keep`, se caen).
+
+**c) La matriz del 4** (`acciones.ejecuciones`, `contrato.celdaDeEjecucion`): los registros anclados en X agrupados por (oficio, ejecución), una fila `[oficio, ejecución, registros]` por celda; una parte vacía es la fila «sin posición»:
+
+```text
+=(down it) group row(apply(OFICIO, it2), apply(EJECUCION, it2))
+```
+
+con OFICIO y EJECUCION fórmulas guardadas. Las de la prueba son una versión corta de `celdaDeEjecucion`, sin las estaciones de los anuncios ni las escalas informativas de T: el oficio es el PV de la plantilla que el registro nombra en su 4 o, si no, el dígito de la posición en que se ancla (`first ((plantillas …) each (first it2.8) with lookup(dígitos en texto, dígitos, text(slice(utf8(nth 1 it.6.5), 0, 1))))`); la ejecución, 0 si no mueve más que el coste, la asignación y la obtención, y si no, la columna de la primera familia que mueve.
+
+**Lo que cuesta** (sin memoria ni índices, a propósito: medido para decidir después). En el libro de la prueba (19 registros): a), de 186 a 254 pasos y de 571 a 685 ocupantes (recorre las 75 plantillas de la época); b), de 4 a 592 pasos y de 8 a 765 ocupantes; c), unos 340 pasos y 765 ocupantes por registro anclado (la búsqueda de la plantilla del oficio entre las 75, en cada uno). Con cadenas de 10, 20 y 40 tareas: ir hacia atrás crece en línea (225, 465 y 945 ocupantes); ir hacia delante, al cuadrado (2 740, 11 280 y 45 760: con 20 tareas ya pasa del presupuesto de 10 000, PENDIENTE POR LÍMITE), porque no hay un índice de «quién me nombra» y cada paso recorre todas las tareas; la matriz del 4 pasa del presupuesto con unos 13 registros anclados.
+
+### 15.2 Lo que aún no se escribe de las lecturas JS del contrato (`LECTURAS_JS`)
+
+- **`camino`** (el tutorial del 9): con `with` ya se juntan el 9 de la plantilla, el de la plantilla de identidad y el propio, y `(L group it2) each 0` quita los repetidos. Falta resolver la plantilla de X por el nombre que lleva en su 5 entre las de la época y las del eje.
+- **`representaciones`** (el 0): con `each (row(…))` se normaliza cada forma, y con `with` se junta el 0 con lo anclado en la raíz. Falta lo mismo que en `camino` (la plantilla de X, para sus formatos) y distinguir una hoja de una décupla sin un tipo en el lenguaje.
+- **`cohorte`** (el 8): las medidas al vuelo de `bases.confluir`, la caja de la cuota y el rango de la escalera (la cadena más larga de ejecuciones anidadas en una celda: un máximo recursivo). Con `group`, `each (e)`, `sum`, `by` y `last` se podría escribir en teoría, pero larguísimo y caro; mejor una lectura que materialice el contexto.
