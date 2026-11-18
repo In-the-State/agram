@@ -725,3 +725,22 @@ Cada sugerencia pasa por las mismas reglas: `transaccion` en seco, y `invalida` 
   - `contrato.validarGesto(eje, destino)` dice si vale un destino «gesto». Es una décupla con «gesture» en su 0, el nombre en su 1 y, desde su 2, los valores en su orden. Los motivos son «forma», «no es un gesto», «falta», «sobran», «no vale» y «tipo».
 - **Lo que no hace:** no ejecuta nada, y no toca la carta ni las plantillas de zona y paso. Que una zona o un paso nombre un gesto como destino es otro carril.
 - **Prueba:** `test/gestos.test.js`.
+
+## Cuarta tanda (Core AGRAM 18-11)
+
+**1. El tutorial, quinta clase de filas de X.9.8.** «path steps» lleva delante el tutorial: los nombres del 9 de tres sitios, en este orden:
+
+- **el tipo de X:** lo primero de su 5 que lleva a una plantilla (una referencia, un id o el nombre de una plantilla de dominio de la época, con sus grupos, o de la de preferencias);
+- **la plantilla de identidad** (`epoch.3.0.9`), si X es un alta y el 9 de su tipo no nombra ninguna acción;
+- **el propio X.**
+
+La fila crece en tres cosas, todas dato:
+
+- **su 2 puede ser [por qué, de dónde viene]:** «tutorial» en su 2.1;
+- **su 3.2 dice quién la ve:** las filas de la identidad, solo el dueño del alta;
+- **su 7 dice cómo se sabe si está hecha:** «by its anchor» (lo dice su ancla, para quien mira, y es un paso mío sin comprobar oferta, como antes) o, para una regla, verdadero o falso. La regla «a key is declared at its alta» pasa a ser `count (first it.3).6.5 > 1` en la fórmula, no un nombre en el código.
+
+`camino` ya no tiene bloque de tutorial: el mismo bucle que las demás filas, sin nombres. Medido contra el JavaScript de antes, en los 96 casos de Booking y Tasks (cada registro, cada identidad), los pasos del tutorial salen iguales y en el mismo orden.
+
+- **Lo que no se busca:** las plantillas que define un libro y se nombran por su nombre (por su id o una referencia, sí). El JavaScript de antes sí las buscaba, pero recorría el libro entero; ningún ejemplo ni prueba las usa.
+- **Un cambio pequeño:** la caducidad dice «expiry» en su 2, porque el mensaje de la regla que llevaba antes era el de un fallo. Su texto vuelve a empezar por «expiry».

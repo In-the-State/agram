@@ -440,8 +440,9 @@ function parametrosDeFila(ocho) {
 
 /**
  * Las filas de una lectura de la época con la forma de «what is missing» (Core AGRAM 18-11; NUCLEO_6_7_8 §6), evaluada
- * sobre X: { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, lanzar, sobre, para, hay,
- * parametros, texto }] }: `accion` y `lanzar` (dónde se lanza), su 4.0 y 4.1; `texto`, las piezas de su 9 seguidas. `epoca` (por defecto la del eje), `ahora` (el reloj del libro que fija quien lee: before.6.0),
+ * sobre X: { estado, motivo, filas: [{ serie, cantidad, porque, fuente, de: [identidades], a, ven: [identidades], accion,
+ * lanzar, sobre, para, hay, parametros, texto }] }: `fuente`, el 2.1 (de dónde viene en el camino); `ven`, el 3.2 (quién la
+ * ve: si no dice nada, todos); `accion` y `lanzar` (dónde se lanza), su 4.0 y 4.1; `texto`, las piezas de su 9 seguidas. `epoca` (por defecto la del eje), `ahora` (el reloj del libro que fija quien lee: before.6.0),
  * `memoria` (una MemoriaDeLectura de src/bqlm.js: se lee como lectura de pantalla, también las lecturas de dentro),
  * `limites` (los de bqlm.evaluar) y `presupuesto` (un Presupuesto de quien llama: lo que cuesta, también lo de dentro).
  * Si no se resuelve (PENDIENTE, PENDIENTE POR LÍMITE o ERROR), ninguna fila y el motivo: nunca «no falta nada».
@@ -461,9 +462,11 @@ export function filasEn(eje, X, donde, { memoria, limites, epoca, ahora, presupu
   const filas = aplanar(r.valor, ctx).filter(Array.isArray).map((f) => {
     const quien = Array.isArray(f[3]?.[0]) ? f[3][0] : [];
     // 4: la acción (4.0) y sobre qué registro se lanza (4.1); una fila de antes trae solo la acción.
+    // 2: por qué (2.0) y, si lo dice, de dónde viene en el camino (2.1: «tutorial»); una fila sin 2.1, solo el por qué.
+    const porque = Array.isArray(f[2]?.[0]) ? f[2][0] : [f[2], []];
     const accion = Array.isArray(f[4]?.[0]) ? f[4][0] : [f[4], []];
     return {
-      serie: primera(f[0]), cantidad: primera(f[1]), porque: primera(f[2]),
+      serie: primera(f[0]), cantidad: primera(f[1]), porque: primera(porque[0]), fuente: primera(porque[1]), ven: (Array.isArray(quien[2]) ? quien[2] : [quien[2]]).filter((x) => x !== undefined && x !== null),
       de: (Array.isArray(quien[0]) ? quien[0] : [quien[0]]).filter((x) => x !== undefined && x !== null),
       a: primera(quien[1]), accion: primera(accion[0]), lanzar: primera(accion[1]), sobre: primera(f[5]), para: primera(f[6]),
       hay: primera(f[7]), parametros: parametrosDeFila(f[8]), texto: textoDeFila(f[9]),
