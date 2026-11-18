@@ -19,7 +19,7 @@
 // por el definitivo (reescribe los ids enteros).
 
 import * as acciones from '../src/acciones.js';
-import { marcarTanda, TANDA_MINIMA, TANDA_MAXIMA } from '../src/evento.js';
+import { marcarTanda, TANDA_MINIMA, TANDA_MAXIMA, TANDA_TOPES, bytesDeMiembro, bytesDeTanda } from '../src/evento.js';
 import { SEGUNDOS } from '../src/tokens.js';
 import { antesDelMensaje, horaDeEscribir } from './carta.js';
 
@@ -37,12 +37,10 @@ export const MAXIMO_DE_VALORES = 256 * 1024;
 export const HONDURA_MAXIMA = 32;
 /** Un texto corto del borrador (id local, acción, X). */
 const TEXTO_CORTO = 256;
-/** Cada registro firmado (CONTRATO_TANDA, precisión 9). */
-export const TOPE_POR_REGISTRO = 256 * 1024;
-/** La tanda entera (CONTRATO_TANDA, precisión 9). */
-export const TOPE_DE_LA_TANDA = 1024 * 1024;
-/** Lo que añaden la firma y su firmante al medir antes de firmar (128 hex de firma, el firmante, las comillas). */
-const HOLGURA_DE_FIRMA = 512;
+/** Cada registro, marcado y firmado: el tope del núcleo y de la puerta (TANDA_TOPES, CONTRATO_TANDA, precisión 9). */
+export const TOPE_POR_REGISTRO = TANDA_TOPES.porMiembro;
+/** La tanda entera, marcada y firmada: el del núcleo y de la puerta (TANDA_TOPES). */
+export const TOPE_DE_LA_TANDA = TANDA_TOPES.porPeticion;
 
 /** La clave del borrador en el almacén: el libro (id del génesis) y la cuenta. */
 export const claveDelBorrador = (libro, cuenta) => 'agram.bandeja.' + libro + '.' + cuenta;
@@ -52,7 +50,6 @@ export const claveDelBorrador = (libro, cuenta) => 'agram.bandeja.' + libro + '.
 const esObjetoPlano = (x) => x !== null && typeof x === 'object' && !Array.isArray(x) && Object.getPrototypeOf(x) === Object.prototype;
 const esTextoCorto = (x) => typeof x === 'string' && x.length > 0 && x.length <= TEXTO_CORTO;
 const esRefPendiente = (x) => esObjetoPlano(x) && Object.keys(x).length === 1 && esTextoCorto(x.pendiente);
-const bytes = (texto) => new TextEncoder().encode(texto).length;
 
 /** ¿Anida `x` dentro de la hondura máxima? (lo que se lee del dispositivo no se recorre sin tope). */
 function cabeLaHondura(x, d = 0) {
@@ -347,7 +344,6 @@ export function resumenDe(candidato, accion) {
 }
 
 /** Bytes del registro en JSON (UTF-8), con lo que le añadirá la firma. */
-const bytesDe = (ev) => bytes(JSON.stringify(ev)) + (ev?.firma ? 0 : HOLGURA_DE_FIRMA);
 
 /** Las identidades nuevas cuya clave declara el candidato (las de otros: la del autor la prueba su firma). */
 const clavesDeOtros = (ev) => Object.keys(ev?.contexto?.claves ?? {}).filter((k) => k !== ev.autor);
@@ -419,7 +415,7 @@ async function componer(eje, yo, entradas, opciones = {}) {
   const item = (base, c) => ({
     ...base, entra: c.entra, motivos: c.motivos, candidato: c.candidato,
     resumen: c.candidato ? resumenDe(c.candidato, base.accion) : null,
-    bytes: c.candidato ? bytesDe(c.candidato) : 0,
+    bytes: 0, // se mide al final (topes), cuando se sabe cuántos van en la tanda
   });
   for (const e of orden) {
     const base = { id: e.id, puesta: false, accion: nombreDe(e.accion), entrada: limpia(e) };
@@ -475,10 +471,13 @@ function topes(eventos, items, opciones) {
   const motivos = [];
   if (items.length === 0) motivos.push(motivo(MOTIVOS.vacia));
   if (items.length > TANDA_MAXIMA) motivos.push(motivo(MOTIVOS.muchas(items.length)));
+  // Se mide como la puerta (src/evento.js bytesDeMiembro, bytesDeTanda): el JSON canónico de cada uno marcado y firmado.
+  const n = eventos.length;
   eventos.forEach((ev, k) => {
-    const b = bytesDe(ev);
+    const b = bytesDeMiembro(ev, k, n);
+    const it = items.find((x) => x.candidato === ev);
+    if (it) it.bytes = b;
     if (b > TOPE_POR_REGISTRO) {
-      const it = items.find((x) => x.candidato === ev);
       const m = motivo(MOTIVOS.grande(b), { indice: k });
       if (it) {
         it.entra = false;
@@ -486,8 +485,8 @@ function topes(eventos, items, opciones) {
       } else motivos.push(m);
     }
   });
-  const total = eventos.reduce((s, ev) => s + bytesDe(ev), 0);
-  if (total > TOPE_DE_LA_TANDA) motivos.push(motivo(MOTIVOS.tanda(total)));
+  const total = n >= TANDA_MINIMA ? bytesDeTanda(eventos) : n === 1 ? bytesDeMiembro(eventos[0], 0, 1) : 0;
+  if (n >= TANDA_MINIMA && total > TOPE_DE_LA_TANDA) motivos.push(motivo(MOTIVOS.tanda(total)));
   const tope = opciones?.topeDePropuesta;
   if (Number.isFinite(tope) && tope > 0 && total > tope) motivos.push(motivo(MOTIVOS.propuesta(total, tope)));
   return motivos;
@@ -538,7 +537,9 @@ async function lanzar(eje, yo, firmar, entradas, opciones = {}) {
   }
   const motivosDeTope = topes(eventos, eventos.map(() => ({ entra: true, motivos: [] })), opciones);
   if (motivosDeTope.length) return { ok: false, fase: 'topes', motivos: motivosDeTope, items: c.items };
-  const enSeco = await eje.probarTanda(eventos);
+  // Otra vez en seco, con los topes del contrato medidos por el núcleo sobre lo ya marcado.
+  const enSeco = await eje.probarTanda(eventos, { topes: TANDA_TOPES });
+  if (enSeco.peticion && !enSeco.peticion.ok) return { ok: false, fase: 'probar', indice: null, id: null, motivos: enSeco.peticion.motivos.map((m) => motivo(m.texto ?? String(m))), items: c.items };
   const falla = enSeco.findIndex((x) => !x.ok);
   if (falla >= 0) return { ok: false, fase: 'probar', indice: falla, id: eventos[falla].id, motivos: enSeco[falla].motivos.map((m) => motivo(m.texto ?? String(m))), items: c.items };
   // 4. Firmar todo antes de asentar nada.

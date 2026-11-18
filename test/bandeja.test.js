@@ -404,3 +404,25 @@ test('lo que se retoca o se pone mientras se firma se queda en el borrador', asy
   assert.deepEqual(r.quedan, ['b2']);
   assert.deepEqual(b.listar().entradas.map((e) => [e.id, e.valores.text]), [['b2', 'dos retocada'], ['b3', 'nueva']]);
 });
+
+test('los topes se miden como el núcleo y la puerta: bytesDeMiembro por registro y bytesDeTanda la tanda entera (1 MiB)', async () => {
+  const { bytesDeMiembro, bytesDeTanda, TANDA_TOPES } = await import('../src/evento.js');
+  const { eje, firmarVg } = await libro();
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'vg' });
+  b.poner(nota(eje, 'una'));
+  b.poner(nota(eje, 'otra', { nueva: true }));
+  const p = await b.probar(eje, 'vg');
+  assert.equal(p.ok, true);
+  p.items.forEach((x, k) => assert.equal(x.bytes, bytesDeMiembro(x.candidato, k, 2), 'como viajará: marcado y firmado'));
+  assert.equal(TOPE_POR_REGISTRO, TANDA_TOPES.porMiembro);
+  b.vaciar();
+  // Cinco de unos 220 KB: cada uno cabe, la tanda entera no.
+  for (let k = 0; k < 5; k++) b.poner(nota(eje, String(k) + 'ñ'.repeat(110000), { nueva: true }));
+  const grande = await b.probar(eje, 'vg');
+  assert.ok(grande.items.every((x) => x.entra), 'cada registro cabe');
+  assert.ok(bytesDeTanda(grande.items.map((x) => x.candidato)) > TANDA_TOPES.porPeticion);
+  assert.ok(grande.motivos.some((m) => /la tanda entera pasa de/.test(m.mensaje)));
+  const antes = eje.orden.length;
+  assert.equal((await b.ejecutar(eje, 'vg', firmarVg)).ok, false);
+  assert.equal(eje.orden.length, antes);
+});
