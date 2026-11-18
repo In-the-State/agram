@@ -16,6 +16,10 @@ export const FINALES_PROVISIONALES_DATOS = [
       "before"
     ],
     [
+      "causa",
+      "0"
+    ],
+    [
       "VG 12-11, #71.2: cerrado con error, con su causa en el 0 del registro que lo escribe; gana a todo"
     ]
   ],
@@ -33,6 +37,10 @@ export const FINALES_PROVISIONALES_DATOS = [
       "before"
     ],
     [
+      "plazo",
+      "2.1"
+    ],
+    [
       "VG 12-11, #71.2: caducado, con el plazo vencido en el 2.1 del registro que lo escribe"
     ]
   ],
@@ -48,6 +56,10 @@ export const FINALES_PROVISIONALES_DATOS = [
     ],
     [
       "after"
+    ],
+    [
+      "causa",
+      "0"
     ],
     [
       "VG 14-11, #80: cerrado por decisión del dueño, con su causa opcional en el 0; solo si lo cumplido no lo cerró antes"

@@ -1,0 +1,44 @@
+[
+  [
+    ["focus"],
+    [["record", "a record", "required"]],
+    ["enfocar: put a record in the focus of the lens"],
+    ["Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md, tercera tanda, punto 8; agram-equipo/OPINION_BOTONES_PV.md §10 y §11, INVENTARIO_FIJO_CARTA.md): la lista cerrada de gestos de la lente, supuesto por confirmar con VG. Provisional hasta la pasada única por la época 0. Cada gesto: 0 su nombre, 1 sus parámetros en su orden ([nombre, tipo de parámetro, required u optional]; el tipo, uno de src/tipos.js), 2 qué hace, 3 la procedencia"]
+  ],
+  [
+    ["enter"],
+    [["record", "a record", "required"], ["view", "a view", "optional"]],
+    ["entrar: open a record, in one of its points of view (by default, the one the lens is in)"],
+    ["Core AGRAM 18-11: supuesto por confirmar con VG"]
+  ],
+  [
+    ["turn"],
+    [["view", "a view", "required"]],
+    ["girar: turn the lens to another point of view of the record in focus"],
+    ["Core AGRAM 18-11: supuesto por confirmar con VG"]
+  ],
+  [
+    ["change level"],
+    [["level", "a lens level", "required"]],
+    ["cambiar de nivel: show more or less of each point of view"],
+    ["Core AGRAM 18-11: supuesto por confirmar con VG"]
+  ],
+  [
+    ["launch"],
+    [["action", "an action", "required"], ["record", "a record", "required"]],
+    ["lanzar: open the form of an action on a record (what it moves is shown, and signed, in the 4)"],
+    ["Core AGRAM 18-11: supuesto por confirmar con VG"]
+  ],
+  [
+    ["compose"],
+    [["action", "an action", "required"], ["record", "a record", "required"], ["parameters", "tenfold", "optional"]],
+    ["componer: add an action, with its parameters, to the tray of the device; nothing is signed"],
+    ["Core AGRAM 18-11: supuesto por confirmar con VG"]
+  ],
+  [
+    ["execute"],
+    [["tray", "a text", "optional"]],
+    ["ejecutar: sign and settle the tray, all or nothing, from the 4"],
+    ["Core AGRAM 18-11: supuesto por confirmar con VG"]
+  ]
+]

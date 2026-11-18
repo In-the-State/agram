@@ -42,11 +42,11 @@ test('Booking: cuatro filas (tres noches de la casa y el pago de la huésped), l
   assert.deepEqual(filas.slice(0, 3).map((f) => f.serie.split('@')[1]), ['2026-11-20', '2026-11-21', '2026-11-22']);
   // La misma lectura, como posición del registro: (first X.4).9.
   const ctx = new ContextoEje(eje, { epoch: epocaDelEje(eje) });
-  assert.deepEqual(evaluar('(first it.4).9 each 4', ctx, { sujeto: reserva.id }).valor, ['pay', 'pay', 'pay', 'pay']);
+  assert.deepEqual(evaluar('(first it.4).9 each 4.0', ctx, { sujeto: reserva.id }).valor, ['pay', 'pay', 'pay', 'pay']);
   // Qué acción toca ahora, como dato: la de mis filas, una vez por anuncio.
   const toca = (yo) => {
     const c = new ContextoEje(eje, { epoch: epocaDelEje(eje), me: yo });
-    return aplanar(evaluar('((first it.4).9 where me in it2.3.0) group row(it2.4, it2.5)', c, { sujeto: reserva.id }).valor, c).map((g) => [g[0][0], g[1][0]]);
+    return aplanar(evaluar('((first it.4).9 where me in it2.3.0) group row(it2.4.0, it2.5)', c, { sujeto: reserva.id }).valor, c).map((g) => [g[0][0], g[1][0]]);
   };
   assert.deepEqual(toca('huesped'), [['pay', pagar]]);
   assert.deepEqual(toca('casa'), [['pay', ocupar]], 'las tres noches, un solo «pay»');
@@ -108,7 +108,8 @@ test('el recuento que no pasa: una fila con «commit P» (de epoch.9.0.3), sobre
     assert.equal(c.pasa, false);
     assert.equal(filas.length, 1, JSON.stringify(criterio));
     const [f] = filas;
-    assert.deepEqual([f.porque, f.cantidad, f.de, f.accion, f.sobre, f.hay], [espera[0], espera[1], espera[2], 'commit P', D.id, c.valor]);
+    assert.deepEqual([f.porque, f.cantidad, f.de, f.accion, f.lanzar, f.sobre, f.hay], ['weight', espera[1], [], 'commit P', D.id, D.id, c.valor], 'quien tenga «commit P» ofrecida');
+    assert.equal(f.texto, 'the tally of g with ' + espera[0] + ' gives ' + c.valor + ' and asks above ' + espera[1]);
     assert.equal(f.serie, 'P:' + D.id);
     assert.deepEqual(siguiente(eje, D.id, 'g').faltaDeMi.map((x) => x.plantilla), ['commit P']);
   }
@@ -168,4 +169,25 @@ test('siguiente y camino pasan opciones.memoria a la lectura: la segunda vez sal
   const a = memoria.aciertos;
   await camino(eje, reserva.id, 'huesped', { memoria });
   assert.ok(memoria.aciertos > a, 'camino también');
+});
+
+test('X.4.9 por dentro de X.9.8: paga del mismo presupuesto (el coste que se informa es el de verdad) y usa la misma memoria', async () => {
+  const { pasosDeLasReglas } = await import('../src/motor.js');
+  const { eje, reserva } = await ejemploReserva({ confirmar: false });
+  const coste = (f, o = {}) => {
+    const presupuesto = new Presupuesto(1e6, 1e7);
+    const r = f(eje, reserva.id, { presupuesto, ...o });
+    assert.equal(r.estado, 'RESUELTO');
+    return presupuesto.usados;
+  };
+  const sola = coste(loQueFalta);
+  const dentro = coste(pasosDeLasReglas);
+  assert.ok(sola > 2000, 'X.4.9 cuenta también la lectura «stage» que lee por dentro: ' + sola);
+  assert.ok(dentro > sola, 'X.9.8 cuenta X.4.9 por dentro: ' + dentro + ' > ' + sola);
+  const memoria = new MemoriaDeLectura();
+  coste(loQueFalta, { memoria });
+  const conMemoria = coste(pasosDeLasReglas, { memoria });
+  assert.ok(conMemoria < dentro - sola + 200, 'lo de X.4.9 sale de la memoria: ' + conMemoria);
+  // Y el valor es el mismo con y sin memoria.
+  assert.deepEqual(pasosDeLasReglas(eje, reserva.id, { memoria }).filas, pasosDeLasReglas(eje, reserva.id).filas);
 });

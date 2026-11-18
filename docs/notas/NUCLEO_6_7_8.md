@@ -616,3 +616,112 @@ Lo que queda:
 - **`cohortes()` lee el tipo provisional «cohort»,** no el parámetro de «change cohort». `cohorteEscrita` sigue buscando el registro por esa acción.
 - **La deuda de `nucleo-limpio`** pasa de 27 a 21 nombres.
 - **Pruebas:** `test/camino-reglas.test.js` y `test/provisional.test.js`.
+
+## Tercera tanda (Core AGRAM 18-11)
+
+**1. El texto de una petición de atención.** Si el payload de la petición es un texto, `camino` ya no enseña su primer carácter: enseña el texto entero, y si es una décupla, su 0.
+
+**2. Lo que cuesta una lectura de pantalla, de verdad.** `motor.filasEn` lee en un contexto de pantalla (`new ContextoEje(eje, { pantalla: { memoria } })`). Así, las lecturas de la época que encuentra por dentro (X.4.9 dentro de X.9.8, «stage» dentro de X.4.9) pagan del mismo presupuesto y usan la misma memoria. Antes, cada una iba con un presupuesto propio que no se contaba y nunca pasaba por la memoria.
+
+- **Las reglas no cambian:** solo un contexto creado para una pantalla lee así, y una regla nunca lo crea.
+- **Una lectura con `keep`** (que en una regla no vale) se sigue leyendo como en una regla.
+- **La memoria se comparte:** un registro de dentro se nombra por su id, y X.4.9 leída sola o por dentro de X.9.8 es la misma entrada de la memoria.
+
+Lo que cuesta ahora, en ocupantes del presupuesto (pasos entre paréntesis), con `ahora` = 2026-11-20T18:00:00Z:
+
+| Lectura | Sin memoria | Con memoria, la primera vez | La segunda |
+|---|---|---|---|
+| Booking, reserva, X.4.9 | 2 806 (1 409) | 802 (594) | 0 (1) |
+| Booking, reserva, X.9.8 | 2 914 (1 478) | 910 (663) | 0 (1) |
+| Booking, habitación, X.4.9 | 1 368 (583) | 348 (173) | 0 (1) |
+| Booking, habitación, X.9.8 | 2 507 (1 298) | 1 159 (847) | 0 (1) |
+| Booking, alta de la casa, X.4.9 | 125 (73) | 125 (73) | 0 (1) |
+| Booking, alta de la casa, X.9.8 | 1 265 (792) | 937 (751) | 0 (1) |
+| Tasks, tarea, X.4.9 | 3 684 (1 659) | 689 (452) | 0 (1) |
+| Tasks, tarea, X.9.8 | 3 800 (1 734) | 805 (527) | 0 (1) |
+
+Con X.4.9 ya en la memoria (por ejemplo, al pintar la fila), X.9.8 de la reserva cuesta 108 en vez de 910. Antes se informaban 1 993 y 3 635 para X.4.9 de Booking y de Tasks: no contaban «stage», que X.4.9 lee por dentro.
+
+**3. La fila trae lo que hace falta; `camino` no distingue por nombre.** La forma de cada fila de X.4.9 y X.9.8:
+
+| Posición | Qué es |
+|---|---|
+| 0 | qué se mueve |
+| 1 | cuánto |
+| 2 | la regla o lectura que lo pide: su mensaje encabeza el texto |
+| 3 | quién: 3.0 quién actúa (nadie si es quien tenga la acción ofrecida), 3.1 a quién |
+| 4 | qué se hace: 4.0 la acción, 4.1 sobre qué registro se lanza |
+| 5 | el registro del que trata |
+| 6 | para cuándo |
+| 7 | lo que hay |
+| 8 | los parámetros de la acción, como pares nombre, valor |
+| 9 | el texto: piezas que se leen seguidas; detrás, los movimientos legibles si la fila tiene a quién |
+
+`camino` agrupa las filas que solo se diferencian en el movimiento (los de un anuncio que mueve la misma persona). Por cada grupo:
+
+- **Es un paso mío** si me nombra o no nombra a nadie, y si la acción se me ofrece sobre su 4.1.
+- **Si no, es una espera** de quien nombra (o del dueño de X).
+
+Ya no se nombra ninguna regla ni acción en `camino` (`test/camino-reglas.test.js` lo mira).
+
+Cambios que se notan:
+
+- **El recuento** dice «weight» en su 2 y su texto en su 9 («the tally of g with weighted mean gives 0 and asks above 0.4»). Su 3.0 queda vacío: quien tenga «commit P» ofrecida.
+- **La caducidad** lleva en su 2 la regla «E is tied to a record that exists»: su texto empieza ahora por el mensaje de esa regla.
+- **Un paso mío de lo anunciado** pasa por la misma comprobación de oferta que los demás.
+- **Lo anunciado que una persona ya movió entero** deja de salir como paso suyo.
+
+**4. La cohorte elegida es dato.** La lectura provisional «chosen cohort» en X.8.5 (frente a otros · dónde encaja) da una fila: 0 la cohorte y 1 el registro que la dice. Ese registro es el último del dueño de X anclado en su 8 que dice «change cohort» en su 4, y ese nombre está en la fórmula, no en el núcleo. `contrato.cohorteEscrita` lee `(first it.8).5`. «change cohort» sale de `contrato.js`, y la deuda de `nucleo-limpio` baja a 20 nombres.
+
+**5. Dónde vive el dato de cada final es dato.** Las filas de `datos/provisional/finales.json` llevan en su 4 qué dato da el registro que escribe ese final y en qué posición: `["causa", "0"]` para el cerrado con error y el cerrado por decisión, `["plazo", "2.1"]` para el caducado. La procedencia pasa al 5. `motor.finDe` lee esa columna; `cerrado` devuelve `causa` y `plazo` como siempre (null el que no toca) y `siguiente` da el que diga la fila.
+
+**6. El tutorial y las sugerencias de `camino`: diagnóstico (no se cambian).**
+
+*El tutorial* (fuente «tutorial») es la lista de nombres que hay en el 9 de tres sitios, juntos y en este orden:
+
+1. el tipo de X (el tipo que X nombra en su 5, entre los de `epoch.9.2`);
+2. si X es mi alta y su tipo no trae camino propio, la plantilla de identidad (`epoch.3.0.9`);
+3. el payload de X.
+
+Cada nombre que es una acción da un paso mío. Está «hecho» si hay un registro mío, o de una cosa mía, donde esa acción escribe (`hechoEnSuAncla`, con su 5 y sus huecos). Cada nombre que es una regla da un paso que no se lanza. Para una de ellas, `camino` sabe por su nombre qué mirar: «a key is declared at its alta» es si el autor del alta tiene clave. Es el único nombre de regla que queda en `camino`; la guarda solo cuenta acciones y no lo ve.
+
+- **¿Podría ser filas de X.9.8?** La mitad sí.
+  - Qué nombres pide el camino y en qué orden no depende de quién mira. Con `with` y `FILAS(epoch.9.2)` se escribe ya: se busca el tipo por el nombre de su 5. Lo que el §15.2 daba por pendiente hoy se resuelve con el rodeo de las filas.
+  - Lo que depende de quién mira, «hecho por mí o por una cosa mía», no puede ir en una lectura sin `me`. Se quedaría en `camino`, como la comprobación de que la acción se me ofrece: genérico, sobre el 4.1 de la fila.
+  - La regla «a key is declared at its alta» pasaría a ser lo que hay en la fila (su 7: si el alta declara la clave, `count (first it.5) > 1`), sin nombre en el código.
+- **Recomendación:** una quinta clase de filas de X.9.8, «tutorial». El 4 sería la acción y dónde se lanza, el 5 X y el 7 lo que hay para las reglas. `camino` calcularía «hecho» igual para toda fila que tenga acción.
+
+*Las sugerencias* (fuente «sugerencia») no salen del libro que se mira. Son un gancho que pasa quien llama (`opciones.sugerencias`), y hoy tienen dos orígenes:
+
+- **la guía de mi libro de cuenta:** `guia-libro.sugerenciasDeGuia(ejeGuia, ejeAbierto, X, yo)`, que lee los pasos de guía de OTRO libro;
+- **un agente de fuera.**
+
+Cada sugerencia pasa por las mismas reglas: `transaccion` en seco, y `invalida` si no se entiende.
+
+- **¿Podría ser filas de X.9.8?** No. Una lectura del libro abierto no ve el libro de la guía (cruza libros), y un agente de fuera no es dato del libro. Son el borde: el aparato las junta.
+- **Recomendación:** que sigan siendo un gancho, con la forma de una fila (`{ accion, lanzar, parametros, texto, porque }`). Así `camino` las pasaría por el mismo bucle que las filas, con la comprobación en seco que ya llevan. La lectura de los pasos de una guía sí podría ser una lectura del libro de la guía; ese es otro carril, el de la guía.
+
+**7. «Va antes»: lo que encadena las tareas es dato.** La décupla «chains» de `datos/provisional/cadenas.json` (con su copia generada) dice:
+
+- 1, la acción de la relación («this goes after»);
+- 2, dónde la ancla el autor de la tarea («2.6»);
+- 3, dónde lleva las anteriores («6»);
+- 4, el tipo de una tarea («task»);
+- 5, la acción que la cierra («close»);
+- 7, la que la entrega («deliver»).
+
+`src/cadenas.js` la lee y `NOMBRES_DE_LAS_CADENAS` sale de ahí. Ya no nombra ninguna acción, y la deuda de `nucleo-limpio` baja a 17 nombres. Su sitio final no es la época 0 sino la época que define la relación (hoy, la hija del roadmap). Esa decisión es de la pasada única.
+
+**8. La tabla de gestos, del lado del núcleo. SUPUESTO POR CONFIRMAR CON VG.**
+
+- **La lista:** `datos/provisional/gestos.json`, con su copia generada, es la lista cerrada de los verbos de la lente: focus (enfocar), enter (entrar), turn (girar), change level (cambiar de nivel), launch (lanzar), compose (componer) y execute (ejecutar).
+- **Cada gesto** dice sus parámetros en su orden, con un tipo de parámetro de `src/tipos.js`. Cuatro tipos provisionales más:
+  - «a record»: un registro de este libro;
+  - «a view»: un dígito;
+  - «a lens level»: un entero de 0 en adelante;
+  - «an action»: una acción de la época del libro, `it in (epoch.9.6.1 each 0)`.
+- **En `contrato`:**
+  - `contrato.gestos(eje)` da la lista con cada parámetro resuelto;
+  - `contrato.validarGesto(eje, destino)` dice si vale un destino «gesto». Es una décupla con «gesture» en su 0, el nombre en su 1 y, desde su 2, los valores en su orden. Los motivos son «forma», «no es un gesto», «falta», «sobran», «no vale» y «tipo».
+- **Lo que no hace:** no ejecuta nada, y no toca la carta ni las plantillas de zona y paso. Que una zona o un paso nombre un gesto como destino es otro carril.
+- **Prueba:** `test/gestos.test.js`.

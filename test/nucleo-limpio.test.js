@@ -38,8 +38,7 @@ const SUELO = {
 const DEUDA_DE_HOY = {
   'acciones.js': ['second factor' /* dudoso */],
   'anclas.js': ['ask for more firmness'],
-  'cadenas.js': ['this goes after', 'close', 'deliver'],
-  'contrato.js': ['declare capacity or threshold', 'change cohort', 'connect an account', 'grant the permission', 'renew the permission', 'update the balance', 'add a parent', 'remove a parent', 'set the kind of owner', 'set a custody default', 'retouch a text'],
+  'contrato.js': ['declare capacity or threshold', 'connect an account', 'grant the permission', 'renew the permission', 'update the balance', 'add a parent', 'remove a parent', 'set the kind of owner', 'set a custody default', 'retouch a text'],
   'elegibles.js': ['remove someone'],
   'guia-libro.js': ['a zone of the face', 'a step of the guide'],
   'nota-detalle.js': ['anchor here'],

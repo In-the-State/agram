@@ -74,7 +74,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0, esPlantillaDeDatos, plantillasDeDominio } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla, MemoriaDeLectura, posicionDeLectura, EXPLICACION_CORTADA } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla, MemoriaDeLectura, posicionDeLectura, EXPLICACION_CORTADA, aplanar } from './bqlm.js';
 import { TEXTOS_PROVISIONALES_DATOS } from './provisional-textos.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
 import { eslabonesValidos, GRADOS_DE_LA_FORMULA } from './sello.js';
@@ -2274,7 +2274,6 @@ export function verificado(eje, id, opciones = {}) {
 }
 
 /** La plantilla de transacción que cambia la cohorte (epoch.9.6) y su parámetro: se leen de la época. */
-const CAMBIAR_COHORTE = Object.freeze({ plantilla: 'change cohort', parametro: 'cohort' });
 
 /**
  * Lo que dice cada valor del parámetro «cohort» de «change cohort» en las cohortes de las bases (bases.ALCANCES), como
@@ -2283,9 +2282,6 @@ const CAMBIAR_COHORTE = Object.freeze({ plantilla: 'change cohort', parametro: '
  */
 const ALCANCE_DE_COHORTE = Object.freeze({ siblings: 'hermanos', project: 'proyecto', genesis: 'general' });
 
-/** Una plantilla de transacción de la época por su nombre, y uno de sus parámetros por su etiqueta. */
-const transaccionPorNombre = (epoca, nombre) => (Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).map((x) => x.plantilla).find((p) => texto(hoja(p?.[0])) === nombre) ?? null;
-const parametroPorEtiqueta = (p, etiqueta) => hojas(p?.[1]).filter(Array.isArray).find((x) => texto(hoja(x[0])) === etiqueta) ?? null;
 
 /** El tipo de parámetro que enumera las cohortes (Core AGRAM 18-11, NUCLEO_6_7_8 §7: un tipo declarado, src/tipos.js). */
 const TIPO_COHORTE = 'cohort';
@@ -2304,17 +2300,20 @@ export function cohortes(opciones = {}) {
   return valores.filter((v) => Object.hasOwn(ALCANCE_DE_COHORTE, v)).map((v) => ({ valor: v, alcance: ALCANCE_DE_COHORTE[v], texto: texto_(null, CLAVE.legible('cohort ' + v), opciones.idioma ?? 'en', { original: v, epoca }) }));
 }
 
-/** La cohorte que el dueño de X eligió: el último «change cohort» suyo anclado donde ancla la plantilla (el 8 de X): { valor, de } o null. */
+/**
+ * La cohorte que el dueño de X eligió: la lectura de la época que se materializa en X.8.5 («chosen cohort»; Core AGRAM 18-11,
+ * hasta la pasada única la provisional de datos/provisional/lecturas.json), que dice qué acción la escribe y dónde: { valor,
+ * de } o null. El núcleo no nombra esa acción.
+ */
 function cohorteEscrita(eje, ev, opciones) {
-  const p = transaccionPorNombre(epocaDe(opciones, eje), CAMBIAR_COHORTE.plantilla);
-  const param = parametroPorEtiqueta(p, CAMBIAR_COHORTE.parametro);
-  const ancla = p ? texto(hoja(p[5])) : undefined;
-  const donde = param ? texto(hoja(param[5])) : undefined;
-  if (!ancla || !donde || ancla.startsWith('=') || !/^\d(\.\d)*$/.test(donde) || typeof eje?.sobre !== 'function') return null;
-  const escritos = eje.sobre(ev.id, direccion(caminoDe(ancla))).filter((h) => h.autor === ev.autor && hojas(h.payload?.[4]).includes(CAMBIAR_COHORTE.plantilla));
-  const ultimo = escritos[escritos.length - 1];
-  const v = ultimo ? hoja(en(ultimo.payload, caminoDe(donde))) : undefined;
-  return typeof v === 'string' ? { valor: v, de: ultimo.id } : null;
+  if (!ev || typeof ev.id !== 'string' || !eje?.obtener?.(ev.id)) return null;
+  const ctx = new ContextoEje(eje, { epoch: epocaDe(opciones, eje) });
+  const r = evaluar('(first it.8).5', ctx, { sujeto: ev.id });
+  if (r.estado !== 'RESUELTO' || !r.valor.length) return null;
+  const [fila] = aplanar(r.valor, ctx);
+  const valor = Array.isArray(fila) ? hoja(fila[0]) : undefined;
+  const de = Array.isArray(fila) ? hoja(fila[1]) : undefined;
+  return typeof valor === 'string' && typeof de === 'string' ? { valor, de } : null;
 }
 
 /**
@@ -4272,6 +4271,8 @@ export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_
 export { notaDeDetalle, partirNota, NOTA } from './nota-detalle.js';
 // Las invitaciones de un libro (§12.11): las pendientes para una clave, y si ya hay un alta con ella.
 export { invitacionesParaClave, altaConClave, invitacionPendiente } from './invitaciones.js';
+// Los gestos de la lente (src/gestos.js; Core AGRAM 18-11, supuesto por confirmar con VG): la lista cerrada y el destino «gesto».
+export { gestos, validarGesto, DESTINO_GESTO } from './gestos.js';
 export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ENTREGADA_DESBLOQUEA, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)
 // Los sitios y los pesos de la pantalla (docs/notas/SITIOS_Y_PESOS.md): dónde va cada PV y cuánto se enseña, leídos de la época y del archivo de la lente.
 export { sitios, pesos } from './sitios.js';
