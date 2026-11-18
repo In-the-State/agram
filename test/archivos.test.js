@@ -195,7 +195,9 @@ test('carta/archivos.js adjuntarConAccion: con la plantilla de arte, un .html no
     const r = await adjuntarConAccion(a, { eje: c.eje, X: c.cuenta.alta, accion: ARTE, campos, archivo: { nombre: 'arte.html', bytes: html }, yo, firmar: firmarCon(c.privada) });
     assert.equal(r.ok, false);
     assert.equal(r.sinSubir, true);
-    assert.match(r.motivos.map((m) => m.mensaje).join(' '), /html no/);
+    // 8b: el mensaje dice por qué no vale (la validación, en llano); la ayuda, aparte, sigue diciendo que html no.
+    assert.match(r.motivos.map((m) => m.mensaje).join(' '), /no sea html/);
+    assert.match(r.motivos.map((m) => m.ayuda).join(' '), /html no/);
     assert.equal((await bajar(sha(html))).status, 404, 'el .html no llegó al servidor');
     const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>');
     const s = await adjuntarConAccion(a, { eje: c.eje, X: c.cuenta.alta, accion: ARTE, campos, archivo: { nombre: 'arte.svg', bytes: svg }, yo, firmar: firmarCon(c.privada) });

@@ -184,7 +184,7 @@ test('etiqueta, ayuda, marcador, madurez, validar y los parámetros del aro habl
   assert.equal(aplica.parametros.find((x) => x.nombre === 'price').etiqueta, 'precio');
   // Un parámetro que falla, en el idioma de la configuración de quien lanza.
   const r = await A.transaccion(eje, 'apply a resource', { X: menu.id, quantity: 0, price: [['E:casa/EUR'], [12]] }, 'huesped', { t: T1, idioma: 'es' });
-  assert.deepEqual(r.motivos.map((m) => m.mensaje), ['cantidad: cuántas unidades']);
+  assert.deepEqual(r.motivos.map((m) => [m.mensaje, m.ayuda]), [['cantidad: hace falta que sea mayor que 0, y es 0', 'cuántas unidades']]);
   // El mensaje de una lectura y de un paso del camino, en el idioma; el 0 del registro escrito sigue en inglés (dato canónico).
   const lectura = await A.transaccion(eje, 'view thread', { X: menu.id }, 'huesped', { t: T1, idioma: 'es' });
   assert.equal(lectura.lectura.mensaje, 'el hilo de Menú del día hasta el génesis', 'sin el nombre de la plantilla delante (#83)');

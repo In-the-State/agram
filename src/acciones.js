@@ -46,7 +46,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla, POR_LIMITE, esFormula } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, evaluarPlantilla, POR_LIMITE, esFormula, explicar } from './bqlm.js';
 import { crearEvento, canonico as canonicoDe, cuerpo as cuerpoDe } from './evento.js';
 import { partirClave, validarMovimiento, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, esAnunciado, claveToken } from './tokens.js';
 import { exigido as exigidoDe, tDelCoste, escalaQueAlcanza, REGLA_DEL_COSTE, quemaDelCoste } from './escritura.js';
@@ -54,7 +54,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo } from './contrato.js';
 import { recuento, cerrado as cerradoDe, loQueFalta } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
 import { resolverTipo, valeElValor } from './tipos.js';
@@ -346,7 +346,7 @@ const conHuecos = (ruta, valores) => String(ruta).replace(/\{([^{}]+)\}/g, (_, n
  * parametros, motivos } con los motivos de los parámetros que fallan (cada uno { regla, mensaje }, con la etiqueta y
  * la ayuda del parámetro en el idioma).
  */
-function preparar(eje, plantilla, X, yo, params, { t, epoca, idioma }) {
+function preparar(eje, plantilla, X, yo, params, { t, epoca, idioma, sinPorque = false }) {
   const nombre = nombreDeAccion(plantilla);
   const lista = parametros(plantilla, { idioma, epoca, eje });
   const valores = {};
@@ -408,21 +408,49 @@ function preparar(eje, plantilla, X, yo, params, { t, epoca, idioma }) {
     // Un tipo que no se resuelve (desconocido, un ciclo, más de cuatro saltos, una capa que cambia la base) es un error
     // de la época: el parámetro no vale nunca.
     if (p.errorDeTipo) {
-      motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.errorDeTipo, parametro: p.nombre, estado: 'ERROR' });
+      motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.errorDeTipo, parametro: p.nombre, estado: 'ERROR', ayuda: p.ayuda, porque: { expr: p.nombre, dio: 'ERROR', motivo: p.errorDeTipo }, piezas: [] });
       continue;
     }
     const v = valores[p.nombre];
     if (v === undefined) {
-      if (p.requerido) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
+      if (p.requerido) motivos.push(motivoDeParametro(p, { expr: p.nombre, clase: 'falta', dio: 'PENDIENTE' }, sinPorque ? null : porqueFijo('why required', {}, { idioma })));
       continue;
     }
-    // Todas sus validaciones, en su orden (la forma de la faceta, las de su tipo y la suya): la primera que no pasa lo dice.
+    // Todas sus validaciones, en su orden (la forma de la faceta, las de su tipo y la suya): la primera que no pasa lo dice,
+    // y su porqué (8b, NUCLEO_6_7_8 §8.2) dice por qué: la explica bqlm.explicar con el mismo contexto y el mismo it.
     const r = valeElValor(p.validaciones, v, ctx, { sujeto: sujetoDeValor(v) });
-    // La forma del motivo es la de siempre; cuál de las validaciones no pasó lo dirá el porqué (NUCLEO_6_7_8 §8).
-    if (!r.ok) motivos.push({ regla: p.nombre, mensaje: p.etiqueta + ': ' + p.ayuda, parametro: p.nombre });
+    if (r.ok) continue;
+    const falla = r.falla ?? {};
+    if (sinPorque) motivos.push(motivoDeParametro(p, null, null, falla));
+    else if (falla.formula === undefined) {
+      const forma = falla.faceta ?? falla.base ?? p.tipo;
+      motivos.push(motivoDeParametro(p, { expr: String(forma), clase: 'forma', dio: false, base: falla.base ?? null, faceta: falla.faceta ?? null }, porqueFijo('why form', { kind: String(forma) }, { idioma }), falla));
+    } else {
+      const e = explicar(falla.formula, ctx, { sujeto: sujetoDeValor(v) });
+      motivos.push(motivoDeParametro(p, e.porque, porqueEnLlano(e.porque, { eje, idioma, epoca, valor: true }), falla, e.estado));
+    }
   }
   for (const h of huecos(payload)) motivos.push({ regla: nombre, mensaje: motivoDe('position without value', { name: nombre, position: h }, { idioma, epoca }) });
   return { sobre: candidata.sobre, en: candidata.en, payload, valores, parametros: lista, motivos, candidata };
+}
+
+/**
+ * El motivo de un parámetro que no vale (8b): `mensaje` es su etiqueta más el porqué en llano (sin porqué, la etiqueta y la
+ * ayuda, como antes); la ayuda, aparte en `ayuda`; `porque` el árbol de bqlm.explicar (o el de la forma, o el de lo que
+ * falta); `piezas` el llano por piezas (lo del libro marcado); `validacion`, cuál de sus validaciones falló (de quién: la
+ * base, el tipo de la 0, el provisional, el del libro o el parámetro, y su fórmula).
+ */
+function motivoDeParametro(p, porque, llano, falla = null, estado = undefined) {
+  return {
+    regla: p.nombre,
+    mensaje: p.etiqueta + ': ' + (llano ? llano.texto : p.ayuda),
+    parametro: p.nombre,
+    ayuda: p.ayuda,
+    porque,
+    piezas: llano ? llano.piezas : [],
+    ...(falla ? { validacion: { de: falla.de ?? null, ...(falla.tipo ? { tipo: falla.tipo } : {}), ...(falla.formula ? { formula: falla.formula } : {}), ...(falla.faceta ? { faceta: falla.faceta } : {}) } } : {}),
+    ...(estado && estado !== 'RESUELTO' ? { estado } : {}),
+  };
 }
 
 /** Lo que vale una fórmula sobre it = X, me = yo y la candidata, como lista plana (vacía si no se resuelve). */
@@ -441,6 +469,9 @@ const valores0 = (...args) => valoresDe(...args)[0];
  * nombre en el idioma de yo (o el de `opciones.idioma`), como la etiqueta y la ayuda de cada parámetro. Cada parámetro
  * lleva su valor por defecto ya resuelto (`valor`) y si falta (`falta`). Nada se decide aquí: si una acción no debe
  * aparecer, lo dice su 2.
+ * Con `opciones.noOfrecidas` (8b; NUCLEO_6_7_8 §8.2), la lista lleva además `noOfrecidas: [{ nombre, estado }]`: las del
+ * punto de vista k que no se ofrecen, con el estado de su condición (RESUELTO si dio falso o la quita el enlace; PENDIENTE
+ * o ERROR si no se pudo saber), sin explicación y con la misma evaluación de siempre. El porqué, al pulsar: porQueNo.
  */
 export function acciones(eje, X, k, yo, opciones = {}) {
   opciones = conEpoca(eje, opciones);
@@ -450,6 +481,7 @@ export function acciones(eje, X, k, yo, opciones = {}) {
   const idioma = idiomaDe(eje, yo, opciones);
   const ctx = contextoDe(eje, epoca, { me: yo });
   const fuera = [];
+  const noOfrecidas = opciones.noOfrecidas ? [] : null;
   // RP4 (arreglos de la segunda revisión del puente): enviar y traer no se ofrecen por un enlace que la lectura no da por
   // bueno para el puente (gradoDelEnlace: otra persona sin génesis, el de quien creó el libro con un enlace del dueño con
   // otras claves, uno retirado o de antes del puente). La regla no lo mira entero (el límite (b) es de lectura): lo dice la
@@ -459,9 +491,21 @@ export function acciones(eje, X, k, yo, opciones = {}) {
   for (const { nombre, plantilla, pv, id } of plantillasDeTransaccion(opciones)) {
     if (pv !== Number(k)) continue;
     const condicion = texto(ultima(plantilla[2]));
-    if (!esFormula(condicion) || !cumple(condicion, ctx, sujetoDe(ev))) continue;
-    if (PLANTILLAS_POR_UN_ENLACE.includes(nombre) && !cuenta()) continue;
-    const { valores, parametros: lista } = preparar(eje, plantilla, ev, yo, {}, { t: relojDe(eje, opciones), epoca, idioma });
+    if (!esFormula(condicion)) {
+      noOfrecidas?.push({ nombre, estado: 'ERROR' });
+      continue;
+    }
+    // La misma evaluación que cumple(): con ella se sabe además en qué estado quedó la que no se ofrece.
+    const r = evaluar(condicion, ctx, { sujeto: sujetoDe(ev) });
+    if (!(r.estado === 'RESUELTO' && r.valor.length === 1 && r.valor[0] === true)) {
+      noOfrecidas?.push({ nombre, estado: r.estado });
+      continue;
+    }
+    if (PLANTILLAS_POR_UN_ENLACE.includes(nombre) && !cuenta()) {
+      noOfrecidas?.push({ nombre, estado: 'RESUELTO' });
+      continue;
+    }
+    const { valores, parametros: lista } = preparar(eje, plantilla, ev, yo, {}, { t: relojDe(eje, opciones), epoca, idioma, sinPorque: true });
     fuera.push({
       nombre,
       id,
@@ -474,7 +518,36 @@ export function acciones(eje, X, k, yo, opciones = {}) {
       ...modoParaLanzar(eje, plantilla, yo, opciones),
     });
   }
+  if (noOfrecidas) fuera.noOfrecidas = noOfrecidas;
   return fuera;
+}
+
+/**
+ * El porqué de que una acción no se ofrezca (8b; NUCLEO_6_7_8 §8.2): se pide al pulsar una acción apagada o «¿por qué no
+ * está…?», nunca al pintar. Explica su condición (su 2, con it = X y me = yo) con bqlm.explicar y la pone en llano
+ * (contrato.porqueEnLlano). → { ofrecida, estado, porque, texto, piezas }: `estado` el de la condición (RESUELTO, o
+ * PENDIENTE / ERROR si no se pudo saber), `porque` su árbol, `texto` y `piezas` el porqué en llano (null si se ofrece).
+ * Solo lee; el porqué nunca decide nada ni entra en lo que se firma.
+ */
+export function porQueNo(eje, X, accion, yo, opciones = {}) {
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  const idioma = idiomaDe(eje, yo, opciones);
+  const plantilla = plantillaDeTransaccion(accion, opciones);
+  if (!plantilla) return { ofrecida: false, estado: 'ERROR', porque: null, texto: motivoDe('unknown template', { template: String(accion?.ref ?? accion) }, { idioma, epoca }), piezas: [] };
+  const nombre = nombreDeAccion(plantilla);
+  const etiqueta = textoDe(eje, claves.plantilla(nombre), idioma, { original: nombre, epoca });
+  const ev = eventoDe(eje, X);
+  if (!ev || typeof ev.id !== 'string' || !eje?.obtener(ev.id)) return { ofrecida: false, estado: 'ERROR', porque: null, texto: motivoDe('X not in ledger', { name: nombre }, { idioma, epoca }), piezas: [] };
+  const condicion = texto(ultima(plantilla[2]));
+  if (!esFormula(condicion)) return { ofrecida: false, estado: 'ERROR', porque: null, ...porqueNoSeOfrece(etiqueta, porqueFijo('why false', { c: String(condicion ?? '') }, { idioma }), { idioma }) };
+  const r = explicar(condicion, contextoDe(eje, epoca, { me: yo }), { sujeto: sujetoDe(ev) });
+  const pasa = r.estado === 'RESUELTO' && r.valor.length === 1 && r.valor[0] === true;
+  if (pasa && PLANTILLAS_POR_UN_ENLACE.includes(nombre) && gradoDelEnlace(eje, ev.id)?.cuenta !== true) {
+    return { ofrecida: false, estado: 'RESUELTO', porque: r.porque, ...porqueNoSeOfrece(etiqueta, porqueFijo('why link', {}, { idioma }), { idioma }) };
+  }
+  if (pasa) return { ofrecida: true, estado: 'RESUELTO', porque: r.porque, texto: null, piezas: [] };
+  return { ofrecida: false, estado: r.estado, porque: r.porque, ...porqueNoSeOfrece(etiqueta, porqueEnLlano(r.porque, { eje, idioma, epoca }), { idioma }) };
 }
 
 /**

@@ -74,7 +74,8 @@
 
 import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0, esPlantillaDeDatos, plantillasDeDominio } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla, MemoriaDeLectura } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla, MemoriaDeLectura, posicionDeLectura, EXPLICACION_CORTADA } from './bqlm.js';
+import { TEXTOS_PROVISIONALES_DATOS } from './provisional-textos.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
 import { eslabonesValidos, GRADOS_DE_LA_FORMULA } from './sello.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
@@ -3578,6 +3579,225 @@ export function motivo(que, partes = {}, { idioma = 'en', ...opciones } = {}) {
 function plano_(formato, partes) {
   if (typeof formato !== 'string') return Object.values(partes).filter((v) => v !== undefined && v !== null && v !== '').join(' ');
   return formato.replace(/\{([^{}]+)\}/g, (_, k) => (partes[k] === undefined || partes[k] === null ? '' : String(partes[k])));
+}
+
+// ---------- 9 ter. el porqué en llano (8b; docs/notas/NUCLEO_6_7_8.md §8.2 y §8.4; Core, pendiente de revisar VG) ----------
+
+/** Los textos provisionales (src/provisional-textos.js) por idioma: idioma → Map(clave → texto), como textosDe. */
+const PROVISIONALES = (() => {
+  const porIdioma = new Map();
+  for (const r of TEXTOS_PROVISIONALES_DATOS) {
+    const mapa = new Map();
+    for (const h of hojas(r?.[1])) {
+      const i = typeof h === 'string' ? h.indexOf(': ') : -1;
+      if (i > 0 && !mapa.has(h.slice(0, i))) mapa.set(h.slice(0, i), h.slice(i + 2));
+    }
+    for (const codigo of hojas(r?.[0])) if (typeof codigo === 'string') porIdioma.set(codigo, mapa);
+  }
+  return porIdioma;
+})();
+
+/**
+ * Una frase que une el porqué («why …») o una entrada del glosario de las vistas («position …»): de la época 0 (sus
+ * textos de epoch.9.4 y la hoja de retoques del código) y, DETRÁS, la provisional (datos/provisional/textos/); en el
+ * idioma y, si falta, en el canónico. Nunca de la época del libro ni de sus retoques: un libro no las puede cambiar
+ * (decisión 10). null si no la hay.
+ */
+export function fraseDelPorque(clave, idioma = 'en') {
+  const de0 = textosDe(EPOCA_0_BTML);
+  for (const i of idioma === 'en' ? ['en'] : [idioma, 'en']) {
+    const t = de0.get(i)?.get(clave) ?? PROVISIONALES.get(i)?.get(clave);
+    if (typeof t === 'string') return t;
+  }
+  return null;
+}
+
+/** Lo más largo que se pinta un nombre o un trozo que viene del libro (§8.4). */
+export const LARGO_DE_UN_NOMBRE_DEL_LIBRO = 60;
+
+/** Un texto que viene del libro, como pieza: sin saltos ni caracteres de control, cortado y marcado como del libro. */
+function delLibro(s, clase = 'nombre') {
+  const limpio = String(s ?? '').replace(/[\u0000-\u001f\u007f]+/g, ' ').trim();
+  const corto = limpio.length > LARGO_DE_UN_NOMBRE_DEL_LIBRO ? limpio.slice(0, LARGO_DE_UN_NOMBRE_DEL_LIBRO - 1) + '…' : limpio;
+  return { clase, texto: corto, delLibro: true };
+}
+
+/** Una frase fija con sus huecos: los trozos fijos como frase; cada hueco, las piezas que se le dan (nunca se vuelven a mirar). */
+function frasePorque(clave, huecos, o) {
+  const formato = fraseDelPorque(clave, o.idioma) ?? clave;
+  const piezas = [];
+  let desde = 0;
+  for (const m of formato.matchAll(/\{([^{}]+)\}/g)) {
+    if (m.index > desde) piezas.push({ clase: 'frase', texto: formato.slice(desde, m.index) });
+    piezas.push(...(huecos[m[1]] ?? []));
+    desde = m.index + m[0].length;
+  }
+  if (desde < formato.length) piezas.push({ clase: 'frase', texto: formato.slice(desde) });
+  return piezas;
+}
+
+/** Un valor, legible (contrato.legible): lo pone el núcleo, al final, como valor. */
+function valorPorque(v, o, tipo) {
+  if (v === undefined || v === null) return [{ clase: 'valor', texto: '∅' }];
+  const t = legible(o.eje, v, tipo, { idioma: o.idioma, epoca: o.epoca }).texto;
+  return [{ clase: 'valor', texto: t === '' ? String(v) : t }];
+}
+
+/** Varios valores, legibles, separados por comas; vacío, «∅». */
+function valoresPorque(lista, o, cuantos) {
+  if (!Array.isArray(lista) || !lista.length) return [{ clase: 'valor', texto: '∅' }];
+  const piezas = [];
+  lista.forEach((v, k) => {
+    if (k) piezas.push({ clase: 'frase', texto: ', ' });
+    piezas.push(...valorPorque(Array.isArray(v) ? v[0] : v, o));
+  });
+  if (cuantos > lista.length) piezas.push({ clase: 'frase', texto: '… (' + cuantos + ')' });
+  return piezas;
+}
+
+/** La clase de lo que es la base de una posición, para el glosario: A identidad, X registro, C entrada de cartera, P una entrada del P posicionado, S serie, M movimiento, B el libro. */
+function claseDeBase(base, eje) {
+  if (!base) return null;
+  if (base.nombre === 'me') return 'A';
+  if (base.nombre === 'before' || base.k === 'before') return 'B';
+  if (base.nombre === 'ev' || base.k === 'reg' || base.k === 'ev') return 'X';
+  if (base.k === 'entrada') return 'C';
+  if (base.k === 'serie' || base.k === 'viva') return 'S';
+  if (base.k === 'mov' || base.k === 'asiento') return 'M';
+  if (base.k === 'posicionado') return 'P';
+  if (typeof base.valor === 'string' && eje?.obtener?.(base.valor)) return 'X';
+  if (typeof base.valor === 'string' && eje?.alta?.(base.valor)) return 'A';
+  return null;
+}
+
+/**
+ * El nombre de un lado (una posición, un literal…), en este orden (§8.2): el glosario de las vistas del contexto (lo que
+ * el núcleo pone en esa posición: la cartera, el id, el autor…), la etiqueta de esa posición en el tipo del registro (su
+ * d.0, del libro), el nombre de la lectura que se materializa ahí (del libro), la regla corta del dígito (de la época) y,
+ * si nada la nombra, el trozo tal como está escrito (del libro). Lo del libro va marcado, cortado y sin evaluar.
+ */
+function nombrePorque(lado, o) {
+  if (!lado) return [];
+  if (lado.literal) return valorPorque(lado.valor, o);
+  if (Array.isArray(lado.digitos) && lado.base) {
+    const clase = claseDeBase(lado.base, o.eje);
+    const ruta = lado.digitos.join('.');
+    const x = valorPorque(lado.base.valor, o, clase === 'A' ? TIPO.identidad : undefined);
+    // payload(X).d: lo escrito en X, sin lo que el núcleo pone ahí: no es una vista (sin glosario), es su tipo.
+    if (clase && !lado.base.payload) {
+      const glosario = fraseDelPorque('position ' + clase + '.' + ruta, o.idioma);
+      if (glosario) return frasePorque('position ' + clase + '.' + ruta, { x }, o);
+    }
+    if (clase === 'X' && o.eje) {
+      const id = lado.base.valor ?? null;
+      const p = typeof id === 'string' ? plantilla(o.eje, id, { epoca: o.epoca }) : null;
+      const propia = texto(hoja(descripcion(p, lado.digitos)?.[0]));
+      if (propia !== undefined) return [delLibro(texto_(o.eje, CLAVE.parametro(nombreDePlantilla(p), propia, 'label'), o.idioma, { original: propia, epoca: o.epoca }))];
+    }
+    if (clase === 'X' || clase === 'A') {
+      const lectura = (o.epoca?.lecturas ?? []).find((r) => posicionDeLectura(r) === clase + '.' + ruta);
+      if (lectura) return [delLibro(nombreDeRegla(lectura))];
+    }
+    if (clase === 'X') {
+      const corta_ = texto(hoja(corta(raizDe(o.epoca), lado.digitos)?.[0]));
+      if (corta_) return [delLibro(corta_)];
+    }
+  }
+  return [delLibro(lado.expr, 'codigo')];
+}
+
+/** Lo que pasó en un porqué, en piezas (§8.2): baja por sus hijos como el evaluador y compone con las frases fijas. */
+function llanoDe(nodo, o, sobreValor) {
+  const limite = () => frasePorque('why limit', {}, o).map((p) => ({ ...p, limite: true }));
+  if (!nodo || nodo.motivo === EXPLICACION_CORTADA) return limite();
+  const sep = () => [{ clase: 'frase', texto: fraseDelPorque('why separator', o.idioma) ?? '; ' }];
+  if (nodo.dio === 'PENDIENTE' || nodo.dio === 'ERROR') {
+    // Lo más hondo que se paró igual: ahí está qué falta.
+    let d = nodo;
+    let x = nodo.sobreValor ?? sobreValor;
+    for (;;) {
+      const h = (d.hijos ?? []).find((y) => y.dio === nodo.dio);
+      if (!h) break;
+      d = h;
+      if (h.sobreValor !== undefined) x = h.sobreValor;
+    }
+    if (d.motivo === EXPLICACION_CORTADA || /^límite de cálculo/.test(String(d.motivo ?? nodo.motivo ?? ''))) return limite();
+    const vacio = Array.isArray(d.lados) ? d.lados.findIndex((l, k) => Array.isArray(d.valores?.[k]) && d.valores[k].length === 0) : -1;
+    const what = vacio >= 0 ? nombrePorque(d.lados[vacio], o) : [delLibro(d.expr, 'codigo')];
+    if (nodo.dio === 'ERROR') return frasePorque('why error', { what }, o);
+    return x !== undefined && x !== null ? frasePorque('why pending for', { what, x: valorPorque(x, o) }, o) : frasePorque('why pending', { what }, o);
+  }
+  const hijos = nodo.hijos ?? [];
+  if (nodo.clase === 'and') return llanoDe(hijos[0], o, sobreValor);
+  if (nodo.clase === 'or') {
+    const lista = [];
+    hijos.forEach((h, k) => lista.push(...(k ? sep() : []), ...llanoDe(h, o, sobreValor)));
+    return frasePorque('why or', { list: lista }, o);
+  }
+  if (nodo.clase === 'not') return frasePorque('why not', { a: hijos[0] ? [delLibro(hijos[0].expr, 'codigo')] : [] }, o);
+  if (nodo.clase === 'where' || nodo.clase === 'keep' || nodo.de !== undefined) return llanoDeWhere(nodo, o);
+  if (nodo.clase === 'cmp') {
+    const where = hijos.find((h) => h.de !== undefined);
+    if (where) return llanoDeWhere(where, o);
+    const [a, b] = nodo.lados ?? [];
+    const comoValor = o.valor && a?.it === 1 && !a.digitos;
+    const bPiezas = !b ? [] : b.literal ? valorPorque(b.valor, o) : [...nombrePorque(b, o), { clase: 'frase', texto: ' (' }, ...valoresPorque(nodo.valores?.[1], o, nodo.cuantos?.[1]), { clase: 'frase', texto: ')' }];
+    return frasePorque((comoValor ? 'why value ' : 'why compare ') + nodo.op, { a: nombrePorque(a, o), b: bPiezas, va: valoresPorque(nodo.valores?.[0], o, nodo.cuantos?.[0]) }, o);
+  }
+  return frasePorque('why false', { c: [delLibro(nodo.expr, 'codigo')] }, o);
+}
+
+function llanoDeWhere(w, o) {
+  const m = nombrePorque(w.m, o);
+  if (!w.de) return frasePorque('why empty', { m }, o);
+  const piezas = frasePorque('why none', { m, n: [{ clase: 'valor', texto: String(w.de) }], c: [delLibro(w.c ?? w.expr, 'codigo')] }, o);
+  const cerca = w.muestras?.[0];
+  if (cerca?.hijos?.[0]) {
+    piezas.push({ clase: 'frase', texto: fraseDelPorque('why separator', o.idioma) ?? '; ' });
+    piezas.push(...frasePorque('why closest', { x: valorPorque(cerca.sobreValor, o), why: llanoDe(cerca.hijos[0], o, cerca.sobreValor) }, o));
+  }
+  return piezas;
+}
+
+/** Las piezas como un texto: lo del libro entre comillas (« » en español, “ ” en los demás), para que se vea que es suyo. */
+function textoDePiezas(piezas, idioma) {
+  const [abre, cierra] = idioma === 'es' ? ['«', '»'] : ['“', '”'];
+  return piezas.map((p) => (p.delLibro ? abre + p.texto + cierra : p.texto)).join('');
+}
+
+/**
+ * El porqué en llano (8b; NUCLEO_6_7_8 §8.2): de un `porque` de bqlm.explicar, { texto, piezas }. Tres clases de texto:
+ * las frases que unen («why …», de la época 0 o, detrás, de datos/provisional/textos/; un libro no las retoca), los nombres
+ * de las posiciones (sacados de los datos: el glosario, la etiqueta del tipo, la lectura, la regla corta; lo del libro
+ * marcado con `delLibro`, sin saltos, cortado a 60 caracteres y nunca evaluado ni pasado por rellenar) y los valores (los
+ * pone el núcleo con legible, como valores). Con `valor: true`, el sujeto de la fórmula es el valor de un parámetro y la
+ * frase lo calla («hace falta que sea mayor que 0»). Cada pieza: { clase: frase | nombre | codigo | valor, texto, delLibro? }.
+ */
+export function porqueEnLlano(porque, { eje = null, idioma = 'en', valor = false, ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
+  const o = { eje, idioma, valor, epoca: epocaDe(opciones, eje) };
+  const piezas = llanoDe(porque, o);
+  // Una explicación cortada por su presupuesto lo dice al final: lo de antes puede no ser todo.
+  if (porque?.cortada && !piezas.some((p) => p.limite)) piezas.push({ clase: 'frase', texto: fraseDelPorque('why separator', idioma) ?? '; ' }, ...frasePorque('why limit', {}, o).map((p) => ({ ...p, limite: true })));
+  return { texto: textoDePiezas(piezas, idioma), piezas };
+}
+
+/**
+ * Una frase fija del porqué sola («why required», «why link», «why form»…), con sus huecos: cada uno, un texto del libro
+ * (un nombre de tipo, un trozo de fórmula), que va marcado y cortado, nunca evaluado. → { texto, piezas }.
+ */
+export function porqueFijo(clave, huecos = {}, { idioma = 'en' } = {}) {
+  const piezas = frasePorque(clave, Object.fromEntries(Object.entries(huecos).map(([k, v]) => [k, [delLibro(v)]])), { idioma });
+  return { texto: textoDePiezas(piezas, idioma), piezas };
+}
+
+/**
+ * El porqué de que una acción no se ofrezca, compuesto: «“{acción}” no se ofrece aquí: {porqué}». La acción es su nombre
+ * en el idioma (un texto del libro: marcado); `llano`, lo que dio porqueEnLlano o porqueFijo. → { texto, piezas }.
+ */
+export function porqueNoSeOfrece(accion, llano, { idioma = 'en' } = {}) {
+  const piezas = frasePorque('why not offered', { action: [delLibro(accion)], why: llano?.piezas ?? [] }, { idioma });
+  return { texto: textoDePiezas(piezas, idioma), piezas };
 }
 
 /** Los nombres de las plantillas de cerrado de la época (epoch.9.0.1: «all announced movements happened»). */

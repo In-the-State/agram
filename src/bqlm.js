@@ -880,7 +880,10 @@ function porqueDe(src, contexto, opciones, r) {
   };
   const ex = { st, fuente, nodos: 0, cortado: false };
   const raiz = explicarNodo(arbol, ex, 0);
-  if (conSujeto && raiz) raiz.sobre = leerCorto([opciones.sujeto], contexto);
+  if (conSujeto && raiz) {
+    raiz.sobre = leerCorto([opciones.sujeto], contexto);
+    raiz.sobreValor = aplanar([opciones.sujeto], contexto)[0];
+  }
   if (ex.cortado && raiz) raiz.cortada = EXPLICACION_CORTADA;
   return raiz;
 }
@@ -941,13 +944,47 @@ function conIt(st, nivel, o, f) {
   }
 }
 
+/** Los valores planos de una lista, para quien los pinta (contrato.legible): como mucho tres. */
+const planos = (lista, ctx) => aplanar(lista.slice(0, 3), ctx);
+
+/**
+ * Qué es un lado de una comparación o lo que recorre un where (8b, para el texto en llano): su trozo; si es una posición
+ * (it.d…, me.d…, (expr).d…, envuelta o no en first, last o count), sus dígitos y de qué es (su base: qué clase de nodo, su
+ * valor plano, y si es it, me, ev, epoch o before); si es un literal, su valor; si es it, su nivel.
+ */
+function ladoDe(n, ex) {
+  n = sinParentesis(n);
+  if (!n) return null;
+  const fuera = { expr: textoDeNodo(n, ex.fuente) };
+  if (n.n === 'pref' && (n.op === 'first' || n.op === 'last' || n.op === 'count')) return { ...ladoDe(n.arg, ex), expr: fuera.expr, envuelto: n.op };
+  if (n.n === 'lit') return { ...fuera, literal: true, valor: planos([n.v], ex.st.ctx)[0] };
+  if (n.n === 'it') return { ...fuera, it: n.nivel };
+  if (n.n === 'nombre') return { ...fuera, nombre: n.v };
+  if (n.n === 'paso') {
+    const b = sinParentesis(n.base);
+    // payload(X).d: la posición d de lo escrito en X; su base es X (el registro), marcada como payload.
+    if (b.n === 'llamada' && b.f === 'payload' && b.args?.length === 1) {
+      const x = medir(b.args[0], ex);
+      const o = x.valor?.length === 1 ? x.valor[0] : undefined;
+      return { ...fuera, digitos: [...n.digitos], cada: Boolean(n.each), base: { expr: textoDeNodo(b, ex.fuente), k: o === undefined ? null : o && typeof o === 'object' ? o.k ?? 'nodo' : typeof o, valor: o === undefined ? null : planos([o], ex.st.ctx)[0], payload: true } };
+    }
+    const m = medir(b, ex);
+    const o = m.valor?.length === 1 ? m.valor[0] : undefined;
+    return {
+      ...fuera, digitos: [...n.digitos], cada: Boolean(n.each),
+      base: { expr: textoDeNodo(b, ex.fuente), k: o === undefined ? null : o && typeof o === 'object' ? o.k ?? 'nodo' : typeof o, valor: o === undefined ? null : planos([o], ex.st.ctx)[0], ...(b.n === 'nombre' ? { nombre: b.v } : b.n === 'it' ? { it: b.nivel } : {}) },
+    };
+  }
+  return fuera;
+}
+
 function explicarNodo(n, ex, nivel) {
   n = sinParentesis(n);
   if (!n || ex.cortado || nivel >= TOPES_DE_EXPLICAR.niveles || ex.nodos >= TOPES_DE_EXPLICAR.nodos) return null;
   ex.nodos++;
   const { st } = ex;
   const ctx = st.ctx;
-  const nodo = { expr: textoDeNodo(n, ex.fuente) };
+  const nodo = { expr: textoDeNodo(n, ex.fuente), clase: n.n };
   let m;
   try {
     m = medir(n, ex);
@@ -983,13 +1020,16 @@ function explicarNodo(n, ex, nivel) {
       else if (!CUERPO[n.n] && hijosEnOrden(n).length) {
         // Se paró en la operación misma (una división por cero, una lista donde hacía falta un valor): lo que valían sus lados.
         nodo.vale = hijosEnOrden(n).map((h) => leerCorto(medir(h, ex).valor ?? [], ctx));
+        nodo.lados = hijosEnOrden(n).map((h) => ladoDe(h, ex));
+        nodo.valores = hijosEnOrden(n).map((h) => planos(medir(h, ex).valor ?? [], ctx));
       } else if (CUERPO[n.n]) {
         const base = medir(n.base, ex).valor ?? [];
         for (const o of base) {
           const cuerpo = n[CUERPO[n.n]];
           if (conIt(st, n.nivel, o, () => medir(cuerpo, ex)).parada) {
             const h = conIt(st, n.nivel, o, () => debajo(cuerpo));
-            anadir(h ? { ...h, sobre: leerCorto([o], ctx) } : { expr: textoDeNodo(cuerpo, ex.fuente), sobre: leerCorto([o], ctx) });
+            const sobre = { sobre: leerCorto([o], ctx), sobreValor: planos([o], ctx)[0] };
+            anadir(h ? { ...h, ...sobre } : { expr: textoDeNodo(cuerpo, ex.fuente), ...sobre });
             break;
           }
         }
@@ -998,7 +1038,11 @@ function explicarNodo(n, ex, nivel) {
       const v = m.valor;
       const booleano = v.length === 1 && typeof v[0] === 'boolean';
       nodo.dio = booleano ? v[0] : 'RESUELTO';
-      if (!booleano) nodo.vale = leerCorto(v, ctx);
+      if (!booleano) {
+        nodo.vale = leerCorto(v, ctx);
+        nodo.valores = planos(v, ctx);
+        nodo.cuantos = v.length;
+      }
       if (n.n === 'and') {
         // Falso: el primer término falso (es perezoso, como evaluar). Verdadero: los dos.
         if (!v[0]) anadir(debajo(medir(n.a, ex).valor?.[0] === false ? n.a : n.b));
@@ -1010,7 +1054,13 @@ function explicarNodo(n, ex, nivel) {
         anadir(debajo(n.a));
       } else if (n.n === 'cmp') {
         // Una comparación es una hoja: lo que vale cada lado. Si un lado es count (M where c), por qué pasan los que pasan.
-        nodo.vale = [leerCorto(medir(n.a, ex).valor ?? [], ctx), leerCorto(medir(n.b, ex).valor ?? [], ctx)];
+        const va = medir(n.a, ex).valor ?? [];
+        const vb = medir(n.b, ex).valor ?? [];
+        nodo.vale = [leerCorto(va, ctx), leerCorto(vb, ctx)];
+        nodo.op = n.op;
+        nodo.lados = [ladoDe(n.a, ex), ladoDe(n.b, ex)];
+        nodo.valores = [planos(va, ctx), planos(vb, ctx)];
+        nodo.cuantos = [va.length, vb.length];
         for (const lado of [n.a, n.b]) {
           const l = sinParentesis(lado);
           const w = l?.n === 'pref' && l.op === 'count' ? sinParentesis(l.arg) : null;
@@ -1035,7 +1085,9 @@ function explicarWhere(w, ex, nivel, nodo) {
   if (ex.cortado || nivel >= TOPES_DE_EXPLICAR.niveles || ex.nodos >= TOPES_DE_EXPLICAR.nodos) return null;
   const { st } = ex;
   const ctx = st.ctx;
-  const fuera = nodo ?? (ex.nodos++, { expr: textoDeNodo(w, ex.fuente) });
+  const fuera = nodo ?? (ex.nodos++, { expr: textoDeNodo(w, ex.fuente), clase: w.n });
+  fuera.m = ladoDe(w.base, ex);
+  fuera.c = textoDeNodo(w.cond, ex.fuente);
   const base = medir(w.base, ex);
   if (base.parada) return fuera;
   const partes = terminos(w.cond);
@@ -1059,7 +1111,7 @@ function explicarWhere(w, ex, nivel, nodo) {
           throw e;
         }
       });
-      fuera.muestras.push({ sobre: leerCorto([f.o], ctx), cumple: f.cumple + ' de ' + partes.length, ...(h ? { hijos: [h] } : {}) });
+      fuera.muestras.push({ sobre: leerCorto([f.o], ctx), sobreValor: planos([f.o], ctx)[0], cumple: f.cumple + ' de ' + partes.length, cumplen: f.cumple, partes: partes.length, ...(h ? { hijos: [h] } : {}) });
     }
   }
   return fuera;

@@ -177,7 +177,10 @@ test('preparar() en seco: las validaciones del tipo cuentan, y un tipo que no se
   const cero = await transaccion(eje, consume, { X: reserva.id, series: 'E:casa/EUR', quantity: 0 }, 'huesped', { idioma: 'en' });
   assert.equal(cero.ok, false);
   assert.equal(deCantidad(cero).length, 1);
-  assert.equal(deCantidad(cero)[0].mensaje, 'quantity: how many units are burned');
+  // 8b (NUCLEO_6_7_8 §8.2): el mensaje dice cuál de las validaciones falló y por qué; la ayuda va aparte.
+  assert.equal(deCantidad(cero)[0].mensaje, 'quantity: it has to be greater than 0, and it is 0');
+  assert.equal(deCantidad(cero)[0].ayuda, 'how many units are burned');
+  assert.equal(deCantidad(cero)[0].validacion.tipo, 'a positive number');
   const dos = await transaccion(eje, consume, { X: reserva.id, series: 'E:casa/EUR', quantity: 2 }, 'huesped', { idioma: 'en' });
   assert.deepEqual(deCantidad(dos), []);
   cantidad[1] = ['a thing that is not a type'];
