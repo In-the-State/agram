@@ -4,6 +4,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { arbol, LATERALES, NIVEL } from '../carta/carta.js';
 import { html, situarDesplegadas } from '../carta/dom.js';
 import { instalar } from '../carta/gestos.js';
@@ -76,4 +77,35 @@ test('el «+n» abierto se coloca pegado a su botón y dentro de la pantalla: de
   const encima = masDeMentira({ left: 50, top: 740, bottom: 766 }, { ancho: 200, alto: 120 });
   situarDesplegadas(encima.raiz);
   assert.equal(encima.lista.style.top, '616px', '740 − 4 − 120');
+});
+
+test('Mapped: en la rejilla, la fila de acciones de un punto de vista es de una línea (la primera con nombre y «+n» con las demás); a 400 px, como antes', async () => {
+  const { eje, compra } = await ejemploCompra();
+  const niveles = Object.fromEntries(LATERALES.map((pv) => [pv, NIVEL.bloque]));
+  const pc = await arbol({ foco: { X: compra.id, pv: 0 }, niveles }, eje, 'huesped', PC);
+  const h = html(pc);
+  const conVarias = pc.laterales.filter((n) => n.nivel >= NIVEL.tarjeta && n.acciones && n.acciones.total > 1);
+  assert.ok(conVarias.length >= 4, 'hay laterales con varias acciones');
+  assert.equal((h.match(/class="pv-acciones una-linea"/g) ?? []).length, pc.laterales.filter((n) => n.nivel >= NIVEL.tarjeta && n.acciones).length, 'todas las de la rejilla, de una línea');
+  for (const n of conVarias) {
+    const fila = h.match(new RegExp(`<div class="pv-acciones una-linea"[^>]*data-pv-acciones="${n.pv}"[^>]*>(?:<details[^]*?</details>)?<button[^]*?</button></div>`))?.[0] ?? '';
+    assert.ok(fila, 'la fila del ' + n.pv);
+    const todas = [...n.acciones.nombradas, ...n.acciones.resto];
+    // Fuera de «+n», una sola con nombre: la primera del árbol (la destacada o la por defecto); dentro, las demás.
+    const fuera = fila.replace(/<details[^]*<\/details>/, '');
+    assert.equal((fuera.match(/data-lanzar=/g) ?? []).length, 1, 'una con nombre en el ' + n.pv);
+    assert.ok(fuera.includes(`data-lanzar="${todas[0].id}"`), 'la primera del árbol en el ' + n.pv);
+    assert.match(fila, new RegExp(`<summary[^>]*>[+]${todas.length - 1}</summary>`), '«+n» con las demás en el ' + n.pv);
+  }
+  // A 400 px (Sequenced), nada de esto: ni filas abiertas ni hilos llevan la clase.
+  const movil = await arbol({ foco: { X: compra.id, pv: 0 }, niveles: { 1: NIVEL.bloque, 2: NIVEL.bloque } }, eje, 'huesped', { ancho: 400, alto: 860 });
+  assert.ok(movil.apilada);
+  assert.doesNotMatch(html(movil), /una-linea/);
+});
+
+test('el CSS de la fila de una línea: no pasa de una línea, la primera se recorta y «+n» no encoge', () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  assert.match(css, /\.pv-acciones\.una-linea\{[^}]*flex-direction:row-reverse[^}]*flex-wrap:wrap[^}]*max-height:34px[^}]*overflow:hidden/);
+  assert.match(css, /\.pv-acciones\.una-linea>\.accion\{[^}]*text-overflow:ellipsis/);
+  assert.match(css, /\.pv-acciones\.una-linea>\.pv-acciones-mas\{flex:none\}/);
 });

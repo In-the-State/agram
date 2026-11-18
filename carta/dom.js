@@ -1414,7 +1414,7 @@ function htmlLateral(n, arbol, { enFila = false } = {}) {
   const dato = `<span class="dato" title="${attr(n.comprimido.que ?? '')}">${escapar(n.comprimido.dato)}${n.comprimido.de ? `<small>/${escapar(n.comprimido.de)}</small>` : ''}</span>`;
   // El vacío que ya dice «escribir aquí · <acción>» la lanza él mismo (abre el formulario) y la cabecera no la repite.
   const escribe = n.vacio && n.escribir?.id ? n.escribir.id : null;
-  const cabeza = `<header class="pv-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.medida ? htmlMedida(n.medida) : dato}${enFila ? '' : htmlInterrogante(n.sitio)}${htmlAccionesDeCabecera(n.acciones, { sin: escribe })}</header>`;
+  const cabeza = `<header class="pv-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.medida ? htmlMedida(n.medida) : dato}${enFila ? '' : htmlInterrogante(n.sitio)}${htmlAccionesDeCabecera(n.acciones, { sin: escribe, unaLinea: !arbol?.apilada && !enFila })}</header>`;
   let cuerpo = '';
   if (n.nivel === NIVEL.comprimido) cuerpo = `<div class="comprimido" title="${attr(n.etiqueta)}: ${attr(n.ayuda ?? '')}"><span class="numero">${n.pv}</span>${dato}${htmlAccionesDeCabecera(n.acciones, { marca: true })}</div>`;
   else {
@@ -1645,8 +1645,14 @@ const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" cla
  * el sitio. En comprimido, solo la marca con cuántas hay (`marca`); la fila cerrada de Sequenced (conDestacada) lleva además la
  * destacada si es de su punto de vista. Nunca valores ni escribir directo: todo abre el formulario. `sin`: el id de una
  * acción que el punto de vista ya enseña como botón (el vacío «escribir aquí · …»).
+ *
+ * `unaLinea` (Mapped, un punto de vista en la rejilla con otros, no el enfocado): la fila ocupa como mucho una línea, la
+ * primera con nombre (la destacada o la por defecto, recortada con «…» si es larga) y «+n» con las demás; si ni eso cabe,
+ * solo «+n» (la primera queda en el aro y a pantalla completa). Lo decide el CSS por el ancho (.pv-acciones.una-linea). El
+ * contenido manda sobre los botones. Supuesto de Core por confirmar con VG (18-11), reversible: quitar `unaLinea` en
+ * htmlLateral lo deja como antes.
  */
-export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false, sin = null } = {}) {
+export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false, sin = null, unaLinea = false } = {}) {
   if (!a || !a.total) return '';
   const X = a.X;
   // La ficha de una acción con algo suyo en la bandeja lleva la marca de pendiente (A33).
@@ -1661,6 +1667,13 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
   // Si la que ya enseña el punto de vista («escribir aquí · …») iba con nombre, ocupa su sitio la siguiente.
   while (nombradas.length < a.nombradas.length && resto.length) nombradas.push(resto.shift());
   if (!nombradas.length && !resto.length) return '';
+  if (unaLinea) {
+    // Una línea: la primera con nombre y «+n» con las demás (en el DOM, «+n» va antes: el CSS la pinta detrás y, si la
+    // primera no cabe, la manda a una segunda línea que no se ve).
+    const [primera, ...otras] = [...nombradas, ...resto];
+    const masUna = otras.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${otras.length}</summary><div class="pv-acciones-desplegadas">${otras.map(boton).join('')}</div></details>` : '';
+    return `<div class="pv-acciones una-linea"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${masUna}${boton(primera)}</div>${htmlTiraDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;
+  }
   const mas = resto.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${resto.length}</summary><div class="pv-acciones-desplegadas">${resto.map(boton).join('')}</div></details>` : '';
   // Bajo la cabecera, lo compuesto en este sitio y aún en la bandeja (A33: «lo compuesto se ve donde se compuso»).
   return `<div class="pv-acciones"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${nombradas.map(boton).join('')}${mas}</div>${htmlTiraDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;

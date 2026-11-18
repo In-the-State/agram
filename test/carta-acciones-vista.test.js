@@ -52,8 +52,8 @@ test('cuántas van con nombre lo dice una sola tabla: comprimido 0 (la marca con
   // En el HTML: dentro de la cabecera, y el «+n» con el resto.
   const h = html(a);
   // Dentro de UNA cabecera: entre su <header> y su </header>, sin saltar a la siguiente.
-  assert.match(h, /<header class="pv-cabeza">(?:(?!<\/header>)[^])*<div class="pv-acciones"(?:(?!<\/header>)[^])*<\/header>/, 'las acciones van dentro de la cabecera');
-  for (const cab of h.match(/<header class="pv-cabeza">(?:(?!<\/header>)[^])*<\/header>/g) ?? []) assert.ok((cab.match(/class="pv-acciones"/g) ?? []).length <= 1, 'una sola fila de acciones por cabecera');
+  assert.match(h, /<header class="pv-cabeza">(?:(?!<\/header>)[^])*<div class="pv-acciones(?: una-linea)?"(?:(?!<\/header>)[^])*<\/header>/, 'las acciones van dentro de la cabecera');
+  for (const cab of h.match(/<header class="pv-cabeza">(?:(?!<\/header>)[^])*<\/header>/g) ?? []) assert.ok((cab.match(/class="pv-acciones(?: una-linea)?"/g) ?? []).length <= 1, 'una sola fila de acciones por cabecera');
   assert.ok(h.includes('class="pv-acciones-mas"'));
 });
 
@@ -88,7 +88,7 @@ test('la cabecera no lleva valores ni escribe directo: los valores a un toque so
     const a = await arbol({ foco: { X, pv: 0 }, niveles }, eje, 'huesped', m);
     const h = html(a);
     assert.ok(!h.includes('data-opcion'), 'sin aro abierto, ningún valor a un toque');
-    for (const bloque of h.match(/<div class="pv-acciones"[^]*?<\/div>/g) ?? []) assert.ok(!bloque.includes('data-campo') && !bloque.includes('data-nuevo'), 'nada que escriba directo');
+    for (const bloque of h.match(/<div class="pv-acciones(?: una-linea)?"[^]*?<\/div>/g) ?? []) assert.ok(!bloque.includes('data-campo') && !bloque.includes('data-nuevo'), 'nada que escriba directo');
   }
   // Con el aro abierto, sus valores siguen ahí.
   const conAro = await arbol({ foco: { X: compra.id, pv: 0 }, aro: { X: compra.id, pv: null } }, eje, 'huesped', PC);

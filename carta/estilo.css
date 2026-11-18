@@ -1093,6 +1093,13 @@ html.mapped body{padding:0}
 .pv-acciones-mas{display:inline-block;max-width:100%}
 .pv-acciones-mas>summary{cursor:pointer;list-style:none;padding:2px 10px;border:1px dashed var(--rule);border-radius:999px;font-size:13px}
 .pv-acciones-mas>summary::-webkit-details-marker{display:none}
+/* Mapped, un punto de vista en la rejilla (no el enfocado): la fila de acciones ocupa como mucho una línea, la primera
+   con nombre (recortada con «…» si no cabe entera) y «+n»; si ni eso cabe, la primera pasa a una segunda línea que no se
+   ve y queda solo «+n». En el DOM «+n» va antes; el orden inverso la pinta detrás. El contenido manda sobre los botones.
+   Supuesto de Core por confirmar con VG (18-11), reversible. */
+.pv-acciones.una-linea{flex-direction:row-reverse;flex-wrap:wrap;justify-content:flex-end;align-content:flex-start;max-height:34px;overflow:hidden}
+.pv-acciones.una-linea>.accion{flex:1 1 4em;max-width:max-content;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.pv-acciones.una-linea>.pv-acciones-mas{flex:none}
 /* El «+n» abierto: una lista flotante por encima de todo, pegada a su botón y dentro de la pantalla (dom.js
    situarDesplegadas la coloca); no empuja ni recorta nada. Tocar fuera o Escape la cierran (gestos.js, app.js). */
 .pv-acciones-mas[open]>summary{background:var(--panel2);border-style:solid}
