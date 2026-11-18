@@ -837,3 +837,23 @@ Lo demás no cambia: reserva 3 356, habitación 2 320, Tasks 5 498, menú 1 583,
 - **Medido contra la fórmula de antes** en esos 186 registros: las mismas filas. La única diferencia de diseño es que un nombre repetido en el tutorial da un solo paso.
 - **`camino` ya no calla:** si la lectura no se resuelve, devuelve `estado`, `subtipo` y `motivo`.
 - **Pruebas:** `test/epoca-state.test.js` entera (43 de 43) y las diez `sim-stateark-*`, de una en una, en verde.
+
+Después, un registro sin tutorial ya no paga la pasada: la lista de nombres se guarda primero, y las acciones y las reglas solo se recorren si hay algún nombre. Comparado con la fórmula anterior en los mismos 186 registros, salen las mismas filas. Costes de X.9.8 con `node test/medida-camino.mjs` (sin memoria / con memoria la primera vez):
+
+| Lectura | Sin memoria | Con memoria, la primera vez |
+|---|---|---|
+| Booking, reserva | 3 328 | 1 324 |
+| Booking, habitación | 2 292 | 944 |
+| Booking, alta de la casa | 3 509 | 3 179 |
+| Tasks, tarea | 6 245 | 3 250 |
+| Compra ×60, menú | 1 555 | 535 |
+| Compra ×60, alta de la huésped | 2 535 | 2 533 |
+| Compra ×60, génesis | 2 569 | 2 567 |
+| Compra ×60, última compra | 966 | 558 |
+
+Las altas bajan mucho (la de la huésped, de 4 275 a 2 535) y nada crece con el libro. El máximo es la tarea de Tasks: 6 245 sin memoria, un 38 % de holgura sobre los 10 000. Su tipo trae tutorial y paga la pasada por las acciones y las reglas.
+
+**7. La compra del ejemplo no se acaba: es el ejemplo, no el camino.** En la composición de la carta (`carta/ejemplos.js`: compra, cuenta, jardín y parque, fábrica, futuro), `ejemploJardinYParque` deja a la huésped sin R:casa. La devuelve dos veces y quema una: de 3 a 0. Después, `ejemploFabrica` (`ejemplos/ikisai/compra-food.mjs:280`) anuncia que la huésped devolverá 1 R:casa a la casa («atender»). El camino propone bien: es ella quien lo debe y «deliver» se le ofrece. Pero no puede, y el libro lo rechaza: «saldo insuficiente de R:casa en huesped». Con la compra y la fábrica solas, sin el jardín, `autoejecutar` llega al final.
+
+- **En el ejemplo habría que hacer una de estas tres cosas** (no lo he cambiado; está abierta la decisión de VG): que la casa le dé a la huésped una R:casa más antes del anuncio «atender» de `ejemploFabrica`; que el jardín y el parque gasten una menos; o que «atender» se anuncie solo si la huésped tiene R:casa.
+- **En el camino, una mejora posible:** probar en seco los pasos míos (como ya se hace con las sugerencias), para que uno que no puede pasar diga por qué antes de lanzarlo. Cuesta una validación por paso. No la he hecho.
