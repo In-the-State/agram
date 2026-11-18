@@ -2383,7 +2383,7 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
       const control = c.opciones
         ? `<select id="${id}" name="${attr(c.nombre)}">${c.opciones.map((o) => `<option value="${attr(o)}" ${o === valor ? 'selected' : ''}>${escapar(o)}</option>`).join('')}</select>`
         : `<input id="${id}" name="${attr(c.nombre)}" type="text" value="${attr(valor)}" required autocomplete="${c.nombre === 'nombre' ? 'name' : 'off'}" placeholder="${attr((c.marcador ?? []).join(' · '))}" title="${attr(c.ayuda ?? '')}">`;
-      return `<div class="campo"><label for="${id}">${escapar(c.etiqueta)} <small class="numero">${c.pv}</small></label>${control}<small class="ayuda">${escapar(c.ayuda ?? '')}</small></div>`;
+      return `<div class="campo"><label for="${id}">${escapar(c.etiqueta)}</label>${control}<small class="ayuda">${escapar(c.ayuda ?? '')}</small></div>`;
     }).join('');
     // Un libro nuevo con mi clave (A24, §4.2): el mismo formulario; la clave es la del libro abierto.
     const titulo = ar.conMiClave ? t('libroNuevoConMiClave') : ar.conClave ? t('personaNueva') : t('crearMiCuenta');

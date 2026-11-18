@@ -102,3 +102,31 @@ test('3. ni los ejemplos de la regla corta como marcador (notas en español de q
     assert.deepEqual(marcadores.filter((m) => ejemplos.includes(m)), [], idioma);
   }
 });
+
+// ---------- segunda revisión en pantalla (19-11) ----------
+
+test('6. el formulario de crear la cuenta no pone el número del campo junto a la etiqueta («tu nombre 0»)', async () => {
+  const { htmlArranque } = await import('../carta/dom.js');
+  const h = htmlArranque({ modo: 'crear', campos: Q.camposDelAlta(ES), valores: {}, motivos: [] });
+  assert.match(h, /<label for="alta-nombre">tu nombre<\/label>/);
+  assert.doesNotMatch(h, /<small class="numero">/);
+});
+
+test('7. lo escrito desde el aro se dice como la bandeja, sin ids; un hueco es solo {nombre}', () => {
+  for (const idioma of ['es', 'en']) {
+    for (const clave of ['escrito', 'creado', 'registrado']) {
+      const texto = t(clave, { texto: 'hola', accion: 'escribir', id: '005f221a', pv: 0, X: '41efda6f' }, idioma);
+      assert.doesNotMatch(texto, /005f221a|41efda6f/, clave + ' ' + idioma);
+    }
+  }
+  assert.equal(t('escrito', { texto: 'hola' }), 'Registrado: escribir «hola»');
+  // El JSON de un texto no es un hueco: se queda tal cual.
+  assert.match(t('externaNoJson'), /\{ "propuestas": \[\.\.\.\] \}/);
+  assert.match(t('externaNoJson', {}, 'en'), /\{ "propuestas": \[\.\.\.\] \}/);
+});
+
+test('8. las ayudas propias de la carta sin números de posición («el 4», «el 9 de mi alta», «en su 2»)', () => {
+  for (const clave of ['segundoFactorAyuda', 'segundoFactorNinguno', 'ajustesGuiaExteriorTitulo', 'aroNuevoTitulo', 'aroCrearNombreTitulo', 'sitioCero', 'sitioCeroDe', 'personaTitulo', 'personaCae', 'cajaFuera', 'volverAl0', 'opinarPv']) {
+    for (const idioma of ['es', 'en']) assert.doesNotMatch(t(clave, { que: 'X', n: 2, pv: 3 }, idioma), /\b(el|al|del|su|en su) \d\b|\b\d\.\d\b|\bPV\b/, clave + ' ' + idioma);
+  }
+});

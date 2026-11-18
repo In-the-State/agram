@@ -324,7 +324,7 @@ test('#87 el aro sobre un hueco dice en llano qué crea y dónde, y ofrece solo 
   assert.ok(marco, 'el aro del hueco');
   assert.ok(marco.includes(`<b>crear algo aquí</b><small class="aro-donde">${dondeTres}, sobre Alta de huesped</small>`));
   assert.match(marco, /placeholder="el nombre de lo que creas"/, 'el nombre va en el 0 de lo que se crea');
-  assert.ok(marco.includes(`el nombre es el 0 de lo que se crea (${dondeTres})`));
+  assert.ok(marco.includes(`el nombre de lo que se crea (${dondeTres})`), 'sin «el 0»');
   assert.match(marco, /o créalo con/);
   // lo ofrecido sale del núcleo: las acciones del sitio que escriben ahí (su 5), no las plantillas de datos
   const ancla = (nombre) => String(A.plantillasDeTransaccion({ epoca: EPOCA_0_BTML }).find((p) => A.nombreDeAccion(p.plantilla) === nombre || p.nombre === nombre).plantilla[5][0]);
