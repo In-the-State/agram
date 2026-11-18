@@ -636,7 +636,8 @@ export class ContextoEje {
     // Un payload terminal (una hoja: el 0 del registro, como lo lee contrato.representaciones) es la décupla cuyo 0 es esa
     // hoja. Antes se devolvía la hoja suelta, y un texto que coincidía con una identidad del libro se recorría como ella:
     // (payload(X)).2 de un alta con el 0 «ana» de la identidad «ana» era su criterio, una décupla (Core AGRAM 18-11).
-    return { k: 'dec', id: null, camino: [], v: Array.isArray(p) ? p : [p] };
+    // Se escribe como su hoja (texto): «23», no «[23]»; quien lee el registro entero ve lo que su autor escribió.
+    return Array.isArray(p) ? { k: 'dec', id: null, camino: [], v: p } : { k: 'dec', id: null, camino: [], v: [p], hoja: true };
   }
 
   /** El valor de un nodo: el id de un registro (o de la candidata, si lo tiene); una décupla no tiene. */
@@ -661,7 +662,7 @@ export class ContextoEje {
       case 'epoch': return 'epoch';
       case 'memo': return 'memo';
       case 'before': return 'before';
-      case 'dec': return JSON.stringify(nodo.v);
+      case 'dec': return nodo.hoja ? String(nodo.v[0]) : JSON.stringify(nodo.v);
       case 'mov': return primitivaDe(nodo.m) + ' ' + nodo.m.cantidad + ' ' + claveToken(nodo.m) + ' (' + (nodo.m.de ?? 'nadie') + ' → ' + (nodo.m.a ?? 'nadie') + ')';
       case 'asiento': return PRIMITIVA_DEL_LIBRO[nodo.a.primitiva] + ' ' + nodo.a.cantidad + ' ' + nodo.a.serie + ' (' + (nodo.a.de ?? 'nadie') + ' → ' + (nodo.a.a ?? 'nadie') + ')';
       case 'que': return nodo.v.primitiva;
