@@ -1,6 +1,10 @@
 [
   "P is repositioned one step at a time: P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P (up a tenth, down a tenth more, or sideways to another view of the same record without loss), keeping its origin",
   "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P that a holder has locked behind it in each view and the share the author of the record has put in each (0 the same share, 1 nothing in common)",
+  "what is put behind something is released by withdrawing it: what is put behind something is released by withdrawing it: {first ev.3} releases P put behind a record of another without withdrawing its support from it",
+  "backing of what is closed stays a cycle: backing of what is closed stays a cycle: {first ev.3} releases P put behind a closed record of another before a cycle has passed since it was put there",
+  "backing: backing: all the P that others have locked behind a record, in a view of it or not, read without asking its author",
+  "backing of a person: backing of a person: the sum of all the P that others have locked behind the records the person wrote",
   "template distance from the author: distance from the author",
   "template I put my P behind this: I put my P behind this",
   "template I put my P behind this param power label: P series",

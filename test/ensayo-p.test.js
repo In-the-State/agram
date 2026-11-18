@@ -43,14 +43,14 @@ test('la época de ensayo de P se genera desde su fuente, al día, hereda de la 
   const g = generar();
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: node datos/epocas/ensayo-p/generar.mjs`);
-  assert.deepEqual(g.reglas.map((r) => r.nombre), ['distance', 'P is repositioned one step at a time']);
+  assert.deepEqual(g.reglas.map((r) => r.nombre), ['backing of a person', 'backing of what is closed stays a cycle', 'backing', 'distance', 'P is repositioned one step at a time', 'what is put behind something is released by withdrawing it']);
   assert.deepEqual(g.plantillas.map((p) => [p.nombre, p.ocho]), [['I put my P behind this', [2, 10]]]);
   assert.equal(EPOCA_0_BTML.id, ID_DE_LA_0, 'la 0 no cambia');
   assert.equal(g.hereda, ID_DE_LA_0);
   const e = cargarEpocaEscrita(epocaEnsayoP());
   assert.equal(e.id, g.id);
   assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 1, '«I put my P behind this» se suma a las de la 0');
-  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 1, 'la de los pasos sustituye a la de la 0 y la lectura «distance» se suma: una más');
+  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 5, 'la de los pasos sustituye a la de la 0; se suman «distance», las dos de la P puesta detrás de algo y las dos lecturas «backing»: cinco más');
   assert.deepEqual(sinTraducir('es', { epoca: e }).map((x) => x.clave), []);
   const fuentes = readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => readFileSync(join('src', f), 'utf8'));
   assert.ok(!fuentes.some((s) => /(from|import)\s*\(?\s*['"][^'"]*(epocas\/ensayo-p|ensayo-p-0)/.test(s)), 'la época no viaja con el núcleo (#115)');
@@ -64,6 +64,7 @@ test('las etiquetas de P son diez, de dígito 0 a 9, y el paso lateral es [1] si
   const mia = e.registro[1][1][4];
   const de0 = EPOCA_0_BTML.registro[1][1][4];
   assert.deepEqual(mia[4], [1]);
+  assert.deepEqual(mia[5], [2419200], 'el ciclo, 28 días en segundos, en el 1.1.4.5');
   assert.deepEqual(mia.slice(0, 4), de0.slice(0, 4), 'las posiciones 0 a 3, como en la 0');
   assert.deepEqual(mia[2], [0.1, 1.1]);
   assert.equal(EPOCA_0_BTML.registro[1][1][1].length, 5, 'la 0 sigue con sus cinco');

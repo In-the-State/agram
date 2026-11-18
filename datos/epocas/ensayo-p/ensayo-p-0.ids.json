@@ -1,8 +1,23 @@
 {
-  "epoca": "c217b71b44d15d4d23d79ec23d9dad404dcb486733b901d3af5da1d7f2a21cee",
+  "epoca": "9403e2e3bb0623d8cae0b81a9a37753efdf0756c64f9c4e96e6c90161acd3190",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
-  "registrosAlPublicar": 5,
+  "registrosAlPublicar": 9,
   "reglas": [
+    {
+      "nombre": "backing of a person",
+      "archivo": "backing-of-a-person.json",
+      "id": "5e0969e4b274488856369d0ee63533a06d802333f6adff98b01a53e1eda16ac5"
+    },
+    {
+      "nombre": "backing of what is closed stays a cycle",
+      "archivo": "backing-of-what-is-closed-stays-a-cycle.json",
+      "id": "4580278d027e2103f9b4147dcc32f3d6e63be66960b81d127bce681dfe04281e"
+    },
+    {
+      "nombre": "backing",
+      "archivo": "backing.json",
+      "id": "0b9c75122db2ce93d0f2d76c7ff5ba18b12499c9546f307f27b3792d419fb133"
+    },
     {
       "nombre": "distance",
       "archivo": "distance.json",
@@ -12,6 +27,11 @@
       "nombre": "P is repositioned one step at a time",
       "archivo": "p-is-repositioned-one-step-at-a-time.json",
       "id": "23469b2e024e93bc5f3bb6964a288c574ffca6ef88ef3d0dd23eabbe4f48c84f"
+    },
+    {
+      "nombre": "what is put behind something is released by withdrawing it",
+      "archivo": "what-is-put-behind-something-is-released-by-withdrawing-it.json",
+      "id": "a7a64acba7e896fa5e34fb3a91951cf457ab609fb106cd1926e88e13ba292ec9"
     }
   ],
   "plantillas": [

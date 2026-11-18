@@ -1,6 +1,10 @@
 [
   "P is repositioned one step at a time: P se reposiciona de un paso en un paso: {first ev.3} acuña P que no es un paso de su propio P (subir una décima, bajar una décima más o pasar a otro punto de vista del mismo registro sin pérdida), conservando su origen",
   "distance: distancia: la mitad de la suma, sobre los diez puntos de vista de un registro, de la diferencia sin signo entre la proporción de P que tiene detrás de él cada titular en cada uno (comprometido con el registro como salida) y la que pone el autor del registro (0 el mismo reparto, 1 nada en común)",
+  "what is put behind something is released by withdrawing it: lo que se pone detrás de algo se libera retirándolo: {first ev.3} libera P puesta detrás de un registro de otra persona sin retirar su apoyo de él (en un «withdraw support» anclado en ese registro)",
+  "backing of what is closed stays a cycle: el respaldo de lo cerrado se queda un ciclo: {first ev.3} libera P puesta detrás de un registro ajeno que ya estaba cerrado cuando se bloqueó, antes de que pase un ciclo desde el bloqueo",
+  "backing: respaldo: toda la P que otros tienen bloqueada detrás de un registro, en un punto de vista suyo o no, leída sin pedir permiso a su autor",
+  "backing of a person: respaldo de una persona: la suma de toda la P que otros tienen bloqueada detrás de los registros que escribió la persona",
   "template distance from the author: distancia al autor",
   "template I put my P behind this: pongo mi P detrás de esto",
   "template I put my P behind this param power label: serie de P",

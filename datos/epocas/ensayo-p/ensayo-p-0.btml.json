@@ -1,5 +1,5 @@
 {
-  "id": "c217b71b44d15d4d23d79ec23d9dad404dcb486733b901d3af5da1d7f2a21cee",
+  "id": "9403e2e3bb0623d8cae0b81a9a37753efdf0756c64f9c4e96e6c90161acd3190",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
   "raiz": [
     [
@@ -117,16 +117,31 @@
           },
           [
             1
+          ],
+          [
+            2419200
           ]
         ]
       ]
     ],
     [
       {
+        "ref": "5e0969e4b274488856369d0ee63533a06d802333f6adff98b01a53e1eda16ac5"
+      },
+      {
+        "ref": "4580278d027e2103f9b4147dcc32f3d6e63be66960b81d127bce681dfe04281e"
+      },
+      {
+        "ref": "0b9c75122db2ce93d0f2d76c7ff5ba18b12499c9546f307f27b3792d419fb133"
+      },
+      {
         "ref": "4c685b4c086b89a9ec77fe7e55d0a9653e85b452f99836a363773cec7d877135"
       },
       {
         "ref": "23469b2e024e93bc5f3bb6964a288c574ffca6ef88ef3d0dd23eabbe4f48c84f"
+      },
+      {
+        "ref": "a7a64acba7e896fa5e34fb3a91951cf457ab609fb106cd1926e88e13ba292ec9"
       }
     ],
     {
@@ -209,6 +224,10 @@
           [
             "P is repositioned one step at a time: P se reposiciona de un paso en un paso: {first ev.3} acuña P que no es un paso de su propio P (subir una décima, bajar una décima más o pasar a otro punto de vista del mismo registro sin pérdida), conservando su origen",
             "distance: distancia: la mitad de la suma, sobre los diez puntos de vista de un registro, de la diferencia sin signo entre la proporción de P que tiene detrás de él cada titular en cada uno (comprometido con el registro como salida) y la que pone el autor del registro (0 el mismo reparto, 1 nada en común)",
+            "what is put behind something is released by withdrawing it: lo que se pone detrás de algo se libera retirándolo: {first ev.3} libera P puesta detrás de un registro de otra persona sin retirar su apoyo de él (en un «withdraw support» anclado en ese registro)",
+            "backing of what is closed stays a cycle: el respaldo de lo cerrado se queda un ciclo: {first ev.3} libera P puesta detrás de un registro ajeno que ya estaba cerrado cuando se bloqueó, antes de que pase un ciclo desde el bloqueo",
+            "backing: respaldo: toda la P que otros tienen bloqueada detrás de un registro, en un punto de vista suyo o no, leída sin pedir permiso a su autor",
+            "backing of a person: respaldo de una persona: la suma de toda la P que otros tienen bloqueada detrás de los registros que escribió la persona",
             "template distance from the author: distancia al autor",
             "template I put my P behind this: pongo mi P detrás de esto",
             "template I put my P behind this param power label: serie de P",
@@ -232,6 +251,10 @@
           [
             "P is repositioned one step at a time: P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P (up a tenth, down a tenth more, or sideways to another view of the same record without loss), keeping its origin",
             "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P that a holder has locked behind it in each view and the share the author of the record has put in each (0 the same share, 1 nothing in common)",
+            "what is put behind something is released by withdrawing it: what is put behind something is released by withdrawing it: {first ev.3} releases P put behind a record of another without withdrawing its support from it",
+            "backing of what is closed stays a cycle: backing of what is closed stays a cycle: {first ev.3} releases P put behind a closed record of another before a cycle has passed since it was put there",
+            "backing: backing: all the P that others have locked behind a record, in a view of it or not, read without asking its author",
+            "backing of a person: backing of a person: the sum of all the P that others have locked behind the records the person wrote",
             "template distance from the author: distance from the author",
             "template I put my P behind this: I put my P behind this",
             "template I put my P behind this param power label: P series",
@@ -264,6 +287,115 @@
     ]
   ],
   "registros": [
+    [
+      [
+        "backing of a person"
+      ],
+      [
+        "A.2.1",
+        "before.1"
+      ],
+      [
+        "=sum ((before.1 where first it2.3 = first it) each (sum ((it2.2.4 where P in it3.0.0.0 and first it3.3 != first it2.3) each (it3.1))))"
+      ],
+      [
+        "A.2.7"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 18-11, por Core State (ensayo de P; encargo P-3b): el respaldo de una persona es la suma de lo que hay detrás de todos sus registros; no pide permiso a nadie",
+        "Sobre una persona A: la suma, sobre todos los registros que A ha escrito (su 3 es A), de la P que otros (titulares que no son A) tienen bloqueada con ese registro como salida: lo mismo que «backing» da sobre cada registro, sumado. No mira el criterio de A. La P que la propia A ponga detrás de un registro suyo no cuenta; la que ponga detrás de uno ajeno, tampoco (es respaldo de la otra persona)",
+        "Se materializa en A.2.7 (A.2.1 es su P posicionado y A.2.6 el de su origen; el 7 del criterio de una persona no lo usaba nada). Una lectura por persona: su subárbol de registros es todo el libro (before.1), no solo lo colgado de uno"
+      ],
+      [
+        "P rehearsal epoch 0"
+      ],
+      [
+        "after backing"
+      ],
+      [
+        "backing of a person: the sum of all the P that others have locked behind the records the person wrote"
+      ]
+    ],
+    [
+      [
+        "backing of what is closed stays a cycle"
+      ],
+      [
+        "ev.1",
+        "ev.6.0",
+        "epoch.1.1.4.5",
+        "before.1"
+      ],
+      [
+        "=count (ev.1 where P in it.0.0.0 and release in it.4 and count (before.1 where it2 in it.2 and first it2.3 != it.3.0 and not (\"propose a change\" in (payload(it2)).4) and count ((it2.4 where count it3.5 > 0) where (\"close\" in (payload(it3)).4 or \"close by decision\" in (payload(it3)).4 or \"close with error\" in (payload(it3)).4 or \"expire\" in (payload(it3)).4) and (first it3.3 = first it2.3 or first (first it3.3).6.3 = first it2.3) and (first it3.6.0).0 <= last ((moves it.0 where lock in it4.4 and it4.3.0 = it.3.0 and it2 in it4.2) each (first it4.6.0).0)) > 0 and (first ev.6.0).0 < last ((moves it.0 where lock in it3.4 and it3.3.0 = it.3.0 and it2 in it3.2) each (first it3.6.0).0) + first epoch.1.1.4.5) > 0) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "release"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 18-11, por Core State (ensayo de P; encargo P-3b): la P puesta detrás de algo se libera al cierre si lo apoyado está abierto y se queda un ciclo si ya estaba cerrado. El ciclo es un número de la época: epoch.1.1.4.5, en segundos (28 días), la unidad en que el lenguaje lee el tiempo de un registro (D-FECHA, escala 0)",
+        "Si X ya estaba cerrado cuando se bloqueó la P, esa P no se libera hasta que pase un ciclo desde el registro que la bloqueó (el último asiento de bloqueo de esa serie, de ese titular, con X como salida: lo que se añade después empieza otro ciclo). Si X estaba abierto, se retira cuando se quiera, también después de que X se cierre: la regla no pone nada más",
+        "«Cerrado» aquí es: un registro anclado en el 4 de X, escrito por su dueño (o por una cosa suya), que dice «close», «close by decision», «close with error» o «expire» en su 4, con su instante no posterior al del bloqueo. Son los registros que leen las plantillas de cerrado de la época («closed with error», «expired», «closed by decision») y el que escribe «close». NO es la plantilla «all announced movements happened» sola: esa lee cerrado desde que nace a una decisión que no anuncia movimientos (count X.4.8 = 0), y «abierta» tiene que querer decir que nadie la ha cerrado todavía. Coste de esta lectura: un proceso cumplido al que su dueño no ha escrito el «close» se lee abierto, y el criterio que el dueño nombre en su 2.7 no se mira",
+        "El 4 de X lleva también las lecturas implícitas de la época (X.4.8, «stage»), que no son registros y a las que payload() no lee: por eso primero se queda con lo que tiene id (count it.5 > 0, como «weight» distingue lo escrito de lo materializado) y después mira el payload",
+        "Solo cuentan los compromisos de otros y no los de las propuestas de cambio (como en «what is put behind something is released by withdrawing it»)"
+      ],
+      [
+        "P rehearsal epoch 0"
+      ],
+      [
+        "after what is put behind something is released by withdrawing it"
+      ],
+      [
+        "backing of what is closed stays a cycle: {first ev.3} releases P put behind a closed record of another before a cycle has passed since it was put there"
+      ]
+    ],
+    [
+      [
+        "backing"
+      ],
+      [
+        "X.2.4",
+        "X.3"
+      ],
+      [
+        "=sum (((first it.5).2.4 where P in it2.0.0.0 and first it2.3 != first (first it.5).3) each (it2.1))"
+      ],
+      [
+        "X.2.4.4"
+      ],
+      [
+        "read"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 18-11, por Core State (ensayo de P; encargo P-3b): el respaldo de un registro se lee sin pedir permiso a su autor",
+        "Sobre un registro X: toda la P que otros tienen detrás de él, con o sin punto de vista: la suma de lo que cada compromiso con X (una entrada de X.2.4: lo bloqueado con X como salida; 0 la serie, 1 cuánto, 3 el titular, 5 X) tiene en P y cuyo titular no es el autor de X. No mira el criterio del autor (ni su 2.3 ni sus puntos de vista, que es lo que sí mira «weight»): cuenta todo lo bloqueado, esté o no en un punto de vista de X. La P del propio autor no es respaldo («otros»). No hace falta que la salida sea una nota: cuenta la P bloqueada con X como salida, venga de donde venga",
+        "Se materializa en X.2.4.4, junto a «support of» (X.2.4.7), «weight» (X.2.4.8) y «distance» (X.2.4.9): es la lista de compromisos con X y da lo mismo en todos los de X (como «distance» en los de una persona). Un registro sin compromisos de otros no da lectura (nada que leer; el respaldo sería 0). El 4 de una entrada de X.2.4 no lo usaba nada. El respaldo de una persona es otra lectura, «backing of a person» (A.2.7)"
+      ],
+      [
+        "P rehearsal epoch 0"
+      ],
+      [
+        "after distance"
+      ],
+      [
+        "backing: all the P that others have locked behind a record, in a view of it or not, read without asking its author"
+      ]
+    ],
     [
       [
         "distance"
@@ -341,6 +473,42 @@
       ],
       [
         "P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P up (a tenth) or down (a tenth more), from one record to its parent, a child or one of its views, keeping its origin"
+      ]
+    ],
+    [
+      [
+        "what is put behind something is released by withdrawing it"
+      ],
+      [
+        "ev.1",
+        "ev.4",
+        "ev.6.5",
+        "before.1"
+      ],
+      [
+        "=count (ev.1 where P in it.0.0.0 and release in it.4 and count (before.1 where it2 in it.2 and first it2.3 != it.3.0 and not (\"propose a change\" in (payload(it2)).4)) > 0 and not (\"withdraw support\" in ev.4 and first ev.6.5 in it.2)) = 0"
+      ],
+      [
+        "ev.3"
+      ],
+      [
+        "release"
+      ],
+      [
+        "*"
+      ],
+      [
+        "VG 18-11, por Core State (ensayo de P; encargo P-3b): la P puesta detrás de algo (bloqueada con X como salida por alguien que no es el autor de X) solo se libera retirándola: en un registro «withdraw support» anclado en X. Molde: «support is released by withdrawing it», la regla de gobierno, que sigue siendo la de las propuestas de cambio",
+        "«Detrás de X» es toda P bloqueada con X como salida cuyo titular no es el autor de X, cuando X no es una propuesta de cambio de gobierno («propose a change» en su 4): las propuestas siguen con su regla. X tiene que ser un registro del libro (before.1): una salida que no es un registro (un instante, una serie) no cuenta; la salida de un movimiento no se despliega como registro con it2.3, por eso se busca entre los registros del libro el que es una de las salidas del movimiento. «withdraw support» se ofrece y funciona sobre un X corriente tal cual está en la 0: su condición mira los compromisos del 2.4 de X y su movimiento libera lo que el titular tiene con X como salida; no hizo falta una variante"
+      ],
+      [
+        "P rehearsal epoch 0"
+      ],
+      [
+        "after support is released by withdrawing it"
+      ],
+      [
+        "what is put behind something is released by withdrawing it: {first ev.3} releases P put behind a record of another without withdrawing its support from it"
       ]
     ],
     [

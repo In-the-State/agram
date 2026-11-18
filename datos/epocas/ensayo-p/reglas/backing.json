@@ -1,0 +1,16 @@
+[
+  ["backing"],
+  ["X.2.4", "X.3"],
+  ["=sum (((first it.5).2.4 where P in it2.0.0.0 and first it2.3 != first (first it.5).3) each (it2.1))"],
+  ["X.2.4.4"],
+  ["read"],
+  ["*"],
+  [
+    "VG 18-11, por Core State (ensayo de P; encargo P-3b): el respaldo de un registro se lee sin pedir permiso a su autor",
+    "Sobre un registro X: toda la P que otros tienen detrás de él, con o sin punto de vista: la suma de lo que cada compromiso con X (una entrada de X.2.4: lo bloqueado con X como salida; 0 la serie, 1 cuánto, 3 el titular, 5 X) tiene en P y cuyo titular no es el autor de X. No mira el criterio del autor (ni su 2.3 ni sus puntos de vista, que es lo que sí mira «weight»): cuenta todo lo bloqueado, esté o no en un punto de vista de X. La P del propio autor no es respaldo («otros»). No hace falta que la salida sea una nota: cuenta la P bloqueada con X como salida, venga de donde venga",
+    "Se materializa en X.2.4.4, junto a «support of» (X.2.4.7), «weight» (X.2.4.8) y «distance» (X.2.4.9): es la lista de compromisos con X y da lo mismo en todos los de X (como «distance» en los de una persona). Un registro sin compromisos de otros no da lectura (nada que leer; el respaldo sería 0). El 4 de una entrada de X.2.4 no lo usaba nada. El respaldo de una persona es otra lectura, «backing of a person» (A.2.7)"
+  ],
+  ["P rehearsal epoch 0"],
+  ["after distance"],
+  ["backing: all the P that others have locked behind a record, in a view of it or not, read without asking its author"]
+]
