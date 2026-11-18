@@ -24,7 +24,9 @@ import {
 } from '../carta/carta.js';
 import { html } from '../carta/dom.js';
 import * as C from '../src/contrato.js';
-import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
+import { ejemploCompra, ejemploJardinYParque, ejemploFabrica } from '../ejemplos/ikisai/compra-food.mjs';
+import { ejemploCuentaBanco } from '../ejemplos/ikisai/cuenta-banco.mjs';
+import { pagaElCoste } from './ayudas-coste.js';
 import { FOTO } from './ayudas-sitios.mjs';
 import { EPOCA_0_BTML, cargarEpocaBtml, REGISTROS_DE_MODELOS } from '../src/epocas.js';
 import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
@@ -78,6 +80,8 @@ const YA_NO = [
   ['carta.js', 'const zonaDelHilo = (pv) => (GEOMETRIA'],
   ['carta.js', 'Object.keys(GEOMETRIA)'],
   ['app.js', 'GEOMETRIA'], ['app.js', 'CENTROS'], ['app.js', 'LATERALES'], ['dom.js', 'GEOMETRIA'], ['dom.js', 'LATERALES'],
+  // El anverso de la lente, no el dígito 0: los estados iniciales y los irA de app.js.
+  ['app.js', 'pv: 0 }'], ['app.js', 'function irA(X, pv = 0)'], ['app.js', 'irA(X, 0)'], ['app.js', 'irA(otro, 0)'], ['app.js', 'irA(registro, 0)'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
@@ -159,6 +163,10 @@ const HUELLAS = {
   'html · roseton 9 en 3 ordenador': '68aaf7e247a38eb898d1a5d7',
   'html · aro movil': '7baf781e9bf3085770babdef',
   'html · aro ordenador': '3bac2e6c78b714ec67e7a850',
+  'otras · filas con paso: jardín, mapped tope 1': '3a862c50922479056ec3602d',
+  'otras · matriz del 4: celdas cerradas': 'd2fa44ec9fdb2c478056b897',
+  'otras · matriz del 4: la celda 4.4 abierta': 'ad59669ab274ca5680ff0144',
+  'otras · cuenta del banco: quién puede proponer': 'f7d713a497f1c2fad07f8f06',
 };
 
 /** Compara las huellas hechas con las de HUELLAS que empiezan por `prefijo` (cada prueba, las suyas). */
@@ -268,4 +276,37 @@ test('las huellas: el reparto de Mapped, los toques de tamaño y las medidas de 
 
 test('las huellas: el HTML de la carta sobre el ejemplo de la compra no cambia (sobrio, reloj fijo)', async () => {
   comparar('html · ', await huellasDelHtml());
+});
+
+/**
+ * Las vistas que el ejemplo de la compra solo no enseña, una por peso que si no quedaría sin foto: las filas con su
+ * siguiente paso («next steps in rows»: el jardín y el parque dejan un «commit P» completo en el 2, que se ve en la
+ * matriz), las ejecuciones de una celda del 4 cerrada y abierta («executions in cell», «executions in open cell»: la
+ * fábrica con trece movimientos en hacer · T) y quién puede proponer pagos en una cuenta del banco («proposers shown»).
+ */
+async function huellasDeLasOtrasVistas() {
+  const fuera = {};
+  const tope = escalaDeTamanos().tope;
+  const pinta = async (nombre, estado, eje, yo, [ancho, alto]) => { fuera[nombre] = sha(html(await arbol(estado, eje, yo, medidasDePantalla(ancho, alto), { t: T }))); };
+  {
+    const { eje, compra } = await ejemploCompra();
+    await ejemploJardinYParque(eje, { compra });
+    await pinta('filas con paso: jardín, mapped tope 1', { foco: { X: compra.id, pv: 0 }, niveles: { 1: tope }, rosetones: {} }, eje, YO, PANTALLAS.ordenador);
+  }
+  {
+    const { eje, compra, ...c } = await ejemploCompra();
+    await ejemploFabrica(eje, { compra, ...c });
+    for (let k = 0; k < 12; k++) await eje.escribir({ autor: 'huesped', sobre: compra.id, en: '4100000000', t: '2026-11-07T17:' + String(k).padStart(2, '0') + ':00Z', movimientos: [pagaElCoste('huesped')], payload: [['T:hora'], [1], ['servir ' + k], [['huesped'], ['cocina']]] });
+    await pinta('matriz del 4: celdas cerradas', { foco: { X: compra.id, pv: 4 } }, eje, YO, PANTALLAS.grande);
+    await pinta('matriz del 4: la celda 4.4 abierta', { foco: { X: compra.id, pv: 4 }, celdaMatriz: { X: compra.id, celda: '4.4' } }, eje, YO, PANTALLAS.grande);
+  }
+  {
+    const r = await ejemploCuentaBanco();
+    await pinta('cuenta del banco: quién puede proponer', { foco: { X: r.cuenta.id, pv: 0 } }, r.eje, 'ana', PANTALLAS.ordenador);
+  }
+  return fuera;
+}
+
+test('las huellas: las vistas que la compra sola no enseña (filas con paso, la matriz del 4, la cuenta del banco) no cambian', async () => {
+  comparar('otras · ', await huellasDeLasOtrasVistas());
 });

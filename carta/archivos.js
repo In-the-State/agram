@@ -18,6 +18,7 @@
 //     .contenido(id)                       → lo que hay de un archivo en esta pestaña: { estado, tipo, texto?, url? }
 
 import * as contrato from '../src/contrato.js';
+import * as acciones from '../src/acciones.js';
 import { destinoDeArchivos } from '../src/sincronia.js';
 import { referenciaDeArchivo } from '../src/modelos.js';
 import { enviar } from './carta.js';
@@ -123,6 +124,33 @@ export async function subirLosNombrados(archivos, preparados, valores) {
 }
 
 /**
+ * La acción que adjunta a X una representación suya, leída de la época sin nombrarla: la primera (en el orden de la época)
+ * que se ancla en el 0 de X, donde van sus representaciones (contrato.representaciones), y pide un archivo (un parámetro de
+ * faceta «ref», acciones.archivoDe). Sus valores para un archivo: la referencia y el formato en los parámetros de esas
+ * facetas y, en el 1.0 (el tamaño mínimo de la representación), el mayor tamaño de la época (9.5.2: la pantalla).
+ * → { accion (su id), valores } o null si la época no tiene ninguna.
+ */
+export function accionDeRepresentacion(eje, { referencia, formato }, opciones = {}) {
+  const o = acciones.conEpoca(eje, opciones);
+  const mayor = contrato.tamanos(o).at(-1)?.tamano;
+  for (const { id, plantilla } of acciones.plantillasDeTransaccion(o)) {
+    const ancla = Array.isArray(plantilla?.[5]) ? plantilla[5] : [plantilla?.[5]];
+    if (ancla.length !== 1 || ancla[0] !== '0') continue;
+    const parametros = acciones.parametros(plantilla, o);
+    if (!parametros.some((p) => acciones.archivoDe(p) === 'ref')) continue;
+    const valores = {};
+    for (const p of parametros) {
+      const faceta = acciones.archivoDe(p);
+      if (faceta === 'ref') valores[p.nombre] = referencia;
+      else if (faceta === 'format') valores[p.nombre] = formato;
+      else if (p.posicion === '1.0' && mayor !== undefined) valores[p.nombre] = mayor;
+    }
+    return { accion: id, valores };
+  }
+  return null;
+}
+
+/**
  * El HTML básico inicial en el PV0 de una alta (VG 14-11, #84): la plantilla «attach a file» escribe sobre X su
  * representación de tamaño 3 con la referencia `archivo:<sha256>` del HTML de `inicial`; `firmar`, la firma de quien la
  * escribe (o nada). Sirve para una cuenta nueva (cuentas.crearCuenta, con `htmlInicial`) y para una cosa dada de alta.
@@ -133,7 +161,9 @@ export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opc
     const x = await inicial(idioma);
     const formato = formatoDeTipo(x.tipo, opciones);
     if (!formato) return null;
-    const r = await enviar(eje, X, 'attach a file', { file: x.referencia, format: formato, size: 3 }, identidad, firmar, opciones);
+    const a = accionDeRepresentacion(eje, { referencia: x.referencia, formato }, opciones);
+    if (!a) return null;
+    const r = await enviar(eje, X, a.accion, a.valores, identidad, firmar, opciones);
     return r.ok && r.asentado ? r.asentado : null;
   } catch {
     return null;

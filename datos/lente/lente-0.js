@@ -217,10 +217,10 @@ export const LENTE_0_DATOS = {
       "lens"
     ],
     [
-      "how much the card shows and in what order (VG 18-11): the named buttons of a point of view at each size of epoch.9.5.2 and open (a number, or all), in how many rows the next step is looked for, the order of the rosettes and the ones in the top strip of a narrow screen, the order of the rows in Sequenced, the order in which the highlighted action is looked for, how many of each list are shown before «and N more», and what opens at the start. A key that repeats joins its values in order. Read key by key: the person's «lens settings», the epoch of the book, epoch 0"
+      "how much the card shows and in what order (VG 18-11): the named buttons of a point of view at each size of epoch.9.5.2 and open (a number, or all), in how many rows the next step is looked for, the order of the rosettes, the order of the rows in Sequenced, the order in which the highlighted action is looked for, how many of each list are shown before «and N more», and what opens at the start. A key that repeats joins its values in order. Read key by key: the person's «lens settings», the epoch of the book, epoch 0"
     ],
     [
-      "VG 18-11: lo que eran BOTONES_POR_NIVEL, ORDEN_ROSETONES, ARRIBA, el orden de Sequenced y del destacado, CUENTA_PROPONEN_A_LA_VISTA, EJECUCIONES_EN_CELDA, EJECUCIONES_EN_CELDA_ABIERTA, SERIES_EN_EL_PIE y el tutorial del alta nueva, en la carta, con los mismos valores"
+      "VG 18-11: lo que eran BOTONES_POR_NIVEL, ORDEN_ROSETONES, el orden de Sequenced y del destacado, CUENTA_PROPONEN_A_LA_VISTA, EJECUCIONES_EN_CELDA, EJECUCIONES_EN_CELDA_ABIERTA, SERIES_EN_EL_PIE y el tutorial del alta nueva, en la carta, con los mismos valores"
     ],
     [
       "buttons slot",
@@ -238,11 +238,6 @@ export const LENTE_0_DATOS = {
       "rosette order",
       "rosette order",
       "rosette order",
-      "top strip",
-      "top strip",
-      "top strip",
-      "top strip",
-      "top strip",
       "sequenced order",
       "sequenced order",
       "sequenced order",
@@ -286,11 +281,6 @@ export const LENTE_0_DATOS = {
       5,
       8,
       9,
-      1,
-      2,
-      0,
-      3,
-      4,
       0,
       1,
       2,

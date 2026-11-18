@@ -391,7 +391,7 @@ Siete commits, uno por grupo de tablas. Las 43 huellas siguieron iguales en cada
 **Hallazgos:**
 - **Código muerto.** En el móvil (apilado) el árbol trae siempre su secuencia y nunca rosetones; una prueba lo comprueba. Por eso no se pintaban ni las tiras de rosetones del móvil (`ARRIBA`) ni las franjas de la cruz y de la X, y «hermano» sobre un PV no hacía nada. Se han quitado.
   - Las reglas de `estilo.css` que las pintaban (`.rosetones-arriba`, `.rosetones-abajo`, `.franja-cruz`, `.franja-x`) quedan sin uso. No las toco: estilo.css es de otro carril.
-  - La clave «top strip» de 9.5.8 ya no la lee nadie. Que se quite o se quede lo decide VG.
+  - La clave «top strip» de 9.5.8 ya no la lee nadie: se quitó el 20-11 (§10).
 - **La pasada única por la época 0.** La época no admite huecos (`cargarEpocaBtml`: «hueco»). Si entran 9.5.6 y 9.5.8, 9.5.7 tiene que ir lleno, con una nota, como 9.5.3 y 9.5.5.
 - **El anverso como dígito 0 en app.js.** Los estados iniciales de app.js siguen escribiendo el anverso como el dígito 0 (`foco: { pv: 0 }`, `irA(X, 0)`). No era una constante; el paso 2 no lo toca. Hoy da igual, porque el suelo exige que el 0 y el 5 estén en el centro, pero no que el 0 sea el anverso. Si un libro dijera que el 5 es el anverso, el foco empezaría en su reverso.
 
@@ -405,3 +405,36 @@ Siete commits, uno por grupo de tablas. Las 43 huellas siguieron iguales en cada
 - **Las formas (F1):** son de la fila 1.
 - **El suelo del lector:** no puede depender del libro que se lee.
 - **La preferencia de la persona:** sin construir; solo está el hueco.
+
+## 10. Limpieza y deuda de la lente (20-11)
+
+**Hecho:**
+- **Restos muertos, fuera:**
+  - la clave «top strip» del dato de la lente, de su copia generada y del lector (hoy es una clave desconocida);
+  - de estilo.css, las reglas `.rosetones-arriba`, `.rosetones-abajo`, `.franja-cruz`, `.franja-x` y las de `.franja`. Ya no se emiten: lo he comprobado buscando en carta/, src/ y test/.
+- **app.js abre por el anverso de la lente:**
+  - el estado de partida y un libro recién puesto en pantalla usan `anversoDe(eje)`;
+  - `irA`, sin pv, usa el anverso de los sitios del árbol pintado.
+  - Ya no queda el dígito 0.
+- **La foto, con 4 huellas más («otras · …»).** Ya cubre los cuatro pesos que no se veían:
+  - las filas con siguiente paso (el jardín y el parque);
+  - la matriz del 4, cerrada y con la celda 4.4 abierta (la fábrica);
+  - quién puede proponer pagos (la cuenta del banco).
+
+  Cambiando a mano cada uno de esos pesos en el dato, se mueve su huella.
+- **La deuda de nombres baja de 15 a 14:** «attach a file» sale de la carta. La acción que adjunta el HTML inicial se lee de la época: la que se ancla en el 0 y pide un archivo (faceta «ref»). Los valores salen de las facetas y del 1.0 de la representación.
+
+**Lo que queda en NOMBRES_DE_HOY, y qué capacidad general falta** (cada caso pide una decisión de diseño; no lo he tocado):
+
+| Nombres | Dónde | Qué falta |
+|---|---|---|
+| «message in», «message in from an agent», «message out» | carta.js `MENSAJES_QUE_RESERVAN` | «Va antes» como dato de la plantilla: la reserva antes del mensaje. Hoy lo sabe código de la época state (`ayuda.mjs`), que trataría cualquier acción como un mensaje. Se escribe en `datos/epocas/state`, que hoy no se toca |
+| «register a thing» | app.js, tras ejecutar la bandeja | «Va después» como dato: tras registrar una cosa, adjuntar su HTML inicial. Es zona de la bandeja |
+| «move to group» | app.js `reclasificar` (arrastrar una persona entre cajas del 3) | La tabla de gestos como dato: «soltar en una caja es crear ahí lo que la época permita sobre esa persona». La plantilla se ancla en «3.{zone}.3» con la caja como agujero; elegirla por su ancla es la decisión de la tabla de gestos |
+| «second factor» | app.js `configurar` | Que la configuración sea formularios en su punto de vista (la fila 5: las pantallas fijas sobran). Antes, Core AGRAM decide si es suelo: está en «dudosos» de `NUCLEO_Y_ACCIONES.md` |
+| «add a parent», «remove a parent», «set a custody default», «set the kind of owner», «set a group price», «set a minimum», «set a minimum rank» | reglas.js `AJUSTES` | La pantalla fija «Ajustes de este elemento» como formularios en su punto de vista (la fila 5), y una lectura de la época por ajuste para «lo fijado» |
+| «let P come down here» | reglas.js `SI_DEL_DUENO` y su BQL escrito en la carta | Una lectura con nombre en la época, «quién tiene el sí del dueño». La expresión es BQL escrito en la carta porque la época no tiene esa lectura |
+
+`motor.loQueFalta`, `motor.pasosDeLasReglas`, los finales como dato y `cohortes()` no quitan ningún nombre de la carta. Ninguno de los 14 los usa: la carta ya leía el camino y las cohortes del núcleo. Lo que esas capacidades bajan es la deuda del núcleo (`NUCLEO_Y_ACCIONES.md`, clase B), no la de la lente.
+
+Los controles por tipo base del formulario (número, instante, identidad) son dispositivo (fila 3: un control por tipo). Además están en la zona de dom.js de otro carril.

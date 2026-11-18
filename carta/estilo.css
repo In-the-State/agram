@@ -97,9 +97,6 @@ small{color:var(--muted)}
 /* la escena */
 .escena{position:relative;margin:10px 0;min-width:0}
 .carta-apilada .escena{display:flex;flex-direction:column;gap:10px}
-.franja{display:flex;gap:8px;overflow-x:auto;overscroll-behavior-x:contain;scroll-snap-type:x proximity;padding:4px 0;min-width:0;scrollbar-width:thin}
-.franja>.pv{scroll-snap-align:start;flex:0 0 auto}
-.franja>.pv.nivel-3{flex:1 0 100%}
 
 /* un PV lateral */
 .pv{display:flex;flex-direction:column;gap:6px;border:1px solid var(--rule);border-radius:var(--radio);background:var(--panel);padding:6px;min-width:0;text-align:left;transition:flex-basis .15s ease,width .15s ease}
@@ -146,8 +143,7 @@ small{color:var(--muted)}
 .cargar-mas button{width:100%;font-size:13px}
 .pv.nivel-2 .ocupantes{font-size:13px;max-height:calc(var(--tarjeta) - 56px);overflow:hidden}
 
-/* la guía del PV9 (solo lectura): a lo ancho de su franja o de su bloque */
-.franja>.pv:has(.guia){flex:1 0 100%;width:auto;order:-1}
+/* la guía del PV9 (solo lectura): a lo ancho de su bloque */
 .guia{display:flex;flex-direction:column;gap:6px;width:100%;flex-basis:100%;margin-top:8px;padding:8px;border:1px solid var(--rule);border-radius:var(--radio);background:var(--bg);font-size:14px;min-width:0}
 .guia-cabeza{display:flex;flex-wrap:wrap;align-items:baseline;gap:4px 10px}
 .guia-cabeza h4{margin:0;font-size:13px;color:var(--muted);font-weight:600}
@@ -182,8 +178,6 @@ small{color:var(--muted)}
 /* el centro */
 .nucleo{position:relative;border:1px solid var(--accent);border-radius:var(--radio);background:var(--panel);padding:10px;display:grid;gap:8px;min-width:0}
 .carta-apilada .nucleo{order:0}
-.carta-apilada .franja-cruz{order:-1}
-.carta-apilada .franja-x{order:1}
 .nucleo-cabeza{display:flex;gap:8px;align-items:center;font-size:13px;color:var(--muted);min-width:0}
 .nucleo-cabeza .etiqueta{font-weight:600;color:var(--fg)}
 .nucleo-cabeza .madurez{background:var(--panel2);border-radius:999px;padding:1px 8px}
@@ -227,12 +221,10 @@ small{color:var(--muted)}
 .t-fecha{color:color-mix(in oklab,var(--ok) 45%,var(--accent))}
 .t-nombre{color:var(--accent);font-weight:600}
 
-/* los rosetones: diez (uno por PV, el 0 y el 5 en el centro de cada grupo). Apilado, dos tiras pegadas arriba y abajo
-   de la pantalla (arriba el tetraedro de la X: 1 2 0 3 4; abajo la cruz: 6 7 5 8 9); en la matriz, una barra fija */
+/* los rosetones: diez (uno por PV, el 0 y el 5 en el centro de cada grupo), cada uno en su esquina o lateral de la matriz
+   (Mapped); apilado (Sequenced) el árbol no los trae */
 .rosetones{display:flex;gap:6px;justify-content:center;align-items:flex-start;margin:0;padding:6px 0;overflow-x:auto;scrollbar-width:none}
 .rosetones::-webkit-scrollbar{display:none}
-.rosetones-arriba{position:sticky;top:0;z-index:5;background:var(--bg);border-bottom:1px solid var(--rule)}
-.rosetones-abajo{position:sticky;bottom:0;z-index:5;background:var(--bg);border-top:1px solid var(--rule);padding-bottom:max(6px,env(safe-area-inset-bottom,0px))}
 .roseton{flex:0 0 auto;width:var(--hueco);height:var(--hueco);padding:2px;border-radius:50%;display:inline-flex;flex-direction:column;align-items:center;justify-content:center;position:relative;line-height:1;font-size:14px;font-weight:600;font-variant-numeric:tabular-nums}
 .roseton .numero{position:absolute;top:4px;left:50%;transform:translateX(-50%);font-size:9px}
 .roseton.grupo-nucleo{width:40px;height:40px;align-self:center}
