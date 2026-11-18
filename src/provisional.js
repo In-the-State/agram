@@ -9,14 +9,19 @@
 //   TIPOS_PROVISIONALES     los tipos de parámetro (datos/provisional/tipos.json), con el molde de un parámetro: irán a
 //                           epoch.9.2.0.3
 //   LECTURAS_PROVISIONALES  las lecturas (datos/provisional/lecturas.json), con el molde de una regla de la época: irán a
-//                           su 2. Hoy, «what is missing» en X.4.9 (NUCLEO_6_7_8 §6). El contexto (src/contexto-eje.js) las
-//                           materializa donde la época no tenga una lectura del mismo nombre
+//                           su 2 (NUCLEO_6_7_8 §6). El contexto (src/contexto-eje.js) las materializa donde la época no
+//                           tenga una lectura del mismo nombre. Hoy, «what is missing» en X.4.9 y «path steps» en X.9.8
+//   FINALES_PROVISIONALES   los finales de un proceso que no son «cumplido» (datos/provisional/finales.json): por cada
+//                           plantilla de cerrado de epoch.9.0.1, 1 el fin que da motor.cerrado, 2 la acción que escribe el
+//                           registro que lo cierra y 3 si se lee antes («before») o después («after») de la del dueño. Irán
+//                           a esas mismas posiciones de las filas de epoch.9.0.1.1
 //
 // Se borra de un golpe en la pasada única: este archivo, datos/provisional/ y los import de este módulo (src/tipos.js,
 // src/contexto-eje.js y src/motor.js). Un JSON por clase y no una carpeta de archivos: así su copia es una.
 
 import { TIPOS_PROVISIONALES_DATOS as TIPOS } from '../datos/provisional/tipos.js';
 import { LECTURAS_PROVISIONALES_DATOS as LECTURAS } from '../datos/provisional/lecturas.js';
+import { FINALES_PROVISIONALES_DATOS as FINALES } from '../datos/provisional/finales.js';
 
 /** Una copia congelada en profundidad: lo provisional no lo cambia nadie al leerlo. */
 function congelada(x) {
@@ -29,3 +34,6 @@ export const TIPOS_PROVISIONALES = congelada(Array.isArray(TIPOS) ? TIPOS : []);
 
 /** Las lecturas provisionales: décuplas con el molde de una regla de la época que lee (read en su 4, dónde se materializa en su 3). */
 export const LECTURAS_PROVISIONALES = congelada(Array.isArray(LECTURAS) ? LECTURAS : []);
+
+/** Los finales de un proceso que no son «cumplido»: [[plantilla de cerrado], [fin], [acción que lo escribe], [before | after], [procedencia]]. */
+export const FINALES_PROVISIONALES = congelada(Array.isArray(FINALES) ? FINALES : []);

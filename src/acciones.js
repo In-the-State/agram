@@ -55,8 +55,7 @@ import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
 import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
-import { recuento, cerrado as cerradoDe, loQueFalta } from './motor.js';
-import { pendientes as peticionesPendientes } from './lente.js';
+import { recuento, cerrado as cerradoDe, pasosDeLasReglas } from './motor.js';
 import { resolverTipo, valeElValor } from './tipos.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
@@ -80,7 +79,6 @@ const SITIO = Object.freeze({
   estaciones: [4, 2], // [[familia], [qué se hace], [la plantilla que cumple un movimiento anunciado]]
   estacionesDelAnuncio: [4, 3], // [[nombre], [lo que la comprueba: una fórmula con it = el anuncio, o epoch.9.0.0]] (VG 12-11, decisión 8)
   identidad: [3, 0], // la plantilla de identidad: su 9 es el tutorial del alta
-  dia: [7, 0, 3, 1], // los segundos de un día del calendario
   revisiones: [9, 0, 4, 1], // las lecturas de revisión del modo de ejecución: [[nombre], [fórmula]] (VG 12-11, #71.1)
 });
 const en = (raiz, camino) => camino.reduce((n, d) => (Array.isArray(n) ? n[d] : undefined), raiz);
@@ -1706,11 +1704,15 @@ export async function camino(eje, X, yo, opciones = {}) {
   const estacionDe = new Map(estacionesDeLaEpoca(opciones).map((e) => [e.familia, e]));
   // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) no pide pasos: lo anunciado que quedó pendiente ya no se espera.
   const sinPasos = ['error', 'caducado', 'decidido'].includes(cerradoDe(eje, ev.id).fin);
-  // Lo que falta lo dice la lectura de la época en X.4.9 (motor.loQueFalta; Core AGRAM 18-11, NUCLEO_6_7_8 §6): sus filas
-  // nombran los anuncios pendientes, por llegada, y la acción de quien tiene que actuar en cada uno.
-  // Con opciones.memoria (una MemoriaDeLectura de quien llama: el contrato, la carta por fila), como lectura de pantalla.
-  const filas = sinPasos ? [] : loQueFalta(eje, ev.id, { memoria: opciones.memoria }).filas;
-  const pendientes = [...new Set(filas.filter((f) => typeof f.sobre === 'string' && f.sobre !== ev.id).map((f) => f.sobre))].map((id) => eje.obtener(id)).filter(Boolean);
+  // Lo que piden las reglas lo dice la lectura de la época en X.9.8 (motor.pasosDeLasReglas; Core AGRAM 18-11,
+  // NUCLEO_6_7_8 §6), con la época de este camino y su reloj (las caducidades): las filas de X.4.9 (los anuncios
+  // pendientes, por llegada, y el recuento que no pasa), las peticiones de atención y las caducidades próximas, cada una con
+  // quién tiene que actuar y la acción que lo cumple. Un proceso terminado no da filas de X.4.9. Con opciones.memoria (una
+  // MemoriaDeLectura de quien llama: el contrato, la carta por fila), como lectura de pantalla.
+  const todas = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria }).filas;
+  const filas = sinPasos ? todas.filter((f) => f.porque === 'attended' || f.porque === 'expiry') : todas;
+  const deLaFabrica = filas.filter((f) => f.porque !== 'attended' && f.porque !== 'expiry');
+  const pendientes = [...new Set(deLaFabrica.filter((f) => typeof f.sobre === 'string' && f.sobre !== ev.id).map((f) => f.sobre))].map((id) => eje.obtener(id)).filter(Boolean);
   for (const anuncio of pendientes) {
     const a = anuncioDe(anuncio);
     if (!a) continue;
@@ -1723,7 +1725,7 @@ export async function camino(eje, X, yo, opciones = {}) {
       // época («legible announced movement»); sin destino resuelto (a: null), sin «a» (repaso beta #2: nunca «→ null»).
       const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ? a.que + ': ' : '') + ms.map((m) => movimientoLegible(eje, m, idioma, opciones)).join('; ');
       // La acción, la que dice la fila de quien mueve; si ya no le falta nada de ese anuncio, la de la estación de su familia.
-      const accion = filas.find((f) => f.sobre === anuncio.id && f.de.includes(de))?.accion ?? estacionDe.get(partirClave(ms[0].serie).token)?.plantilla;
+      const accion = deLaFabrica.find((f) => f.sobre === anuncio.id && f.de.includes(de))?.accion ?? estacionDe.get(partirClave(ms[0].serie).token)?.plantilla;
       if (de === yo && accion) {
         const paso = mio(accion, { announcement: { ref: anuncio.id } });
         if (paso) { pasos.push({ fuente: 'reglas', regla: 'stage', ...paso, falta: que, hecho: false, espera: null, anuncio: anuncio.id }); continue; }
@@ -1732,7 +1734,7 @@ export async function camino(eje, X, yo, opciones = {}) {
     }
   }
   // El recuento del dueño que no pasa: su fila de X.4.9 (sobre X), con la acción que lo cumple.
-  const delRecuento = filas.find((f) => f.sobre === ev.id);
+  const delRecuento = deLaFabrica.find((f) => f.sobre === ev.id);
   if (!sinPasos && delRecuento) {
     const c = recuento(eje, ev.id);
     if (c.pasa === false) {
@@ -1743,27 +1745,20 @@ export async function camino(eje, X, yo, opciones = {}) {
       if (ofrecida) { const paso = mio(nombre); if (paso) pasos.push({ fuente: 'reglas', regla: 'weight', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'weight', falta: que, hacer: null, espera: ev.autor, hecho: false });
     }
   }
-  // Las peticiones de atención sin atender: si X es un alta, las de su dueño.
-  if (esAlta) {
-    for (const id of peticionesPendientes(eje, ev.autor)) {
-      const peticion = eje.obtener(id);
-      if (!peticion) continue;
-      const que = (mensaje(eje, 'attended', idioma, opciones) ?? 'attended') + ' · ' + String(peticion.payload?.[0] ?? peticion.payload);
-      if (ev.autor === yo) { const paso = mio('attend', {}, peticion); if (paso) pasos.push({ fuente: 'reglas', regla: 'attended', ...paso, falta: que, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'attended', falta: que, hacer: null, espera: ev.autor, hecho: false, peticion: id });
-    }
+  // Las peticiones de atención sin atender (si X es un alta, las de su dueño) y las caducidades próximas: sus filas de X.9.8,
+  // con quién tiene que actuar y la acción que lo cumple (la de los datos: el núcleo no la nombra).
+  for (const f of filas.filter((x) => x.porque === 'attended')) {
+    const peticion = eje.obtener(f.sobre);
+    if (!peticion) continue;
+    const que = (mensaje(eje, 'attended', idioma, opciones) ?? 'attended') + ' · ' + String(peticion.payload?.[0] ?? peticion.payload);
+    const quien = f.de[0] ?? ev.autor;
+    if (quien === yo && f.accion) { const paso = mio(f.accion, f.parametros, peticion); if (paso) pasos.push({ fuente: 'reglas', regla: 'attended', ...paso, falta: que, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'attended', falta: que, hacer: null, espera: quien, hecho: false, peticion: peticion.id });
   }
-  // Las caducidades próximas: las series vivas del subárbol (X.7.1) que caducan antes de un día del calendario.
-  const dia = Number(hoja(en(raiz, SITIO.dia))) || 86400;
-  const reloj = Date.parse(t);
-  const vivas = valores('("' + ev.id + '").7.1 each 0', ctx).valores ?? [];
-  const caducan = valores('("' + ev.id + '").7.1 each 7', ctx).valores ?? [];
-  vivas.forEach((clave, i) => {
-    const caduca = caducan[i];
-    if (typeof caduca !== 'string' || !(Date.parse(caduca) <= reloj + dia * 1000)) return;
-    const emisor = partirClave(clave).emisor;
-    const que = clave + ' expires at ' + caduca;
-    if (emisor === yo) { const paso = mio('expire something mine', { series: clave }); if (paso) pasos.push({ fuente: 'reglas', regla: 'E is tied to a record that exists', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', falta: que, hacer: null, espera: emisor, hecho: false });
-  });
+  for (const f of filas.filter((x) => x.porque === 'expiry')) {
+    const que = f.serie + ' expires at ' + f.para;
+    const emisor = f.de[0] ?? null;
+    if (emisor === yo && f.accion) { const paso = mio(f.accion, f.parametros); if (paso) pasos.push({ fuente: 'reglas', regla: 'E is tied to a record that exists', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', falta: que, hacer: null, espera: emisor, hecho: false });
+  }
 
   // (3) Las sugerencias: un gancho sin LLM aquí; cada una pasa por las mismas reglas.
   if (typeof opciones.sugerencias === 'function') {

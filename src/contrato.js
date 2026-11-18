@@ -2273,15 +2273,20 @@ const ALCANCE_DE_COHORTE = Object.freeze({ siblings: 'hermanos', project: 'proye
 const transaccionPorNombre = (epoca, nombre) => (Array.isArray(epoca?.transacciones) ? epoca.transacciones : []).map((x) => x.plantilla).find((p) => texto(hoja(p?.[0])) === nombre) ?? null;
 const parametroPorEtiqueta = (p, etiqueta) => hojas(p?.[1]).filter(Array.isArray).find((x) => texto(hoja(x[0])) === etiqueta) ?? null;
 
+/** El tipo de parámetro que enumera las cohortes (Core AGRAM 18-11, NUCLEO_6_7_8 §7: un tipo declarado, src/tipos.js). */
+const TIPO_COHORTE = 'cohort';
+
 /**
- * Las cohortes que la época admite (encargo «datos3»): los valores que la validación del parámetro «cohort» de «change
- * cohort» enumera (la misma lista que da opciones() a su formulario), cada uno con la cohorte de las bases que lee y su
- * texto en el idioma («legible cohort <valor>» de epoch.9.4): [{ valor, alcance, texto }].
+ * Las cohortes que la época admite (encargo «datos3»): los valores que enumera la validación del tipo de parámetro
+ * «cohort» (Core AGRAM 18-11: un tipo declarado por la época, hasta la pasada única el provisional; ya no el parámetro de
+ * una acción por su nombre), cada uno con la cohorte de las bases que lee y su texto en el idioma («legible cohort
+ * <valor>» de epoch.9.4): [{ valor, alcance, texto }]. De su cadena cuenta la última validación que enumera.
  */
 export function cohortes(opciones = {}) {
   const epoca = epocaDe(opciones);
-  const param = parametroPorEtiqueta(transaccionPorNombre(epoca, CAMBIAR_COHORTE.plantilla), CAMBIAR_COHORTE.parametro);
-  const valores = valoresDeValidacion(texto(ultima(param?.[2]))) ?? [];
+  const tipo = resolverTipo([TIPO_COHORTE], { epoca });
+  const enumeradas = (tipo.error ? [] : tipo.validaciones).map((v) => valoresDeValidacion(v.formula)).filter(Boolean);
+  const valores = enumeradas[enumeradas.length - 1] ?? [];
   return valores.filter((v) => Object.hasOwn(ALCANCE_DE_COHORTE, v)).map((v) => ({ valor: v, alcance: ALCANCE_DE_COHORTE[v], texto: texto_(null, CLAVE.legible('cohort ' + v), opciones.idioma ?? 'en', { original: v, epoca }) }));
 }
 
