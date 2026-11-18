@@ -1,0 +1,83 @@
+[
+  ["I put my P behind this"],
+  [
+    [
+      ["power"],
+      ["text"],
+      ["=count before.4.(it) > 0"],
+      ["me"],
+      ["payload"],
+      ["1.0"],
+      ["ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"],
+      ["required"],
+      [1],
+      [
+        "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and last (path it where first it3.3 = first it.3) in path (first it2.0.0.1)) each 0)",
+        "the P series put behind it: P of mine in the domain of X, usually in a view of a note of mine hanging from X"
+      ]
+    ],
+    [
+      ["amount"],
+      ["number"],
+      ["=it > 0"],
+      ["me"],
+      ["payload"],
+      ["1.1"],
+      ["ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"],
+      ["required"],
+      [2],
+      [
+        "=first ((me.1 where P in it2.0.0.0 and it2.1 > 0 and last (path it where first it3.3 = first it.3) in path (first it2.0.0.1)) each 1)",
+        "how much P is locked with X as the exit"
+      ]
+    ],
+    [
+      ["criteria"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["2"],
+      ["ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"],
+      ["required"],
+      [3],
+      ["=first epoch.9.0.1.2", "the closing template of the record"]
+    ],
+    [
+      ["actions"],
+      ["text"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["4"],
+      ["ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"],
+      ["required"],
+      [4],
+      ["I put my P behind this", "the action"]
+    ],
+    [
+      ["who"],
+      ["identity"],
+      ["any"],
+      ["me"],
+      ["payload"],
+      ["3"],
+      ["ensayo de P (VG 18-11, por Core State): parámetro de «I put my P behind this»"],
+      ["required"],
+      [5],
+      ["=me", "who writes"]
+    ]
+  ],
+  ["=first it.3 != me and not (\"open a private book here\" in (payload(it)).4 or \"this book hangs from\" in (payload(it)).4) and (count (me.1 where P in it2.0.0.0 and it2.1 > 0 and last (path it where first it3.3 = first it.3) in path (first it2.0.0.1)) > 0)"],
+  [["me"], ["person"]],
+  ["=lock first memo.1.1 before.4.(first memo.1.0) from me exit it"],
+  ["2.1"],
+  [
+    "VG 18-11 (por Core State; encargo P-3a): poner P detrás de algo no pide permiso a su autor. Quien no es el autor de X tiene su P en algo suyo dentro del dominio de X (una nota suya colgada de X), lo reparte entre los puntos de vista de SU nota (que es suya) y lo COMPROMETE con X: lo bloquea en su mano con X como salida, igual que «commit P». Su P nunca aterriza en X, así que la regla «P comes down to a thing of another with its owner's yes» no entra en juego. La lectura «distance» lee ese P comprometido (X.2.4.9)",
+    "Molde de «commit P» (época 0, [2, 1]) sin la mirada del voto (aquí no se vota una decisión: no hay nada que decir de mirada; el payload no admite un hueco en el 2, y ahí va, como en «withdraw support», el criterio de cierre por defecto) y con otra condición para ofrecerse: solo sobre un registro de otra persona (el 3 de X no soy yo) y, como allí, no sobre un enlace entre libros («only a send locks for another book»). Parámetros: la serie (por defecto, una mía con P en el dominio de X) y cuánto. Mueve lo mismo que «commit P»: bloquea esa cantidad en mi mano con X como salida; no cambia el titular ni el origen de nada",
+    "[2, 10]: en el punto de vista 2, junto a «commit P» ([2, 1]), detrás de «attach art to this element» ([2, 9]) y antes de «let P come down here» ([2, 12])"
+  ],
+  ["P rehearsal epoch 0"],
+  [2, 10],
+  ["I put my P behind this: {me} puts {first ev.1.1} P behind {first it.0}"]
+]

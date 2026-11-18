@@ -1,0 +1,15 @@
+[
+  ["what is put behind something is released by withdrawing it"],
+  ["ev.1", "ev.4", "ev.6.5", "before.1"],
+  ["=count (ev.1 where P in it.0.0.0 and release in it.4 and count (before.1 where it2 in it.2 and first it2.3 != it.3.0 and not (\"propose a change\" in (payload(it2)).4)) > 0 and not (\"withdraw support\" in ev.4 and first ev.6.5 in it.2)) = 0"],
+  ["ev.3"],
+  ["release"],
+  ["*"],
+  [
+    "VG 18-11, por Core State (ensayo de P; encargo P-3b): la P puesta detrás de algo (bloqueada con X como salida por alguien que no es el autor de X) solo se libera retirándola: en un registro «withdraw support» anclado en X. Molde: «support is released by withdrawing it», la regla de gobierno, que sigue siendo la de las propuestas de cambio",
+    "«Detrás de X» es toda P bloqueada con X como salida cuyo titular no es el autor de X, cuando X no es una propuesta de cambio de gobierno («propose a change» en su 4): las propuestas siguen con su regla. X tiene que ser un registro del libro (before.1): una salida que no es un registro (un instante, una serie) no cuenta; la salida de un movimiento no se despliega como registro con it2.3, por eso se busca entre los registros del libro el que es una de las salidas del movimiento. «withdraw support» se ofrece y funciona sobre un X corriente tal cual está en la 0: su condición mira los compromisos del 2.4 de X y su movimiento libera lo que el titular tiene con X como salida; no hizo falta una variante"
+  ],
+  ["P rehearsal epoch 0"],
+  ["after support is released by withdrawing it"],
+  ["what is put behind something is released by withdrawing it: {first ev.3} releases P put behind a record of another without withdrawing its support from it"]
+]

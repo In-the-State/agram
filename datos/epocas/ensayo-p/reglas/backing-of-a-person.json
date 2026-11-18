@@ -1,0 +1,16 @@
+[
+  ["backing of a person"],
+  ["A.2.1", "before.1"],
+  ["=sum ((before.1 where first it2.3 = first it) each (sum ((it2.2.4 where P in it3.0.0.0 and first it3.3 != first it2.3) each (it3.1))))"],
+  ["A.2.7"],
+  ["read"],
+  ["*"],
+  [
+    "VG 18-11, por Core State (ensayo de P; encargo P-3b): el respaldo de una persona es la suma de lo que hay detrás de todos sus registros; no pide permiso a nadie",
+    "Sobre una persona A: la suma, sobre todos los registros que A ha escrito (su 3 es A), de la P que otros (titulares que no son A) tienen bloqueada con ese registro como salida: lo mismo que «backing» da sobre cada registro, sumado. No mira el criterio de A. La P que la propia A ponga detrás de un registro suyo no cuenta; la que ponga detrás de uno ajeno, tampoco (es respaldo de la otra persona)",
+    "Se materializa en A.2.7 (A.2.1 es su P posicionado y A.2.6 el de su origen; el 7 del criterio de una persona no lo usaba nada). Una lectura por persona: su subárbol de registros es todo el libro (before.1), no solo lo colgado de uno"
+  ],
+  ["P rehearsal epoch 0"],
+  ["after backing"],
+  ["backing of a person: the sum of all the P that others have locked behind the records the person wrote"]
+]

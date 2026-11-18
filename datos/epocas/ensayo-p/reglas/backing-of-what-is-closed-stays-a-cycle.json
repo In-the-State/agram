@@ -1,0 +1,18 @@
+[
+  ["backing of what is closed stays a cycle"],
+  ["ev.1", "ev.6.0", "epoch.1.1.4.5", "before.1"],
+  ["=count (ev.1 where P in it.0.0.0 and release in it.4 and count (before.1 where it2 in it.2 and first it2.3 != it.3.0 and not (\"propose a change\" in (payload(it2)).4) and count ((it2.4 where count it3.5 > 0) where (\"close\" in (payload(it3)).4 or \"close by decision\" in (payload(it3)).4 or \"close with error\" in (payload(it3)).4 or \"expire\" in (payload(it3)).4) and (first it3.3 = first it2.3 or first (first it3.3).6.3 = first it2.3) and (first it3.6.0).0 <= last ((moves it.0 where lock in it4.4 and it4.3.0 = it.3.0 and it2 in it4.2) each (first it4.6.0).0)) > 0 and (first ev.6.0).0 < last ((moves it.0 where lock in it3.4 and it3.3.0 = it.3.0 and it2 in it3.2) each (first it3.6.0).0) + first epoch.1.1.4.5) > 0) = 0"],
+  ["ev.3"],
+  ["release"],
+  ["*"],
+  [
+    "VG 18-11, por Core State (ensayo de P; encargo P-3b): la P puesta detrás de algo se libera al cierre si lo apoyado está abierto y se queda un ciclo si ya estaba cerrado. El ciclo es un número de la época: epoch.1.1.4.5, en segundos (28 días), la unidad en que el lenguaje lee el tiempo de un registro (D-FECHA, escala 0)",
+    "Si X ya estaba cerrado cuando se bloqueó la P, esa P no se libera hasta que pase un ciclo desde el registro que la bloqueó (el último asiento de bloqueo de esa serie, de ese titular, con X como salida: lo que se añade después empieza otro ciclo). Si X estaba abierto, se retira cuando se quiera, también después de que X se cierre: la regla no pone nada más",
+    "«Cerrado» aquí es: un registro anclado en el 4 de X, escrito por su dueño (o por una cosa suya), que dice «close», «close by decision», «close with error» o «expire» en su 4, con su instante no posterior al del bloqueo. Son los registros que leen las plantillas de cerrado de la época («closed with error», «expired», «closed by decision») y el que escribe «close». NO es la plantilla «all announced movements happened» sola: esa lee cerrado desde que nace a una decisión que no anuncia movimientos (count X.4.8 = 0), y «abierta» tiene que querer decir que nadie la ha cerrado todavía. Coste de esta lectura: un proceso cumplido al que su dueño no ha escrito el «close» se lee abierto, y el criterio que el dueño nombre en su 2.7 no se mira",
+    "El 4 de X lleva también las lecturas implícitas de la época (X.4.8, «stage»), que no son registros y a las que payload() no lee: por eso primero se queda con lo que tiene id (count it.5 > 0, como «weight» distingue lo escrito de lo materializado) y después mira el payload",
+    "Solo cuentan los compromisos de otros y no los de las propuestas de cambio (como en «what is put behind something is released by withdrawing it»)"
+  ],
+  ["P rehearsal epoch 0"],
+  ["after what is put behind something is released by withdrawing it"],
+  ["backing of what is closed stays a cycle: {first ev.3} releases P put behind a closed record of another before a cycle has passed since it was put there"]
+]

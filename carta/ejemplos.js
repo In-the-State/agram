@@ -1,4 +1,4 @@
-// Los ejemplos de la carta: comida (compra del menú), reserva (Booking), tarea (Tasks), cuenta (la cuenta del banco) o firmeza (lo pedido y las estaciones de firmeza), dominios con datos
+// Los ejemplos de la carta: comida (compra del menú), reserva (Booking), tarea (Tasks), cuenta (la cuenta del banco) firmeza (lo pedido y las estaciones de firmeza) o criterio (el criterio de P, época de ensayo), dominios con datos
 // inventados sobre el mismo núcleo (mudado de la web antigua, antigua/ui/ejemplos.js, al retirarla: #113). Cada ejemplo
 // vive en su módulo de ejemplos/ikisai y se carga al elegirlo, con import() dinámico: si el módulo no está en el
 // repositorio (o un ejemplo nuevo lleva `pr`: llega con esa PR), se avisa y se sigue con la comida; nada se rompe. Cada
@@ -74,6 +74,19 @@ export const EJEMPLOS = Object.freeze([
     identidad: 'ana',
     async crear(m, claves) {
       const { eje, foco } = await m.ejemploFirmeza({ claves });
+      return { eje, foco };
+    },
+  },
+  {
+    // El criterio de P (época de ensayo, VG 18-11): banco de pruebas, no escaparate. erin tiene su nota sin respaldar:
+    // en su punto de vista 2 se le ofrece «I back this with my criterion».
+    id: 'criterio',
+    etiqueta: 'criterio',
+    modulo: '../ejemplos/ensayo-p/criterio.mjs',
+    identidades: ['ana', 'bea', 'cai', 'dani', 'erin'],
+    identidad: 'erin',
+    async crear(m, claves) {
+      const { eje, foco } = await m.ejemploCriterio({ claves });
       return { eje, foco };
     },
   },
