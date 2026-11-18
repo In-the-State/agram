@@ -111,6 +111,20 @@ const UMBRAL_ARRASTRE = 24;
  * de arrastrar un elemento y soltarlo sobre el centro (#23).
  * Devuelve una función que quita los ganchos.
  */
+/**
+ * Lo que va al input de un parámetro al elegir una opción de su desplegable (pura): un instante («2026-11-30T12:00:00Z»)
+ * en un input de fecha (datetime-local) va sin la «Z» (y sin los segundos si son cero), que es lo único que ese input
+ * admite; el instante exacto de la opción va aparte, como crudo (JSON), para que se firme ese y no el redondeado. Lo
+ * demás, tal cual y sin crudo. → { valor, crudo? }
+ */
+export function valorElegidoParaInput(valor, tipoInput) {
+  const v = String(valor ?? '');
+  const m = tipoInput === 'datetime-local' ? /^(\d{4}-\d{2}-\d{2}T\d{2}:\d{2})(:\d{2}(?:\.\d{1,3})?)?(?:Z|[+-]00:?00)$/.exec(v) : null;
+  if (!m) return { valor: v };
+  const segundos = m[2] && !/^:00(?:\.0+)?$/.test(m[2]) ? m[2] : '';
+  return { valor: m[1] + segundos, crudo: JSON.stringify(v) };
+}
+
 export function instalar(raiz, m) {
   const quitar = [];
   const on = (tipo, fn, opciones, donde = raiz) => {
@@ -615,7 +629,14 @@ export function instalar(raiz, m) {
       if (!input) return;
       const otro = t.selectedOptions?.[0]?.hasAttribute?.('data-otro') ?? false;
       input.hidden = !otro;
-      input.value = otro ? '' : t.value;
+      if (otro) input.value = '';
+      else {
+        // Un instante elegido de la lista va al input de fecha en su forma (sin «Z»: si no, el navegador lo deja vacío) y
+        // su valor exacto, el de la opción, como el crudo que se firma (lo lee la app si no se toca: data-crudo, data-legible).
+        const v = valorElegidoParaInput(t.value, input.type);
+        input.value = v.valor;
+        if (v.crudo !== undefined) { input.dataset.crudo = v.crudo; input.dataset.legible = input.value; }
+      }
       if (otro) input.focus?.();
       else { const form = t.closest?.('[data-formulario]'); if (form) m.cambioFormulario?.(form); } // la bandeja: el valor elegido ya es un cambio
       return;
