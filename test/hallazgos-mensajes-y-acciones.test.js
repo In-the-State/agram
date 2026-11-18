@@ -5,7 +5,8 @@
 //    from: la posición está vacía»: falta el cupo del otro lado (una reserva que nombre a quien escribe, llena), que
 //    antesDelMensaje no puede poner porque es R de otro. Con él, entran. El motivo es un PENDIENTE crudo del 4 de la
 //    plantilla, no el de la regla.
-// 2. antesDelMensaje y formulario llamados sin `epoca` con el id de una acción de un libro cuya época no es la 0.
+// 2. Las funciones de la carta que reciben el eje toman su época por defecto (antesDelMensaje y formulario con el id de
+//    una acción de un libro cuya época no es la 0; los retoques y las propuestas de fuera, igual).
 // 3. «issue E tied to X» en el punto de vista 1 de la compra del ejemplo de la carta.
 
 import { test } from 'node:test';
@@ -15,7 +16,10 @@ import * as A from '../src/acciones.js';
 import { firmar, firmarPosesion } from '../src/autoridad.js';
 import { quemaDelCoste } from '../src/escritura.js';
 import { registrosParaUnMensaje, cupo, RESERVA } from '../datos/epocas/state/ayuda.mjs';
-import { antesDelMensaje, formulario } from '../carta/carta.js';
+import { antesDelMensaje, formulario, comprobarRetoque, textoDeNacimiento } from '../carta/carta.js';
+import { evaluar as evaluarPropuesta } from '../carta/externa.js';
+import { ajustesDelElemento, reglasDelLibro } from '../carta/reglas.js';
+import { EPOCA_0_BTML } from '../src/epocas.js';
 import * as compraFood from '../ejemplos/ikisai/compra-food.mjs';
 import { EJEMPLOS } from '../carta/ejemplos.js';
 import { generarClaves } from '../src/autoridad.js';
@@ -79,31 +83,54 @@ test('1. sin cupo, el motivo debería ser el de la regla (quién escribe un mens
   assert.doesNotMatch(r.motivos.join(' '), /PENDIENTE/);
 });
 
-test('2. antesDelMensaje y formulario sin `epoca`, con el id de la acción (lo que pasa la carta), en un libro de la época state', { todo: true }, async () => {
-  const { eje, ids } = await ejemploNodo();
+/** El nodo de ejemplo (época state), construido una vez para las pruebas del 2. */
+let nodo;
+const elNodo = async () => (nodo ??= await ejemploNodo());
+
+test('2. carta.js: formulario y antesDelMensaje sin `epoca`, con el id de la acción (lo que pasa la carta), leen la época del libro', async () => {
+  const { eje, ids } = await elNodo();
   const epoca = eje.epoca();
   const id = A.plantillasDeTransaccion({ epoca }).find((p) => p.nombre === 'message in').id;
+  assert.equal(A.plantillaDeTransaccion(id), null, 'la 0 no la trae: sin el eje, plantillaDeTransaccion no puede saberlo');
   const valores = { channel: 'house', text: 'otra pregunta' };
-  // Con la época, la reserva va delante y el formulario existe.
+  // En la conversación de Telegram la persona de la casa no tiene reserva: antesDelMensaje la pone delante.
   const conEpoca = await antesDelMensaje(eje, ids.conversacionTelegram, id, valores, N.personaCasa, { epoca });
-  assert.ok(formulario(eje, ids.conversacionCasa, id, N.personaCasa, valores, { epoca }));
-  // Sin ella, lo mismo: el defecto debería ser la época del eje.
+  assert.deepEqual(conEpoca.registros.map((r) => r.plantilla), [RESERVA]);
   assert.deepEqual(await antesDelMensaje(eje, ids.conversacionTelegram, id, valores, N.personaCasa, {}), conEpoca);
-  assert.ok(formulario(eje, ids.conversacionCasa, id, N.personaCasa, valores));
+  assert.deepEqual(await antesDelMensaje(eje, ids.conversacionTelegram, id, valores, N.personaCasa, { idioma: 'es' }), await antesDelMensaje(eje, ids.conversacionTelegram, id, valores, N.personaCasa, { idioma: 'es', epoca }));
+  const f = formulario(eje, ids.conversacionCasa, id, N.personaCasa, valores);
+  assert.ok(f, 'sin opciones, como lo llama la app');
+  assert.deepEqual(f, formulario(eje, ids.conversacionCasa, id, N.personaCasa, valores, { epoca }));
+  // Lo que se pasa explícito manda: con la 0, la acción no existe.
+  assert.equal(formulario(eje, ids.conversacionCasa, id, N.personaCasa, valores, { epoca: EPOCA_0_BTML }), null);
 });
 
-test('2. hoy: sin `epoca`, por nombre lo encuentra solo antesDelMensaje (cae al nombre); por id, ninguno', async () => {
-  const { eje, ids } = await ejemploNodo();
+test('2. carta.js: los retoques de un texto que solo trae la época del libro (comprobarRetoque, sin `epoca`)', async () => {
+  const { eje } = await elNodo();
   const epoca = eje.epoca();
-  const id = A.plantillasDeTransaccion({ epoca }).find((p) => p.nombre === 'message in').id;
-  assert.equal(A.plantillaDeTransaccion(id), null, 'sin época, la 0: no la trae');
-  assert.ok(A.plantillaDeTransaccion(id, { epoca }));
-  // En la conversación de Telegram la persona de la casa no tiene reserva: con la época, antesDelMensaje la pone delante.
-  const porId = await antesDelMensaje(eje, ids.conversacionTelegram, id, { channel: 'house', text: 'x' }, N.personaCasa, {});
-  const porIdConEpoca = await antesDelMensaje(eje, ids.conversacionTelegram, id, { channel: 'house', text: 'x' }, N.personaCasa, { epoca });
-  assert.deepEqual(porId.registros, [], 'por id y sin época no reconoce el mensaje: no pone la reserva delante');
-  assert.deepEqual(porIdConEpoca.registros.map((r) => r.plantilla), [RESERVA]);
-  assert.equal(formulario(eje, ids.conversacionCasa, id, N.personaCasa), null);
+  const yo = eje.obtener(eje.genesisId).autor; // el titular: el autor del génesis retoca
+  const clave = 'template message in';
+  assert.notEqual(textoDeNacimiento(clave, 'es', { epoca }), null, 'la clave es de la época state');
+  assert.equal(textoDeNacimiento(clave, 'es'), null, 'y la 0 no la tiene');
+  const pedido = { clave, idioma: 'es', texto: 'Mensaje que entra' };
+  assert.deepEqual(comprobarRetoque(eje, yo, pedido), comprobarRetoque(eje, yo, pedido, { epoca }));
+});
+
+test('2. externa.js: una propuesta que nombra una acción de la época del libro se evalúa sin `epoca`', async () => {
+  const { eje, ids } = await elNodo();
+  const epoca = eje.epoca();
+  const propuesta = { id: 'p1', accion: 'message in', sobre: ids.conversacionCasa, parametros: { channel: 'house', text: 'hola' }, porque: 'prueba' };
+  const sin = evaluarPropuesta(eje, N.personaCasa, propuesta);
+  assert.deepEqual(sin, evaluarPropuesta(eje, N.personaCasa, propuesta, { epoca }));
+  assert.doesNotMatch(String(sin.motivo ?? ''), /desconocid|unknown/i);
+});
+
+test('2. reglas.js: sin `epoca` da lo mismo que con la del libro (sus acciones son de la 0: aquí no cambia nada visible)', async () => {
+  const { eje, ids } = await elNodo();
+  const epoca = eje.epoca();
+  const yo = eje.obtener(eje.genesisId).autor;
+  assert.deepEqual(ajustesDelElemento(eje, ids.nodo, N.operador), ajustesDelElemento(eje, ids.nodo, N.operador, { epoca }));
+  assert.deepEqual(reglasDelLibro(eje, yo), reglasDelLibro(eje, yo, { epoca }));
 });
 
 test('3. «issue E tied to X»: el núcleo la ofrece en el PV 1 a quien tiene P sobre X entero (o su mirada 1)', async () => {

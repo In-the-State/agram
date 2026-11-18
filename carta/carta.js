@@ -1273,6 +1273,7 @@ function opcionesDeParametro(eje, X, p, en, yo, o) {
  * formulario (su nombre) y en cada campo ({ etiqueta, ayuda }), cada una { clave, idioma } o null (claveLeida).
  */
 export function formulario(eje, X, accion, yo, valores = {}, { retocar = false, ...opciones } = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const plantilla = acciones.plantillaDeTransaccion(accion, opciones);
   if (!plantilla) return null;
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
@@ -1446,6 +1447,7 @@ async function ayudaDeCanales() {
  * → { registros: [{ plantilla, X, valores, coste }], sinAyuda? (no se pudo cargar la ayuda) }.
  */
 export async function antesDelMensaje(eje, X, accion, valores, yo, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const p = acciones.plantillaDeTransaccion(accion, opciones);
   const nombre = p ? acciones.nombreDeAccion(p) : String(accion);
   if (!MENSAJES_QUE_RESERVAN.includes(nombre)) return { registros: [] };
@@ -1568,6 +1570,7 @@ const textoParaEscribir = (texto) => (texto.startsWith('=') ? '=' + texto : text
  * carta (textos.js retoqueDeLaCartaNoVale, que además no admite los signos de marcado).
  */
 export function comprobarRetoque(eje, yo, { clave, idioma, texto = null } = {}, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   if (!contrato.puedeRetocar(eje, yo)) return t('retoqueNoPuede');
   const nacimiento = textoDeNacimiento(clave, idioma, opciones);
   if (nacimiento === null || typeof idioma !== 'string' || !idioma) return t('retoqueNoExiste');
@@ -1596,6 +1599,7 @@ export function comprobarRetoque(eje, yo, { clave, idioma, texto = null } = {}, 
  * acciones.ejecucion, la misma cuenta que el formulario de cualquier acción). → el nodo, o null si yo no puede retocar.
  */
 export function retoqueDeTexto(eje, yo, { clave, idioma = null, texto = null, aviso = null, motivos = [] } = {}, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   if (typeof clave !== 'string' || !clave || !contrato.puedeRetocar(eje, yo)) return null;
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
   const en = typeof idioma === 'string' && idioma ? idioma : o.idioma;
@@ -1621,6 +1625,7 @@ export function retoqueDeTexto(eje, yo, { clave, idioma = null, texto = null, av
  * (`asentado`, `motivos` en llano) más `aviso` (lo que no se escribió por la comprobación, o null).
  */
 export async function guardarRetoque(eje, yo, { clave, idioma, texto = null } = {}, firmar, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const aviso = comprobarRetoque(eje, yo, { clave, idioma, texto }, opciones);
   if (aviso) return { ok: false, asentado: null, motivos: [], aviso };
   const p = plantillaDeRetoque(opciones);
@@ -1669,6 +1674,7 @@ export function plantillaDePreferencias(opciones = {}) {
  * o null si no tengo alta o la época no tiene la plantilla.
  */
 export function segundoFactorDeConfiguracion(eje, yo, opciones = {}) {
+  opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const alta = yo ? eje?.alta(yo)?.id : null;
   if (!alta) return null;
   const f = formulario(eje, alta, acciones.SEGUNDO_FACTOR.criterio, yo, {}, opciones);

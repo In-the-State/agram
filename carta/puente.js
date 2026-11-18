@@ -64,6 +64,7 @@ const familiasDelPuente = (eje) => [].concat(eje?.epoca?.()?.registro?.[8]?.[9]?
 
 /** ¿Se ofrece `nombre` sobre X a `yo`? (el 2 de su plantilla en el punto de vista de su 8; RP4 para enviar y traer). */
 function ofrecida(eje, X, nombre, yo, o = {}) {
+  o = acciones.conEpoca(eje, o); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const p = acciones.plantillaDeTransaccion(nombre, o);
   if (!p || !yo || !X) return false;
   try {

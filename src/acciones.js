@@ -71,7 +71,7 @@ const PLANTILLAS_POR_UN_ENLACE = Object.freeze(['send to another book', 'bring a
  */
 const epocaDe = (opciones, eje) => opciones?.epoca ?? (eje ? epocaDelEje(eje) : EPOCA_0_BTML);
 /** Las opciones con la época del eje, si no traen una (lo que pasa una entrada con eje a las que no lo tienen). */
-const conEpoca = (eje, opciones) => (opciones?.epoca || typeof eje?.epoca !== 'function' || eje.epoca() === EPOCA_0_BTML ? opciones : { ...opciones, epoca: eje.epoca() });
+export const conEpoca = (eje, opciones) => (opciones?.epoca || typeof eje?.epoca !== 'function' || eje.epoca() === EPOCA_0_BTML ? opciones : { ...opciones, epoca: eje.epoca() });
 const raizDe = (epoca) => (Array.isArray(epoca) ? epoca : epoca.registro ?? epoca.payload);
 /** Dónde pone la época lo que este módulo lee. */
 const SITIO = Object.freeze({
