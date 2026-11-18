@@ -47,6 +47,17 @@ export function etiquetaDeParametro(eje, accion, nombre, { idioma } = {}) {
   return contrato.texto(eje, contrato.claves.parametro(acciones.nombreDeAccion(p), nombre, 'label'), idioma, { original: delNucleo, ...(epoca ? { epoca } : {}) }) ?? delNucleo;
 }
 
+/**
+ * Lo que de verdad le falta a una acción para estar completa: los parámetros que su formulario, sin nada escrito, da por
+ * que faltan (requeridos sin valor ni defecto; los que tienen defecto los pone el núcleo al componer). `campos`: los de
+ * carta.formulario(eje, X, accion, yo, {}). → sus nombres.
+ */
+export const queFaltan = (campos) => (campos ?? []).filter((c) => c.falta).map((c) => c.nombre);
+
+/** ¿Está completa una entrada? Lo escrito se lee sin fallos y cada uno de los que faltaban (queFaltan) tiene ya valor. */
+export const estaCompleta = (valores, faltaban, motivos = []) => (motivos ?? []).length === 0
+  && (faltaban ?? []).every((n) => valores?.[n] !== undefined && valores[n] !== null && valores[n] !== '');
+
 /** El motivo de un item en una línea llana: «falta por rellenar: …» o los mensajes (ya en llano) unidos. */
 function motivoDe(x, llano, etiqueta = (n) => n) {
   if (x.entra) return null;

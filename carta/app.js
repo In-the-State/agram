@@ -49,7 +49,7 @@ import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
 import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja } from './bandeja.js';
-import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { vistaDeLaBandeja, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -300,7 +300,8 @@ function repintarBandejaEnFormulario() {
 function ponerDesdeElFormulario(f, motivos = []) {
   const b = bandeja();
   if (!b || !f) return null;
-  const completa = motivos.length === 0 && (f.requeridos ?? []).every((n) => f.valores?.[n] !== undefined);
+  // Completa: lo que faltaba sin defecto ya tiene valor (lo que tiene defecto no falta: lo pone el núcleo al componer).
+  const completa = estaCompleta(f.valores, f.faltaban, motivos);
   const r = b.poner({ id: f.entrada ?? null, accion: f.accion, X: f.X, valores: f.valores ?? {}, donde: f.donde ?? { X: f.X, pv: null }, completa });
   if (r.ok) f.entrada = r.entrada.id;
   else estado.aviso = r.motivo;
@@ -1695,7 +1696,8 @@ const manejadores = {
     if (!soloLee(accion) && !aro) {
       const donde = { X: sobre, pv: Number.isInteger(pv) ? pv : null };
       const campos = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, valores)?.campos ?? [] : [];
-      Object.assign(f, { modo: 'bandeja', donde, entrada: null, requeridos: campos.filter((c) => c.requerido).map((c) => c.nombre) });
+      const faltaban = queFaltan(estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, {})?.campos : []);
+      Object.assign(f, { modo: 'bandeja', donde, entrada: null, faltaban });
       const previa = bandeja()?.listar().entradas.find((e) => e.accion === accion && e.X === sobre && e.donde.X === donde.X && e.donde.pv === donde.pv);
       if (previa) Object.assign(f, { valores: { ...previa.valores }, entrada: previa.id });
       else if (!campos.some((c) => c.falta)) {
@@ -1766,8 +1768,8 @@ const manejadores = {
   bandejaAbrir(id) {
     const e = bandeja()?.listar().entradas.find((x) => x.id === id);
     if (!e || typeof e.X !== 'string' || !estado.eje?.obtener(e.X)) return;
-    const campos = formulario(estado.eje, e.X, e.accion, estado.identidad, e.valores)?.campos ?? [];
-    estado.formulario = { X: e.X, accion: e.accion, valores: { ...e.valores }, motivos: [], resultado: null, modo: 'bandeja', donde: e.donde, entrada: e.id, requeridos: campos.filter((c) => c.requerido).map((c) => c.nombre) };
+    const faltaban = queFaltan(formulario(estado.eje, e.X, e.accion, estado.identidad, {})?.campos);
+    estado.formulario = { X: e.X, accion: e.accion, valores: { ...e.valores }, motivos: [], resultado: null, modo: 'bandeja', donde: e.donde, entrada: e.id, faltaban };
     estado.aro = null;
     limpiarMensajes();
     pintar();

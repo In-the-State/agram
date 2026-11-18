@@ -329,3 +329,39 @@ test('con el formulario abierto, lo compuesto se ve ya donde se compuso: la tira
   const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
   assert.match(app, /function repintarBandejaEnFormulario\(\) \{[^]*?ponerAlDiaEnPantalla\(raiz, vistaBandeja\(\)\);/, 'cada cambio de un campo lo pone al día');
 });
+
+test('completa es lo que de verdad falta: lo que tiene defecto no falta («comprometer P» recién puesto entra), y el archivo elegido ya completa su entrada', async () => {
+  const { formulario } = await import('../carta/carta.js');
+  const { valoresDeArchivo } = await import('../carta/archivos.js');
+  const { queFaltan, estaCompleta } = await import('../carta/bandeja-pantalla.js');
+  const { eje, X, a, b } = await escena();
+  const todas = a.laterales.flatMap((n) => [...(n.acciones?.nombradas ?? []), ...(n.acciones?.resto ?? [])].map((x) => ({ ...x, pv: n.pv })));
+  const por = (nombre) => todas.find((x) => x.nombre === nombre);
+  const campos = (accion) => formulario(eje, X, accion.id, 'huesped', {}, { idioma: 'es' }).campos;
+  // «comprometer P»: todo lo que pide tiene defecto.
+  const P = por('comprometer P');
+  assert.ok(P, 'el ejemplo lo ofrece');
+  assert.ok(campos(P).some((c) => c.requerido), 'pide cosas');
+  assert.deepEqual(queFaltan(campos(P)), [], 'pero todas con defecto');
+  assert.equal(estaCompleta({}, queFaltan(campos(P))), true);
+  b.poner({ accion: P.id, X, valores: {}, donde: { X, pv: P.pv }, completa: estaCompleta({}, queFaltan(campos(P))) });
+  const probado = await b.probar(eje, 'huesped', { idioma: 'es' });
+  assert.notEqual(probado.items[0].motivos[0]?.mensaje, 'falta por rellenar', 'no dice «falta por rellenar»');
+  // «comprometer tiempo»: falta «hasta» hasta que se escribe; lo escrito con fallos de lectura no está completo.
+  const T = por('comprometer tiempo');
+  assert.deepEqual(queFaltan(campos(T)), ['until']);
+  assert.equal(estaCompleta({}, ['until']), false);
+  assert.equal(estaCompleta({ until: '' }, ['until']), false);
+  assert.equal(estaCompleta({ until: '2026-12-01T10:00' }, ['until']), true);
+  assert.equal(estaCompleta({ until: 'x' }, ['until'], [{ mensaje: 'no es una fecha' }]), false);
+  // «adjuntar un archivo»: con el archivo elegido (su referencia y su formato) ya está completa, sin tocar otro campo.
+  const adj = por('adjuntar un archivo');
+  const faltan = queFaltan(campos(adj));
+  assert.deepEqual(faltan.sort(), ['file', 'format']);
+  const p = { id: 'a'.repeat(64), tipo: 'image/svg+xml', bytes: new Uint8Array(4), referencia: 'archivo:' + 'a'.repeat(64) };
+  const valores = valoresDeArchivo(p, campos(adj).filter((c) => c.archivo).map((c) => ({ nombre: c.nombre, archivo: c.archivo })), { eje });
+  assert.equal(estaCompleta(valores, faltan), true);
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /const completa = estaCompleta\(f\.valores, f\.faltaban, motivos\);/);
+  assert.equal((app.match(/faltaban = queFaltan\(/g) ?? []).length, 2, 'al lanzar y al reabrir, con el formulario sin nada escrito');
+});
