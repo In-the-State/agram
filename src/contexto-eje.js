@@ -75,6 +75,13 @@ const RE_SERIE = /^([EPRT]):(.+)$/;
 const RE_MAGNITUD = /^(?:(-?\d+(?:\.\d+)?)\s+([\p{L}€$%][\p{L}\p{N}_€$%]*)|([\p{L}€$%][\p{L}\p{N}_€$%]*)\s+(-?\d+(?:\.\d+)?))$/u;
 
 const CANDIDATA = Object.freeze({ k: 'ev' });
+// Un número por objeto (el eje, su lista de registros, la candidata), para la huella de lo que ve un contexto (§15 de docs/BQLM.md).
+const SERIALES = new WeakMap();
+let ultimoSerial = 0;
+const serial = (o) => {
+  if (!SERIALES.has(o)) SERIALES.set(o, ++ultimoSerial);
+  return SERIALES.get(o);
+};
 // `memo` (VG 12-11, decisión 5): el payload de la candidata, sin movimientos ni metadatos.
 const MEMO = Object.freeze({ k: 'memo' });
 const EN_CURSO = Symbol('en curso');
@@ -170,6 +177,7 @@ export class ContextoEje {
   #leyendo = new Set(); // las lecturas en curso (regla y sujeto): una que vuelve sobre sí misma es PENDIENTE
   #epocaCargada; // la época cargada (cargarEpocaBtml), si es lo que se dio: la que lee before.8 (sus plantillas)
   #exterior = null; // before.8, los ajustes del exterior de la cuenta raíz, con la longitud del eje al leerlos
+  #fuera = 0; // cuántas veces se ha leído una vista de fuera del libro (X.6.8.1-3), que cambia sin cambiar la huella
 
   constructor(eje = null, { ev, epoch, me, ahora } = {}) {
     this.#eje = eje ?? null;
@@ -195,6 +203,24 @@ export class ContextoEje {
    */
   get limitesDeCalculo() {
     return #epoch in this && this.#epoch ? limitesDeEpoca(this.#epoch) : undefined;
+  }
+
+  /**
+   * Qué ve este contexto, como un texto (docs/BQLM.md §15): cuál es el eje y en qué estado (su lista de registros, cuántos
+   * y el último), la época, quién mira, el reloj fijado y la candidata. Dos evaluaciones con la misma huella leen lo mismo,
+   * salvo las vistas de fuera del libro (vistasDeFuera). La usan el índice de «quién me nombra» y la memoria de las
+   * lecturas de pantalla. Antes de «#», lo del libro; detrás, la mirada. undefined sin eje, o con una época sin id.
+   */
+  huella() {
+    const o = this.#eje?.orden;
+    if (!Array.isArray(o) || (this.#epoch && this.#idEpoca === null)) return undefined;
+    // Antes de «#», el libro (lo que, si cambia, invalida lo recordado); detrás, la mirada (quién, cuándo y qué candidata).
+    return [serial(this.#eje), serial(o), o.length, o[o.length - 1] ?? '', this.#idEpoca ?? ''].join('|') + '#' + [this.#me ?? '', this.#ahora ?? '', this.#ev ? serial(this.#ev) : ''].join('|');
+  }
+
+  /** Cuántas veces ha leído este contexto una vista de fuera del libro (X.6.8.1 a 6.8.3: recibo, sello y pago), que cambia sin cambiar la huella. */
+  get vistasDeFuera() {
+    return this.#fuera;
   }
 
   /** ¿Hay lecturas que se materializan bajo «letra.d»? */
@@ -1039,6 +1065,7 @@ export class ContextoEje {
         // Detrás, el recibo copiado para comprobarlo (encargo «verificado-regla», #67), como una décupla: 0 «recibo de
         // llegada», 1 el instante, 2 la clave del relé, 3 su firma, 4 el id del recibo (el evento Nostr 7701) que firma; lo
         // lee la regla «received» (X.6.8.4).
+        if (d >= 1 && d <= 3) this.#fuera++;
         if (d === 1) {
           const recibo = nodo.e.id ? this.#eje.recibo?.(nodo.e.id) : null;
           return recibo ? [recibo.instante, recibo.rele, { k: 'dec', id: null, camino: [], v: [['recibo de llegada'], recibo.instante, recibo.rele, recibo.firma, recibo.recibo ?? undefined] }] : [];
