@@ -193,7 +193,9 @@ test('gestos y app: el personaje del 0 abre la cruceta del 0 de mi alta (general
   // la app: sin barra ni menú; la escena es la ventana entera; la cruceta se cierra al abrir la configuración o la copia y al cambiar de identidad
   assert.doesNotMatch(APP, /estado\.menu|\.barra'/);
   assert.match(APP, /sitio\(X, lugar, \{ general = false \} = \{\}\)/);
-  assert.match(APP, /estado\.config = parte === '9' \? '9' : '2';[^\n]*estado\.sitio = null/);
+  // VG 18-11: el 2 abre la hoja mínima y el 9 lleva al 9 de mi alta; los dos cierran la cruceta.
+  assert.match(APP, /if \(!form\) \{ estado\.config = true;[^\n]*estado\.sitio = null/);
+  assert.match(APP, /if \(!form && parte === '9'\) \{[^]*?estado\.sitio = null;[^]*?irA\(alta, PV_DE_LOS_AJUSTES\)/);
   assert.match(APP, /raiz\.querySelector\('\.sitio-cruceta\[data-sitio-general\] \.guardado'\)/);
   assert.match(CSS, /\.cero-columna\{position:sticky;top:0/);
 });

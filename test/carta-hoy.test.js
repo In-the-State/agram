@@ -17,6 +17,8 @@ import * as C from '../src/contrato.js';
 import { direccion } from '../src/btml.js';
 import { LibroLocal } from '../src/local.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
+import * as acciones from '../src/acciones.js';
+import { plantillaDeAjustes } from '../src/ajustes-ofrecidos.js';
 import { pagaElCoste } from './ayudas-coste.js';
 
 const GRANDE = { ancho: 1920, alto: 1080 };
@@ -68,8 +70,9 @@ test('#85 las opciones del 0 de mi alta se muestran con su nombre en su celda (y
   const extra = { ejemplos: [{ id: 'compra', etiqueta: 'la compra' }], ejemplo: 'compra', guardado: 'guardado', opinar: { activo: false, cuantas: 0 } };
   const h = html(await arbol({ foco: { X: compra.id, pv: 0 }, sitio: { X: alta, lugar: '0', general: true } }, eje, 'huesped', GRANDE), extra);
   for (const k of [2, 8, 9]) assert.doesNotMatch(posicionDe(h, k), /sitio-tocar/, 'la ' + k + ' trae sus controles');
-  assert.match(posicionDe(h, 2), /<span class="nombre">con qué condición<\/span>[^]*data-config="2"[^>]*>mis criterios y preferencias</);
-  assert.match(posicionDe(h, 9), /data-config="9"[^>]*>guía y exterior</);
+  // VG 18-11: el 2 abre la hoja mínima (lo que no es una acción); el 9 lleva a mis ajustes, acciones en el 9 de mi alta.
+  assert.match(posicionDe(h, 2), /<span class="nombre">con qué condición<\/span>[^]*data-config="2"[^>]*>segundo factor y este dispositivo</);
+  assert.match(posicionDe(h, 9), /data-config="9"[^>]*>mis ajustes</);
   assert.match(posicionDe(h, 3), /<button type="button" class="sitio-tocar"/, 'las demás son tocables');
 });
 
@@ -107,25 +110,22 @@ test('#88 la época trae una frase por caja del 3, en es y en en; una caja vací
 
 // ---------- #92 ----------
 
-test('#92 la configuración se separa: el 2 abre mis criterios y preferencias; el 9, la guía y el exterior; cada una con sus campos', async () => {
+test('#92 → VG 18-11: la hoja de la configuración queda mínima (segundo factor, claves del dispositivo, reglas, retocar textos); los ajustes son acciones en el 9 de mi alta', async () => {
   const { eje } = await ejemploCompra();
-  const p = preferencias(eje, 'huesped');
-  const guia = { campos: [{ pv: 1, clave: 'guide model', etiqueta: 'modelo de la guía', valor: '', marcador: '', ayuda: '' }], claveIa: '' };
-  const exterior = { campos: [{ pv: 1, clave: 'relay url', etiqueta: 'relé', valor: '', marcador: '', ayuda: '' }] };
   const segundoFactor = { criterios: [], campos: [{ nombre: 'family', etiqueta: 'familia', tipo: 'text', ayuda: '', valor: '' }], titulares: [] };
   const etiquetas = (h) => [...h.matchAll(/<label for="[^"]+">([^<]+)<\/label>/g)].map((m) => m[1]);
-  const dos = htmlConfiguracion(p, { claveLectura: '', guia, exterior, segundoFactor, parte: '2' });
-  const nueve = htmlConfiguracion(p, { claveLectura: '', guia, exterior, segundoFactor, parte: '9' });
-  assert.deepEqual(etiquetas(dos), ['paso', 'pintado', 'idioma', 'tamaños', 'modelo', 'animaciones', 'familia']);
-  assert.deepEqual(etiquetas(nueve), ['servidor', 'eje compartido', 'clave de lectura', 'modelo de la guía', 'clave para hablar con la guía sin servidor', 'relé']);
-  assert.match(dos, /data-parte="2"[^>]*>[^]*<h2><span class="numero">2<\/span> mis criterios y preferencias<\/h2>/);
-  assert.match(nueve, /data-parte="9"[^>]*>[^]*<h2><span class="numero">9<\/span> guía y exterior<\/h2>/);
-  assert.doesNotMatch(dos, /data-clave-lectura|data-guia-campo|data-exterior-campo|data-clave-ia/);
-  assert.doesNotMatch(nueve, /data-segundo-factor-campo|name="render"|name="language"|name="sizes"/);
-  assert.equal(htmlConfiguracion(p, { parte: undefined }).includes('data-parte="2"'), true, 'por defecto, el 2');
+  const hoja = htmlConfiguracion(true, { claveLectura: '', claveIa: '', segundoFactor });
+  assert.deepEqual(etiquetas(hoja), ['familia', 'clave de lectura', 'clave para hablar con la guía sin servidor']);
+  assert.match(hoja, /<h2>segundo factor y este dispositivo<\/h2>/);
+  assert.doesNotMatch(hoja, /data-guia-campo|data-exterior-campo|name="render"|name="language"|name="sizes"|name="sync url"/);
+  // lo que llevaba antes la hoja está en el formulario de la acción de mis preferencias (el 9 de mi alta)
+  const alta = eje.alta('huesped').id;
+  const id = plantillaDeAjustes(preferencias(eje, 'huesped').payload[0][0], acciones.conEpoca(eje, {})).id;
+  const h = html(await arbol({ foco: { X: alta, pv: 9 }, formulario: { X: alta, accion: id, valores: {} } }, eje, 'huesped', GRANDE));
+  for (const n of ['render', 'language', 'sizes', 'sync url']) assert.match(h, new RegExp('name="' + n + '"'));
 });
 
-test('#92 gestos y app: cada botón abre solo su parte; guardar lee los campos de su formulario (también los desplegables)', () => {
+test('#92 → VG 18-11: gestos y app: el 2 abre la hoja mínima, el 9 lleva al 9 de mi alta; guardar la hoja solo guarda lo suyo', () => {
   const oyentes = [];
   const documento = { defaultView: { innerWidth: 1366, innerHeight: 768 }, addEventListener: (x, f) => oyentes.push([x, f]), removeEventListener() {} };
   const raiz = { ownerDocument: documento, addEventListener: (x, f) => oyentes.push([x, f]), removeEventListener() {}, querySelector: () => null };
@@ -136,9 +136,9 @@ test('#92 gestos y app: cada botón abre solo su parte; guardar lee los campos d
   clic({ target: boton('2'), preventDefault() {} });
   clic({ target: boton('9'), preventDefault() {} });
   assert.deepEqual(llamadas, [['configurar', null, '2'], ['configurar', null, '9']]);
-  assert.match(APP, /async configurar\(form, parte\) \{\n    if \(!form\) \{ estado\.config = parte === '9' \? '9' : '2';/);
-  assert.match(APP, /querySelectorAll\('input\[name\], select\[name\]'\)/);
-  assert.match(APP, /parteConfiguracion: estado\.config \|\| undefined/);
+  assert.match(APP, /async configurar\(form, parte\) \{\n    if \(!form && parte === '9'\) \{/);
+  assert.match(APP, /if \(!form\) \{ estado\.config = true;/);
+  assert.match(APP, /configuracion: estado\.config && estado\.eje \? true : null/);
 });
 
 // ---------- #95 ----------

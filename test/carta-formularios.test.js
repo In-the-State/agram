@@ -349,22 +349,17 @@ test('#88 el botón cíclico del 3 dice lo que filtra con su flecha (lo que doy,
   assert.doesNotMatch(h, /<span class="hijo-vacio">nadie<\/span>/);
 });
 
-test('#92 la configuración se abre separada por posición: el 2 = mis criterios y preferencias, el 9 = guía y exterior, cada botón solo su parte con el nombre llano', async () => {
+test('#92 → VG 18-11: el 2 del personaje del 0 abre la hoja mínima y el 9 lleva a mis ajustes; ningún ajuste en las dos', async () => {
   const { eje, compra } = await ejemploCompra();
   const alta = eje.alta('huesped').id;
   const h = html(await arbol({ foco: { X: compra.id, pv: 0 }, sitio: { X: alta, lugar: '0', general: true } }, eje, 'huesped', GRANDE, ES), { cuenta: { nombre: 'yo', alta, identidad: 'huesped' }, cuentas: [] });
-  assert.match(h, /data-config="2"[^>]*>mis criterios y preferencias<\/button>/);
-  assert.match(h, /data-config="9"[^>]*>guía y exterior<\/button>/);
-  const p = preferencias(eje, 'huesped');
-  const guia = { campos: [{ pv: 1, clave: 'guide model', etiqueta: 'modelo de la guía', valor: '', marcador: '', ayuda: '' }], claveIa: '' };
-  const exterior = { campos: [{ pv: 1, clave: 'relay url', etiqueta: 'relé', valor: '', marcador: '', ayuda: '' }] };
+  assert.match(h, /data-config="2"[^>]*>segundo factor y este dispositivo<\/button>/);
+  assert.match(h, /data-config="9"[^>]*>mis ajustes<\/button>/);
   const segundoFactor = { criterios: [], campos: [{ nombre: 'family', etiqueta: 'familia', tipo: 'text', ayuda: '', valor: '' }], titulares: [] };
   const etiquetas = (x) => [...x.matchAll(/<label for="[^"]+">([^<]+)<\/label>/g)].map((m) => m[1]);
-  const dos = etiquetas(htmlConfiguracion(p, { claveLectura: '', guia, exterior, segundoFactor, parte: '2' }));
-  const nueve = etiquetas(htmlConfiguracion(p, { claveLectura: '', guia, exterior, segundoFactor, parte: '9' }));
-  for (const clave of ['idioma', 'pintado', 'tamaños', 'familia']) assert.ok(dos.includes(clave), 'el 2 trae ' + clave);
-  for (const clave of ['servidor', 'clave de lectura', 'modelo de la guía', 'relé']) assert.ok(nueve.includes(clave), 'el 9 trae ' + clave);
-  assert.ok(!dos.some((x) => nueve.includes(x)) && !nueve.some((x) => dos.includes(x)), 'ningún campo en las dos partes');
+  const hoja = etiquetas(htmlConfiguracion(true, { claveLectura: '', claveIa: '', segundoFactor }));
+  for (const clave of ['familia', 'clave de lectura']) assert.ok(hoja.includes(clave), 'la hoja trae ' + clave);
+  for (const clave of ['idioma', 'pintado', 'tamaños', 'servidor', 'modelo de la guía', 'relé']) assert.ok(!hoja.includes(clave), 'la hoja ya no trae ' + clave);
   void contrato;
 });
 

@@ -18,6 +18,15 @@ import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { ejemploReserva } from '../ejemplos/ikisai/reserva-booking.mjs';
 import { ejemploComprasHermanas } from '../ejemplos/ikisai/compras-hermanas.mjs';
 import { pagaElCoste } from './ayudas-coste.js';
+import { plantillaDeAjustes } from '../src/ajustes-ofrecidos.js';
+
+/** El formulario de la acción «preferencias» del 9 de mi alta (VG 18-11: la configuración, acciones en su punto de vista), pintado. */
+async function formularioDePreferencias(eje, yo) {
+  const alta = eje.alta(yo).id;
+  const accion = plantillaDeAjustes(preferencias(eje, yo).payload[0][0], A.conEpoca(eje, {})).id;
+  const h = html(await arbol({ foco: { X: alta, pv: 9 }, formulario: { X: alta, accion, valores: {} } }, eje, yo, { ancho: 1920, alto: 1080 }));
+  return h.slice(h.indexOf('data-formulario'));
+}
 
 const T1 = '2026-11-08T10:00:00Z';
 const ORDENADOR = { ancho: 1200, alto: 800 };
@@ -333,7 +342,8 @@ test('el interruptor sobrio/propio/todo (el 5 del 0 de mi alta, antes la barra) 
   const campo = preferencias(eje, 'huesped').campos.find((x) => x.clave === i.clave);
   assert.deepEqual(campo.opciones.map((o) => [o.valor, o.texto]), i.opciones.map((o) => [o.valor, o.texto]));
   assert.equal(campo.valor, otra);
-  assert.match(html(b, { preferencias: preferencias(eje, 'huesped') }), new RegExp(`<select id="pref-\\d+" name="${i.clave}"[^>]*>(<option [^>]*>[^<]*</option>){3}</select>`));
+  // VG 18-11: el desplegable va en el formulario de la acción «preferencias» del 9 de mi alta (con «otro…» detrás, como cualquier acción).
+  assert.match(await formularioDePreferencias(eje, 'huesped'), new RegExp(`<select class="param-opciones" data-otro-de="param-${i.clave}"[^>]*>(<option value="[^"]*"( selected)?>[^<]*</option>){3}<option [^>]*data-otro`));
   const q = preferencias(eje, 'huesped', { language: 'en' });
   await eje.escribir({ autor: 'huesped', sobre: q.sobre, en: q.en, t: T1, movimientos: [minuto('huesped')], payload: q.payload });
   const c = await arbol({ foco: { X: compra.id, pv: 0 } }, eje, 'huesped', ORDENADOR);
@@ -351,9 +361,10 @@ test('#4: en la configuración, «modelo» es un desplegable con los modelos de 
   const campo = p.campos.find((c) => c.clave === 'model');
   assert.deepEqual(campo.opciones.map((o) => o.valor), ['general', 'animado-generico'], 'las opciones salen de los datos, en el orden de la cadena; el sobrio no está');
   assert.equal(campo.valor, 'general', 'sin preferencia, general');
-  const h = html(await arbol({ foco: { X: eje.alta('huesped').id, pv: 0 } }, eje, 'huesped', ORDENADOR), { preferencias: p });
-  assert.match(h, /<select id="pref-\d+" name="model"[^>]*><option value="general" selected>general<\/option><option value="animado-generico">animado-generico<\/option><\/select>/);
-  assert.doesNotMatch(h, /<input[^>]*name="model"/);
+  // VG 18-11: en el formulario de la acción «preferencias» del 9 de mi alta; el input del modelo queda oculto tras el desplegable.
+  const h = await formularioDePreferencias(eje, 'huesped');
+  assert.match(h, /<select class="param-opciones" data-otro-de="param-model"[^>]*><option value="general" selected>general<\/option><option value="animado-generico">animado-generico<\/option><option [^>]*data-otro>/);
+  assert.match(h, /<input id="param-model" name="model"[^>]* hidden>/);
   // La cuenta de VG: con «sobrio» guardado, el desplegable propone general (el sobrio no se elige) y al guardar queda general.
   const q = preferencias(eje, 'huesped', { model: 'sobrio' });
   assert.equal(q.campos.find((c) => c.clave === 'model').valor, 'general');
@@ -367,7 +378,10 @@ test('#4: en la configuración, «modelo» es un desplegable con los modelos de 
   const u = preferencias(eje, 'huesped', { model: 'sobrio' }, { epoca: una });
   assert.equal(u.campos.find((c) => c.clave === 'model'), undefined, 'con uno solo, no se pregunta');
   assert.ok(u.payload[1].includes('model') && u.payload[2].includes('general'), 'y se guarda el que hay');
-  assert.doesNotMatch(html(await arbol({ foco: { X: eje.alta('huesped').id, pv: 0 } }, eje, 'huesped', ORDENADOR), { preferencias: u }), /name="model"/);
+  // VG 18-11: el formulario de la acción «preferencias» del 9 de mi alta, con esa época, tampoco lo pregunta.
+  const alta = eje.alta('huesped').id;
+  const deUna = formulario(eje, alta, plantillaDeAjustes(u.payload[0][0], { epoca: una }).id, 'huesped', {}, { epoca: una });
+  assert.ok(deUna.campos.length && !deUna.campos.some((c) => c.nombre === 'model'));
 });
 
 test('el formulario de una acción: a la vista solo lo obligatorio; lo opcional tras «más»', async () => {

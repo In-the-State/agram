@@ -16,10 +16,11 @@
 //                         en el servidor (servidor/supabase/funciones/guia).
 //   «direct» (provisional) la carta llama a la API de Anthropic desde el navegador con la clave guardada aquí.
 
-import { contrato, acciones, leer, leerEvento, sincronia, direccion, exterior } from '../src/index.js';
+import { contrato, acciones, leer, leerEvento, sincronia, exterior } from '../src/index.js';
 import { MEDIDAS } from './carta.js';
 import { pintar } from './texto.js';
 import { t } from './textos.js';
+import { ajustesEditablesDe as ajustesEditablesDelNucleo } from '../src/ajustes-ofrecidos.js';
 
 /** Las claves de localStorage de la guía, por alta: la clave de la API (un secreto: no entra en el eje ni en la copia) y la conversación. */
 export const CLAVES = Object.freeze({ ia: (alta) => 'agram.ia.' + alta, historial: (alta) => 'agram.guia.' + alta });
@@ -68,39 +69,10 @@ export function ajustesEditables(eje, yo, valores = {}, opciones = {}) {
 
 /**
  * Lo mismo para cualquier plantilla de ajustes de la época, por su nombre (los de la guía y los del exterior, docs/CONTRATO.md
- * §16.2 y §16.2 bis): el registro candidato de `yo` con los valores dados sobre los actuales. Sin huecos ni rellenos (VG
- * 13-11, #77): el registro lleva las claves de los ajustes que tienen valor y, en paralelo, sus valores
- * (contrato.registroDeAjustes); el formulario enseña un campo por ajuste conocido y guarda solo los rellenos. Un campo dado
- * vacío quita el ajuste (si tiene defecto de la época, vuelve a él); uno no dado conserva el actual.
+ * §16.2 y §16.2 bis): lo hace el núcleo (src/ajustes-ofrecidos.js), que es también lo que rellena el formulario de cada
+ * plantilla de ajustes ofrecida como acción en el 9 de mi alta (VG 18-11).
  */
-export function ajustesEditablesDe(nombre, eje, yo, valores = {}, opciones = {}) {
-  const alta = eje?.alta(yo);
-  const plantilla = contrato.plantillas(null, opciones).find((p) => p.nombre === nombre);
-  if (!alta || !plantilla) return null;
-  const idioma = opciones.idioma ?? contrato.configuracion(eje, yo, opciones).language;
-  const leido = contrato.configuracionDe(eje, yo, nombre, opciones);
-  // Una lista (las claves de los observadores, varias hojas) se enseña y se compara como un texto separado por espacios.
-  const actual = Object.fromEntries(Object.entries(leido).map(([k, x]) => [k, Array.isArray(x) ? x.join(' ') : x]));
-  const claves = contrato.clavesDeConfiguracionDe(nombre, opciones);
-  const dados = {};
-  const campos = [];
-  let cambiado = false;
-  for (const { pv, clave, defecto, ayuda: canonica } of claves) {
-    const numero = typeof defecto === 'number';
-    const dado = valores[clave] !== undefined ? String(valores[clave]).trim() : undefined;
-    let v = dado === undefined ? actual[clave] ?? defecto : dado === '' ? defecto : numero ? Number(dado) : dado;
-    if (numero && !(Number.isFinite(v) && v > 0)) v = actual[clave] ?? defecto;
-    if (v !== (actual[clave] ?? defecto)) cambiado = true;
-    if (v !== undefined) dados[clave] = v;
-    campos.push({
-      pv, clave, numero, valor: v ?? '', marcador: defecto ?? '',
-      etiqueta: contrato.texto(eje, contrato.claves.parametro(plantilla.nombre, clave, 'label'), idioma, { original: clave, ...opciones }),
-      ayuda: contrato.texto(eje, contrato.claves.parametro(plantilla.nombre, clave, 'help'), idioma, { original: canonica ?? '', ...opciones }),
-    });
-  }
-  const payload = contrato.registroDeAjustes(nombre, dados, { quien: yo, ...opciones });
-  return { payload, campos, sobre: alta.id, en: direccion([9]), cambiado: cambiado && payload !== null };
-}
+export const ajustesEditablesDe = ajustesEditablesDelNucleo;
 
 /** Una clave x-only: 64 caracteres hexadecimales. */
 const RE_CLAVE_X = /^[0-9a-f]{64}$/i;

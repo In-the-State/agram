@@ -315,7 +315,7 @@ test('las claves de la sincronía son por cuenta y no se cruzan con las de los e
   assert.equal(Q.claveLectura(alta), null);
   // La configuración pinta el servidor y el eje compartido (de la época) y, en una cuenta, la clave de lectura aparte, sin `name`.
   const p = preferencias(c.eje, c.cuenta.identidad);
-  const conClave = htmlConfiguracion(p, { claveLectura: 'secreta', parte: '9' }); // la clave de lectura va en «guía y exterior» (#92)
+  const conClave = htmlConfiguracion(p, { claveLectura: 'secreta' }); // la clave de lectura es del dispositivo: va en la hoja mínima (VG 18-11)
   assert.ok(p.campos.some((x) => x.clave === sincronia.CONFIGURACION.url) && p.campos.some((x) => x.clave === sincronia.CONFIGURACION.eje));
   assert.match(conClave, /<input id="pref-clave-lectura" data-clave-lectura type="password" value="secreta"/);
   assert.ok(!/name="[^"]*"[^>]*data-clave-lectura|data-clave-lectura[^>]*name=/.test(conClave), 'no entra en el registro de preferencias');

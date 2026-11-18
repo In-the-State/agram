@@ -15,7 +15,7 @@ import { createHash } from 'node:crypto';
 import { readFileSync } from 'node:fs';
 import { instalar } from '../carta/gestos.js';
 import { arbol, creableEn, conEtiquetasLlanas, preferencias, sinNombreInterno, motivosEnLlano, enviar } from '../carta/carta.js';
-import { html, htmlConfiguracion } from '../carta/dom.js';
+import { html } from '../carta/dom.js';
 import { Archivos, INICIALES, htmlInicial, inicial, adjuntarHtmlInicial } from '../carta/archivos.js';
 import * as cuentas from '../carta/cuentas.js';
 import * as guia from '../carta/guia.js';
@@ -28,6 +28,7 @@ import { EPOCA_0_BTML } from '../src/epocas.js';
 import { nombreDeRegla } from '../src/bqlm.js';
 import { PLANTILLAS_DE_EPOCA_DATOS, REGLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
+import { plantillaDeAjustes } from '../src/ajustes-ofrecidos.js';
 
 const GRANDE = { ancho: 1920, alto: 1080 };
 const MOVIL = { ancho: 390, alto: 844 };
@@ -161,7 +162,10 @@ test('#83 los ajustes se describen por lo que hacen, sin nombrar AARPIA, StateAr
   assert.match(etiquetas.get('blossom url').ayuda, /Blossom/, 'el nombre técnico está en la ayuda del campo');
   assert.match(etiquetas.get('pay url').ayuda, /StateArk/);
   assert.ok(Object.keys(TEXTOS).every((i) => Object.keys(TEXTOS[i]).filter((k) => k.startsWith('ajuste_')).length >= 19));
-  const h = htmlConfiguracion({ nombre: 'x', campos: [] }, { guia: null, exterior: ext, parte: '9' });
+  // VG 18-11: los ajustes del exterior son una acción en el 9 de mi alta; su formulario los dice igual de llanos.
+  const alta = eje.alta('huesped').id;
+  const deFuera = plantillaDeAjustes(exterior.AJUSTES.plantilla, A.conEpoca(eje, {})).id;
+  const h = html(await arbol({ foco: { X: alta, pv: 9 }, formulario: { X: alta, accion: deFuera, valores: {} } }, eje, 'huesped', GRANDE, ES));
   assert.match(visible(h), /dónde se guardan los archivos[^]*quién sella[^]*quién cobra/);
   assert.doesNotMatch(h, /<label[^>]*>[^<]*(AARPIA|StateArk|Blossom)/);
 });

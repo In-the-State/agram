@@ -36,6 +36,7 @@ import { t, etiquetaLlana, usarRetoques, textoDeLaCarta, retoqueDeLaCartaNoVale,
 import { editorDeBtml, fechaDelRegistro } from './formato-btml.js';
 import { enviarPorLaBandeja } from './bandeja.js';
 import { EPOCA_0_BTML } from '../src/epocas.js';
+import { ajustesOfrecidos, plantillaDeAjustes, ajustesEditablesDe, PV_DE_LOS_AJUSTES } from '../src/ajustes-ofrecidos.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
 const PIEZA = Object.freeze({ elemento: 'elemento', munequito: 'munequito', icono: 'icono', etapa: 'etapa', fondo: 'fondo', marco: 'marco', movimiento: 'movimiento' });
@@ -1131,15 +1132,19 @@ function accionesDelPv(eje, X, pv, ctx) {
   if (guardadas?.has(clave)) { memo.set(clave, guardadas.get(clave)); return guardadas.get(clave); }
   const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones), lecturas: null };
   const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
-  const todas = lista.map((a) => resumenDeAccion(a, lecturas, ctx)); // en el orden de la época
+  // Las plantillas de ajustes donde anclan (VG 18-11: la configuración, acciones en su punto de vista; src/ajustes-ofrecidos.js):
+  // detrás de las de la época, como acciones más; su formulario compone un registro de ajustes (formularioDeAjustes).
+  const deAjustes = ajustesOfrecidos(eje, X, pv, ctx.yo, acciones.conEpoca(eje, ctx.opciones ?? {})).map((a) => ({ id: a.id, nombre: a.etiqueta, lectura: false, camino: false, faltan: [], ajustes: true }));
+  const todas = [...lista.map((a) => resumenDeAccion(a, lecturas, ctx)), ...deAjustes]; // en el orden de la época
+  const accion = porDefecto ? todas[lista.indexOf(porDefecto)] : deAjustes[0] ?? null;
   const r = {
     todas,
-    accion: porDefecto ? todas[lista.indexOf(porDefecto)] : null,
-    otras: todas.filter((_, i) => lista[i] !== porDefecto),
+    accion,
+    otras: todas.filter((a) => a !== accion),
     // Para el diccionario del centro del aro (diccionarioDelCentro): el nombre canónico de cada una (lo da el núcleo; se
     // filtra también por él) y las que escriben sobre la propia hoja de pv (el 5 de su plantilla es justo «pv»: cambiar
     // ese valor, que el centro ya ofrece como valores).
-    canonicos: new Map(lista.map((a) => [a.id, a.nombre])),
+    canonicos: new Map([...lista.map((a) => [a.id, a.nombre]), ...deAjustes.map((a) => [a.id, a.nombre])]),
     sobreSuHoja: new Set(lista.filter((a) => String(hojas(a.plantilla?.[5])[0] ?? '') === String(pv)).map((a) => a.id)),
   };
   memo.set(clave, r);
@@ -1319,7 +1324,11 @@ function opcionesDeParametro(eje, X, p, en, yo, o) {
 export function formulario(eje, X, accion, yo, valores = {}, { retocar = false, ...opciones } = {}) {
   opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const plantilla = acciones.plantillaDeTransaccion(accion, opciones);
-  if (!plantilla) return null;
+  if (!plantilla) {
+    // Una plantilla de ajustes ofrecida como acción donde ancla (VG 18-11): su formulario, con la misma forma.
+    const deAjustes = plantillaDeAjustes(accion, opciones);
+    return deAjustes ? formularioDeAjustes(eje, X, deAjustes, yo, valores, opciones) : null;
+  }
   const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
   const pv = Number(hojas(plantilla[8])[0]);
   const canonico = acciones.nombreDeAccion(plantilla);
@@ -1791,6 +1800,35 @@ export function preferencias(eje, yo, valores = {}, opciones = {}) {
 }
 
 /**
+ * El formulario de una plantilla de ajustes ofrecida como acción en el 9 de mi alta (VG 18-11: la configuración pasa a ser
+ * acciones en su punto de vista; src/ajustes-ofrecidos.js), con la misma forma que el de cualquier acción (formulario): un
+ * campo por ajuste, con su etiqueta llana, su ayuda, el valor actual y, si es una enumeración o el modelo, sus valores.
+ * Ninguno es obligatorio y todos van a la vista (`aLaVista`). Los valores salen de preferencias() si es la plantilla que
+ * describe mi configuración (la cabecera de los modelos la dice; los textos se parten por espacios, como hacía la hoja) y,
+ * si no, de ajustesEditablesDe; vacío, el ajuste vuelve a su defecto. `ajustes` lleva lo que se compone: el payload del
+ * registro, sobre mi alta, en su 9. → el formulario, o null si yo no tiene alta.
+ */
+function formularioDeAjustes(eje, X, { id, nombre }, yo, valores = {}, opciones = {}) {
+  const o = { ...opciones, idioma: idiomaDe(eje, yo, opciones) };
+  const deMiConfiguracion = plantillaDePreferencias(o)?.nombre === nombre;
+  const partidos = Object.fromEntries(Object.entries(valores ?? {}).map(([k, v]) => [k, typeof v === 'string' ? v.trim().split(/\s+/).filter(Boolean) : v]));
+  const r = deMiConfiguracion ? preferencias(eje, yo, partidos, o) : ajustesEditablesDe(nombre, eje, yo, valores ?? {}, o);
+  if (!r) return null;
+  const llano = (v) => (Array.isArray(v) ? v.join(' ') : v === null || v === undefined ? '' : String(v));
+  // El tipo y la validación de cada ajuste, los de su posición en la plantilla (su 1 y su 2), como los de un parámetro.
+  const descripcion = contrato.plantillas(null, o).find((p) => p.nombre === nombre)?.registro ?? [];
+  const deLaPlantilla = (pv, k) => hojas(Array.isArray(descripcion[pv]) ? descripcion[pv][k] : undefined).at(-1) ?? null;
+  const campos = conEtiquetasLlanas(r, o.idioma).campos.map((c) => ({
+    nombre: c.clave, etiqueta: c.etiqueta, tipo: deLaPlantilla(c.pv, 1), requerido: false, ayuda: c.ayuda, validacion: deLaPlantilla(c.pv, 2), posicion: c.pv, archivo: null,
+    valor: c.valor === '' || c.valor === undefined || (Array.isArray(c.valor) && !c.valor.length) ? null : c.valor, legible: llano(c.valor), simple: false, falta: false,
+    opciones: c.opciones ?? [], aLaVista: true, numero: Boolean(c.numero),
+  }));
+  const alta = eje.alta(yo)?.id;
+  const etiqueta = contrato.texto(eje, contrato.claves.plantilla(nombre), o.idioma, { original: nombre, epoca: o.epoca });
+  return { X, accion: id, nombre: etiqueta, pv: PV_DE_LOS_AJUSTES, campos, lectura: false, camino: false, ofrecida: X === alta, ajustes: { nombre, payload: r.payload, sobre: r.sobre, en: r.en, deMiConfiguracion } };
+}
+
+/**
  * El pintado de quien mira (#25): la preferencia `render` es una enumeración de la época (epoch.9.3.2, «="sober" in it.2
  * or "own" in it.2 or "animated" in it.2») cuyo ORDEN es el del pintado: el primero (el defecto) no pinta arte; el
  * último, todo (lo propio de cada elemento y, detrás, la cadena de quien mira); los de en medio, solo lo propio de cada
@@ -1811,7 +1849,8 @@ function pintadoDe(configuracion, defectos, opciones) {
  * Los interruptores del 5 del 0 de mi alta (antes, de la barra): cada preferencia de la plantilla «preferences» cuya validación es una enumeración
  * (contrato.clavesDeConfiguracion, `valores`: hoy el pintado, sobrio, propio o todo), con su etiqueta y cada valor en el
  * idioma («template <plantilla> param <clave> option <valor>»), en el orden de la época; `valor` es el que rige. Tocar
- * uno escribe la preferencia como lo hace la configuración (preferencias(), un registro más en el 9 del alta) y repinta.
+ * uno es un atajo, como el aro (VG 18-11): ejecuta ya, por el mismo camino que el 4, la acción «preferencias» del 9 de mi
+ * alta con ese valor (preferencias(), un registro más en el 9 del alta), y repinta. No compone en la bandeja.
  */
 function interruptoresDe(configuracion, opciones) {
   const p = plantillaDePreferencias(opciones);
