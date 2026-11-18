@@ -13,6 +13,7 @@ import { Eje } from '../src/eje.js';
 import * as A from '../src/acciones.js';
 import { epocaRoadmap } from '../datos/epocas/roadmap/generar.mjs';
 import { olvidarIndices } from '../src/indice-de-nombres.js';
+import { ACCIONES, ANTERIORES, ANT, SIGUIENTES, MATRIZ, MATRIZ_CON_LOOKUP } from './ayudas-formulas-tablas.mjs';
 
 /** Un payload de prueba, leído como `epoch` (datos inventados). */
 const P = [
@@ -185,30 +186,7 @@ function medir(prueba, nombre, src, c, eje, opciones = {}) {
   return aplanar(r.valor, c);
 }
 
-// a) Las acciones que se ofrecen: las plantillas del PV K cuya fórmula del 2 pasa sobre X, por el orden de su 8, las N primeras.
-const ACCIONES = (K, N) => '=take ' + N + ' (epoch.9.6.1 where first it2.8 = ' + K + ' keep apply(last it2.2, it) by nth 1 it2.8) each (first it2.0)';
-
-// b) Las anteriores de una tarea (it): la última relación «this goes after» de su autor en su 2.6, y en su 6 las tareas.
-const ANTERIORES = '=(last (it.2.6 where first it2.3 = first it.3 and "this goes after" in payload(it2).4)) each (payload(it2).6) where "task" in payload(it2).5 and it2 != it';
-const ANT = JSON.stringify(ANTERIORES);
-// b) Lo que continúa desde una tarea, con cited (§15.3): las relaciones que la nombran en su 6, la tarea en que se anclan, si
-// es una tarea y la relación es la que manda (la tarea está entre sus anteriores).
-const SIGUIENTES = '=it follow ((it2 cited 6) each (up it3) where "task" in payload(it3).5 and it2 in apply(' + ANT + ', it3))';
-
-// c) La matriz del 4: el oficio (el PV de la plantilla que el registro nombra en su 4; si no, el dígito de la posición en
-// que se ancla) y la ejecución (0 si no mueve nada más que el coste, la asignación y la obtención; si no, la columna de la
-// primera familia que mueve, E 1, P 2, R 3, T 4). Una versión corta de contrato.celdaDeEjecucion: ni las estaciones de los
-// anuncios ni las escalas informativas de T.
-const DIGITOS = '"0" with "1" with "2" with "3" with "4" with "5" with "6" with "7" with "8" with "9"';
-const OFICIO = '=first ((epoch.9.6.1 where first it2.0 in payload(it).4) each (first it2.8) with lookup(' + DIGITOS + ', 0 with 1 with 2 with 3 with 4 with 5 with 6 with 7 with 8 with 9, text(slice(utf8(nth 1 it.6.5), 0, 1))))';
-const MUEVE = '(moves it where not (it3.4.1 in ("asignacion" with "obtencion")) and not (it3.4.0 = burn and first it3.0.0.0 = T and first it3.3.0 = first it.3))';
-const FAMILIA = (k, f) => '(' + k + ' where ' + f + ' in ' + MUEVE + ' each (first it3.0.0.0))';
-const EJECUCION = '=first ((0 where count ' + MUEVE + ' = 0) with ' + FAMILIA(1, 'E') + ' with ' + FAMILIA(2, 'P') + ' with ' + FAMILIA(3, 'R') + ' with ' + FAMILIA(4, 'T') + ')';
-const MATRIZ = '=(down it) group row(apply(' + JSON.stringify(OFICIO) + ', it2), apply(' + JSON.stringify(EJECUCION) + ', it2))';
-// El mismo oficio con lookup (§15.4): los nombres y los PV de las plantillas son una subexpresión cerrada (no leen it), que
-// la memoria de una lectura de pantalla recuerda de un registro al siguiente; sin memoria cuesta algo más que OFICIO.
-const OFICIO_CON_LOOKUP = '=first ((payload(it).4 each (first lookup(epoch.9.6.1 each (first it3.0), epoch.9.6.1 each (first it3.8), it2))) with lookup(' + DIGITOS + ', 0 with 1 with 2 with 3 with 4 with 5 with 6 with 7 with 8 with 9, text(slice(utf8(nth 1 it.6.5), 0, 1))))';
-const MATRIZ_CON_LOOKUP = '=(down it) group row(apply(' + JSON.stringify(OFICIO_CON_LOOKUP) + ', it2), apply(' + JSON.stringify(EJECUCION) + ', it2))';
+// Las fórmulas de los casos a), b) y c), en test/ayudas-formulas-tablas.mjs (las comparte test/explicar-bqlm.test.js).
 
 test('§15 caso a: las acciones que se ofrecen, como una lectura, dan lo mismo que acciones.acciones', async (prueba) => {
   const { eje, t, pa, ctx: c } = await roadmap();

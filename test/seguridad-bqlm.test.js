@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluar, evaluarRegla, evaluarEscritura, evaluarPlantilla, leerRegla, leerFormula, Presupuesto, aplanar, MemoriaDeLectura, POR_LIMITE, LIMITES, NADIE, DESTINOS_DE_PUT, VERIFICACION, COSTE_FIRMA, queMueve } from '../src/bqlm.js';
+import { evaluar, evaluarRegla, evaluarEscritura, evaluarPlantilla, leerRegla, leerFormula, Presupuesto, aplanar, MemoriaDeLectura, explicar, EXPLICACION_CORTADA, POR_LIMITE, LIMITES, NADIE, DESTINOS_DE_PUT, VERIFICACION, COSTE_FIRMA, queMueve } from '../src/bqlm.js';
 import { readFileSync } from 'node:fs';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
@@ -498,4 +498,25 @@ test('SEG-30 memoria: una regla cuesta lo mismo con memoria y sin ella, aunque u
   const sinL = coste((presupuesto) => evaluar(f, c, { presupuesto }));
   assert.deepEqual(coste((presupuesto) => evaluar(f, c, { presupuesto, memoria })), sinL, 'evaluar sin lectura, igual');
   assert.deepEqual(coste((presupuesto) => evaluar(f, c, { presupuesto, memoria, lectura: true, mover: true })), sinL, 'con mover, igual');
+});
+
+test('SEG-31 explicar (8a): su pasada tiene presupuesto propio y se corta con su marca; el veredicto es el de evaluar; no explica lo que mueve', () => {
+  const c = new ContextoEje(null, { epoch: [[1, 2, 3, 4, 5, 6, 7, 8]] });
+  // La evaluación cabe en 20 ocupantes; la explicación vuelve a recorrer cada parte de cada elemento y no cabe.
+  const src = 'count (epoch.0 where it > 10 and it < 20 and it != 15) > 0';
+  const limites = { ocupantes: 20 };
+  const a = evaluar(src, c, { limites });
+  assert.equal(a.estado, 'RESUELTO');
+  const r = explicar(src, c, { limites });
+  const { porque, ...veredicto } = r;
+  assert.deepEqual(veredicto, a);
+  assert.equal(porque.cortada, EXPLICACION_CORTADA);
+  // Sin límites bajos, la misma se explica entera.
+  assert.equal(explicar(src, c).porque.cortada, undefined);
+  // Un follow sin fin: el veredicto, PENDIENTE POR LÍMITE; la explicación no se cuelga ni pasa de su presupuesto.
+  const sinFin = explicar('count (1 follow it + 1) > 0', c);
+  assert.equal(sinFin.subtipo, POR_LIMITE);
+  // Lo que mueve no se explica: ni un verbo, ni con mover.
+  assert.equal(explicar('=mint 1 T.1 to me', c).estado, 'ERROR');
+  assert.equal(explicar('=1 = 1', c, { mover: true }).estado, 'ERROR');
 });
