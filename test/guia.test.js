@@ -111,7 +111,7 @@ test('contexto() sobre la compra: modo y ancho, quién soy, el foco con su lectu
   assert.match(c1200, /1200×700 px/);
   assert.match(c1200, /mapa de celdas/);
   assert.match(c1200, /en su cuenta/);
-  assert.ok(!c400.includes('sync url') && !c400.includes('guide'), 'nada de dónde se comparte el eje ni de los ajustes');
+  assert.ok(!c400.includes('sync url') && !/guide (model|via|history|context)/.test(c400), 'nada de dónde se comparte el eje ni de los ajustes');
 });
 
 test('contexto() respeta el tope: recorta por el final de cada bloque y lo dice', async () => {

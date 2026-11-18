@@ -59,7 +59,10 @@ test('la época se genera desde su fuente, sin fallos, y los archivos están al 
   assert.equal(g.hereda, ID_DE_LA_0);
   const e = cargarEpocaEscrita(epocaGuiaLibro());
   assert.equal(e.id, g.id);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 2);
+  // Sus dos plantillas son suyas (no las provisionales que irán a la 0, VG 18-11: las suyas les ganan por nombre).
+  const propias = (x) => x.transacciones.filter((t) => !t.provisional);
+  assert.equal(propias(e).length, propias(EPOCA_0_BTML).length + 2);
+  for (const n of [ZONA, PASO]) assert.ok(propias(e).some((t) => t.plantilla[0][0] === n) && !e.transacciones.some((t) => t.provisional && t.plantilla[0][0] === n), n);
   assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length, 'no trae reglas');
   const fuentes = readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => readFileSync(join('src', f), 'utf8'));
   assert.ok(!fuentes.some((s) => /(from|import)\s*\(?\s*['"][^'"]*(epocas\/guia-libro|guia-libro-0)/.test(s)), 'la época no viaja con el núcleo (#115): src/ no la importa');
@@ -96,10 +99,18 @@ test('la oferta: las dos plantillas solo al autor del elemento, en modo persona;
   assert.deepEqual([p.evento.sobre, p.evento.en], [guia.id, '4000000000']);
   assert.deepEqual(p.evento.payload, [['Ancla una nota'], [['anchor here'], ['title: hola']], ['para ver cómo se escribe'], ['autora'], [PASO], [[eje.genesisId]]]);
   for (const ev of [z.evento, p.evento]) assert.deepEqual(validarPayload(ev.payload), { ok: true, errores: [] });
-  // En un libro de la época 0 a secas no existen.
+  // En un libro de la época 0 a secas, las provisionales (VG 18-11: irán a la 0 en su pasada única; src/provisional.js):
+  // las mismas, salvo su procedencia (6) y su época (7), y se lanzan igual.
   const cero = await libro(null);
-  assert.equal(A.plantillaDeTransaccion(ZONA, { epoca: cero.epoca() }), null);
-  assert.equal((await A.transaccion(cero, ZONA, { X: cero.genesisId, label: 'x', ...CAJA, record: cero.genesisId }, 'autora', { t: T })).ok, false);
+  for (const n of [ZONA, PASO]) {
+    const propia = A.plantillaDeTransaccion(n, { epoca: eje.epoca() });
+    const provisional = A.plantillaDeTransaccion(n, { epoca: cero.epoca() });
+    assert.ok(cero.epoca().transacciones.find((t) => t.plantilla === provisional)?.provisional, n);
+    assert.deepEqual(provisional[7], ['epoch 0']);
+    assert.deepEqual([...provisional.slice(0, 6), provisional[8], provisional[9]], [...propia.slice(0, 6), propia[8], propia[9]], n);
+  }
+  const z0 = await A.transaccion(cero, ZONA, { X: cero.genesisId, label: 'x', ...CAJA, record: cero.genesisId }, 'autora', { t: T });
+  assert.ok(z0.ok, JSON.stringify(z0.motivos));
 });
 
 test('la zona: la etiqueta, la caja y el destino se validan en la plantilla, con sus rechazos', async () => {
@@ -244,11 +255,11 @@ test('un paso hecho y no hecho: la regla del tutorial, leída en el libro donde 
 test('una acción que no existe en la época del libro abierto, o un parámetro que no pide, sale inválida con su motivo; no se descarta', async () => {
   const { eje, guia } = await libroDeLaGuia();
   const roadmap = await libro(null, 'duena', 'lectora');
-  await hacer(eje, PASO, guia.id, { title: 'Una zona allí', action: ZONA, why: 'allí no existe', book: roadmap.genesisId }, 'autora');
+  await hacer(eje, PASO, guia.id, { title: 'Algo de otro libro', action: 'something of another book', why: 'allí no existe', book: roadmap.genesisId }, 'autora');
   await hacer(eje, PASO, guia.id, { title: 'Mal dicho', action: 'anchor here', parameters: ['color: rojo'], why: 'no lo pide', book: roadmap.genesisId }, 'autora');
   const s = sugerenciasDeGuia(eje, roadmap, roadmap.alta('lectora').id, 'lectora', { idioma: 'es' });
   assert.equal(s.length, 2);
-  assert.match(s[0].invalida, /plantilla de transacción desconocida: a zone of the face/);
+  assert.match(s[0].invalida, /plantilla de transacción desconocida: something of another book/);
   assert.match(s[1].invalida, /color: la acción anchor here no lo pide/);
   assert.ok(s.every((x) => x.guia === 'Primeros pasos' && x.parametros === undefined));
   const { pasos } = await A.camino(roadmap, roadmap.alta('lectora').id, 'lectora', { sugerencias: (e, ev, yo) => sugerenciasDeGuia(eje, e, ev, yo, { idioma: 'es' }) });
@@ -257,16 +268,17 @@ test('una acción que no existe en la época del libro abierto, o un parámetro 
   assert.ok(inv.every((p) => p.hacer === null && p.invalida && p.guia === 'Primeros pasos'));
 });
 
-test('un libro con la época 0 a secas: todas las lecturas dan lista vacía, sin fallar (también con registros escritos a mano)', async () => {
+test('un libro con la época 0 a secas: las lecturas encuentran las plantillas provisionales (VG 18-11: irán a la 0), también con registros escritos a mano', async () => {
   const cero = await libro(null);
   const el = await hacer(cero, 'anchor here', cero.genesisId, { title: 'Elemento' }, 'autora');
   await escribirPagando(cero, { autor: 'autora', sobre: el.id, en: '0000000000', t: T, movimientos: [pagaElCoste('autora')], payload: [['Mano'], [[10], [10], [100], [100]], ['all announced movements happened'], ['autora'], [ZONA], [[cero.genesisId], [el.id]]] });
   await escribirPagando(cero, { autor: 'autora', sobre: el.id, en: '4000000000', t: T, movimientos: [pagaElCoste('autora')], payload: [['Paso'], [['anchor here']], ['porque'], ['autora'], [PASO]] });
-  assert.deepEqual(zonas(cero, el.id), []);
-  assert.deepEqual(pasosDeGuia(cero, el.id), []);
-  assert.deepEqual(guias(cero), []);
-  assert.deepEqual(sugerenciasDeGuia(cero, cero, cero.alta('lectora').id, 'lectora'), []);
-  assert.deepEqual(contrato.zonas(cero, 'no-es-un-id'), [], 'lo mismo por contrato, y sin X');
+  // Antes (sin las provisionales) todo daba lista vacía; ahora la zona y el paso escritos a mano se leen con su forma.
+  assert.deepEqual(zonas(cero, el.id).map((z) => [z.etiqueta, z.caja, z.destino]), [['Mano', [10, 10, 100, 100], { libro: null, registro: el.id }]]);
+  assert.deepEqual(pasosDeGuia(cero, el.id).map((p) => [p.titulo, p.accion, p.porque]), [['Paso', 'anchor here', 'porque']]);
+  assert.deepEqual(guias(cero), [{ id: el.id, titulo: 'Elemento' }]);
+  assert.deepEqual(sugerenciasDeGuia(cero, cero, cero.alta('lectora').id, 'lectora').map((s) => [s.plantilla, s.guia, s.hecho]), [['anchor here', 'Elemento', false]]);
+  assert.deepEqual(contrato.zonas(cero, 'no-es-un-id'), [], 'sin X, nada');
 });
 
 test('el camino completo: el paso de la guía sale en la tercera fuente con su porqué y su guía, y sale hecho después de escribir la acción real', async () => {

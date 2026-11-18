@@ -10,14 +10,23 @@
 //                           epoch.9.2.0.3
 //   LECTURAS_PROVISIONALES  las lecturas (datos/provisional/lecturas.json), con el molde de una regla de la época: irán a
 //                           su 2 (NUCLEO_6_7_8 §6). El contexto (src/contexto-eje.js) las materializa donde la época no
-//                           tenga una lectura del mismo nombre. Hoy, «what is missing» en X.4.9 y «path steps» en X.9.8
+//                           tenga una lectura del mismo nombre. Hoy, «what is missing» en X.4.9 y «path steps» en X.9.8;
+//                           y «name» en X.0, que no se materializa: la lee contrato.representaciones (el 0 de X tal como
+//                           se lee, su nombre)
 //   FINALES_PROVISIONALES   los finales de un proceso que no son «cumplido» (datos/provisional/finales.json): por cada
 //                           plantilla de cerrado de epoch.9.0.1, 1 el fin que da motor.cerrado, 2 la acción que escribe el
 //                           registro que lo cierra y 3 si se lee antes («before») o después («after») de la del dueño. Irán
 //                           a esas mismas posiciones de las filas de epoch.9.0.1.1
+//   PLANTILLAS_PROVISIONALES  las plantillas de transacción (datos/provisional/plantillas.json), con el molde de una
+//                           plantilla de la época (el de su 9.6.0): irán a su 9.6. Toda época cargada (src/epocas.js,
+//                           cargarEpocaBtml) ofrece las que no tenga con su nombre, marcadas `provisional`, con su id (el
+//                           hash de su cuerpo canónico). Hoy, «name it» (VG 18-11, «poner nombre») y las dos de la guía
+//                           («a zone of the face», «a step of the guide»), que la época del libro de la guía y la de
+//                           cuenta traen y les ganan
 //
 // Se borra de un golpe en la pasada única: este archivo, datos/provisional/ y los import de este módulo (src/tipos.js,
-// src/contexto-eje.js y src/motor.js). Un JSON por clase y no una carpeta de archivos: así su copia es una.
+// src/contexto-eje.js, src/motor.js, src/epocas.js, src/contrato.js…). Un JSON por clase y no una carpeta de archivos:
+// así su copia es una.
 
 import { TIPOS_PROVISIONALES_DATOS as TIPOS } from '../datos/provisional/tipos.js';
 import { LECTURAS_PROVISIONALES_DATOS as LECTURAS } from '../datos/provisional/lecturas.js';
@@ -26,6 +35,7 @@ import { CADENAS_PROVISIONALES_DATOS as CADENAS } from '../datos/provisional/cad
 import { GESTOS_PROVISIONALES_DATOS as GESTOS } from '../datos/provisional/gestos.js';
 import { AJUSTES_PROVISIONALES_DATOS as AJUSTES } from '../datos/provisional/ajustes.js';
 import { ANTES_Y_DESPUES_PROVISIONALES_DATOS as ANTES_Y_DESPUES } from '../datos/provisional/antes-y-despues.js';
+import { PLANTILLAS_PROVISIONALES_DATOS as PLANTILLAS } from '../datos/provisional/plantillas.js';
 
 /** Una copia congelada en profundidad: lo provisional no lo cambia nadie al leerlo. */
 function congelada(x) {
@@ -53,3 +63,6 @@ export const AJUSTES_PROVISIONALES = congelada(Array.isArray(AJUSTES) ? AJUSTES 
 
 /** Lo que va antes y después de una acción (src/lente-provisional.js): décuplas «goes before» y «goes after», 1 las acciones, 2 la que va antes o después. */
 export const ANTES_Y_DESPUES_PROVISIONALES = congelada(Array.isArray(ANTES_Y_DESPUES) ? ANTES_Y_DESPUES : []);
+
+/** Las plantillas de transacción provisionales: décuplas con el molde de una plantilla de la época (0 nombre, 1 parámetros, 2 cuándo se ofrece, 8 [punto de vista, orden], 9 mensaje). */
+export const PLANTILLAS_PROVISIONALES = congelada(Array.isArray(PLANTILLAS) ? PLANTILLAS : []);

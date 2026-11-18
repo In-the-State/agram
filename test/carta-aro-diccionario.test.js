@@ -95,7 +95,9 @@ test('una cuenta con más acciones en el 0 (la casa en su alta): todas en la lis
   const { eje } = await ejemploCompra();
   const X = eje.alta('casa').id;
   const a = await arbol({ foco: { X, pv: 0 }, aro: { X, pv: null, editar: true } }, eje, 'casa', PC);
-  const ids = A.acciones(eje, X, 0, 'casa').map((x) => x.id);
+  // Las que anclan en la hoja misma del 0 («name it», provisional, VG 18-11: ancla en el 0) no van en la lista: crean sobre la hoja.
+  const ids = A.acciones(eje, X, 0, 'casa').filter((x) => String(x.plantilla[5][0]) !== '0').map((x) => x.id);
+  assert.ok(A.acciones(eje, X, 0, 'casa').some((x) => x.nombre === 'name it'));
   assert.deepEqual(a.aro.centro.acciones0.map((x) => x.id), ids);
   const abajo = html(a).match(/<ul class="opciones opciones-abajo" data-opciones="0">[^]*?<\/ul>/)?.[0] ?? '';
   for (const id of ids) assert.ok(abajo.includes(`data-lanzar="${id}"`));

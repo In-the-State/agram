@@ -16,6 +16,7 @@ import * as contrato from '../src/contrato.js';
 import * as acciones from '../src/acciones.js';
 import { ARIDAD } from '../src/btml.js';
 import { nombreDeRegla } from '../src/bqlm.js';
+import { TEXTOS_PROVISIONALES_DATOS } from '../src/provisional-textos.js';
 
 const hojas = (x) => (x === undefined || x === null ? [] : Array.isArray(x) ? x : [x]);
 const cadenas = (x) => hojas(x).filter((h) => typeof h === 'string');
@@ -105,9 +106,16 @@ export function clavesDelIdioma(idioma, opciones = {}) {
   return claves;
 }
 
-/** Las claves que la carta pide y que el idioma no traduce: [{ clave, tipo, de, original }]. */
+/** Las claves de un idioma en los textos provisionales (src/provisional-textos.js), que contrato.texto lee detrás de los de la época: Set de claves. */
+export function clavesProvisionales(idioma) {
+  const claves = new Set();
+  for (const r of TEXTOS_PROVISIONALES_DATOS.filter((x) => hojas(x[0]).includes(idioma))) for (const h of hojas(r[1])) { const i = typeof h === 'string' ? h.indexOf(': ') : -1; if (i > 0) claves.add(h.slice(0, i)); }
+  return claves;
+}
+
+/** Las claves que la carta pide y que el idioma no traduce (ni la época ni lo provisional): [{ clave, tipo, de, original }]. */
 export function sinTraducir(idioma = 'es', opciones = {}) {
-  const tiene = clavesDelIdioma(idioma, opciones);
+  const tiene = new Set([...clavesDelIdioma(idioma, opciones), ...clavesProvisionales(idioma)]);
   return clavesPedidas(opciones).filter((c) => !tiene.has(c.clave));
 }
 

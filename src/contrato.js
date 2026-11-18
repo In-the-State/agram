@@ -79,6 +79,7 @@ import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0, esPlantillaDeDatos, planti
 import { ContextoEje } from './contexto-eje.js';
 import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla, MemoriaDeLectura, posicionDeLectura, EXPLICACION_CORTADA, aplanar } from './bqlm.js';
 import { TEXTOS_PROVISIONALES_DATOS } from './provisional-textos.js';
+import { LECTURAS_PROVISIONALES } from './provisional.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
 import { eslabonesValidos, GRADOS_DE_LA_FORMULA } from './sello.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
@@ -441,11 +442,59 @@ export function colores(opciones = {}) {
 }
 
 /**
+ * Dónde se lee el 0 de un registro tal como se dice (Core AGRAM 18-11, VG 18-11, «poner nombre»): la lectura de la época
+ * cuyo 3 es «X.0» da, con it = X, los textos que lo nombran (hoy, la provisional «name»: el 0 del último «name it» de
+ * quien podía o, sin él, su propio 0). No se materializa en un nodo (X.0.d sigue siendo lo escrito): la lee
+ * representaciones. El código no nombra ninguna acción: pregunta por la lectura que se lee en X.0.
+ */
+export const DONDE_SE_LEE_EL_CERO = 'X.0';
+
+const FORMULA_DEL_CERO = new WeakMap(); // época → la fórmula de su lectura de X.0, o null
+/** La fórmula de la lectura que da el 0 de X en `epoca`: la suya, si la tiene; si no, la provisional que no se llame como una suya (src/provisional.js); null si no hay. Como las lecturas provisionales del contexto, solo en una época con lecturas. */
+function formulaDelCero(epoca) {
+  if (!epoca || typeof epoca !== 'object') return null;
+  if (!FORMULA_DEL_CERO.has(epoca)) {
+    const lecturas = Array.isArray(epoca.lecturas) ? epoca.lecturas : [];
+    const nombres = new Set(lecturas.map((r) => nombreDeRegla(r)));
+    const regla = lecturas.find((r) => posicionDeLectura(r) === DONDE_SE_LEE_EL_CERO)
+      ?? (lecturas.length ? LECTURAS_PROVISIONALES.find((r) => posicionDeLectura(r) === DONDE_SE_LEE_EL_CERO && !nombres.has(nombreDeRegla(r))) : undefined);
+    const formula = texto(ultima(regla?.[2]));
+    FORMULA_DEL_CERO.set(epoca, esFormula(formula) ? formula : null);
+  }
+  return FORMULA_DEL_CERO.get(epoca);
+}
+
+const CEROS_LEIDOS = new WeakMap(); // eje → { epoca, n, ultimo, ctx, porId: Map(id → textos o null) }
+/**
+ * El 0 de un registro del eje tal como se lee (la lectura de X.0): sus textos, o null si la época no la tiene, no se
+ * resuelve o no da solo textos (un 0 que es una referencia o una décupla). Se guarda por versión del eje (su longitud y
+ * su último registro) y por época, con un contexto para todos: da lo mismo que evaluarla cada vez, y pedir el nombre de
+ * todos los registros de un libro es una evaluación por registro y versión, no una por pregunta.
+ */
+function ceroLeido(eje, epoca, id) {
+  const formula = formulaDelCero(epoca);
+  if (!formula) return null;
+  const o = Array.isArray(eje?.orden) ? eje.orden : null;
+  let g = o ? CEROS_LEIDOS.get(eje) : null;
+  if (o && (!g || g.epoca !== epoca || g.n !== o.length || g.ultimo !== o[o.length - 1])) {
+    g = { epoca, n: o.length, ultimo: o[o.length - 1], ctx: null, porId: new Map() };
+    CEROS_LEIDOS.set(eje, g);
+  }
+  if (g?.porId.has(id)) return g.porId.get(id);
+  const ctx = g ? (g.ctx ??= new ContextoEje(eje, { epoch: epoca })) : new ContextoEje(eje, { epoch: epoca });
+  const r = evaluar(formula, ctx, { sujeto: id });
+  const v = r.estado === 'RESUELTO' && r.valor.length > 0 && r.valor.every((x) => typeof x === 'string') ? Object.freeze([...r.valor]) : null;
+  g?.porId.set(id, v);
+  return v;
+}
+
+/**
  * Las representaciones de X: los ocupantes de su 0, normalizados [{ texto, tamano, formato, recurso }] y ordenados
  * por tamaño mínimo. Una hoja es una representación de texto sin tamaño mínimo (0; el formato es el primero de la
  * lista de la época); una décupla (en el 0, o un registro anclado en la raíz, que colisiona con el 0) es una
  * representación rica: su 0 el texto alternativo, su 1 [tamaño mínimo, formato], su 5 el recurso. Lo que no es de un
- * formato que la plantilla admite en su 0.1 (o la época en 9.5.1), o no tiene un tamaño de la época, se omite.
+ * formato que la plantilla admite en su 0.1 (o la época en 9.5.1), o no tiene un tamaño de la época, se omite. Los
+ * textos de un registro del eje son su 0 tal como se lee (DONDE_SE_LEE_EL_CERO, VG 18-11): su nombre, si se lo han puesto.
  */
 export function representaciones(eje, X, opciones = {}) {
   opciones = conEpoca(eje, opciones);
@@ -475,9 +524,15 @@ export function representaciones(eje, X, opciones = {}) {
     const enIdioma = id && alt !== null && opciones.idioma ? ceroParaLeer(eje, id, { epoca: epocaDe(opciones, eje), idioma: opciones.idioma }) : null;
     fuera.push({ texto: enIdioma ?? alt, tamano, formato, recurso: hoja(dec[5]) ?? null });
   };
-  if (esTerminal(ev.payload)) deTexto(ev.payload);
-  else if (Array.isArray(ev.payload) && ev.payload[0] !== undefined) {
-    const cero = ev.payload[0];
+  // El 0 tal como se lee (VG 18-11, «poner nombre»; DONDE_SE_LEE_EL_CERO): si la lectura de X.0 de la época dice otros
+  // textos que los del 0 escrito, esos son sus representaciones de texto (su nombre). Las ricas no cambian.
+  const cero = esTerminal(ev.payload) ? ev.payload : Array.isArray(ev.payload) ? ev.payload[0] : undefined;
+  const escritos = cero === undefined ? [] : esTerminal(cero) ? [cero] : esLista(cero) ? cero : [];
+  const leido = typeof ev.id === 'string' && eje?.obtener(ev.id) ? ceroLeido(eje, epocaDe(opciones, eje), ev.id) : null;
+  if (leido && !(leido.length === escritos.length && leido.every((x, k) => x === escritos[k]))) {
+    leido.forEach(deTexto);
+    if (cero !== undefined && !esTerminal(cero) && !esLista(cero) && esDecupla(cero)) rica(cero);
+  } else if (cero !== undefined) {
     if (esTerminal(cero)) deTexto(cero);
     else if (esLista(cero)) cero.forEach(deTexto);
     else if (esDecupla(cero)) rica(cero);
@@ -3411,7 +3466,9 @@ function texto_(eje, clave, idioma = 'en', { original, ...opciones } = {}) {
   if (retoque) fuera = retoque.texto;
   else {
     const porIdioma = textosDe(epoca, opciones);
-    fuera = (idioma ? porIdioma.get(idioma)?.get(clave) : undefined) ?? porIdioma.get('en')?.get(clave) ?? (original === undefined || original === null ? null : String(original));
+    // Detrás de cada idioma de la época, el provisional (textoProvisional: lo que irá a su 9.4 en la pasada única, como los
+    // textos de las plantillas provisionales): nunca tapa a la época.
+    fuera = (idioma ? porIdioma.get(idioma)?.get(clave) ?? textoProvisional(clave, idioma) : undefined) ?? porIdioma.get('en')?.get(clave) ?? textoProvisional(clave, 'en') ?? (original === undefined || original === null ? null : String(original));
   }
   anotarLectura({ clave, idioma, texto: fuera, retoque: retoque?.id ?? null });
   return fuera;
@@ -3648,6 +3705,18 @@ const PROVISIONALES = (() => {
   }
   return porIdioma;
 })();
+
+/** Las claves que solo lee fraseDelPorque: las frases que unen el porqué y el glosario de las vistas (un libro no las retoca, decisión 10). */
+const RE_SOLO_DEL_PORQUE = /^(why|position) /;
+
+/**
+ * Un texto provisional (src/provisional-textos.js) por su clave, para contrato.texto, que lo lee detrás de la época (Core
+ * AGRAM 18-11: los textos de las plantillas provisionales, «template …», y lo demás de lo provisional); undefined si no
+ * lo hay. Las frases del porqué y el glosario no: esas solo las lee fraseDelPorque, y así no se retocan.
+ */
+function textoProvisional(clave, idioma) {
+  return RE_SOLO_DEL_PORQUE.test(clave) ? undefined : PROVISIONALES.get(idioma)?.get(clave);
+}
 
 /**
  * Una frase que une el porqué («why …») o una entrada del glosario de las vistas («position …»): de la época 0 (sus

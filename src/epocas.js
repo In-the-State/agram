@@ -28,6 +28,7 @@ import { sha256, aHex } from './cripto.js';
 import { esLectura, esEscritura, esLecturaDePv, analizar, queMueve, esFormula } from './bqlm.js';
 import { erroresDelSuelo } from './suelo.js';
 import { fundirCambio } from './versiones.js';
+import { PLANTILLAS_PROVISIONALES } from './provisional.js';
 import { EPOCA_0_DATOS, EPOCA_0_BTML_DATOS, EPOCA_0_BTML_ID, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS, MODELOS_DE_EPOCA_DATOS, GUIA_DE_EPOCA_DATOS, RETOQUES_0_DATOS } from '../datos/epocas/epocas.js';
 
 /**
@@ -243,6 +244,13 @@ const hojaDe = (x) => (Array.isArray(x) && x.length === 1 ? x[0] : x);
 const textoNoVacio = (x) => typeof x === 'string' && x.length > 0;
 
 /**
+ * Las plantillas de transacción provisionales (src/provisional.js; Core AGRAM 18-11, VG 18-11: lo que irá al 9.6 de la 0
+ * en su pasada única), como las ve una época: { id, plantilla, provisional: true }, el id el hash de su cuerpo canónico
+ * (como el de una plantilla de una hija). Se calculan una vez, antes de cargar la 0 más abajo en este módulo.
+ */
+const TRANSACCIONES_PROVISIONALES = Object.freeze(PLANTILLAS_PROVISIONALES.map((p) => Object.freeze({ id: idDeRegistro(p), plantilla: congelarCopia(p), provisional: true })));
+
+/**
  * Carga una época escrita como décupla BTML (datos/epocas/epoca-0.btml.json),
  * leída con la cruceta (VG, 9-11, mapa §16 [D] «La época es un registro leído
  * con la cruceta»): 0 nombre; 1 las cuatro familias (E 1.0, P 1.1, R 1.2,
@@ -363,7 +371,7 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id =
   if (entradas96.length && (!esLista(entradas96) || !entradas96.every((x) => esReferencia(x) && x.dir === undefined))) {
     throw new TypeError(nombre + ': el 9.6.1 es la lista de referencias { ref } a los registros de sus plantillas de transacción');
   }
-  const transacciones = Object.freeze(entradas96.map(({ ref }, k) => {
+  const propias96 = entradas96.map(({ ref }, k) => {
     const donde = 'la plantilla ' + (k + 1) + ' del 9.6 (' + ref.slice(0, 8) + ')';
     if (!porIdPlantilla.has(ref)) throw new TypeError(nombre + ': ' + donde + ' no está entre las plantillas de la época');
     const p = porIdPlantilla.get(ref);
@@ -373,7 +381,14 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id =
     const r = congelarCopia(p);
     registrosDeEpoca.set(ref, r);
     return Object.freeze({ id: ref, plantilla: r });
-  }));
+  });
+  // Detrás, las provisionales (src/provisional.js: lo que irá al 9.6 de la 0 en su pasada única) cuyo nombre la época no
+  // tiene: lo de la época gana siempre, por nombre. Marcadas `provisional` (lo que cuenta o compara las plantillas propias
+  // de una época las distingue así), no están en su 9.6 ni en `registros`, y no cambian su id (el de la raíz escrita).
+  // Como las lecturas provisionales (src/contexto-eje.js), solo en una época con acciones: sin 9.6, o cargada sin sus
+  // plantillas, ninguna.
+  const nombres96 = new Set(propias96.map((x) => primeraHojaDe(x.plantilla[0])));
+  const transacciones = Object.freeze([...propias96, ...(propias96.length ? TRANSACCIONES_PROVISIONALES.filter((x) => !nombres96.has(primeraHojaDe(x.plantilla[0]))) : [])]);
 
   // 8.0: los cortes de las diez cajas del 8.
   const cortesDatos = Array.isArray(registro[8]) ? registro[8][0] : undefined;
@@ -399,7 +414,8 @@ export function cargarEpocaBtml(payload, { registros = [], plantillas = [], id =
     lecturasDePv,
     escrituras,
     reglasConId: Object.freeze(reglasDel2),
-    // Las plantillas de transacción (encargo 3c-2a): [{ id, plantilla }], en el orden del 9.6.
+    // Las plantillas de transacción (encargo 3c-2a): [{ id, plantilla }], en el orden del 9.6; detrás, las provisionales
+    // que la época no tiene por su nombre, [{ id, plantilla, provisional: true }].
     transacciones,
     registros: registrosDeEpoca,
     largas: Object.freeze([]),

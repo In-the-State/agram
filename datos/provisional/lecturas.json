@@ -126,5 +126,43 @@
     [
       "chosen cohort: the cohort the owner of X chose in its 8, and the record that says it"
     ]
+  ],
+  [
+    [
+      "name"
+    ],
+    [
+      "X.0",
+      "X.3",
+      "X.5",
+      "A.6",
+      "payload"
+    ],
+    [
+      "=(last ((it with (down it)) where it2 = it or last (first it2.6).5 = \"0000000000\" and \"name it\" in (payload(it2)).4 and (first it2.3 = first it.3 or first (first it2.3).6 = first it.5))).0"
+    ],
+    [
+      "X.0"
+    ],
+    [
+      "read"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (VG 18-11: el registro de «name it» se lee como el nombre del registro sobre el que se lanza): provisional hasta la pasada única por la época 0, que la pondrá en su 2 tal cual. Modelo, «conversation title» de la época state, pero general",
+      "Con it = un registro, su nombre: el 0 del último registro anclado en su 0 que dice «name it» en su 4 y que escribió quien podía (el autor de X, o la persona cuya alta es X); si no hay, su propio 0. Lo escrito por otro se ignora, no se rechaza: no hay regla que juzgue. Se toma lo último de X y lo anclado sobre él (down it), por llegada",
+      "Su 3 es «X.0»: la lectura que da el 0 de X tal como se lee. No se materializa en un nodo (el 0 de un registro es su payload y no se toca: X.0.d sigue siendo lo escrito): la lee el contrato al dar la representación de texto de X (contrato.representaciones, de donde beben el 0 legible y todo lo que nombra un registro). El código pregunta por la lectura que se lee en X.0, no por la acción"
+    ],
+    [
+      "epoch 0"
+    ],
+    [
+      "after chosen cohort"
+    ],
+    [
+      "name: the name of X, the 0 of the last «name it» written on its 0 by who can name it (its author, or the person on her own alta); without one, its own 0"
+    ]
   ]
 ]

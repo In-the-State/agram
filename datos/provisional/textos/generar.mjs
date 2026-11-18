@@ -1,6 +1,8 @@
 // Genera src/provisional-textos.js desde datos/provisional/textos/{en,es}.json (Core AGRAM 18-11; docs/notas/
 // NUCLEO_6_7_8.md §8, el porqué de un «no»): las frases «why …» que unen el porqué en llano y el glosario «position …»
-// de las vistas del contexto, con la forma exacta de un registro de idioma de epoch.9.4 ([[código], [«clave: texto», …]]),
+// de las vistas del contexto, y los textos de las plantillas provisionales («template …», Core AGRAM 18-11: «name it» y
+// las dos de la guía; contrato.texto los lee detrás de los de la época del libro), con la forma exacta de un registro de
+// idioma de epoch.9.4 ([[código], [«clave: texto», …]]),
 // que es lo que serán en la época 0 tras su pasada única. El JSON manda: se cambia él y se vuelve a generar con
 // `node datos/provisional/textos/generar.mjs`. test/porque-no.test.js comprueba que el módulo está al día.
 // Es una copia importable (sin `import … with { type: 'json' }`), igual en Node que en el navegador, como datos/lente/lente-0.js.
@@ -21,6 +23,7 @@ export function generar(carpeta = CARPETA) {
     '// No se edita a mano: se cambian los JSON y se ejecuta `node datos/provisional/textos/generar.mjs`.',
     '// Lo provisional (NUCLEO_6_7_8 §8, decisión 13): las frases «why …» y el glosario «position …», como registros de idioma',
     '// de epoch.9.4. Se leen detrás de los textos de la época 0, nunca delante; un libro no los retoca (decisión 10).',
+    '// Y los de las plantillas provisionales (datos/provisional/plantillas.json): «template …», detrás de los de la época del libro.',
     '',
     `export const TEXTOS_PROVISIONALES_DATOS = ${JSON.stringify(registros, null, 2)};`,
     '',

@@ -53,7 +53,8 @@ const NOMBRES = new WeakMap();
 /** ¿Trae la época (la versión) la plantilla de transacción `nombre` en su 9.6? */
 export function traePlantilla(epoca, nombre) {
   if (!epoca || typeof epoca !== 'object') return false;
-  if (!NOMBRES.has(epoca)) NOMBRES.set(epoca, new Set((Array.isArray(epoca.transacciones) ? epoca.transacciones : []).map((x) => primera(x.plantilla?.[0]))));
+  // Las de su 9.6: las provisionales (src/provisional.js) no son de la época.
+  if (!NOMBRES.has(epoca)) NOMBRES.set(epoca, new Set((Array.isArray(epoca.transacciones) ? epoca.transacciones : []).filter((x) => !x.provisional).map((x) => primera(x.plantilla?.[0]))));
   return NOMBRES.get(epoca).has(nombre);
 }
 
