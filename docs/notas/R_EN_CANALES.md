@@ -7,15 +7,15 @@ Core AGRAM, 17-11 (encargos «la R en los canales» y «reservar en lugar de ent
 ## Qué cambia para quien llama desde fuera
 
 - **Antes de meter el primer mensaje en una conversación, una reserva.** Quien reserva (la persona en la casa, el servicio por Telegram, el agente que abre una conversación con otro) escribe una vez su reserva en esa conversación para el agente: `acciones.transaccion(eje, 'a reserve', { X: conversación, spender: agente, modes: 'return' }, quien)`. Después, cada «message in» bloquea su R con la salida en ella. No hay que acordarse: **`registrosParaUnMensaje(eje, conversación, quien, { text, … })`** de `datos/epocas/state/ayuda.mjs` dice qué registros escribir, en orden (la reserva si falta, y el mensaje), cada uno para `acciones.transaccion(eje, r.plantilla, r.params, quien)`.
-- **Las plantillas de mensaje conservan nombre y parámetros** («message in», «message in from an agent», «message out»; `give` en su 1.5). Lo que cambia es lo que mueven.
+- **Las acciones de mensaje conservan nombre y parámetros** («message in», «message in from an agent», «message out»; `give` en su 1.5). Lo que cambia es lo que mueven.
 - **El cupo del agente se lee con `cupo(eje, conversación, agente)`** (misma ayuda), o con la lectura **conversation quota** de la época state (`it` = la conversación: el de su agente). Sustituye a mirar `eje.saldo(agente, 'R:' + emisor)`, que ya no dice cuánto puede escribir.
 - **Lo no gastado es de quien lo reservó**: sigue en su saldo (bloqueado); lo retira liberando su propio bloqueo cuando quiera, y archivar la conversación lo retira en el mismo registro si archiva quien reservó.
 
-## Dónde va la R en cada plantilla
+## Dónde va la R en cada acción
 
 La R se mueve en los **movimientos del propio registro** (junto a la quema del coste de escribir), no en el payload. El payload solo lleva la cantidad cuando no es la de por defecto:
 
-| Plantilla | Qué mueve | Posición de la cantidad (opcional) |
+| Acción | Qué mueve | Posición de la cantidad (opcional) |
 |---|---|---|
 | open a conversation [1, 24] | el precio del grupo al dueño del agente y R de quien abre **al agente** (se entrega, como antes): la suya (una persona; el servicio, la suya) | **6** (sin él, una unidad) |
 | open a conversation as an agent [1, 27] | lo mismo, cuando abre otro agente: el precio y R de su dueño, de la que guarda, entregada | **6** (sin él, una; con 0, ninguna) |
@@ -40,7 +40,7 @@ La R se mueve en los **movimientos del propio registro** (junto a la quema del c
 ## Qué tiene que hacer un conversador (el que hace hablar al agente)
 
 - **Firmar con la clave del agente** cada «message out» y cada «message in from an agent».
-- **Mirar el cupo antes de escribir**: `cupo(eje, conversación)`. Cada «message out» gasta **exactamente una unidad**, y solo de una reserva **del otro lado** de la conversación (la del interlocutor o la de quien escribió su alta: el servicio, el dueño del otro agente; revisión de seguridad, hallazgos 5 a 7): una reserva de un tercero que nombre al agente no da cupo y la plantilla no la elige. Sin cupo, no escribe: es lo esperado (no le han escrito o ya contestó a todo).
+- **Mirar el cupo antes de escribir**: `cupo(eje, conversación)`. Cada «message out» gasta **exactamente una unidad**, y solo de una reserva **del otro lado** de la conversación (la del interlocutor o la de quien escribió su alta: el servicio, el dueño del otro agente; revisión de seguridad, hallazgos 5 a 7): una reserva de un tercero que nombre al agente no da cupo y la acción no la elige. Sin cupo, no escribe: es lo esperado (no le han escrito o ya contestó a todo).
 - **Agente con agente**: abrir con «open a conversation as an agent» (entrega R de su dueño y paga el precio) y escribir con «message in from an agent». Cada lado reserva para el otro en la conversación lo que antes le pasaba: el que escribe gasta una unidad que el otro lado le reservó y bloquea R de su dueño en su propia reserva para el otro (la primera vez, con la reserva delante: `registrosParaUnMensaje(…, { esAgente: true, … })`); el agente que contesta con `give` bloquea R de su dueño en su reserva para el otro. **El primer mensaje del otro agente necesita que este lado le reserve antes**: el dueño del agente (o el agente) escribe su reserva para él y la llena con «fill a reserve». Ningún mensaje lo hace por él.
 - **El dueño del agente** puede escribir un «message out» en vez del agente, pero gastando de una reserva de la conversación **que lo nombre a él** (lo reservado para el agente es del agente).
 
@@ -62,7 +62,7 @@ La revisión de los canales (CH1 de `test/revision-canales.test.js`) encontró q
 - **Sin excepciones por tipo de identidad**: vale para cualquiera que tenga P sobre otro, persona o cosa con clave, y para lo escrito a mano.
 - **Coste acotado**: la regla se para en su primera comprobación si el registro no acuña ni transfiere P; si lo hace, recorre una vez lo que cuelga de X (`down X`) y de cada registro mira primero su ancla (colgado en el 2.1 de X) y su autor (el dueño), y solo de los que pasan lee el payload firmado (revisión de seguridad, hallazgo 4: un registro ajeno con un 4 enorme no se llega a leer). Nunca recorre el libro. Medido (17-11, eje de demostración): un registro sin P, de 5 a 9 pasos y de 8 a 15 ocupantes; bajar P con un sí del dueño, 95 ocupantes; con 2 registros ajenos colgados de la casa con 900 textos en su 4, 126; con 20, 495. Lo que crece es el número de registros colgados de X (unos 20 ocupantes cada uno, sin importar su tamaño): el tope de 10 000 ocupantes llegaría hacia los 500 registros colgados de la cosa, y escribir cada uno le cuesta T a quien lo escribe.
 
-**El gesto del dueño** (para la carta, que no se ha tocado): la plantilla **let P come down here** [2, 9] de la época 0, que se ofrece al dueño de X (su 2: `first it.3 = me`), en modo persona. Ancla en el **2.1** de X (donde se posiciona el P) y escribe: **1.0** `yes` o `no`, **2** el criterio, **3.0** quien responde (el dueño), **3.1 a quién deja bajar** (una identidad con alta: una persona o una cosa con clave, también un agente), **4** «let P come down here». No mueve nada salvo el coste de escribir. Para retirarlo, otro con `no` para la misma identidad: cuenta el último. `acciones.transaccion(eje, 'let P come down here', { X: cosa, whom: agente, answer: 'yes' }, dueño)`.
+**El gesto del dueño** (para la carta, que no se ha tocado): la acción **let P come down here** [2, 9] de la época 0, que se ofrece al dueño de X (su 2: `first it.3 = me`), en modo persona. Ancla en el **2.1** de X (donde se posiciona el P) y escribe: **1.0** `yes` o `no`, **2** el criterio, **3.0** quien responde (el dueño), **3.1 a quién deja bajar** (una identidad con alta: una persona o una cosa con clave, también un agente), **4** «let P come down here». No mueve nada salvo el coste de escribir. Para retirarlo, otro con `no` para la misma identidad: cuenta el último. `acciones.transaccion(eje, 'let P come down here', { X: cosa, whom: agente, answer: 'yes' }, dueño)`.
 
 **Quién tiene sí sobre una cosa** (con `it` = la cosa; da los registros del sí vigentes; la identidad es el 3.1 de su payload): no hay lectura con nombre en la época; esta expresión, que comprueba la prueba «retirado el sí», es la que la carta puede leer con `evaluar(…, ctx, { sujeto: cosa })`:
 

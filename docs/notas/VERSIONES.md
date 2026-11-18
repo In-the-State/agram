@@ -1,6 +1,6 @@
 # Las versiones de la época en el eje (A23, el motor; y la mitad de núcleo de A21)
 
-Core AGRAM, 17-11. Diseño: `agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md` §6.1, con las comprobaciones de núcleo de §3.1 y §3.4 y el «cómo se hace cumplir» de §5. La parte de época (la fila 7.9, las seis plantillas, las lecturas y las reglas de validez) está en `docs/notas/GOBIERNO.md`. Código: `src/versiones.js` (el motor, sin eje), `src/suelo.js` (el suelo, una función pura), `src/eje.js` (guarda las versiones). Pruebas: `test/versiones.test.js`, y `test/gobierno.test.js` para el recorrido de la época.
+Core AGRAM, 17-11. Diseño: `agram-equipo/DISENO_GOBIERNO_Y_MOTOR.md` §6.1, con las comprobaciones de núcleo de §3.1 y §3.4 y el «cómo se hace cumplir» de §5. La parte de época (la fila 7.9, las seis acciones, las lecturas y las reglas de validez) está en `docs/notas/GOBIERNO.md`. Código: `src/versiones.js` (el motor, sin eje), `src/suelo.js` (el suelo, una función pura), `src/eje.js` (guarda las versiones). Pruebas: `test/versiones.test.js`, y `test/gobierno.test.js` para el recorrido de la época.
 
 ## 1. Qué guarda el eje
 
@@ -38,7 +38,7 @@ console.log(eje.epocaDe(enVigor.id).registro[7][3][0], eje.epoca().registro[7][3
 
 ## 3. Cuándo entra una versión
 
-Cuando el eje **acepta** un registro que dice «put a change in force» en su 4 **y la versión vigente en ese punto trae esa plantilla** en su 9.6. Sin la plantilla, un registro con ese nombre es un registro cualquiera y no cambia nada (condición de seguridad: un libro cuya época no tiene gobierno no gana reglas).
+Cuando el eje **acepta** un registro que dice «put a change in force» en su 4 **y la versión vigente en ese punto trae esa acción** en su 9.6. Sin la acción, un registro con ese nombre es un registro cualquiera y no cambia nada (condición de seguridad: un libro cuya época no tiene gobierno no gana reglas).
 
 El cambio se busca siguiendo el sobre: «put a change in force» va sobre un «enact a change», que va sobre un «propose a change» anclado en el 9.7 del génesis, que lleva el cambio (su 1.1, la raíz de la época hija; su 1.2, sus registros). Si la cadena no es esa, no entra nada y el registro se rechaza.
 
@@ -50,7 +50,7 @@ El registro que pone en vigor se juzga con la versión **anterior**; la nueva ri
 
 Los motivos salen por la vía de siempre: `eje.motivos(ev)` (con `regla: 'núcleo:versiones'`, `REGLA_DEL_MOTOR` de `src/eje.js`, y `estado: 'falla'`), el error de `eje.anadir` (`e.motivos`, su mensaje «evento rechazado: …») y `acciones.transaccion` (con `regla: null`, como las demás comprobaciones del núcleo). No llevan `code`: no es una parada por límite.
 
-**Al proponer** (un «propose a change», si la versión vigente trae esa plantilla) y **otra vez al poner en vigor** (sobre la versión vigente **en ese punto**, con el prefijo «en este punto, sobre la versión vigente: »):
+**Al proponer** (un «propose a change», si la versión vigente trae esa acción) y **otra vez al poner en vigor** (sobre la versión vigente **en ese punto**, con el prefijo «en este punto, sobre la versión vigente: »):
 
 | Qué | Motivo |
 |---|---|
@@ -85,13 +85,13 @@ Los motivos salen por la vía de siempre: `eje.motivos(ev)` (con `regla: 'núcle
 
 Lo de «una sola vez» y «retirada» también lo dicen las reglas de la época («a change comes into force with its proof», «only who proposed withdraws a change»); el núcleo no depende de ellas para no fundir dos veces.
 
-**Las referencias del cambio.** La raíz de un cambio puede referenciar los registros que trae en su 1.2 (una regla, una plantilla nueva) aunque no estén en el eje: el suelo de las referencias ausentes (`src/condiciones/evento.js`) los da por resueltos **solo** en un «propose a change» con la plantilla en la versión vigente, y solo los ids de esos registros (`idsDelCambio`). Cualquier otra referencia a un registro que el eje no tiene se sigue rechazando.
+**Las referencias del cambio.** La raíz de un cambio puede referenciar los registros que trae en su 1.2 (una regla, una acción nueva) aunque no estén en el eje: el suelo de las referencias ausentes (`src/condiciones/evento.js`) los da por resueltos **solo** en un «propose a change» con la acción en la versión vigente, y solo los ids de esos registros (`idsDelCambio`). Cualquier otra referencia a un registro que el eje no tiene se sigue rechazando.
 
 ## 5. El suelo
 
-`erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o plantillas: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Además mira la fila 7.9 del resultado (`erroresDeLaFila`: umbrales, niveles y presiones, `docs/notas/GOBIERNO.md` §2). Las piezas de gobierno son las de 7.9.7 de la base y del resultado **y lo que leen, calculado** (`piezasDeGobiernoDe`, GOBIERNO.md §6). Con una clase que no es «governance», además, ninguna condición ni lectura que se guarda nueva o sustituida (`reglasConId` del resultado que la base no tiene, por id), **ni quitada** (la salida con lo propio, B: una de la base cuyo id el resultado no tiene y con cuyo nombre no queda ninguna que guarde; el 2 no pierde entradas al fundir, así que quitar es dejar con ese nombre una lectura que solo informa). Sin `clase` no se mira la clase.
+`erroresDelSuelo(base, resultado, { clase })` (`src/suelo.js`): pura, sin eje. Compara una época con la que queda al fundirle algo encima y da los motivos en llano (sin el «el cambio» delante). El suelo es la lista 7.9.6 de la base: nombres de reglas (o lecturas, o acciones: se comparan los ids de los registros de ese nombre) y posiciones `epoch.…` (se compara lo que hay en esa dirección). Además mira la fila 7.9 del resultado (`erroresDeLaFila`: umbrales, niveles y presiones, `docs/notas/GOBIERNO.md` §2). Las piezas de gobierno son las de 7.9.7 de la base y del resultado **y lo que leen, calculado** (`piezasDeGobiernoDe`, GOBIERNO.md §6). Con una clase que no es «governance», además, ninguna condición ni lectura que se guarda nueva o sustituida (`reglasConId` del resultado que la base no tiene, por id), **ni quitada** (la salida con lo propio, B: una de la base cuyo id el resultado no tiene y con cuyo nombre no queda ninguna que guarde; el 2 no pierde entradas al fundir, así que quitar es dejar con ese nombre una lectura que solo informa). Sin `clase` no se mira la clase.
 
-El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar. En la 0, el suelo son las 17 reglas de VG, las 9 reglas y lecturas del mecanismo del gobierno (anexo de los arreglos, I: «approved», «support», «support of», las cuatro reglas de §5 de GOBIERNO.md y las dos del apoyo), las 2 reglas y la plantilla de la salida con lo propio («a declared balance is true», «a declared balance is only that», «declare a balance»; VG 17-11) y tres posiciones: 32; `sueloDe` le añade, calculado, toda lectura que una de sus reglas o lecturas nombra en su 1 (hoy, ninguna). Las piezas de gobierno de la 0 (7.9.7) incluyen desde entonces la fila del puente, `epoch.8.9`.
+El suelo se amplía y no se encoge: un cambio de gobierno puede añadir a 7.9.6 (lo que añade queda guardado desde el registro siguiente), nunca quitar. En la 0, el suelo son las 17 reglas de VG, las 9 reglas y lecturas del mecanismo del gobierno (anexo de los arreglos, I: «approved», «support», «support of», las cuatro reglas de §5 de GOBIERNO.md y las dos del apoyo), las 2 reglas y la acción de la salida con lo propio («a declared balance is true», «a declared balance is only that», «declare a balance»; VG 17-11) y tres posiciones: 32; `sueloDe` le añade, calculado, toda lectura que una de sus reglas o lecturas nombra en su 1 (hoy, ninguna). Las piezas de gobierno de la 0 (7.9.7) incluyen desde entonces la fila del puente, `epoch.8.9`.
 
 **Lo que el suelo decide al validar** (la salida con lo propio, VG 17-11; `docs/notas/GOBIERNO.md` §10): a un registro que nombra «declare a balance» en su payload 4 solo se le prueban las reglas de la época que se llaman como una pieza del suelo de la versión vigente (`src/suelo.js`, `condicionesDelRegistro`, que pide `src/condiciones/reglas.js`, `veredictosDe`), si ese suelo trae «a declared balance is only that»; las condiciones del núcleo en JS y el motor, como siempre. Una regla añadida por un cambio, aunque sea de gobierno, no la alcanza (salvo que se añada al propio 7.9.6: pregunta S8).
 
@@ -105,11 +105,11 @@ Nada nuevo: lo escrito sin red se coloca detrás al sincronizar (`eje.reordenar`
 
 ## 7. Las cachés
 
-Cada versión es un objeto distinto, y las cachés que iban por eje y época van ya por eje y versión sin tocarlas: los textos (`textosDe`, por la raíz congelada), los retoques del libro (por eje y época), las condiciones (`condicionesDe`, por época), los límites de cálculo (por raíz), los nombres de las plantillas que mira el motor (por época). Lo que se lee con `{ epoca: eje.epocaDe(id) }` sale de esa versión; sin opción, de la vigente.
+Cada versión es un objeto distinto, y las cachés que iban por eje y época van ya por eje y versión sin tocarlas: los textos (`textosDe`, por la raíz congelada), los retoques del libro (por eje y época), las condiciones (`condicionesDe`, por época), los límites de cálculo (por raíz), los nombres de las acciones que mira el motor (por época). Lo que se lee con `{ epoca: eje.epocaDe(id) }` sale de esa versión; sin opción, de la vigente.
 
 ## 8. Las constantes
 
-En `src/versiones.js` (las posiciones de las plantillas; `test/versiones.test.js` vigila que casan con la época 0 real) y `src/suelo.js` (la fila 7.9 del diseño §4.1):
+En `src/versiones.js` (las posiciones de las acciones; `test/versiones.test.js` vigila que casan con la época 0 real) y `src/suelo.js` (la fila 7.9 del diseño §4.1):
 
 | Constante | Valor |
 |---|---|
@@ -192,7 +192,7 @@ true [ 900 ] 1 1
 [ [ 0, false ], [ 1, true ] ]
 ```
 
-**El punto.** El diseño quiere que «this book hangs from» anote el id del registro que puso en vigor el último cambio en el libro de arriba. La plantilla no tiene sitio: sus parámetros son 1.0 el libro, 1.1 las claves de línea, 1.2 el origen (opcional), 2 el elemento, 3 quién y 4 la acción. Haría falta un parámetro opcional nuevo, «point», en el payload 5 (no en el 1.3: el 1.2 es opcional y dejaría un hueco), y eso cambia el registro de la plantilla y con él el id de la época 0: va por el carril de época (Core, 17-11). (A mano, un payload 5 entra hoy, porque ninguna regla lo rechaza, pero la plantilla no lo declara, no se ofrece ni se lee.)
+**El punto.** El diseño quiere que «this book hangs from» anote el id del registro que puso en vigor el último cambio en el libro de arriba. No tiene sitio: sus parámetros son 1.0 el libro, 1.1 las claves de línea, 1.2 el origen (opcional), 2 el elemento, 3 quién y 4 la acción. Haría falta un parámetro opcional nuevo, «point», en el payload 5 (no en el 1.3: el 1.2 es opcional y dejaría un hueco), y eso cambia el registro de la acción y con él el id de la época 0: va por el carril de época (Core, 17-11). (A mano, un payload 5 entra hoy, porque ninguna regla lo rechaza, pero la acción no lo declara, no se ofrece ni se lee.)
 
 **Coste** (medido 17-11 en este portátil, una época hija de la 0 con una regla y n cambios de un parámetro; cada proceso en frío): abrir el libro (génesis y apertura) 0,37 s sin cambios, 0,47 s con 1, 0,91 s con 5 y 2,76 s con 20; restaurarlo en otro proceso, 0,25 / 0,44 / 1,00 / 2,87 s; restaurarlo otra vez en el mismo proceso, 5 a 30 ms (la época resuelta se recuerda). Cada cambio cuesta en frío unos 120 a 190 ms: fundir es cargar la época entera otra vez. Es el límite del diseño: un libro de arriba con cien cambios hace nacer libros con cien cambios escritos (del orden de 12 a 15 s al abrir en frío: extrapolado, sin medir). No hay tope.
 

@@ -4,7 +4,7 @@ VG 17-11 por Core State, sobre `agram-equipo/COSTE_A20_RETOQUES.md`. Solo textos
 
 ## Qué es
 
-El id de una época la nombra **tal como nació**. Corregir un texto no la cambia: se escribe un **retoque**, un registro normal del libro con la plantilla «retouch a text» (época 0, `[0, 4]`), lanzada sobre el génesis y anclada en su **9.4**. Lleva el idioma, la clave y el texto en su 1.0, 1.1 y 1.2. Va firmado y pagado con T como cualquier otro, sin más movimientos. Sin texto (no se da el parámetro: un texto vacío no es un terminal BTML) **retira** los retoques de esa clave en ese idioma y vuelve el texto de nacimiento.
+El id de una época la nombra **tal como nació**. Corregir un texto no la cambia: se escribe un **retoque**, un registro normal del libro con la acción «retouch a text» (época 0, `[0, 4]`), lanzada sobre el génesis y anclada en su **9.4**. Lleva el idioma, la clave y el texto en su 1.0, 1.1 y 1.2. Va firmado y pagado con T como cualquier otro, sin más movimientos. Sin texto (no se da el parámetro: un texto vacío no es un terminal BTML) **retira** los retoques de esa clave en ese idioma y vuelve el texto de nacimiento.
 
 El retoque es **de ese libro**: otro libro con la misma época no lo ve. Restaurar el libro desde sus registros da los mismos textos.
 
@@ -27,13 +27,13 @@ Vale para `contrato.texto` y `contrato.mensaje` (el nombre de la regla es su cla
 
 ## Los huecos
 
-Los `{…}` de un texto son expresiones BQL que se evalúan (`rellenar`). Un retoque (o una entrada de la hoja) cuyos huecos no sean un **subconjunto exacto**, carácter a carácter, de los del texto de nacimiento de esa clave en ese idioma **se ignora** en la lectura, como si no existiera. Para un idioma nuevo se compara con el original: el del registro «en», el 9 de la regla o de la plantilla, o el de cualquier idioma, que conserva los huecos. Un texto que es una fórmula (`=…`) tampoco vale; `==` escapa un texto que empieza por «=».
+Los `{…}` de un texto son expresiones BQL que se evalúan (`rellenar`). Un retoque (o una entrada de la hoja) cuyos huecos no sean un **subconjunto exacto**, carácter a carácter, de los del texto de nacimiento de esa clave en ese idioma **se ignora** en la lectura, como si no existiera. Para un idioma nuevo se compara con el original: el del registro «en», el 9 de la regla o de la acción, o el de cualquier idioma, que conserva los huecos. Un texto que es una fórmula (`=…`) tampoco vale; `==` escapa un texto que empieza por «=».
 
 El texto es un dato: nunca HTML ni estilo. El núcleo lo devuelve tal cual y la carta lo escapa.
 
 ## Lo que no es texto
 
-El nombre de una plantilla, de una regla o de una lectura (su 0, en inglés) es una **clave** y no se retoca: se retoca su traducción («template pay», el nombre de la regla para su mensaje). Una clave que no existe en la época y no empieza por «carta » no hace nada.
+El nombre de una acción, de una regla o de una lectura (su 0, en inglés) es una **clave** y no se retoca: se retoca su traducción («template pay», el nombre de la regla para su mensaje). Una clave que no existe en la época y no empieza por «carta » no hace nada.
 
 ## Para la carta
 

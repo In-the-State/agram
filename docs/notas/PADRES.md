@@ -17,10 +17,10 @@ Core AGRAM, 16-11 (encargo «padres y copias», A19; N1 y N2 de `agram-equipo/RE
 | `contrato.custodia(eje, id)` | `{ de, padresDe, heredado, padres, clase, plazo, enlaza, ramas, todos }` (`docs/CONTRATO.md` §7.2) |
 | `contrato.ramasDelLibro(eje)` | `[{ de, padresDe, padres }]`: todas las ramas del libro |
 | `contrato.quienGuarda(eje, yo, sobre, { enlaza })` | `{ nodo, padres: [{ nombre, guarda, sella, lee }], de, enlazadas, todos }`: la línea de antes de firmar |
-| `acciones.sobreDe(eje, plantilla, params, yo)` y `acciones.enlazaDe(…)` | de qué registro colgará lo que escribe una plantilla (X o el que nombra su 5) y qué enlazará: lo que la carta pasa como `sobre` y `enlaza` |
+| `acciones.sobreDe(eje, plantilla, params, yo)` y `acciones.enlazaDe(…)` | de qué registro colgará lo que escribe una acción (X o el que nombra su 5) y qué enlazará: lo que la carta pasa como `sobre` y `enlaza` |
 | la carta | el bloque «quién guarda esto» («este libro» en la raíz) en el reverso, y la línea junto al botón de cualquier formulario que escribe |
 
-**El registro de un padre** (sin huecos ni rellenos: lo opcional cierra su propia décupla, así que falte lo que falte no queda hueco; no es la forma de claves y valores de los ajustes porque cada parámetro de una plantilla tiene una posición fija):
+**El registro de un padre** (sin huecos ni rellenos: lo opcional cierra su propia décupla, así que falte lo que falte no queda hueco; no es la forma de claves y valores de los ajustes porque cada parámetro de una acción tiene una posición fija):
 
 | Posición | Lleva |
 |---|---|
@@ -46,7 +46,7 @@ Por qué la 1.0.1 (decisión de Core AGRAM en el encargo): 0-4 van siempre lleno
 
 **El mismo padre por dos ramas** (la misma clave) cuenta una vez para guardar y sellar (guarda o sella si lo hace en alguna). **«Lee» es por rama y no se funde** (corrección de Core, 17-11): el sobre se envuelve por rama; si un padre lee en la rama A y no en la B, fundir «lee si puede en alguna» le abriría la B. En `todos` cada padre lleva `en` (sus ramas) y `leeEn` (las ramas en que lee), sin un `lee` fundido; un registro que solo cuelga de B no se lo da a leer. Solo en la línea de antes de firmar, «pueden leerlo» son los padres que leen en alguna rama de ESE registro: es verdad para él, porque va entero a cada rama.
 
-**Quién puede.** Es una regla de validez de la época 0 y además una comprobación del contrato al leer (por un libro escrito antes de la regla). Las plantillas solo se ofrecen a quien puede.
+**Quién puede.** Es una regla de validez de la época 0 y además una comprobación del contrato al leer (por un libro escrito antes de la regla). Las acciones solo se ofrecen a quien puede.
 
 ## Lo que leerán el nodo (Core AARPIA) y StateArk
 
@@ -55,14 +55,14 @@ Por qué la 1.0.1 (decisión de Core AGRAM en el encargo): 0-4 van siempre lleno
 - **Cambia la forma de lo que se escribe**: en un registro de padre nuevo, qué hace está en 1.0.0 (antes 1.0) y «can read» en 1.0.1. Quien lea el registro directamente debe tomar la primera hoja de 1.0.
 - De cada padre: `clave` (la que firmará sus cabeceras de lote: es la que el nodo debe esperar en sus recibos), `guarda` y `sella`, `lee` y `leeDe`, `nivel` y `grado` si los declara, y `url` (dónde encontrarlo; nada secreto: el registro no lleva credenciales y el contrato descarta una dirección que las lleva).
 - El plazo por defecto: `contrato.custodia(eje, id).plazo` (`{ escala, segundos }` de 7.5 por la clase del dueño). Otro agente añade `plazoDeSuelo(eje, id)`; Core la conecta con esta `clase` al fundir.
-- Todo es configuración de un libro escrita con plantillas de la época: la interfaz de AARPIA puede lanzarlas como cualquier acción (modo `person`).
+- Todo es configuración de un libro escrita con acciones de la época: la interfaz de AARPIA puede lanzarlas como cualquier otra (modo `person`).
 
 ## Lo que queda
 
 - **Preguntas abiertas de VG, fuera de este encargo** (nada aquí las da por contestadas): que quien te invita sea tu padre por defecto (V1); con qué clave se cifra y el formato del sobre (V4, de Core StateArk); la compensación al padre; lo que tiene la persona sola el primer día (V2).
-- **«Ninguno» bajo un elemento que hereda padres** no se puede decir: quitar todos los padres de un elemento vuelve a heredar los de arriba. Si VG quiere un «sin padres aquí» explícito, es otra plantilla o un valor.
-- **El BQL mínimo no lee textos**: la plantilla no puede rechazar una dirección con credenciales ni un grado largo. El contrato da la dirección como null si no es http(s) o lleva credenciales; el grado sale tal cual. El valor de «set a custody default» sí se valida contra la época al escribir (`lookup(epoch.7.7.1, epoch.7.7.3, first ev.0)`), y el contrato vuelve a descartar al leer un valor que la época no permite.
+- **«Ninguno» bajo un elemento que hereda padres** no se puede decir: quitar todos los padres de un elemento vuelve a heredar los de arriba. Si VG quiere un «sin padres aquí» explícito, es otra acción o un valor.
+- **El BQL mínimo no lee textos**: la acción no puede rechazar una dirección con credenciales ni un grado largo. El contrato da la dirección como null si no es http(s) o lleva credenciales; el grado sale tal cual. El valor de «set a custody default» sí se valida contra la época al escribir (`lookup(epoch.7.7.1, epoch.7.7.3, first ev.0)`), y el contrato vuelve a descartar al leer un valor que la época no permite.
 - **El significado de cada valor** (`yes` lee, `both` va a los dos) está en `contrato.CUSTODIA.significa`, no en la época: una época con otro vocabulario necesitaría su traducción ahí (sus bases, no).
-- **Un enlace por cualquier referencia**: cuenta como enlace toda referencia del payload a un registro del eje (también, p. ej., la de «remove a parent» a su padre, que cae en la misma rama). Si VG quiere solo ciertas posiciones, es un dato de cada plantilla.
+- **Un enlace por cualquier referencia**: cuenta como enlace toda referencia del payload a un registro del eje (también, p. ej., la de «remove a parent» a su padre, que cae en la misma rama). Si VG quiere solo ciertas posiciones, es un dato de cada acción.
 - **Orden en el PV9** (5, 6, 7 y 8): elegido para no pisar los de la época hija de StateArk (PV1, órdenes 7, 8 y 10) ni el siguiente libre del PV1. Si Core prefiere el PV1, es cambiar el 8 de las cuatro.
 - **El nodo** de la línea es el nombre de máquina de la dirección del transporte (relé o «sync url»): sin puerto.
