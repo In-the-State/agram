@@ -321,8 +321,10 @@ function htmlElementoDeBanda(o) {
 
 /** Un ocupante de una celda de la rejilla: si se puede entrar, un clic baja un nivel (data-celda) y un botoncito abre el registro. */
 function htmlOcupanteDeCelda(o) {
+  // La rejilla solo sale en bloque o a pantalla completa: cada registro, con su atajo visible al aro.
+  if (o.X && !o.entra) return htmlOcupanteSolo(o) + htmlAbrirAro(o);
   if (o.entra) {
-    return `<button type="button" class="ocupante ocupante-ref ocupante-celda"${nodo('ocupante', { x0: o.texto })} data-pv="${o.pv}"${dataId(o)} data-celda="${o.X}" data-x="${o.X}" title="${attr(t('entrarEnCelda', { que: o.texto }))}">${htmlIconoPropio(o)}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button><button type="button" class="celda-abrir"${nodo('control')} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('abrirEnCelda', { que: o.texto }))}" aria-label="${attr(t('abrirEnCelda', { que: o.texto }))}">↗</button>`;
+    return `<button type="button" class="ocupante ocupante-ref ocupante-celda"${nodo('ocupante', { x0: o.texto })} data-pv="${o.pv}"${dataId(o)} data-celda="${o.X}" data-x="${o.X}" title="${attr(t('entrarEnCelda', { que: o.texto }))}">${htmlIconoPropio(o)}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button><button type="button" class="celda-abrir"${nodo('control')} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('abrirEnCelda', { que: o.texto }))}" aria-label="${attr(t('abrirEnCelda', { que: o.texto }))}">↗</button>${htmlAbrirAro(o)}`;
   }
   return htmlOcupanteSolo(o);
 }
@@ -1159,9 +1161,11 @@ function htmlRejilla(r, { completa = false, arbol = null, apilada = false } = {}
 }
 
 /** La lista o la matriz de ocupantes de un PV, con «cargar más» al final si hay más. */
-function htmlOcupantes(oc, { pv, disposicion } = {}) {
+function htmlOcupantes(oc, { pv, disposicion, conAro = false } = {}) {
   if (!oc) return '';
-  const lista = oc.lista.length ? oc.lista.map((o) => `<li>${htmlOcupante(o)}</li>`).join('') : `<li class="nada">${t('nada')}</li>`;
+  // Cada fila (VG 18-11, la forma C): como mucho un botón, el siguiente paso de ese registro si me toca (carta.js pasoDeFila), y su «⋯» al aro.
+  const fila = (o) => `<li>${htmlOcupante(o)}${o.paso ? htmlBotonDeAccion(o.paso, o.paso.X, 'accion paso-de-fila') : ''}${conAro ? htmlAbrirAro(o) : ''}</li>`;
+  const lista = oc.lista.length ? oc.lista.map(fila).join('') : `<li class="nada">${t('nada')}</li>`;
   const mas = oc.cargarMas ? `<li class="cargar-mas"><button type="button"${nodo('control')} data-cargar-mas="${pv}">${escapar(t('cargarMas', { cuantos: oc.total - oc.lista.length }))}</button></li>` : htmlPagina(oc.pagina, pv);
   return `<ul class="ocupantes ${disposicion ? 'disposicion-' + attr(disposicion) : ''}" data-total="${oc.total}">${lista}${mas}</ul>`;
 }
@@ -1399,15 +1403,21 @@ function htmlLateral(n, arbol, { enFila = false } = {}) {
   const clases = ['pv', `pv-${n.pv}`, `grupo-${n.grupo}`, `lado-${n.lado ?? ''}`, `fila-${n.fila ?? ''}`, `nivel-${n.nivel}`].join(' ');
   if (n.nivel === NIVEL.oculto) return `<div class="${clases}"${nodo('pv', { tam: NOMBRE_NIVEL[n.nivel] })} data-pv="${n.pv}" data-x="${n.X}" hidden></div>`;
   const dato = `<span class="dato" title="${attr(n.comprimido.que ?? '')}">${escapar(n.comprimido.dato)}${n.comprimido.de ? `<small>/${escapar(n.comprimido.de)}</small>` : ''}</span>`;
-  const cabeza = `<header class="pv-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.medida ? htmlMedida(n.medida) : dato}${enFila ? '' : htmlInterrogante(n.sitio)}</header>`;
+  // El vacío que ya dice «escribir aquí · <acción>» la lanza él mismo (abre el formulario) y la cabecera no la repite.
+  const escribe = n.vacio && n.escribir?.id ? n.escribir.id : null;
+  const cabeza = `<header class="pv-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.medida ? htmlMedida(n.medida) : dato}${enFila ? '' : htmlInterrogante(n.sitio)}${htmlAccionesDeCabecera(n.acciones, { sin: escribe })}</header>`;
   let cuerpo = '';
-  if (n.nivel === NIVEL.comprimido) cuerpo = `<div class="comprimido" title="${attr(n.etiqueta)}: ${attr(n.ayuda ?? '')}"><span class="numero">${n.pv}</span>${dato}</div>`;
+  if (n.nivel === NIVEL.comprimido) cuerpo = `<div class="comprimido" title="${attr(n.etiqueta)}: ${attr(n.ayuda ?? '')}"><span class="numero">${n.pv}</span>${dato}${htmlAccionesDeCabecera(n.acciones, { marca: true })}</div>`;
   else {
     const camino = n.grupo === 'cruz' && n.fila === 'abajo' ? htmlCamino(arbol.camino, { X: n.X }) + (arbol.centro?.pv !== n.pv && (arbol.apilada || n.nivel >= NIVEL.bloque) ? htmlGuia(arbol.guia) : '') : '';
     // En animado, el bloque (en Mapped y en la fila abierta de Sequenced) lleva el primero de los dos sitios del arte (VG
     // 14-11, #94): el fondo del mundo, detrás de todo. El marco, con sus huecos, es de la pantalla completa (htmlEscena).
     const fondo = arbol?.animado ? htmlFondo(n.fondo) : '';
-    const lista = n.vacio ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</p>` : htmlOcupantes(n.ocupantes, { pv: n.pv, disposicion: n.disposicion });
+    const vacio = escribe
+      // Sin data-x propio: el clic lanza sobre el del punto de vista (gestos.js xDe) y mantener pulsado sigue encontrando antes el hueco (issue #22).
+      ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}><button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(n.escribir.id)}">${htmlEscribir(n.escribir)}</button></p>`
+      : `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</p>`;
+    const lista = n.vacio ? vacio : htmlOcupantes(n.ocupantes, { pv: n.pv, disposicion: n.disposicion, conAro: true });
     cuerpo = fondo + (enFila ? '' : cabeza) + (n.rejilla ? htmlRejilla(n.rejilla, { apilada: enFila }) : lista) + (n.nivel >= NIVEL.tarjeta ? htmlPorAutorizar(n.porAutorizar) : '') + (n.nivel >= NIVEL.bloque ? htmlDiario(n.diario) + htmlOpiniones(n.opiniones) : '') + camino
       + `<footer class="pv-pie"><button type="button" class="entrar" data-foco-pv="${n.pv}" data-x="${n.X}">${t('entrar')}</button><small class="ayuda">${escapar(n.ayuda ?? '')}</small></footer>`;
   }
@@ -1439,7 +1449,9 @@ function htmlFilas(arbol, c) {
     const titulo = f.hilo ? t(f.hilo === 'antes' ? 'irAlPasado' : 'irAlFuturo') : t(f.abierta ? 'filaCerrar' : 'filaAbrir', { que: f.etiqueta ?? '' });
     const cabeza = `<button type="button" class="fila-cabeza"${nodo('control')} data-fila="${f.pv}" data-x="${c.X}"${f.hilo ? ` data-hilo="${attr(f.hilo)}"` : ` aria-expanded="${f.abierta}" aria-controls="fila-${f.pv}-contenido"`} title="${attr(titulo)}"><span class="numero">${f.pv}</span><span class="etiqueta">${etiqueta}${f.total ? ` <small>· ${escapar(f.total)}</small>` : ''}</span>${f.medida?.propio ? htmlMedida(f.medida) : ''}<span class="fila-marca" aria-hidden="true">${marca}</span></button>`;
     const contenido = f.abierta && f.nodo ? `<div class="fila-contenido" id="fila-${f.pv}-contenido">${htmlLateral(f.nodo, arbol, { enFila: true })}</div>` : '';
-    return `<li class="fila${f.abierta ? ' abierta' : ''}${f.hilo ? ' fila-hilo' : ''}"${nodo('campo', { d: f.pv })} data-color="${f.pv}" data-fila-pv="${f.pv}">${cabeza}${htmlInterrogante(f.sitio, { clase: 'sitio-fila' })}${input}${contenido}</li>`;
+    // Las acciones del punto de vista de la fila (VG 18-11, la forma C): abierta, las de su cabecera; cerrada, la marca con cuántas y, si es de aquí, la destacada.
+    const deLaFila = f.hilo ? '' : htmlAccionesDeCabecera(f.acciones, { marca: !f.abierta, conDestacada: true });
+    return `<li class="fila${f.abierta ? ' abierta' : ''}${f.hilo ? ' fila-hilo' : ''}"${nodo('campo', { d: f.pv })} data-color="${f.pv}" data-fila-pv="${f.pv}">${cabeza}${htmlInterrogante(f.sitio, { clase: 'sitio-fila' })}${deLaFila}${input}${contenido}</li>`;
   };
   return `<ol class="filas">${arbol.secuencia.filas.map(fila).join('')}</ol>`;
 }
@@ -1456,10 +1468,12 @@ function htmlHilo(n) {
   const pasado = n.hilo === 'antes';
   const entrada = (e) => `<li class="hilo-carta hilo-entrada"><time datetime="${attr(e.t)}">${escapar(fecha(e.t))}</time> · <b>${escapar(e.autor)}</b> · <button type="button" class="enlace" data-abrir="${attr(e.id)}">${corto(e.id)}</button><small>${escapar(e.movimientos.join(', '))}</small></li>`;
   const cartas = [...(n.ocupantes?.lista ?? []).map((o) => `<li class="hilo-carta">${htmlOcupante(o)}</li>`), ...(n.diario?.entradas ?? []).map(entrada)];
-  const vacio = cartas.length ? '' : `<li class="hilo-vacio"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</li>`;
+  // El vacío que dice «escribir aquí · <acción>» la lanza él mismo (abre el formulario) y la cabecera no la repite.
+  const escribe = !cartas.length && n.escribir?.id ? n.escribir.id : null;
+  const vacio = cartas.length ? '' : `<li class="hilo-vacio"${htmlHueco(n.X, n.pv)}>${escribe ? `<button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(escribe)}">${htmlEscribir(n.escribir)}</button>` : htmlEscribir(n.escribir)}</li>`;
   const mas = n.cargarMas ? `<li class="cargar-mas"><button type="button"${nodo('control')} data-cargar-mas="${n.pv}">${escapar(t('cargarMas', { cuantos: n.faltan }))}</button></li>` : '';
   const total = (n.ocupantes?.total ?? 0) + (n.diario?.total ?? 0);
-  const cabeza = `<header class="pv-cabeza hilo-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.rejilla ? '' : `<small>${escapar(t(pasado ? 'hiloPasado' : 'hiloFuturo', { n: total }))}</small>`}</header>`; // con una forma propia (las cadenas), la cuenta de tarjetas no dice nada
+  const cabeza = `<header class="pv-cabeza hilo-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.rejilla ? '' : `<small>${escapar(t(pasado ? 'hiloPasado' : 'hiloFuturo', { n: total }))}</small>`}${htmlAccionesDeCabecera(n.acciones, { sin: escribe })}</header>`; // con una forma propia (las cadenas), la cuenta de tarjetas no dice nada
   // Una forma que pinta el hilo (las cadenas del 7 del roadmap) va en lugar de la lista de tarjetas.
   const lista = n.rejilla ? htmlRejilla(n.rejilla, { apilada: true }) : `<ol class="hilo-cartas">${vacio}${cartas.join('')}${mas}</ol>`;
   const clases = ['pv', `pv-${n.pv}`, 'zona-hilo', `zona-${n.hilo}`, `grupo-${n.grupo}`, `lado-${n.lado ?? ''}`, `nivel-${n.nivel}`].join(' ');
@@ -1500,7 +1514,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   const cero = arbol.apilada && c.cara === 'anverso' ? '' : htmlInterrogante(c.sitio, { clase: 'sitio-centro' });
   if (c.cara === 'anverso') {
     return `<section class="nucleo anverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'anverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
-      <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
+      <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}${htmlAccionesDeCabecera(c.acciones)}</header>
       ${puntos}
       <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}${c.zonas?.length ? ' con-zonas' : ''}">${c.zonas?.length ? htmlCaraConZonas(htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta }), c) : htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
       ${htmlFicha(c.ficha)}
@@ -1516,7 +1530,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
     const pasosHtml = pasos.length ? `<ul class="pasos">${pasos.map((p) => `<li><b>${escapar(p.nombre)}</b> ${escapar(p.k)}${p.de ? `<small>/${escapar(p.de)}</small>` : ''}</li>`).join('')}</ul>` : '';
     const validacion = c.validacion?.length ? `<ul class="motivos">${c.validacion.map((v) => `<li>${escapar(v.motivo)}</li>`).join('')}</ul>` : '';
     return `<section class="nucleo reverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'reverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
-      <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
+      <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}${htmlAccionesDeCabecera(c.acciones)}</header>
       ${puntos}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
       ${ancla}${htmlFirmeza(c.firmeza)}${htmlCustodia(c.custodia)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
@@ -1526,9 +1540,9 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   }
   // A pantalla completa, los dos sitios del arte (#94): con rejilla, los pinta la rejilla (htmlRejilla); sin ella, aquí: el
   // fondo detrás de todo y el marco alrededor de la lista de ocupantes (htmlEscena).
-  const lista = htmlOcupantes(c.ocupantes, { pv: c.pv, disposicion: c.disposicion });
+  const lista = htmlOcupantes(c.ocupantes, { pv: c.pv, disposicion: c.disposicion, conAro: true });
   return `<section class="nucleo abierto tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'abierto', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}"${c.estilo && !c.rejilla ? ` data-id="${attr(c.X)}"` : ''} aria-label="${attr(c.etiqueta)}">
-    <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}</header>
+    <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}${htmlAccionesDeCabecera(c.acciones)}</header>
     ${c.rejilla ? '' : htmlFondo(c.escena?.fondo)}
     ${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
     <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${GEOMETRIA[c.pv]?.grupo === 'cruz' && GEOMETRIA[c.pv]?.fila === 'abajo' && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
@@ -1603,6 +1617,38 @@ function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
   const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
   return mias.length ? nav(mias, `rosetones-${parte}`) : '';
 }
+
+/** Un botón de acción: lanza igual que el aro (data-lanzar, data-x; gestos.js → app.js lanzar, que abre el formulario). */
+const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" class="${clase}"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}"${Number.isInteger(a.paso) ? ` data-paso="${a.paso}"` : ''} title="${attr(a.nombre)}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button>`;
+
+/**
+ * Las acciones de la cabecera de un punto de vista (VG 18-11, la forma C: un botón actúa sobre lo que lo contiene). Va
+ * DENTRO de la cabecera. Las que llevan nombre las elige carta.js (cabeceraDe, con la tabla botonesDeNivel): la destacada
+ * de la pantalla (el siguiente paso del camino) con su clase; el resto, tras «+n», en el orden de la época, desplegado en
+ * el sitio. En comprimido, solo la marca con cuántas hay (`marca`); la fila cerrada de Sequenced (conDestacada) lleva además la
+ * destacada si es de su punto de vista. Nunca valores ni escribir directo: todo abre el formulario. `sin`: el id de una
+ * acción que el punto de vista ya enseña como botón (el vacío «escribir aquí · …»).
+ */
+export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false, sin = null } = {}) {
+  if (!a || !a.total) return '';
+  const X = a.X;
+  const boton = (x) => htmlBotonDeAccion(x, X, 'accion' + (x.id === a.destacada ? ' destacada' : ''));
+  const etiqueta = `role="group" aria-label="${attr(t('franjaTitulo', { que: a.etiqueta ?? '' }))}"`;
+  if (marca) {
+    const dest = conDestacada && a.destacada ? a.nombradas.concat(a.resto).find((x) => x.id === a.destacada) : null;
+    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small></span>`;
+  }
+  const nombradas = a.nombradas.filter((x) => x.id !== sin);
+  const resto = a.resto.filter((x) => x.id !== sin);
+  // Si la que ya enseña el punto de vista («escribir aquí · …») iba con nombre, ocupa su sitio la siguiente.
+  while (nombradas.length < a.nombradas.length && resto.length) nombradas.push(resto.shift());
+  if (!nombradas.length && !resto.length) return '';
+  const mas = resto.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${resto.length}</summary><div class="pv-acciones-desplegadas">${resto.map(boton).join('')}</div></details>` : '';
+  return `<div class="pv-acciones"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${nombradas.map(boton).join('')}${mas}</div>`;
+}
+
+/** El atajo visible al aro de un ocupante (VG 18-11): lo mismo que mantenerlo pulsado (app.js aro). Pequeño, junto a él. */
+const htmlAbrirAro = (o) => (o?.X ? `<button type="button" class="abrir-aro"${nodo('control')} data-aro-abrir="${attr(o.X)}" title="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}" aria-label="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}">⋯</button>` : '');
 
 /** Una lista de valores posibles (contrato.opciones) para escribir en la posición pv de X: cada uno, un botón (data-opcion, data-valor). */
 const htmlOpciones = (lista, pv, X, clase = 'opciones') => (lista?.length ? `<ul class="${clase}" data-opciones="${pv}">${lista.map((o) => `<li><button type="button" class="opcion"${nodo('opcion')} data-opcion="${pv}" data-valor="${attr(o.valor)}" data-x="${attr(X)}" title="${attr(o.texto)}">${escapar(o.texto)}</button></li>`).join('')}</ul>` : '');

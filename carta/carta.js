@@ -25,6 +25,7 @@
 
 import * as contrato from '../src/contrato.js';
 import * as acciones from '../src/acciones.js';
+import { siguiente as siguienteDe } from '../src/motor.js';
 import * as pasosDe from '../src/pasos.js';
 import * as modelos from '../src/modelos.js';
 import * as exterior from '../src/exterior.js';
@@ -699,6 +700,9 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   nodo.comprimido = propio && typeof propio.k === 'number'
     ? { dato: propio.k, de: propio.de, que: propio.nombre }
     : { dato: todo.total, de: null, que: nodo.etiqueta };
+  // Las acciones de su cabecera (VG 18-11, la forma C): en comprimido, cuántas (y la destacada, si es de aquí).
+  const cabecera = cabeceraDe(eje, X, pv, nivelDeTabla(nivel), ctx);
+  if (cabecera) nodo.acciones = cabecera;
   if (nivel < NIVEL.tarjeta) return nodo;
   // El personaje del sitio (VG, 12-11, #38): cada cuadrante abierto tiene su responsable, el nodo X.<pv>.
   nodo.sitio = sitioDe(ctx, eje, X, String(pv), pv);
@@ -712,7 +716,7 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   nodo.ocupantes = {
     total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden,
-    lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(nivel - 1, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado, de: X })),
+    lista: conPasosDeFila(eje, o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(nivel - 1, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado, de: X })), ctx),
     cargarMas: !mapa && o.total > o.desde + o.ocupantes.length,
     pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null,
   };
@@ -830,6 +834,10 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
   // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
+  // La cabecera del punto de vista que se pinta (VG 18-11, la forma C): el 0 en el anverso, el 5 en el reverso, el abierto
+  // en los demás; con todas sus acciones, en el orden de la época.
+  const cabecera = cabeceraDe(eje, X, g.cara === 'anverso' ? CENTROS[0] : g.cara === 'reverso' ? CENTROS[1] ?? 5 : pv, 'abierto', ctx);
+  if (cabecera) base.acciones = cabecera;
   if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), ...fichaDe(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
@@ -858,7 +866,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   const o = contrato.ocupantes(eje, X, pv, pagina ? pagina.desde : 0, cuantos, ordenVertical(eje, pv, ctx)); // la lista vertical del 6 y el 7, en su orden (#18)
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   const d = contrato.division(eje, X, { datos: mapa ? mapa.datos : Math.max(1, o.ocupantes.length || 1), forma: hueco, ...ctx.opciones });
-  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv, de: X })), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
+  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: conPasosDeFila(eje, o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv, de: X })), ctx), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
   // En animado, el PV a pantalla completa lleva sus dos sitios del arte (VG 14-11, #94; escenaDe): el fondo del mundo y el
   // marco alrededor de su bloque de campos. Con rejilla (Mapped), la escena es de la rejilla (el elemento que divide, R);
   // sin ella (Sequenced, un mundo sin división), del centro, con sus ocupantes como subelementos.
@@ -946,13 +954,7 @@ const opcionesDe = (eje, X, pv, ctx) => contrato.opciones(eje, X, pv, { yo: ctx.
 function nodoAro(eje, X, yo, ctx) {
   const abierto = ctx.estado.aro?.pv ?? null;
   const huecos = LATERALES.map((pv) => {
-    // Con «retocar textos» (A20), las claves con que el núcleo leyó los nombres (contrato.conClaves).
-    const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, yo, ctx.opciones), lecturas: null };
-    const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
-    const resumen = (a) => ({ id: a.id, nombre: a.etiqueta, lectura: a.lectura, camino: a.camino, faltan: a.parametros.filter((p) => p.falta && !p.archivo).map((p) => p.etiqueta), // lo que sale de subir un archivo no «falta»: lo pone el selector
-      ...(lecturas ? { retocar: claveLeida(lecturas, contrato.claves.plantilla(a.nombre), ctx.opciones) } : {}) });
-    const accion = porDefecto ? resumen(porDefecto) : null;
-    const otras = lista.filter((a) => a !== porDefecto).map(resumen);
+    const { accion, otras } = accionesDelPv(eje, X, pv, { ...ctx, yo });
     const opciones = opcionesDe(eje, X, pv, ctx);
     return {
       pv,
@@ -993,7 +995,12 @@ function nodoAro(eje, X, yo, ctx) {
 export function creableEn(eje, R, ruta, yo, opciones = {}) {
   const sitio = Number(ruta?.[0]);
   if (!Number.isInteger(sitio) || !yo) return [];
-  return acciones.acciones(eje, R, sitio, yo, opciones)
+  return creablesDe(acciones.acciones(eje, R, sitio, yo, opciones), ruta);
+}
+
+/** De una lista de acciones del núcleo (acciones.acciones en el sitio del primer dígito), las que crean en la ruta (creableEn). */
+function creablesDe(lista, ruta) {
+  return lista
     .filter((a) => !a.lectura && !a.camino && a.puedeLanzar !== false)
     .filter((a) => {
       const ancla = hojas(a.plantilla?.[5])[0];
@@ -1002,6 +1009,158 @@ export function creableEn(eje, R, ruta, yo, opciones = {}) {
       return trozos.every((x, i) => i >= ruta.length || x.startsWith('{') || Number(x) === Number(ruta[i]));
     })
     .map((a) => ({ id: a.id, nombre: a.etiqueta }));
+}
+
+// ---------- las acciones a la vista en cada punto de vista (VG 18-11: «el aro son atajos de lo que se hace en los puntos de vista») ----------
+
+/** El resumen de una acción del núcleo, el mismo en el aro y en la franja: { id, nombre, lectura, camino, faltan, retocar? }. */
+const resumenDeAccion = (a, lecturas, ctx) => ({ id: a.id, nombre: a.etiqueta, lectura: a.lectura, camino: a.camino, faltan: a.parametros.filter((p) => p.falta && !p.archivo).map((p) => p.etiqueta), // lo que sale de subir un archivo no «falta»: lo pone el selector
+  ...(lecturas ? { retocar: claveLeida(lecturas, contrato.claves.plantilla(a.nombre), ctx.opciones) } : {}) });
+
+/**
+ * Las acciones que el núcleo ofrece a quien mira (ctx.yo) sobre X en el punto de vista pv (acciones.acciones: qué se ofrece
+ * lo decide él, aquí no hay lógica de oferta): { todas (en el orden de la época), accion (la por defecto), otras }. La misma
+ * lista para el aro (sus huecos) y para la cabecera de cada punto de vista; se calcula una vez por pintado y por (X, pv) y se
+ * guarda entre pintados mientras el libro no cambie. Con «retocar textos» (A20), con las claves con que se leyeron los nombres.
+ */
+const ACCIONES_POR_PINTADO = new WeakMap(); // ctx.opciones (uno por pintado; las copias de ctx lo comparten) → Map
+/**
+ * Lo calculado, guardado entre pintados mientras el libro no cambie (VG 18-11: que la franja no cueste): por eje, su versión
+ * (cuántos registros y el último) y lo de cada (X, pv, quien mira, idioma). Sin «retocar textos» (lleva sus claves) ni
+ * un reloj pedido aparte (opciones.t): entonces, solo el del pintado.
+ */
+const ACCIONES_GUARDADAS = new WeakMap(); // eje → { version, mapa }
+const versionDe = (eje) => (eje.orden?.length ?? 0) + ':' + (eje.orden?.at?.(-1) ?? '');
+function guardadasDe(eje, ctx) {
+  if (ctx.retocar || ctx.opciones?.t || !eje || typeof eje !== 'object') return null;
+  const v = versionDe(eje);
+  let g = ACCIONES_GUARDADAS.get(eje);
+  if (!g || g.version !== v) { g = { version: v, mapa: new Map() }; ACCIONES_GUARDADAS.set(eje, g); }
+  return g.mapa;
+}
+function accionesDelPv(eje, X, pv, ctx) {
+  const llave = ctx.opciones && typeof ctx.opciones === 'object' ? ctx.opciones : null;
+  if (llave && !ACCIONES_POR_PINTADO.has(llave)) ACCIONES_POR_PINTADO.set(llave, new Map());
+  const memo = llave ? ACCIONES_POR_PINTADO.get(llave) : new Map();
+  const clave = X + '|' + pv + '|' + (ctx.yo ?? '') + '|' + (ctx.opciones?.idioma ?? '') + '|' + (ctx.opciones?.epoca?.id ?? '');
+  if (memo.has(clave)) return memo.get(clave);
+  const guardadas = guardadasDe(eje, ctx);
+  if (guardadas?.has(clave)) { memo.set(clave, guardadas.get(clave)); return guardadas.get(clave); }
+  const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones), lecturas: null };
+  const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
+  const todas = lista.map((a) => resumenDeAccion(a, lecturas, ctx)); // en el orden de la época
+  const r = {
+    todas,
+    accion: porDefecto ? todas[lista.indexOf(porDefecto)] : null,
+    otras: todas.filter((_, i) => lista[i] !== porDefecto),
+  };
+  memo.set(clave, r);
+  guardadas?.set(clave, r);
+  return r;
+}
+
+/**
+ * Cuántos botones con nombre pinta la cabecera de un punto de vista en cada nivel, y en cuántas filas de un punto de vista
+ * se busca el siguiente paso de cada registro (VG 18-11, la forma C). ES DATO: pasará a la época y a las preferencias; hasta
+ * entonces vive aquí, en una sola tabla, y solo la lee botonesDeNivel. «todas»: todas, en el orden de la época.
+ */
+export const BOTONES_POR_NIVEL = Object.freeze({ comprimido: 0, tarjeta: 1, bloque: 3, abierto: 'todas', filas: 12 });
+
+/** Lo que la tabla dice para un nivel ('comprimido', 'tarjeta', 'bloque', 'abierto' o 'filas'): un número (Infinity: todas). */
+export function botonesDeNivel(nivel, tabla = BOTONES_POR_NIVEL) {
+  const v = tabla?.[nivel];
+  if (v === 'todas') return Infinity;
+  return Number.isInteger(v) && v >= 0 ? v : 0;
+}
+
+/** El nombre del nivel de un nodo lateral para la tabla (NIVEL → 'comprimido' | 'tarjeta' | 'bloque'). */
+const nivelDeTabla = (nivel) => (nivel >= NIVEL.bloque ? 'bloque' : nivel >= NIVEL.tarjeta ? 'tarjeta' : 'comprimido');
+
+/**
+ * La acción destacada de la pantalla (VG 18-11, la forma C): la del primer paso mío del camino del elemento enfocado, si es
+ * de una plantilla que el núcleo ofrece en uno de sus puntos de vista (el primero, del 0 al 9). Una sola por pantalla. Se
+ * reconoce por el id de la plantilla que el camino ya trae, nunca por su nombre. → { X, pv, id } o null.
+ */
+function destacadaDe(eje, X, camino, ctx) {
+  const pasos = camino?.pasos ?? [];
+  const i = pasos.findIndex((p) => p.mio && p.hacer);
+  const paso = pasos[i];
+  if (!paso || paso.hacer.X !== X || !ctx.yo) return null;
+  // El índice del paso va con ella: su botón lleva data-paso y abre el formulario con los parámetros del paso (el anuncio
+  // que cumple, por ejemplo), igual que tocarlo en el camino (app.js lanzar).
+  for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {
+    if (accionesDelPv(eje, X, pv, ctx).todas.some((a) => a.id === paso.hacer.id)) return { X, pv, id: paso.hacer.id, paso: i };
+  }
+  return null;
+}
+
+/**
+ * La cabecera de acciones de un punto de vista sobre X (VG 18-11, la forma C: un botón actúa sobre lo que lo contiene).
+ * `nivel`: el de la tabla (botonesDeNivel). Con nombre van tantas como dice la tabla: la destacada de la pantalla si es de
+ * este punto de vista y, si no, la por defecto, y detrás las demás en el orden de la época; el resto, tras «+n», en el
+ * orden de la época. En comprimido, solo cuántas hay (y la destacada, si es de aquí: la fila cerrada de Sequenced la
+ * lleva). Cada botón lanza como el aro (lanzar: el formulario). → { pv, X, etiqueta, total, nombradas, resto, destacada }
+ * o null si no hay ninguna o nadie mira.
+ */
+function cabeceraDe(eje, X, pv, nivel, ctx) {
+  if (!ctx.yo || typeof X !== 'string' || !eje.obtener(X)) return null;
+  const { todas, accion } = accionesDelPv(eje, X, pv, ctx);
+  if (!todas.length) return null;
+  const deEsta = ctx.destacada && ctx.destacada.X === X && ctx.destacada.pv === pv ? todas.find((a) => a.id === ctx.destacada.id) ?? null : null;
+  // La destacada es el paso del camino: lleva su índice (data-paso) para abrirse con sus parámetros.
+  const dest = deEsta ? { ...deEsta, paso: ctx.destacada.paso } : null;
+  const lista = dest ? todas.map((a) => (a === deEsta ? dest : a)) : todas;
+  const k = botonesDeNivel(nivel);
+  let nombradas;
+  if (k === Infinity) nombradas = lista;
+  else {
+    const primera = dest ?? accion ?? lista[0];
+    nombradas = k > 0 ? [primera, ...lista.filter((a) => a !== primera)].slice(0, k) : [];
+  }
+  const resto = lista.filter((a) => !nombradas.includes(a));
+  // «+n» abierto se queda abierto al repintar (lo guarda la app por elemento y punto de vista).
+  const abierta = Boolean(ctx.estado?.accionesAbiertas?.has?.(X + '|' + pv));
+  return { pv, X, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), nivel, total: todas.length, nombradas, resto, destacada: dest?.id ?? null, ...(abierta ? { abierta } : {}) };
+}
+
+/**
+ * El siguiente paso de un registro que aparece en una fila, si me toca a mí (motor.siguiente: lo que me falta en él), como
+ * botón: el de la primera de mis faltas que es una plantilla de la época del libro (la reconoce por el nombre que da el
+ * núcleo, no por uno escrito aquí), sobre el registro que dice. → { id, nombre, X } o null. Guardado como la cabecera.
+ */
+function pasoDeFila(eje, R, ctx) {
+  if (!ctx.yo || typeof R !== 'string' || !eje.obtener(R)) return null;
+  const clave = 'fila|' + R + '|' + ctx.yo + '|' + (ctx.opciones?.idioma ?? '');
+  const guardadas = guardadasDe(eje, ctx);
+  if (guardadas?.has(clave)) return guardadas.get(clave);
+  let r = null;
+  try {
+    for (const f of siguienteDe(eje, R, ctx.yo).faltaDeMi ?? []) {
+      const p = acciones.plantillasDeTransaccion(ctx.opciones).find((x) => x.nombre === f.plantilla);
+      if (!p) continue;
+      const sobre = f.transaccion?.sobre ?? R;
+      // Solo si el formulario de esa acción sobre ese registro sale completo con lo que pone el núcleo: un paso que necesita
+      // parámetros que el motor no da (o que no es de este registro) no se pinta en la fila; queda en el aro y en el camino.
+      const form = eje.obtener(sobre) ? formulario(eje, sobre, p.id, ctx.yo, {}, ctx.opciones) : null;
+      if (!form || form.campos.some((c) => c.requerido && (c.valor === null || c.valor === undefined || c.valor === ''))) continue;
+      r = { id: p.id, nombre: accionDe(f.plantilla, ctx.opciones, eje).nombre, X: sobre };
+      break;
+    }
+  } catch { r = null; }
+  guardadas?.set(clave, r);
+  return r;
+}
+
+/** Los ocupantes que se pintan con su siguiente paso (los primeros que dice la tabla, en filas). */
+function conPasosDeFila(eje, lista, ctx) {
+  const tope = botonesDeNivel('filas');
+  let n = 0;
+  return lista.map((o) => {
+    if (!o?.X || n >= tope) return o;
+    n++;
+    const paso = pasoDeFila(eje, o.X, ctx);
+    return paso ? { ...o, paso } : o;
+  });
 }
 
 /**
@@ -1925,14 +2084,16 @@ const tieneHijos = (eje, X, pv, nivel, ctx) => contrato.hijosDe(eje, X, pv, { ni
  * del vacío). null si no hay ninguna. Una vez por registro y PV.
  */
 function accionPorDefecto(eje, R, pv, ctx) {
-  const memo = (ctx.porDefecto ??= new Map());
-  const clave = R + '|' + pv;
-  if (!memo.has(clave)) {
-    const lista = typeof R === 'string' && eje.obtener(R) ? acciones.acciones(eje, R, pv, ctx.yo, ctx.opciones) : [];
+  // La misma lista que la franja y el aro (accionesDelPv): una sola llamada al núcleo por (R, pv) y pintado.
+  if (typeof R !== 'string' || !eje.obtener(R)) return null;
+  if (!ctx.yo) {
+    // Sin nadie que mire, lo de antes (la lista del núcleo sin espectador), por si alguien pinta así el vacío.
+    const lista = acciones.acciones(eje, R, pv, ctx.yo, ctx.opciones);
     const a = lista.find((x) => x.porDefecto) ?? lista[0] ?? null;
-    memo.set(clave, a ? { id: a.id, nombre: a.etiqueta } : null);
+    return a ? { id: a.id, nombre: a.etiqueta } : null;
   }
-  return memo.get(clave);
+  const a = accionesDelPv(eje, R, pv, ctx).accion;
+  return a ? { id: a.id, nombre: a.nombre } : null;
 }
 
 /**
@@ -2720,6 +2881,7 @@ function secuenciaDe(eje, X, pvs, ctx, m) {
     hilo: nodos[pv].hilo ?? null,
     sitio: sitioDe(ctx, eje, X, String(pv), pv),
     abierta: !nodos[pv].hilo && nodos[pv].nivel >= NIVEL.bloque,
+    acciones: nodos[pv].acciones ?? null, // la cabecera de su punto de vista: en la fila cerrada, cuántas y la destacada
     nodo: nodos[pv].hilo ? null : nodos[pv],
   }));
   const deZona = (z) => digitos.map((pv) => nodos[pv]).find((n) => n.hilo === z) ?? null; // antes: el pasado; despues: el futuro
@@ -2808,6 +2970,8 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     ctx.arte = arte && ctx.cadena.some((x) => x.nombre === arte.modelo) ? arte : null;
   }
   const camino = await caminoDe(eje, X, yo, ctx);
+  // La acción destacada de la pantalla (VG 18-11): la del primer paso mío del camino, en su punto de vista. Una sola.
+  ctx.destacada = destacadaDe(eje, X, camino, ctx);
   // Lo previsualizado de un paso del camino (encargo «datos3»): la app lo guarda en estado.previa y aquí solo se pasa.
   if (estado.previa && estado.previa.foco === X) camino.previa = estado.previa;
   // Cuántos datos caben en la pantalla, en huecos comprimidos; la época dice qué puntos de vista y cómo se disponen.

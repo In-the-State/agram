@@ -189,6 +189,10 @@ export function instalar(raiz, m) {
   on('click', (e) => {
     const t = e.target;
     if (t.closest('input, textarea, select, option, pre')) return;
+    // El «+n» de las acciones de una cabecera (VG 18-11): se despliega en el sitio, no amplía el punto de vista, y la app
+    // recuerda que está abierto (si no, se cerraría en cada repintado).
+    const masDe = t.closest('.pv-acciones-mas > summary');
+    if (masDe) { e.preventDefault(); const a = masDe.closest('[data-pv-acciones]'); m.accionesMas?.(a?.dataset.x ?? null, Number(a?.dataset.pvAcciones)); return; }
     // Un rosetón ampliado (VG, 14-11, #91) se cierra al pulsar fuera de él (o su «cerrar» a pantalla completa): ese clic no hace nada más.
     if (raiz.querySelector?.('.roseton.nivel-2, .roseton-pantalla') && !t.closest('.roseton, .roseton-pantalla')) { e.preventDefault(); m.cerrarRoseton?.(); return; }
     if (Date.now() - primerClic.t > DOBLE_MS && !t.closest('.aro, .formulario, .guia')) primerClic = { t: Date.now(), X: elementoDe(t), centro: !!t.closest('[data-centro]') };
@@ -202,6 +206,8 @@ export function instalar(raiz, m) {
     if ((el = b('[data-retoque-original]'))) { e.preventDefault(); m.retoqueOriginal?.(el.dataset.clave, el.dataset.idioma); return; }
     // Dentro del aro: un valor de una lista se escribe; un clic en el centro (sin editarlo) entra en el elemento.
     if ((el = b('.aro [data-opcion]'))) { e.preventDefault(); m.opcion?.(el.dataset.x ?? el.closest('.aro')?.dataset.x, Number(el.dataset.opcion), el.dataset.valor); return; }
+    // El atajo visible al aro de un ocupante (lo mismo que mantenerlo pulsado).
+    if ((el = b('[data-aro-abrir]'))) { e.preventDefault(); m.aro?.(el.dataset.aroAbrir, null, { ancla: anclaDe(el.closest('li, .rejilla-celda') ?? el, e.clientX, e.clientY) }); return; }
     if ((el = b('.aro:not(.editando) [data-aro-centro]'))) { e.preventDefault(); m.aroEntrar?.(el.dataset.x ?? el.closest('.aro')?.dataset.x); return; }
     if (t.closest('.formulario, .aro, .guia') && !t.closest('button')) return; // dentro de un diálogo (o de la guía), nada más que los botones
     if ((el = b('[data-guia-rapida]'))) { e.preventDefault(); m.guiaRapida?.(Number(el.dataset.guiaRapida)); return; }

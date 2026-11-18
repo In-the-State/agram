@@ -2456,6 +2456,14 @@ const manejadores = {
     if (!id) return;
     return seguirPasoDeGuia(null, id);
   },
+  /** «+n» de la cabecera de un punto de vista: abrirlo o cerrarlo, y que siga así al repintar (por elemento y punto de vista). */
+  accionesMas(X, pv) {
+    if (!X || !Number.isInteger(pv)) return;
+    const abiertas = (estado.accionesAbiertas ??= new Set());
+    const clave = X + '|' + pv;
+    if (abiertas.has(clave)) abiertas.delete(clave); else abiertas.add(clave);
+    pintar();
+  },
   /** Una de las preguntas hechas de la época (los botones rápidos). */
   guiaRapida(i) {
     const q = guia.preguntasRapidas(estado.eje, idioma())[i];
