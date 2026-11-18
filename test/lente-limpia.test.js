@@ -33,7 +33,6 @@ const ARCHIVOS = readdirSync(CARTA).filter((f) => f.endsWith('.js') && f !== 'te
 /** Nombres de plantillas en la carta, por archivo. */
 const NOMBRES_DE_HOY = {
   'app.js': ['move to group', 'register a thing', 'second factor'],
-  'carta.js': ['message in', 'message in from an agent', 'message out'],
   'reglas.js': ['let P come down here'],
 };
 
