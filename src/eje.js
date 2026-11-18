@@ -1001,7 +1001,7 @@ export class Eje {
           const pesa = bytesDeMiembro(ev, k, conId.length);
           if (pesa > porMiembro) {
             const texto = 'no cabe: marcado y firmado ocupa ' + pesa + ' bytes y el tope por registro es ' + porMiembro;
-            throw rechazo('evento rechazado: ' + texto, [{ texto, regla: REGLA_NO_CABE, estado: 'falla', causa: null }]);
+            throw rechazo('evento rechazado: ' + texto, [conForma({ texto, regla: REGLA_NO_CABE, estado: 'falla', causa: null }, { que: 'record too large', partes: { bytes: pesa, cap: porMiembro } })]);
           }
         }
         await vista.#anadir(ev);
@@ -2041,12 +2041,12 @@ export class Eje {
  */
 function motivosDeTx(ev, motivos, crudos = false) {
   return motivos
-    .map((m) => ({
+    .map((m) => conForma({
       texto: m.fallo && !crudos ? textoDeFallo(ev, m.fallo) : m.texto,
       regla: typeof m.condicion === 'string' ? m.condicion : null,
       estado: m.estado === 'pendiente' ? 'pendiente' : 'falla',
       causa: m.causa === CAUSA_LIMITE ? CAUSA_LIMITE : null,
-    }))
+    }, m.fallo && !crudos ? claveDeFallo(ev, m.fallo) : {}))
     .filter((m) => m.texto !== null);
 }
 
@@ -2091,6 +2091,32 @@ function rechazo(mensaje, motivos) {
   e.motivos = motivos;
   if (motivos.some((m) => m.causa === CAUSA_LIMITE)) e.code = CAUSA_LIMITE;
   return e;
+}
+
+/**
+ * Un motivo con su forma para decirlo en el idioma de quien lee (contrato.motivoEnLlano): `que` y `partes` como propiedades
+ * que no se enumeran, así que la forma pública de un motivo ({ texto, regla, estado, causa }) no cambia: ni en JSON (lo que
+ * viaja, test/vectores/tanda-de-tres.json) ni al compararla.
+ */
+function conForma(motivo, { que, partes } = {}) {
+  if (typeof que === 'string') Object.defineProperties(motivo, { que: { value: que }, partes: { value: Object.freeze({ ...partes }) } });
+  return motivo;
+}
+
+/**
+ * Lo mismo que textoDeFallo, con forma (Core AGRAM 19-11): { que, partes }, la clave «reason <que>» de los textos (en la
+ * época o, mientras no esté, en datos/provisional/textos/) y sus valores en crudo (la serie, el titular, la salida), que
+ * pone en llano contrato.motivoEnLlano. {} donde textoDeFallo calla.
+ */
+function claveDeFallo(ev, fallo) {
+  const m = ev.movimientos[fallo.paso];
+  const k = claveToken(m);
+  if (fallo.falta === 'finito') return { que: 'series does not admit so much', partes: { series: k } };
+  if (m.estado === 'bloqueo') return { que: 'insufficient available to lock', partes: { series: k, holder: m.de } };
+  if (m.estado === 'liberacion' || (m.salida !== undefined && m.estado === undefined)) return { que: 'nothing locked with that exit', partes: { amount: m.cantidad, series: k, holder: m.de, exit: m.salida } };
+  if (m.token === 'P') return { que: origenDe(m) === m.de ? 'insufficient P' : 'insufficient P of origin', partes: { scope: m.ambito === AMBITO_GENESIS ? null : m.ambito, origin: origenDe(m), holder: m.de } };
+  if (fallo.grupo.some((x) => x.primitiva === 'acunar' && x.clase === ASIGNACION)) return {};
+  return { que: 'insufficient balance', partes: { series: k, holder: m.de } };
 }
 
 function textoDeFallo(ev, fallo) {

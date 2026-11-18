@@ -465,10 +465,14 @@ export function representaciones(eje, X, opciones = {}) {
     if (esReferencia(h)) fuera.push({ texto: null, tamano: 0, formato: formatos.includes('ref') && admite.has('ref') ? 'ref' : deHoja, recurso: h });
     else fuera.push({ texto: String(h), tamano: 0, formato: deHoja, recurso: null });
   };
-  const rica = (dec) => {
+  const rica = (dec, id = null) => {
     const [tamano, formato] = hojas(dec[1]).map(hoja); // [tamaño, formato], o la décupla [[tamaño], [formato]] (1.0 y 1.1: lo que escribe una plantilla)
     if (!medidas.has(tamano) || !admite.has(formato)) return;
-    fuera.push({ texto: texto(hoja(dec[0])) ?? null, tamano, formato, recurso: hoja(dec[5]) ?? null });
+    // El texto de una representación que es un registro anclado, con idioma: su 0 en ese idioma (si lo escribió una acción,
+    // recompuesto: «adjunta un archivo a …», no «attach a file: …»; Core AGRAM 19-11). Sin idioma, tal cual (lo lee ceroDe).
+    const alt = texto(hoja(dec[0])) ?? null;
+    const enIdioma = id && alt !== null && opciones.idioma ? ceroParaLeer(eje, id, { epoca: epocaDe(opciones, eje), idioma: opciones.idioma }) : null;
+    fuera.push({ texto: enIdioma ?? alt, tamano, formato, recurso: hoja(dec[5]) ?? null });
   };
   if (esTerminal(ev.payload)) deTexto(ev.payload);
   else if (Array.isArray(ev.payload) && ev.payload[0] !== undefined) {
@@ -478,7 +482,7 @@ export function representaciones(eje, X, opciones = {}) {
     else if (esDecupla(cero)) rica(cero);
   }
   if (typeof ev.id === 'string' && eje?.obtener(ev.id)) {
-    for (const h of eje.sobre(ev.id, RAIZ)) if (Array.isArray(h.payload) && esDecupla(h.payload)) rica(h.payload);
+    for (const h of eje.sobre(ev.id, RAIZ)) if (Array.isArray(h.payload) && esDecupla(h.payload)) rica(h.payload, h.id);
   }
   return fuera.sort((a, b) => a.tamano - b.tamano);
 }
@@ -3582,6 +3586,46 @@ export function motivo(que, partes = {}, { idioma = 'en', ...opciones } = {}) {
   return plano_(texto_(null, CLAVE.motivo(que), idioma, { epoca: opciones.epoca }), partes);
 }
 
+/**
+ * Un motivo con que el eje rechaza un registro (eje.motivos, el error de eje.escribir o eje.anadir), en el idioma de quien
+ * lee (Core AGRAM 19-11). Si el motivo trae forma (`que` y `partes`: los fallos de la aritmética del libro, el registro que
+ * no cabe), se compone con «reason <que>» (de la época o, detrás, de datos/provisional/textos/) y cada parte legible: la
+ * serie por su nombre, el titular por su identidad, el ámbito de P por su registro (o «todo el libro»); si no, su texto de
+ * siempre. Un motivo de una regla de la época (`regla`, su nombre), con `ev` (el registro que se rechazó): el 9 de la regla
+ * en el idioma, con sus huecos sobre ese registro (contrato.mensaje). Un texto suelto, tal cual.
+ */
+export function motivoEnLlano(eje, motivo, { idioma = 'en', ev, ...opciones } = {}) {
+  if (typeof motivo === 'string') return motivo;
+  const que = motivo?.que;
+  if (typeof que !== 'string' && typeof motivo?.regla === 'string' && ev) {
+    const t = mensaje(eje, motivo.regla, idioma, { ...opciones, ev });
+    if (typeof t === 'string' && t) return t;
+  }
+  if (typeof que !== 'string') return motivo?.texto ?? motivo?.mensaje ?? '';
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  const formato = texto_(eje, CLAVE.motivo(que), idioma, { epoca }) ?? fraseDelPorque(CLAVE.motivo(que), idioma);
+  if (typeof formato !== 'string') return motivo.texto ?? '';
+  const o = { idioma, epoca };
+  const p = motivo.partes ?? {};
+  const partes = {};
+  for (const [k, v] of Object.entries(p)) {
+    if (v === undefined) continue;
+    if (k === 'holder' || k === 'origin') partes[k] = legible(eje, v, TIPO.identidad, o).texto;
+    else if (k === 'scope') partes[k] = v === null ? fraseDelPorque('value the whole book', idioma) ?? 'the whole book' : legible(eje, { ref: v }, undefined, o).texto;
+    else if (k === 'series') partes[k] = legible(eje, v, undefined, o).texto;
+    else partes[k] = v === null ? '' : String(legible(eje, v, undefined, o).texto);
+  }
+  return plano_(formato, partes);
+}
+
+/** Un rechazo del eje (el error que lanzan eje.escribir y eje.anadir, con sus `motivos`), en llano: sus motivos en el idioma, juntos; sin ellos, su mensaje. Con `ev` (el registro rechazado), los de las reglas también. */
+export function rechazoEnLlano(eje, error, { idioma = 'en', ...opciones } = {}) {
+  const motivos = Array.isArray(error?.motivos) ? error.motivos : [];
+  if (!motivos.length) return String(error?.message ?? error ?? '');
+  return motivos.map((m) => motivoEnLlano(eje, m, { ...opciones, idioma })).filter(Boolean).join('; ');
+}
+
 /** Un formato con huecos planos «{parte}» relleno con sus partes; sin formato, las partes seguidas. */
 function plano_(formato, partes) {
   if (typeof formato !== 'string') return Object.values(partes).filter((v) => v !== undefined && v !== null && v !== '').join(' ');
@@ -3827,6 +3871,17 @@ function ceroDe(eje, id, opciones) {
   return representaciones(eje, id, opciones).find((r) => typeof r.texto === 'string')?.texto ?? null;
 }
 
+/**
+ * El 0 de un registro para enseñarlo en el idioma de quien lee (Core AGRAM 19-11): si lo escribió una acción, recompuesto
+ * (ceroLegible); si no, tal cual (ceroDe). `profundidad` corta la recursión (un 0 cuyo hueco nombra otro registro): desde
+ * la tercera, el 0 tal cual.
+ */
+function ceroParaLeer(eje, id, { epoca, idioma = 'en', profundidad = 0 } = {}) {
+  if (!eje?.obtener?.(id)) return null;
+  if (profundidad >= 3) return ceroDe(eje, id, { epoca });
+  return ceroLegible(eje, id, { epoca, idioma, profundidad })?.texto ?? ceroDe(eje, id, { epoca });
+}
+
 /** El id del alta de una identidad, o null. */
 const altaDe = (eje, identidad) => eje?.alta?.(identidad)?.id ?? null;
 
@@ -3863,7 +3918,10 @@ export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
   const epoca = epocaDe(opciones, eje);
   const raiz = raizDe(epoca);
   const t = hojas(tipo).find((x) => typeof x === 'string');
-  const o = { epoca, idioma };
+  const profundidad = opciones.profundidad ?? 0;
+  const o = { epoca, idioma, profundidad };
+  // El 0 de un registro que se nombra, en el idioma (si lo escribió una acción, recompuesto: ceroParaLeer).
+  const cero_ = (id) => ceroParaLeer(eje, id, { epoca, idioma, profundidad: profundidad + 1 });
   const F = (que, partes) => plano_(texto_(eje, CLAVE.legible(que), idioma, { epoca }), partes);
   const otro = (v, tipoDe) => legible(eje, v, tipoDe, o);
   const junta = (lista, tipoDe) => {
@@ -3881,7 +3939,7 @@ export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
   }
   if (esReferencia(valor)) {
     const X = eje?.obtener?.(valor.ref) ? valor.ref : null;
-    const cero = X ? ceroDe(eje, X, { epoca }) : null;
+    const cero = X ? cero_(X) : null;
     const dir = valor.dir && valor.dir !== RAIZ ? valor.dir : null;
     const posicion = dir ? etiqueta(eje, X ?? valor.ref, dir, o) ?? indicesDe(dir).join('.') : null;
     // El 0 de un registro va tal cual (es su representación), salvo que sea una fecha: esa se lee legible.
@@ -3925,11 +3983,11 @@ export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
       // código tal cual) y el emisor por su 0 (el de su alta): «euros de casa», «casa euros».
       const nombre = texto_(eje, CLAVE.denominacion(p.denominacion), idioma, { original: p.denominacion, epoca });
       const emisorTexto = otro(p.emisor, TIPO.identidad).texto;
-      const partes = { familia: p.token, emisor: p.emisor, denominacion: p.denominacion, nombre, emisorTexto, registro, registroTexto: registro ? ceroDe(eje, registro, { epoca }) : null };
+      const partes = { familia: p.token, emisor: p.emisor, denominacion: p.denominacion, nombre, emisorTexto, registro, registroTexto: registro ? cero_(registro) : null };
       return { texto: F('series E', { denomination: nombre, issuer: emisorTexto, record: partes.registroTexto ?? '' }), partes };
     }
     if (p.token === 'P' && p.raiz) {
-      const registro = ceroDe(eje, p.raiz, { epoca }) ?? p.raiz.slice(0, 8);
+      const registro = cero_(p.raiz) ?? p.raiz.slice(0, 8);
       const partes = { familia: p.token, registro: p.raiz, registroTexto: registro, ...(p.mirada === undefined ? {} : { mirada: p.mirada }), ...(p.origen ? { origen: p.origen } : {}) };
       return { texto: F(p.mirada === undefined ? 'series P' : 'series P view', { record: registro, view: p.mirada, origin: p.origen ?? '' }), partes };
     }
@@ -4029,7 +4087,7 @@ function mensajeCompuesto(eje, nombre, canonico, ctx, sujeto, { idioma = 'en', e
     }
     const v = x && typeof x === 'object' ? (x.simbolo ?? ctx.valor(x)) : x;
     if (v === undefined || v === null) return null;
-    return legible(eje, v, undefined, { idioma, epoca }).texto;
+    return legible(eje, v, undefined, { idioma, epoca, profundidad }).texto;
   };
   const VACIO = '∅'; // como escribe bqlm.rellenar un hueco vacío (textoDe de una lista vacía)
   const hueco = (expr) => {
@@ -4038,7 +4096,7 @@ function mensajeCompuesto(eje, nombre, canonico, ctx, sujeto, { idioma = 'en', e
     const antes = escrito?.get(expr);
     if (antes !== undefined) {
       const hoy = rellenar('{' + expr + '}', ctx, { sujeto });
-      if (hoy !== antes && !(antes === VACIO && hoy !== VACIO && !hoy.startsWith('{'))) return antes === VACIO ? nadie : legible(eje, antes, undefined, { idioma, epoca }).texto;
+      if (hoy !== antes && !(antes === VACIO && hoy !== VACIO && !hoy.startsWith('{'))) return antes === VACIO ? nadie : legible(eje, antes, undefined, { idioma, epoca, profundidad }).texto;
     }
     // «first X.0» es el 0 de X: si X es un registro, su 0 legible (no el texto que guarda).
     const m = /^(first|last) (.+)\.0$/.exec(expr.trim());
@@ -4292,15 +4350,19 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, opcionesDelAparato
     const m = typeof d === 'string' ? /^=\s*first\s+(.+)$/.exec(d) : null;
     if (!m || !id) continue;
     const ctx = new ContextoEje(eje, { epoch: epoca, me: yo });
-    const lista = (vale(m[1], ctx, { sujeto: id }) ?? []).map((x) => plano(x, ctx)).filter(esTerminal);
-    if (lista.length) return unicas(lista.map((v) => ({ valor: v, texto: leer(v, tipoDato) })));
+    // Un movimiento o un asiento (un nodo del contexto, no un valor): su valor sigue siendo el de siempre (su texto), pero
+    // se enseña en llano (movimientoEnLlano: «Alta de huesped da 12 euros de casa a Alta de cocina»; Core AGRAM 19-11).
+    const ocupantes = vale(m[1], ctx, { sujeto: id }) ?? [];
+    const lista = ocupantes.map((x) => ({ valor: plano(x, ctx), texto: x?.k === 'mov' || x?.k === 'asiento' ? movimientoEnLlano(eje, x, { idioma, epoca }) : null })).filter((x) => esTerminal(x.valor));
+    if (lista.length) return unicas(lista.map((x) => ({ valor: x.valor, texto: x.texto ?? leer(x.valor, tipoDato) })));
   }
   // (c) lo ya escrito en esa posición en los hermanos: lo propio de su payload y lo anclado ahí (por su legible).
   if (!camino) return [];
   const escritos = [];
   for (const h of hermanos) {
     for (const x of ocupantesDe(eje, h.id, camino, { orden: 'llegada', exacto: true })) {
-      if (x.tipo === 'propio' && esTerminal(x.contenido)) escritos.push({ valor: x.contenido, texto: leer(x.contenido, tipoDato) });
+      // El 0 de un hermano que escribió una acción se enseña recompuesto en el idioma (ceroParaLeer); el valor, lo escrito.
+      if (x.tipo === 'propio' && esTerminal(x.contenido)) escritos.push({ valor: x.contenido, texto: camino.length === 1 && camino[0] === 0 && x.contenido === ceroDe(eje, h.id, { epoca }) ? ceroParaLeer(eje, h.id, { epoca, idioma }) ?? leer(x.contenido, tipoDato) : leer(x.contenido, tipoDato) });
       else if (x.tipo === 'escrito') {
         const cero = leer({ ref: x.evento });
         if (cero) escritos.push({ valor: cero, texto: cero });
@@ -4308,6 +4370,43 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, opcionesDelAparato
     }
   }
   return unicas(escritos);
+}
+
+/**
+ * Un movimiento en llano (un nodo «mov» del contexto: el que declara un registro; o «asiento»: el del libro), en el idioma:
+ * «{de} da {cuánto} a {a}» o, sin destino (una quema), «{de} da {cuánto}», con los formatos «legible announced movement»
+ * y «legible announced movement from» de epoch.9.4; quién, por su identidad legible; cuánto, por su serie legible.
+ */
+export function movimientoEnLlano(eje, nodo, { idioma = 'en', ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  const m = nodo?.k === 'mov' ? { serie: claveToken(nodo.m), cantidad: nodo.m.cantidad, de: nodo.m.de, a: nodo.m.a } : nodo?.k === 'asiento' ? { serie: nodo.a.serie, cantidad: nodo.a.cantidad, de: nodo.a.de, a: nodo.a.a } : nodo;
+  if (!m || typeof m.cantidad !== 'number' || typeof m.serie !== 'string') return null;
+  const o = { idioma, epoca };
+  const quien = (x) => (x === null || x === undefined ? texto_(eje, CLAVE.legible('nobody'), idioma, { original: 'nobody', epoca }) : legible(eje, x, TIPO.identidad, o).texto);
+  const partes = { amount: legible(eje, { serie: m.serie, cantidad: m.cantidad }, undefined, o).texto, from: quien(m.de), to: m.a ? quien(m.a) : '' };
+  const formato = texto_(eje, CLAVE.legible(m.a ? 'announced movement' : 'announced movement from'), idioma, { original: m.a ? '{from} gives {amount} to {to}' : '{from} gives {amount}', epoca });
+  return plano_(formato, partes);
+}
+
+/**
+ * El valor de un parámetro en el idioma (Core AGRAM 19-11): los valores canónicos que una plantilla pone por defecto o
+ * enumera («whole» en la mirada de «commit P», «aggregate» en el tipo de «aggregate T») son vocabulario de la época, en
+ * inglés. Se busca su texto, en este orden: «template <plantilla> param <etiqueta> value <valor>» (el de ese parámetro) y
+ * «value <valor>» (el general), en la época (con los retoques del libro) y, detrás, en lo provisional
+ * (datos/provisional/textos/); si no hay, legible(valor) como siempre. Lo pide quien pinta un formulario: { texto }.
+ */
+export function valorLegible(eje, valor, { plantilla: nombre, parametro, tipo, idioma = 'en', ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  if (typeof valor === 'string' && valor !== '') {
+    const claves_ = [...(nombre && parametro ? [CLAVE.parametro(nombre, parametro, 'value') + ' ' + valor] : []), 'value ' + valor];
+    for (const clave of claves_) {
+      const t = texto_(eje, clave, idioma, { epoca }) ?? fraseDelPorque(clave, idioma);
+      if (typeof t === 'string') return { texto: t, partes: { valor, clave } };
+    }
+  }
+  return legible(eje, valor, tipo, { ...opciones, idioma, epoca });
 }
 
 /** El tipo resuelto de un parámetro: el que ya trae (acciones.parametros) o el de su tipo, resuelto en la época. */
