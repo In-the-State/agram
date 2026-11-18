@@ -36,13 +36,13 @@ const SUELO = {
 
 /** B: conocimiento de una época metido en código (18-11). Solo encoge. «dudoso»: lo mira Core AGRAM (NUCLEO_Y_ACCIONES.md). */
 const DEUDA_DE_HOY = {
-  'acciones.js': ['second factor' /* dudoso */, 'commit P', 'attend', 'expire something mine'],
+  'acciones.js': ['second factor' /* dudoso */, 'attend', 'expire something mine'],
   'anclas.js': ['ask for more firmness'],
   'cadenas.js': ['this goes after', 'close', 'deliver'],
   'contrato.js': ['declare capacity or threshold', 'change cohort', 'connect an account', 'grant the permission', 'renew the permission', 'update the balance', 'add a parent', 'remove a parent', 'set the kind of owner', 'set a custody default', 'retouch a text'],
   'elegibles.js': ['remove someone'],
   'guia-libro.js': ['a zone of the face', 'a step of the guide'],
-  'motor.js': ['close with error' /* dudoso */, 'expire' /* dudoso */, 'close by decision' /* dudoso */, 'commit P'],
+  'motor.js': ['close with error' /* dudoso */, 'expire' /* dudoso */, 'close by decision' /* dudoso */],
   'nota-detalle.js': ['anchor here'],
   'tres.js': ['remove someone', 'admit someone'],
 };

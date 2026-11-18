@@ -89,6 +89,7 @@ import { estadoDePaquete } from './lente.js';
 import { cajasDelTres, conversacionDelTres as conversacionTres } from './tres.js';
 import { destino } from './sincronia.js';
 import { referenciasDe } from './condiciones/evento.js';
+import { TIPOS_BASE, BASES_DEL_APARATO, resolverTipo, tiposDeParametro, valeElValor } from './tipos.js';
 
 const RE_ID = /^[0-9a-f]{64}$/;
 const RE_SERIE = /^[EPRT]:.+/;
@@ -97,7 +98,13 @@ const RAIZ = '0000000000';
 /** El separador de las partes de un texto legible (puntuación, no idioma). */
 const SEPARADOR = ' · ';
 /** Los tipos de dato de las plantillas que este módulo sabe leer y escribir (los de epoch.9.2.0.1 y los parámetros del aro); lo demás es texto. */
+// Los nombres que usa este módulo, sacados de la lista cerrada de tipos base (src/tipos.js, TIPOS_BASE: Core AGRAM 18-11,
+// docs/notas/NUCLEO_6_7_8.md §7), que la sustituye; los tipos declarados por la época se resuelven a su base (resolverTipo).
 const TIPO = Object.freeze({ numero: 'number', referencia: 'ref', identidad: 'identity', instante: 'instant', nivel: 'level' });
+for (const t of Object.values(TIPO)) if (!Object.hasOwn(TIPOS_BASE, t)) throw new Error('contrato.js: «' + t + '» no es un tipo base');
+
+// Los tipos de parámetro (src/tipos.js), con el resto de lo que lee la carta.
+export { TIPOS_BASE, BASES_DEL_APARATO, resolverTipo, tiposDeParametro };
 /** Las claves de traducción (epoch.9.4): «template <nombre>», «template <nombre> param <etiqueta> label | help | placeholder», «template <nombre> message», «level <nombre>», «order <nombre>», «size <nombre>», «legible <qué>», «reason <qué>». */
 const CLAVE = Object.freeze({
   plantilla: (nombre) => 'template ' + nombre,
@@ -3796,7 +3803,12 @@ export function ceroLegible(eje, X, { idioma = 'en', ...opciones } = {}) {
 /** ¿Es un tipo que desdeLegible sabe leer de un texto? Los tipos genéricos de la época (epoch.9.2.0.1: texto, número, identidad, referencia, instante, nivel); lo demás (una décupla) se edita en BTML. */
 export function esTipoSimple(tipo, opciones = {}) {
   const raiz = raizDe(epocaDe(opciones));
-  const t = hojas(tipo).find((x) => typeof x === 'string');
+  let t = hojas(tipo).find((x) => typeof x === 'string');
+  // Un tipo declarado por la época (src/tipos.js) es simple si lo es su base.
+  if (t !== undefined && !Object.hasOwn(TIPOS_BASE, t)) {
+    const r = resolverTipo(hojas(tipo), opciones);
+    if (!r.error) t = r.base;
+  }
   return t === undefined || hojas(en(raiz, [...SITIO.plantillas, 0, 1])).includes(t);
 }
 
@@ -3885,9 +3897,14 @@ function hermanosDe(eje, ev, opciones) {
  * acción) pide las de ese parámetro de una acción sobre X: su tipo, su validación y sus defectos son los del parámetro,
  * y sus hermanos, los registros ya anclados donde anclará. Lo que no tiene lista da [] (también un tipo que no es simple, una
  * décupla, que se edita en BTML): la carta pinta un input libre.
+ * Con un parámetro de un tipo declarado (src/tipos.js, Core AGRAM 18-11): si su tipo trae una fórmula de opciones (una
+ * lectura con it = X y me = yo), esa va antes que todo, filtrada por las validaciones del tipo y del parámetro. Si su base
+ * es del aparato (file, book), el núcleo no da opciones propias: las da `opcionesDelAparato({ base, faceta, parametro })`
+ * → [{ valor, texto }] que pasa quien llama (sin ella, ninguna), y la época solo las FILTRA: las validaciones y la
+ * fórmula de opciones del tipo, que entonces es una condición con it = cada valor. La etiqueta es la del aparato.
  * → [{ valor, texto }]
  */
-export function opciones(eje, X, pv, { yo, idioma, parametro, ...resto } = {}) {
+export function opciones(eje, X, pv, { yo, idioma, parametro, opcionesDelAparato, ...resto } = {}) {
   resto = conEpoca(eje, resto);
   const ev = eventoDe(eje, X);
   if (!ev) return [];
@@ -3925,6 +3942,19 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, ...resto } = {}) {
     const clave = (v) => JSON.stringify(v);
     return lista.filter((x) => x && esTerminal(x.valor) && !(typeof x.valor === 'string' && x.valor.startsWith('=')) && x.texto !== '' && !vistos.has(clave(x.valor)) && vistos.add(clave(x.valor)));
   };
+  // (0) los tipos de parámetro: lo del aparato (file, book), solo filtrado; la fórmula de opciones de un tipo declarado.
+  if (parametro) {
+    const delTipo = tipoDelParametro(parametro, o);
+    const validaciones = [...delTipo.validaciones, ...(typeof formula === 'string' && formula.startsWith('=') ? [{ de: 'parámetro', formula }] : [])];
+    const ctx = new ContextoEje(eje, { epoch: epoca, me: yo });
+    const vale = (v) => valeElValor(validaciones, v, ctx).ok;
+    if (BASES_DEL_APARATO.includes(delTipo.base)) return delAparato(opcionesDelAparato, delTipo, parametro, vale, ctx);
+    if (delTipo.opciones && id) {
+      const r = evaluar(delTipo.opciones, ctx, { sujeto: id, lectura: true });
+      const lista = r.estado === 'RESUELTO' ? r.valor.map((x) => plano(x, ctx)).filter((v) => esTerminal(v) && vale(v)) : [];
+      return unicas(lista.map((v) => ({ valor: v, texto: leer(v, [delTipo.base]) })));
+    }
+  }
   // (a) referencias: las plantillas (el 5), los registros de una plantilla, las identidades.
   if (esTipo) {
     return unicas(plantillas(eje, o).map((p) => ({ valor: p.nombre, texto: texto_(eje, CLAVE.plantilla(p.nombre), idioma, { original: p.nombre, epoca }) })));
@@ -3969,6 +3999,40 @@ export function opciones(eje, X, pv, { yo, idioma, parametro, ...resto } = {}) {
     }
   }
   return unicas(escritos);
+}
+
+/** El tipo resuelto de un parámetro: el que ya trae (acciones.parametros) o el de su tipo, resuelto en la época. */
+function tipoDelParametro(parametro, o) {
+  if (Array.isArray(parametro.validaciones) && (parametro.base || parametro.errorDeTipo)) {
+    return { base: parametro.base, faceta: parametro.faceta ?? null, validaciones: parametro.validaciones.filter((v) => v.de !== 'parámetro'), opciones: parametro.opcionesDelTipo ?? null };
+  }
+  const r = resolverTipo(hojas(parametro.tipo), o);
+  return r.error ? { base: null, faceta: null, validaciones: [], opciones: null } : r;
+}
+
+/**
+ * Las opciones de un parámetro de base del aparato (file, book): las que da `opcionesDelAparato`, solo filtradas por las
+ * validaciones y por la fórmula de opciones del tipo (con it = cada valor: tiene que dar verdadero). La época nunca añade.
+ */
+function delAparato(opcionesDelAparato, delTipo, parametro, vale, ctx) {
+  if (typeof opcionesDelAparato !== 'function') return [];
+  let lista;
+  try {
+    lista = opcionesDelAparato({ base: delTipo.base, faceta: delTipo.faceta, parametro });
+  } catch {
+    return [];
+  }
+  const vistos = new Set();
+  const pasaElFiltro = (v) => {
+    if (!delTipo.opciones) return true;
+    const r = evaluar(delTipo.opciones, ctx, { sujeto: v, lectura: true });
+    return r.estado === 'RESUELTO' && r.valor.length === 1 && r.valor[0] === true;
+  };
+  return (Array.isArray(lista) ? lista : [])
+    .filter((x) => x && typeof x === 'object' && x.valor !== undefined && x.valor !== null)
+    .filter((x) => { const k = JSON.stringify(x.valor); return !vistos.has(k) && vistos.add(k); })
+    .filter((x) => vale(x.valor) && pasaElFiltro(x.valor))
+    .map((x) => ({ valor: x.valor, texto: String(x.texto ?? x.valor) }));
 }
 
 // Lo que está por autorizar para quien mira (VG 14-11, #70 (2)): la lectura vive con el segundo factor, en acciones.js; se

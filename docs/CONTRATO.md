@@ -919,6 +919,32 @@ El catálogo (MUNDOS_DISEÑO §11 con la corrección de VG al 4), con su condici
 | 9 | **follow the path** (`path`) · view the whole tutorial (lee) · auto-run to the end (`path all`) · ask for a recommendation (lee) | X existe |
 | 9 | add a parent ([9, 5]: 0 el nombre, 1.0.0 qué hace —keeps, seals, keeps and seals— y 1.1 el nivel, 2.0 la clave x-only y 2.1 el grado, 3.0 quién y 3.1 la dirección, 4 la acción; lo opcional cierra su décupla) · remove a parent ([9, 6]: refiere al padre en su 1) · set the kind of owner ([9, 7]: una clase de `epoch.7.5` en su 0) · set a custody default ([9, 8]: 0 una clave de `epoch.7.7.1`, 1 uno de sus valores permitidos, validado contra la época con `lookup`; por defecto, la primera clave y su base) — anclan en el 9 de X; add a parent lleva además, opcional, «can read» en la 1.0.1 (y qué hace pasa a la 1.0.0); padres y copias, §7.2 | X lo escribí yo o escribí el génesis (quitar: además X tiene algún padre) |
 
+### 12.2 bis Los tipos de parámetro: `TIPOS_BASE`, `resolverTipo` y `tiposDeParametro` (Core AGRAM 18-11, por confirmar con VG)
+
+`docs/notas/NUCLEO_6_7_8.md` §7; código en `src/tipos.js`, expuesto en `contrato`. Prueba: `test/tipos-parametro.test.js`.
+
+**Dos capas.** Los **tipos base** son una lista cerrada del aparato, un control por tipo: text, number, identity, ref, instant, level, tenfold, **file** y **book**. Dos de ellos tienen **facetas**, y un parámetro pide una en la segunda hoja de su 1:
+
+- **file:** ref (`archivo:<sha256>`), format y size.
+- **book:** id (su génesis), line keys y headers url.
+
+Los **tipos declarados** son dato: décuplas con el molde de un parámetro (0 nombre; 1 de qué deriva; 2 la validación; 9, delante de la ayuda, la fórmula de opciones). Viven en `epoch.9.2.0.3`, que es colección al heredar (`COLECCIONES`).
+
+**Tres capas, de abajo arriba:** la época 0, lo provisional (`datos/provisional/tipos.json`, con su copia generada `tipos.js`, leída por `src/provisional.js` hasta la pasada única) y la época del libro.
+
+**Cómo se resuelve un tipo** (`resolverTipo(p[1], { epoca })`):
+
+- Un tipo con el nombre de uno de abajo lo **endurece**: suma sus validaciones y no puede cambiarle la base.
+- De un parámetro a su base hay como mucho 4 saltos.
+- Un ciclo, un tipo desconocido o una faceta que no es son error.
+
+**`parametros()`** da `tipo` (la base: el control, lo de siempre), `declarado`, `base`, `faceta`, `validaciones` (la forma de la faceta, la cadena del tipo de abajo arriba y la del parámetro), `opcionesDelTipo` y `errorDeTipo`. `preparar` las comprueba todas en orden (`valeElValor`). Un tipo que no se resuelve es un motivo con `estado: 'ERROR'`. `archivoDe(p)` lee la faceta y, hasta la pasada única, también el 4 «file».
+
+**`opciones(eje, X, pv, { parametro, opcionesDelAparato })`:**
+
+- **file y book:** el núcleo no da opciones propias. Las da `opcionesDelAparato({ base, faceta, parametro })`, y la época solo las filtra con las validaciones y con la fórmula del tipo (it = cada valor).
+- **Las demás bases:** si el tipo trae fórmula de opciones, esa va primero (una lectura con it = X), filtrada por las validaciones.
+
 ### 12.3 Construir y validar: `transaccion(eje, plantilla, params, yo)`
 
 `params.X` es el registro. Construye la candidata desde la acción: el ancla (su 5; si sale de un parámetro que se rellena con su defecto, como el anuncio que cumple «pay», se mira otra vez con los defectos puestos), el payload con los parámetros dados y los defectos de los que faltan (en orden, con lo ya puesto a la vista como `ev`: el pago de «write to X» es la lectura `ev.6.2` de la propia candidata), los movimientos de su 4 y, salvo que un parámetro ocupe el 0, su mensaje como representación.

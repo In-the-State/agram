@@ -1,0 +1,166 @@
+// Generado por datos/provisional/generar.mjs desde datos/provisional/tipos.json.
+// No se edita a mano: se cambia el JSON y se ejecuta `node datos/provisional/generar.mjs`.
+
+export const TIPOS_PROVISIONALES_DATOS = [
+  [
+    [
+      "an id"
+    ],
+    [
+      "text"
+    ],
+    [
+      "=hex(slice(bytes(it), 0, 32)) = it"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §7): provisional hasta la pasada única por la época 0, que lo pondrá en epoch.9.2.0.3 tal cual; la validación que hoy repiten a mano 27 parámetros"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "an id: 64 hexadecimal characters in lower case, a datum and not a reference"
+    ]
+  ],
+  [
+    [
+      "a positive number"
+    ],
+    [
+      "number"
+    ],
+    [
+      "=it > 0"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §7): provisional hasta la pasada única por la época 0; la validación que hoy repiten a mano 35 parámetros"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "a number greater than zero"
+    ]
+  ],
+  [
+    [
+      "a text"
+    ],
+    [
+      "text"
+    ],
+    [
+      "=it != \"\""
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §7): provisional hasta la pasada única por la época 0; la validación que hoy repiten a mano 18 parámetros"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "a text that is not empty"
+    ]
+  ],
+  [
+    [
+      "an identity with alta"
+    ],
+    [
+      "identity"
+    ],
+    [
+      "=count it.6 > 0"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §7): provisional hasta la pasada única por la época 0; la validación que hoy repiten a mano 17 parámetros"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "an identity of this book, one with its alta"
+    ]
+  ],
+  [
+    [
+      "another book"
+    ],
+    [
+      "book",
+      "id"
+    ],
+    [
+      "=it != first before.5"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md §7): provisional hasta la pasada única por la época 0; un libro mío que no es este (el id de su génesis); las opciones las da el aparato y este tipo solo las filtra"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "one of my books, other than this one"
+    ]
+  ]
+];

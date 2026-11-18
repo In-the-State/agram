@@ -518,7 +518,8 @@ export function nombreEnNodo(nodo, profundidad, digito, epoca = EPOCA_0) {
 // acaba antes) hereda el de la base. Como una décupla no tiene huecos (#77), la hija marca cada posición que hereda
 // con la referencia { ref: <id de la base> } en esa dirección, «lo de la base aquí»: la resolución la sustituye por lo
 // que la base tiene en la misma dirección (si la base tampoco lo tiene, la carga falla y dice dónde).
-// Las COLECCIONES se combinan: el 2 (reglas), el 9.6.1 (plantillas), el 4.3 (estaciones), el 1.2.1 (grupos) y el 8.7.1
+// Las COLECCIONES se combinan: el 2 (reglas), el 9.6.1 (plantillas), el 4.3 (estaciones), el 1.2.1 (grupos), el 9.2.0.3
+// (los tipos de parámetro, Core AGRAM 18-11: src/tipos.js; uno con el mismo 0 que uno de la base no lo afloja, lo endurece) y el 8.7.1
 // (las formas por PV): las entradas de la hija se añaden a las de la base, y una con el mismo 0 que una de la base la
 // sustituye. El id que referencian los eventos es el de la hija tal como se escribió; la resolución es una lectura.
 
@@ -526,7 +527,7 @@ export function nombreEnNodo(nodo, profundidad, digito, epoca = EPOCA_0) {
 export const HEREDA = 'hereda';
 
 /** Las colecciones que se combinan al heredar (caminos en la raíz), en vez de sustituirse. */
-export const COLECCIONES = Object.freeze(['2', '9.6.1', '4.3', '1.2.1', '8.7.1']);
+export const COLECCIONES = Object.freeze(['2', '9.6.1', '4.3', '1.2.1', '8.7.1', '9.2.0.3']);
 
 /** El id de un registro de la época (y el de su raíz): el hash SHA-256 de su cuerpo canónico, en hexadecimal. */
 export function idDeRegistro(registro) {
