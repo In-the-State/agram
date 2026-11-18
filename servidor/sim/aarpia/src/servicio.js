@@ -27,7 +27,7 @@
 // creció desde el lote anterior: el remate del orden firmado (Correcciones del 17-11, punto 5). Quien tenga la
 // cadena pide la prueba de ese id al mismo sellador, como la de cualquier id.
 
-import { crearApi, hashDeClave, llevaMarcaDeTanda } from '../../../supabase/funciones/eventos/api.js';
+import { crearApi, hashDeClave, llevaMarcaDeTanda, comprobarMarcaDeTanda } from '../../../supabase/funciones/eventos/api.js';
 import * as verificar from '../../../supabase/funciones/eventos/verificar.js';
 import { Rele, relojDeRecibo, KIND_EVENTO, juzgadosAceptados } from './rele.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -74,6 +74,10 @@ export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(),
   // (antesDePublicarTanda lanza { estado, indice, id } si no entra); el relé la guarda de una vez (publicarVarios) y solo
   // después entra en el índice, de golpe: GET /eventos no ve nunca media tanda.
   async function insertarTandaYa(eje, filas) {
+    // La marca, también aquí (además de en eventos/api.js): así toda tanda guardada está bien encadenada, sea quien sea
+    // quien llame al almacén, y solo un corte al escribir puede dejarla a medias.
+    const fallo = comprobarMarcaDeTanda(Array.isArray(filas) ? filas.map((f) => (f?.cuerpo?.id === f?.id ? f.cuerpo : null)) : filas);
+    if (fallo) throw Object.assign(new Error('la marca de la tanda no casa: ' + fallo.error), { estado: 400, indice: fallo.indice, id: fallo.indice === null ? null : filas[fallo.indice]?.id ?? null });
     if (filas.some((f) => lista(eje).some((x) => x.id === f.id))) return null;
     if (antesDePublicarTanda) await antesDePublicarTanda(eje, filas.map((f) => f.cuerpo));
     // Los destinatarios (p) se resuelven por el alta, también la que viene en un miembro anterior de la misma tanda.
@@ -235,18 +239,15 @@ export function crearServicio({
     throw Object.assign(new Error((r.sinTandas ? '' : 'tanda rechazada: ') + r.reason.join('; ')), { estado: r.sinTandas ? 501 : 422, indice: r.indice, id: evento?.id ?? null });
   }
   let ejeEnCurso = null; // el eje del POST que se está atendiendo (los POST van de uno en uno)
-  let enRutaTanda = false; // el POST que se atiende es POST /eventos/tanda: lo fija la ruta, no la marca del registro
   const cripto = !autoridad ? verificar : {
     ...verificar,
     async comprobar(evento, contexto) {
       const r = await verificar.comprobar(evento, contexto);
       if (!r.ok) return r; // mala forma, id, firma o alta: 400/403 como en AGRAM, sin 7703
-      // Un miembro de una tanda se juzga con la tanda entera al insertarla (insertarTanda → juzgarTanda), no suelto. La
-      // marca la pone el cliente, así que no basta para saltarse el juicio: lo decide la ruta. Suelto, api.js ya da 400.
-      if (r.evento?.contexto?.tanda !== undefined) {
-        if (enRutaTanda) return r;
-        return { ok: false, estado: 400, error: 'un miembro de una tanda no entra suelto: va entera por POST /eventos/tanda' };
-      }
+      // Un miembro de una tanda: aquí solo la forma; las reglas, de la tanda entera, en insertarTanda (→ juzgarTanda). No
+      // es un salto del juicio ni hace falta mirar por qué ruta llegó: un registro con marca de tanda SOLO se guarda por
+      // insertarTanda (insertar lo rechaza, y antes la puerta da 400 a un POST suelto con marca), y ese camino juzga siempre.
+      if (r.evento?.contexto?.tanda !== undefined) return r;
       const juicio = await autoridad.juzgar(ejeEnCurso, r.evento);
       if (juicio.ok) return r;
       if (!autoridad.rechazos.has(r.evento.id)) {
@@ -302,8 +303,7 @@ export function crearServicio({
         let datos = null;
         try { datos = JSON.parse(texto); } catch { /* api.js responde 400 */ }
         ejeEnCurso = datos?.eje ?? null;
-        enRutaTanda = /\/eventos\/tanda\/*$/.test(url.pathname); // el mismo camino exacto que reconoce api.js
-        const respuesta = await api(request).finally(() => { enRutaTanda = false; });
+        const respuesta = await api(request);
         if (respuesta.status !== 422) return respuesta;
         const detalle = autoridad.rechazos.get(datos?.evento?.id);
         const cuerpo = { ...(await respuesta.json()), ...detalle };

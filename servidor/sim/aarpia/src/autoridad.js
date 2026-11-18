@@ -81,9 +81,11 @@ export class Autoridad {
         this.ejes.set(nombre, await Eje.desde(eventos, { exigirFirmas: this.exigirFirmas }));
         return { ok: true };
       } catch (e) {
-        // Eje.desde no da el índice: el texto dice «el miembro N no pasa»; si no lo dice, es el génesis (el miembro 1).
+        // Eje.desde lanza con e.indice (desde 0) del miembro que falla. Con un núcleo viejo, que no lo trae, el respaldo es
+        // el texto («el miembro N no pasa»); si tampoco lo dice, es el génesis (el miembro 1).
         const m = /miembro (\d+)/.exec(String(e?.message));
-        const indice = m && Number(m[1]) >= 1 && Number(m[1]) <= eventos.length ? Number(m[1]) - 1 : 0;
+        const delTexto = m && Number(m[1]) >= 1 && Number(m[1]) <= eventos.length ? Number(m[1]) - 1 : 0;
+        const indice = Number.isInteger(e?.indice) && e.indice >= 0 && e.indice < eventos.length ? e.indice : delTexto;
         return { ok: false, indice, reason: e?.motivos ? textos(e.motivos) : [String(e?.message)] };
       }
     }
