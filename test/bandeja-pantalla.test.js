@@ -265,3 +265,14 @@ test('lo que falta se dice con la etiqueta del parámetro en el idioma, la misma
     if (etiqueta !== n) assert.ok(!new RegExp(`\b${n}\b`).test(motivo.replace(etiqueta, '')), 'sin el nombre interno: ' + n);
   }
 });
+
+test('la tira dice el nombre una sola vez (el resumen ya empieza por él); a medias, solo el nombre', () => {
+  const v = vistaDeLaBandeja({ ok: false, items: [item('b1'), item('b2', { faltan: ['x'], entra: false })], motivos: [] }, { nombre: () => 'comprometer tiempo', registro: () => 'la compra' });
+  v.items[1].resumen = null;
+  const tira = htmlTiraDeLaBandeja(v, 'X1', 3);
+  const primera = tira.slice(0, tira.indexOf('</li>'));
+  assert.equal(primera.split('comprometer tiempo').length - 1, 1, 'una vez');
+  assert.ok(primera.includes(t('bandejaNace', { accion: 'comprometer tiempo', sobre: 'la compra' })));
+  const segunda = tira.slice(tira.indexOf('</li>'));
+  assert.equal(segunda.split('comprometer tiempo').length - 1, 1);
+});

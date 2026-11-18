@@ -145,7 +145,8 @@ export function htmlTiraDeLaBandeja(v, X, pv) {
   const lista = delSitio(v, X, pv);
   if (!lista.length) return '';
   const li = (x) => {
-    const cuerpo = `<span class="bandeja-nombre">${escapar(x.nombre)}</span> ${htmlResumen(x.resumen)} ${estadoDe(x)}`;
+    // El nombre va una vez: el resumen ya empieza por él («comprometer tiempo sobre …»); sin resumen (a medias), solo el nombre.
+    const cuerpo = `${x.resumen ? htmlResumen(x.resumen) : `<span class="bandeja-nombre">${escapar(x.nombre)}</span>`} ${estadoDe(x)}`;
     if (x.puesta) return `<li class="bandeja-item puesta${x.entra ? '' : ' no-entra'}" data-bandeja-puesta title="${escapar(t('bandejaPuestaTitulo'))}"><small class="bandeja-la-pone">${escapar(t('bandejaPuesta'))}</small> ${cuerpo}</li>`;
     if (x.tipo === 'campo') return `<li class="bandeja-item campo${x.entra ? '' : ' no-entra'}"><span class="bandeja-abrir">${cuerpo}</span><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
     return `<li class="bandeja-item${x.entra ? '' : ' no-entra'}"><button type="button" class="bandeja-abrir" data-nodo="accion" data-bandeja-abrir="${escapar(x.id)}" title="${escapar(t('bandejaAbrirTitulo'))}">${cuerpo}</button><button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}" aria-label="${escapar(t('bandejaQuitarTitulo'))}">×</button></li>`;
