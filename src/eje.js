@@ -48,7 +48,7 @@ import { acotarAltaV2, gastaAsignacion, esInformativoT, validosDe } from './cicl
 import { evaluarEscritura, nombreDeRegla, CAUSA_LIMITE } from './bqlm.js';
 import { EPOCA_0_BTML, EPOCAS_POR_ID, cargarEpocaEscrita, epocaEscritaDe, erroresDeEpocaEscrita, idDeRegistro } from './epocas.js';
 import { msUTC, msDeGuardado, segundosUTC, esInstante } from './instante.js';
-import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ } from './evento.js';
+import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ, cuerpo, hash, congelar, esMiembroDeTanda, fallosDeTanda, partirTandas, TANDA_MAXIMA } from './evento.js';
 import { sha256, aHex } from './cripto.js';
 import { firmar, firmarPosesion, verificar } from './autoridad.js';
 import { Libro, EMISION, acunar, transferir, bloquear, liberar, quemar, transaccion } from './libro.js';
@@ -190,6 +190,9 @@ export class Eje {
   // del primer registro que se juzga con ella) }. Vacío: la época de nacimiento es la vigente. #epoca es siempre la última.
   #versiones = [];
   #enVigor = new Map(); // id de la propuesta → id del registro que puso su cambio en vigor (un cambio entra una sola vez)
+  // Una VISTA EN SECO (vistaTanda, CONTRATO_TANDA): la copia del libro sobre la que la bandeja prueba lo que compone, sin
+  // firmas. Nunca se asienta en el libro de verdad (nada la adopta) y lo que lleva dentro no pasa la firma fuera de ella.
+  #enSeco = false;
 
   /**
    * exigirFirmas: todo autor debe tener clave registrada y firmar. Si no, solo firman quienes tienen clave.
@@ -696,7 +699,9 @@ export class Eje {
 
   /**
    * Reconstruye un eje desde su lista de eventos (el primero es el génesis),
-   * validando cada uno: ids, firmas, saldos. Nada se da por bueno.
+   * validando cada uno: ids, firmas, saldos. Nada se da por bueno. Una tanda
+   * (CONTRATO_TANDA) entra como una sola cosa: sus `de` miembros seguidos y
+   * en orden, o lanza (como cualquier registro que no pasa).
    */
   static async desde(eventos, { exigirFirmas = false, eventosV2 = 0 } = {}) {
     const [crudo, ...resto] = eventos;
@@ -708,7 +713,17 @@ export class Eje {
     if (motivos.length) throw new Error('génesis rechazado: ' + motivos.map((m) => m.texto).join('; '));
     if (exigirFirmas && !g.contexto.claves?.[g.autor]) throw new Error('el génesis debe ir firmado');
     eje.#aplicar(g);
-    for (const ev of resto) await eje.anadir(ev);
+    const partes = partirTandas([crudo, ...resto]);
+    for (let p = 0; p < partes.length; p++) {
+      const parte = partes[p];
+      // La primera parte es la del génesis (ya aplicado): sola, o la tanda que él abre (CONTRATO_TANDA: «eje vacío» vale para el primero).
+      if (!parte.marcada) {
+        if (p > 0) await eje.anadir(parte.eventos[0]);
+        continue;
+      }
+      const r = parte.errores.length ? { ok: false, motivos: formados(parte.errores) } : await eje.#tandaEnSitio(parte.eventos, { aplicados: p === 0 ? 1 : 0, deshacer: false });
+      if (!r.ok) throw rechazo((p === 0 ? 'génesis rechazado: ' : 'evento rechazado: ') + textoDeTanda(parte, r), r.motivos);
+    }
     return eje;
   }
 
@@ -739,6 +754,9 @@ export class Eje {
    * el libro, las claves, el reloj externo), así que quien lo tenía sigue
    * teniéndolo. No se reordena el prefijo de la versión 2 (sus reglas eran
    * otras): si lo hay, la lista ha de empezar por él tal cual.
+   * Una tanda (CONTRATO_TANDA) es UNA cosa: entran sus `de` miembros seguidos
+   * y en orden, todos válidos, o se rechaza entera; cada miembro rechazado va
+   * en `rechazados` con `tanda` (el id de su miembro 1; null si no se sabe).
    */
   async reordenar(lista) {
     const tenia = new Set(this.orden);
@@ -762,16 +780,174 @@ export class Eje {
     nuevo.#aplicar(g);
     const rechazados = [];
     const anadidos = [];
-    for (const ev of resto) {
-      try {
-        const guardado = await nuevo.anadir(ev);
-        if (!tenia.has(guardado.id)) anadidos.push(guardado.id);
-      } catch (e) {
-        rechazados.push({ id: ev?.id, motivo: e.message });
+    // Una tanda es UNA cosa (CONTRATO_TANDA): sus `de` miembros seguidos y en orden, y todos pasan, o se rechaza entera;
+    // cada miembro rechazado lleva `tanda` (el id de su miembro 1, o null si no se sabe: un miembro sin su miembro 1).
+    const partes = partirTandas(todos);
+    for (let p = 0; p < partes.length; p++) {
+      const parte = partes[p];
+      if (!parte.marcada) {
+        if (p === 0) continue; // el génesis, ya aplicado
+        const ev = parte.eventos[0];
+        try {
+          const guardado = await nuevo.anadir(ev);
+          if (!tenia.has(guardado.id)) anadidos.push(guardado.id);
+        } catch (e) {
+          rechazados.push({ id: ev?.id, motivo: e.message });
+        }
+        continue;
       }
+      const r = parte.errores.length ? { ok: false, motivos: formados(parte.errores) } : await nuevo.#tandaEnSitio(parte.eventos, { aplicados: p === 0 ? 1 : 0 });
+      if (r.ok) {
+        for (const guardado of r.eventos) if (!tenia.has(guardado.id)) anadidos.push(guardado.id);
+        continue;
+      }
+      // El génesis no se rechaza: si abre una tanda que no entra entera, el libro no se rehace.
+      if (p === 0) throw new Error('génesis rechazado: ' + textoDeTanda(parte, r));
+      const motivo = textoDeTanda(parte, r);
+      for (const ev of parte.eventos) rechazados.push({ id: ev?.id, motivo, tanda: parte.tanda });
     }
     this.#adoptar(nuevo);
     return { anadidos, rechazados };
+  }
+
+  /**
+   * Una copia del eje con sus `hasta` primeros registros (todos, por omisión), reaplicados sin volver a validarlos (ya lo
+   * están; como eje.antes) y con la misma transacción con que entraron (la del libro, por su id: no se vuelven a evaluar
+   * las reglas que escriben). Lo que el transporte anota fuera del cuerpo (el reloj externo, los recibos, los sellos, los
+   * pagos, las bifurcaciones) va con ella: compartido si `compartir` (una copia que el eje puede adoptar), copiado si no
+   * (una vista que no ha de tocar el eje). `enSeco`: una vista en seco (vistaTanda).
+   */
+  #copia(hasta = this.orden.length, { compartir = false, enSeco = false } = {}) {
+    const c = new Eje({ exigirFirmas: this.exigirFirmas, eventosV2: this.eventosV2 });
+    c.#enSeco = enSeco || this.#enSeco;
+    const txs = new Map();
+    for (const tx of this.#libro.transacciones()) if (typeof tx?.id === 'string' && !txs.has(tx.id)) txs.set(tx.id, tx);
+    const n = Math.max(0, Math.min(hasta, this.orden.length));
+    for (let k = 0; k < n; k++) {
+      const ev = this.eventos.get(this.orden[k]);
+      if (esRegistroDeEpoca(ev)) c.#aplicar(ev);
+      else c.#aplicar(ev, txs.get(ev.id) ?? c.transaccion(ev));
+    }
+    c.#relojExterno = this.#relojExterno;
+    c.#recibos = compartir ? this.#recibos : new Map(this.#recibos);
+    c.#sellos = compartir ? this.#sellos : new Map(this.#sellos);
+    c.#pagos = compartir ? this.#pagos : new Map(this.#pagos);
+    c.#bifurcaciones = compartir ? this.#bifurcaciones : new Map(this.#bifurcaciones);
+    c.#cota = compartir ? this.#cota : { ...this.#cota };
+    return c;
+  }
+
+  /**
+   * Añade una TANDA (agram-equipo/CONTRATO_TANDA.md): varios registros firmados, con su marca `contexto.tanda`, que
+   * entran todos o ninguno (VG, 18-11). Comprueba la marca (fallosDeTanda: de 2 a 32, completa, en orden, encadenada) y
+   * valida los miembros EN ORDEN, cada uno con las mismas reglas que eje.anadir (su id, su firma, la época) y viendo los
+   * anteriores ya aplicados: el alta del autor de uno puede venir en otro anterior.
+   *
+   * Todo o nada: la tanda se valida sobre una COPIA del eje (#copia) y el eje solo adopta la copia, de una vez y sin
+   * esperas por medio, si entran todos; si uno falla, el eje no se ha tocado (ni saldos, ni índices, ni el orden). Si el
+   * eje cambia mientras se valida (otra escritura entre esperas), se vuelve a validar sobre el eje nuevo.
+   *
+   * Devuelve { ok: true, tanda (el id del miembro 1), eventos (lo que devuelve eje.anadir por miembro: su copia guardada) }
+   * o { ok: false, indice (del miembro que falla, desde 0; 0 si falla la lista entera), id, motivos (como eje.motivos) }.
+   */
+  async anadirTanda(eventos) {
+    for (let intento = 0; intento < 3; intento++) {
+      const orden = this.orden;
+      const n = orden.length;
+      const libro = this.#libro;
+      const copia = this.#copia(n, { compartir: true });
+      const r = await copia.#tandaEnSitio(eventos, { deshacer: false });
+      if (this.orden !== orden || orden.length !== n || this.#libro !== libro) continue;
+      if (!r.ok) return r;
+      const reloj = this.#relojExterno;
+      this.#adoptar(copia);
+      this.#relojExterno = reloj;
+      return r;
+    }
+    throw new Error('anadirTanda: el libro ha cambiado tres veces mientras se validaba la tanda; vuelve a lanzarla');
+  }
+
+  /**
+   * Valida y aplica una tanda en ESTE eje, miembro a miembro (el de una copia, o uno que se está rehaciendo: nadie más lo
+   * ve). `aplicados`: cuántos miembros del principio ya están aplicados (el génesis que abre la tanda, al restaurar). Si
+   * uno falla y `deshacer`, el eje vuelve a como estaba antes de la tanda (se rehace desde su principio, #copia).
+   */
+  async #tandaEnSitio(crudos, { aplicados = 0, deshacer = true } = {}) {
+    // La marca se juzga sobre lo que se guardaría (la copia por JSON de cada miembro), no sobre lo que llega.
+    if (!Array.isArray(crudos)) return { ok: false, indice: 0, id: null, motivos: formados(['una tanda es una lista de registros']) };
+    const eventos = [];
+    for (let k = 0; k < crudos.length; k++) {
+      try {
+        eventos.push(copiaGuardable(crudos[k]));
+      } catch (e) {
+        return { ok: false, indice: k, id: idDe(crudos[k]), motivos: formados([e.message]) };
+      }
+    }
+    const fallo = fallosDeTanda(eventos)[0];
+    if (fallo) return { ok: false, indice: fallo.indice, id: idDe(eventos[fallo.indice]), motivos: formados([fallo.texto]) };
+    const antesDeLaTanda = this.orden.length; // cuántos registros había antes de los miembros que se aplican aquí
+    const guardados = this.orden.slice(antesDeLaTanda - aplicados).map((id) => this.eventos.get(id));
+    for (let k = aplicados; k < eventos.length; k++) {
+      try {
+        guardados.push(await this.#anadir(eventos[k]));
+      } catch (e) {
+        if (deshacer) this.#adoptar(this.#copia(antesDeLaTanda, { compartir: true }));
+        return { ok: false, indice: k, id: idDe(eventos[k]), motivos: e.motivos ?? formados([e.message]) };
+      }
+    }
+    return { ok: true, tanda: guardados[0].id, eventos: guardados };
+  }
+
+  /**
+   * Probar en seco lo que compone la bandeja (CONTRATO_TANDA, «Lo que falta en el núcleo para la bandeja»): los
+   * candidatos todavía SIN firmar y sin marca (los `evento` de acciones.transaccion), en orden, cada uno validado con las
+   * reglas de eje.anadir y viendo los anteriores que pasan ya aplicados. Nada toca el libro: se prueban sobre una VISTA EN
+   * SECO, una copia del eje que nunca se adopta. En ella no se comprueban firmas: quien tiene clave cuenta como si
+   * firmase (firmará al lanzar, y entonces sí se comprueba), y lo que se asienta en ella lleva una firma de mentira que
+   * no pasa en ningún otro eje. Un candidato que falla no se aplica, y los siguientes se prueban como si no estuviera.
+   *
+   * Devuelve { vista, resultados }: `resultados`, uno por candidato, { ok, motivos } (motivos como eje.motivos; más allá
+   * del 32 dice además que una tanda no cabe); `vista`, el eje en seco con los que pasan aplicados, para componer el
+   * siguiente sobre ella (acciones.transaccion(vista, plantilla, params, yo): sus defectos leen el libro con lo ya
+   * compuesto). Con [] es la vista del libro de ahora.
+   */
+  async vistaTanda(candidatos = []) {
+    const vista = this.#copia(this.orden.length, { enSeco: true });
+    const resultados = [];
+    for (let k = 0; k < candidatos.length; k++) {
+      const extra = k >= TANDA_MAXIMA ? formados(['una tanda lleva como mucho ' + TANDA_MAXIMA + ' registros: este no cabe en la misma']) : [];
+      let ev;
+      try {
+        ev = copiaGuardable(candidatos[k]);
+        if (ev && typeof ev === 'object' && typeof ev.id !== 'string') ev = congelar({ ...ev, id: await hash(canonico(cuerpo(ev))) });
+        await vista.#anadir(ev);
+        resultados.push({ ok: extra.length === 0, motivos: extra });
+      } catch (e) {
+        resultados.push({ ok: false, motivos: [...(e.motivos ?? formados([e.message])), ...extra] });
+      }
+    }
+    return { vista, resultados };
+  }
+
+  /** Lo mismo que vistaTanda, solo los resultados: [{ ok, motivos }], uno por candidato. No toca el libro. */
+  async probarTanda(candidatos) {
+    return (await this.vistaTanda(candidatos)).resultados;
+  }
+
+  /** ¿Es una vista en seco (vistaTanda)? Lo que se compone sobre ella no se asienta nunca en el libro. */
+  get enSeco() {
+    return this.#enSeco;
+  }
+
+  /**
+   * En una vista en seco, `ev` como si lo firmase su autor si tiene clave (la del eje, o la que declara su propia alta):
+   * con firmante y una firma de mentira que no verifica con ninguna clave, así las reglas que miran quién firma («who
+   * has a key signs») lo ven firmado. Fuera de una vista en seco, o si ya va firmado, `ev` tal cual.
+   */
+  #comoFirmado(ev) {
+    if (!this.#enSeco || !ev || typeof ev !== 'object' || ev.firma) return ev;
+    const clave = this.claves.get(ev.autor) ?? (this.#libro.tiene(ev.autor) ? undefined : ev.contexto?.claves?.[ev.autor]);
+    return clave ? congelar({ ...ev, firmante: ev.autor, firma: FIRMA_EN_SECO }) : ev;
   }
 
   /** Toma todo el estado de `otro` (un eje recién construido): lo público y lo privado. */
@@ -1311,6 +1487,8 @@ export class Eje {
       tLaxo: reglas === 2,
       exigirFirmas: this.exigirFirmas,
       exigeClave: this.#exigeClave(),
+      // Una vista en seco (vistaTanda): la firma no se comprueba (src/condiciones/identidad.js, FIRMA).
+      enSeco: this.#enSeco,
       registrado: (id) => this.eventos.has(id),
       registro: (id) => this.eventos.get(id),
       clave: (id) => this.claves.get(id),
@@ -1355,6 +1533,8 @@ export class Eje {
       return formados(['no cabe en JSON: ' + e.message]);
     }
     if (!ev || typeof ev !== 'object') return formados(validarForma(ev, { tLaxo: this.orden.length < this.eventosV2 }));
+    if (esMiembroDeTanda(ev)) return formados([MIEMBRO_SUELTO]);
+    ev = this.#comoFirmado(ev);
     if (esRegistroDeEpoca(ev)) return formados(await this.#erroresDeEpoca(ev));
     if (this.#escritura && !this.#epoca) return formados([this.#faltaEpoca()]);
     const { motivos } = await this.#libro.probar(this.transaccion(ev), condicionesDe(this.#epocaVigente()), this.contexto(ev));
@@ -1415,9 +1595,17 @@ export class Eje {
    * Es una transacción del libro con las condiciones de siempre: entera o nada.
    * El error del rechazo lleva `motivos` (la lista de eje.motivos) y, si alguno se paró por un límite de cálculo,
    * `code: 'limit_exhausted'` (#100); su mensaje, el de siempre.
+   * Un miembro de una tanda (con `contexto.tanda`) no entra por aquí: solo con su tanda entera, por eje.anadirTanda.
    */
   async anadir(crudo) {
     const ev = copiaGuardable(crudo);
+    if (esMiembroDeTanda(ev)) throw rechazo('evento rechazado: ' + MIEMBRO_SUELTO, formados([MIEMBRO_SUELTO]));
+    return this.#anadir(ev);
+  }
+
+  /** eje.anadir sin mirar la marca de tanda (la tanda ya se ha comprobado entera): `ev`, la copia guardable. */
+  async #anadir(copia) {
+    const ev = this.#comoFirmado(copia);
     if (esRegistroDeEpoca(ev)) {
       const errores = await this.#erroresDeEpoca(ev);
       if (errores.length) throw rechazo('registro de la época rechazado: ' + errores.join('; '), formados(errores));
@@ -1775,6 +1963,25 @@ export const REGLA_DEL_MOTOR = 'núcleo:versiones';
 const delMotor = (textos) => textos.map((texto) => ({ texto, regla: REGLA_DEL_MOTOR, estado: 'falla', causa: null }));
 /** Lo que dice el motor de versiones de un registro que no es un cambio de reglas: nada. */
 const SIN_MOTOR = Object.freeze({ motivos: Object.freeze([]), entrada: null });
+
+/** Por qué no entra un miembro de tanda suelto (CONTRATO_TANDA: un miembro nunca entra suelto). */
+const MIEMBRO_SUELTO = 'un miembro de una tanda (contexto.tanda) no entra suelto: solo con su tanda entera (eje.anadirTanda)';
+
+/** La firma de mentira de una vista en seco (eje.vistaTanda): no es hexadecimal, así que no verifica con ninguna clave. */
+const FIRMA_EN_SECO = 'sin firmar: prueba en seco de la bandeja';
+
+/** El id de un registro, o null. */
+const idDe = (ev) => (ev && typeof ev === 'object' && typeof ev.id === 'string' ? ev.id : null);
+
+/**
+ * El motivo con que se rechaza entera una tanda al rehacer un libro (reordenar, desde): `parte`, la de partirTandas;
+ * `r`, lo que dio su validación ({ indice, motivos }).
+ */
+function textoDeTanda(parte, r) {
+  const quien = parte.tanda ? 'la tanda ' + parte.tanda.slice(0, 8) : 'un miembro de tanda';
+  if (parte.errores.length) return quien + ' se rechaza entera: ' + parte.errores.join('; ');
+  return quien + ' se rechaza entera: el miembro ' + (r.indice + 1) + ' no pasa: ' + r.motivos.map((m) => m.texto).join('; ');
+}
 
 /** El error de un rechazo (#100): su mensaje, de siempre; `motivos`, con forma; `code`, la causa si es por límite. */
 function rechazo(mensaje, motivos) {

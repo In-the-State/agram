@@ -29,6 +29,9 @@ export const FIRMA = Object.freeze({
     // firma de este registro con esa clave es su prueba de posesión.
     const clave = ctx.clave(ev.autor) ?? (libro.tiene(ev.autor) ? undefined : ev.contexto?.claves?.[ev.autor]);
     if (clave) {
+      // La prueba en seco de la bandeja (eje.vistaTanda, CONTRATO_TANDA): sin firmas todavía; quien tiene clave firmará al
+      // lanzar, y entonces sí se comprueba. Solo en una vista en seco, que nunca se asienta en el libro.
+      if (ctx.enSeco === true) return null;
       // Sin firma, o firmada por otro: lo dice la regla (o, en la versión 2, esto).
       if (!ev.firma || ev.firmante !== ev.autor) {
         if (ctx.reglas !== 2) return null;
