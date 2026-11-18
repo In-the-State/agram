@@ -3,8 +3,8 @@
 //
 //   1. FOTO (test/ayudas-sitios.mjs): los valores de hoy, escritos a mano. No cambia al mover: en el paso 1 el lector (contrato.sitios y
 //      contrato.pesos) tiene que darlos tal cual sin libro, y en el paso 2 la carta los lee de él.
-//   2. Lo que la carta usa hoy coincide con la FOTO (las constantes exportadas y, para las que no se exportan, su línea
-//      en el fuente). Esta parte se reescribe en el paso 2, cuando las constantes desaparecen.
+//   2. Lo que la carta usa coincide con la FOTO y lo lee del dato: las tablas que se fueron no vuelven al código, y las que
+//      aún quedan, por su línea en el fuente.
 //   3. Huellas: sha256 de la salida de las funciones puras que leen las tablas y del HTML de la carta (html(arbol(…)))
 //      sobre el ejemplo de la compra, con el reloj fijo, en un juego de pantallas y estados. Mismo HTML y mismo
 //      estilo.css: misma pantalla, píxel a píxel.
@@ -36,7 +36,7 @@ const IMPRIMIR = Boolean(process.env.AGRAM_HUELLAS);
 
 // La FOTO vive en test/ayudas-sitios.mjs: la usan esta prueba y la del lector (test/lente-lector.test.js).
 
-// ---------- 2. lo que la carta usa hoy coincide con la foto (se reescribe en el paso 2) ----------
+// ---------- 2. lo que la carta usa coincide con la foto y lo lee del dato ----------
 
 const fuente = (f) => readFileSync(new URL('../carta/' + f, import.meta.url), 'utf8');
 const tiene = (f, linea) => assert.ok(fuente(f).includes(linea), 'carta/' + f + ' ya no dice «' + linea + '»: si es a propósito, cambia la FOTO o esta línea');
@@ -50,16 +50,26 @@ test('la foto: las constantes exportadas de la carta son las de la FOTO', () => 
   assert.deepEqual(['comprimido', 'tarjeta', 'bloque', 'abierto', 'filas'].map((n) => botonesDeNivel(n)), [0, 1, 3, Infinity, 12]);
 });
 
-test('la foto: las que no se exportan, por su línea en el fuente', () => {
+/**
+ * Las tablas que ya se han ido de la carta al dato (paso 2): ninguna vuelve al código. [archivo, el texto que no puede volver].
+ * Lo que la carta enseña con ellas lo fijan las huellas, que no cambian.
+ */
+const YA_NO = [
+  ['carta.js', 'const CUENTA_PROPONEN_A_LA_VISTA ='],
+  ['carta.js', 'const EJECUCIONES_EN_CELDA_ABIERTA ='],
+  ['carta.js', 'BOTONES_POR_NIVEL = Object.freeze({'],
+  ['dom.js', 'const EJECUCIONES_EN_CELDA ='],
+  ['dom.js', 'const SERIES_EN_EL_PIE ='],
+];
+
+test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
+  for (const [archivo, texto] of YA_NO) assert.equal(fuente(archivo).includes(texto), false, 'carta/' + archivo + ' vuelve a tener «' + texto + '»');
+  const p = C.pesos(null);
+  assert.deepEqual([p.proponenALaVista, p.ejecucionesEnCelda, p.ejecucionesEnCeldaAbierta, p.seriesEnElPie], [FOTO.proponenALaVista, FOTO.ejecucionesEnCelda, FOTO.ejecucionesEnCeldaAbierta, FOTO.seriesEnElPie]);
+  // Las que aún están en el código (el paso 2 en curso), por su línea.
   tiene('dom.js', 'const ARRIBA = [' + FOTO.tiraDeArriba.join(', ') + '];');
-  tiene('carta.js', 'const CUENTA_PROPONEN_A_LA_VISTA = ' + FOTO.proponenALaVista + ';');
-  tiene('dom.js', 'const EJECUCIONES_EN_CELDA = ' + FOTO.ejecucionesEnCelda + ';');
-  tiene('carta.js', 'const EJECUCIONES_EN_CELDA_ABIERTA = ' + FOTO.ejecucionesEnCeldaAbierta + ';');
-  tiene('dom.js', 'const SERIES_EN_EL_PIE = ' + FOTO.seriesEnElPie + ';');
-  // El orden de Sequenced y el de buscar el destacado: del 0 al 9.
   tiene('carta.js', 'const digitos = [...pvs].sort((a, b) => a - b);');
   tiene('carta.js', 'for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {');
-  // Lo que se abre al empezar (una cuenta nueva): el PV del camino, en tarjeta.
   assert.ok(fuente('app.js').includes('estado.niveles[PV_CAMINO] = NIVEL.tarjeta;'));
   assert.equal(NIVEL.tarjeta, FOTO.alEmpezar.tamano);
 });

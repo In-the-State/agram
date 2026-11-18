@@ -69,6 +69,16 @@ export const CENTROS = Object.freeze(Object.keys(GEOMETRIA).map(Number).filter((
 export const LATERALES = Object.freeze(Object.keys(GEOMETRIA).map(Number).filter((pv) => GEOMETRIA[pv].grupo !== 'nucleo'));
 
 /**
+ * Los sitios y los pesos de la pantalla son dato (docs/notas/SITIOS_Y_PESOS.md): contrato.sitios y contrato.pesos los leen
+ * de la época del libro, de la 0 y del archivo de la lente (datos/lente/). El árbol los lee una vez por pintado y los
+ * lleva en `ctx.sitios` y `ctx.pesos` (y en `lente`, para el pintado y la app); fuera de un pintado valen los de sin libro.
+ */
+const SITIOS_SIN_LIBRO = contrato.sitios(null);
+const PESOS_SIN_LIBRO = contrato.pesos(null);
+const sitiosDe = (ctx) => ctx?.sitios ?? SITIOS_SIN_LIBRO;
+const pesosDe = (ctx) => ctx?.pesos ?? PESOS_SIN_LIBRO;
+
+/**
  * Las medidas por defecto (VG): el hueco comprimido, 48 px (un dato: un número o un icono); la tarjeta, 160 px (con
  * imagen); el bloque, lo que le toque de pantalla. Son píxeles de la pantalla, no datos del dominio: quien llama los
  * puede cambiar.
@@ -311,12 +321,10 @@ function pagoDelRegistro(eje, X, ctx) {
  * una cuenta (ni la clave de su E): { X, nombre, banco, saldo: { cuanto, unidad, fecha, t, confirmado, fuente } | null,
  * permiso: { estado, vence, t }, ordenan, proponen: { nombres, mas }, titular }. La carta no decide nada: el saldo que manda,
  * el estado del permiso y quién ordena los da el núcleo; aquí solo se ponen en texto el número, las fechas y los nombres.
- * VG 17-11 (V6): quién puede proponer pagos (contrato.cuenta, su `ordenan`: los primeros CUENTA_PROPONEN_A_LA_VISTA por
+ * VG 17-11 (V6): quién puede proponer pagos (contrato.cuenta, su `ordenan`: los primeros que dicen los pesos, «proposers shown», por
  * su identidad, como la carta pinta a un autor, y cuántos más) y el titular que aprueba cada pago en su banco (el autor del
  * registro de la cuenta).
  */
-const CUENTA_PROPONEN_A_LA_VISTA = 3;
-
 function cuentaDe(eje, X, ctx) {
   const c = contrato.cuenta(eje, X, { t: ctx.opciones.t });
   if (!c) return null;
@@ -327,7 +335,7 @@ function cuentaDe(eje, X, ctx) {
     saldo: s ? { cuanto: contrato.legible(eje, s.cuanto, 'number', ctx.opciones).texto, unidad: s.unidad, fecha: fecha(s.t), t: s.t, confirmado: s.confirmado, fuente: s.fuente } : null,
     permiso: { estado: c.permiso.estado, vence: fecha(c.permiso.vence), t: c.permiso.vence },
     ordenan: c.ordenan,
-    proponen: { nombres: c.ordenan.slice(0, CUENTA_PROPONEN_A_LA_VISTA), mas: Math.max(0, c.ordenan.length - CUENTA_PROPONEN_A_LA_VISTA) },
+    proponen: { nombres: c.ordenan.slice(0, pesosDe(ctx).proponenALaVista), mas: Math.max(0, c.ordenan.length - pesosDe(ctx).proponenALaVista) },
     titular: eje.obtener(c.id)?.autor ?? null,
   };
 }
@@ -1112,10 +1120,10 @@ function accionesDelPv(eje, X, pv, ctx) {
 
 /**
  * Cuántos botones con nombre pinta la cabecera de un punto de vista en cada nivel, y en cuántas filas de un punto de vista
- * se busca el siguiente paso de cada registro (VG 18-11, la forma C). ES DATO: pasará a la época y a las preferencias; hasta
- * entonces vive aquí, en una sola tabla, y solo la lee botonesDeNivel. «todas»: todas, en el orden de la época.
+ * se busca el siguiente paso de cada registro (VG 18-11, la forma C). Es dato: los botones de los pesos (epoch.9.5.8, contrato.pesos);
+ * esta es la tabla de sin libro, y cada pintado lee la suya (pesosDe(ctx).botones). «todas»: todas, en el orden de la época.
  */
-export const BOTONES_POR_NIVEL = Object.freeze({ comprimido: 0, tarjeta: 1, bloque: 3, abierto: 'todas', filas: 12 });
+export const BOTONES_POR_NIVEL = PESOS_SIN_LIBRO.botones;
 
 /** Lo que la tabla dice para un nivel ('comprimido', 'tarjeta', 'bloque', 'abierto' o 'filas'): un número (Infinity: todas). */
 export function botonesDeNivel(nivel, tabla = BOTONES_POR_NIVEL) {
@@ -1161,7 +1169,7 @@ function cabeceraDe(eje, X, pv, nivel, ctx) {
   // La destacada es el paso del camino: lleva su índice (data-paso) para abrirse con sus parámetros.
   const dest = deEsta ? { ...deEsta, paso: ctx.destacada.paso } : null;
   const lista = dest ? todas.map((a) => (a === deEsta ? dest : a)) : todas;
-  const k = botonesDeNivel(nivel);
+  const k = botonesDeNivel(nivel, pesosDe(ctx).botones);
   let nombradas;
   if (k === Infinity) nombradas = lista;
   else {
@@ -1204,7 +1212,7 @@ function pasoDeFila(eje, R, ctx) {
 
 /** Los ocupantes que se pintan con su siguiente paso (los primeros que dice la tabla, en filas). */
 function conPasosDeFila(eje, lista, ctx) {
-  const tope = botonesDeNivel('filas');
+  const tope = botonesDeNivel('filas', pesosDe(ctx).botones);
   let n = 0;
   return lista.map((o) => {
     if (!o?.X || n >= tope) return o;
@@ -2420,9 +2428,6 @@ function estadoDeCelda(nodos) {
   return estados.length === 1 ? estados[0] : null;
 }
 
-/** Cuántos movimientos enseña una celda abierta de la matriz del 4 (VG 12-11, #49.8: «hasta diez»); los demás, contados. */
-const EJECUCIONES_EN_CELDA_ABIERTA = 10;
-
 /**
  * La matriz 10 × 10 del 4, con sus dos ejes nombrados y la diagonal marcada. Encargo «el4» (VG 12-11, #41): si la fila de
  * la época mide la ejecución («execution» en lo que mide, epoch.8.7), las filas son los oficios y las columnas la
@@ -2484,10 +2489,10 @@ function celdasDeMatriz(eje, R, pv, d, g, ctx, { pagina, entrar }) {
       c.total = c.ocupantes.length;
       if (conEjes && entrar && c.total) c.abrir = c.fila + '.' + c.columna;
     }
-    // La celda abierta (VG 12-11, #49.8): su lista de movimientos, hasta diez, cada uno con el color de su estación.
+    // La celda abierta (VG 12-11, #49.8): su lista de movimientos, hasta los que dicen los pesos («executions in open cell», diez), cada uno con el color de su estación.
     const pedida = conEjes && entrar && ctx.estado?.celdaMatriz?.X === R ? celdas.find((c) => c.abrir && c.abrir === ctx.estado.celdaMatriz.celda) : null;
     const abierta = pedida
-      ? { fila: pedida.fila, columna: pedida.columna, oficio: ejes.filas.find((f) => f.digito === pedida.fila)?.nombre ?? null, ejecucion: ejes.columnas.find((k) => k.pv === pedida.columna)?.etiqueta ?? null, lista: pedida.ocupantes.slice(0, EJECUCIONES_EN_CELDA_ABIERTA), mas: Math.max(0, pedida.total - EJECUCIONES_EN_CELDA_ABIERTA), escalon: pedida.escalon ?? null, ...ejecutarEnCelda(eje, R, pedida, ctx) }
+      ? { fila: pedida.fila, columna: pedida.columna, oficio: ejes.filas.find((f) => f.digito === pedida.fila)?.nombre ?? null, ejecucion: ejes.columnas.find((k) => k.pv === pedida.columna)?.etiqueta ?? null, lista: pedida.ocupantes.slice(0, pesosDe(ctx).ejecucionesEnCeldaAbierta), mas: Math.max(0, pedida.total - pesosDe(ctx).ejecucionesEnCeldaAbierta), escalon: pedida.escalon ?? null, ...ejecutarEnCelda(eje, R, pedida, ctx) }
       : null;
     return { celdas, ejes, sinPosicion, pagina: { actual: 1, de: 1 }, ...(abierta ? { abierta } : {}) };
   }
@@ -3007,6 +3012,9 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     nuevosPorPv: animado ? nuevosPorPvDe(eje, X, nuevos, opciones) : new Map(),
     nuevos,
     limite,
+    // Los sitios y los pesos de la pantalla (epoch.9.5.6 y 9.5.8), una vez por pintado.
+    sitios: contrato.sitios(eje, opciones),
+    pesos: contrato.pesos(eje, opciones),
     // El paso de «cargar más»: el de la época (epoch.8.3.3) o, si quien mira lo ha escrito en sus preferencias, el suyo.
     paso: configuracion.de && typeof configuracion.step === 'number' && configuracion.step > 0 ? configuracion.step : contrato.paso(opciones),
     pasos: pasosPorPv(eje, X, opciones),
@@ -3107,6 +3115,8 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     cargarMas: d.cargarMas,
     medidas: m,
     animado,
+    // Los sitios y los pesos de este pintado, para el pintado y la app (contrato.sitios, contrato.pesos).
+    lente: { sitios: ctx.sitios, pesos: ctx.pesos },
     // El pintado (#25, epoch.9.3.2): sobrio, propio (solo el arte propio de cada elemento) o todo.
     pintado: { valor: hojas(configuracion.render ?? defectos.render)[0] ?? null, animado, soloPropio },
     limite,

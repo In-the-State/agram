@@ -10,7 +10,7 @@
 
 import { NIVEL, LATERALES, ANIMAR, GEOMETRIA, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
-import { cssSeguro } from '../src/contrato.js';
+import { cssSeguro, pesos as pesosDeLaLente } from '../src/contrato.js';
 
 export const escapar = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const corto = (id) => String(id ?? '').slice(0, 8);
@@ -505,8 +505,13 @@ function htmlMedidaDeHijo(c) {
   return medida || precio || recursos ? `<footer class="hijo-pie">${medida}${precio}${recursos}</footer>` : '';
 }
 
-/** Cuántas series caben en la tabla pequeña del pie de un hijo del 1; las demás, contadas. */
-const SERIES_EN_EL_PIE = 4;
+/**
+ * Los pesos del pintado en curso (contrato.pesos, epoch.9.5.8: cuántos se ven de cada lista): los trae el árbol en `lente` y
+ * los fija html(); fuera de un pintado, los de sin libro.
+ */
+const PESOS_SIN_LIBRO = pesosDeLaLente(null);
+let pesosDelPintado = null;
+const pesos = () => pesosDelPintado ?? PESOS_SIN_LIBRO;
 
 /**
  * Lo que el núcleo mide de un hijo del 1 (encargo «datos2», issue #11): el coste («coste EUR 12»), la capacidad con la
@@ -523,8 +528,8 @@ function htmlRecursosDeHijo(c) {
   }
   let flujo = '';
   if (c.flujo?.length) {
-    const filas = c.flujo.slice(0, SERIES_EN_EL_PIE).map((f) => `<tr><th scope="row" title="${attr(f.texto)}">${escapar(f.texto)}</th><td>${f.entra ? escapar(f.entra) : ''}</td><td>${f.sale ? escapar(f.sale) : ''}</td></tr>`).join('');
-    const mas = c.flujo.length > SERIES_EN_EL_PIE ? `<tr class="hijo-flujo-mas"><td colspan="3">${escapar(t('hijoFlujoMas', { n: c.flujo.length - SERIES_EN_EL_PIE }))}</td></tr>` : '';
+    const filas = c.flujo.slice(0, pesos().seriesEnElPie).map((f) => `<tr><th scope="row" title="${attr(f.texto)}">${escapar(f.texto)}</th><td>${f.entra ? escapar(f.entra) : ''}</td><td>${f.sale ? escapar(f.sale) : ''}</td></tr>`).join('');
+    const mas = c.flujo.length > pesos().seriesEnElPie ? `<tr class="hijo-flujo-mas"><td colspan="3">${escapar(t('hijoFlujoMas', { n: c.flujo.length - pesos().seriesEnElPie }))}</td></tr>` : '';
     flujo = `<table class="hijo-flujo"><thead><tr><th scope="col">${escapar(t('hijoFlujoSerie'))}</th><th scope="col">${escapar(t('hijoFlujoEntra'))}</th><th scope="col">${escapar(t('hijoFlujoSale'))}</th></tr></thead><tbody>${filas}${mas}</tbody></table>`;
   }
   return coste + capacidad + flujo;
@@ -545,9 +550,6 @@ function htmlFlotante(f) {
     + `<section class="flotante-cara cara-5" aria-hidden="true">${cabeza(5)}<p class="tipo">${f.plantilla ? `${t('plantilla')} <b>${escapar(f.plantilla)}</b>` : t('sinPlantilla')}</p>${ancla}${pasos}</section>`
     + `</div></div>`;
 }
-
-/** Las ejecuciones que se ven en una celda de la matriz; las demás, contadas («+n»). */
-const EJECUCIONES_EN_CELDA = 3;
 
 /** El nombre de una estación de la fábrica (propuesta, autorizada, ejecutada, verificada: «en firme»), en el idioma de la interfaz. */
 const textoEstacion = (estado) => t({ verificada: 'estadoVerificada', ejecutada: 'estadoEjecutada', autorizada: 'estadoAutorizada' }[estado] ?? 'estadoPropuesta');
@@ -850,8 +852,9 @@ function htmlQuienGuarda(q) {
  */
 function htmlEjecuciones(lista) {
   if (!lista.length) return '';
-  const items = lista.slice(0, EJECUCIONES_EN_CELDA).map((o) => `<li class="ejecucion"${o.estado ? ` data-estado="${attr(o.estado)}" title="${attr(textoEstacion(o.estado))}"` : ''}>${htmlOcupanteDeCelda(o)}${o.estado ? `<small class="estacion-nombre">${escapar(textoEstacion(o.estado))}</small>` : ''}${marcaVerificado(o)}</li>`).join('');
-  const mas = lista.length > EJECUCIONES_EN_CELDA ? `<li class="ejecucion-mas">${escapar(t('matrizMas', { n: lista.length - EJECUCIONES_EN_CELDA }))}</li>` : '';
+  // Las ejecuciones que se ven en una celda de la matriz (los pesos: «executions in cell»); las demás, contadas («+n»).
+  const items = lista.slice(0, pesos().ejecucionesEnCelda).map((o) => `<li class="ejecucion"${o.estado ? ` data-estado="${attr(o.estado)}" title="${attr(textoEstacion(o.estado))}"` : ''}>${htmlOcupanteDeCelda(o)}${o.estado ? `<small class="estacion-nombre">${escapar(textoEstacion(o.estado))}</small>` : ''}${marcaVerificado(o)}</li>`).join('');
+  const mas = lista.length > pesos().ejecucionesEnCelda ? `<li class="ejecucion-mas">${escapar(t('matrizMas', { n: lista.length - pesos().ejecucionesEnCelda }))}</li>` : '';
   return `<ul class="ejecuciones">${items}${mas}</ul>`;
 }
 
@@ -2396,6 +2399,7 @@ export function htmlCopia(c) {
  * `anfitrion` (true si la carta va dentro de una app que firma: carta/anfitrion.js), `autorizando` (los ids que firma ya) y `emparejar` (sin anfitrión, A25: { vivo }; la pantalla de arranque ofrece emparejar con la app).
  */
 export function html(arbol, extra = {}) {
+  pesosDelPintado = arbol?.lente?.pesos ?? null;
   archivoDe = typeof extra.archivo === 'function' ? extra.archivo : () => null; // los archivos adjuntos de esta pestaña (htmlRepresentacion)
   conAnfitrion = extra.anfitrion === true; // la app que lleva la carta firma: lo por autorizar lleva «autorizar» (htmlPorAutorizar)
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
