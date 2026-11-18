@@ -2305,16 +2305,9 @@ const manejadores = {
     pintar();
   },
   hermano(delta, pv) {
-    // Cambiar de PV (la franja) o de hermano: con un PV abierto, el siguiente lateral; en el centro, el hermano del foco.
-    if (pv !== null && pv !== undefined) {
-      if (enMapped() || enSecuencia()) return; // en Mapped y en la columna de Sequenced cada PV tiene su sitio: deslizar sobre uno no lo cambia por otro
-      const i = LATERALES.indexOf(pv);
-      const siguiente = LATERALES[(i + delta + LATERALES.length) % LATERALES.length];
-      estado.niveles = { [siguiente]: Math.max(NIVEL.tarjeta, estado.niveles[pv] ?? NIVEL.tarjeta) };
-      tocar(estado.foco.X, 'pv ' + siguiente);
-      pintar();
-      return;
-    }
+    // Cambiar de hermano: en el centro, el hermano del foco. Sobre un PV no hace nada: en Mapped y en la columna de Sequenced
+    // (lo único que se pinta: el árbol apilado trae siempre su secuencia) cada PV tiene su sitio y deslizar no lo cambia por otro.
+    if (pv !== null && pv !== undefined) return;
     const ev = estado.eje.obtener(estado.foco.X);
     if (!ev?.sobre) return;
     const hermanos = estado.eje.sobre(ev.sobre).map((h) => h.id);

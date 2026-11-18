@@ -67,6 +67,9 @@ const YA_NO = [
   ['dom.js', "GEOMETRIA[c.pv]?.grupo === 'cruz'"],
   ['dom.js', "GEOMETRIA[r.pv]?.grupo === 'cruz'"],
   ['dom.js', 'r.ocupantes.lista.slice(0, 4)'],
+  ['dom.js', 'const ARRIBA ='],
+  ['dom.js', 'ordenCruz'],
+  ['app.js', 'LATERALES.indexOf(pv)'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
@@ -74,7 +77,6 @@ test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las t
   const p = C.pesos(null);
   assert.deepEqual([p.proponenALaVista, p.ejecucionesEnCelda, p.ejecucionesEnCeldaAbierta, p.seriesEnElPie], [FOTO.proponenALaVista, FOTO.ejecucionesEnCelda, FOTO.ejecucionesEnCeldaAbierta, FOTO.seriesEnElPie]);
   // Las que aún están en el código (el paso 2 en curso), por su línea.
-  tiene('dom.js', 'const ARRIBA = [' + FOTO.tiraDeArriba.join(', ') + '];');
   assert.deepEqual([p.rosetones, p.ordenDeSequenced, p.buscarDestacado, p.alEmpezar], [FOTO.rosetones, FOTO.ordenDeSequenced, FOTO.buscarDestacado, FOTO.alEmpezar]);
   // Lo que se abre al empezar: su tamaño de 9.5.2 es el paso de nivel con que la app lo abre (la tarjeta).
   assert.equal(NIVEL.tarjeta, FOTO.alEmpezar.tamano);
@@ -211,6 +213,18 @@ async function huellasDelHtml() {
   }
   return fuera;
 }
+
+test('lo muerto que se quitó: apilado, el árbol trae siempre su secuencia y nunca rosetones (sin tiras del móvil, sin franjas, sin «hermano» sobre un PV)', async () => {
+  const { eje, compra } = await ejemploCompra();
+  for (const [ancho, alto] of [PANTALLAS.movil, [360, 640], [500, 900]]) {
+    for (const niveles of [{}, { 1: NIVEL.tarjeta }, { 9: NIVEL.bloque }]) {
+      const a = await arbol({ foco: { X: compra.id, pv: 0 }, niveles, rosetones: { 1: 2, 9: 3 } }, eje, YO, medidasDePantalla(ancho, alto), { t: T });
+      assert.equal(a.apilada, true);
+      assert.ok(a.secuencia, 'apilado, con secuencia');
+      assert.deepEqual(a.rosetones, [], 'apilado, sin rosetones');
+    }
+  }
+});
 
 test('las huellas: el reparto de Mapped, los toques de tamaño y las medidas de pantalla no cambian', () => {
   comparar('puras · ', huellasPuras());

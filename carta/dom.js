@@ -8,7 +8,7 @@
 // más de N animaciones a la vez (data-animaciones, un dato de la configuración), primero lo nuevo y lo enfocado; las
 // que salen de pantalla se pausan.
 
-import { NIVEL, LATERALES, ANIMAR, GEOMETRIA, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
+import { NIVEL, ANIMAR, GEOMETRIA, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { cssSeguro } from '../src/contrato.js';
 
@@ -1585,8 +1585,7 @@ function htmlCartera(cartera) {
 
 /**
  * Los rosetones de identidad: diez mosaicos muy comprimidos de mi foco, uno por PV (el 0 y el 5 incluidos). En la
- * matriz, una barra fija abajo; apilada (el móvil), dos tiras: arriba el tetraedro de la X con su centro, abajo la cruz
- * con el suyo (las que traza la geometría: la X son los PV 1-4, la cruz 6-9, y el 0 y el 5 el centro de cada una).
+ * matriz, cada uno en su esquina o lateral (su `sitio`); apilada (el móvil), el árbol no los trae.
  */
 function htmlRoseton(r, { enSuSitio = false } = {}) {
   const sitio = enSuSitio && r.sitio ? ` sitio-f${r.sitio.fila} sitio-c${r.sitio.columna}${r.sitio.centro ? ' sitio-centro' : ''}` : '';
@@ -1613,13 +1612,11 @@ function htmlRosetonPantalla(lista, guia = null) {
   </section>`;
 }
 const nav = (lista, clase, enSuSitio = false) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio })).join('')}</nav>`;
-const ARRIBA = [1, 2, 0, 3, 4];
 function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
   if (!lista?.length) return '';
-  // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa).
-  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista, guia) : '';
-  const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
-  return mias.length ? nav(mias, `rosetones-${parte}`) : '';
+  // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa). Apilada
+  // (Sequenced) el árbol no trae rosetones (test/sitios-y-pesos.test.js lo comprueba): las dos tiras del móvil ya no existen.
+  return !apilada && parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista, guia) : '';
 }
 
 /** Un botón de acción: lanza igual que el aro (data-lanzar, data-x; gestos.js → app.js lanzar, que abre el formulario). */
@@ -2411,18 +2408,11 @@ export function html(arbol, extra = {}) {
   const a = { ...arbol };
   const clase = ['carta', a.apilada ? 'carta-apilada' : 'carta-matriz', a.animado ? 'animado' : 'sobrio', `disposicion-${a.disposicion}`].join(' ');
   const laterales = Object.fromEntries(a.laterales.map((n) => [n.pv, htmlLateral(n, a)]));
-  const de = (pv) => laterales[pv] ?? '';
-  // La franja de la cruz se lee como la cruz: el lado del PV1 (6), arriba (8), abajo (9) y el lado del PV2 (7).
-  const ordenCruz = (n) => (n.fila === 'arriba' ? 1 : n.fila === 'abajo' ? 2 : n.lado === a.laterales.find((l) => l.pv === 1)?.lado ? 0 : 3);
-  const cruz = a.laterales.filter((n) => n.grupo === 'cruz').sort((p, q) => ordenCruz(p) - ordenCruz(q)).map((n) => n.pv);
-  const x = LATERALES.filter((pv) => a.laterales.find((n) => n.pv === pv)?.grupo === 'x');
   const avisos = [...(a.avisos ?? []), ...(extra.aviso ? [extra.aviso] : [])];
-  // Sequenced (el móvil en vertical): una columna, el pasado encima de la tarjeta del foco y el futuro debajo (sin
-  // árbol de la secuencia, las franjas de antes).
+  // Sequenced (el móvil en vertical): una columna, el pasado encima de la tarjeta del foco y el futuro debajo. El árbol apilado
+  // trae siempre su secuencia (test/sitios-y-pesos.test.js): las franjas de antes ya no existen.
   const escena = a.apilada
-    ? (a.secuencia
-      ? `<div class="secuencia" data-secuencia>${htmlHilo(a.secuencia.pasado)}<div class="secuencia-ahora">${htmlCentro(a.centro, a, extra)}${htmlHilo(a.secuencia.futuro)}</div></div>`
-      : `<div class="franja franja-cruz" data-franja="cruz">${cruz.map(de).join('')}</div>${htmlCentro(a.centro, a, extra)}<div class="franja franja-x" data-franja="x">${x.map(de).join('')}</div>`)
+    ? `<div class="secuencia" data-secuencia>${htmlHilo(a.secuencia.pasado)}<div class="secuencia-ahora">${htmlCentro(a.centro, a, extra)}${htmlHilo(a.secuencia.futuro)}</div></div>`
     : htmlMapa(a, extra, laterales);
   const estilos = htmlEstilos(a);
   return `<div class="${clase}"${nodo('carta', { modo: a.apilada ? 'apilada' : 'matriz', render: a.animado ? 'animado' : 'sobrio', ancho: a.medidas?.ancho, alto: a.medidas?.alto, x0: a.centro?.representacion?.texto ?? '' })} data-x="${a.X}" data-disposicion="${attr(a.disposicion)}" data-animaciones="${Number(a.limite) || 0}">
