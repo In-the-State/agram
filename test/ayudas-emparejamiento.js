@@ -137,7 +137,9 @@ export class ReleSim {
  * El libro de cuenta (Carril F; StateArk, RESPUESTA_LIBRO_DE_CUENTA.md §3 y §4): si «hola» anuncia la época, «emparejada»
  * lleva el permiso de un solo uso (10 minutos), salvo con `cuenta: 'vieja'` (una app que no lo conoce). A «pedir_claves»
  * da CLAVES_DE_PRUEBA (`claves`: 'dar' | 'callar' | 'rechazar' | 'no_aceptada'); a «gobierno», la firma con gobierno
- * (`gobierno`: 'firmar' | 'rechazar'). `sinDialogo`: los ids de las propuestas que firmaría SIN segundo diálogo, con las
+ * (`gobierno`: 'firmar' | 'rechazar'). `claves` admite también 'eje_falso' y 'eje_del_texto' (un eje que no es el SHA-256
+ * de los bytes de gobierno), y `app: 'v1'` hace de app de antes: rechaza el «hola» con «cuenta» (message_invalid, id de la
+ * sesión); `app: 'siempre_invalido'`, todo «hola». `sinDialogo`: los ids de las propuestas que firmaría SIN segundo diálogo, con las
  * condiciones de StateArk §4.5; las demás llevarían el diálogo de siempre.
  */
 export class AppSim {
@@ -176,6 +178,12 @@ export class AppSim {
       this.recibidos.push(m);
       const sesion = a.remitente;
       if (m.tipo === 'hola') {
+        // Una app v1 valida «hola» con claves exactas: con «cuenta», message_invalid con el id de la sesión (sin revocarla).
+        // «siempre_invalido»: a todo «hola», lo mismo (para ver que la carta solo reintenta una vez).
+        if ((this.modo.app === 'v1' && m.cuenta) || this.modo.app === 'siempre_invalido') {
+          await this.mandar({ schema: M, tipo: 'rechazo', id: sesion, code: 'message_invalid', motivo: '«hola» lleva solo «agente»' }, sesion);
+          continue;
+        }
         const conPermiso = this.modo.hola === 'aceptar' && m.cuenta && this.modo.cuenta !== 'vieja';
         if (conPermiso) this.permiso = { sesion, epoca: m.cuenta.epoca, hasta: new Date(this.reloj() + PERMISO_MS).toISOString(), usado: false };
         if (this.modo.hola === 'aceptar') this.aceptadas = new Set([...(this.aceptadas ?? []), sesion]);
@@ -186,6 +194,8 @@ export class AppSim {
         const aceptada = this.aceptadas?.has(sesion) && modo !== 'no_aceptada';
         if (!aceptada) await this.mandar({ schema: M, tipo: 'rechazo', id: sesion, code: 'not_accepted', motivo: 'aún no' }, sesion);
         else if (modo === 'rechazar' || m.publica !== APP) await this.mandar({ schema: M, tipo: 'rechazo', id: m.publica, code: 'unknown_account', motivo: 'no es mi cuenta' }, sesion);
+        else if (modo === 'eje_falso') await this.mandar({ schema: M, tipo: 'claves', ...CLAVES_DE_PRUEBA, eje: 'e1'.repeat(32) }, sesion);
+        else if (modo === 'eje_del_texto') await this.mandar({ schema: M, tipo: 'claves', ...CLAVES_DE_PRUEBA, eje: hexDe(sha256(new TextEncoder().encode(CLAVES_DE_PRUEBA.gobierno))) }, sesion);
         else await this.mandar({ schema: M, tipo: 'claves', ...CLAVES_DE_PRUEBA }, sesion);
       } else if (m.tipo === 'gobierno') {
         const id = hexDe(sha256(new TextEncoder().encode(canonico(m.orden))));

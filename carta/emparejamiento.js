@@ -24,7 +24,7 @@
 
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { canonico, hash } from '../src/evento.js';
-import { hashEtiquetado, verificarBip340 } from '../src/cripto.js';
+import { hashEtiquetado, verificarBip340, sha256 } from '../src/cripto.js';
 import { publicaDe, clavePublicaValida } from '../src/autoridad.js';
 import { claveDeConversacion, cifrar, descifrar, deHex, aHex, MAX_CLARO, MAX_PAYLOAD } from './nip44.js';
 
@@ -74,6 +74,18 @@ const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x)
 const clavesExactas = (o, ...k) => Object.keys(o).sort().join(',') === [...k].sort().join(',');
 const textoCorto = (t, max) => typeof t === 'string' && t.length > 0 && t.length <= max;
 const esN = (n) => Number.isSafeInteger(n) && n >= 0;
+
+/**
+ * ¿Cuadran las claves de la cuenta? (StateArk §2: el nombre del eje es el SHA-256 de los 32 BYTES de la pública x-only de
+ * gobierno, en hex; no el del texto hex). Gobierno ha de ser una pública válida y next, 64 hex. Nunca lanza.
+ */
+export function clavesCuadran(m) {
+  try {
+    return esObjeto(m) && esId(m.gobierno) && clavePublicaValida(m.gobierno) && esId(m.eje) && esId(m.next) && aHex(sha256(deHex(m.gobierno))) === m.eje;
+  } catch {
+    return false;
+  }
+}
 const instante = (t) => (typeof t === 'string' && ISO.test(t) ? Date.parse(t) : NaN);
 const segundos = (ms) => Math.floor(ms / 1000);
 
@@ -587,7 +599,7 @@ export class Emparejamiento {
   #guardarSesion() {
     const s = this.#sesion;
     if (!s) return Promise.resolve();
-    const copia = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada, hola: s.hola, ...(s.cuenta ? { cuenta: s.cuenta } : {}) };
+    const copia = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada, hola: s.hola, ...(s.cuenta ? { cuenta: s.cuenta } : {}), ...(s.v1 ? { v1: true } : {}) };
     return this.#guardar(() => this.#almacen.poner(claveSesion(s.delegacion.sesion), copia));
   }
 
@@ -628,7 +640,8 @@ export class Emparejamiento {
     for (const viejo of sesiones.slice(1)) await this.#terminarGuardada(viejo.delegacion.sesion, 'caducado', 'pairing_replaced', 'otro emparejamiento lo sustituye');
     const s = sesiones[0];
     if (!s) return null;
-    this.#sesion = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada === true, hola: s.hola === true, cuenta: this.#cuentaValida(s.cuenta) };
+    this.#sesion = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada === true, hola: s.hola === true, v1: s.v1 === true, cuenta: null };
+    if (!this.#sesion.v1) this.#sesion.cuenta = this.#cuentaValida(s.cuenta);
     if (this.#caducadaSiToca()) return null;
     this.#arrancar();
     if (!this.#sesion.hola) this.#mandarHola();
@@ -639,7 +652,7 @@ export class Emparejamiento {
   async emparejar(texto) {
     const leido = leerQR(texto, { ahora: this.#reloj(), local: this.#local });
     if (this.#sesion) await this.#terminar('caducado', 'pairing_replaced', 'otro emparejamiento lo sustituye', 'sustituida');
-    this.#sesion = { rele: leido.rele, privada: leido.privada, delegacion: leido.delegacion, aceptada: false, hola: false, cuenta: null };
+    this.#sesion = { rele: leido.rele, privada: leido.privada, delegacion: leido.delegacion, aceptada: false, hola: false, v1: false, cuenta: null };
     this.#vistos.clear();
     await this.#guardarSesion();
     this.#arrancar();
@@ -677,9 +690,11 @@ export class Emparejamiento {
     return { regalo, enviado: this.#cliente.publicar(regalo) };
   }
 
+  /** «hola», con la época de cuenta si la hay y la app no es de las de antes (v1: rechazó un «hola» con «cuenta»). */
   #mandarHola() {
     const sesion = this.#sesion.delegacion.sesion;
-    this.#mandar({ schema: ESQUEMA_MENSAJE, tipo: 'hola', agente: this.#agente, ...(this.#epocaDeCuenta ? { cuenta: { epoca: this.#epocaDeCuenta } } : {}) })
+    const conCuenta = Boolean(this.#epocaDeCuenta) && !this.#sesion.v1;
+    this.#mandar({ schema: ESQUEMA_MENSAJE, tipo: 'hola', agente: this.#agente, ...(conCuenta ? { cuenta: { epoca: this.#epocaDeCuenta } } : {}) })
       .then(({ enviado }) => enviado)
       .then(() => {
         if (this.#sesion?.delegacion.sesion !== sesion) return;
@@ -897,7 +912,7 @@ export class Emparejamiento {
     if (!a || a.motivo || a.remitente !== s.delegacion.larga || !DE_LA_APP.includes(a.mensaje.tipo)) return;
     const m = a.mensaje;
     if (m.tipo === 'emparejada') {
-      const cuenta = this.#cuentaValida(m.cuenta);
+      const cuenta = s.v1 ? null : this.#cuentaValida(m.cuenta);
       const nueva = Boolean(cuenta) && canonico(cuenta) !== canonico(s.cuenta ?? null);
       if (nueva) s.cuenta = cuenta;
       if (!s.aceptada || nueva) { s.aceptada = true; await this.#guardarSesion(); }
@@ -916,8 +931,10 @@ export class Emparejamiento {
     } else if (m.tipo === 'claves') {
       // Solo a quien lo pidió: ni se guarda ni se avisa (lectura, escritura y contenido son secretos).
       if (!this.#pedidos.has('claves')) return;
-      this.#gobierno = m.gobierno;
       this.#pidiendoClaves = null;
+      // Si el eje no es el derivado de gobierno, es como si no hubiera claves: keys_invalid (y nada se apunta).
+      if (!clavesCuadran(m)) { this.#responder('claves', fallo('keys_invalid', 'las claves de la cuenta no cuadran: el eje no es el SHA-256 de la pública de gobierno')); return; }
+      this.#gobierno = m.gobierno;
       this.#responder('claves', null, { eje: m.eje, gobierno: m.gobierno, n: m.n, lectura: m.lectura, escritura: m.escritura, contenido: m.contenido, next: m.next });
     } else if (m.tipo === 'firma_gobierno') {
       const clave = 'gobierno:' + m.id;
@@ -930,6 +947,14 @@ export class Emparejamiento {
     } else if (m.tipo === 'rechazo') {
       if (m.id === sesion && m.code === 'pairing_refused') {
         await this.#terminar('rechazado', 'pairing_refused', m.motivo, 'rechazada');
+        return;
+      }
+      // Una app de antes (v1) valida «hola» con claves exactas: al que llevaba «cuenta» responde message_invalid con el id
+      // de la sesión, sin revocarla. Se reenvía «hola» sin «cuenta», una sola vez, y la sesión sigue como v1: sin permiso.
+      if (m.id === sesion && m.code === 'message_invalid' && this.#epocaDeCuenta && !s.v1) {
+        Object.assign(s, { v1: true, hola: false, cuenta: null });
+        await this.#guardarSesion();
+        if (this.#sesion === s) this.#mandarHola();
         return;
       }
       // Lo pedido que no es una propuesta: «not_accepted» con el id de la sesión (aún no ha aceptado) lo responde todo; si

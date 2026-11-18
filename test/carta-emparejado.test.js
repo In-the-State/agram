@@ -6,6 +6,8 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import * as E from '../carta/emparejamiento.js';
 import { Eje, autoridad, persistencia, salida, ID_EPOCA_DE_CUENTA } from '../src/index.js';
 import * as Acc from '../src/acciones.js';
 import { verificarBip340 } from '../src/cripto.js';
@@ -858,5 +860,82 @@ test('la pantalla: aceptada, sin libro de la app y con permiso, se va derecho al
   assert.ok(h.includes('name="nombre"') && h.includes('name="idioma"'), 'nombre e idioma');
   assert.ok(h.indexOf('type="submit"') < h.indexOf('data-libro-invitado') && h.includes('data-arranque="restaurar"'), 'crear lo principal; invitación y restaurar, debajo');
   assert.ok(!htmlArranque({ modo: 'crear', campos: Q.camposDelAlta({ idioma: 'es' }) }).includes('data-crear-otros'), 'sin la app, como siempre');
-  for (const k of ['cuentaConLaApp', 'cuentaConLaAppAyuda', 'cuentaConLaAppOtros']) assert.ok(existe(k) && typeof TEXTOS.en[k] === 'string' && TEXTOS.en[k] !== TEXTOS.es[k], k);
+  for (const k of ['cuentaConLaApp', 'cuentaConLaAppAyuda', 'cuentaConLaAppOtros', 'cuentaSinClaves']) assert.ok(existe(k) && typeof TEXTOS.en[k] === 'string' && TEXTOS.en[k] !== TEXTOS.es[k], k);
+});
+
+// ---------- lo que pidió Core StateArk al contestar (18-11): la app v1, las claves que no cuadran y sin claves no hay génesis ----------
+
+test('app v1: rechaza el «hola» con «cuenta» (message_invalid, id de la sesión); la carta lo reenvía sin «cuenta» una sola vez y sigue como v1, sin permiso, y así lo recuerda', async () => {
+  await conAlmacen(async () => {
+    const w = await emparejadoConCuenta({ ...CON_CUENTA, app: 'v1' });
+    try {
+      const holas = w.app.recibidos.filter((m) => m.tipo === 'hola');
+      assert.equal(holas.length, 2);
+      assert.deepEqual([Boolean(holas[0].cuenta), 'cuenta' in holas[1]], [true, false], 'el segundo, sin «cuenta»');
+      assert.equal(w.carta.estado().cuenta, null, 'sin permiso de cuenta');
+      assert.equal(w.carta.estado().aceptada, true, 'la sesión sigue, no se revoca');
+      assert.equal(Object.values(w.almacen.volcado()).find((v) => v?.delegacion)?.v1, true, 'se guarda con la sesión');
+      // Recargar: sin otro «hola», y sigue sin permiso.
+      const otra = w.nueva();
+      try {
+        await otra.cargar();
+        assert.equal(otra.estado().cuenta, null);
+      } finally { otra.cerrar(); }
+      await hasta(() => true, w.app);
+      assert.equal(w.app.recibidos.filter((m) => m.tipo === 'hola').length, 2, 'recargar no manda otro «hola»');
+      // Crear: el camino de antes, sin permiso: por id, sin eje ni next y sin pedir claves.
+      const { r, deCuenta } = await crearConLaApp(w);
+      assert.deepEqual(deCuenta, { epoca: { base: ID_EPOCA_DE_CUENTA, cambios: [] } });
+      assert.deepEqual(Object.keys(r.eje.obtener(r.eje.genesisId).contexto).sort(), ['claves', 'epoca', 'genesis']);
+      assert.ok(!w.app.recibidos.some((m) => m.tipo === 'pedir_claves'));
+    } finally { w.cerrar(); }
+  });
+  // Una sola vez: a una app que rechaza todo «hola», la carta no insiste.
+  const terca = mundo({ modo: { ...CON_CUENTA, app: 'siempre_invalido' }, epocaDeCuenta: ID_EPOCA_DE_CUENTA });
+  try {
+    await terca.carta.emparejar(V.qr.texto);
+    await hasta(() => terca.app.recibidos.filter((m) => m.tipo === 'hola').length === 2, terca.app, 'el reenvío');
+    for (let i = 0; i < 20; i++) { await terca.app.atender(); await new Promise((ok) => setImmediate(ok)); }
+    assert.equal(terca.app.recibidos.filter((m) => m.tipo === 'hola').length, 2, 'dos «hola» y no más');
+    assert.equal(terca.carta.estado().aceptada, false);
+  } finally { terca.cerrar(); }
+});
+
+test('claves: el eje ha de ser el SHA-256 de los 32 bytes de la pública de gobierno (no del texto hex); si no cuadra, keys_invalid, como si no hubiera claves', async () => {
+  assert.equal(E.clavesCuadran(CLAVES_DE_PRUEBA), true);
+  assert.equal(E.clavesCuadran({ ...CLAVES_DE_PRUEBA, eje: 'e1'.repeat(32) }), false);
+  assert.equal(E.clavesCuadran({ ...CLAVES_DE_PRUEBA, next: 'ab' }), false);
+  assert.equal(E.clavesCuadran({ ...CLAVES_DE_PRUEBA, gobierno: 'ff'.repeat(32) }), false, 'una pública que no es un punto');
+  for (const claves of ['eje_falso', 'eje_del_texto']) {
+    const w = await emparejadoConCuenta({ ...CON_CUENTA, claves });
+    try {
+      assert.equal(await codeDe(conLaApp(w.carta.pedirClaves({ publica: APP }), w.app)), 'keys_invalid', claves);
+    } finally { w.cerrar(); }
+  }
+});
+
+test('con permiso y sin claves (no cuadran, rechazo o sin respuesta) no hay génesis de cuenta: no se propone nada y la carta lo dice en llano, en el mismo formulario', async () => {
+  await conAlmacen(async () => {
+    for (const claves of ['eje_falso', 'rechazar', 'callar']) {
+      const w = await emparejadoConCuenta({ ...CON_CUENTA, claves });
+      try {
+        const p = G.genesisDeCuenta(w.carta, { epoca: ID_EPOCA_DE_CUENTA, reloj: w.reloj });
+        p.catch(() => {});
+        if (claves === 'callar') {
+          await hasta(() => w.app.recibidos.some((m) => m.tipo === 'pedir_claves'), w.app);
+          w.temporizador.disparar(); // pasan los 60 s
+        }
+        const e = await conLaApp(p.then(() => null, (x) => x), w.app);
+        assert.equal(e?.sinClavesDeCuenta, { eje_falso: 'keys_invalid', rechazar: 'unknown_account', callar: 'no_answer' }[claves], claves);
+        assert.ok(!w.app.recibidos.some((m) => m.tipo === 'propuesta'), claves + ': ningún génesis propuesto');
+        assert.deepEqual(Q.cuentas(), [], claves + ': nada guardado');
+      } finally { w.cerrar(); }
+    }
+  });
+  // La carta (app.js, crear): ese error se dice con su frase y el formulario queda (no se toca estado.arranque).
+  const app = readFileSync('carta/app.js', 'utf8');
+  const crear = app.slice(app.indexOf('async crear(form) {'), app.indexOf('async restaurar(form) {'));
+  assert.ok(crear.includes("sinClaves ? t('cuentaSinClaves')"));
+  assert.ok(!crear.slice(crear.indexOf('} catch (e) {')).includes('estado.arranque ='), 'el formulario «Tu cuenta, con la app» sigue para reintentar');
+  assert.match(t('cuentaSinClaves'), /actualiza la app o vuelve a emparejar/i);
 });

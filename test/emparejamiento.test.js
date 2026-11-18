@@ -660,6 +660,11 @@ test('libro de cuenta (Carril F): las formas exactas de hola y emparejada con «
   no(m('gobierno', { publica: H }));
   vale(m('firma_gobierno', { id: H, firma: 'cd'.repeat(64) }));
   no(m('firma_gobierno', { id: H, firma: H }));
+  // Las claves cuadran si el eje es el SHA-256 de los 32 bytes de gobierno (calculado aquí aparte, con node:crypto).
+  const gobierno = CUENTA;
+  const eje = createHash('sha256').update(Buffer.from(gobierno, 'hex')).digest('hex');
+  assert.equal(E.clavesCuadran({ ...claves, gobierno, eje }), true);
+  assert.equal(E.clavesCuadran({ ...claves, gobierno, eje: createHash('sha256').update(gobierno).digest('hex') }), false, 'no el del texto hex');
   // La carta solo anuncia una época que es un id.
   assert.throws(() => new E.Emparejamiento({ almacen: E.almacenEnMemoria(), epocaDeCuenta: 'no' }), /época de cuenta/);
 });

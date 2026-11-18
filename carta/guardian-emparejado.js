@@ -182,8 +182,9 @@ export function permisoDeCuenta(e, { epoca, reloj = () => Date.now() } = {}) {
  * registro. Con el permiso vivo (permisoDeCuenta), pide las claves a la app y el contexto del génesis lleva `eje` y
  * `next`, los que dio; lo demás de «claves» (lectura, escritura y contenido: secretos) se suelta aquí, sin guardarlo: este
  * carril no lo usa. Sin permiso (una app que no lo da, o caducado) no se pide nada y el génesis va sin ellos: la app
- * sacará su diálogo, la regla de siempre. Si pedir las claves falla, igual, y `sinClaves` dice su code.
- * → { epoca: { base, cambios: [] }, contexto?, sinClaves? }, o null sin época de cuenta (el génesis nace como antes).
+ * sacará su diálogo, la regla de siempre. Con permiso y SIN claves (no responde, rechaza o no cuadran: Core StateArk,
+ * 18-11) no hay génesis de cuenta: lanza un error con `sinClavesDeCuenta` (su code) y la carta lo dice en llano.
+ * → { epoca: { base, cambios: [] }, contexto? }, o null sin época de cuenta (el génesis nace como antes).
  */
 export async function genesisDeCuenta(emparejamiento, { epoca, reloj = () => Date.now() } = {}) {
   if (typeof epoca !== 'string' || !/^[0-9a-f]{64}$/.test(epoca)) return null;
@@ -195,7 +196,8 @@ export async function genesisDeCuenta(emparejamiento, { epoca, reloj = () => Dat
     const { eje, next } = await emparejamiento.pedirClaves({ publica: e.app });
     return { ...deCuenta, contexto: { eje, next } };
   } catch (err) {
-    return { ...deCuenta, sinClaves: typeof err?.code === 'string' ? err.code : 'no_answer' };
+    const code = typeof err?.code === 'string' ? err.code : 'no_answer';
+    throw Object.assign(new Error('la app no ha dado las claves de la cuenta: ' + code), { sinClavesDeCuenta: code });
   }
 }
 

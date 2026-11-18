@@ -3101,10 +3101,11 @@ const manejadores = {
       const conGuardian = guardian && !(mio && mio.guardian !== true && guardian === emparejado.adaptador);
       // Emparejada con la app (A25), el génesis lo firma la app (Carril F): nace con la época de cuenta POR SU ID, un solo
       // registro, y con el permiso de «emparejada» vivo lleva `eje` y `next` de la app, que lo firma sin segundo diálogo.
-      // Sin permiso (app vieja o caducado), igual sin ellos: la app saca su diálogo. Un libro nuevo con mi clave no lo gasta.
+      // Sin permiso (app vieja o caducado), igual sin ellos: la app saca su diálogo. Con permiso y sin claves, no se crea
+      // (genesisDeCuenta lanza con `sinClavesDeCuenta`): se dice abajo y el formulario queda para reintentar.
+      // Un libro nuevo con mi clave no gasta el permiso.
       const porLaApp = Boolean(guardian && emparejado.adaptador && guardian === emparejado.adaptador);
       const deCuenta = porLaApp ? await genesisDeCuenta(mio ? null : emparejado.emparejamiento, { epoca: ID_EPOCA_DE_CUENTA }) : null;
-      if (deCuenta?.sinClaves) console.error('emparejamiento (claves de la cuenta):', deCuenta.sinClaves);
       const conEpoca = porLaApp ? (deCuenta ? { epoca: deCuenta.epoca, ...(deCuenta.contexto ? { contexto: deCuenta.contexto } : {}) } : {}) : { epoca: EPOCA_DE_CUENTA_DATOS };
       const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...conEpoca, ...(conGuardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
       const guardada = await cuentas.guardarCuenta(r);
@@ -3124,7 +3125,9 @@ const manejadores = {
       // Camino B: lo que rechaza el guardián, en llano (lo escrito sigue en el formulario: ar.valores); lo demás, tal cual.
       const delGuardian = guardian && codigoDe(e) ? claveDelError(e) : null;
       if (delGuardian === 'guardianFallo') console.error('guardián:', String(e?.message ?? e));
-      ar.motivos = [{ mensaje: delGuardian ? t(delGuardian) : String(e?.message ?? e) }];
+      const sinClaves = typeof e?.sinClavesDeCuenta === 'string';
+      if (sinClaves) console.error('emparejamiento (claves de la cuenta):', e.sinClavesDeCuenta);
+      ar.motivos = [{ mensaje: sinClaves ? t('cuentaSinClaves') : delGuardian ? t(delGuardian) : String(e?.message ?? e) }];
       await pintar();
     }
   },
