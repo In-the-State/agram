@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluar, evaluarRegla, evaluarEscritura, POR_LIMITE, LIMITES, NADIE, DESTINOS_DE_PUT, VERIFICACION, COSTE_FIRMA, queMueve } from '../src/bqlm.js';
+import { evaluar, evaluarRegla, evaluarEscritura, evaluarPlantilla, leerRegla, leerFormula, Presupuesto, aplanar, POR_LIMITE, LIMITES, NADIE, DESTINOS_DE_PUT, VERIFICACION, COSTE_FIRMA, queMueve } from '../src/bqlm.js';
 import { readFileSync } from 'node:fs';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
@@ -281,4 +281,137 @@ test('SEG-20 la regla «sealed» no acepta un anclaje Taproot manipulado: otra c
     assert.deepEqual(sealed(ev.id).valor, [false], que);
     assert.equal(verificadoDe(eje, ev.id).sello, false, que);
   }
+});
+
+// ---------- §15 (Core AGRAM 18-11): apply, follow, keep, group, row, with y take no abren puertas ----------
+
+/** Fórmulas guardadas en un payload, leído como `epoch`: una cadena de nueve que se aplican una dentro de otra, una que se
+ * aplica a sí misma, dos que se aplican la una a la otra y unas que mueven o colocan. */
+const GUARDADAS = [
+  ['=it'], // 0
+  ['=apply(first epoch.0, it) + 1'], // 1
+  ['=apply(first epoch.1, it) + 1'], // 2
+  ['=apply(first epoch.2, it) + 1'], // 3
+  ['=apply(first epoch.3, it) + 1'], // 4
+  ['=apply(first epoch.4, it) + 1', '=apply(last epoch.5, it)'], // 5: la 5.0 sigue la cadena; la 5.1 se aplica a sí misma
+  ['=apply(first epoch.5, it) + 1', '=apply(last epoch.7, it)'], // 6: la 6.1 aplica la 7.1…
+  ['=apply(first epoch.6, it) + 1', '=apply(last epoch.6, it)'], // 7: …y la 7.1 aplica la 6.1
+  ['=apply(first epoch.7, it) + 1', '=mint 1 T.1 to me', '=1 = 2 and burn 1 T.1 from me', '=put 1 at me.2.1.("x")'], // 8: y tres que mueven o colocan
+  ['=apply(first epoch.8, it) + 1', '=(1 with 2) keep it2 > 1', 'hola', '==it'], // 9: la cadena llega a diez; un keep; dos textos que no son fórmulas
+];
+const enGuardadas = new ContextoEje(null, { epoch: GUARDADAS });
+const lee = (src, opciones = {}) => evaluar(src, enGuardadas, opciones);
+const porLimiteEn = (r, que) => {
+  assert.equal(r.estado, 'PENDIENTE', que + ': ' + r.estado + ' ' + (r.texto ?? r.motivo));
+  assert.equal(r.subtipo, POR_LIMITE, que + ': ' + r.motivo);
+};
+
+test('SEG-21 apply: la bomba de recursión acaba; una fórmula que se aplica a sí misma (directa o por otra) es ERROR; el tope de anidamiento es PENDIENTE POR LÍMITE', () => {
+  assert.deepEqual(lee('apply(first epoch.7, 0)').valor, [7], 'ocho, una dentro de otra, caben');
+  porLimiteEn(lee('apply(first epoch.9, 0)'), 'nueve no');
+  assert.match(lee('apply(first epoch.9, 0)').motivo, /apply anidado más de 8 niveles/);
+  assert.deepEqual(lee('apply(first epoch.9, 0)', { limites: { aplicacion: 10 } }).valor, [9], 'el tope se cambia con opciones.limites.aplicacion');
+  porLimiteEn(lee('apply(first epoch.3, 0)', { limites: { aplicacion: 2 } }), 'y se baja');
+  const a = lee('apply(last epoch.5, 0)');
+  assert.equal(a.estado, 'ERROR');
+  assert.match(a.motivo, /se aplica a sí misma \(ciclo\)/);
+  const b = lee('apply(last epoch.6, 0)');
+  assert.equal(b.estado, 'ERROR', 'la 6.1 aplica la 7.1, que aplica la 6.1');
+  assert.match(b.motivo, /se aplica a sí misma/);
+  // La misma fórmula una al lado de otra (no una dentro de otra) no es un ciclo.
+  assert.deepEqual(lee('apply(first epoch.1, 1 with 2) with apply(first epoch.1, 3)').valor, [2, 3, 4]);
+});
+
+test('SEG-22 apply: una fórmula guardada nunca mueve ni coloca, ni en una plantilla; un texto que no es fórmula no se evalúa', () => {
+  for (const k of [1, 2]) {
+    for (const opciones of [{}, { mover: true }, { escribir: true }]) {
+      const r = lee('apply(nth ' + k + ' epoch.8, 0)', opciones);
+      assert.equal(r.estado, 'ERROR', k + ' ' + JSON.stringify(opciones));
+      assert.match(r.motivo, /una fórmula aplicada nunca mueve ni escribe/);
+    }
+  }
+  // El verbo detrás de un and que da falso tampoco: se mira el árbol entero de la fórmula aplicada.
+  assert.match(lee('apply(nth 2 epoch.8, 0)').motivo, /lleva burn/);
+  assert.match(lee('apply(nth 3 epoch.8, 0)', { escribir: true }).motivo, /lleva put/);
+  // En una plantilla de transacción, que sí mueve, la fórmula aplicada sigue sin mover.
+  const p = evaluarPlantilla(['=apply(nth 1 epoch.8, it)'], enGuardadas, { sujeto: 0 });
+  assert.equal(p.estado, 'ERROR');
+  assert.deepEqual(p.movimientos, []);
+  for (const k of [2, 3]) {
+    const r = lee('apply(nth ' + k + ' epoch.9, 0)');
+    assert.equal(r.estado, 'ERROR');
+    assert.match(r.motivo, /no es fórmula no se evalúa/);
+  }
+  assert.match(lee('apply(1, 0)').motivo, /aplica una fórmula/);
+});
+
+test('SEG-23 apply comparte los pasos y el presupuesto de quien la llama: una lista gigante dentro de una fórmula aplicada se corta igual', () => {
+  const dentro = '"=count (1 follow (it2 + 1 where it3 <= 3000))"';
+  assert.deepEqual(lee('apply(' + dentro + ', 1)').valor, [3000]);
+  porLimiteEn(lee('apply(' + dentro + ', 1 with 2 with 3 with 4)'), 'cuatro veces no caben en un presupuesto');
+  const presupuesto = new Presupuesto();
+  lee('apply(' + dentro + ', 1)', { presupuesto });
+  assert.ok(presupuesto.usados >= 3000, 'lo de dentro se cobra al presupuesto de fuera: ' + presupuesto.usados);
+  porLimiteEn(lee('apply("=it + 1", 1 with 2 with 3 with 4 with 5)', { limites: { pasos: 5 } }), 'y a los pasos');
+});
+
+test('SEG-24 listas gigantes: follow, with, row, group y take se cobran al presupuesto; take no salva lo que ya se gastó', () => {
+  const mil = (n) => '(1 follow (it + 1 where it2 <= ' + n + '))';
+  porLimiteEn(lee('take 5 (1 follow it + 1)'), 'take no corta un follow sin fin');
+  porLimiteEn(lee('count (' + mil(3000) + ' with ' + mil(3000) + ')'), 'with');
+  porLimiteEn(lee('count row(' + mil(3000) + ', ' + mil(3000) + ')'), 'row');
+  porLimiteEn(lee('count (' + mil(6000) + ' group it)'), 'group: un ocupante por grupo, encima de los del follow');
+  assert.deepEqual(lee('count (' + mil(3000) + ' group it)').valor, [3000]);
+});
+
+test('SEG-25 follow: una relación en ciclo acaba sin repetir; una que fabrica valores nuevos sin fin acaba en PENDIENTE POR LÍMITE, no se cuelga', async () => {
+  const eje = await Eje.genesis({ demostracion: true, identidad: 'g', t: '2026-11-08T10:00:00Z', foco: 'raíz' });
+  await entrarPorInvitacion(eje, { por: 'g', quien: 'ana', t: '2026-11-08T10:00:00Z', da: [] });
+  const c = new ContextoEje(eje, { epoch: EPOCA_0_BTML });
+  // up y down, juntos, son una relación en ciclo: el padre de mi hijo soy yo.
+  const r = evaluar('it follow (up it2 with down it2)', c, { sujeto: eje.genesisId });
+  assert.equal(r.estado, 'RESUELTO', r.motivo);
+  const ids = r.valor.map((o) => aplanar(o, c));
+  assert.equal(new Set(ids).size, ids.length, 'sin repetir');
+  assert.deepEqual(new Set(ids), new Set(evaluar('under it', c, { sujeto: eje.genesisId }).valor.map((o) => aplanar(o, c))), 'todo el árbol, una vez');
+  // Valores nuevos sin fin: números, textos y bytes.
+  porLimiteEn(lee('1 follow it + 1'), 'números');
+  porLimiteEn(lee('"a" follow hex(sha256(utf8(it)))'), 'textos');
+  porLimiteEn(lee('1 follow (it * 2 with it * 2 + 1)'), 'una bifurcación sin fin');
+  porLimiteEn(lee('1 follow it + 1', { limites: { pasos: 50 } }), 'o se acaban antes los pasos');
+});
+
+test('SEG-26 keep: solo en una lectura para la pantalla (opciones.lectura); en una regla, una plantilla o una regla que escribe es ERROR aunque no se evalúe', () => {
+  const regla = (dos, cuatro = []) => [['regla de prueba'], [], [dos], [], cuatro, [], [], [], [], ['no se cumple']];
+  const keep = '=count ((1 with 2) keep it > 1) = 1';
+  const muerto = '=1 = 2 and count ((1 with 2) keep it > 1) = 1';
+  assert.deepEqual(lee(keep, { lectura: true }).valor, [true]);
+  for (const src of [keep, muerto]) {
+    for (const opciones of [{}, { sujeto: 0 }, { lectura: true, mover: true }, { lectura: true, escribir: true }]) {
+      const r = lee(src, opciones);
+      assert.equal(r.estado, 'ERROR', src + ' ' + JSON.stringify(opciones));
+      assert.match(r.motivo, /keep: solo en una lectura/);
+    }
+    const c = evaluarRegla(regla(src), enGuardadas, { lectura: true });
+    assert.equal(c.pasa, false);
+    assert.equal(c.estado, 'ERROR', 'una condición no la acepta aunque se le pase lectura');
+    assert.equal(evaluarEscritura(regla(src, ['put']), enGuardadas, { lectura: true }).estado, 'ERROR');
+    assert.equal(evaluarPlantilla([src], enGuardadas, { sujeto: 0, lectura: true }).estado, 'ERROR');
+    assert.equal(leerRegla(regla(src, ['read']), 0, enGuardadas).estado, 'ERROR', 'una lectura B5 alimenta reglas: no la pone');
+    assert.equal(leerFormula(src, 0, enGuardadas).estado, 'ERROR', 'una fórmula del payload tampoco');
+  }
+  // Dentro de una fórmula aplicada, igual: solo en una lectura.
+  assert.match(lee('apply(nth 1 epoch.9, 0)').motivo, /keep: solo en una lectura/);
+  assert.deepEqual(lee('apply(nth 1 epoch.9, 0)', { lectura: true }).valor, [2]);
+});
+
+test('SEG-27 keep no se traga un límite de cálculo: presupuesto, pasos, el tope de apply o un follow sin fin paran toda la lectura', () => {
+  const L = { lectura: true };
+  porLimiteEn(lee('(1 with 2) keep count (it follow it2 + 1) > 0', L), 'un follow sin fin');
+  porLimiteEn(lee('(1 with 2) keep apply(first epoch.9, it) > 0', L), 'el tope de apply');
+  porLimiteEn(lee('(1 with 2 with 3) keep it + 1 > 0', { ...L, limites: { pasos: 4 } }), 'los pasos');
+  porLimiteEn(lee('(1 with 2) keep count (1 follow (it2 + 1 where it3 <= 6000)) > 0', L), 'el presupuesto');
+  // Lo que no es un límite sí se cae: el ciclo de apply es ERROR, la posición vacía PENDIENTE.
+  assert.deepEqual(lee('(1 with 2) keep apply(last epoch.5, it) > 0', L).valor, []);
+  assert.deepEqual(lee('(1 with 2) keep it + epoch.9.9 > 0', L).valor, []);
 });

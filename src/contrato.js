@@ -1238,7 +1238,8 @@ function aplicarLectura(eje, lectura, nodo, ctx, me, opciones) {
   if (!lectura) return [];
   const fuera = [];
   lectura.formulas.forEach((f, formula) => {
-    const v = vale(f, ctx, { sujeto: nodo });
+    // La lectura de un PV es para la pantalla: la única que puede usar keep (docs/BQLM.md §15).
+    const v = vale(f, ctx, { sujeto: nodo, lectura: true });
     if (v) for (const o of v) {
       const x = plano(o, ctx);
       if (x === undefined || x === null || typeof x === 'boolean') continue;

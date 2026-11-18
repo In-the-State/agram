@@ -45,7 +45,24 @@ curl -X POST https://<ref>.supabase.co/functions/v1/eventos/ejes \
 
 La clave de lectura se devuelve **una sola vez**: el servidor guarda solo su hash SHA-256. Se guarda en `InTheState/private/agram/` y se da a cada dispositivo de VG (la carta la guarda en `localStorage` por cuenta, `agram.sync.<alta>`; `docs/CONTRATO.md` §15.8). Si se pierde, se crea otro eje y se vuelven a subir los eventos (son los mismos: el servidor es idempotente por id).
 
-La URL que va en la configuración de la carta (`sync url`) es la base de la función: `https://<ref>.supabase.co/functions/v1`; el nombre del eje (`sync ledger`), `vg`. Las rutas cuelgan de ahí: `POST …/functions/v1/eventos`, `GET …/functions/v1/eventos?eje=vg&desde=0`, `POST …/functions/v1/eventos/ejes`.
+La URL que va en la configuración de la carta (`sync url`) es la base de la función: `https://<ref>.supabase.co/functions/v1`; el nombre del eje (`sync ledger`), `vg`. Las rutas cuelgan de ahí: `POST …/functions/v1/eventos`, `POST …/functions/v1/eventos/tanda`, `GET …/functions/v1/eventos?eje=vg&desde=0`, `POST …/functions/v1/eventos/ejes`.
+
+## La tanda: varios registros, todos o ninguno (CONTRATO_TANDA, 18-11)
+
+Lo que se compone en la bandeja se lanza de una vez (`agram-equipo/CONTRATO_TANDA.md`, con sus «Precisiones tras las tres entregas»). Cada miembro lleva en su contexto firmado la marca `contexto.tanda = { n, de, anterior }`. La ruta es la misma en los tres servidores (la de `eventos/api.js`):
+
+```
+POST …/eventos/tanda   { eje, eventos: [e1, …, em] }   (las mismas cabeceras y clave de lectura que POST /eventos)
+→ 201 { tanda, eventos: [{ id, orden, recibido }] }      tanda = id de e1; órdenes consecutivos
+→ 200 lo mismo y duplicado: true                         sus m ids ya estaban, seguidos y en ese orden
+→ fallo: { error, indice, id }                            indice desde 0; null si es de la petición o de la lista entera
+```
+
+- **En este orden y sin guardar nada hasta el final:** el cuerpo entero (1 MiB, `limiteTanda`; 413 con `null`) y la clave (401); la marca (400: de 2 a 32 miembros, `de` igual a los que llegan, `n` su sitio, `anterior` el id del de antes y nunca en el 1, sin más claves, **un solo autor**); cada miembro dentro de 256 KiB (`limiteCuerpo`; 413 con su índice); los duplicados, por id (200, o 409 con el primer miembro que ya estaba: una tanda recompuesta con miembros ya subidos); la forma de cada miembro en orden viendo los anteriores (id, firma, alta: **el alta ya guardada gana**, la de un miembro anterior solo cuenta para un autor sin alta; «eje vacío» solo para el miembro 1, que puede ser el génesis); y que caben `de` escrituras en el minuto (429 con `null`). Una tanda rechazada o duplicada no gasta escrituras; el suelto sigue como hoy.
+- **Un miembro nunca entra suelto:** `POST /eventos` con `contexto.tanda` da 400, y además ningún `insertar` de ningún almacén lo guarda (en Supabase, también el disparador `eventos_tanda_solo_entera`). Un camino parecido (`…/eventos/tandaX`, `…/eventos/tanda/algo`, `…/Tanda`, `/tanda`) da 404.
+- **Atómica:** `insertarTanda` en memoria sin esperas entre comprobar y escribir; en Supabase la función SQL `insertar_tanda` (`migraciones/0003_tanda.sql`), una transacción con la tabla bloqueada contra otras inserciones; en la simulación de AARPIA, el relé guarda la tanda y sus recibos de una vez (`publicarVarios`) y, con autoridad, la juzga entera el núcleo (`eje.anadirTanda`; 422 y un solo 7703 si un miembro no pasa).
+- `GET /eventos` no cambia: una página puede cortar una tanda; el cliente espera al resto.
+- Pruebas: `test/servidor-tanda.test.js`. Las de caja negra de Core StateArk (`InTheState/stateark/pruebas-tanda/`) se pasan contra el servidor de prueba arrancado en un puerto libre.
 
 ## Un eje con su época (VG, 14-11, #107)
 

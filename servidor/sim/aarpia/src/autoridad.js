@@ -66,38 +66,58 @@ export class Autoridad {
   }
 
   /**
-   * Juzga y aplica una tanda entera (CONTRATO_TANDA de AGRAM), todos o ninguno, con eje.anadirTanda del núcleo: valida en
-   * orden, cada miembro viendo los anteriores, y si uno falla no toca el libro. → { ok: true } o { ok: false, indice,
-   * reason, sinTandas? }. Con un núcleo sin tandas, no entra ninguna (sinTandas). Traído de la rama `tanda` de
-   * aarpia-transporte (1ba105c), sin el código de límite, que esta copia aún no tiene.
+   * Juzga y aplica una tanda entera (CONTRATO_TANDA de AGRAM), todos o ninguno, con el núcleo de verdad: eje.anadirTanda
+   * valida en orden, cada miembro viendo los anteriores, y si uno falla no toca el libro. En un eje que la autoridad aún
+   * no tiene, el génesis es el miembro 1 y la tanda que abre entra con Eje.desde, igual de entera. → { ok: true } o
+   * { ok: false, indice (desde 0; null si falla la lista entera), reason, sinTandas? }. Con un núcleo sin anadirTanda
+   * (uno viejo) no entra ninguna (sinTandas: 501). Como la rama `tanda` de aarpia-transporte (1ba105c), sin el código de
+   * límite, que esta copia aún no tiene.
    */
   async aplicarTanda(nombre, eventos) {
-    let eje = this.ejes.get(nombre);
-    let resto = eventos;
-    let nuevo = null;
+    const textos = (motivos) => (motivos ?? []).map((m) => m?.texto ?? m?.mensaje ?? String(m));
+    const eje = this.ejes.get(nombre);
     if (!eje) {
-      // Eje vacío: el primero es el génesis (solo vale para el primero); el libro solo se guarda si entra la tanda entera.
-      try { nuevo = await Eje.desde([eventos[0]], { exigirFirmas: this.exigirFirmas }); } catch (e) { return { ok: false, indice: 0, reason: [String(e.message)] }; }
-      eje = nuevo;
-      resto = eventos.slice(1);
+      try {
+        this.ejes.set(nombre, await Eje.desde(eventos, { exigirFirmas: this.exigirFirmas }));
+        return { ok: true };
+      } catch (e) {
+        // Eje.desde no da el índice: el texto dice «el miembro N no pasa»; si no lo dice, es el génesis (el miembro 1).
+        const m = /miembro (\d+)/.exec(String(e?.message));
+        const indice = m && Number(m[1]) >= 1 && Number(m[1]) <= eventos.length ? Number(m[1]) - 1 : 0;
+        return { ok: false, indice, reason: e?.motivos ? textos(e.motivos) : [String(e?.message)] };
+      }
     }
-    if (typeof eje.anadirTanda !== 'function') return { ok: false, indice: 0, reason: ['el núcleo de esta puerta aún no trae tandas (eje.anadirTanda)'], sinTandas: true };
+    if (typeof eje.anadirTanda !== 'function') return { ok: false, indice: null, reason: ['el núcleo de esta puerta aún no trae tandas (eje.anadirTanda)'], sinTandas: true };
     let r;
-    try { r = await eje.anadirTanda(resto); } catch (e) { r = { indice: e?.indice ?? 0, motivos: e?.motivos ?? [String(e.message)] }; }
-    if (r && Number.isInteger(r.indice)) {
-      const motivos = (r.motivos ?? []).map((m) => m?.texto ?? m?.mensaje ?? String(m));
-      return { ok: false, indice: r.indice + (nuevo ? 1 : 0), reason: motivos };
+    try {
+      r = await eje.anadirTanda(eventos);
+    } catch (e) {
+      r = { ok: false, indice: e?.indice, motivos: e?.motivos ?? [String(e?.message)] };
     }
-    if (nuevo) this.ejes.set(nombre, nuevo);
-    return { ok: true };
+    if (r?.ok) return { ok: true };
+    return { ok: false, indice: Number.isInteger(r?.indice) ? r.indice : null, reason: textos(r?.motivos) };
   }
 
   /** Rehace el libro y los rechazos desde el archivo del relé (en orden de llegada), sin volver a juzgar. */
   async restaurar(eventosEnOrden) {
     const aceptados = juzgadosAceptados(eventosEnOrden); // solo lo que aceptó la autoridad (recibo con `nucleo`)
+    const tandas = new Map(); // eje → los miembros aceptados de la tanda en curso (en el archivo van seguidos: guardarVarios)
     for (const ev of eventosEnOrden) {
       const eje = ev.tags.find((t) => t[0] === 'h')?.[1];
-      if (ev.kind === KIND_EVENTO && aceptados.has(ev.id)) await this.aplicar(eje, JSON.parse(ev.content));
+      if (ev.kind === KIND_EVENTO && aceptados.has(ev.id)) {
+        const registro = JSON.parse(ev.content);
+        const marca = registro?.contexto?.tanda;
+        if (!marca) { await this.aplicar(eje, registro); continue; }
+        // Un miembro nunca se asienta suelto (el núcleo lo rechaza): la tanda se reúne entera y entra con anadirTanda.
+        const miembros = marca.n === 1 ? [] : tandas.get(eje) ?? [];
+        miembros.push(registro);
+        tandas.set(eje, miembros);
+        if (miembros.length === marca.de) {
+          tandas.delete(eje);
+          const r = await this.aplicarTanda(eje, miembros);
+          if (!r.ok) throw new Error('el libro guardado tiene una tanda aceptada que el núcleo ya no admite: ' + r.reason.join('; '));
+        }
+      }
       else if (ev.kind === KIND_RECHAZO) {
         const r = JSON.parse(ev.content);
         const evento = r.evento;
