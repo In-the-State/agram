@@ -434,7 +434,10 @@ function legibleDe(eje, o, tipo, opciones) {
 }
 
 /** ¿Lleva `x` una marca de BTML o de fórmula en crudo («[[ref menú:1]…», «=…»)? Lo que se enseña nunca la lleva. */
-const conMarcas = (x) => typeof x === 'string' && (/\[\[|\]\]|\[ref\b|\{ref\b/.test(x) || /^\s*=/.test(x));
+const conMarcas = (x) => typeof x === 'string' && (/\[\[|\]\]|\[ref\b|\{ref\b|\s=\s*\[/.test(x) || /^\s*=/.test(x));
+
+/** ¿Es `m` el ejemplo de la regla corta de la posición `pv` (el marcador que da el núcleo a un registro sin plantilla)? */
+const ejemploDeLaReglaCorta = (pv, m, opciones) => contrato.marcador(null, { payload: [] }, pv, opciones).includes(m);
 
 /**
  * Los nombres internos de la época (los de sus plantillas de transacción y de datos y los de sus reglas), de mayor a menor
@@ -820,9 +823,10 @@ function camposDe(eje, X, ctx) {
       pv,
       etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones),
       ayuda: contrato.ayuda(eje, X, pv, ctx.opciones),
-      // El marcador sin los ejemplos con marcas en crudo de la regla corta («compra 1 = [[ref menú:1]…») y cada uno como lo
-      // lee el núcleo en el idioma (el nombre de una acción, «register the node», por su traducción).
-      marcador: contrato.marcador(eje, X, pv, ctx.opciones).filter((m) => !conMarcas(m)).map((m) => (typeof m === 'string' ? legibleDe(eje, m, null, ctx.opciones).texto : m)),
+      // El marcador sin los ejemplos de la regla corta (lo que da el núcleo cuando la plantilla no declara uno: «compra 1 =
+      // [[ref menú:1]…», «situar(eje, compra)…»; notas de quien escribió la época, no una pista para escribir, y solo en
+      // español) ni otras marcas en crudo, y cada uno como lo lee el núcleo en el idioma (una acción, por su traducción).
+      marcador: contrato.marcador(eje, X, pv, ctx.opciones).filter((m) => !conMarcas(m) && !ejemploDeLaReglaCorta(pv, m, ctx.opciones)).map((m) => (typeof m === 'string' ? legibleDe(eje, m, null, ctx.opciones).texto : m)),
       tipo,
       valor: o.ocupantes.length ? legibleDe(eje, o.ocupantes[0], tipo, ctx.opciones).texto : '',
       total: o.total,
