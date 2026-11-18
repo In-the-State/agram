@@ -1322,11 +1322,15 @@ html.mapped body{padding:0}
 /* La bandeja (A33; carta/bandeja-pantalla.js): la cuenta en el marco de la lente, siempre a la vista; la tira de lo
    compuesto bajo la cabecera de acciones de donde se compuso; la marca en la ficha de la acción; el 4; y el pie del
    formulario que va por la bandeja. */
-/* La cuenta no tapa nada en ningún ancho: en Mapped va en el marco, en el flujo, como los avisos (la escena se encoge);
+/* La cuenta no tapa nada en ningún ancho: en Mapped, en el anillo de la escena (abajo);
    en Sequenced, fija justo encima de la fila de los dígitos (4 + 32 + 4 px y su borde) y la columna le guarda su alto;
    con un formulario o un diálogo abierto (configuración, aro, sitio, puente, Core, un rosetón a pantalla completa) no se pinta. */
 .bandeja-cuenta{display:block;width:100%;min-height:36px;margin:4px 0;padding:4px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--bg);color:var(--fg);font-size:14px;font-weight:600;text-align:center}
 .bandeja-cuenta.no-entra{border-color:var(--warn);background:var(--warnbg);color:var(--warn)}
+/* En el escritorio (Mapped) no empuja el marco: va en el anillo de 30 px de la escena (donde están los rosetones), abajo a la
+   derecha entre el rosetón del 5 (centro + 45 px) y el del 4 (la esquina, 28 px): 26 px de alto, a 9 px del borde de abajo
+   (la escena deja 8 px), y lo que no quepa se corta con puntos suspensivos. Supuesto, por mirar en pantalla. */
+.carta-matriz>.bandeja-cuenta{position:fixed;z-index:6;right:48px;bottom:calc(var(--emparejar-alto,0px) + 9px);width:auto;max-width:calc(50vw - 120px);height:26px;min-height:0;margin:0;padding:2px 12px;font-size:12px;line-height:18px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;box-sizing:border-box}
 .carta-apilada>.bandeja-cuenta{position:fixed;z-index:8;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));width:auto;margin:0;bottom:calc(var(--emparejar-alto,0px) + 41px + env(safe-area-inset-bottom,0px) + 4px)}
 .carta-apilada:not(:has(>.digitos))>.bandeja-cuenta{bottom:calc(var(--emparejar-alto,0px) + env(safe-area-inset-bottom,0px) + 4px)}
 .carta-apilada:has(>.bandeja-cuenta){padding-bottom:calc(48px + 44px + env(safe-area-inset-bottom,0px))}

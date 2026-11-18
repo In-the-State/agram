@@ -428,8 +428,17 @@ test('en una fila cerrada (Sequenced), la marca de la bandeja va dentro de la ca
 
 test('en el escritorio la cuenta va en el marco, fuera de la escena donde están los rosetones; con la configuración o cualquier diálogo abierto no se pinta', async () => {
   const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
-  const fijas = [...css.matchAll(/([^{}]*\.bandeja-cuenta[^{}]*)\{([^}]*)\}/g)].filter((m) => /position:fixed/.test(m[2])).map((m) => m[1].trim());
-  assert.deepEqual(fijas, ['.carta-apilada>.bandeja-cuenta'], 'solo es fija en Sequenced; en el escritorio, en el flujo');
+  const fijas = [...css.matchAll(/([^{}]*\.bandeja-cuenta[^{}]*)\{([^}]*)\}/g)].filter((m) => /position:fixed/.test(m[2])).map((m) => m[1].replace(/\/\*[^]*?\*\//g, '').trim());
+  assert.deepEqual(fijas, ['.carta-matriz>.bandeja-cuenta', '.carta-apilada>.bandeja-cuenta'], 'fija en los dos: en el escritorio no empuja el marco');
+  // En el escritorio, en el anillo de 30 px de la escena (el de los rosetones), abajo a la derecha, entre el 5 y el 4.
+  const matriz = css.slice(css.indexOf('.carta-matriz>.bandeja-cuenta{'), css.indexOf('}', css.indexOf('.carta-matriz>.bandeja-cuenta{')));
+  assert.match(matriz, /height:26px/, 'cabe en el anillo de 30 px');
+  assert.ok(matriz.includes('bottom:calc(var(--emparejar-alto,0px) + 9px)'), 'dentro del anillo: la escena deja 8 px abajo');
+  assert.ok(matriz.includes('right:48px'), 'a la izquierda del rosetón de la esquina (12 + 28 + 8)');
+  assert.ok(matriz.includes('max-width:calc(50vw - 120px)'), 'a la derecha del rosetón del 5');
+  assert.ok(matriz.includes('text-overflow:ellipsis'));
+  assert.ok(css.includes('.mapa-celdas{position:absolute;inset:30px}'), 'si cambia el anillo, cambia el sitio de la cuenta');
+  assert.ok(css.includes('.carta-matriz .escena{flex:1 1 auto;min-height:0;margin:6px 0 8px;'), 'ni si cambia el margen de abajo de la escena');
   const oculta = css.match(/\.carta:has\(([^)]*)\)>\.bandeja-cuenta\{display:none\}/);
   assert.ok(oculta, 'se esconde con un diálogo abierto');
   for (const fondo of ['.formulario-fondo', '.aro-fondo', '.sitio-fondo', '.puente-fondo', '.core-fondo', '.roseton-pantalla']) assert.ok(oculta[1].split(',').includes(fondo), fondo);
