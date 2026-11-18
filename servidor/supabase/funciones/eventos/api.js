@@ -18,8 +18,11 @@
 //                              entrar, el estado de siempre (400 forma y marca, 401, 403, 413, 429…) con { error, indice, id }
 //                              (el miembro que falla, desde 0; null si es de la petición o de la lista entera) y nada
 //                              guardado; 409 con el primer miembro que ya estaba si trae miembros ya subidos y otros no.
-//                              Un solo autor en todos los miembros. Topes: cada miembro 256 KB (413 con su índice), la
-//                              petición entera 1 MB (413 con null). Gasta m escrituras del minuto solo si pasa la forma.
+//                              Un solo autor en todos los miembros. Topes, con la MISMA medida que la prueba en seco del
+//                              núcleo (bytes UTF-8 del JSON canónico, bytesDeMiembro y bytesDeTanda de src/evento.js): cada
+//                              miembro 256 KiB (413 con su índice) y la lista de miembros 1 MiB (413 con null); el cuerpo
+//                              crudo se lee con MARGEN_ENVOLTORIO (64 KiB) de holgura sobre el tope de la lista, así
+//                              que un «cabe» en seco no acaba en 413 aquí. Gasta m escrituras del minuto solo si se guarda.
 //   GET  {url}/eventos?eje=…&desde=<orden>&cuantos=<≤500>
 //                              → { eventos: [{ orden, recibido, evento }], siguiente } con orden > desde, por llegada;
 //                              siguiente es el desde de la página siguiente, o null si no hay más.
@@ -39,10 +42,29 @@ import * as verificar from './verificar.js';
 
 /** Orígenes admitidos por CORS: la carta publicada y el desarrollo local. */
 export const ORIGENES = Object.freeze(['https://agram.ikisai.com', 'https://aarpia.ikisai.com', 'https://stateark.ikisai.com', 'https://beta.agram.ikisai.com', 'https://agram-beta.pages.dev', /^http:\/\/localhost(:\d+)?$/, /^http:\/\/127\.0\.0\.1(:\d+)?$/]);
-/** Tope del cuerpo de una petición, en bytes; en una tanda, el de cada miembro. */
+/**
+ * Tope del cuerpo de una petición, en bytes; en una tanda, el de cada miembro. Es TANDA_TOPE_POR_MIEMBRO de
+ * src/evento.js: esta función se despliega sola y no importa el núcleo, así que el número se repite aquí y
+ * test/servidor-tanda.test.js comprueba que son iguales.
+ */
 export const LIMITE_CUERPO = 256 * 1024;
-/** Tope del cuerpo entero de una petición de tanda (POST /eventos/tanda), en bytes (CONTRATO_TANDA, precisión 9). */
+/**
+ * Tope de la lista de miembros de una tanda (POST /eventos/tanda), en bytes, medida como el núcleo: el JSON canónico de
+ * la lista, sin el envoltorio (CONTRATO_TANDA, precisión 9). Es TANDA_TOPE_POR_PETICION de src/evento.js (la misma
+ * comprobación de igualdad en las pruebas).
+ */
 export const LIMITE_TANDA = 1024 * 1024;
+/**
+ * Lo que el cuerpo crudo de una tanda (POST /eventos/tanda) puede pesar además del tope de su lista, solo para no leer
+ * basura enorme: el envoltorio { "eje": <hasta 64>, "eventos": … } son como mucho 85 bytes y el resto es holgura para
+ * espacios. Lo que cuenta para el contrato es la medida del núcleo, después de leer (acordado con Core AARPIA, 18-11).
+ */
+export const MARGEN_ENVOLTORIO = 64 * 1024;
+
+/** Los bytes (UTF-8) del JSON canónico de x tal como se guarda (la medida de bytesDeMiembro y bytesDeTanda del núcleo). */
+function bytesCanonicos(x) {
+  return new TextEncoder().encode(verificar.canonico(x)).length;
+}
 /** Escrituras admitidas por eje y minuto. */
 export const ESCRITURAS_POR_MINUTO = 60;
 /** Tope de eventos por página. */
@@ -128,7 +150,7 @@ export const hashDeClave = (clave) => verificar.hash(clave);
  *   listar(eje, desde, cuantos) → [{ orden, recibido, cuerpo }] con orden > desde, por orden
  * `crearEjes` es { servicio, secreto }: lo que autoriza POST /ejes (cualquiera de los dos; ninguno, deshabilitado).
  */
-export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes = ORIGENES, limiteCuerpo = LIMITE_CUERPO, limiteTanda = LIMITE_TANDA, escriturasPorMinuto = ESCRITURAS_POR_MINUTO, ahora = () => new Date() }) {
+export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes = ORIGENES, limiteCuerpo = LIMITE_CUERPO, limiteMiembro = limiteCuerpo, limiteTanda = LIMITE_TANDA, escriturasPorMinuto = ESCRITURAS_POR_MINUTO, ahora = () => new Date() }) {
   const ventanas = new Map(); // eje → { minuto, n }: el contador simple en memoria de las escrituras
 
   const cors = (request) => {
@@ -252,8 +274,8 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
   async function subirTanda(request) {
     const falla = (estado, texto, indice = null, id = null) => json(request, estado, { error: texto, indice, id });
     const idDe = (ev) => (ev && typeof ev === 'object' && verificar.esHash(ev.id) ? ev.id : null);
-    const leido = await leerCuerpo(request, limiteTanda);
-    if (leido.error) return falla(leido.error, leido.error === 413 ? 'cuerpo demasiado grande (tope ' + limiteTanda + ' bytes, la petición de tanda entera)' : 'el cuerpo debe ser un objeto JSON { eje, eventos }');
+    const leido = await leerCuerpo(request, limiteTanda + MARGEN_ENVOLTORIO);
+    if (leido.error) return falla(leido.error, leido.error === 413 ? 'cuerpo demasiado grande (tope ' + limiteTanda + ' bytes de la lista, más ' + MARGEN_ENVOLTORIO + ' del envoltorio)' : 'el cuerpo debe ser un objeto JSON { eje, eventos }');
     const { eje: nombre, eventos } = leido.datos;
     const abierto = await abrirEje(request, nombre);
     if (abierto.respuesta) return falla(abierto.estado, abierto.texto);
@@ -261,10 +283,21 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
     const marca = comprobarMarcaDeTanda(eventos);
     if (marca) return falla(400, 'tanda mal marcada: ' + marca.error, marca.indice, marca.indice === null ? null : idDe(eventos[marca.indice]));
     const de = eventos.length;
-    // Cada miembro, dentro del tope de un registro suelto: si uno solo se pasa, 413 con su índice.
+    // Los topes, con la medida del núcleo (el JSON canónico de cada miembro tal como se guarda, y de la lista): cada
+    // miembro (413 con su índice) y la lista entera (413 con null).
+    const medidas = [];
     for (let k = 0; k < de; k++) {
-      if (new TextEncoder().encode(JSON.stringify(eventos[k])).length > limiteCuerpo) return falla(413, 'el miembro ' + (k + 1) + ' no cabe (tope ' + limiteCuerpo + ' bytes por registro)', k, idDe(eventos[k]));
+      let medida;
+      try {
+        medida = bytesCanonicos(verificar.normalizar(eventos[k]));
+      } catch {
+        return falla(400, 'el miembro ' + (k + 1) + ' no cabe en JSON', k, idDe(eventos[k]));
+      }
+      if (medida > limiteMiembro) return falla(413, 'el miembro ' + (k + 1) + ' no cabe: ' + medida + ' bytes (tope ' + limiteMiembro + ' por registro)', k, idDe(eventos[k]));
+      medidas.push(medida);
     }
+    const lista = 2 + (de - 1) + medidas.reduce((a, b) => a + b, 0); // [m1,m2,…]: corchetes y comas
+    if (lista > limiteTanda) return falla(413, 'la tanda no cabe: ' + lista + ' bytes (tope ' + limiteTanda + ' por petición)');
     // Reintentar sin duplicar: si la tanda entera ya estaba, sus órdenes (sin volver a comprobar nada, como POST /eventos).
     const yaEstaba = async () => {
       const previos = [];
