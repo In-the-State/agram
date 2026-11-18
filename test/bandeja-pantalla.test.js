@@ -232,3 +232,16 @@ test('la app: tocar un campo y una acción con archivo ya no escriben directo (s
   const archivos = readFileSync(new URL('../carta/archivos.js', import.meta.url), 'utf8');
   assert.doesNotMatch(archivos, /adjuntarConAccion|validarSinFirmar/);
 });
+
+test('la cuenta no tapa nada (repaso a 400 px): en Mapped va en el flujo del marco; en Sequenced, encima de los dígitos y con su alto guardado; con un formulario abierto no se pinta', () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const regla = (sel) => { const i = css.indexOf(sel + '{'); assert.ok(i >= 0, 'falta ' + sel); return css.slice(i, css.indexOf('}', i)); };
+  assert.doesNotMatch(regla('.bandeja-cuenta'), /position:fixed/, 'por defecto, en el flujo');
+  const apilada = regla('.carta-apilada>.bandeja-cuenta');
+  assert.match(apilada, /position:fixed/);
+  assert.match(apilada, /bottom:calc\(var\(--emparejar-alto,0px\) \+ 41px/, 'encima de la fila de los dígitos (4 + 32 + 4 px y su borde)');
+  assert.match(regla('.carta-apilada:has(>.bandeja-cuenta)'), /padding-bottom:calc\(48px \+ 44px/, 'la columna guarda su alto: no tapa lo último');
+  assert.match(regla('.carta:has(.formulario-fondo)>.bandeja-cuenta'), /display:none/);
+  const digito = regla('.digito');
+  assert.match(digito, /height:32px/, 'si cambia el alto de los dígitos, cambia también el sitio de la cuenta');
+});

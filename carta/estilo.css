@@ -1322,8 +1322,15 @@ html.mapped body{padding:0}
 /* La bandeja (A33; carta/bandeja-pantalla.js): la cuenta en el marco de la lente, siempre a la vista; la tira de lo
    compuesto bajo la cabecera de acciones de donde se compuso; la marca en la ficha de la acción; el 4; y el pie del
    formulario que va por la bandeja. */
-.bandeja-cuenta{position:fixed;right:max(12px,env(safe-area-inset-right,0px));bottom:max(12px,env(safe-area-inset-bottom,0px));z-index:15;min-height:40px;padding:6px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--bg);color:var(--fg);font-size:14px;font-weight:600;box-shadow:0 4px 14px rgba(0,0,0,.2)}
+/* La cuenta no tapa nada en ningún ancho: en Mapped va en el marco, en el flujo, como los avisos (la escena se encoge);
+   en Sequenced, fija justo encima de la fila de los dígitos (4 + 32 + 4 px y su borde) y la columna le guarda su alto;
+   con un formulario abierto no se pinta (el formulario dice ya lo de su entrada y nada puede tapar sus botones). */
+.bandeja-cuenta{display:block;width:100%;min-height:36px;margin:4px 0;padding:4px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--bg);color:var(--fg);font-size:14px;font-weight:600;text-align:center}
 .bandeja-cuenta.no-entra{border-color:var(--warn);background:var(--warnbg);color:var(--warn)}
+.carta-apilada>.bandeja-cuenta{position:fixed;z-index:8;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));width:auto;margin:0;bottom:calc(var(--emparejar-alto,0px) + 41px + env(safe-area-inset-bottom,0px) + 4px)}
+.carta-apilada:not(:has(>.digitos))>.bandeja-cuenta{bottom:calc(var(--emparejar-alto,0px) + env(safe-area-inset-bottom,0px) + 4px)}
+.carta-apilada:has(>.bandeja-cuenta){padding-bottom:calc(48px + 44px + env(safe-area-inset-bottom,0px))}
+.carta:has(.formulario-fondo)>.bandeja-cuenta{display:none}
 .pv-acciones>button.pendiente,.pv-acciones-desplegadas>button.pendiente{border-style:dashed;border-color:var(--accent)}
 .pv-acciones>button.pendiente::after,.pv-acciones-desplegadas>button.pendiente::after{content:" •";color:var(--accent)}
 .bandeja-tira{flex-basis:100%;list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px;min-width:0}
