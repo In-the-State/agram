@@ -64,6 +64,9 @@
 //   conClaves(leer)                        lo que devuelve leer() y las claves con que se leyó cada texto
 //   legible(eje, valor, tipo, { idioma })  un valor de una posición o un parámetro en texto legible, con sus partes
 //   ceroLegible(eje, X, { idioma })        el 0 de un registro escrito por plantilla, vuelto a componer en el idioma de quien lee
+//                                          (se reconoce por su forma, no recalculándolo: Core AGRAM 19-11)
+//   mensajeEnLlano(eje, plantilla, { candidata, X, me, idioma })  el mensaje de una candidata, con sus huecos legibles
+//   textoDeFila(eje, fila, { idioma })     el texto de una fila de lo que falta (X.4.9): el 0 de su registro, legible
 //   configuracionDeFormato(eje, yo)        mis preferencias de formato (fecha, números, editor de BTML): «format settings»
 //   desdeLegible(texto, tipo, { eje })     la inversa mínima para editar los tipos simples: { valor } o { motivo }
 //   opciones(eje, X, pv, { yo, idioma })   lo que se puede escribir en una posición, de los datos: [{ valor, texto }] (issue #5)
@@ -3966,7 +3969,15 @@ export function legible(eje, valor, tipo, { idioma = 'en', ...opciones } = {}) {
  * (legible a su vez) y lo vacío, «nadie» («legible nobody»). Si no (un 0 escrito a mano, un registro que no nombra
  * plantilla, una plantilla que ya no es la que lo escribió), su 0 tal cual. → { texto, plantilla, compuesto } o null si X
  * no es un registro del eje. Lo que el registro no guarda: el id (la versión) de la plantilla, solo su nombre; se usa la
- * plantilla de ese nombre de la época que se lee, y se comprueba con el canónico que sigue dando lo escrito.
+ * plantilla de ese nombre de la época que se lee.
+ *
+ * Cómo se reconoce lo escrito (Core AGRAM 19-11): por su FORMA, no volviendo a calcularlo. Lo escrito es el canónico con
+ * cada hueco relleno tal como estaba el libro AL ESCRIBIR, con it = el registro sobre el que se lanzó la acción, que el
+ * registro no guarda (no siempre es donde se ancla: «pay» ancla en el anuncio) y con lo que había entonces (un registro
+ * de la misma tanda aún no estaba: «… to ∅»). Releerlo con el libro de hoy no siempre da lo mismo, así que antes se
+ * quedaba en inglés. Ahora lo escrito vale si casa con el canónico (sus trozos fijos, en su orden; cada hueco, un texto
+ * cualquiera), y cada hueco se dice con lo que da hoy si hoy da lo mismo que se escribió; si no, con lo que se escribió
+ * (legible), salvo que entonces saliera vacío («∅») y hoy no.
  */
 export function ceroLegible(eje, X, { idioma = 'en', ...opciones } = {}) {
   opciones = conEpoca(eje, opciones);
@@ -3982,21 +3993,37 @@ export function ceroLegible(eje, X, { idioma = 'en', ...opciones } = {}) {
   const p = porNombre.get(nombre);
   const canonico = texto(ultima(p[9]));
   if (typeof canonico !== 'string') return tal;
+  // Lo escrito, por su forma: los trozos fijos del canónico en su orden y, en cada hueco, lo que se escribió.
+  const escrito = escritoDelCanonico(canonico, cero);
+  if (!escrito) return { ...tal, plantilla: nombre };
   // La candidata como la vio la plantilla al escribir el mensaje (acciones.transaccion): sin movimientos ni id, y sin su 0.
   const candidata = { autor: ev.autor, sobre: ev.sobre, en: ev.en, t: ev.t, movimientos: [], payload: [undefined, ...ev.payload.slice(1)] };
   const ctx = new ContextoEje(eje, { ev: candidata, epoch: epoca, me: ev.autor });
   const sujeto = typeof ev.sobre === 'string' && eje.obtener(ev.sobre) ? ev.sobre : ev.id;
-  if (rellenar(canonico, ctx, { sujeto }) !== cero) return { ...tal, plantilla: nombre };
+  return { texto: mensajeCompuesto(eje, nombre, canonico, ctx, sujeto, { ...opciones, idioma, epoca, escrito, ev: ev.id }), plantilla: nombre, compuesto: true };
+}
+
+/**
+ * El mensaje de una plantilla de transacción (su 9) compuesto en el idioma de quien lee (#83): el formato «template <nombre>
+ * message» de epoch.9.4 (o el canónico), sin el nombre de la plantilla delante, con cada hueco legible: un registro por su
+ * 0 legible (ceroLegible: si su 0 lo escribió otra plantilla, también en el idioma), una identidad por su 0, una serie por
+ * su nombre y lo vacío, «nadie». `ctx` y `sujeto` son el contexto y el it con que se rellena; `escrito` (de
+ * escritoDelCanonico), lo que se escribió en cada hueco, si se recompone un 0 ya escrito; `ev`, el id del registro que es
+ * la candidata (si lo tiene). Lo comparten ceroLegible (un 0 escrito) y mensajeEnLlano (el de una candidata).
+ */
+function mensajeCompuesto(eje, nombre, canonico, ctx, sujeto, { idioma = 'en', epoca, escrito = null, ev = null, ...opciones } = {}) {
   const profundidad = (opciones.profundidad ?? 0) + 1;
-  const prefijo = nombre + ': ';
   let formato = texto_(eje, CLAVE.mensaje(nombre), idioma, { original: canonico, epoca });
-  if (formato.startsWith(prefijo)) formato = formato.slice(prefijo.length);
+  // Sin el nombre de la plantilla delante (#83): el canónico, en inglés, o su traducción en el idioma.
+  const traducido = texto_(eje, CLAVE.plantilla(nombre), idioma, { original: nombre, epoca });
+  for (const prefijo of [nombre + ': ', traducido + ': ']) if (formato.startsWith(prefijo)) formato = formato.slice(prefijo.length);
   const nadie = texto_(eje, CLAVE.legible('nobody'), idioma, { original: 'nobody', epoca });
   const o = { ...opciones, epoca, idioma, profundidad };
   const deUno = (x) => {
     const deTexto = typeof x === 'string' && RE_ID.test(x) && eje.obtener(x);
     if (deTexto || (x && typeof x === 'object' && (x.k === 'reg' || x.k === 'ev'))) {
-      const id = deTexto ? x : x.k === 'ev' ? ev.id : x.id;
+      const id = deTexto ? x : x.k === 'ev' ? ev : x.id;
+      if (!id) return null;
       // Un registro sin 0 es «nadie», como lo vacío (#83: «nadie» en lugar de «∅»).
       return (profundidad < 3 ? ceroLegible(eje, id, o)?.texto : ceroDe(eje, id, { epoca })) ?? null;
     }
@@ -4004,7 +4031,15 @@ export function ceroLegible(eje, X, { idioma = 'en', ...opciones } = {}) {
     if (v === undefined || v === null) return null;
     return legible(eje, v, undefined, { idioma, epoca }).texto;
   };
+  const VACIO = '∅'; // como escribe bqlm.rellenar un hueco vacío (textoDe de una lista vacía)
   const hueco = (expr) => {
+    // Si hoy el hueco no da lo que se escribió, se dice lo escrito (legible): it no era el mismo, o el libro era otro. Salvo
+    // que entonces saliera vacío y hoy no: eso era el libro a medias (un registro de la misma tanda), y vale lo de hoy.
+    const antes = escrito?.get(expr);
+    if (antes !== undefined) {
+      const hoy = rellenar('{' + expr + '}', ctx, { sujeto });
+      if (hoy !== antes && !(antes === VACIO && hoy !== VACIO && !hoy.startsWith('{'))) return antes === VACIO ? nadie : legible(eje, antes, undefined, { idioma, epoca }).texto;
+    }
     // «first X.0» es el 0 de X: si X es un registro, su 0 legible (no el texto que guarda).
     const m = /^(first|last) (.+)\.0$/.exec(expr.trim());
     if (m) {
@@ -4021,7 +4056,57 @@ export function ceroLegible(eje, X, { idioma = 'en', ...opciones } = {}) {
     const t = r.valor.map(deUno).filter((x) => x !== null && x !== '');
     return t.length ? t.join(', ') : nadie;
   };
-  return { texto: formato.replace(/\{([^{}]+)\}/g, (_, expr) => hueco(expr)), plantilla: nombre, compuesto: true };
+  return formato.replace(/\{([^{}]+)\}/g, (_, expr) => hueco(expr));
+}
+
+/**
+ * El mensaje de una plantilla de transacción para una candidata que aún no se ha escrito, en el idioma de quien lee (el
+ * `falta` de un paso del camino, la lectura de una plantilla de solo lectura): el mismo texto que escribiría la plantilla
+ * en el 0 (su 9 sobre la candidata, con it = X y me = quien la lanza), pero compuesto como ceroLegible: el formato en el
+ * idioma y cada hueco legible (un registro por su 0 legible, no por el 0 en inglés que guarda). `plantilla` es la décupla;
+ * `candidata`, la que prepara acciones (preparar); `X`, el registro (o su id) sobre el que se lanza; `me`, quien la lanza.
+ * → el texto; sin 9, el nombre de la plantilla en el idioma.
+ */
+export function mensajeEnLlano(eje, plantilla, { candidata, X, me, idioma = 'en', ...opciones } = {}) {
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  const nombre = texto(hoja(hoja(plantilla?.[0])));
+  const canonico = texto(ultima(plantilla?.[9]));
+  if (typeof canonico !== 'string') return texto_(eje, CLAVE.plantilla(nombre), idioma, { original: nombre, epoca });
+  const ctx = new ContextoEje(eje, { ev: candidata, epoch: epoca, me });
+  const sujeto = typeof X === 'string' ? X : X?.id;
+  return mensajeCompuesto(eje, nombre, canonico, ctx, sujeto, { ...opciones, idioma, epoca });
+}
+
+/**
+ * El texto de una fila de lo que falta (X.4.9, motor.pasosDeLasReglas; el `falta` de un paso del camino) en el idioma de
+ * quien lee: si el texto de la fila es el 0 del registro del que trata (`fila.sobre`) tal como está escrito, su 0 legible
+ * (ceroLegible: si lo escribió una plantilla, recompuesto en el idioma); si no, el texto tal cual. Solo lee.
+ */
+export function textoDeFila(eje, fila, { idioma = 'en', ...opciones } = {}) {
+  const t = fila?.texto;
+  if (typeof t !== 'string' || typeof fila?.sobre !== 'string' || !eje?.obtener?.(fila.sobre)) return t ?? null;
+  opciones = conEpoca(eje, opciones);
+  const epoca = epocaDe(opciones, eje);
+  if (ceroDe(eje, fila.sobre, { epoca }) !== t) return t;
+  return ceroLegible(eje, fila.sobre, { ...opciones, idioma, epoca })?.texto ?? t;
+}
+
+/**
+ * Lo escrito con un canónico (un mensaje con huecos {expresión}), por su forma: si `texto` son los trozos fijos del canónico
+ * en su orden y, en cada hueco, un texto cualquiera, Map(expresión → lo escrito en su primer hueco); si no casa, null.
+ */
+function escritoDelCanonico(canonico, texto) {
+  const trozos = canonico.split(/(\{[^{}]+\})/);
+  const huecos = trozos.filter((_, k) => k % 2 === 1).map((h) => h.slice(1, -1));
+  const re = new RegExp('^' + trozos.map((t, k) => (k % 2 ? '([\\s\\S]*?)' : t.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'))).join('') + '$');
+  const m = re.exec(texto);
+  if (!m) return null;
+  const fuera = new Map();
+  huecos.forEach((h, k) => {
+    if (!fuera.has(h)) fuera.set(h, m[k + 1]);
+  });
+  return fuera;
 }
 
 /** ¿Es un tipo que desdeLegible sabe leer de un texto? Los tipos genéricos de la época (epoch.9.2.0.1: texto, número, identidad, referencia, instante, nivel); lo demás (una décupla) se edita en BTML. */
