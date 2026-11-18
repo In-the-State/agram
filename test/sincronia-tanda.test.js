@@ -228,3 +228,36 @@ test('bajar: un libro que nace de una tanda de apertura (el génesis es su miemb
   assert.deepEqual(informe.errores, []);
   assert.deepEqual(informe.eje.orden, tanda.map((e) => e.id));
 });
+
+test('bajar por detrás: si anadirTanda lanza, la tanda espera, y lo que cuelga de ella también (no a rechazados); en la pasada siguiente entra todo', async () => {
+  const clave = await crearEje('tanda-lanza');
+  const vg = await generarClaves();
+  const eje = await Eje.genesis({ identidad: 'vg', foco: ['lanza'], t: T(0), clave: vg.publica, privada: vg.privada, exigirFirmas: true });
+  const A = new Sincronia({ url: servidor.url, eje: 'tanda-lanza', claveLectura: clave, ahora });
+  await A.sincronizar(eje);
+  // B ya tiene el génesis: lo que A suba después le llega por detrás (el camino rápido).
+  const B = new Sincronia({ url: servidor.url, eje: 'tanda-lanza', claveLectura: clave, ahora });
+  const ejeB = (await B.sincronizar(null)).eje;
+  const { vista } = await eje.vistaTanda();
+  const uno = await crearEvento(datos(vista, 'vg', eje.genesisId, ['Uno'], T(1)));
+  const dos = await crearEvento(datos(vista, 'vg', uno.id, ['Dos'], T(1)));
+  const tanda = await Promise.all((await marcarTanda([uno, dos])).map((ev) => firmar(ev, vg.privada)));
+  assert.equal((await eje.anadirTanda(tanda)).ok, true);
+  const cuelga = await eje.escribir(datos(eje, 'vg', tanda[1].id, ['Cuelga de la tanda'], T(2)), vg.privada);
+  const nieto = await eje.escribir(datos(eje, 'vg', cuelga.id, ['Cuelga de lo que cuelga'], T(2)), vg.privada);
+  const aparte = await eje.escribir(datos(eje, 'vg', eje.genesisId, ['No cuelga de nada de eso'], T(2)), vg.privada);
+  await A.sincronizar(eje);
+  // La primera vez, anadirTanda lanza (el libro cambió mientras: lo que no es de las reglas).
+  const original = ejeB.anadirTanda;
+  ejeB.anadirTanda = async () => { throw new Error('anadirTanda: el libro ha cambiado tres veces mientras se validaba la tanda; vuelve a lanzarla'); };
+  const primera = await B.sincronizar(ejeB);
+  ejeB.anadirTanda = original;
+  assert.deepEqual(primera.rechazados, [], 'nada a rechazados');
+  assert.deepEqual(B.rechazados, []);
+  assert.deepEqual(primera.enEspera, [...tanda.map((e) => e.id), cuelga.id, nieto.id]);
+  assert.deepEqual(primera.anadidos, [aparte.id], 'lo que no cuelga de ella entra');
+  const segunda = await B.sincronizar(ejeB);
+  assert.deepEqual(segunda.rechazados, []);
+  assert.deepEqual(segunda.anadidos, [...tanda.map((e) => e.id), cuelga.id, nieto.id]);
+  assert.deepEqual(new Set(ejeB.orden), new Set(eje.orden));
+});
