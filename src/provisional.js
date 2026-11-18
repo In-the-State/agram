@@ -24,6 +24,8 @@ import { LECTURAS_PROVISIONALES_DATOS as LECTURAS } from '../datos/provisional/l
 import { FINALES_PROVISIONALES_DATOS as FINALES } from '../datos/provisional/finales.js';
 import { CADENAS_PROVISIONALES_DATOS as CADENAS } from '../datos/provisional/cadenas.js';
 import { GESTOS_PROVISIONALES_DATOS as GESTOS } from '../datos/provisional/gestos.js';
+import { AJUSTES_PROVISIONALES_DATOS as AJUSTES } from '../datos/provisional/ajustes.js';
+import { ANTES_Y_DESPUES_PROVISIONALES_DATOS as ANTES_Y_DESPUES } from '../datos/provisional/antes-y-despues.js';
 
 /** Una copia congelada en profundidad: lo provisional no lo cambia nadie al leerlo. */
 function congelada(x) {
@@ -45,3 +47,9 @@ export const CADENAS_PROVISIONALES = congelada(Array.isArray(CADENAS) ? CADENAS 
 
 /** La lista cerrada de gestos de la lente (src/gestos.js; supuesto por confirmar con VG): 0 nombre, 1 parámetros [nombre, tipo, required u optional], 2 qué hace, 3 procedencia. */
 export const GESTOS_PROVISIONALES = congelada(Array.isArray(GESTOS) ? GESTOS : []);
+
+/** Las acciones de «Ajustes de este elemento» (src/lente-provisional.js): una décupla, 1 añadir un padre, 2 quitarlo, 3 un defecto de custodia, 4 la clase de dueño, 5 el precio de un grupo, 6 el mínimo de una caja del 3, 7 su rango mínimo. */
+export const AJUSTES_PROVISIONALES = congelada(Array.isArray(AJUSTES) ? AJUSTES : []);
+
+/** Lo que va antes y después de una acción (src/lente-provisional.js): décuplas «goes before» y «goes after», 1 las acciones, 2 la que va antes o después. */
+export const ANTES_Y_DESPUES_PROVISIONALES = congelada(Array.isArray(ANTES_Y_DESPUES) ? ANTES_Y_DESPUES : []);

@@ -648,8 +648,8 @@ export const TEXTOS = Object.freeze({
     guardianSoloLeerSinGuardian: 'Esta cuenta se ha abierto solo para leer: su clave está en el guardián y aquí no hay guardián.',
     guardianCriteriosNo: 'El guardián no ha recibido tus criterios de segundo factor.',
     // el formulario de ejecutar y su reverso (VG 14-11, #89)
-    ejecutarApagado: 'este registro aún está en «{nombre}»: se puede hacer igual; el botón se encenderá cuando avance',
-    ejecutarApagadoSinRango: 'este registro aún no ha empezado su camino: se puede hacer igual; el botón se encenderá cuando avance',
+    ejecutarApagado: 'este registro aún está en «{nombre}»: se puede hacer igual; el botón se encenderá cuando llegue a «{marca}»',
+    ejecutarApagadoSinRango: 'este registro aún no ha empezado su camino: se puede hacer igual; el botón se encenderá cuando llegue a «{marca}»',
     // la cuenta del banco (encargo «cuenta del banco», VG 16-11; contrato.cuenta): el registro de la cuenta y su E en la cartera
     cuentaTitulo: 'cuenta del banco: el saldo es lo que dice el banco; quien tiene P sobre la cuenta puede proponer pagos; cada uno lo aprueba el titular en su banco',
     cuentaSaldo: 'saldo',
@@ -1874,8 +1874,8 @@ export const TEXTOS = Object.freeze({
     guardianSoloLeer: 'This account has been opened read-only: its key is in the guardian and the guardian of this computer does not have it.',
     guardianSoloLeerSinGuardian: 'This account has been opened read-only: its key is in the guardian and there is no guardian here.',
     guardianCriteriosNo: 'The guardian has not received your second-factor criteria.',
-    ejecutarApagado: 'this record is still at “{nombre}”: it can be done anyway; the button will light up when it moves on',
-    ejecutarApagadoSinRango: 'this record has not started its path yet: it can be done anyway; the button will light up when it moves on',
+    ejecutarApagado: 'this record is still at “{nombre}”: it can be done anyway; the button will light up when it reaches “{marca}”',
+    ejecutarApagadoSinRango: 'this record has not started its path yet: it can be done anyway; the button will light up when it reaches “{marca}”',
     cuentaTitulo: 'bank account: the balance is what the bank says; whoever has P on the account can propose payments; the holder approves each one at their bank',
     cuentaSaldo: 'balance',
     cuentaSinSaldo: 'no balance yet',

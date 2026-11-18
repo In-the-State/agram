@@ -319,8 +319,10 @@ async function probarFormularioAhora() {
 /** Tras ejecutar (la bandeja o «ahora»): lo que nace con lo registrado, guardar y subir, y decir qué se registró. */
 async function trasEjecutar(r) {
   for (let k = 0; k < r.eventos.length; k++) {
-    // Una cosa dada de alta nace también con su HTML básico en el PV0 (VG 14-11, #84), como mi cuenta.
-    if (canonicoDe(r.items[k]?.accion) === 'register a thing') await adjuntarHtmlInicial(estado.eje, r.eventos[k].id, estado.identidad, firmarCon(estado.identidad), idioma());
+    // Lo que va después de una acción es dato (contrato.despuesDe, «goes after»: hasta la pasada única, datos/provisional/): una
+    // cosa dada de alta nace también con su HTML básico en el PV0 (VG 14-11, #84), como mi cuenta, con la acción que dice el dato.
+    const despues = contrato.despuesDe(canonicoDe(r.items[k]?.accion));
+    if (despues.length) await adjuntarHtmlInicial(estado.eje, r.eventos[k].id, estado.identidad, firmarCon(estado.identidad), idioma(), {}, { accion: despues[0] });
   }
   trasEscribir(); // guardar y dejar la subida en la cola (la tanda entera)
   const firmado = r.eventos.some((e) => e.firma) ? ' ' + t('firmado') : '';

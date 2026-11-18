@@ -1,0 +1,36 @@
+[
+  [
+    [
+      "element settings"
+    ],
+    [
+      "add a parent"
+    ],
+    [
+      "remove a parent"
+    ],
+    [
+      "set a custody default"
+    ],
+    [
+      "set the kind of owner"
+    ],
+    [
+      "set a group price"
+    ],
+    [
+      "set a minimum"
+    ],
+    [
+      "set a minimum rank"
+    ],
+    [
+      "Core AGRAM 20-11 (docs/notas/SITIOS_Y_PESOS.md §11): las acciones con que un elemento fija lo suyo en «Ajustes de este elemento» (carta/reglas.js), como dato y no en la lente. Provisional: esa pantalla fija se irá cuando los ajustes sean formularios en su punto de vista (fila 5 de agram-equipo/OPINION_BOTONES_PV.md §11); hasta entonces, su sitio final lo decide la pasada única",
+      "1 la acción que añade un padre de custodia y 2 la que lo quita, 3 la que fija un defecto de custodia (una clave de epoch.7.7) y 4 la clase de dueño (epoch.7.5), las tres en el 9 del elemento; 5 la que fija el precio de un grupo (X.3.<grupo>.2, en un alta), 6 el mínimo de una caja del 3 (X.3.<caja>.1) y 7 su rango mínimo (X.3.<caja>.8)"
+    ],
+    [
+      "element settings",
+      "the actions with which an element fixes its own settings: its custody parents, a custody default, the kind of owner, the price of each group and the minimum and minimum rank of each box of its 3"
+    ]
+  ]
+]

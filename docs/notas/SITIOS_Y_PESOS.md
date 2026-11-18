@@ -438,3 +438,26 @@ Siete commits, uno por grupo de tablas. Las 43 huellas siguieron iguales en cada
 `motor.loQueFalta`, `motor.pasosDeLasReglas`, los finales como dato y `cohortes()` no quitan ningún nombre de la carta. Ninguno de los 14 los usa: la carta ya leía el camino y las cohortes del núcleo. Lo que esas capacidades bajan es la deuda del núcleo (`NUCLEO_Y_ACCIONES.md`, clase B), no la de la lente.
 
 Los controles por tipo base del formulario (número, instante, identidad) son dispositivo (fila 3: un control por tipo). Además están en la zona de dom.js de otro carril.
+
+## 11. La deuda de nombres de la lente, de 14 a 3 (20-11)
+
+Con el patrón del dato provisional del núcleo (`datos/provisional/`: un JSON más su copia generada, que importa `src/provisional.js`), dos archivos nuevos que lee `contrato`:
+
+| Dato provisional | Qué dice | Quién lo lee | Sitio final (pasada única) |
+|---|---|---|---|
+| `ajustes.json`, «element settings» | Las siete acciones con que un elemento fija lo suyo: añadir y quitar un padre, un defecto de custodia, la clase de dueño, el precio de un grupo, el mínimo y el rango mínimo de una caja del 3 | `contrato.accionesDeAjuste`, desde la pantalla «Ajustes de este elemento» (`carta/reglas.js`) | Ninguno fijo: esa pantalla se irá cuando los ajustes sean formularios en su punto de vista (la fila 5) |
+| `antes-y-despues.json`, «goes before» y «goes after» | Antes: los tres mensajes piden «a reserve» delante. Después: tras «register a thing» va «attach a file» | `contrato.antesDe` (`antesDelMensaje`, carta.js) y `contrato.despuesDe` (`trasEjecutar`, app.js) | La época que define esas acciones: la hija state para los mensajes, y la 0 para registrar una cosa |
+
+Los lectores están en `src/lente-provisional.js` y se reexportan en `contrato`. Se borran con lo provisional en la pasada única.
+
+**Quedan 3 nombres. Los tres esperan una decisión:**
+
+| Nombre | Qué falta |
+|---|---|
+| «move to group» | La tabla de gestos con su destino: «soltar a una persona en una caja del 3 es lanzar lo que la época ofrece ahí» |
+| «second factor» | Que la configuración sea formularios en su punto de vista, y que Core decida si es suelo |
+| «let P come down here» | Una lectura con nombre en la época, «quién tiene el sí del dueño». Hoy es BQL escrito en la carta |
+
+**Hallazgos:**
+- **El dato dice qué hace falta, el código cómo.** Que un mensaje pida una reserva es dato. Cuándo la pide y con qué parámetros lo sigue calculando código de la época state (`registrosParaUnMensaje`). Para que sea dato entero haría falta escribir en la época state la regla «va antes» con sus parámetros, y eso es tocar `datos/epocas/state`.
+- **Los nombres de los hitos solo están en español.** El botón de ejecutar apagado dice ahora el nivel que lo enciende por su nombre: `contrato.botonDeEjecutar` lleva `marca.nombre`. Pero esos nombres solo existen en español, en el núcleo (`src/bases.js`, `HITOS`). Hoy da igual, porque los textos de la carta solo están en español. Con otro idioma haría falta llevarlos a los mensajes de la época.

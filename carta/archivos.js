@@ -127,13 +127,14 @@ export async function subirLosNombrados(archivos, preparados, valores) {
  * La acción que adjunta a X una representación suya, leída de la época sin nombrarla: la primera (en el orden de la época)
  * que se ancla en el 0 de X, donde van sus representaciones (contrato.representaciones), y pide un archivo (un parámetro de
  * faceta «ref», acciones.archivoDe). Sus valores para un archivo: la referencia y el formato en los parámetros de esas
- * facetas y, en el 1.0 (el tamaño mínimo de la representación), el mayor tamaño de la época (9.5.2: la pantalla).
- * → { accion (su id), valores } o null si la época no tiene ninguna.
+ * facetas y, en el 1.0 (el tamaño mínimo de la representación), el mayor tamaño de la época (9.5.2: la pantalla). Con `accion`
+ * (un nombre que da el dato, contrato.despuesDe), solo esa. → { accion (su id), valores } o null si la época no tiene ninguna.
  */
-export function accionDeRepresentacion(eje, { referencia, formato }, opciones = {}) {
+export function accionDeRepresentacion(eje, { referencia, formato, accion = null }, opciones = {}) {
   const o = acciones.conEpoca(eje, opciones);
   const mayor = contrato.tamanos(o).at(-1)?.tamano;
-  for (const { id, plantilla } of acciones.plantillasDeTransaccion(o)) {
+  for (const { id, nombre, plantilla } of acciones.plantillasDeTransaccion(o)) {
+    if (accion !== null && nombre !== accion) continue;
     const ancla = Array.isArray(plantilla?.[5]) ? plantilla[5] : [plantilla?.[5]];
     if (ancla.length !== 1 || ancla[0] !== '0') continue;
     const parametros = acciones.parametros(plantilla, o);
@@ -156,12 +157,12 @@ export function accionDeRepresentacion(eje, { referencia, formato }, opciones = 
  * escribe (o nada). Sirve para una cuenta nueva (cuentas.crearCuenta, con `htmlInicial`) y para una cosa dada de alta.
  * → el registro asentado, o null si no pasó (la alta ya existe: sin su HTML se ve como hasta ahora, su nombre).
  */
-export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opciones = {}) {
+export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opciones = {}, { accion = null } = {}) {
   try {
     const x = await inicial(idioma);
     const formato = formatoDeTipo(x.tipo, opciones);
     if (!formato) return null;
-    const a = accionDeRepresentacion(eje, { referencia: x.referencia, formato }, opciones);
+    const a = accionDeRepresentacion(eje, { referencia: x.referencia, formato, accion }, opciones);
     if (!a) return null;
     const r = await enviarPorLaBandeja(eje, X, a.accion, a.valores, identidad, firmar, opciones); // el único camino de escribir (A33)
     return r.ok && r.asentado ? r.asentado : null;

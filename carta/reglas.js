@@ -533,18 +533,11 @@ export function cambioDeDatos(eje, { posicion, valor, pieza, titulo } = {}) {
 
 /**
  * Las plantillas de la época con que un elemento fija lo suyo (diseño §7: la custodia, el precio de cada grupo, los mínimos,
- * los criterios de decisión de sus piezas y la clase de dueño): las que ya existen, sin claves ni plantillas nuevas.
+ * los criterios de decisión de sus piezas y la clase de dueño): las que ya existen, sin claves ni plantillas nuevas. Cuáles
+ * son es dato, no de la lente (contrato.accionesDeAjuste: datos/provisional/ajustes.json hasta la pasada única); el criterio
+ * de decisión, el del segundo factor (acciones.SEGUNDO_FACTOR).
  */
-const AJUSTES = Object.freeze({
-  padre: 'add a parent',
-  quitarPadre: 'remove a parent',
-  defecto: 'set a custody default',
-  clase: 'set the kind of owner',
-  precio: 'set a group price',
-  minimo: 'set a minimum',
-  rango: 'set a minimum rank',
-  criterio: acciones.SEGUNDO_FACTOR.criterio,
-});
+const AJUSTES = Object.freeze({ ...contrato.accionesDeAjuste(), criterio: acciones.SEGUNDO_FACTOR.criterio });
 /**
  * El sí del dueño para que el P de otro baje a una cosa suya (CH1, VG 17-11; docs/notas/R_EN_CANALES.md, «El P de la R solo
  * baja a una cosa de otro con el sí de su dueño»): la plantilla y la expresión que da los sí vigentes (it = la cosa; el

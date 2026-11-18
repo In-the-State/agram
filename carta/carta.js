@@ -1458,9 +1458,6 @@ export async function enviar(eje, X, accion, valores, yo, firmar, opciones = {})
 
 // ---------- la reserva antes del mensaje (docs/notas/R_EN_CANALES.md; docs/notas/RESERVA.md) ----------
 
-/** Las plantillas de mensaje de la época state que bloquean en una reserva (las demás no piden nada antes). */
-export const MENSAJES_QUE_RESERVAN = Object.freeze(['message in', 'message in from an agent', 'message out']);
-
 /**
  * La ayuda de la época state (datos/epocas/state/ayuda.mjs: registrosParaUnMensaje), cargada la primera vez que hace falta.
  * null si no se puede cargar: en el navegador, mientras ese módulo cargue arriba lo de Node (node:fs), no se carga, y la
@@ -1488,7 +1485,9 @@ export async function antesDelMensaje(eje, X, accion, valores, yo, opciones = {}
   opciones = acciones.conEpoca(eje, opciones); // la época del libro por defecto (la de la 0 no trae sus acciones)
   const p = acciones.plantillaDeTransaccion(accion, opciones);
   const nombre = p ? acciones.nombreDeAccion(p) : String(accion);
-  if (!MENSAJES_QUE_RESERVAN.includes(nombre)) return { registros: [] };
+  // Qué acciones piden algo antes es dato (contrato.antesDe: datos/provisional/antes-y-despues.json hasta la pasada única);
+  // cuándo hace falta y con qué, lo calcula la ayuda de la época que las define.
+  if (!contrato.antesDe(nombre).length) return { registros: [] };
   const ayuda = await ayudaDeCanales();
   if (!ayuda?.registrosParaUnMensaje) return { registros: [], sinAyuda: true };
   const lista = ayuda.registrosParaUnMensaje(eje, X, yo, { ...valores, plantilla: nombre });
