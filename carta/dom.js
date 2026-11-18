@@ -1654,7 +1654,7 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
   const etiqueta = `role="group" aria-label="${attr(t('franjaTitulo', { que: a.etiqueta ?? '' }))}"`;
   if (marca) {
     const dest = conDestacada && a.destacada ? a.nombradas.concat(a.resto).find((x) => x.id === a.destacada) : null;
-    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small></span>${htmlMarcaDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;
+    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small>${htmlMarcaDeLaBandeja(bandejaEnPantalla, X, a.pv)}</span>`; // la marca de la bandeja, dentro: en la misma línea (A33)
   }
   const nombradas = a.nombradas.filter((x) => x.id !== sin);
   const resto = a.resto.filter((x) => x.id !== sin);

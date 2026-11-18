@@ -108,6 +108,21 @@ export function referenciasEn(x, fuera = new Set()) {
 }
 
 /**
+ * Por qué lo que nombran unos valores no se podrá lanzar por sus archivos, o null (A33: la prueba en seco de la bandeja lo
+ * dice antes, en llano, y no al ejecutar). `elegidos`: las referencias preparadas en este aparato (se suben al lanzar: sin
+ * servidor no hay dónde); `listo(id)`: si ese archivo ya está en esta pestaña (bajado del servidor); `hayServidor`.
+ */
+export function faltaParaLosArchivos(valores, { elegidos = new Set(), listo = () => false, hayServidor = false } = {}) {
+  for (const ref of referenciasEn(valores)) {
+    const id = ref.slice('archivo:'.length);
+    if (elegidos.has(ref)) {
+      if (!hayServidor) return t('archivoSinServidor');
+    } else if (!listo(id) && !INICIALES.has(id)) return t('bandejaArchivoNoEsta');
+  }
+  return null;
+}
+
+/**
  * Antes de firmar lo que nombra archivos de este aparato (A33): sube los preparados (`preparados`: referencia → lo de
  * preparar) que nombran `valores` (una lista: los de cada entrada que se va a lanzar). Sin red quedan pendientes y se suben
  * al sincronizar; sin servidor, o si el servidor lo rechaza, lanza y no se lanza nada. → [lo de adjuntarPreparado].

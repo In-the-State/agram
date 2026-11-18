@@ -241,7 +241,7 @@ test('la cuenta no tapa nada (repaso a 400 px): en Mapped va en el flujo del mar
   assert.match(apilada, /position:fixed/);
   assert.match(apilada, /bottom:calc\(var\(--emparejar-alto,0px\) \+ 41px/, 'encima de la fila de los dígitos (4 + 32 + 4 px y su borde)');
   assert.match(regla('.carta-apilada:has(>.bandeja-cuenta)'), /padding-bottom:calc\(48px \+ 44px/, 'la columna guarda su alto: no tapa lo último');
-  assert.match(regla('.carta:has(.formulario-fondo)>.bandeja-cuenta'), /display:none/);
+  assert.match(regla('.carta:has(.formulario-fondo,.aro-fondo,.sitio-fondo,.puente-fondo,.core-fondo,.roseton-pantalla)>.bandeja-cuenta'), /display:none/);
   const digito = regla('.digito');
   assert.match(digito, /height:32px/, 'si cambia el alto de los dígitos, cambia también el sitio de la cuenta');
 });
@@ -328,4 +328,128 @@ test('con el formulario abierto, lo compuesto se ve ya donde se compuso: la tira
   assert.ok(d2.hechos.some((h) => h[0] === 'quitar' && h[1] === 'bandeja-cuatro'));
   const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
   assert.match(app, /function repintarBandejaEnFormulario\(\) \{[^]*?ponerAlDiaEnPantalla\(raiz, vistaBandeja\(\)\);/, 'cada cambio de un campo lo pone al día');
+});
+
+test('completa es lo que de verdad falta: lo que tiene defecto no falta («comprometer P» recién puesto entra), y el archivo elegido ya completa su entrada', async () => {
+  const { formulario } = await import('../carta/carta.js');
+  const { valoresDeArchivo } = await import('../carta/archivos.js');
+  const { queFaltan, estaCompleta } = await import('../carta/bandeja-pantalla.js');
+  const { eje, X, a, b } = await escena();
+  const todas = a.laterales.flatMap((n) => [...(n.acciones?.nombradas ?? []), ...(n.acciones?.resto ?? [])].map((x) => ({ ...x, pv: n.pv })));
+  const por = (nombre) => todas.find((x) => x.nombre === nombre);
+  const campos = (accion) => formulario(eje, X, accion.id, 'huesped', {}, { idioma: 'es' }).campos;
+  // «comprometer P»: todo lo que pide tiene defecto.
+  const P = por('comprometer P');
+  assert.ok(P, 'el ejemplo lo ofrece');
+  assert.ok(campos(P).some((c) => c.requerido), 'pide cosas');
+  assert.deepEqual(queFaltan(campos(P)), [], 'pero todas con defecto');
+  assert.equal(estaCompleta({}, queFaltan(campos(P))), true);
+  b.poner({ accion: P.id, X, valores: {}, donde: { X, pv: P.pv }, completa: estaCompleta({}, queFaltan(campos(P))) });
+  const probado = await b.probar(eje, 'huesped', { idioma: 'es' });
+  assert.notEqual(probado.items[0].motivos[0]?.mensaje, 'falta por rellenar', 'no dice «falta por rellenar»');
+  // «comprometer tiempo»: falta «hasta» hasta que se escribe; lo escrito con fallos de lectura no está completo.
+  const T = por('comprometer tiempo');
+  assert.deepEqual(queFaltan(campos(T)), ['until']);
+  assert.equal(estaCompleta({}, ['until']), false);
+  assert.equal(estaCompleta({ until: '' }, ['until']), false);
+  assert.equal(estaCompleta({ until: '2026-12-01T10:00' }, ['until']), true);
+  assert.equal(estaCompleta({ until: 'x' }, ['until'], [{ mensaje: 'no es una fecha' }]), false);
+  // «adjuntar un archivo»: con el archivo elegido (su referencia y su formato) ya está completa, sin tocar otro campo.
+  const adj = por('adjuntar un archivo');
+  const faltan = queFaltan(campos(adj));
+  assert.deepEqual(faltan.sort(), ['file', 'format']);
+  const p = { id: 'a'.repeat(64), tipo: 'image/svg+xml', bytes: new Uint8Array(4), referencia: 'archivo:' + 'a'.repeat(64) };
+  const valores = valoresDeArchivo(p, campos(adj).filter((c) => c.archivo).map((c) => ({ nombre: c.nombre, archivo: c.archivo })), { eje });
+  assert.equal(estaCompleta(valores, faltan), true);
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /const completa = estaCompleta\(f\.valores, f\.faltaban, motivos\);/);
+  assert.equal((app.match(/faltaban = queFaltan\(/g) ?? []).length, 2, 'al lanzar y al reabrir, con el formulario sin nada escrito');
+});
+
+test('el motivo del último intento de ejecutar se va en cuanto cambia el borrador (quitar el miembro que fallaba)', async () => {
+  const { motivosDelUltimoIntento } = await import('../carta/bandeja-pantalla.js');
+  const motivos = [{ mensaje: 'no se ha registrado nada: el archivo no está' }];
+  assert.deepEqual(motivosDelUltimoIntento({ motivos, de: '{"v":1,"a":1}' }, '{"v":1,"a":1}'), motivos, 'mismo borrador: sigue');
+  assert.deepEqual(motivosDelUltimoIntento({ motivos, de: '{"v":1,"a":1}' }, '{"v":1}'), [], 'otro borrador: viejo');
+  assert.deepEqual(motivosDelUltimoIntento({ motivos, de: null }, '{}'), []);
+  // Con la bandeja de verdad: quitar la entrada cambia lo guardado, y el 4 ya no lo enseña.
+  const almacen = memoria();
+  const b = crearBandeja({ almacen, libro: 'g'.repeat(64), cuenta: 'yo' });
+  b.poner({ accion: 'a1', X: 'x'.repeat(64), valores: {} });
+  b.poner({ accion: 'a2', X: 'x'.repeat(64), valores: {}, donde: { X: null, pv: 4 } });
+  const de = almacen.leer(b.clave);
+  b.quitar('b2');
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1')], motivos: [] }, {}, { motivos: motivosDelUltimoIntento({ motivos, de }, almacen.leer(b.clave)) });
+  assert.ok(!htmlBandejaDelCuatro(v, 'X1').includes('el archivo no está'));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /estado\.bandeja\.motivosDe = borradorDeAhora\(\);/);
+  assert.match(app, /motivosDelUltimoIntento\(\{ motivos: estado\.bandeja\.motivos, de: estado\.bandeja\.motivosDe \?\? null \}, borradorDeAhora\(\)\)/);
+});
+
+test('un archivo elegido aquí sin servidor donde subirlo: la prueba en seco ya dice que no entra, en llano, antes de ejecutar', async () => {
+  const { faltaParaLosArchivos } = await import('../carta/archivos.js');
+  const ref = 'archivo:' + 'b'.repeat(64);
+  const elegidos = new Set([ref]);
+  assert.equal(faltaParaLosArchivos({ file: ref }, { elegidos, hayServidor: false }), t('archivoSinServidor'));
+  assert.equal(faltaParaLosArchivos({ file: ref }, { elegidos, hayServidor: true }), null);
+  assert.equal(faltaParaLosArchivos({ file: 'archivo:' + 'c'.repeat(64) }, { elegidos, hayServidor: true }), t('bandejaArchivoNoEsta'), 'ni elegido aquí ni en esta pestaña');
+  assert.equal(faltaParaLosArchivos({ file: 'archivo:' + 'c'.repeat(64) }, { listo: () => true }), null, 'ya bajado');
+  assert.equal(faltaParaLosArchivos({ text: 'sin archivos' }), null);
+  // Por la bandeja: la entrada con el archivo no entra y el 4 lo dice.
+  const { eje, X, a, b } = await escena();
+  const adj = a.laterales.flatMap((n) => [...(n.acciones?.nombradas ?? []), ...(n.acciones?.resto ?? [])]).find((x) => x.nombre === 'adjuntar un archivo');
+  b.poner({ accion: adj.id, X, valores: { file: ref, format: 'svg' }, donde: { X, pv: 2 } });
+  const revisar = (e) => faltaParaLosArchivos(e.valores, { elegidos, hayServidor: false });
+  const probado = await b.probar(eje, 'huesped', { idioma: 'es', revisar });
+  assert.equal(probado.items[0].entra, false);
+  assert.equal(probado.items[0].motivos[0].mensaje, t('archivoSinServidor'));
+  const v = vistaDeLaBandeja(probado);
+  assert.ok(htmlBandejaDelCuatro(v, X).includes(escaparTexto(t('archivoSinServidor'))) && htmlBandejaDelCuatro(v, X).includes('data-no-lanza'));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /const revisar = \(entrada\) => faltaParaLosArchivos\(entrada\.valores, \{[^]*?hayServidor: Boolean\(destinoDeArchivos\(\)\)/);
+});
+const escaparTexto = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+test('en una fila cerrada (Sequenced), la marca de la bandeja va dentro de la cabecera, en su misma línea', async () => {
+  const { eje, X, b } = await escena();
+  const a = await arbol({ foco: { X, pv: 0 } }, eje, 'huesped', { ancho: 400, alto: 700 });
+  assert.ok(a.secuencia, 'el móvil, en Sequenced');
+  const fila = a.secuencia.filas.find((f) => !f.hilo && !f.abierta && f.acciones?.total);
+  const accion = [...fila.acciones.nombradas, ...fila.acciones.resto][0];
+  b.poner({ accion: accion.id, X, valores: {}, donde: { X, pv: fila.pv }, completa: false });
+  const v = vistaDeLaBandeja(await b.probar(eje, 'huesped'));
+  const h = html(a, { bandeja: v });
+  const i = h.indexOf(`class="pv-acciones marca" data-nodo="acciones" data-pv-acciones="${fila.pv}"`);
+  assert.ok(i >= 0, 'la cabecera comprimida de la fila');
+  const span = h.slice(i, h.indexOf('</span>', h.indexOf('pv-acciones-cuantas', i)) + 7);
+  assert.match(span, new RegExp(`<small class="bandeja-marca" data-bandeja-marca="${fila.pv}"`), 'dentro del span');
+  assert.ok(!h.slice(i + span.length, i + span.length + 40).includes('bandeja-marca'), 'no detrás, en línea propia');
+});
+
+test('en el escritorio la cuenta va en el marco, fuera de la escena donde están los rosetones; con la configuración o cualquier diálogo abierto no se pinta', async () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const fijas = [...css.matchAll(/([^{}]*\.bandeja-cuenta[^{}]*)\{([^}]*)\}/g)].filter((m) => /position:fixed/.test(m[2])).map((m) => m[1].trim());
+  assert.deepEqual(fijas, ['.carta-apilada>.bandeja-cuenta'], 'solo es fija en Sequenced; en el escritorio, en el flujo');
+  const oculta = css.match(/\.carta:has\(([^)]*)\)>\.bandeja-cuenta\{display:none\}/);
+  assert.ok(oculta, 'se esconde con un diálogo abierto');
+  for (const fondo of ['.formulario-fondo', '.aro-fondo', '.sitio-fondo', '.puente-fondo', '.core-fondo', '.roseton-pantalla']) assert.ok(oculta[1].split(',').includes(fondo), fondo);
+  const dom = readFileSync(new URL('../carta/dom.js', import.meta.url), 'utf8');
+  assert.match(dom, /export function htmlConfiguracion[^]*?<div class="formulario-fondo" data-cerrar><form class="formulario configuracion"/, 'la configuración es un formulario-fondo');
+  // En Mapped: la cuenta antes de la escena; los rosetones, dentro de ella.
+  const { eje, X, b } = await escena();
+  b.poner({ accion: 'x', X, valores: {} });
+  const v = vistaDeLaBandeja({ ok: false, items: [item('b1', { X })], motivos: [] });
+  const h = html(await arbol({ foco: { X, pv: 0 } }, eje, 'huesped', PC), { bandeja: v });
+  assert.ok(h.indexOf('data-bandeja-ir') > 0 && h.indexOf('data-bandeja-ir') < h.indexOf('<div class="escena">'));
+  assert.ok(h.indexOf('rosetones-mapa') > h.indexOf('<div class="escena">'), 'los rosetones del escritorio, dentro de la escena');
+});
+
+test('la app ya no escribe con escribirDesde: preferencias, ajustes de la guía y de fuera y formato van por escribirPorLaBandeja; un registro se nombra en llano', () => {
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(app, /escribirDesde\(/);
+  assert.equal((app.match(/escribirPorLaBandeja\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\)/g) ?? []).length, 4, 'preferencias, guía, fuera y formato');
+  const reg = { ...item('b1'), accion: null, entrada: { id: 'b1', tipo: 'registro', modo: 'sequenced', en: '9000000000', accion: null, X: 'X1', valores: { payload: [['x']] }, donde: { X: 'X1', pv: 9 }, completa: true, de: [] } };
+  const v = vistaDeLaBandeja({ ok: true, items: [reg], motivos: [] }, { nombre: () => 'NO' });
+  assert.equal(v.items[0].nombre, t('bandejaRegistro'));
+  assert.ok(!htmlTiraDeLaBandeja(v, 'X1', 9).includes('data-bandeja-abrir'), 'no tiene formulario que reabrir');
 });

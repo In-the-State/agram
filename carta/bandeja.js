@@ -20,6 +20,7 @@
 
 import * as acciones from '../src/acciones.js';
 import * as salida from '../src/escritura.js';
+import { tope as topeDelModo, contarPosiciones } from '../src/modos.js';
 import { crearEvento, marcarTanda, TANDA_MINIMA, TANDA_MAXIMA, TANDA_TOPES, bytesDeMiembro, bytesDeTanda } from '../src/evento.js';
 import { SEGUNDOS } from '../src/tokens.js';
 import { antesDelMensaje, horaDeEscribir } from './carta.js';
@@ -86,8 +87,15 @@ const esPv = (pv) => pv === null || (Number.isInteger(pv) && pv >= 0 && pv <= 9)
 function fallaDeEntrada(e, ids) {
   if (!esObjetoPlano(e)) return 'la entrada no es un objeto';
   if (!esTextoCorto(e.id)) return 'la entrada no tiene id local';
-  if (e.tipo !== undefined && e.tipo !== 'campo') return 'una entrada es una acción o un campo';
-  if (e.tipo === 'campo') {
+  if (e.tipo !== undefined && e.tipo !== 'campo' && e.tipo !== 'registro') return 'una entrada es una acción, un campo o un registro';
+  if (e.tipo === 'registro') {
+    // Un registro que la lente ya trae hecho (preferencias, ajustes de la guía y de fuera, formato): su payload, escrito
+    // desde un modo (sequenced…) en la posición `en` de X, sin acción; lo que escribía escribirDesde.
+    if (e.accion !== null) return 'un registro no lleva acción';
+    if (!esTextoCorto(e.modo)) return 'un registro dice desde qué modo se escribe';
+    if (typeof e.en !== 'string' || !/^[0-9]{10}$/.test(e.en)) return 'un registro dice en qué posición (diez dígitos)';
+    if (!esObjetoPlano(e.valores) || !Array.isArray(e.valores.payload) || Object.keys(e.valores).length !== 1) return 'un registro lleva su payload y nada más';
+  } else if (e.tipo === 'campo') {
     // Tocar un valor en un campo (A33): un registro «pointed» en la posición `en` de X, sin acción.
     if (e.accion !== null) return 'un campo no lleva acción';
     if (typeof e.en !== 'string' || !/^[0-9]{10}$/.test(e.en)) return 'un campo dice en qué posición (diez dígitos)';
@@ -151,7 +159,7 @@ function leerBorrador(almacen, clave) {
 }
 
 /** Solo los campos de una entrada (lo demás que trajera, fuera). */
-const limpia = (e) => ({ id: e.id, ...(e.tipo === 'campo' ? { tipo: 'campo', en: e.en } : {}), accion: e.accion, X: e.X, valores: e.valores, donde: { X: e.donde.X, pv: e.donde.pv }, completa: e.completa, de: [...e.de] });
+const limpia = (e) => ({ id: e.id, ...(e.tipo === 'campo' ? { tipo: 'campo', en: e.en } : e.tipo === 'registro' ? { tipo: 'registro', en: e.en, modo: e.modo } : {}), accion: e.accion, X: e.X, valores: e.valores, donde: { X: e.donde.X, pv: e.donde.pv }, completa: e.completa, de: [...e.de] });
 
 function guardarBorrador(almacen, clave, b) {
   const texto = JSON.stringify({ v: VERSION_DEL_BORRADOR, siguiente: b.siguiente, entradas: b.entradas.map(limpia) });
@@ -164,7 +172,7 @@ function guardarBorrador(almacen, clave, b) {
 }
 
 /** La misma entrada, para «poner»: misma acción, mismo X, compuesta en el mismo sitio (X y punto de vista). */
-const mismoSitio = (a, b) => (a.tipo ?? null) === (b.tipo ?? null) && (a.en ?? null) === (b.en ?? null) && a.accion === b.accion && JSON.stringify(a.X) === JSON.stringify(b.X) && a.donde.X === b.donde.X && a.donde.pv === b.donde.pv;
+const mismoSitio = (a, b) => (a.tipo ?? null) === (b.tipo ?? null) && (a.en ?? null) === (b.en ?? null) && (a.modo ?? null) === (b.modo ?? null) && a.accion === b.accion && JSON.stringify(a.X) === JSON.stringify(b.X) && a.donde.X === b.donde.X && a.donde.pv === b.donde.pv;
 
 /** Las entradas en el orden en que se componen: el de composición, con cada una después de las que nombra (estable). */
 function enOrden(entradas) {
@@ -216,8 +224,8 @@ export function crearBandeja({ almacen, libro, cuenta }) {
      * otra aunque la haya. Actualizar cambia sus valores y si está completa, y la deja en su sitio del orden.
      * → { ok: true, entrada, actualizada } o { ok: false, motivo }.
      */
-    poner({ tipo, en, accion = null, X, valores = {}, donde = {}, completa = true, id = null, nueva = false } = {}) {
-      const deCampo = tipo === 'campo' ? { tipo, en } : {};
+    poner({ tipo, en, modo, accion = null, X, valores = {}, donde = {}, completa = true, id = null, nueva = false } = {}) {
+      const deCampo = tipo === 'campo' ? { tipo, en } : tipo === 'registro' ? { tipo, en, modo } : {};
       const b = leer();
       const ids = new Set(b.entradas.map((e) => e.id));
       const previa = id !== null ? b.entradas.find((e) => e.id === id) : nueva ? null : b.entradas.find((e) => mismoSitio(e, { ...deCampo, accion, X, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null } }));
@@ -398,12 +406,29 @@ async function componerUna(vista, yo, accion, X, valores, opciones, { hecho = nu
  * su texto como terminal y la quema del coste de escribir de quien lo escribe, validado sobre la vista y, si pasa, dentro.
  */
 async function componerCampo(vista, yo, X, en, texto, opciones) {
+  let payload;
+  try {
+    payload = salida.desdePointed(vista, texto);
+  } catch (e) {
+    return { entra: false, motivos: [motivo(String(e?.message ?? e))], candidato: null };
+  }
+  return componerEscrito(vista, yo, X, en, payload, 'pointed', opciones);
+}
+
+/**
+ * Compone lo que escribía escribirDesde (src/escritura.js, sin celda ni herencia): el payload desde un modo en la posición
+ * `en` de X, con la quema del coste de escribir de quien lo escribe y el modo en su contexto; lo que pasa del tope de
+ * posiciones del modo no entra. Sin firmar, validado sobre la vista y, si pasa, dentro.
+ */
+async function componerEscrito(vista, yo, X, en, payload, modo, opciones) {
   let candidato;
   try {
-    const payload = salida.desdePointed(vista, texto);
+    const posiciones = contarPosiciones(payload);
+    if (posiciones < 1) throw new Error('nada que emitir: el registro no tiene ninguna posición con contenido');
+    if (posiciones > topeDelModo(modo)) throw new Error(modo + ' emite como mucho ' + topeDelModo(modo) + ' posiciones; este registro tiene ' + posiciones);
     const ms = vista.tMaximo?.();
     const t = opciones.t ?? horaDeEscribir(vista) ?? (Number.isFinite(ms) ? new Date(ms).toISOString().replace('.000Z', 'Z') : new Date().toISOString());
-    candidato = await crearEvento({ autor: yo, sobre: X, en, t, movimientos: [salida.quemaDelCoste(yo, payload, 'minuto', { eje: vista })], payload, contexto: { modo: 'pointed' } });
+    candidato = await crearEvento({ autor: yo, sobre: X, en, t, movimientos: [salida.quemaDelCoste(yo, payload, 'minuto', { eje: vista })], payload, contexto: { modo } });
   } catch (e) {
     return { entra: false, motivos: [motivo(String(e?.message ?? e))], candidato: null };
   }
@@ -445,7 +470,7 @@ async function componer(eje, yo, entradas, opciones = {}) {
     bytes: 0, // se mide al final (topes), cuando se sabe cuántos van en la tanda
   });
   for (const e of orden) {
-    const base = { id: e.id, puesta: false, accion: e.tipo === 'campo' ? null : nombreDe(e.accion), entrada: limpia(e) };
+    const base = { id: e.id, puesta: false, accion: e.tipo === 'campo' || e.tipo === 'registro' ? null : nombreDe(e.accion), entrada: limpia(e) };
     if (circulares.has(e.id)) {
       items.push(item(base, { entra: false, motivos: [motivo(MOTIVOS.circular)], candidato: null }));
       continue;
@@ -468,8 +493,8 @@ async function componer(eje, yo, entradas, opciones = {}) {
       items.push(item(base, { entra: false, motivos: [motivo(String(fuera))], candidato: null }));
       continue;
     }
-    if (e.tipo === 'campo') {
-      const c = await componerCampo(vista, yo, X, e.en, valores.texto, opciones);
+    if (e.tipo === 'campo' || e.tipo === 'registro') {
+      const c = e.tipo === 'campo' ? await componerCampo(vista, yo, X, e.en, valores.texto, opciones) : await componerEscrito(vista, yo, X, e.en, valores.payload, e.modo, opciones);
       if (c.entra) ids.set(e.id, c.candidato.id);
       items.push(item(base, c));
       continue;
@@ -630,8 +655,8 @@ async function lanzar(eje, yo, firmar, entradas, opciones = {}) {
  * «Ejecutar ahora» desde el aro: una bandeja de un solo uso con esa acción y lo que exige antes, por el MISMO camino que
  * el 4 (lanzar desde el paso 1). No lee ni toca el borrador guardado.
  */
-export async function ejecutarAhora(eje, yo, firmar, { tipo, en, accion = null, X, valores = {} } = {}, opciones = {}) {
-  const entrada = { id: 'ahora', ...(tipo === 'campo' ? { tipo, en } : {}), accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
+export async function ejecutarAhora(eje, yo, firmar, { tipo, en, modo, accion = null, X, valores = {} } = {}, opciones = {}) {
+  const entrada = { id: 'ahora', ...(tipo === 'campo' ? { tipo, en } : tipo === 'registro' ? { tipo, en, modo } : {}), accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
   const falla = fallaDeEntrada(entrada, new Set());
   if (falla) return { ok: false, fase: 'componer', motivos: [motivo(falla)] };
   return lanzar(eje, yo, firmar, [entrada], opciones);
@@ -641,8 +666,8 @@ export async function ejecutarAhora(eje, yo, firmar, { tipo, en, accion = null, 
  * Lo que enseña el aro antes de «ejecutar ahora»: la misma prueba en seco que el 4 (componer), con esa acción y lo que
  * exige antes, sin borrador. → lo que da probar.
  */
-export async function probarAhora(eje, yo, { tipo, en, accion = null, X, valores = {} } = {}, opciones = {}) {
-  const entrada = { id: 'ahora', ...(tipo === 'campo' ? { tipo, en } : {}), accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
+export async function probarAhora(eje, yo, { tipo, en, modo, accion = null, X, valores = {} } = {}, opciones = {}) {
+  const entrada = { id: 'ahora', ...(tipo === 'campo' ? { tipo, en } : tipo === 'registro' ? { tipo, en, modo } : {}), accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
   const falla = fallaDeEntrada(entrada, new Set());
   if (falla) return { ok: false, items: [], motivos: [motivo(falla)], cuesta: { segundos: 0 } };
   return componer(eje, yo, [entrada], opciones);
@@ -661,4 +686,15 @@ export async function enviarPorLaBandeja(eje, X, accion, valores, yo, firmar, op
   if (!r.ok) return { ok: false, asentado: null, evento: null, motivos: r.motivos ?? [], fase: r.fase ?? null };
   const asentado = r.eventos.at(-1);
   return { ok: true, asentado, evento: asentado, motivos: [], eventos: r.eventos, tanda: r.tanda };
+}
+
+/**
+ * Lo que hacía salida.escribirDesde (un registro ya hecho por la lente, desde un modo, firmado y asentado) por el único
+ * camino: ejecutarAhora con una entrada de tipo registro. Para las preferencias, los ajustes de la guía y de fuera y el
+ * formato. → el registro asentado; si no entra, lanza con los motivos (como escribirDesde), en `motivos`.
+ */
+export async function escribirPorLaBandeja(eje, yo, firmar, { modo, sobre, en, payload }, opciones = {}) {
+  const r = await ejecutarAhora(eje, yo, firmar, { tipo: 'registro', modo, en, X: sobre, valores: { payload } }, opciones);
+  if (!r.ok) throw Object.assign(new Error((r.motivos ?? []).map((m) => m.mensaje ?? String(m)).join('; ')), { motivos: r.motivos ?? [] });
+  return r.eventos.at(-1);
 }
