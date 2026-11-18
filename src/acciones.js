@@ -1728,7 +1728,13 @@ export async function camino(eje, X, yo, opciones = {}) {
     if (!plantilla) return null;
     const prep = preparar(eje, plantilla, sobre, yo, extra, { t, epoca, idioma });
     const hecho = hechoEnSuAncla(eje, prep, yoYMisCosas);
-    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta: mensajeEnLlano(eje, plantilla, { candidata: prep.candidata, X: sobre, me: yo, idioma, epoca }) };
+    // El texto del paso: el mensaje de la acción sobre la candidata, si la candidata está entera; si le falta algo que pone
+    // quien la lanza (un parámetro sin valor, uno que no vale), su mensaje diría «nadie» o «∅» donde irá ese valor, así que el
+    // paso se nombra con el nombre de la acción en el idioma.
+    const falta = prep.motivos.length
+      ? textoDe(eje, claves.plantilla(nombre), idioma, { original: nombre, epoca })
+      : mensajeEnLlano(eje, plantilla, { candidata: prep.candidata, X: sobre, me: yo, idioma, epoca });
+    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta };
   };
 
   // (1) El tutorial y (2) lo que piden las reglas: las filas de la lectura de la época en X.9.8 (Core AGRAM 18-11, cuarta
