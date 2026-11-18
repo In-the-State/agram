@@ -131,7 +131,8 @@ test('transaccion: los motivos legibles, en el idioma de quien lanza (los parám
   const { eje, menu } = await ejemploCompra();
   // Un parámetro que no cumple su validación, y uno que falta.
   const mal = await A.transaccion(eje, 'apply a resource', { X: menu.id, quantity: 0, price: [['E:casa/EUR'], [12]] }, 'huesped', { t: T1, idioma: 'en' });
-  assert.deepEqual([mal.ok, mal.evento, mal.motivos], [false, null, [{ regla: 'quantity', mensaje: 'quantity: how many units', parametro: 'quantity' }]]);
+  // 8b (NUCLEO_6_7_8 §8.2): el mensaje es la etiqueta más el porqué en llano; la ayuda, aparte.
+  assert.deepEqual([mal.ok, mal.evento, mal.motivos.map(({ regla, mensaje, parametro, ayuda }) => ({ regla, mensaje, parametro, ayuda }))], [false, null, [{ regla: 'quantity', mensaje: 'quantity: it has to be greater than 0, and it is 0', parametro: 'quantity', ayuda: 'how many units' }]]);
   const sin = await A.transaccion(eje, 'apply a resource', { X: menu.id }, 'huesped', { t: T1, idioma: 'en' });
   assert.deepEqual(sin.motivos.map((m) => m.regla), ['price']);
   // Una regla de la época, en español (la configuración de la cocina lo pide): la cocina es una cosa y no acuña.

@@ -107,9 +107,18 @@ test('explicar solo lee: un verbo, put, mover o escribir no se explican; nada de
     const r = explicar(src, ctx, opciones);
     assert.equal(r.estado, 'ERROR', src + ' ' + JSON.stringify(opciones));
   }
-  // Ningún archivo de src/ (fuera de bqlm.js, donde vive) la llama: ni las reglas, ni las plantillas, ni el eje.
+  // Ningún archivo de src/ la llama, salvo bqlm.js (donde vive) y acciones.js, y ahí solo para el porqué de una acción que
+  // no se ofrece (porQueNo, a petición) y de un parámetro que no vale (preparar, en sus motivos): ni las reglas, ni las
+  // plantillas, ni el eje, ni lo que construye o resume la candidata (8b; test/porque-no.test.js lo mira por función).
   const archivos = (dir) => readdirSync(dir, { withFileTypes: true }).flatMap((e) => (e.isDirectory() ? archivos(join(dir, e.name)) : /\.m?js$/.test(e.name) ? [join(dir, e.name)] : []));
-  for (const f of archivos('src')) if (!f.endsWith('bqlm.js')) assert.ok(!/\bexplicar\s*\(/.test(readFileSync(f, 'utf8')), f);
+  for (const f of archivos('src')) if (!f.endsWith('bqlm.js') && !f.endsWith('acciones.js')) assert.ok(!/\bexplicar\s*\(/.test(readFileSync(f, 'utf8')), f);
+  const acc = readFileSync('src/acciones.js', 'utf8');
+  const funcionDe = (i) => {
+    const antes = acc.slice(0, i);
+    const k = Math.max(antes.lastIndexOf('\nfunction '), antes.lastIndexOf('\nexport function '));
+    return antes.slice(k + 1).match(/function (\w+)/)?.[1];
+  };
+  assert.deepEqual([...new Set([...acc.matchAll(/\bexplicar\s*\(/g)].map((m) => funcionDe(m.index)))].sort(), ['porQueNo', 'preparar'], 'en acciones.js, solo porQueNo y preparar');
   const bqlm = readFileSync('src/bqlm.js', 'utf8');
   for (const nombre of ['evaluarRegla', 'leerRegla', 'evaluarEscritura', 'evaluarPlantilla', 'leerFormula', 'rellenar']) {
     const i = bqlm.indexOf('export function ' + nombre + '(');

@@ -184,7 +184,7 @@ test('etiqueta, ayuda, marcador, madurez, validar y los parámetros del aro habl
   assert.equal(aplica.parametros.find((x) => x.nombre === 'price').etiqueta, 'precio');
   // Un parámetro que falla, en el idioma de la configuración de quien lanza.
   const r = await A.transaccion(eje, 'apply a resource', { X: menu.id, quantity: 0, price: [['E:casa/EUR'], [12]] }, 'huesped', { t: T1, idioma: 'es' });
-  assert.deepEqual(r.motivos.map((m) => m.mensaje), ['cantidad: cuántas unidades']);
+  assert.deepEqual(r.motivos.map((m) => [m.mensaje, m.ayuda]), [['cantidad: hace falta que sea mayor que 0, y es 0', 'cuántas unidades']]);
   // El mensaje de una lectura y de un paso del camino, en el idioma; el 0 del registro escrito sigue en inglés (dato canónico).
   const lectura = await A.transaccion(eje, 'view thread', { X: menu.id }, 'huesped', { t: T1, idioma: 'es' });
   assert.equal(lectura.lectura.mensaje, 'el hilo de Menú del día hasta el génesis', 'sin el nombre de la plantilla delante (#83)');
@@ -201,12 +201,13 @@ test('el árbol de la carta para la compra en es no lleva ninguna cadena que emp
   assert.equal(C.configuracion(b, 'huesped').language, 'es');
   const a = await arbol({ foco: { X: X.id, pv: 0 }, niveles: Object.fromEntries(LATERALES.map((pv) => [pv, NIVEL.bloque])), aro: { X: X.id, pv: 1 }, formulario: { X: m.id, accion: 'apply a resource', valores: {} } }, b, 'huesped', { ancho: 400, alto: 700 });
   assert.equal(a.idioma, 'es');
-  // Todas las cadenas del árbol, salvo los valores en crudo (`valor`: el BTML que el formulario enseña en «ver en BTML»).
+  // Todas las cadenas del árbol, salvo los valores en crudo (`valor`: el BTML que el formulario enseña en «ver en BTML») y el
+  // nombre canónico de las acciones del centro del aro (`canonico`: no se enseña, solo sirve para filtrar el diccionario).
   const cadenas = [];
   (function anda(v) {
     if (typeof v === 'string') cadenas.push(v);
     else if (Array.isArray(v)) v.forEach(anda);
-    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (k !== 'valor') anda(x);
+    else if (v && typeof v === 'object') for (const [k, x] of Object.entries(v)) if (k !== 'valor' && k !== 'canonico') anda(x);
   })(a);
   const nombresEn = A.plantillasDeTransaccion().map((p) => p.nombre);
   assert.deepEqual(cadenas.filter((s) => s.startsWith('[[')), []);
