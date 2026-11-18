@@ -104,8 +104,10 @@ const UMBRAL_ARRASTRE = 24;
  *   filtroCaja(caja)         el 3 por tema (encargo pv3): el botón de una caja cicla todos → doy → recibo
  *   sitio(X, lugar, { general })  el interrogante (o el muñeco) de un sitio: abrir la cruceta del propio nodo X.<lugar> (#38); el del 0 de mi alta (general) lleva las opciones de lo que era la barra
  *   lanzarCon(X, accion, valores)  una posición de esa cruceta: el formulario de su acción con los parámetros del sitio
- *   reclasificar(persona, caja)  arrastrar a una persona de una caja del 3 a otra (mantener y arrastrar, en Mapped y en
- *                            Sequenced): reclasificar la conversación (al 5, vetar)
+ *   soltar(arrastrado, destino)  arrastrar a una persona y soltarla en otra caja (mantener y arrastrar, en Mapped y en
+ *                            Sequenced; VG 18-11: «soltar en una caja es crear ahí lo que la época permita»): lo arrastrado,
+ *                            { X (su alta), identidad, caja }, y dónde se suelta, { X, lugar, caja } (la caja: data-caja; su
+ *                            registro y su posición: data-soltar-x y data-soltar-lugar). La app compone en la bandeja; nunca escribe
  * En Mapped, nivel(pv, delta, X) llega también de los botoncitos de cada PV (data-tamano) y del arrastre desde su
  * esquina (data-asa: tantos pasos como umbrales recorre en la dirección que va de su esquina al centro); y foco(X, 0),
  * de arrastrar un elemento y soltarlo sobre el centro (#23).
@@ -463,17 +465,22 @@ export function instalar(raiz, m) {
   const punteros = new Map();
   let pellizco = null;
   let asa = null; // el arrastre desde la esquina de un PV (Mapped)
-  // Arrastrar a una persona de una caja del 3 a otra (encargo pv3): { persona, caja, x, y, el, activo }.
+  // Arrastrar a una persona a otra caja (encargo pv3; VG 18-11, soltar compone): { persona, X, caja, x, y, el, activo }.
   let arrastre = null;
-  /** La caja del 3 que hay bajo el puntero al soltar (lo que está debajo, si el documento lo dice; si no, donde se soltó). */
+  /**
+   * La caja que hay bajo el puntero al soltar (lo que está debajo, si el documento lo dice; si no, donde se soltó): su
+   * número (data-caja) y, si la caja lo dice, su registro y su posición (data-soltar-x, data-soltar-lugar). O null.
+   */
   const cajaBajo = (e) => {
     const bajo = documento.elementFromPoint?.(e.clientX, e.clientY) ?? e.target;
     const caja = bajo?.closest?.('[data-caja]');
-    return caja ? Number(caja.dataset.caja) : null;
+    if (!caja) return null;
+    const sitio = bajo?.closest?.('[data-soltar-x]');
+    return { caja: Number(caja.dataset.caja), X: sitio?.dataset?.soltarX ?? null, lugar: sitio?.dataset?.soltarLugar ?? null };
   };
   on('pointerdown', (e) => {
     const persona = e.target.closest?.('[data-persona]');
-    if (persona && (e.button === undefined || e.button === 0)) arrastre = { persona: persona.dataset.persona, caja: Number(persona.dataset.caja), x: e.clientX, y: e.clientY, el: persona, activo: false };
+    if (persona && (e.button === undefined || e.button === 0)) arrastre = { persona: persona.dataset.persona, X: persona.dataset.x ?? null, caja: Number(persona.dataset.caja), x: e.clientX, y: e.clientY, el: persona, activo: false };
     const a = e.target.closest?.('[data-asa]');
     if (a) {
       e.preventDefault();
@@ -538,8 +545,9 @@ export function instalar(raiz, m) {
         punteros.delete(e.pointerId);
         cancelarMantener();
         arrastrado = Date.now(); // el clic que sigue no entra
-        const caja = cajaBajo(e);
-        if (Number.isInteger(caja) && caja !== a.caja) m.reclasificar?.(a.persona, caja);
+        // Soltar compone (VG 18-11): la app busca qué permite la época ahí; en su misma caja, nada.
+        const destino = cajaBajo(e);
+        if (destino && Number.isInteger(destino.caja) && destino.caja !== a.caja) m.soltar?.({ X: a.X, identidad: a.persona, caja: a.caja }, destino);
         return;
       }
     }

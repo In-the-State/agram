@@ -201,7 +201,9 @@ test('la app: el método enviar(form) ya no escribe por su cuenta (sin enviar( n
   assert.doesNotMatch(cuerpo, /(?<![\w$.])enviar\s*\(/, 'sin enviar(');
   assert.doesNotMatch(cuerpo, /antesDelMensaje|reservaAntes|confirmarEnPagina/, 'la reserva va en el mismo todo o nada');
   assert.match(cuerpo, /ejecutarAhora\(/);
-  assert.match(app, /bandejaEjecutar\(\) \{[^]*?b\.ejecutar\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\)/, 'el 4 ejecuta con el firmante de hoy');
+  // El 4 ejecuta el borrador entero, libro a libro (VG 18-11); el libro en pantalla, con el firmante de hoy.
+  assert.match(app, /bandejaEjecutar\(\) \{[^]*?ejecutarPorLibros\(\{[^]*?abrir: abrirParaLaBandeja/, 'el 4 ejecuta libro a libro');
+  assert.match(app, /async function abrirParaLaBandeja\(libro\) \{[^]*?libro === estado\.eje\.genesisId\) \{\s*return \{ eje: estado\.eje, yo: estado\.identidad, firmar: firmarCon\(estado\.identidad\)/, 'el 4 ejecuta con el firmante de hoy');
   assert.match(app, /function trasEjecutar\(r\) \{[^]*?trasEscribir\(\);/, 'al asentar, guardar y la cola de subida, como enviar');
 });
 
@@ -229,7 +231,7 @@ test('la app: tocar un campo y una acción con archivo ya no escriben directo (s
   assert.match(campo, /bandeja\(\)\?\.poner\(\{ \.\.\.entrada, donde: \{ X, pv \} \}\)/, 'desde un punto de vista, a la bandeja');
   assert.match(campo, /ejecutarAhora\(/, 'desde el aro, ahora');
   assert.doesNotMatch(app, /adjuntarConAccion/);
-  assert.match(app, /subirAntesDeFirmar\(b\.listar\(\)\.entradas\.map/);
+  assert.match(app, /antesDeEjecutar: \(probado\) => subirAntesDeFirmar\(probado\.libros\.flatMap/, 'los archivos de todos los libros, antes de firmar ninguno');
   assert.match(app, /opcionesDelAparato, \.\.\.\(estado\.cuenta/, 'el aparato da las opciones de un parámetro de archivo');
   const archivos = readFileSync(new URL('../carta/archivos.js', import.meta.url), 'utf8');
   assert.doesNotMatch(archivos, /adjuntarConAccion|validarSinFirmar/);

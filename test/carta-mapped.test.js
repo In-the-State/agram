@@ -902,26 +902,29 @@ test('el personaje del sitio (#38): el interrogante de cada caja del 3 (y del 3 
   assert.deepEqual(a.centro.rejilla.celdas.find((c) => c.caja === 3).minimo.cantidad, 1);
 });
 
-test('arrastrar a alguien de una caja del 3 a otra reclasifica la conversación (al 5, vetar), en Mapped y en Sequenced: gestos → reclasificar → «move to group»', async () => {
+test('arrastrar a alguien de una caja del 3 a otra compone en la bandeja (VG 18-11: soltar compone), en Mapped y en Sequenced: gestos → soltar con lo arrastrado y la caja; la app no escribe en el acto', async () => {
   const { eje, alta } = await tresDeLaCasa();
   // gestos.js: pulsar una persona, moverla más que el umbral y soltarla sobre otra caja
   const g = gestosDeMentira();
   const persona = { dataset: { persona: 'ana', caja: '3', x: eje.alta('ana').id }, classList: { add() {}, remove() {} } };
   g.disparar('pointerdown', { pointerId: 1, clientX: 100, clientY: 100, button: 0, target: objetivo({ '[data-persona]': persona, '[data-x]': persona }) });
   g.disparar('pointermove', { pointerId: 1, clientX: 160, clientY: 140, target: objetivo({}), preventDefault() {} });
-  g.disparar('pointerup', { pointerId: 1, clientX: 160, clientY: 140, target: objetivo({ '[data-caja]': { dataset: { caja: '5' } } }) });
+  g.disparar('pointerup', { pointerId: 1, clientX: 160, clientY: 140, target: objetivo({ '[data-caja]': { dataset: { caja: '5' } }, '[data-soltar-x]': { dataset: { soltarX: alta, soltarLugar: '3.5' } } }) });
   g.disparar('click', { target: objetivo({ '[data-celda]': { dataset: { celda: 'x' } } }), preventDefault() {} });
-  assert.deepEqual(g.llamadas, [['reclasificar', 'ana', 5]], 'reclasifica, y el clic de soltar no entra');
+  assert.deepEqual(g.llamadas, [['soltar', { X: eje.alta('ana').id, identidad: 'ana', caja: 3 }, { caja: 5, X: alta, lugar: '3.5' }]], 'suelta en la caja, y el clic de soltar no entra');
   // soltarla en su misma caja no reclasifica
   const h = gestosDeMentira();
   h.disparar('pointerdown', { pointerId: 2, clientX: 0, clientY: 0, button: 0, target: objetivo({ '[data-persona]': persona }) });
   h.disparar('pointermove', { pointerId: 2, clientX: 40, clientY: 0, target: objetivo({}), preventDefault() {} });
   h.disparar('pointerup', { pointerId: 2, clientX: 40, clientY: 0, target: objetivo({ '[data-caja]': { dataset: { caja: '3' } } }) });
   assert.deepEqual(h.llamadas, []);
-  // lo que hace la app (carta/app.js): la acción del destino del gesto (dato: contrato.destinoDeGesto, hoy «move to group»)
-  // sobre su alta, con la persona y la caja
+  // lo que hace la app (carta/app.js): lo que encaja lo dice el núcleo (src/soltar.js) y va al borrador; nunca escribe
   const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
-  assert.match(app, /async reclasificar\(persona, caja\) \{[\s\S]*?contrato\.destinoDeGesto\('drop a person in a box'\)[\s\S]*?enviarPorLaBandeja\(estado\.eje, alta, d\.accion, valores/);
+  const soltar = app.slice(app.indexOf('  async soltar(arrastrado, destino) {'), app.indexOf('  cerrar() {'));
+  assert.match(soltar, /loQueEncaja\(eje, \{ arrastrado:[\s\S]*?bandeja\(\)\?\.poner\(entradaAlSoltar\(opcion, destino\)\)/);
+  assert.doesNotMatch(soltar, /enviarPorLaBandeja|ejecutarAhora|(?<![\w$.])enviar\s*\(/, 'soltar no escribe en el acto');
+  // la caja dice su registro y su posición (dom.js): ahí se crea lo que la época permita
+  assert.match(html(await arbol({ foco: { X: alta, pv: 3 } }, eje, 'casa', GRANDE)), new RegExp('data-soltar-x="' + alta + '" data-soltar-lugar="3.5" data-caja="5"'));
   assert.equal(C.destinoDeGesto('drop a person in a box').accion, 'move to group');
   const r = await A.transaccion(eje, 'move to group', { X: eje.alta('ana').id, whom: 'ana', zone: 5 }, 'casa', { t: '2026-11-08T10:09:00Z' });
   assert.equal(r.ok, true, JSON.stringify(r.motivos));

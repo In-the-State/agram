@@ -149,6 +149,17 @@ export async function anunciarLibroPrivado(eje, X, yo, { libro, claves, firmar, 
   return { ...r, motivos: motivosEnLlano(r.motivos, eje) };
 }
 
+/**
+ * El anuncio en el grande como entrada de la bandeja (VG 18-11: lo que toca dos libros se compone y se ejecuta desde el 4,
+ * libro a libro): «open a private book here» sobre X con el libro y sus claves de línea. Crear el libro pequeño (y escribir
+ * en él de qué cuelga) sigue siendo un gesto en el acto: no es una acción de la época, y el anuncio necesita el id del libro
+ * y las claves que solo existen al crearlo. → { accion, X, valores } o null sin claves (la plantilla pide de una a cuatro).
+ */
+export function entradaDelAnuncio(X, { libro, claves } = {}) {
+  if (!Array.isArray(claves) || !claves.length) return null;
+  return { accion: LIBRO_PRIVADO.abrir, X, valores: valoresDelAnuncio(libro, claves) };
+}
+
 // ---------- la copia de todos mis libros (§4.7) ----------
 
 /**

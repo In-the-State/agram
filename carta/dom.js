@@ -429,7 +429,8 @@ function htmlPersona(p) {
 /**
  * Una caja del 3 por tema (encargo pv3): su número y su grupo, cuántos tiene, el botón que cicla doy / recibo / todos
  * (data-filtro-caja) y el interrogante de su nodo; dentro, sus personas; al pie, sus mínimos y cuántos cayeron al 0. Es
- * donde se suelta a alguien al arrastrarlo (data-caja).
+ * donde se suelta a alguien al arrastrarlo (data-caja; su registro y su posición, data-soltar-x y data-soltar-lugar: soltar
+ * compone ahí lo que la época permita, VG 18-11).
  */
 function htmlCajaDelTres(c) {
   const filtro = `<button type="button" class="filtro-caja"${nodo('control')} data-filtro-caja="${c.caja}" data-filtro="${attr(c.filtro)}" title="${attr(t('filtroTitulo'))}">${escapar(t('filtro_' + c.filtro))}</button>`;
@@ -441,7 +442,7 @@ function htmlCajaDelTres(c) {
     m.rango ? t(c.rangoPendiente ? 'cajaRangoPendiente' : 'cajaRango', { rango: m.rango }) : '',
     c.fuera ? t('cajaFuera', { n: c.fuera }) : '',
   ].filter(Boolean);
-  return `<div class="rejilla-celda hijo caja-tres${c.total ? '' : ' vacia'}" data-color="${c.pv}" data-pv="${c.pv}"${c.sitio?.lugar ? ` data-hueco-ruta="${attr(c.sitio.lugar)}" data-hueco-nombre="${attr(c.nombre ?? '')}"` : ''} data-caja="${c.caja}" data-fila="${c.fila}" data-columna="${c.columna}"${c.vacio ? ' data-vacio' : ''}><header class="hijo-cabeza"><span class="numero">${c.pv}</span><span class="hijo-nombre" title="${attr(c.nombre ?? '')}">${escapar(c.nombre ?? '')}</span><span class="hijo-cifra">${c.total ? escapar(c.total) : ''}</span>${filtro}${htmlInterrogante(c.sitio)}</header><div class="hijo-cuerpo">${cuerpo}</div>${pie.length ? `<footer class="hijo-pie"><p class="hijo-minimo">${escapar(pie.join(' · '))}</p></footer>` : ''}</div>`;
+  return `<div class="rejilla-celda hijo caja-tres${c.total ? '' : ' vacia'}" data-color="${c.pv}" data-pv="${c.pv}"${c.sitio?.lugar ? ` data-hueco-ruta="${attr(c.sitio.lugar)}" data-hueco-nombre="${attr(c.nombre ?? '')}"` : ''}${c.sitio?.X && c.sitio?.lugar ? ` data-soltar-x="${attr(c.sitio.X)}" data-soltar-lugar="${attr(c.sitio.lugar)}"` : ''} data-caja="${c.caja}" data-fila="${c.fila}" data-columna="${c.columna}"${c.vacio ? ' data-vacio' : ''}><header class="hijo-cabeza"><span class="numero">${c.pv}</span><span class="hijo-nombre" title="${attr(c.nombre ?? '')}">${escapar(c.nombre ?? '')}</span><span class="hijo-cifra">${c.total ? escapar(c.total) : ''}</span>${filtro}${htmlInterrogante(c.sitio)}</header><div class="hijo-cuerpo">${cuerpo}</div>${pie.length ? `<footer class="hijo-pie"><p class="hijo-minimo">${escapar(pie.join(' · '))}</p></footer>` : ''}</div>`;
 }
 
 /**

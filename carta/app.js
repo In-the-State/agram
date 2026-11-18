@@ -48,8 +48,10 @@ import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMov
 import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
-import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja, escribirPorLaBandeja } from './bandeja.js';
-import { vistaDeLaBandeja, nombreDeLaEntrada, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja, escribirPorLaBandeja, probarPorLibros, ejecutarPorLibros, absorberBorradorDeLibro } from './bandeja.js';
+import { loQueEncaja } from '../src/soltar.js';
+import { queHacerAlSoltar, entradaAlSoltar, elegirEnPagina } from './soltar.js';
+import { vistaDeLaBandeja, vistaDeLaBandejaPorLibros, textosTrasEjecutar, nombreDeLaEntrada, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -196,10 +198,56 @@ function nombreDeAccion(accion) {
 
 // ---------- la bandeja (A33; agram-equipo/DISENO_BANDEJA_PV4.md; carta/bandeja.js y carta/bandeja-pantalla.js) ----------
 
-/** La bandeja del libro y la cuenta en pantalla: su borrador vive en este navegador (leerLocal/guardarLocal). */
+/** Donde vive el borrador: este navegador (leerLocal/guardarLocal). */
+const ALMACEN_DE_LA_BANDEJA = { leer: leerLocal, guardar: guardarLocal };
+/** De quién es el borrador común (VG 18-11: uno, con lo de todos mis libros): mi clave pública; en un ejemplo, quien mira. */
+const personaDeLaBandeja = () => estado.cuenta?.publica ?? estado.identidad;
+/** Los borradores de un libro (los de antes del común) ya pasados al común en esta pestaña. */
+const borradoresAbsorbidos = new Set();
+/**
+ * La bandeja del libro en pantalla sobre el borrador común (carta/bandeja.js crearBandeja con `comun`): compone, lista y
+ * prueba lo de este libro; el 4 ejecuta el borrador entero, libro a libro (ejecutarPorLibros). Lo que quedara en el
+ * borrador de este libro de antes del común pasa a él la primera vez.
+ */
 function bandeja() {
   if (!estado.eje || !estado.identidad) return null;
-  return crearBandeja({ almacen: { leer: leerLocal, guardar: guardarLocal }, libro: estado.eje.genesisId, cuenta: estado.identidad });
+  const datos = { almacen: ALMACEN_DE_LA_BANDEJA, libro: estado.eje.genesisId, cuenta: estado.identidad };
+  const persona = personaDeLaBandeja();
+  if (!borradoresAbsorbidos.has(datos.libro + '.' + datos.cuenta)) {
+    borradoresAbsorbidos.add(datos.libro + '.' + datos.cuenta);
+    absorberBorradorDeLibro({ ...datos, persona });
+  }
+  return crearBandeja({ ...datos, comun: persona });
+}
+/**
+ * Mis otros libros con entradas en el borrador, abiertos aparte (cuentas.abrirCuenta: el libro en pantalla no cambia y no
+ * se abre otra sincronía): libro (génesis) → { eje, yo, firmar, nombre, opciones, hecho } o { motivo, nombre }. Se olvidan
+ * al cambiar de libro (cambiarDeEje): así nunca se escribe sobre un eje viejo.
+ */
+const librosDeLaBandeja = new Map();
+/**
+ * Con qué se prueba y se ejecuta un libro del borrador (bandeja.js probarPorLibros, ejecutarPorLibros): el de la pantalla,
+ * con el firmante de hoy; otro de los míos, abierto aparte, con su clave o con el guardián diciendo ese libro (cada libro
+ * pide su firma). Tras ejecutar en él, se guarda en este navegador (su sincronía lo sube al abrirlo).
+ */
+async function abrirParaLaBandeja(libro) {
+  if (estado.eje && libro === estado.eje.genesisId) {
+    return { eje: estado.eje, yo: estado.identidad, firmar: firmarCon(estado.identidad), nombre: estado.cuenta?.nombre ?? null, hecho: (r) => trasEjecutar(r) };
+  }
+  if (librosDeLaBandeja.has(libro)) return librosDeLaBandeja.get(libro);
+  const e = misEntradas().find((x) => x.libro === libro);
+  if (!e) return { motivo: t('bandejaLibroNoEsta') };
+  const r = await cuentas.abrirCuenta(e.alta, { guardian });
+  let x;
+  if (!r.eje) x = { motivo: r.motivo ?? '', nombre: e.nombre ?? null };
+  else {
+    puente.sellosGuardados(r.eje, e.alta);
+    const firmante = !r.privada && r.cuenta?.guardian === true && guardian && !r.soloLeer ? firmanteDeCuenta(guardian, r.publica, { eje: () => r.eje, dialogo: true }) : null;
+    const firmar = r.privada ? cuentas.firmarCon(r.privada) : firmante ? autoridad.firmanteDeEventos(firmante, { publica: r.publica }) : undefined;
+    x = { eje: r.eje, yo: r.cuenta.identidad, firmar, nombre: r.cuenta.nombre ?? e.nombre ?? null, hecho: () => { puente.guardarLibroNuevo({ cuenta: r.cuenta, eje: r.eje }); } };
+  }
+  librosDeLaBandeja.set(libro, x);
+  return x;
 }
 /** Con qué se hizo la prueba de la bandeja: el libro (y su último registro), quién mira y el borrador guardado. Si cambia, se vuelve a probar. */
 function claveDeLaPrueba() {
@@ -219,7 +267,8 @@ async function probarBandeja() {
   const eje = estado.eje;
   let r = null;
   try {
-    r = await b.probar(eje, estado.identidad, opcionesDeLaBandeja());
+    // El borrador común entero, libro a libro y en el orden de ejecutar (varios libros, VG 18-11).
+    r = await probarPorLibros({ almacen: ALMACEN_DE_LA_BANDEJA, persona: personaDeLaBandeja(), abrir: abrirParaLaBandeja, opciones: opcionesDeLaBandeja() });
   } catch (e) {
     console.error(e);
   }
@@ -275,7 +324,7 @@ function textosDeLaBandeja() {
 /** Lo que se pinta de la bandeja (la cuenta del marco, la tira donde se compuso y el 4), o null. */
 /** El borrador guardado ahora (su texto), o null sin bandeja: con él se sabe si lo que dijo el último intento sigue valiendo. */
 const borradorDeAhora = () => { const b = bandeja(); return b ? leerLocal(b.clave) ?? '' : null; };
-const vistaBandeja = () => (estado.eje ? vistaDeLaBandeja(estado.bandeja.probado, textosDeLaBandeja(), { motivos: motivosDelUltimoIntento({ motivos: estado.bandeja.motivos, de: estado.bandeja.motivosDe ?? null }, borradorDeAhora()), ocupado: estado.bandeja.ocupado }) : null);
+const vistaBandeja = () => (estado.eje ? vistaDeLaBandejaPorLibros(estado.bandeja.probado, textosDeLaBandeja(), { motivos: motivosDelUltimoIntento({ motivos: estado.bandeja.motivos, de: estado.bandeja.motivosDe ?? null }, borradorDeAhora()), ocupado: estado.bandeja.ocupado, emparejada: estado.cuenta?.guardian === true, abierto: estado.eje.genesisId }) : null);
 /** ¿Solo lee? (una plantilla de lectura: no escribe nada y no pasa por la bandeja). */
 function soloLee(accion) {
   const epoca = typeof estado.eje?.epoca === 'function' ? estado.eje.epoca() : undefined;
@@ -658,30 +707,22 @@ function puenteSeguro() {
   }
 }
 
-/** Una escritura del puente: la hoja ocupada mientras dura y libre al acabar, pase lo que pase; lo que falle se dice. */
-async function escribirEnElPuente(escribe, exito) {
+/**
+ * Lo que hace un botón del puente (VG 18-11: lo que toca dos libros se acumula): compone su entrada en el borrador común,
+ * del libro en pantalla, sin escribir; se ejecuta desde el 4, libro a libro. Sin entrada (traer sin prueba de sello), lo dice.
+ */
+function componerEnElPuente(entrada) {
   const p = estado.puente;
   if (!p) return;
-  p.ocupado = true;
-  try {
-    await pintar();
-    trasEscribirEnElPuente(await escribe(), exito);
-  } catch (e) {
-    p.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
-  } finally {
-    p.ocupado = false;
+  if (!entrada) {
+    Object.assign(p, { exito: null, motivos: [{ mensaje: t('puenteSinPrueba') }] });
+    pintar();
+    return;
   }
+  const r = bandeja()?.poner({ ...entrada, donde: { X: estado.foco.X ?? null, pv: null }, nueva: true });
+  if (r?.ok) Object.assign(p, { enviar: null, motivos: [], exito: t('bandejaPuesto', { accion: nombreDeAccion(entrada.accion) }) });
+  else Object.assign(p, { exito: null, motivos: [{ mensaje: r?.motivo ?? t('bandejaNoEntra') }] });
   pintar();
-}
-
-/** Tras escribir en el puente: guarda y sincroniza como cualquier escritura, y lo dice en la hoja. */
-function trasEscribirEnElPuente(r, exito) {
-  const p = estado.puente;
-  if (r.asentado) {
-    trasEscribir();
-    marcarNuevos();
-    if (p) Object.assign(p, { enviar: null, motivos: [], exito: exito + (r.asentado.firma ? ' ' + t('firmado') : '') });
-  } else if (p) Object.assign(p, { exito: null, motivos: motivosConGuardian(r.motivos ?? []) });
 }
 
 /** Con qué se firma en mi libro nuevo: su clave (camino A) o el guardián, diciendo ese libro (camino B); null si no hay con qué. */
@@ -1078,6 +1119,7 @@ function cambiarDeEje(eje, identidad) {
   estado.sincronia = sinc.soltar(estado.sincronia, estado.cuenta?.alta); // la del libro de antes se suelta (la del nuevo se abre en entrarCon)
   estado.libroPrivado = null;
   estado.puente = null;
+  librosDeLaBandeja.clear(); // los otros libros de la bandeja se vuelven a abrir desde lo guardado
   estado.lineaSincronia = null;
   limpiarMensajes();
 }
@@ -1267,8 +1309,6 @@ const librosDelArbol = () => ({ propios: misEntradas(), puedeAbrir: firmaLaCuent
 const conDestino = (alta) => (alta === estado.cuenta?.alta ? Boolean(estado.sincronia) : Boolean(cuentas.claveLectura(alta) && cuentas.estadoSincronia(alta)?.url));
 /** Lo que lista «Tus libros» (libros.tusLibros). */
 const tusLibrosDe = () => libros.tusLibros(cuentas.cuentas(), { publica: estado.cuenta?.publica, abierto: estado.cuenta?.alta, conDestino });
-/** El firmante de eventos de la cuenta abierta (lo que firma en el grande al anunciar). */
-const firmarEnElAbierto = () => firmarCon(estado.identidad);
 
 // ---------- mi cuenta ----------
 
@@ -1800,7 +1840,12 @@ const manejadores = {
     if (enSecuencia()) manejadores.digito(PV_DE_LA_BANDEJA);
     else irA(estado.foco.X, PV_DE_LA_BANDEJA);
   },
-  /** El botón del 4: ejecutar la bandeja entera, todo o nada, con el firmante de hoy. Si falla antes de asentar, el borrador sigue y se ve el motivo. */
+  /**
+   * El botón del 4: ejecutar el borrador entero (VG 18-11: «primero en el libro tal, después en el libro cual»), libro a
+   * libro y cada uno todo o nada (bandeja.js ejecutarPorLibros), con el firmante de cada libro. Si el primero falla, nada se
+   * intenta y todo sigue en el borrador con su motivo; si falla uno posterior, lo de los anteriores YA ESTÁ HECHO (salió del
+   * borrador) y se dice, y lo que falló se queda para reintentar o quitar.
+   */
   async bandejaEjecutar() {
     const b = bandeja();
     if (!b || estado.bandeja.ocupado) return;
@@ -1810,20 +1855,27 @@ const manejadores = {
     pintar();
     let r;
     try {
-      // Los archivos que nombra lo que se va a lanzar se suben antes de firmar; si no se puede, no se lanza nada.
-      const probado = await b.probar(estado.eje, estado.identidad, opcionesDeLaBandeja());
-      const fallo = probado.ok ? await subirAntesDeFirmar(b.listar().entradas.map((e) => e.valores)) : null;
-      r = fallo ? { ok: false, motivos: [{ mensaje: fallo }] } : await b.ejecutar(estado.eje, estado.identidad, firmarCon(estado.identidad), opcionesDeLaBandeja());
+      r = await ejecutarPorLibros({
+        almacen: ALMACEN_DE_LA_BANDEJA, persona: personaDeLaBandeja(), abrir: abrirParaLaBandeja, opciones: opcionesDeLaBandeja(),
+        // Los archivos que nombra lo que se va a lanzar se suben antes de firmar; si no se puede, no se lanza nada.
+        antesDeEjecutar: (probado) => subirAntesDeFirmar(probado.libros.flatMap((l) => l.items.map((x) => x.entrada?.valores).filter(Boolean))),
+      });
     } catch (e) {
-      r = { ok: false, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] };
+      r = { ok: false, hechos: [], fallo: { libro: null, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] }, pendientes: [], probado: null };
     }
     estado.bandeja.ocupado = false;
-    if (r.ok) {
-      await trasEjecutar(r);
-      tocar(estado.foco.X, 'ejecutar la bandeja');
-    } else {
-      const motivos = motivosConGuardian(motivosEnLlano(r.motivos ?? [], estado.eje));
-      estado.bandeja.motivos = [{ mensaje: t('bandejaNoRegistrado', { motivo: motivos.map((m) => m.mensaje).join(' · ') }) }];
+    const nombreDe = (x) => nombreDeLaEntrada(x.puesta ? null : x.entrada, x.accion, nombreDeAccion);
+    const lista = (h) => h.items.map((x, k) => t('registrado', { accion: nombreDe(x), id: h.eventos[k].id.slice(0, 8) })).join(' · ');
+    const otros = r.hechos.filter((h) => h.libro !== estado.eje?.genesisId);
+    if (r.hechos.length) tocar(estado.foco.X, 'ejecutar la bandeja');
+    // Lo hecho en otros libros también se dice (lo del libro en pantalla ya lo dijo trasEjecutar).
+    if (r.ok && otros.length) estado.exito = r.hechos.map((h) => t('bandejaLibroCabecera', { libro: h.nombre || t('bandejaLibroSinNombre') }) + ': ' + lista(h)).join(' · ');
+    if (!r.ok) {
+      const llano = (ms) => motivosConGuardian(motivosEnLlano(ms ?? [], estado.eje)).map((m) => m.mensaje);
+      // Un solo libro: como siempre («no se ha registrado nada»); varios: lo ya hecho, lo que falló y lo que no se intentó.
+      const unLibro = (r.probado?.libros?.length ?? 1) <= 1 && !r.hechos.length;
+      const textos = unLibro ? [t('bandejaNoRegistrado', { motivo: llano(r.fallo?.motivos).join(' · ') })] : textosTrasEjecutar(r, { llano, lista });
+      estado.bandeja.motivos = textos.map((mensaje) => ({ mensaje }));
       estado.bandeja.motivosDe = borradorDeAhora(); // vale mientras el borrador sea este: quitar o cambiar algo lo deja viejo
     }
     estado.bandeja.clave = null; // otra prueba en seco con lo de ahora
@@ -1858,26 +1910,39 @@ const manejadores = {
     pintar();
   },
   /**
-   * Arrastrar a una persona de una caja del 3 a otra (encargo pv3): reclasificar la conversación (al 5, vetar). Qué acción se
-   * lanza, sobre qué registro y con qué parámetros es dato (contrato.destinoDeGesto, «drop a person in a box»: hoy
-   * «move to group» sobre su alta). Si no pasa, el formulario de la acción con el motivo.
+   * Soltar en una caja (VG 18-11: «soltar en una caja es crear ahí lo que la época permita»; antes, arrastrar a alguien a
+   * otra caja del 3 escribía en el acto). Compone, como tocar o rellenar, y nunca escribe: qué encaja lo dice el núcleo
+   * (src/soltar.js loQueEncaja, con lo arrastrado, la caja y quien mira). Una acción: su entrada va al borrador; varias:
+   * una lista corta para elegir; ninguna: el motivo. Lo que le falte por rellenar queda a medias, como en cualquier entrada.
    */
-  async reclasificar(persona, caja) {
-    const d = contrato.destinoDeGesto('drop a person in a box');
-    const alta = estado.eje?.alta(persona)?.id;
-    if (!d?.accion || d.sobre !== 'the alta of the person' || !alta || !Number.isInteger(caja)) return;
+  async soltar(arrastrado, destino) {
+    const eje = estado.eje;
+    if (!eje || !estado.identidad || !arrastrado || !destino) return;
     limpiarMensajes();
-    const da = { person: persona, box: caja }; // lo que el gesto da: la lista cerrada de la lente
-    const valores = Object.fromEntries(Object.entries(d.parametros).filter(([, de]) => de in da).map(([nombre, de]) => [nombre, da[de]]));
-    const r = await enviarPorLaBandeja(estado.eje, alta, d.accion, valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
-    if (r.ok && r.asentado) {
-      trasEscribir();
-      estado.exito = t('registrado', { accion: nombreDeAccion(d.accion), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
-      tocar(estado.foco.X, 'reclasificar ' + persona + ' ' + d.vista + '.' + caja);
-      marcarNuevos();
-    } else {
-      estado.formulario = { X: alta, accion: d.accion, valores, motivos: motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)), resultado: null };
+    let r;
+    try {
+      r = loQueEncaja(eje, { arrastrado: { X: arrastrado.X, identidad: arrastrado.identidad }, destino: { X: destino.X, lugar: destino.lugar } }, estado.identidad, { idioma: idioma() });
+    } catch (e) {
+      console.error(e);
+      r = { encajan: [], motivo: { que: 'nada' } };
     }
+    const que = queHacerAlSoltar(r, { nombre: nombreDeAccion });
+    let opcion = que.componer ?? null;
+    if (que.elegir) {
+      const k = await elegirEnPagina(que.elegir.map((o) => ({ ...o, etiqueta: nombreDeAccion(o.accion) })));
+      if (k === null || estado.eje !== eje) return;
+      opcion = que.elegir[k];
+    }
+    if (!opcion) {
+      estado.aviso = que.aviso;
+      pintar();
+      return;
+    }
+    const p = bandeja()?.poner(entradaAlSoltar(opcion, destino));
+    if (p?.ok) {
+      estado.exito = t('bandejaPuesto', { accion: nombreDeAccion(opcion.accion) });
+      tocar(estado.foco.X, 'soltar ' + canonicoDe(opcion.accion) + ' ' + (destino.lugar ?? ''));
+    } else if (p) estado.aviso = p.motivo;
     pintar();
   },
   cerrar() {
@@ -2205,7 +2270,7 @@ const manejadores = {
     const coste = puente.costeDelEnvio(estado.eje, estado.identidad, datos);
     const texto = t('puenteConfirmarEnvio', { cuanto: puente.serieEnLlano(estado.eje, datos.serie, cantidad, idioma()), libro: destino.nombre, grado: destino.grado ?? '', aviso: t('puenteAvisoEnvio') + ' ' + t('puenteRedDePruebas'), coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') });
     if (!(await confirmarEnPagina(texto))) return;
-    await escribirEnElPuente(() => puente.enviarAOtroLibro(estado.eje, estado.identidad, { ...datos, firmar: firmarCon(estado.identidad) }), t('puenteEnviado', { libro: destino.nombre }));
+    componerEnElPuente(puente.entradaDeEnviar(datos)); // compone (VG 18-11): se ejecuta desde el 4
   },
   /** Traer aquí un registro sellado del libro enlazado, con su prueba, tras confirmarlo con lo que cuesta. */
   async puenteTraer(id) {
@@ -2219,7 +2284,7 @@ const manejadores = {
     const datos = { enlace: l.id, origen, id };
     const coste = puente.costeDeTraer(estado.eje, estado.identidad, datos);
     if (!(await confirmarEnPagina(t('puenteConfirmarTraer', { titulo: x.titulo || id.slice(0, 8), libro: l.nombre, coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') })))) return;
-    await escribirEnElPuente(() => puente.traerDeOtroLibro(estado.eje, estado.identidad, { ...datos, firmar: firmarCon(estado.identidad) }), t('puenteTraido', { libro: l.nombre }));
+    componerEnElPuente(puente.entradaDeTraer(estado.eje, datos)); // compone (VG 18-11): se ejecuta desde el 4
   },
   /** Recibir lo traído (la ida, o la parte siguiente de una vuelta), tras confirmarlo con lo que queda y lo que cuesta. */
   async puenteRecibir(id) {
@@ -2229,7 +2294,7 @@ const manejadores = {
     if (!x?.recibir) { pintar(); return; }
     const coste = puente.costeDeRecibir(estado.eje, estado.identidad, { id });
     if (!(await confirmarEnPagina(t('puenteConfirmarRecibir', { queda: x.envio.queda, coste: coste ? textoDelCoste(coste) : t('salidaSinCoste') })))) return;
-    await escribirEnElPuente(() => puente.recibirDeOtroLibro(estado.eje, estado.identidad, { id, firmar: firmarCon(estado.identidad) }), t('puenteRecibidoYa'));
+    componerEnElPuente(puente.entradaDeRecibir(estado.eje, { id })); // compone (VG 18-11): se ejecuta desde el 4
   },
   /** «Ajustes de este elemento» (desde su configuración, la cruceta de su 0). */
   ajustesElemento(X) {
@@ -3252,18 +3317,15 @@ const manejadores = {
     lp.ocupado = true;
     lp.motivos = [];
     await pintar();
-    try {
-      const r = await libros.anunciarLibroPrivado(estado.eje, lp.X, estado.identidad, { libro: lp.libro, claves: lp.clavesDeLinea, firmar: firmarEnElAbierto() });
-      lp.ocupado = false;
-      if (r.ok && r.asentado) {
-        trasEscribir();
-        cuentas.marcarCuelga(lp.entrar, { anunciado: true });
-        Object.assign(lp, { fase: 'hecho', anunciado: true });
-        marcarNuevos();
-      } else Object.assign(lp, { fase: 'hecho', falta: r.sinClaves ? null : 'anuncio', sinClaves: Boolean(r.sinClaves), motivos: motivosConGuardian(r.motivos ?? []) });
-    } catch (e) {
-      Object.assign(lp, { ocupado: false, fase: 'hecho', falta: 'anuncio', motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] });
-    }
+    // Compone (VG 18-11: lo que toca dos libros se acumula y se ejecuta desde el 4); el libro pequeño ya está creado.
+    const entrada = libros.entradaDelAnuncio(lp.X, { libro: lp.libro, claves: lp.clavesDeLinea });
+    const r = entrada ? bandeja()?.poner({ ...entrada, donde: { X: lp.X, pv: null } }) : null;
+    lp.ocupado = false;
+    if (!entrada) Object.assign(lp, { fase: 'hecho', sinClaves: true });
+    else if (r?.ok) {
+      estado.libroPrivado = null;
+      estado.exito = t('bandejaPuesto', { accion: nombreDeAccion(entrada.accion) });
+    } else Object.assign(lp, { fase: 'hecho', falta: 'anuncio', motivos: [{ mensaje: r?.motivo ?? t('bandejaNoEntra') }] });
     pintar();
   },
 
