@@ -152,6 +152,14 @@ export class ErrorDelServidor extends Error {
 
 /** Los estados con que una tanda se queda parada en la cola, sin reintentar sola (CONTRATO_TANDA): forma, 409 y reglas. */
 const TANDA_PARADA = Object.freeze([400, 409, 422]);
+/** ¿Nombra `ev` (en su cuerpo: `sobre`, payload, movimientos, contexto) alguno de los ids de `ids` (un Set)? */
+function nombraA(ev, ids) {
+  if (ids.has(ev?.sobre)) return true;
+  const texto = JSON.stringify([ev?.payload, ev?.movimientos, ev?.contexto]);
+  for (const id of ids) if (texto.includes(id)) return true;
+  return false;
+}
+
 /** Los estados de una puerta sin tandas (sin la ruta POST /eventos/tanda): la tanda se queda pendiente, no se parte. */
 const SIN_TANDAS = Object.freeze([404, 405]);
 
@@ -759,8 +767,20 @@ export class Sincronia {
     }
     if (!nuevos.size) return true;
     if (porDetras) {
+      // Lo que se deja esperando en esta pasada, y lo que cuelga de ello (lo nombra: su `sobre`, una referencia, un
+      // movimiento) espera también: si entrara ahora, no pasaría las reglas y se perdería en rechazados aunque lo suyo
+      // entre en la pasada siguiente (revisión de Core StateArk). Lo que no cuelga de nada de eso entra como siempre.
+      const enEspera = new Set();
+      const esperar = (eventos) => {
+        for (const ev of eventos) enEspera.add(ev.id);
+        this.#esperar(eventos, nuevos, informe);
+      };
       for (const parte of partirTandas([...nuevos.keys()].sort(porOrden).map((id) => nuevos.get(id)))) {
         const ids = parte.eventos.map((ev) => ev.id);
+        if (enEspera.size && parte.eventos.some((ev) => nombraA(ev, enEspera))) {
+          esperar(parte.eventos);
+          continue;
+        }
         if (!parte.marcada) {
           try {
             await ejeLocal.anadir(parte.eventos[0]);
@@ -776,7 +796,7 @@ export class Sincronia {
         } catch (e) {
           // No es de las reglas (el eje cambió mientras): se vuelve a bajar en la pasada siguiente.
           informe.errores.push('tanda ' + ids[0].slice(0, 8) + ': ' + e.message);
-          this.#esperar(parte.eventos, nuevos, informe);
+          esperar(parte.eventos);
           continue;
         }
         if (r.ok) informe.anadidos.push(...ids);

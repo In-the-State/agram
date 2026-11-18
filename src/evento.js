@@ -241,6 +241,44 @@ export async function verificarId(ev) {
 export const TANDA_MINIMA = 2;
 export const TANDA_MAXIMA = 32;
 
+/**
+ * Los topes de tamaño de la puerta (CONTRATO_TANDA, precisión 9, supuesto de Core por confirmar con Core AARPIA): cada
+ * miembro, 256 KiB; la petición entera, 1 MiB. El núcleo no los impone: los usa la prueba en seco si se le piden
+ * (eje.vistaTanda(candidatos, { topes: TANDA_TOPES })), para que la bandeja diga «no cabe» antes de pedir la firma, y las
+ * puertas pueden usar los mismos valores.
+ */
+export const TANDA_TOPE_POR_MIEMBRO = 256 * 1024;
+export const TANDA_TOPE_POR_PETICION = 1024 * 1024;
+export const TANDA_TOPES = Object.freeze({ porMiembro: TANDA_TOPE_POR_MIEMBRO, porPeticion: TANDA_TOPE_POR_PETICION });
+/** La regla con que la prueba en seco dice que un miembro, o la petición entera, no cabe en los topes pedidos. */
+export const REGLA_NO_CABE = 'núcleo:no cabe';
+
+const bytes = (texto) => new TextEncoder().encode(texto).length;
+
+/**
+ * `ev` (un candidato) como viajará en la tanda: con su marca, su id y la firma de su autor. La marca, el id y la firma
+ * miden siempre lo mismo (los ids son 64 hexadecimales y marcarTanda cambia un id por otro del mismo largo; la firma, 128),
+ * así que con valores de relleno el tamaño es exacto sin marcar ni firmar. `k` su sitio (desde 0) y `de` cuántos son;
+ * con `de` < 2 es un registro suelto, sin marca. Lo que ya trae (una firma, pruebas de posesión) se cuenta tal cual.
+ */
+function comoViajara(ev, k, de) {
+  const c = normalizarEvento(ev);
+  const tanda = de >= TANDA_MINIMA ? { n: k + 1, de, ...(k > 0 ? { anterior: '0'.repeat(64) } : {}) } : undefined;
+  // La firma que valga (128 hexadecimales) se cuenta tal cual; la de mentira de una vista en seco, o ninguna, como una de verdad.
+  const firma = typeof c.firma === 'string' && /^[0-9a-f]{128}$/.test(c.firma) ? c.firma : '0'.repeat(128);
+  return { ...c, contexto: { ...(c.contexto ?? {}), ...(tanda ? { tanda } : {}) }, id: '0'.repeat(64), firmante: c.autor, firma };
+}
+
+/** Los bytes (UTF-8) del JSON canónico del candidato `ev`, el `k` (desde 0) de `de`, marcado y firmado (comoViajara). */
+export function bytesDeMiembro(ev, k, de) {
+  return bytes(canonico(comoViajara(ev, k, de)));
+}
+
+/** Los bytes (UTF-8) del JSON canónico de la lista de candidatos, cada uno marcado y firmado: lo que pesa la tanda. */
+export function bytesDeTanda(candidatos) {
+  return bytes(canonico(candidatos.map((ev, k) => comoViajara(ev, k, candidatos.length))));
+}
+
 const ID_HEX = /^[0-9a-f]{64}$/;
 const CLAVES_DE_LA_MARCA = Object.freeze(['n', 'de', 'anterior']);
 
@@ -427,7 +465,10 @@ export async function marcarTanda(candidatos) {
     const datos = cambiarIds(aJSON({ autor: c.autor, sobre: c.sobre ?? null, en: c.en, t: c.t, movimientos: c.movimientos, payload: c.payload, contexto: c.contexto ?? {} }), cambios);
     const tanda = { n: k + 1, de: candidatos.length, ...(k ? { anterior: marcados[k - 1].id } : {}) };
     const ev = await crearEvento({ ...datos, contexto: { ...datos.contexto, tanda } });
-    if (typeof c.id === 'string') cambios.set(c.id, ev.id);
+    // El id de antes: el que trae o, si llega sin él, el de su cuerpo (el mismo que le calcula eje.vistaTanda), para que
+    // lo que cuelga de él en los siguientes cambie al nuevo (revisión de Core StateArk, r2).
+    const viejo = typeof c.id === 'string' ? c.id : await hash(canonico(cuerpo(normalizarEvento(c))));
+    cambios.set(viejo, ev.id);
     marcados.push(ev);
   }
   return marcados;

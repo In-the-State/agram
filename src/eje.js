@@ -48,7 +48,7 @@ import { acotarAltaV2, gastaAsignacion, esInformativoT, validosDe } from './cicl
 import { evaluarEscritura, nombreDeRegla, CAUSA_LIMITE } from './bqlm.js';
 import { EPOCA_0_BTML, EPOCAS_POR_ID, cargarEpocaEscrita, epocaEscritaDe, erroresDeEpocaEscrita, idDeRegistro } from './epocas.js';
 import { msUTC, msDeGuardado, segundosUTC, esInstante } from './instante.js';
-import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ, cuerpo, hash, congelar, esMiembroDeTanda, fallosDeTanda, partirTandas, prefijosAMiembros, TANDA_MAXIMA } from './evento.js';
+import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ, cuerpo, hash, congelar, esMiembroDeTanda, fallosDeTanda, partirTandas, prefijosAMiembros, TANDA_MAXIMA, TANDA_MINIMA, REGLA_NO_CABE, bytesDeMiembro, bytesDeTanda } from './evento.js';
 import { sha256, aHex } from './cripto.js';
 import { firmar, firmarPosesion, verificar } from './autoridad.js';
 import { Libro, EMISION, acunar, transferir, bloquear, liberar, quemar, transaccion } from './libro.js';
@@ -788,7 +788,19 @@ export class Eje {
     const dados = lista.map(eventosDe);
     if (dados.some((e) => !e || typeof e !== 'object')) throw new Error('reordenar: la lista lleva ids que el eje no tiene');
     const ids = new Set(dados.map((e) => e.id));
-    const todos = [...dados, ...this.orden.filter((id) => !ids.has(id)).map((id) => this.eventos.get(id))];
+    // Lo local que la lista no trae va detrás, en su orden de entrada; salvo un miembro de una tanda cuyo anterior ya está
+    // colocado: va justo detrás de él (la lista pudo cortar la tanda, una página; revisión de Core StateArk, e7 y r1). Así
+    // lo local no parte nunca una tanda que el eje ya tenía entera. Si la lista misma la parte (algo suyo en medio), se
+    // rechaza entera, como siempre.
+    const todos = [...dados];
+    for (const id of this.orden) {
+      if (ids.has(id)) continue;
+      const ev = this.eventos.get(id);
+      const anterior = esMiembroDeTanda(ev) ? ev.contexto.tanda?.anterior : undefined;
+      const k = typeof anterior === 'string' ? todos.findIndex((x) => x.id === anterior) : -1;
+      if (k >= 0) todos.splice(k + 1, 0, ev);
+      else todos.push(ev);
+    }
     if (!todos.length || todos[0].id !== this.genesisId) throw new Error('reordenar: el génesis va primero y es el de siempre');
     for (let k = 0; k < this.eventosV2; k++) if (todos[k]?.id !== this.orden[k]) throw new Error('reordenar: el prefijo de la versión 2 no se reordena');
     const [g, ...resto] = todos;
@@ -942,12 +954,22 @@ export class Eje {
    * llevan el mismo) y una referencia por prefijo («@25ddaa89») a otro candidato (CONTRATO_TANDA, precisión 6: al marcar,
    * los ids cambian y el prefijo se quedaría apuntando al de antes; entre miembros, por id entero).
    *
-   * Devuelve { vista, resultados }: `resultados`, uno por candidato, { ok, motivos } (motivos como eje.motivos; más allá
-   * del 32 dice además que una tanda no cabe); `vista`, el eje en seco con los que pasan aplicados, para componer el
-   * siguiente sobre ella (acciones.transaccion(vista, plantilla, params, yo): sus defectos leen el libro con lo ya
-   * compuesto). Con [] es la vista del libro de ahora.
+   * Los topes de tamaño (CONTRATO_TANDA, precisión 9), solo si se piden: `opciones.topes` = { porMiembro, porPeticion }, en
+   * bytes del JSON canónico de cada candidato marcado y firmado (bytesDeMiembro) y de la lista entera (bytesDeTanda; solo
+   * con dos o más). Los del contrato son TANDA_TOPES (src/evento.js); sin la opción no se mira nada: el núcleo no impone
+   * tope propio. El candidato que se pasa falla con un motivo de la regla REGLA_NO_CABE (y no se aplica); la petición
+   * entera, en `peticion`.
+   *
+   * Devuelve { vista, resultados, peticion }: `resultados`, uno por candidato, { ok, motivos } (motivos como eje.motivos;
+   * más allá del 32 dice además que una tanda no cabe); `peticion`, { ok, indice: null, motivos, bytes } (la lista entera:
+   * ok sin topes o si cabe); `vista`, el eje en seco con los que pasan aplicados, para componer el siguiente sobre ella
+   * (acciones.transaccion(vista, plantilla, params, yo): sus defectos leen el libro con lo ya compuesto). Con [] es la
+   * vista del libro de ahora.
    */
-  async vistaTanda(candidatos = []) {
+  async vistaTanda(candidatos = [], { topes } = {}) {
+    const tope = (x) => (Number.isFinite(x) && x > 0 ? x : null);
+    const porMiembro = tope(topes?.porMiembro);
+    const porPeticion = tope(topes?.porPeticion);
     const vista = this.#copia(this.orden.length, { enSeco: true });
     const resultados = [];
     // Los ids de los candidatos (con el suyo calculado si no lo traen): los de antes de marcar.
@@ -975,18 +997,37 @@ export class Eje {
           tanda.push('nombra a otro registro de la tanda por prefijo (' + prefijo + ', el ' + id.slice(0, 8) + '): al lanzarla su id cambia; entre registros de una tanda, por id entero');
         }
         if (tanda.length) throw rechazo('evento rechazado: ' + tanda.join('; '), formados(tanda));
+        if (porMiembro !== null) {
+          const pesa = bytesDeMiembro(ev, k, conId.length);
+          if (pesa > porMiembro) {
+            const texto = 'no cabe: marcado y firmado ocupa ' + pesa + ' bytes y el tope por registro es ' + porMiembro;
+            throw rechazo('evento rechazado: ' + texto, [{ texto, regla: REGLA_NO_CABE, estado: 'falla', causa: null }]);
+          }
+        }
         await vista.#anadir(ev);
         resultados.push({ ok: extra.length === 0, motivos: extra });
       } catch (e) {
         resultados.push({ ok: false, motivos: [...(e.motivos ?? formados([e.message])), ...extra] });
       }
     }
-    return { vista, resultados };
+    // La petición entera (solo una tanda: dos o más), con lo que se pueda medir.
+    const medibles = conId.filter((ev) => ev && typeof ev === 'object' && !(ev instanceof Error));
+    let peticion = { ok: true, indice: null, motivos: [], bytes: null };
+    if (porPeticion !== null && conId.length >= TANDA_MINIMA && medibles.length === conId.length) {
+      const pesa = bytesDeTanda(medibles);
+      const texto = 'no cabe: la tanda entera, marcada y firmada, ocupa ' + pesa + ' bytes y el tope por petición es ' + porPeticion;
+      peticion = pesa > porPeticion ? { ok: false, indice: null, motivos: [{ texto, regla: REGLA_NO_CABE, estado: 'falla', causa: null }], bytes: pesa } : { ...peticion, bytes: pesa };
+    }
+    return { vista, resultados, peticion };
   }
 
-  /** Lo mismo que vistaTanda, solo los resultados: [{ ok, motivos }], uno por candidato. No toca el libro. */
-  async probarTanda(candidatos) {
-    return (await this.vistaTanda(candidatos)).resultados;
+  /**
+   * Lo mismo que vistaTanda, solo los resultados: [{ ok, motivos }], uno por candidato, y en la propiedad `peticion` del
+   * array, el veredicto de la lista entera ({ ok, indice: null, motivos, bytes }). No toca el libro.
+   */
+  async probarTanda(candidatos, opciones = {}) {
+    const { resultados, peticion } = await this.vistaTanda(candidatos, opciones);
+    return Object.defineProperty(resultados, 'peticion', { value: peticion, enumerable: false });
   }
 
   /** ¿Es una vista en seco (vistaTanda)? Lo que se compone sobre ella no se asienta nunca en el libro. */

@@ -12,7 +12,7 @@ import assert from 'node:assert/strict';
 import { readFileSync, writeFileSync, existsSync } from 'node:fs';
 import { Eje, TANDA_YA_REGISTRADA } from '../src/eje.js';
 import { generarClaves, firmar } from '../src/autoridad.js';
-import { crearEvento, marcarTanda, esMiembroDeTanda, erroresDeTanda, erroresDeMarca, fallosDeTanda, partirTandas, idDeTanda, verificarId, prefijosAMiembros } from '../src/evento.js';
+import { crearEvento, marcarTanda, esMiembroDeTanda, erroresDeTanda, erroresDeMarca, fallosDeTanda, partirTandas, idDeTanda, verificarId, prefijosAMiembros, canonico, bytesDeMiembro, bytesDeTanda, TANDA_TOPES, TANDA_TOPE_POR_MIEMBRO, TANDA_TOPE_POR_PETICION, REGLA_NO_CABE } from '../src/evento.js';
 import { quemaDelCoste } from '../src/escritura.js';
 
 const VECTOR = new URL('./vectores/tanda-de-tres.json', import.meta.url);
@@ -440,4 +440,62 @@ test('el vector tanda-de-tres: la válida entra entera; la inválida falla en el
   const hoy = await generarVector();
   assert.equal(hoy.valida.esperado.ok, true);
   assert.deepEqual([hoy.invalida.esperado.indice, hoy.invalida.esperado.motivos], [V.invalida.esperado.indice, V.invalida.esperado.motivos]);
+});
+
+// ---------- revisión de Core StateArk (casos e7, r1, r2) ----------
+
+test('marcarTanda con candidatos SIN id (como los admite vistaTanda): el 2 sigue colgando del 1 tras marcar', async () => {
+  const { eje, vg } = await libro();
+  const c1 = datos(eje, 'vg', eje.genesisId, ['uno'], T(5));
+  const { vista } = await eje.vistaTanda([c1]);
+  const id1 = vista.orden.at(-1);
+  const c2 = datos(vista, 'vg', id1, ['dos, sobre el uno'], T(5));
+  assert.deepEqual((await eje.probarTanda([c1, c2])).map((r) => r.ok), [true, true]);
+  const m = await marcarTanda([c1, c2]);
+  assert.equal(m[1].sobre, m[0].id, 'el id viejo del 1 se calcula y se cambia por el nuevo');
+  const r = await eje.anadirTanda(await firmarTodos(m, { vg }));
+  assert.equal(r.ok, true, JSON.stringify(r.motivos));
+});
+
+test('reordenar con la lista cortada a media tanda y algo local en medio: los miembros que faltan van detrás de los suyos; la tanda no se pierde', async () => {
+  const L = await libro();
+  const { eje, vg } = L;
+  const P = await eje.anadir(await firmar(await crearEvento(datos(eje, 'vg', eje.genesisId, ['pendiente local'], T(1))), vg.privada));
+  const { tanda } = await tandaDeTres(L);
+  assert.equal((await eje.anadirTanda(tanda)).ok, true);
+  const previos = eje.orden.slice(0, eje.orden.length - 4);
+  const r = await eje.reordenar([...previos, tanda[0].id, tanda[1].id]);
+  assert.deepEqual(r.rechazados, []);
+  assert.ok(tanda.every((e) => eje.obtener(e.id)));
+  assert.deepEqual(eje.orden.slice(previos.length), [...tanda.map((e) => e.id), P.id]);
+  // La lista del servidor que parte la tanda con uno suyo en medio sí la rechaza entera.
+  const partida = await eje.reordenar([...previos, tanda[0].id, P.id, tanda[1].id, tanda[2].id]);
+  assert.deepEqual(partida.rechazados.map((x) => x.id), tanda.map((e) => e.id));
+});
+
+test('los topes de tamaño en seco (precisión 9): solo si se piden; el miembro que se pasa, con su índice; la petición, con índice null', async () => {
+  const L = await libro();
+  const { eje } = L;
+  const { candidatos, tanda } = await tandaDeTres(L);
+  assert.deepEqual([TANDA_TOPE_POR_MIEMBRO, TANDA_TOPE_POR_PETICION], [256 * 1024, 1024 * 1024]);
+  assert.deepEqual(TANDA_TOPES, { porMiembro: TANDA_TOPE_POR_MIEMBRO, porPeticion: TANDA_TOPE_POR_PETICION });
+  // Lo que mide el núcleo es exacto: el JSON canónico de cada miembro marcado y firmado, y de la lista.
+  const largo = (x) => new TextEncoder().encode(canonico(x)).length;
+  assert.deepEqual(candidatos.map((c, k) => bytesDeMiembro(c, k, 3)), tanda.map(largo));
+  assert.equal(bytesDeTanda(candidatos), largo(tanda));
+  // Sin topes, nada se mira; con los del contrato, cabe.
+  const sin = await eje.probarTanda(candidatos);
+  assert.deepEqual([sin.map((r) => r.ok), sin.peticion.ok, sin.peticion.bytes], [[true, true, true], true, null]);
+  const con = await eje.probarTanda(candidatos, { topes: TANDA_TOPES });
+  assert.deepEqual([con.map((r) => r.ok), con.peticion.ok, con.peticion.bytes], [[true, true, true], true, largo(tanda)]);
+  // Un tope por miembro un byte por debajo del más grande: ese no cabe, con su índice y la regla REGLA_NO_CABE.
+  const tamanos = tanda.map(largo);
+  const grande = tamanos.indexOf(Math.max(...tamanos));
+  const r = await eje.probarTanda(candidatos, { topes: { porMiembro: tamanos[grande] - 1 } });
+  assert.equal(r[grande].ok, false);
+  assert.equal(r[grande].motivos[0].regla, REGLA_NO_CABE);
+  assert.match(r[grande].motivos[0].texto, /no cabe/);
+  // La petición entera, por un byte.
+  const { peticion } = await eje.vistaTanda(candidatos, { topes: { porPeticion: largo(tanda) - 1 } });
+  assert.deepEqual([peticion.ok, peticion.indice, peticion.motivos[0].regla], [false, null, REGLA_NO_CABE]);
 });
