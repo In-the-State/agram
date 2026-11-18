@@ -2,7 +2,7 @@
 // mano antes de mover nada a dato (docs/notas/SITIOS_Y_PESOS.md §4). No cambia al mover: el lector (contrato.sitios,
 // contrato.pesos) tiene que darlos tal cual sin libro, y la carta, leerlos de él. Solo cambia por una decisión.
 // geometria: lo que era GEOMETRIA; hilo: zonaDelHilo y esPvDelPasado; camino: PV_CAMINO; botones: BOTONES_POR_NIVEL;
-// rosetones: ORDEN_ROSETONES; tiraDeArriba: ARRIBA (dom.js); alEmpezar.tamano: el NIVEL (2, tarjeta) con que se abre.
+// rosetones: ORDEN_ROSETONES; alEmpezar.tamano: el NIVEL (2, tarjeta) con que se abre.
 
 export const FOTO = Object.freeze({
   geometria: {
@@ -23,7 +23,6 @@ export const FOTO = Object.freeze({
   camino: 9,
   botones: { comprimido: 0, tarjeta: 1, bloque: 3, abierto: 'todas', filas: 12 },
   rosetones: [1, 2, 0, 3, 4, 6, 7, 5, 8, 9],
-  tiraDeArriba: [1, 2, 0, 3, 4],
   ordenDeSequenced: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
   buscarDestacado: [0, 1, 2, 3, 4, 5, 6, 7, 8, 9],
   proponenALaVista: 3,

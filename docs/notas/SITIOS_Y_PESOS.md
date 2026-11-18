@@ -391,7 +391,7 @@ Siete commits, uno por grupo de tablas. Las 43 huellas siguieron iguales en cada
 **Hallazgos:**
 - **Código muerto.** En el móvil (apilado) el árbol trae siempre su secuencia y nunca rosetones; una prueba lo comprueba. Por eso no se pintaban ni las tiras de rosetones del móvil (`ARRIBA`) ni las franjas de la cruz y de la X, y «hermano» sobre un PV no hacía nada. Se han quitado.
   - Las reglas de `estilo.css` que las pintaban (`.rosetones-arriba`, `.rosetones-abajo`, `.franja-cruz`, `.franja-x`) quedan sin uso. No las toco: estilo.css es de otro carril.
-  - La clave «top strip» de 9.5.8 ya no la lee nadie. Que se quite o se quede lo decide VG.
+  - La clave «top strip» de 9.5.8 ya no la lee nadie: se quitó el 20-11 (§10).
 - **La pasada única por la época 0.** La época no admite huecos (`cargarEpocaBtml`: «hueco»). Si entran 9.5.6 y 9.5.8, 9.5.7 tiene que ir lleno, con una nota, como 9.5.3 y 9.5.5.
 - **El anverso como dígito 0 en app.js.** Los estados iniciales de app.js siguen escribiendo el anverso como el dígito 0 (`foco: { pv: 0 }`, `irA(X, 0)`). No era una constante; el paso 2 no lo toca. Hoy da igual, porque el suelo exige que el 0 y el 5 estén en el centro, pero no que el 0 sea el anverso. Si un libro dijera que el 5 es el anverso, el foco empezaría en su reverso.
 

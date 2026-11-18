@@ -15,7 +15,7 @@ import { FOTO } from './ayudas-sitios.mjs';
 const copia = (x) => JSON.parse(JSON.stringify(x));
 const SITIOS = LENTE_0_DATOS['epoch.9.5.6'];
 const PESOS = LENTE_0_DATOS['epoch.9.5.8'];
-const CAMPOS = ['botones', 'rosetones', 'tiraDeArriba', 'ordenDeSequenced', 'buscarDestacado', 'proponenALaVista', 'ejecucionesEnCelda', 'ejecucionesEnCeldaAbierta', 'seriesEnElPie', 'alEmpezar'];
+const CAMPOS = ['botones', 'rosetones', 'ordenDeSequenced', 'buscarDestacado', 'proponenALaVista', 'ejecucionesEnCelda', 'ejecucionesEnCeldaAbierta', 'seriesEnElPie', 'alEmpezar'];
 const soloPesos = (p) => Object.fromEntries(CAMPOS.map((k) => [k, p[k]]));
 const soloSitios = (s) => ({ geometria: s.geometria, centros: s.centros, laterales: s.laterales, hilo: s.hilo });
 const FOTO_SITIOS = { geometria: FOTO.geometria, centros: FOTO.centros, laterales: FOTO.laterales, hilo: FOTO.hilo };
@@ -148,7 +148,7 @@ test('los pesos hostiles caen a la capa siguiente clave a clave: tipos raros, fu
     ['buttons slot', -1], ['buttons card', 1.5], ['buttons screen', '3'], ['buttons open', 'todas'], ['next steps in rows', 1000000],
     ...sinElUno.map((d) => ['rosette order', d]),
     ...conRepetido.map((d) => ['sequenced order', d]),
-    ['top strip', 1], ['top strip', 1],
+    ['top strip', 1], // la tira de arriba del móvil ya no existe: es una clave desconocida
     ...[0, 1, 2, 3, 4, 5, 6, 7, 8, 10].map((d) => ['highlight search', d]),
     ['proposers shown', 100000], ['executions in cell', null], ['executions in open cell', [1]], ['series in footer', 4], ['series in footer', 5],
     ['open at start', 10], ['open at start size', 'screen'],
@@ -159,11 +159,12 @@ test('los pesos hostiles caen a la capa siguiente clave a clave: tipos raros, fu
   assert.deepEqual(soloPesos(p), FOTO_PESOS, 'todo lo hostil cae al archivo');
   assert.ok(Object.values(p.de).every((c) => c === CAPAS.archivo));
   const motivos = Object.fromEntries(p.descartadas.filter((d) => d.clave).map((d) => [d.clave, d.motivo]));
-  for (const k of ['buttons slot', 'buttons card', 'buttons screen', 'buttons open', 'next steps in rows', 'rosette order', 'sequenced order', 'top strip', 'highlight search', 'proposers shown', 'executions in cell', 'series in footer', 'open at start', 'open at start size']) {
+  for (const k of ['buttons slot', 'buttons card', 'buttons screen', 'buttons open', 'next steps in rows', 'rosette order', 'sequenced order', 'highlight search', 'proposers shown', 'executions in cell', 'series in footer', 'open at start', 'open at start size']) {
     assert.equal(motivos[k], 'valor fuera de lo que vale', k);
   }
   assert.equal(motivos['z-index'], 'clave desconocida');
   assert.equal(motivos.position, 'clave desconocida');
+  assert.equal(motivos['top strip'], 'clave desconocida');
   // Una clave desconocida no tumba a las buenas de la misma capa.
   const mezcla = C.pesos(null, { epoca: epocaCon({ pesos: pesosCon([['z-index', 9], ['buttons screen', 5], ['open at start size', 'card']]) }) });
   assert.equal(mezcla.botones.bloque, 5);

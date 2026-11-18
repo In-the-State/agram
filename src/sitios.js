@@ -17,8 +17,7 @@
 //   - el 3×3 entero o nada: los ocho laterales (1-4, 6-9) en las ocho celdas que no son el centro, una cada uno; el 0
 //     y el 5 en el centro, uno «front» y otro «back»; cada fila con su «side» (0, 1 o 2); «time», un «past» y un
 //     «future» como mucho, y nunca en el centro; ni claves desconocidas ni repetidas;
-//   - los órdenes son permutaciones de los diez dígitos (un orden que esconde un PV no vale); la tira de arriba, una
-//     parte sin repetir;
+//   - los órdenes son permutaciones de los diez dígitos (un orden que esconde un PV no vale);
 //   - las cuentas, enteros de 0 a su tope (o «all» en los botones); lo que cuesta tiene tope como en 8.8;
 //   - lo que se abre al empezar, como mucho en el segundo tamaño de 9.5.2 (la tarjeta): el foco se ve al entrar;
 //   - la persona solo dice pesos y órdenes; las celdas, lo que se abre al empezar, las cuentas de listas y la búsqueda
@@ -115,7 +114,6 @@ const TOPE = Object.freeze({ botones: 100, filas: 50, listas: 1000 });
 const botones = (v) => (v.length === 1 && (v[0] === 'all' || entero(v[0], 0, TOPE.botones)) ? (v[0] === 'all' ? 'todas' : v[0]) : undefined);
 const cuenta = (tope) => (v) => (v.length === 1 && entero(v[0], 0, tope) ? v[0] : undefined);
 const permutacion = (v) => (v.length === 10 && v.every((x) => entero(x, 0, 9)) && new Set(v).size === 10 ? [...v] : undefined);
-const parte = (v) => (v.length >= 1 && v.length <= 10 && v.every((x) => entero(x, 0, 9)) && new Set(v).size === v.length ? [...v] : undefined);
 
 /**
  * Las claves de 9.5.8: su campo en lo que devuelve `pesos`, cómo se lee (undefined: no vale) y si la persona puede
@@ -128,7 +126,6 @@ const CLAVES_DE_PESO = Object.freeze({
   'buttons open': { campo: ['botones', 'abierto'], leer: botones, persona: true },
   'next steps in rows': { campo: ['botones', 'filas'], leer: cuenta(TOPE.filas), persona: true },
   'rosette order': { campo: ['rosetones'], leer: permutacion, persona: true },
-  'top strip': { campo: ['tiraDeArriba'], leer: parte, persona: true },
   'sequenced order': { campo: ['ordenDeSequenced'], leer: permutacion, persona: true },
   'highlight search': { campo: ['buscarDestacado'], leer: permutacion },
   'proposers shown': { campo: ['proponenALaVista'], leer: cuenta(TOPE.listas) },
@@ -211,7 +208,7 @@ export function sitiosDe(capas) {
 /**
  * El núcleo puro de los pesos: de una lista de capas [{ capa, dice | tabla, persona? }] (la que manda primero), cada clave
  * de la primera capa que la dice bien. `persona`: la capa es una preferencia (solo valen las claves de la persona).
- * `tamanos`: los de 9.5.2 de la época que se pinta, para «open at start size». → { botones, rosetones, tiraDeArriba,
+ * `tamanos`: los de 9.5.2 de la época que se pinta, para «open at start size». → { botones, rosetones,
  * ordenDeSequenced, buscarDestacado, proponenALaVista, ejecucionesEnCelda, ejecucionesEnCeldaAbierta, seriesEnElPie,
  * alEmpezar, de: { <clave>: capa }, descartadas: [{ capa, clave?, motivo }] }. Lo que ninguna capa dice queda en null.
  */
@@ -237,7 +234,7 @@ export function pesosDe(capas, { tamanos = [] } = {}) {
   const leerTamano = (v) => (v.length === 1 ? primeros.find((t) => t.nombre === v[0])?.tamano : undefined);
   const fuera = {
     botones: { comprimido: null, tarjeta: null, bloque: null, abierto: null, filas: null },
-    rosetones: null, tiraDeArriba: null, ordenDeSequenced: null, buscarDestacado: null,
+    rosetones: null, ordenDeSequenced: null, buscarDestacado: null,
     proponenALaVista: null, ejecucionesEnCelda: null, ejecucionesEnCeldaAbierta: null, seriesEnElPie: null,
     alEmpezar: { pv: null, tamano: null },
   };
@@ -298,7 +295,7 @@ export function sitios(eje, opciones = {}) {
 /**
  * En qué orden y cuánto se enseña (epoch.9.5.8) para quien mira `eje`: la preferencia (`opciones.preferencia`, el hueco
  * de «lens settings»), la época del libro, la 0 y el archivo, clave a clave. → congelado: { botones: { comprimido,
- * tarjeta, bloque, abierto, filas } (la forma de BOTONES_POR_NIVEL: «todas» o un número), rosetones, tiraDeArriba,
+ * tarjeta, bloque, abierto, filas } (la forma de BOTONES_POR_NIVEL: «todas» o un número), rosetones,
  * ordenDeSequenced, buscarDestacado, proponenALaVista, ejecucionesEnCelda, ejecucionesEnCeldaAbierta, seriesEnElPie,
  * alEmpezar: { pv, tamano (el número de 9.5.2) }, de, descartadas }. Nunca lanza.
  */
