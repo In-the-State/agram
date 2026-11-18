@@ -232,14 +232,17 @@ export async function verificarId(ev) {
 // VG, 18-11: lo que se compone en la bandeja se lanza de una vez, todo o nada. Cada miembro lleva en su contexto
 // (dentro del cuerpo: entra en el id y en la firma) la marca `contexto.tanda = { n, de, anterior }`: `de` cuántos son
 // (entero de 2 a 32), `n` su sitio (de 1 a `de`) y `anterior` el id del miembro n − 1 (falta solo en el 1). La tanda
-// se identifica por el id de su miembro 1. Un registro suelto no lleva la marca; no hay tandas de uno. Lo que se exige
-// aquí es solo lo que dice el contrato: no pide un mismo autor (aceptar una invitación son dos registros de dos autores).
+// se identifica por el id de su miembro 1. Un registro suelto no lleva la marca; no hay tandas de uno. Con las
+// precisiones de Core (CONTRATO_TANDA, «Precisiones tras las tres entregas», 18-11 noche): la marca es estricta (solo
+// `n`, `de` y `anterior`) y todos los miembros llevan el mismo autor (el miembro 1 no compromete a los siguientes: con
+// autores mezclados, otro podría completar con registros suyos una tanda ajena).
 
 /** El tamaño de una tanda: de 2 a 32 registros (CONTRATO_TANDA: los topes de escrituras por minuto y de cuerpo de hoy). */
 export const TANDA_MINIMA = 2;
 export const TANDA_MAXIMA = 32;
 
 const ID_HEX = /^[0-9a-f]{64}$/;
+const CLAVES_DE_LA_MARCA = Object.freeze(['n', 'de', 'anterior']);
 
 /** ¿Lleva `ev` la marca de tanda (`contexto.tanda`, con cualquier valor)? Solo mira si está, no si vale. */
 export function esMiembroDeTanda(ev) {
@@ -253,11 +256,13 @@ export function erroresDeMarca(ev) {
   const m = ev.contexto.tanda;
   if (m === null || typeof m !== 'object' || Array.isArray(m)) return ['la marca de tanda es un objeto { n, de, anterior }'];
   const errores = [];
+  const deSobra = Object.keys(m).filter((k) => !CLAVES_DE_LA_MARCA.includes(k));
+  if (deSobra.length) errores.push('la marca de tanda lleva n, de y anterior, y nada más: le sobra ' + deSobra.map((k) => '«' + k + '»').join(', '));
   const deVale = Number.isSafeInteger(m.de) && m.de >= TANDA_MINIMA && m.de <= TANDA_MAXIMA;
   if (!deVale) errores.push('la marca de tanda: «de» es un entero de ' + TANDA_MINIMA + ' a ' + TANDA_MAXIMA + ' (no hay tandas de uno)');
   if (!Number.isSafeInteger(m.n) || m.n < 1 || (deVale && m.n > m.de)) errores.push('la marca de tanda: «n» es un entero de 1 a «de»');
   if (m.n === 1) {
-    if (m.anterior !== undefined) errores.push('la marca de tanda: el miembro 1 no lleva «anterior»');
+    if (Object.hasOwn(m, 'anterior')) errores.push('la marca de tanda: el miembro 1 no lleva «anterior»');
   } else if (typeof m.anterior !== 'string' || !ID_HEX.test(m.anterior)) {
     errores.push('la marca de tanda: «anterior» es el id (64 hexadecimales) del miembro n − 1');
   }
@@ -267,26 +272,32 @@ export function erroresDeMarca(ev) {
 /**
  * Los fallos de forma de una tanda, sin mirar el libro: [{ indice, texto }] (vacío si está bien formada). Una tanda
  * es una lista de 2 a 32 registros, todos con la marca bien formada, con `de` = la longitud de la lista, `n` = su sitio
- * (1, 2…) y `anterior` = el id del de antes. `indice` (desde 0) es el miembro que falla; un fallo de la lista entera
- * (su longitud) va con el índice 0. Que cada id sea el hash de su cuerpo y su firma la de su autor lo comprueba el eje
- * al validarlos (eje.anadirTanda), no esto.
+ * (1, 2…), `anterior` = el id del de antes y el mismo autor que el miembro 1. `indice` (desde 0) es el miembro que
+ * falla; si falla la lista entera (no es una lista, está vacía, es de uno o de más de 32, o un `de` no coincide con su
+ * largo), `indice` es null (CONTRATO_TANDA, precisión 3). Que cada id sea el hash de su cuerpo y su firma la de su autor
+ * lo comprueba el eje al validarlos (eje.anadirTanda), no esto.
  */
 export function fallosDeTanda(eventos) {
-  if (!Array.isArray(eventos)) return [{ indice: 0, texto: 'una tanda es una lista de registros' }];
+  if (!Array.isArray(eventos)) return [{ indice: null, texto: 'una tanda es una lista de registros' }];
   const fallos = [];
   if (eventos.length < TANDA_MINIMA || eventos.length > TANDA_MAXIMA) {
-    fallos.push({ indice: 0, texto: 'una tanda lleva de ' + TANDA_MINIMA + ' a ' + TANDA_MAXIMA + ' registros, y esta lleva ' + eventos.length + (eventos.length === 1 ? ' (no hay tandas de uno)' : '') });
+    fallos.push({ indice: null, texto: 'una tanda lleva de ' + TANDA_MINIMA + ' a ' + TANDA_MAXIMA + ' registros, y esta lleva ' + eventos.length + (eventos.length === 1 ? ' (no hay tandas de uno)' : '') });
   }
+  const marcas = eventos.map((ev) => erroresDeMarca(ev));
+  const largo = eventos.map((ev, k) => (marcas[k].length ? null : ev.contexto.tanda.de)).filter((de) => de !== null && de !== eventos.length);
+  if (largo.length) fallos.push({ indice: null, texto: 'la marca dice que la tanda es de ' + [...new Set(largo)].join(' y ') + ' y llegan ' + eventos.length });
+  const autor = eventos[0] !== null && typeof eventos[0] === 'object' ? eventos[0].autor : undefined;
   eventos.forEach((ev, k) => {
-    const marca = erroresDeMarca(ev);
-    if (marca.length) {
-      for (const texto of marca) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': ' + texto });
-      return;
+    if (marcas[k].length) {
+      for (const texto of marcas[k]) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': ' + texto });
+    } else {
+      const m = ev.contexto.tanda;
+      if (m.n !== k + 1) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': está en el sitio ' + (k + 1) + ' y dice ser el ' + m.n + ' (los miembros van en orden)' });
+      else if (k > 0 && m.anterior !== eventos[k - 1]?.id) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': su «anterior» no es el id del miembro ' + k });
     }
-    const m = ev.contexto.tanda;
-    if (m.de !== eventos.length) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': dice que la tanda es de ' + m.de + ' y llegan ' + eventos.length });
-    if (m.n !== k + 1) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': está en el sitio ' + (k + 1) + ' y dice ser el ' + m.n + ' (los miembros van en orden)' });
-    else if (k > 0 && m.anterior !== eventos[k - 1]?.id) fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': su «anterior» no es el id del miembro ' + k });
+    if (k > 0 && ev !== null && typeof ev === 'object' && ev.autor !== autor) {
+      fallos.push({ indice: k, texto: 'miembro ' + (k + 1) + ': su autor es ' + String(ev.autor) + ' y el del miembro 1, ' + String(autor) + ': todos los miembros de una tanda llevan el mismo autor' });
+    }
   });
   return fallos;
 }
@@ -349,21 +360,58 @@ export function partirTandas(lista) {
   return partes;
 }
 
-/** Copia de `x` con cada texto que es una clave de `cambios` (Map) cambiado por su valor, en profundidad. */
+/** Un id entero dentro de un texto: 64 hexadecimales que no son parte de una tira hexadecimal más larga. */
+const ID_DENTRO = /(?<![0-9a-f])[0-9a-f]{64}(?![0-9a-f])/g;
+
+/**
+ * Copia de `x` con cada id entero que es una clave de `cambios` (Map) cambiado por su valor, en profundidad: el texto
+ * que es el id, y también el id dentro de un texto (una fórmula `=("<id>").3`, el ámbito de P de una mirada «<id>.2», la
+ * cola «@<id>» de una serie) y en las claves de un objeto. Un id es un hash de 64 hexadecimales: no se confunde.
+ */
 function cambiarIds(x, cambios) {
-  if (typeof x === 'string') return cambios.has(x) ? cambios.get(x) : x;
+  const texto = (t) => (cambios.has(t) ? cambios.get(t) : t.replace(ID_DENTRO, (id) => (cambios.has(id) ? cambios.get(id) : id)));
+  if (typeof x === 'string') return texto(x);
   if (Array.isArray(x)) return x.map((v) => cambiarIds(v, cambios));
-  if (x !== null && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [k, cambiarIds(v, cambios)]));
+  if (x !== null && typeof x === 'object') return Object.fromEntries(Object.entries(x).map(([k, v]) => [texto(k), cambiarIds(v, cambios)]));
   return x;
+}
+
+/** La forma de una referencia por prefijo, como la lee la entrada (src/escritura.js, item): «@25ddaa89» o «@25ddaa89:1200000000». */
+const REFERENCIA_POR_PREFIJO = /^@([0-9a-f]{4,63})(?::[0-9]{10})?$/i;
+
+/**
+ * Las referencias por prefijo de `ev` a alguno de `ids` (CONTRATO_TANDA, precisión 6: entre miembros de una tanda, solo
+ * por id entero): cada hoja de su payload que es, entera, una referencia por prefijo («@25ddaa89», de 4 a 63
+ * hexadecimales, como las escribe la entrada) con la que empieza alguno de esos ids. Al marcar, los ids cambian y el
+ * prefijo se quedaría apuntando al de antes. → [{ prefijo, id }] (vacío si no hay ninguna). No mira el texto libre
+ * («mira @25dd» dentro de una frase no es una referencia: la entrada solo lee la hoja entera).
+ */
+export function prefijosAMiembros(ev, ids) {
+  const fuera = [];
+  const lista = [...ids].filter((id) => typeof id === 'string');
+  const visitar = (x) => {
+    if (typeof x === 'string') {
+      const m = REFERENCIA_POR_PREFIJO.exec(x.trim());
+      if (!m) return;
+      const p = m[1].toLowerCase();
+      const id = lista.find((i) => i.startsWith(p));
+      if (id) fuera.push({ prefijo: x.trim(), id });
+    } else if (Array.isArray(x)) x.forEach(visitar);
+    else if (x !== null && typeof x === 'object') Object.values(x).forEach(visitar);
+  };
+  visitar(ev?.payload);
+  return fuera;
 }
 
 /**
  * Pone la marca de tanda a unos candidatos ya compuestos (los `evento` de acciones.transaccion, sin marca), en su
  * orden: el miembro k lleva { n: k, de, anterior: el id nuevo del k − 1 }. La marca entra en el cuerpo, así que cada id
- * cambia; donde un candidato nombra el id entero de uno anterior (su `sobre`, una referencia del payload, un
- * movimiento, su contexto), se cambia por el id nuevo. Devuelve los eventos nuevos SIN firmar (sin firmante, firma ni
- * pruebas de posesión: firmaban el id de antes): quien lanza firma cada uno, y rehace las pruebas de posesión sobre el
- * id nuevo. Lanza si no son de 2 a 32 o si alguno ya lleva marca.
+ * cambia; donde un candidato nombra el id entero de uno anterior (su `sobre`, una referencia del payload, un id dentro
+ * de una fórmula o de un texto, un movimiento, su contexto), se cambia por el id nuevo. Una referencia por prefijo a
+ * otro miembro no se puede cambiar: la rechaza la prueba en seco (eje.vistaTanda). Devuelve los eventos nuevos SIN
+ * firmar (sin firmante, firma ni pruebas de posesión: firmaban el id de antes): quien lanza firma cada uno, y rehace
+ * las pruebas de posesión sobre el id nuevo (CONTRATO_TANDA, precisión 12: la firma va siempre después de marcar).
+ * Lanza si no son de 2 a 32, si alguno ya lleva marca o si no son todos del mismo autor.
  */
 export async function marcarTanda(candidatos) {
   if (!Array.isArray(candidatos) || candidatos.length < TANDA_MINIMA || candidatos.length > TANDA_MAXIMA) {
@@ -375,6 +423,7 @@ export async function marcarTanda(candidatos) {
     const c = candidatos[k];
     if (!c || typeof c !== 'object') throw new Error('marcarTanda: el candidato ' + (k + 1) + ' no es un registro');
     if (esMiembroDeTanda(c)) throw new Error('marcarTanda: el candidato ' + (k + 1) + ' ya lleva marca de tanda');
+    if (c.autor !== candidatos[0]?.autor) throw new Error('marcarTanda: todos los miembros de una tanda llevan el mismo autor (el candidato ' + (k + 1) + ' es de ' + String(c.autor) + ')');
     const datos = cambiarIds(aJSON({ autor: c.autor, sobre: c.sobre ?? null, en: c.en, t: c.t, movimientos: c.movimientos, payload: c.payload, contexto: c.contexto ?? {} }), cambios);
     const tanda = { n: k + 1, de: candidatos.length, ...(k ? { anterior: marcados[k - 1].id } : {}) };
     const ev = await crearEvento({ ...datos, contexto: { ...datos.contexto, tanda } });
