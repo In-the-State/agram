@@ -434,6 +434,12 @@ function legibleDe(eje, o, tipo, opciones) {
   return l;
 }
 
+/** El valor de un parámetro de una acción en el idioma: su texto de vocabulario (contrato.valorLegible) o, si no tiene, legibleDe. */
+function valorDeParametroEnLlano(eje, valor, accion, p, o) {
+  const v = contrato.valorLegible(eje, valor, { plantilla: accion, parametro: p.nombre, tipo: p.tipo, ...o });
+  return v?.partes?.clave ? v.texto : legibleDe(eje, valor, p.tipo, o).texto;
+}
+
 /** ¿Lleva `x` una marca de BTML o de fórmula en crudo («[[ref menú:1]…», «=…»)? Lo que se enseña nunca la lleva. */
 const conMarcas = (x) => typeof x === 'string' && (/\[\[|\]\]|\[ref\b|\{ref\b|\s=\s*\[/.test(x) || /^\s*=/.test(x));
 
@@ -1333,7 +1339,9 @@ export function formulario(eje, X, accion, yo, valores = {}, { retocar = false, 
       nombre: p.nombre, etiqueta: etiqueta.texto, tipo: p.tipo, requerido: p.requerido, ayuda: ayuda.texto, validacion: p.validacion, posicion: p.posicion,
       archivo: acciones.archivoDe(p), // un parámetro que sale de subir un archivo (su referencia o su formato): la app abre el selector
       valor: valor === undefined ? null : valor,
-      legible: valor === undefined ? '' : legibleDe(eje, valor, p.tipo, o).texto,
+      // Un valor del vocabulario de la época («whole», «aggregate», «part») en el idioma (contrato.valorLegible); si no lo es,
+      // como siempre (legibleDe: una referencia por su 0 legible).
+      legible: valor === undefined ? '' : valorDeParametroEnLlano(eje, valor, canonico, p, o),
       simple: contrato.esTipoSimple(p.tipo, o),
       falta: p.requerido && valor === undefined,
       opciones: opcionesDeParametro(eje, X, p, en, yo, o),
