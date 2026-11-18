@@ -151,7 +151,8 @@ test('#83 los ajustes se describen por lo que hacen, sin nombrar AARPIA, StateAr
   const { eje } = await ejemploCompra();
   const llanas = { 'relay url': 'por dónde viajan los eventos', 'blossom url': 'dónde se guardan los archivos', 'seal url': 'quién sella', 'pay url': 'quién cobra', 'guide url': 'dónde está la guía', 'sync url': 'dónde se comparte el libro' };
   for (const [clave, etiqueta] of Object.entries(llanas)) assert.equal(etiquetaLlana(clave, 'es'), etiqueta);
-  assert.equal(etiquetaLlana('blossom url', 'en'), null, 'sin textos en ese idioma, la de la época');
+  assert.equal(etiquetaLlana('blossom url', 'en'), 'where the files are kept', 'en inglés, la llana inglesa');
+  assert.equal(etiquetaLlana('blossom url', 'fr'), null, 'sin textos en ese idioma, la de la época');
   const ext = conEtiquetasLlanas(guia.ajustesEditablesDe(exterior.AJUSTES.plantilla, eje, 'huesped', {}, ES), 'es');
   const etiquetas = new Map(ext.campos.map((c) => [c.clave, c]));
   for (const [clave, etiqueta] of Object.entries(llanas)) if (etiquetas.has(clave)) assert.equal(etiquetas.get(clave).etiqueta, etiqueta);
@@ -383,5 +384,5 @@ test('textos: los textos nuevos están en un solo sitio y las pantallas no lleva
     assert.ok(!dom.includes(`'${frase}'`) && !dom.includes(`>${frase}<`), `dom.js lleva «${frase}»`);
   }
   assert.equal(t('aroCrear'), 'crear algo aquí');
-  assert.equal(Object.values(TEXTOS).length, 1, 'solo hay español: nada que traducir a otro idioma todavía');
+  assert.deepEqual(Object.keys(TEXTOS), ['es', 'en'], 'español e inglés (test/textos-ingles.test.js comprueba que van a la par)');
 });

@@ -89,3 +89,14 @@ test('5. un 0 nuevo cambia el nombre que se enseña', { todo: true }, async () =
   await salida.escribirDesde(c.eje, { modo: 'pointed', autor: c.cuenta.identidad, sobre: X, en: '0000000000', payload: salida.desdePointed(c.eje, 'Ana Nueva'), t: new Date(Date.now() + 1000).toISOString() }, c.privada);
   assert.equal(ceroDe(c.eje, X, ES), 'Ana Nueva');
 });
+
+test('3. ni los ejemplos de la regla corta como marcador (notas en español de quien escribió la época), en español ni en inglés', async () => {
+  for (const idioma of ['es', 'en']) {
+    const c = await Q.crearCuenta({ nombre: 'Ana Prueba', idioma });
+    const a = await arbol({ foco: c.cuenta.alta, niveles: {} }, c.eje, c.cuenta.identidad, {}, { idioma });
+    const marcadores = (a.centro.campos ?? []).flatMap((x) => x.marcador ?? []);
+    const ejemplos = (a.centro.campos ?? []).flatMap((x) => contrato.marcador(null, { payload: [] }, x.pv, { idioma }));
+    assert.ok(ejemplos.length > 0, 'la regla corta trae ejemplos');
+    assert.deepEqual(marcadores.filter((m) => ejemplos.includes(m)), [], idioma);
+  }
+});
