@@ -670,3 +670,5 @@ Cambios que se notan:
 - **La caducidad** lleva en su 2 la regla «E is tied to a record that exists»: su texto empieza ahora por el mensaje de esa regla.
 - **Un paso mío de lo anunciado** pasa por la misma comprobación de oferta que los demás.
 - **Lo anunciado que una persona ya movió entero** deja de salir como paso suyo.
+
+**4. La cohorte elegida es dato.** La lectura provisional «chosen cohort» en X.8.5 (frente a otros · dónde encaja) da una fila: 0 la cohorte y 1 el registro que la dice. Ese registro es el último del dueño de X anclado en su 8 que dice «change cohort» en su 4, y ese nombre está en la fórmula, no en el núcleo. `contrato.cohorteEscrita` lee `(first it.8).5`. «change cohort» sale de `contrato.js`, y la deuda de `nucleo-limpio` baja a 20 nombres.

@@ -83,5 +83,40 @@ export const LECTURAS_PROVISIONALES_DATOS = [
     [
       "path steps: what the rules ask on X, one row each, with who has to act and the action that does it"
     ]
+  ],
+  [
+    [
+      "chosen cohort"
+    ],
+    [
+      "X.8",
+      "X.3",
+      "payload"
+    ],
+    [
+      "=(last ((down it) where last (first it2.6).5 = \"8000000000\" and first it2.3 = first it.3 and \"change cohort\" in (payload(it2)).4)) each (row(first (payload(it2)).0, it2))"
+    ],
+    [
+      "X.8.5"
+    ],
+    [
+      "read"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md, tercera tanda): la cohorte que eligió el dueño de X, como lectura de la época que se materializa en X.8.5 (frente a otros · dónde encaja). Provisional hasta la pasada única por la época 0",
+      "El último registro del dueño de X anclado en su 8 que dice «change cohort» en su 4 (la acción que lo escribe, como dato aquí y no en el núcleo): una fila con 0 la cohorte (el 0 de ese registro, donde la escribe su parámetro «cohort») y 1 ese registro. Sin él, nada. La lee contrato.cohorte (cohorteEscrita)"
+    ],
+    [
+      "epoch 0"
+    ],
+    [
+      "after maturity"
+    ],
+    [
+      "chosen cohort: the cohort the owner of X chose in its 8, and the record that says it"
+    ]
   ]
 ];

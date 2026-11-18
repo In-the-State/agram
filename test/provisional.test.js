@@ -25,3 +25,11 @@ test('ningún archivo de src/ importa un módulo JSON (with { type … })', () =
   const archivos = [...readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => 'src/' + f), ...readdirSync('src/condiciones').filter((f) => f.endsWith('.js')).map((f) => 'src/condiciones/' + f)];
   for (const f of archivos) assert.ok(!/with\s*\{\s*type/.test(readFileSync(f, 'utf8')), f);
 });
+
+test('«chosen cohort» en X.8.5: la acción que escribe la cohorte elegida es dato de la lectura, no del núcleo', async () => {
+  const { posicionDeLectura, nombreDeRegla } = await import('../src/bqlm.js');
+  const l = LECTURAS_PROVISIONALES.find((r) => posicionDeLectura(r) === 'X.8.5');
+  assert.equal(nombreDeRegla(l), 'chosen cohort');
+  assert.ok(l[2][0].includes('"change cohort"'));
+  assert.ok(!readFileSync('src/contrato.js', 'utf8').includes("'change cohort'"), 'src/contrato.js ya no nombra «change cohort»');
+});
