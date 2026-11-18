@@ -780,3 +780,80 @@ Si hace falta, el remedio es un índice: leer las devoluciones de R a una identi
 - **Los ejemplos de `ejemplos/` solo escriben lo anunciado de ahora**, un movimiento con estado «anunciado»: Booking, Tasks, la compra y el volcado del roadmap.
 - **Lo anunciado «como antes»**, un payload `[[serie], [cuánto], [para qué], [[de], [a]]]` en el 4.1, solo lo escriben las pruebas, como libros de ensayo: `motor`, `acciones`, `contrato`, `efectos`, `conformidad-motor`, `ejemplo-booking`, `carta-mapped`, `sitios-y-pesos` y `tiempo`. Sigue saliendo: la lectura X.4.9 tiene su rama para él (su texto es el 2 del payload; el movimiento, el de su payload). Una prueba nueva compara un anuncio de antes con el mismo anuncio de ahora: el mismo paso («pay»), el mismo texto y la misma espera para el otro.
 - **Si se quiere retirar la forma de antes**, hay que cambiar esas pruebas y quitar la rama de la lectura (y la de «stage», que también la lee). Es una decisión para la pasada única.
+
+## Quinta tanda (Core AGRAM 18-11)
+
+**1. Revisión del arreglo al fundir (`af9eaa4`, `mio` de `camino`).** `{ ...extra, ...prep.valores }` es el correcto. `preparar` ya da a lo que trae la fila prioridad sobre los defectos y lo convierte a su tipo (un id en `{ ref }` para un parámetro `ref`). Así, `prep.valores` lleva lo de la fila ya preparado, y `extra` solo aporta lo que no es un parámetro de la acción. No hay caso en que lo crudo de la fila deba ganar.
+
+**2. El camino en el idioma de quien lee.** El cuerpo de cada paso usa `contrato.textoDeFila` y el de un paso mío, `contrato.mensajeEnLlano`. `test/sitios-y-pesos.test.js` no cambia de huellas.
+
+**3. El 9 de un registro desde que el camino se lee en X.9.8.** Desde la lectura «path steps», un registro (y la candidata) tiene en su 9 un nodo implícito delante, como su 4, su 6, su 7 y su 8 desde que tienen lecturas. Medido sobre la reserva de Booking:
+
+| Fórmula | Da |
+|---|---|
+| `count it.9` | 1 (antes, 0) |
+| `count (payload(it)).9` | 0 |
+| `count (it.9 where "add a parent" in it2.4)` | 0, igual que antes |
+| `(it.9) by first it2.9` | PENDIENTE (antes, una lista vacía) |
+
+Fórmulas de `src/`, `datos/` y `ejemplos/` que leen el 9 de algo:
+
+| Dónde | Qué lee | ¿Cambia? |
+|---|---|---|
+| `datos/epocas/plantillas/remove-a-parent.json:14` y `:53` | `it.9 where "add a parent" in it2.4` sobre un registro | No: el nodo implícito no tiene «add a parent» en su 4 (lo que lee es una lectura en X.9.4, que no existe) y el `where` lo deja fuera. Lo confirma `test/padres.test.js` |
+| `datos/epocas/state/plantillas/open-a-conversation.json:19` y `:110`, `open-a-conversation-as-an-agent.json:19` y `:110` | `(it.9) where "declare agent" in it2.4 and …` sobre un alta | No, por lo mismo: el `and` es perezoso y el nodo se cae en la primera condición |
+| `datos/epocas/reglas/for-when.json:4` y `src/contrato.js:1932` | `(first it.7).9` | No: es el 9 del nodo del 7 (la lectura X.7.9), no el 9 del registro |
+| `src/contrato.js:1968` | `(first it.6).9` | No: el 9 del nodo del 6 (X.6.9) |
+| `ejemplos/gobierno.mjs:75` | `(first it.2).9` | No: el 9 del nodo del 2 (X.2.9, «change state») |
+| `datos/epocas/plantillas/open-a-private-book-here.json:82`, `receive-from-another-book.json:58` | `count it.9 = 0` | No: `it` es el valor de un parámetro décupla, no un registro |
+| `datos/epocas/reglas/informative-t-is-only-burned.json:4` | `count it.9 > 0` | No: `it` es un movimiento (D-MOV, su nota) |
+| Las lecturas provisionales | `(payload(it)).9` | No: leen el payload |
+
+**Ninguna fórmula de hoy cambia de resultado.**
+
+**Recomendación:** no cambiar la semántica. Es la regla de siempre: «lo que el núcleo lee en un registro va delante», y ya vale para el 4, el 6, el 7 y el 8. Quien quiera lo escrito en el 9 de un registro, que lea `(payload(X)).9`, o `X.9 where …` con una condición sobre lo escrito. Que lo diga `docs/BQLM.md` §4 en la línea de «Lo que el núcleo lee en un registro va delante», con el 9 en la lista. Es un documento del agente del lenguaje: no lo he tocado.
+
+**4. El coste del alta ya no crece con el libro.**
+
+- **Dato:** «path steps» lee las peticiones de atención de los asientos de la serie R del dueño de X (`moves R.(first it.3)`), no de todo lo que ha movido. Su coste crece con su R (las peticiones mismas), no con lo que compra o paga.
+- **Código, un índice:** `src/contexto-eje.js` pone al día un índice de los asientos del libro por serie y por titular (`indiceDeAsientos`, uno por libro). Se actualiza con lo asentado desde la última vez, porque el diario solo crece. `moves` de una serie o de una identidad ya no recorre el diario entero en cada lectura. Lo que da y lo que cuesta en el presupuesto no cambian (eso lo fija la definición); cambia el trabajo de la máquina.
+- **La prueba:** `test/indice-asientos.test.js` compara el índice con el recorrido, antes y después de asentar más, y comprueba que el alta cuesta lo mismo con 15 compras más.
+
+Medido con `node test/medida-camino.mjs`, en ocupantes de X.9.8:
+
+| Lectura | Antes, sin memoria | Ahora, sin memoria | Ahora, con memoria la primera vez |
+|---|---|---|---|
+| Booking, alta de la casa | 5 576 | 5 255 | 2 163 |
+| Compra ×10, alta de la huésped | 4 565 | 4 275 | 1 511 |
+| Compra ×30, alta de la huésped | 5 045 | 4 275 | 1 511 |
+| Compra ×60, alta de la huésped | 5 765 | 4 275 | 1 511 |
+| Compra ×60, génesis | 4 391 | 4 312 | 1 548 |
+
+Lo demás no cambia: reserva 3 356, habitación 2 320, Tasks 5 498, menú 1 583, última compra 994. El máximo medido sin memoria es 5 498 (la tarea de Tasks), con un 45 % de holgura sobre los 10 000.
+
+**Regresión arreglada: el camino del nodo de la época state.** El tutorial de «path steps» miraba cada nombre contra todas las acciones y las reglas de la época, una vez por nombre. En la época state (116 acciones, 122 reglas), el nodo pasaba de los 10 000 ocupantes. La lectura quedaba PENDIENTE POR LÍMITE y `camino` lo callaba (`pasos: []`).
+
+- **Ahora, una sola pasada:** los nombres del tutorial, las acciones y las reglas van en una lista agrupada por nombre que se guarda en el 0 de una fila (`(row(G)) each (…)`, un «sea G» del lenguaje) para mirarla sin recalcular. El tutorial del nodo cuesta 4 139 ocupantes; el máximo, en 186 registros de Booking, Tasks, state y la cuenta, es 4 462.
+- **Medido contra la fórmula de antes** en esos 186 registros: las mismas filas. La única diferencia de diseño es que un nombre repetido en el tutorial da un solo paso.
+- **`camino` ya no calla:** si la lectura no se resuelve, devuelve `estado`, `subtipo` y `motivo`.
+- **Pruebas:** `test/epoca-state.test.js` entera (43 de 43) y las diez `sim-stateark-*`, de una en una, en verde.
+
+Después, un registro sin tutorial ya no paga la pasada: la lista de nombres se guarda primero, y las acciones y las reglas solo se recorren si hay algún nombre. Comparado con la fórmula anterior en los mismos 186 registros, salen las mismas filas. Costes de X.9.8 con `node test/medida-camino.mjs` (sin memoria / con memoria la primera vez):
+
+| Lectura | Sin memoria | Con memoria, la primera vez |
+|---|---|---|
+| Booking, reserva | 3 328 | 1 324 |
+| Booking, habitación | 2 292 | 944 |
+| Booking, alta de la casa | 3 509 | 3 179 |
+| Tasks, tarea | 6 245 | 3 250 |
+| Compra ×60, menú | 1 555 | 535 |
+| Compra ×60, alta de la huésped | 2 535 | 2 533 |
+| Compra ×60, génesis | 2 569 | 2 567 |
+| Compra ×60, última compra | 966 | 558 |
+
+Las altas bajan mucho (la de la huésped, de 4 275 a 2 535) y nada crece con el libro. El máximo es la tarea de Tasks: 6 245 sin memoria, un 38 % de holgura sobre los 10 000. Su tipo trae tutorial y paga la pasada por las acciones y las reglas.
+
+**7. La compra del ejemplo no se acaba: es el ejemplo, no el camino.** En la composición de la carta (`carta/ejemplos.js`: compra, cuenta, jardín y parque, fábrica, futuro), `ejemploJardinYParque` deja a la huésped sin R:casa. La devuelve dos veces y quema una: de 3 a 0. Después, `ejemploFabrica` (`ejemplos/ikisai/compra-food.mjs:280`) anuncia que la huésped devolverá 1 R:casa a la casa («atender»). El camino propone bien: es ella quien lo debe y «deliver» se le ofrece. Pero no puede, y el libro lo rechaza: «saldo insuficiente de R:casa en huesped». Con la compra y la fábrica solas, sin el jardín, `autoejecutar` llega al final.
+
+- **En el ejemplo habría que hacer una de estas tres cosas** (no lo he cambiado; está abierta la decisión de VG): que la casa le dé a la huésped una R:casa más antes del anuncio «atender» de `ejemploFabrica`; que el jardín y el parque gasten una menos; o que «atender» se anuncie solo si la huésped tiene R:casa.
+- **En el camino, una mejora posible:** probar en seco los pasos míos (como ya se hace con las sugerencias), para que uno que no puede pasar diga por qué antes de lanzarlo. Cuesta una validación por paso. No la he hecho.

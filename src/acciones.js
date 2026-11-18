@@ -54,7 +54,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo, textoDeFila, mensajeEnLlano } from './contrato.js';
 import { recuento, pasosDeLasReglas } from './motor.js';
 import { resolverTipo, valeElValor } from './tipos.js';
 
@@ -1728,7 +1728,13 @@ export async function camino(eje, X, yo, opciones = {}) {
     if (!plantilla) return null;
     const prep = preparar(eje, plantilla, sobre, yo, extra, { t, epoca, idioma });
     const hecho = hechoEnSuAncla(eje, prep, yoYMisCosas);
-    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta: mensajeDe(eje, epoca, plantilla, prep.candidata, yo, sobre, idioma) };
+    // El texto del paso: el mensaje de la acción sobre la candidata, si la candidata está entera; si le falta algo que pone
+    // quien la lanza (un parámetro sin valor, uno que no vale), su mensaje diría «nadie» o «∅» donde irá ese valor, así que el
+    // paso se nombra con el nombre de la acción en el idioma.
+    const falta = prep.motivos.length
+      ? textoDe(eje, claves.plantilla(nombre), idioma, { original: nombre, epoca })
+      : mensajeEnLlano(eje, plantilla, { candidata: prep.candidata, X: sobre, me: yo, idioma, epoca });
+    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta };
   };
 
   // (1) El tutorial y (2) lo que piden las reglas: las filas de la lectura de la época en X.9.8 (Core AGRAM 18-11, cuarta
@@ -1739,7 +1745,8 @@ export async function camino(eje, X, yo, opciones = {}) {
   // distingue ninguna por su nombre: quién actúa (su 3.0; nadie, quien tenga la acción ofrecida), la acción y dónde se
   // lanza (su 4), sus parámetros (su 8), el registro del que trata (su 5) y su texto (su 9, y detrás los movimientos si la
   // fila los tiene); la regla de su 2 encabeza el texto con su mensaje. Un proceso terminado no da filas de X.4.9.
-  const filas = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria }).filas;
+  const lectura = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria });
+  const filas = lectura.filas;
   // Las filas de un mismo paso (los movimientos de un anuncio que mueve la misma persona): lo mismo en todo menos el movimiento.
   const grupos = new Map();
   for (const f of filas) {
@@ -1760,7 +1767,8 @@ export async function camino(eje, X, yo, opciones = {}) {
     const fuente = f.fuente ?? 'reglas';
     const tratado = eje.obtener(f.sobre);
     const movimientos = grupo.filter((x) => x.a !== null && x.serie !== null && x.cantidad !== null).map((x) => movimientoLegible(eje, { serie: x.serie, cantidad: x.cantidad, de: x.de[0] ?? null, a: x.a }, idioma, opciones));
-    const cuerpo = [f.texto, movimientos.join('; ')].filter(Boolean).join(': ');
+    // El texto de la fila en el idioma de quien lee: el 0 del registro del que trata, legible, si es eso lo que trae.
+    const cuerpo = [textoDeFila(eje, f, { idioma, epoca }), movimientos.join('; ')].filter(Boolean).join(': ');
     // El título, el mensaje de la regla de su 2 (con el registro del que trata como ev, para sus huecos).
     const falta = [f.porque ? mensaje(eje, String(f.porque), idioma, { ev: tratado ?? ev, ...opciones }) ?? String(f.porque) : null, cuerpo].filter(Boolean).join(' · ');
     const sobre = eje.obtener(f.lanzar ?? f.sobre) ?? ev;
@@ -1816,7 +1824,8 @@ export async function camino(eje, X, yo, opciones = {}) {
   const rango = (p) => (p.hacer && delDueno.includes(p.hacer.plantilla) ? 0 : p.hacer && mios.includes(p.hacer.plantilla) ? 1 : 2);
   pasos.sort((a, b) => rango(a) - rango(b));
 
-  const fuera = { pasos };
+  // Si la lectura no se resuelve (PENDIENTE, por límite, o ERROR), el camino lo dice: nunca «no falta nada» en silencio.
+  const fuera = { pasos, ...(lectura.estado === 'RESUELTO' ? {} : { estado: lectura.estado, ...(lectura.subtipo ? { subtipo: lectura.subtipo } : {}), motivo: lectura.motivo }) };
   const m = madurez(eje, ev, opciones);
   if (!m || !m.nivel) {
     const propios = hojas(plantillaDeDatos(eje, ev, opciones)?.[8]?.[8]).filter((x) => typeof x === 'string');
