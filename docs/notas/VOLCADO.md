@@ -1,12 +1,12 @@
 # El volcado de una tabla de tareas (A8)
 
-Core AGRAM, 16-11. Origen: VG por Core State (roadmap A8, #131). Desde el encargo «dar T a una cosa mía» (V10, 16-11), la dueña da T a sus cosas con la plantilla `give T to a thing of mine` de la época 0, y la lectura «stage» ya no cuenta el coste de escribir como lo anunciado (#134). El guion es `ejemplos/volcado/volcar.mjs`; la prueba, `test/volcado-tabla.test.js`.
+Core AGRAM, 16-11. Origen: VG por Core State (roadmap A8, #131). Desde el encargo «dar T a una cosa mía» (V10, 16-11), la dueña da T a sus cosas con la acción `give T to a thing of mine` de la época 0, y la lectura «stage» ya no cuenta el coste de escribir como lo anunciado (#134). El guion es `ejemplos/volcado/volcar.mjs`; la prueba, `test/volcado-tabla.test.js`.
 
 ## Qué hace
 
-Lee una tabla JSON (una lista de filas) y la vuelca en un libro con las plantillas de la época 0. El libro es espejo de la tabla: si se pasa otra vez la misma tabla, no escribe nada; si la tabla ha cambiado, escribe solo la diferencia. Cada fila se reconoce por su id, que va escrito en la tarea.
+Lee una tabla JSON (una lista de filas) y la vuelca en un libro con las acciones de la época 0. El libro es espejo de la tabla: si se pasa otra vez la misma tabla, no escribe nada; si la tabla ha cambiado, escribe solo la diferencia. Cada fila se reconoce por su id, que va escrito en la tarea.
 
-| De la tabla | En el libro | Plantilla | Quién |
+| De la tabla | En el libro | Acción | Quién |
 |---|---|---|---|
 | cada cosa (columna) | una cosa de la dueña, con su clave declarada en el alta y su prueba de posesión | `register a thing` (en el 1.4 del alta de la dueña) | la dueña |
 | el T de cada cosa | lo justo para lo que gasta en la pasada: el mínimo en el alta y el resto (o lo que le falte en una pasada posterior) con otra transferencia | `give T to a thing of mine` (en el 1.4 del alta de la cosa) | la dueña |
@@ -94,7 +94,7 @@ En el ensayo, cuando cambia una fila, también se vuelven a mirar las que depend
 
 La correspondencia gana `epoca`: el nombre de la época con que nace el libro (`EPOCAS` en `volcar.mjs`; hoy solo `"roadmap"`, la de `datos/epocas/roadmap/`). La del roadmap la lleva. Sin `epoca`, la 0 a secas, como siempre. El volcado no crea el libro: quien lo crea le pone `epocaDelVolcado(corr)` (`retoques/ensayo.mjs` en `crearCuenta`, la línea de órdenes en `Eje.genesis`, las pruebas).
 
-Cuando la época del libro tiene la plantilla «this goes after» (`conCadenas(eje)`):
+Cuando la época del libro tiene la acción «this goes after» (`conCadenas(eje)`):
 
 - **Cada tarea** lleva el tipo «task» en su 5 (`NOMBRES_DE_LAS_CADENAS.tarea`). Las correcciones y las notas, no.
 - **Las relaciones** (solo en modo personas): por cada fila con `depende`, **un** registro «this goes after» de la casa de la tarea que depende, anclado en su **2.6**, con todas sus anteriores, en orden, en su 6 (y su número en el 1). Título llano: «va después de c2, c3». Se escriben **en una segunda pasada**, detrás de todo lo demás, cuando ya existen todas las tareas. Entran en la diferencia: manda la última; si la lista de anteriores de una fila cambia, se escribe otra; si se queda sin ninguna, una relación sin 6 («ya no va después de nada»). Una anterior que no llega al libro (su casa sin clave, un paso que no pasó) deja la relación en «no puede». Una casa sin clave: sus relaciones, como todo lo suyo, a «no puede». La nota de detalle conserva sus líneas «depende».
@@ -129,7 +129,7 @@ Va en las opciones. El guion no lleva escrito ningún nombre de columna, de cosa
 
 Una cosa no tiene asignación diaria: gasta lo que le da su dueña. Antes de escribir, el guion vuelca cada cosa en una copia del eje para medir lo que gasta (allí la dueña le da todo el T de minuto que le queda). Después la dueña le da lo justo: al darla de alta, el mínimo que deja la lista de `register a thing` (1 minuto), y el resto con `give T to a thing of mine` (escala minuto, la cantidad que falte), justo detrás del alta. Una cosa que ya tiene alta y se queda sin T en una pasada posterior recibe, delante de sus pasos, lo que le falte para lo que gasta. La dueña paga en T de segundo el coste de escribir el alta y la transferencia, para no tocar su T de minuto. Si a la dueña no le llega el T de minuto del día, las cosas que no caben quedan para otro día («queda para la dueña»). El informe da el T calculado y el gastado, y la prueba comprueba que coinciden y que cada cosa acaba sin T.
 
-Roadmap de verdad (`state/roadmap.json` de Core State, leído con `JSON.parse`), simulado el 16-11 sobre un eje local vacío con `minutosAnunciados` 1: 57 filas, 181 registros (3 altas, 3 transferencias de T, 9 proyectos, 57 tareas, 57 propuestas, 33 autorizadas, 17 ejecutadas y 2 cerradas) y 6 avisos (4 «aparcado» y 2 «estudio», que se quedan en propuesta). Las cosas gastan 1096 minutos: AGRAM 382, StateArk 346 y AARPIA 368. La dueña les da justo eso (1 minuto en cada alta y el resto con la transferencia) y paga 2160 segundos de T de segundo por las seis (el coste de escribir cada alta y cada transferencia). **Cabe en un día**: 1096 es menos que los 1440 minutos de T de minuto de la dueña. Con `minutosAnunciados` 10 (lo de antes) también cabría: 1249 minutos (AGRAM 409, StateArk 400 y AARPIA 440). Antes de la plantilla hacían falta tres días, una casa por día, porque cada alta se llevaba todo el T de minuto de un día (1440).
+Roadmap de verdad (`state/roadmap.json` de Core State, leído con `JSON.parse`), simulado el 16-11 sobre un eje local vacío con `minutosAnunciados` 1: 57 filas, 181 registros (3 altas, 3 transferencias de T, 9 proyectos, 57 tareas, 57 propuestas, 33 autorizadas, 17 ejecutadas y 2 cerradas) y 6 avisos (4 «aparcado» y 2 «estudio», que se quedan en propuesta). Las cosas gastan 1096 minutos: AGRAM 382, StateArk 346 y AARPIA 368. La dueña les da justo eso (1 minuto en cada alta y el resto con la transferencia) y paga 2160 segundos de T de segundo por las seis (el coste de escribir cada alta y cada transferencia). **Cabe en un día**: 1096 es menos que los 1440 minutos de T de minuto de la dueña. Con `minutosAnunciados` 10 (lo de antes) también cabría: 1249 minutos (AGRAM 409, StateArk 400 y AARPIA 440). Antes de la acción hacían falta tres días, una casa por día, porque cada alta se llevaba todo el T de minuto de un día (1440).
 
 ## Lo que queda para la dueña
 
@@ -138,7 +138,7 @@ La cosa hace sola todos los pasos: proyecto, tarea, propuesta, autorizada, ejecu
 - **Dar de alta cada cosa**, con el mínimo de T.
 - **Darle T** con `give T to a thing of mine`, al darla de alta y cada vez que se queda sin T. Si el guion tiene su clave, lo hace él; sin ella (en un eje que exige firmas), lo que falta sale en «queda para la dueña» («dar a X al menos N minutos de T…»: sin dar T, lo medido en la copia se para en el primer paso que no tiene T) y los pasos de esa cosa no se escriben.
 
-Una cosa que su dueña haya declarado agente (`epoch.9.0.4`) no podría hacer nada de esto: todas estas plantillas son de modo «person».
+Una cosa que su dueña haya declarado agente (`epoch.9.0.4`) no podría hacer nada de esto: todas estas acciones son de modo «person».
 
 ## Límites
 

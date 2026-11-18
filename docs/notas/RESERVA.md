@@ -20,7 +20,7 @@ Lo que leen las reglas es **su payload firmado** (`payload(…)`), nunca lo que 
 
 ## 2. Llenarla: «fill a reserve» [1, 31]
 
-El dueño bloquea lo suyo con la salida en el id de la reserva: la mecánica de bloqueo con salida de siempre, sin cambios en el núcleo. Cualquier plantilla puede hacerlo (los mensajes de la state lo hacen), pero hace falta una mínima para llenar una reserva fuera de ellas: **agente con agente no arranca sin ella** (el lado al que escriben ha de reservar para el otro antes de su primer mensaje, y ningún mensaje lo hace por él). Se ofrece sobre una reserva escrita por quien mira; ancla en su 1; payload 1.0 cuánto y 1.1 la serie (por defecto la R propia, que pone en mano lo que falte; con otra serie, bloquea lo que tiene). La T no se bloquea.
+El dueño bloquea lo suyo con la salida en el id de la reserva: la mecánica de bloqueo con salida de siempre, sin cambios en el núcleo. Cualquier acción puede hacerlo (los mensajes de la state lo hacen), pero hace falta una mínima para llenar una reserva fuera de ellas: **agente con agente no arranca sin ella** (el lado al que escriben ha de reservar para el otro antes de su primer mensaje, y ningún mensaje lo hace por él). Se ofrece sobre una reserva escrita por quien mira; ancla en su 1; payload 1.0 cuánto y 1.1 la serie (por defecto la R propia, que pone en mano lo que falte; con otra serie, bloquea lo que tiene). La T no se bloquea.
 
 ## 3. El suelo: la tercera excepción de «nobody moves tokens of others»
 
@@ -42,12 +42,12 @@ La fórmula sale de `datos/epocas/reserva.mjs` (`excepcionDeLaReserva`).
 Lo que sale de una reserva por mano de quien gasta sale **del modo que la reserva dice**:
 
 - **liberar**, si dice `return`; o si dice `burn` y el registro quema de esa serie y de ese titular **al menos todo lo que libera de él** (más estricto que lo justo: mezclar en un registro una liberación `return` y una `burn` de la misma serie y el mismo titular pide quemar las dos);
-- **transferir**, si dice `pay`, hacia alguien de su 1.1 que **no es quien escribe** ni se llama `-` (revisión de seguridad, hallazgo 2: `-` es el relleno de un hueco, nunca un destinatario; la plantilla, además, no deja `pay` sin lista de a quién pagar); llega bloqueado con la misma salida (el núcleo: lo transferido con salida llega bloqueado con ella, salvo que la salida sea quien lo recibe) y lo suelta quien lo recibe, que es suyo;
+- **transferir**, si dice `pay`, hacia alguien de su 1.1 que **no es quien escribe** ni se llama `-` (revisión de seguridad, hallazgo 2: `-` es el relleno de un hueco, nunca un destinatario; la acción, además, no deja `pay` sin lista de a quién pagar); llega bloqueado con la misma salida (el núcleo: lo transferido con salida llega bloqueado con ella, salvo que la salida sea quien lo recibe) y lo suelta quien lo recibe, que es suyo;
 - **quemar**, cubierto por lo que libera, a tiempo, de reservas con `burn` que nombran a quien escribe;
 - si dice **hasta cuándo**, ni el instante del registro (su `t`, que elige quien escribe) ni el reloj del libro antes de él (`before.6.0`, el mayor instante ya visto, como «at most a year ahead») lo pasan: antedatar no sirve (hallazgo 3);
 - **nada va hacia quien gasta**.
 
-Va al final de la cadena del 8 y en **7.9.6 junto con la plantilla que lee**, «a reserve». Motivo: sin la guarda, quien gasta sacaría lo reservado de un modo que la reserva no dice; sin la plantilla en el suelo, un cambio podría redefinir qué es una reserva (su 1.0, su 3.1) y abrir la excepción. La fórmula sale de `datos/epocas/reserva.mjs` (`formulaDeLaGuarda`).
+Va al final de la cadena del 8 y en **7.9.6 junto con la acción que lee**, «a reserve». Motivo: sin la guarda, quien gasta sacaría lo reservado de un modo que la reserva no dice; sin la acción en el suelo, un cambio podría redefinir qué es una reserva (su 1.0, su 3.1) y abrir la excepción. La fórmula sale de `datos/epocas/reserva.mjs` (`formulaDeLaGuarda`).
 
 ## 5. Retirar
 
