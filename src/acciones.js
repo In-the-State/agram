@@ -55,7 +55,7 @@ import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
 import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace } from './contrato.js';
-import { recuento, cerrado as cerradoDe } from './motor.js';
+import { recuento, cerrado as cerradoDe, loQueFalta } from './motor.js';
 import { pendientes as peticionesPendientes } from './lente.js';
 import { resolverTipo, valeElValor } from './tipos.js';
 
@@ -80,7 +80,6 @@ const SITIO = Object.freeze({
   estaciones: [4, 2], // [[familia], [qué se hace], [la plantilla que cumple un movimiento anunciado]]
   estacionesDelAnuncio: [4, 3], // [[nombre], [lo que la comprueba: una fórmula con it = el anuncio, o epoch.9.0.0]] (VG 12-11, decisión 8)
   identidad: [3, 0], // la plantilla de identidad: su 9 es el tutorial del alta
-  recuentos: [9, 0, 0, 1], // las plantillas de recuento: [[nombre], [fórmula]]
   dia: [7, 0, 3, 1], // los segundos de un día del calendario
   revisiones: [9, 0, 4, 1], // las lecturas de revisión del modo de ejecución: [[nombre], [fórmula]] (VG 12-11, #71.1)
 });
@@ -1707,7 +1706,10 @@ export async function camino(eje, X, yo, opciones = {}) {
   const estacionDe = new Map(estacionesDeLaEpoca(opciones).map((e) => [e.familia, e]));
   // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) no pide pasos: lo anunciado que quedó pendiente ya no se espera.
   const sinPasos = ['error', 'caducado', 'decidido'].includes(cerradoDe(eje, ev.id).fin);
-  const pendientes = sinPasos ? [] : (valores('("' + ev.id + '").4.8', ctx).valores ?? []).filter((x) => typeof x === 'string').map((id) => eje.obtener(id)).filter(Boolean);
+  // Lo que falta lo dice la lectura de la época en X.4.9 (motor.loQueFalta; Core AGRAM 18-11, NUCLEO_6_7_8 §6): sus filas
+  // nombran los anuncios pendientes, por llegada, y la acción de quien tiene que actuar en cada uno.
+  const filas = sinPasos ? [] : loQueFalta(eje, ev.id).filas;
+  const pendientes = [...new Set(filas.filter((f) => typeof f.sobre === 'string' && f.sobre !== ev.id).map((f) => f.sobre))].map((id) => eje.obtener(id)).filter(Boolean);
   for (const anuncio of pendientes) {
     const a = anuncioDe(anuncio);
     if (!a) continue;
@@ -1719,23 +1721,25 @@ export async function camino(eje, X, yo, opciones = {}) {
       // En llano (época 0 final, #9 del añadido): cuánto por su nombre, de quién y a quién por su 0, con el formato de la
       // época («legible announced movement»); sin destino resuelto (a: null), sin «a» (repaso beta #2: nunca «→ null»).
       const que = (mensaje(eje, 'stage', idioma, opciones) ?? 'stage') + ' · ' + (a.que ? a.que + ': ' : '') + ms.map((m) => movimientoLegible(eje, m, idioma, opciones)).join('; ');
-      const estacion = estacionDe.get(partirClave(ms[0].serie).token);
-      if (de === yo && estacion) {
-        const paso = mio(estacion.plantilla, { announcement: { ref: anuncio.id } });
+      // La acción, la que dice la fila de quien mueve; si ya no le falta nada de ese anuncio, la de la estación de su familia.
+      const accion = filas.find((f) => f.sobre === anuncio.id && f.de.includes(de))?.accion ?? estacionDe.get(partirClave(ms[0].serie).token)?.plantilla;
+      if (de === yo && accion) {
+        const paso = mio(accion, { announcement: { ref: anuncio.id } });
         if (paso) { pasos.push({ fuente: 'reglas', regla: 'stage', ...paso, falta: que, hecho: false, espera: null, anuncio: anuncio.id }); continue; }
       }
       pasos.push({ fuente: 'reglas', regla: 'stage', falta: que, hacer: null, espera: de, hecho: false, anuncio: anuncio.id });
     }
   }
-  // El recuento del dueño, si lo declara y no pasa.
-  const recuentos = hojas(en(raiz, SITIO.recuentos)).filter(Array.isArray).map((x) => hoja(x[0]));
-  const criterio = (valores('(("' + ev.id + '").2 where count it.5 = 0)', ctx).valores ?? []).concat(valores('(("' + ev.id + '").2.2 where count it.5 = 0)', ctx).valores ?? []);
-  if (!sinPasos && criterio.some((x) => recuentos.includes(x))) {
+  // El recuento del dueño que no pasa: su fila de X.4.9 (sobre X), con la acción que lo cumple.
+  const delRecuento = filas.find((f) => f.sobre === ev.id);
+  if (!sinPasos && delRecuento) {
     const c = recuento(eje, ev.id);
     if (c.pasa === false) {
       const que = 'the tally of ' + ev.autor + ' (' + c.plantilla + ') gives ' + c.valor + ' and asks above ' + c.umbral;
-      const ofrecida = acciones(eje, ev, 2, yo, opciones).find((a) => a.nombre === 'commit P');
-      if (ofrecida) { const paso = mio('commit P'); if (paso) pasos.push({ fuente: 'reglas', regla: 'weight', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'weight', falta: que, hacer: null, espera: ev.autor, hecho: false });
+      const nombre = delRecuento.accion;
+      const suya = plantillas.find((p) => p.nombre === nombre);
+      const ofrecida = suya ? acciones(eje, ev, suya.pv, yo, opciones).find((a) => a.nombre === nombre) : null;
+      if (ofrecida) { const paso = mio(nombre); if (paso) pasos.push({ fuente: 'reglas', regla: 'weight', ...paso, falta: que, hecho: false, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'weight', falta: que, hacer: null, espera: ev.autor, hecho: false });
     }
   }
   // Las peticiones de atención sin atender: si X es un alta, las de su dueño.

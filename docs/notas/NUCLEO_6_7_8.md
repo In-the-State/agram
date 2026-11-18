@@ -567,3 +567,44 @@ Un hallazgo que no pido decidir aquí, pero conviene saber: entregar las plazas 
 - **`carta/dom.js`**, cómo pintar el control book y una acción apagada; **`carta/puente.js`** más allá de sus nombres («traer de otro libro» necesitaría un tercer tipo base, «un registro de otro libro», que no propongo); el servidor; la guía y el agente de dentro como lectores de X.4.9 y del porqué.
 - **Las acciones de la hija state:** las he contado, no leído.
 - **Si una hija puede heredar la cabecera `9.2.0` y añadir su `0.3`** sin tapar la de la 0. `COLECCIONES` trabaja por camino, y esa ruta hay que probarla al construir.
+
+---
+
+## Construido (Core AGRAM 18-11, por encargo; las decisiones, supuestos por confirmar con VG)
+
+**El 7, paso 1, solo el núcleo:**
+
+- **`src/tipos.js`:** `TIPOS_BASE`, `resolverTipo`, `tiposDeParametro` y `valeElValor`, expuestos en `contrato`.
+- **Lo provisional:** `src/provisional.js` y `datos/provisional/tipos.json`, con cinco tipos: an id, a positive number, a text, an identity with alta y another book.
+- **`parametros()` y `preparar()`** con todas las validaciones; `archivoDe` por faceta y por el 4.
+- **`'9.2.0.3'`** en `COLECCIONES`.
+- **Las opciones:** `opciones()` con el hueco del aparato (`opcionesDelAparato`).
+- **La prueba:** `test/tipos-parametro.test.js`.
+
+En qué se aparta de lo de arriba:
+
+1. **Un JSON por clase, no una carpeta.** `datos/provisional/tipos.json` y no `tipos/*.json`: el navegador no lista carpetas y un módulo JSON se carga síncrono.
+2. **`tipo` sigue siendo la base** (lo que lee la carta). El tipo declarado va en `declarado`.
+3. **Un tipo declarado fija su faceta:** un parámetro no se la cambia. Para otra faceta del mismo control, se nombra la base: `["book", "line keys"]`.
+4. **«Mi alta allí» no es faceta de book.**
+5. **La forma del motivo de un parámetro no cambia:** cuál de las validaciones falló, lo dirá el 8.
+
+**El 6, sin la carta:**
+
+- **La lectura:** «what is missing» en `datos/provisional/lecturas.json`, que el contexto materializa en X.4.9 detrás de las lecturas de la época, nunca encima.
+- **La lectura en el motor:** `motor.loQueFalta(eje, X, { memoria })`; `motor.siguiente` y `acciones.camino` la leen.
+- **La prueba:** `test/lo-que-falta.test.js`.
+
+Lo medido, en ocupantes del presupuesto y pasos:
+
+| Ejemplo | Sin memoria | Con memoria, la primera vez | La segunda |
+|---|---|---|---|
+| Booking (reserva sin confirmar) | 1 993 (831) | 361 (175) | 0 (1) |
+| Tasks (hasta «entregada») | 3 635 (1 590) | 640 (383) | 0 (1) |
+
+Lo que queda:
+
+- **`transaccion` se queda en `siguiente`.** Los ejemplos y sus pruebas escriben con sus movimientos exactos. `plantilla` ya es la acción de la fila («pay»).
+- **X.9.8** (atención y caducidades) no está hecha: «attend» y «expire something mine» siguen en `camino`.
+- **Los finales como dato (decisión 5):** no están hechos, y `FINES` sigue en el motor.
+- **`camino` con otra época:** usa la época del eje para X.4.9, aunque se le pase otra en `opciones`.

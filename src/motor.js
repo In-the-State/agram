@@ -18,7 +18,8 @@
 
 import { direccion, esReferencia, indicesDe } from './btml.js';
 import { ocupantes, vector, signo, caminosDe } from './encaje.js';
-import { evaluar as evaluarBqlm, leerRegla, Presupuesto } from './bqlm.js';
+import { evaluar as evaluarBqlm, leerRegla, Presupuesto, posicionDeLectura, aplanar, nombreDeRegla } from './bqlm.js';
+import { LECTURAS_PROVISIONALES } from './provisional.js';
 import { ocupantesElegibles } from './elegibles.js';
 import { escribirDesde } from './escritura.js';
 import { partirClave, raizDeAmbito, esAnunciado, claveToken, movimientosReales } from './tokens.js';
@@ -386,6 +387,48 @@ function movimientoDelPayload(registro) {
   return { token, ...(emisor ? { emisor } : {}), ...(denominacion ? { denominacion } : {}), ...(r ? { registro: r } : {}), ...(ambito ? { ambito } : {}), ...(origen ? { origen } : {}), ...(escala ? { escala } : {}), cantidad, de, a };
 }
 
+/** Dónde materializa la época lo que falta (NUCLEO_6_7_8 §6): fábrica · cómo y el siguiente paso, al lado de X.4.8 («stage»). */
+export const LO_QUE_FALTA = 'X.4.9';
+
+/** La lectura que la época materializa en `donde`: la de la época del eje, si la tiene; si no, la provisional (src/provisional.js). */
+function lecturaEn(eje, donde) {
+  const lecturas = epocaDelEje(eje).lecturas ?? [];
+  const deLaEpoca = lecturas.find((r) => posicionDeLectura(r) === donde);
+  const nombres = new Set(lecturas.map((r) => nombreDeRegla(r)));
+  return deLaEpoca ?? LECTURAS_PROVISIONALES.find((r) => posicionDeLectura(r) === donde && !nombres.has(nombreDeRegla(r))) ?? null;
+}
+
+const primera = (x) => (Array.isArray(x) ? x[0] : x) ?? null;
+
+/**
+ * Lo que falta en X, leído de la época (Core AGRAM 18-11; NUCLEO_6_7_8 §6): la lectura que se materializa en X.4.9
+ * («what is missing»; hasta la pasada única por la época 0, la provisional), evaluada sobre X. No depende de quién mira.
+ * → { estado, motivo, filas: [{ serie, cantidad, porque, de: [identidades], a, accion, sobre, para, hay }] }: una fila por
+ * movimiento anunciado que aún no ha pasado y por recuento que no pasa (`sobre` = X). Con `memoria` (una MemoriaDeLectura
+ * de src/bqlm.js) se lee como lectura de pantalla: lo ya calculado no se recalcula mientras el libro no cambie; `limites`,
+ * los de bqlm.evaluar (para las pruebas). Si no se
+ * resuelve (PENDIENTE, PENDIENTE POR LÍMITE o ERROR), ninguna fila y el motivo: nunca «no falta nada».
+ */
+export function loQueFalta(eje, X, { memoria, limites } = {}) {
+  const id = typeof X === 'string' ? X : X?.id;
+  if (!eje.obtener(id)) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
+  const regla = lecturaEn(eje, LO_QUE_FALTA);
+  const formula = Array.isArray(regla?.[2]) ? regla[2][regla[2].length - 1] : undefined;
+  if (typeof formula !== 'string') return { estado: 'ERROR', motivo: 'ninguna lectura de la época se materializa en ' + LO_QUE_FALTA, filas: [] };
+  const ctx = contexto(eje);
+  const r = evaluarBqlm(formula, ctx, { sujeto: id, ...(memoria ? { lectura: true, memoria } : {}), ...(limites ? { limites } : {}) });
+  if (r.estado !== 'RESUELTO') return { estado: r.estado, ...(r.subtipo ? { subtipo: r.subtipo } : {}), motivo: r.motivo, filas: [] };
+  const filas = aplanar(r.valor, ctx).filter(Array.isArray).map((f) => {
+    const quien = Array.isArray(f[3]?.[0]) ? f[3][0] : [];
+    return {
+      serie: primera(f[0]), cantidad: primera(f[1]), porque: primera(f[2]),
+      de: (Array.isArray(quien[0]) ? quien[0] : [quien[0]]).filter((x) => x !== undefined && x !== null),
+      a: primera(quien[1]), accion: primera(f[4]), sobre: primera(f[5]), para: primera(f[6]), hay: primera(f[7]),
+    };
+  });
+  return { estado: 'RESUELTO', motivo: null, filas };
+}
+
 /**
  * Lo que a X le falta (mapa §15 [D]; encargo 3b): de `yo` y de los demás. Un proceso cerrado con error o caducado no pide nada
  * (`fin`, con su `causa` o su `plazo`). Lee con la plantilla «what is missing» de
@@ -404,27 +447,34 @@ export function siguiente(eje, X, yo) {
   // Un proceso cerrado con error, caducado o por decisión (VG 12-11, #71.2; 14-11, #80) deja de pedir pasos: no falta nada de nadie.
   const cierre = cerrado(eje, id);
   if (FINES.some((f) => f.fin === cierre.fin)) return { cerrado: true, fin: cierre.fin, ...(cierre.fin === 'caducado' ? { plazo: cierre.plazo } : { causa: cierre.causa }), faltaDeMi: [], espera: [] };
-  const { porNombre } = plantillas(3, eje);
   const faltaDeMi = [];
   const espera = [];
-  const r = leer(eje, porNombre.get('what is missing'), id);
-  const pendientes = r.estado === 'RESUELTO' ? r.valor.map((o) => (o && typeof o === 'object' && o.k === 'reg' ? eje.obtener(o.id) : null)).filter(Boolean) : [];
-  for (const anuncio of pendientes) {
-    const todos = movimientosAnunciados(anuncio);
+  // Lo que falta lo dice la lectura de la época en X.4.9 («what is missing», Core AGRAM 18-11; NUCLEO_6_7_8 §6): una fila
+  // por movimiento anunciado que aún no ha pasado y por recuento que no pasa, con quién tiene que actuar y la acción que lo
+  // cumple. Aquí solo se reparte entre lo mío y lo que espero de otros.
+  const lqf = loQueFalta(eje, id);
+  const filas = lqf.filas;
+  const anuncios = [...new Set(filas.filter((f) => typeof f.sobre === 'string' && f.sobre !== id).map((f) => f.sobre))];
+  for (const aid of anuncios) {
+    const anuncio = eje.obtener(aid);
+    if (!anuncio) continue;
+    const suyas = filas.filter((f) => f.sobre === aid);
     const texto = (m) => 'mover ' + m.cantidad + ' ' + claveToken(m) + ' de ' + m.de + ' a ' + m.a;
-    // Lo mío, en un registro anclado sobre el anuncio (VG 12-11, decisión 8; #48): así cumple ese y solo ese; lo que
-    // ya movió un registro anclado sobre él no vuelve a faltar.
-    const hecho = eje.sobre(anuncio.id).flatMap((r) => movimientosReales(r));
-    const falta = todos.filter((m) => !hecho.some((h) => claveToken(h) === claveToken(m) && h.de === m.de && h.a === m.a && h.cantidad >= m.cantidad));
+    // Los movimientos anunciados que la lectura dice que faltan, tal como los anuncia el registro (para la transacción).
+    const falta = movimientosAnunciados(anuncio).filter((m) => suyas.some((f) => f.serie === claveToken(m) && f.de.includes(m.de) && f.a === m.a && f.cantidad === m.cantidad));
     const mios = falta.filter((m) => m.de === yo);
     if (mios.length) {
       const que = mios.map(texto).join('; ');
-      faltaDeMi.push({ que, anuncio: anuncio.id, plantilla: 'move what was announced', transaccion: { autor: yo, sobre: anuncio.id, en: FABRICA, movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: yo, a: null }, ...mios], payload: [que] } });
+      // Lo mío, en un registro anclado sobre el anuncio (VG 12-11, decisión 8; #48): así cumple ese y solo ese. `plantilla`
+      // es la acción que dice la fila (la de la estación de su familia, epoch.4.2); `transaccion`, la de siempre.
+      const accion = suyas.find((f) => f.de.includes(yo))?.accion ?? null;
+      faltaDeMi.push({ que, anuncio: aid, plantilla: accion, transaccion: { autor: yo, sobre: aid, en: FABRICA, movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: yo, a: null }, ...mios], payload: [que] } });
     }
-    for (const m of falta.filter((x) => x.de !== yo)) espera.push({ que: texto(m), anuncio: anuncio.id, de: m.de });
+    for (const m of falta.filter((x) => x.de !== yo)) espera.push({ que: texto(m), anuncio: aid, de: m.de });
   }
-  // El recuento del dueño, si lo declara en su criterio.
-  if (delCriterio(eje, id, 2).some((x) => plantillas(0, eje).porNombre.has(x))) {
+  // El recuento del dueño que no pasa: su fila, sobre X.
+  const delRecuento = filas.find((f) => f.sobre === id);
+  if (delRecuento) {
     const c = recuento(eje, id);
     if (c.pasa === false) {
       const que = 'el recuento de ' + reg.autor + ' (' + c.plantilla + ') da ' + c.valor + ' y pide ' + c.umbral;
@@ -443,11 +493,11 @@ export function siguiente(eje, X, yo) {
         .filter((p) => p.disponible > 0 && enDominio(raizDeAmbito(p.ambito)) && cuenta(p.origen))
         .sort((a, b) => b.disponible - a.disponible)[0];
       if (mio) {
-        faltaDeMi.push({ que, plantilla: 'commit P', transaccion: { autor: yo, sobre: id, movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: yo, a: null }, { token: 'P', ambito: mio.ambito, ...(mio.origen === yo ? {} : { origen: mio.origen }), cantidad: mio.disponible, de: yo, a: yo, estado: 'bloqueo', salida: id }], payload: ['comprometo P con ' + id.slice(0, 8)] } });
+        faltaDeMi.push({ que, plantilla: delRecuento.accion, transaccion: { autor: yo, sobre: id, movimientos: [{ token: 'T', escala: 'minuto', cantidad: 1, de: yo, a: null }, { token: 'P', ambito: mio.ambito, ...(mio.origen === yo ? {} : { origen: mio.origen }), cantidad: mio.disponible, de: yo, a: yo, estado: 'bloqueo', salida: id }], payload: ['comprometo P con ' + id.slice(0, 8)] } });
       } else espera.push({ que, de: reg.autor });
     }
   }
-  const fuera = { cerrado: cerrado(eje, id).cerrado, faltaDeMi, espera };
+  const fuera = { cerrado: cerrado(eje, id).cerrado, faltaDeMi, espera, ...(lqf.estado === 'RESUELTO' ? {} : { estado: lqf.estado, motivo: lqf.motivo }) };
   // El alta de yo, aceptando una invitación: lo que la invitación anuncia de mí y el tutorial.
   const inv = reg.sobre ? eje.obtener(reg.sobre) : null;
   const esInvitacion = Array.isArray(inv?.payload) && [inv.payload[0]].flat().includes('invitation');

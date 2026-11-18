@@ -448,7 +448,7 @@ export function nochesDe(eje, reserva) {
 async function cumplir(eje, reserva, quien, { t, titulo, privada }) {
   const { faltaDeMi } = siguiente(eje, reserva.id, quien);
   let ultimo = null;
-  for (const x of faltaDeMi.filter((f) => f.plantilla === 'move what was announced')) {
+  for (const x of faltaDeMi.filter((f) => f.anuncio)) { // lo anunciado (con su anuncio), no un recuento
     ultimo = await escribirPagando(eje, { autor: quien, sobre: x.anuncio, en: x.transaccion.en, t, movimientos: [minutos(quien), ...x.transaccion.movimientos.slice(1)], payload: titulo }, privada);
   }
   return ultimo;

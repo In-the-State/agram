@@ -330,7 +330,8 @@ Lo que antes eran estados del núcleo (pendiente, autorizado, ejecutado) son aho
 
 ```js
 cerrado(eje, X)          // → { cerrado: true | false | null, plantilla, estado, motivo, fin, causa?, plazo?, registro? }
-siguiente(eje, X, yo)    // → { cerrado, faltaDeMi: [{ que, anuncio?, plantilla, transaccion }], espera: [{ que, anuncio?, de }], tutorial? }  (cerrado con error o caducado: { cerrado: true, fin, causa | plazo, faltaDeMi: [], espera: [] })
+loQueFalta(eje, X, { memoria })  // → { estado, motivo, filas: [{ serie, cantidad, porque, de, a, accion, sobre, para, hay }] }: la lectura X.4.9
+siguiente(eje, X, yo)    // → { cerrado, faltaDeMi: [{ que, anuncio?, plantilla, transaccion }], espera: [{ que, anuncio?, de }], tutorial?, estado?, motivo? }  (cerrado con error o caducado: { cerrado: true, fin, causa | plazo, faltaDeMi: [], espera: [] })
 registrar(eje, datos, privada)  // → Promise<evento>: eje.escribir
 ```
 
@@ -347,7 +348,11 @@ La regla de la época «an expiry has expired» comprueba (solo lee) que el plaz
 
 Efectos: `cerrado.fin` y `cerrado.plantilla` los distinguen de lo cumplido; `siguiente` calla (`{ cerrado: true, fin, causa | plazo, faltaDeMi: [], espera: [] }`, y `acciones.camino` no lista sus pasos pendientes); `ocupacion` solo cuenta como válido lo que termina en `'cumplido'`. `cerrado` sigue valiendo `true` para quien solo mira si el proceso aún pide algo; quien necesite saber si se cumplió, lee `fin`. La lista de finales es `motor.FINES` (`fin`, plantilla de cerrado y acción que escribe el registro). Pruebas: `test/motor.test.js` (cerrado con error, caducado, los finales).
 
-**Siguiente** (encargo 3b, paso 2). Con la plantilla «what is missing» de la época (epoch.9.0.3), lee los anuncios de X que aún no han pasado y los reparte: los que debe `yo` van en `faltaDeMi`, cada uno con la **transacción** que lo cumpliría (acción «move what was announced»: la transferencia anunciada y un minuto de mi T), lista para `registrar`; los que deben otros van en `espera`. Si el dueño de X declara un recuento en su criterio y no pasa, añade lo que falta: si `yo` cuento en ese recuento y tengo P disponible en el dominio de X, una transacción «commit P» que bloquea ese P con la salida = X; si no, una espera del dueño (§4.3). Si X es el alta de `yo` aceptando una invitación, suma lo que la invitación le pide y el **tutorial** (§4.4).
+**Siguiente** (encargo 3b, paso 2; Core AGRAM 18-11, `docs/notas/NUCLEO_6_7_8.md` §6). Lo que falta lo dice una lectura de la época que se materializa en **X.4.9**, «what is missing» (hasta la pasada única por la época 0, la provisional de `datos/provisional/lecturas.json`), y la lee `loQueFalta(eje, X, { memoria })`. Da una fila por cada movimiento anunciado que aún no ha pasado y por cada recuento que no pasa: `{ serie, cantidad, porque, de, a, accion, sobre, para, hay }`. Es la misma para todos los que miran, y `accion` sale de los datos: la estación de su familia (`epoch.4.2`) o, para el recuento, `epoch.9.0.3`. Si no se resuelve (PENDIENTE, por límite o ERROR), no da filas pero sí el motivo, y `siguiente` lo lleva en `estado` y `motivo`: nunca dice «nada». `siguiente` reparte las filas:
+
+- **Lo que debe `yo`** va en `faltaDeMi`, con `plantilla` = la acción de su fila («pay» o «deliver») y la **transacción** que lo cumpliría (la transferencia anunciada y un minuto de mi T), lista para `registrar`.
+- **Lo que deben otros** va en `espera`.
+- **El recuento que no pasa:** si `yo` cuento en él y tengo P disponible en el dominio de X, va con la acción de su fila («commit P»), que bloquea ese P con la salida = X; si no, una espera del dueño (§4.3). Si X es el alta de `yo` aceptando una invitación, suma lo que la invitación le pide y el **tutorial** (§4.4).
 
 Ejemplo: la persona huésped pide dos menús más. Escribe el trato, con la plantilla de cerrado en su criterio, y anuncia en su 4.1 que pagará 24 EUR a cocina. El trato queda abierto; `siguiente` le da a ella la transacción que lo cierra y a cocina, la espera. Cocina no puede cobrarse sola.
 
