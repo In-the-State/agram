@@ -173,14 +173,16 @@ test('formato: el botón «formatear» no escribe, un cambio de desplegable escr
   const formatear = APP.match(/formatear\(\) \{[^}]*\}/)[0];
   assert.match(formatear, /estado\.formatoSesion = !formatoDe\(\)\.formateado/);
   assert.doesNotMatch(formatear, /escribir|salida|registroDeFormato|setItem/);
-  // Un cambio de desplegable: sin cuenta, en memoria y antes de cualquier escritura; con cuenta, un registro por el camino de escribir de siempre.
+  // Un cambio de desplegable: sin cuenta, en memoria y antes de cualquier escritura; con cuenta, un registro por el camino de la bandeja.
   const formato = APP.match(/async formato\(clave, valor\) \{[^]*?\n  \},/)[0];
   assert.match(formato, /if \(clave === 'idioma'\) return manejadores\.preferencia\('language', valor\)/);
   const sinCuenta = formato.slice(formato.indexOf('if (!estado.cuenta)'), formato.indexOf('try {'));
   assert.match(sinCuenta, /estado\.formatoMemoria = \{ \.\.\.estado\.formatoMemoria, \[clave\]: valor \}/);
   assert.doesNotMatch(sinCuenta, /escribir|salida/);
   assert.match(formato, /registroDeFormato\(estado\.eje, estado\.identidad, \{ \[clave\]: valor \}\)/);
-  assert.match(formato, /salida\.escribirDesde\(estado\.eje, \{ modo: 'sequenced', autor: estado\.identidad, sobre: r\.sobre, en: r\.en, payload: r\.payload, \.\.\.horaDe\(\) \}, privadaDe\(estado\.identidad\)\)/);
+  // Desde A33 el único camino de escribir es el de la bandeja, con el mismo firmante que las acciones.
+  assert.match(formato, /escribirPorLaBandeja\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\), \{ modo: 'sequenced', sobre: r\.sobre, en: r\.en, payload: r\.payload \}, \{ idioma: idioma\(\), \.\.\.horaDe\(\) \}\)/);
+  assert.doesNotMatch(formato, /salida\.escribirDesde/);
   // Se lee del libro en cada pintado y la clave vieja del almacén local se borra al leer.
   assert.match(APP, /estado\.formato = formatoDe\(\)/);
   assert.match(APP, /olvidarFormatoLocal\(almacenLocal\(\), estado\.cuenta \? estado\.cuenta\.alta : null\)/);
