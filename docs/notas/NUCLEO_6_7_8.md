@@ -780,3 +780,35 @@ Si hace falta, el remedio es un índice: leer las devoluciones de R a una identi
 - **Los ejemplos de `ejemplos/` solo escriben lo anunciado de ahora**, un movimiento con estado «anunciado»: Booking, Tasks, la compra y el volcado del roadmap.
 - **Lo anunciado «como antes»**, un payload `[[serie], [cuánto], [para qué], [[de], [a]]]` en el 4.1, solo lo escriben las pruebas, como libros de ensayo: `motor`, `acciones`, `contrato`, `efectos`, `conformidad-motor`, `ejemplo-booking`, `carta-mapped`, `sitios-y-pesos` y `tiempo`. Sigue saliendo: la lectura X.4.9 tiene su rama para él (su texto es el 2 del payload; el movimiento, el de su payload). Una prueba nueva compara un anuncio de antes con el mismo anuncio de ahora: el mismo paso («pay»), el mismo texto y la misma espera para el otro.
 - **Si se quiere retirar la forma de antes**, hay que cambiar esas pruebas y quitar la rama de la lectura (y la de «stage», que también la lee). Es una decisión para la pasada única.
+
+## Quinta tanda (Core AGRAM 18-11)
+
+**1. Revisión del arreglo al fundir (`af9eaa4`, `mio` de `camino`).** `{ ...extra, ...prep.valores }` es el correcto. `preparar` ya da a lo que trae la fila prioridad sobre los defectos y lo convierte a su tipo (un id en `{ ref }` para un parámetro `ref`). Así, `prep.valores` lleva lo de la fila ya preparado, y `extra` solo aporta lo que no es un parámetro de la acción. No hay caso en que lo crudo de la fila deba ganar.
+
+**2. El camino en el idioma de quien lee.** El cuerpo de cada paso usa `contrato.textoDeFila` y el de un paso mío, `contrato.mensajeEnLlano`. `test/sitios-y-pesos.test.js` no cambia de huellas.
+
+**3. El 9 de un registro desde que el camino se lee en X.9.8.** Desde la lectura «path steps», un registro (y la candidata) tiene en su 9 un nodo implícito delante, como su 4, su 6, su 7 y su 8 desde que tienen lecturas. Medido sobre la reserva de Booking:
+
+| Fórmula | Da |
+|---|---|
+| `count it.9` | 1 (antes, 0) |
+| `count (payload(it)).9` | 0 |
+| `count (it.9 where "add a parent" in it2.4)` | 0, igual que antes |
+| `(it.9) by first it2.9` | PENDIENTE (antes, una lista vacía) |
+
+Fórmulas de `src/`, `datos/` y `ejemplos/` que leen el 9 de algo:
+
+| Dónde | Qué lee | ¿Cambia? |
+|---|---|---|
+| `datos/epocas/plantillas/remove-a-parent.json:14` y `:53` | `it.9 where "add a parent" in it2.4` sobre un registro | No: el nodo implícito no tiene «add a parent» en su 4 (lo que lee es una lectura en X.9.4, que no existe) y el `where` lo deja fuera. Lo confirma `test/padres.test.js` |
+| `datos/epocas/state/plantillas/open-a-conversation.json:19` y `:110`, `open-a-conversation-as-an-agent.json:19` y `:110` | `(it.9) where "declare agent" in it2.4 and …` sobre un alta | No, por lo mismo: el `and` es perezoso y el nodo se cae en la primera condición |
+| `datos/epocas/reglas/for-when.json:4` y `src/contrato.js:1932` | `(first it.7).9` | No: es el 9 del nodo del 7 (la lectura X.7.9), no el 9 del registro |
+| `src/contrato.js:1968` | `(first it.6).9` | No: el 9 del nodo del 6 (X.6.9) |
+| `ejemplos/gobierno.mjs:75` | `(first it.2).9` | No: el 9 del nodo del 2 (X.2.9, «change state») |
+| `datos/epocas/plantillas/open-a-private-book-here.json:82`, `receive-from-another-book.json:58` | `count it.9 = 0` | No: `it` es el valor de un parámetro décupla, no un registro |
+| `datos/epocas/reglas/informative-t-is-only-burned.json:4` | `count it.9 > 0` | No: `it` es un movimiento (D-MOV, su nota) |
+| Las lecturas provisionales | `(payload(it)).9` | No: leen el payload |
+
+**Ninguna fórmula de hoy cambia de resultado.**
+
+**Recomendación:** no cambiar la semántica. Es la regla de siempre: «lo que el núcleo lee en un registro va delante», y ya vale para el 4, el 6, el 7 y el 8. Quien quiera lo escrito en el 9 de un registro, que lea `(payload(X)).9`, o `X.9 where …` con una condición sobre lo escrito. Que lo diga `docs/BQLM.md` §4 en la línea de «Lo que el núcleo lee en un registro va delante», con el 9 en la lista. Es un documento del agente del lenguaje: no lo he tocado.
