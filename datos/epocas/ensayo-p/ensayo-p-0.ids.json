@@ -1,7 +1,7 @@
 {
-  "epoca": "9403e2e3bb0623d8cae0b81a9a37753efdf0756c64f9c4e96e6c90161acd3190",
+  "epoca": "319da885e33e4266a34d3ee8c295fa956240b30134fa31a68b94bfa59c08d540",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
-  "registrosAlPublicar": 9,
+  "registrosAlPublicar": 10,
   "reglas": [
     {
       "nombre": "backing of a person",
@@ -26,7 +26,7 @@
     {
       "nombre": "P is repositioned one step at a time",
       "archivo": "p-is-repositioned-one-step-at-a-time.json",
-      "id": "23469b2e024e93bc5f3bb6964a288c574ffca6ef88ef3d0dd23eabbe4f48c84f"
+      "id": "81ac6c9962e8280694fe352a7e13b74a95334d2ec263c858fe4daa1e59ca2d29"
     },
     {
       "nombre": "what is put behind something is released by withdrawing it",
@@ -42,6 +42,15 @@
       "ocho": [
         2,
         10
+      ]
+    },
+    {
+      "nombre": "I back this with my criterion",
+      "archivo": "i-back-this-with-my-criterion.json",
+      "id": "e6b946e2f0f960db43b04b3f366e93666ba6b47e67133a8a85bb0a02af6434c7",
+      "ocho": [
+        2,
+        11
       ]
     }
   ]

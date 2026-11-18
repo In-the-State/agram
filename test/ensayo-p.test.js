@@ -44,12 +44,12 @@ test('la época de ensayo de P se genera desde su fuente, al día, hereda de la 
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: node datos/epocas/ensayo-p/generar.mjs`);
   assert.deepEqual(g.reglas.map((r) => r.nombre), ['backing of a person', 'backing of what is closed stays a cycle', 'backing', 'distance', 'P is repositioned one step at a time', 'what is put behind something is released by withdrawing it']);
-  assert.deepEqual(g.plantillas.map((p) => [p.nombre, p.ocho]), [['I put my P behind this', [2, 10]]]);
+  assert.deepEqual(g.plantillas.map((p) => [p.nombre, p.ocho]), [['I put my P behind this', [2, 10]], ['I back this with my criterion', [2, 11]]]);
   assert.equal(EPOCA_0_BTML.id, ID_DE_LA_0, 'la 0 no cambia');
   assert.equal(g.hereda, ID_DE_LA_0);
   const e = cargarEpocaEscrita(epocaEnsayoP());
   assert.equal(e.id, g.id);
-  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 1, '«I put my P behind this» se suma a las de la 0');
+  assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 2, '«I put my P behind this» y «I back this with my criterion» se suman a las de la 0');
   assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 5, 'la de los pasos sustituye a la de la 0; se suman «distance», las dos de la P puesta detrás de algo y las dos lecturas «backing»: cinco más');
   assert.deepEqual(sinTraducir('es', { epoca: e }).map((x) => x.clave), []);
   const fuentes = readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => readFileSync(join('src', f), 'utf8'));

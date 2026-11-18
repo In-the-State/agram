@@ -17,5 +17,17 @@
   "template I put my P behind this param actions help: the action that writes the record",
   "template I put my P behind this param who label: who",
   "template I put my P behind this param who help: who writes",
-  "template I put my P behind this message: I put my P behind this: {me} puts {first ev.1.1} P behind {first it.0}"
+  "template I put my P behind this message: I put my P behind this: {me} puts {first ev.1.1} P behind {first it.0}",
+  "template I back this with my criterion: I back this with my criterion",
+  "template I back this with my criterion param split label: my criterion",
+  "template I back this with my criterion param split help: how much of the P of the note goes to each view, 0 to 9 in order (0 of representation … 9 of path); they add up to no more than the P of the note",
+  "template I back this with my criterion param text label: text",
+  "template I back this with my criterion param text help: a word on why (optional)",
+  "template I back this with my criterion param criteria label: closing criteria",
+  "template I back this with my criterion param criteria help: the closing template of the record, as in any anchored record",
+  "template I back this with my criterion param actions label: action",
+  "template I back this with my criterion param actions help: the action that writes the record",
+  "template I back this with my criterion param who label: who",
+  "template I back this with my criterion param who help: who writes",
+  "template I back this with my criterion message: I back this with my criterion: {me} backs the record this hangs from with the split of the P of this note"
 ]
