@@ -947,12 +947,15 @@ function htmlEjecucion(e) {
       <p class="denominacion"><label>${escapar(t(e.elegida ? 'denominacionElegida' : 'denominacionPropuesta'))} <select data-denominacion aria-label="${attr(t('denominacionEscala'))}">${opciones}</select></label> <b class="piezas" data-piezas="${attr(JSON.stringify(e.denominacion))}">${escapar(textoDePiezas(e.denominacion))}</b>${avisos}</p>${htmlPideLaEscala(e.pide)}${autoriza}${segundo}${delNucleo}</section>`;
 }
 
-/** Con el botón de ejecutar apagado, una línea arriba dice qué le falta al registro: el rango en que está y el que lo marca (contrato.botonDeEjecutar). */
+/**
+ * Con el botón de ejecutar apagado, una línea arriba dice qué le falta al registro: el nivel en que está y el que lo marca, por
+ * sus nombres (contrato.botonDeEjecutar: `nombre` y `marca.nombre`), sin cifras.
+ */
 function htmlBotonApagado(e) {
   const b = e?.boton;
   if (!b || b.estado !== 'apagado' || !b.marca) return '';
-  const marca = `${b.marca.nivel}.${b.marca.grado}`;
-  const texto = b.nombre ? t('ejecutarApagado', { nombre: b.nombre, rango: `${b.nivel}.${b.grado}`, marca }) : t('ejecutarApagadoSinRango', { marca });
+  const marca = b.marca.nombre ?? '';
+  const texto = b.nombre ? t('ejecutarApagado', { nombre: b.nombre, marca }) : t('ejecutarApagadoSinRango', { marca });
   return `<p class="boton-apagado-motivo" role="status">${escapar(texto)}</p>`;
 }
 

@@ -648,8 +648,8 @@ export const TEXTOS = Object.freeze({
     guardianSoloLeerSinGuardian: 'Esta cuenta se ha abierto solo para leer: su clave está en el guardián y aquí no hay guardián.',
     guardianCriteriosNo: 'El guardián no ha recibido tus criterios de segundo factor.',
     // el formulario de ejecutar y su reverso (VG 14-11, #89)
-    ejecutarApagado: 'este registro aún está en «{nombre}»: se puede hacer igual; el botón se encenderá cuando avance',
-    ejecutarApagadoSinRango: 'este registro aún no ha empezado su camino: se puede hacer igual; el botón se encenderá cuando avance',
+    ejecutarApagado: 'este registro aún está en «{nombre}»: se puede hacer igual; el botón se encenderá cuando llegue a «{marca}»',
+    ejecutarApagadoSinRango: 'este registro aún no ha empezado su camino: se puede hacer igual; el botón se encenderá cuando llegue a «{marca}»',
     // la cuenta del banco (encargo «cuenta del banco», VG 16-11; contrato.cuenta): el registro de la cuenta y su E en la cartera
     cuentaTitulo: 'cuenta del banco: el saldo es lo que dice el banco; quien tiene P sobre la cuenta puede proponer pagos; cada uno lo aprueba el titular en su banco',
     cuentaSaldo: 'saldo',

@@ -118,14 +118,15 @@ test('#89 con el botón apagado, una línea arriba dice en llano en qué punto e
   const h = html(a);
   const linea = h.match(/<p class="boton-apagado-motivo" role="status">([^<]+)<\/p>/);
   assert.ok(linea, 'la línea');
-  assert.equal(linea[1], `este registro aún está en «${b.nombre}»: se puede hacer igual; el botón se encenderá cuando avance`);
+  assert.equal(b.marca.nombre, 'aprendizaje profesional');
+  assert.equal(linea[1], `este registro aún está en «${b.nombre}»: se puede hacer igual; el botón se encenderá cuando llegue a «${b.marca.nombre}»`);
   assert.doesNotMatch(linea[1], /\d\.\d/, 'sin el rango en cifras');
   assert.ok(h.indexOf('boton-apagado-motivo') < h.indexOf('<div class="campo'), 'arriba, antes de los campos');
   // con el botón marcado, ninguna línea; sin rango, otra frase
   const marcado = { ...a, formulario: { ...a.formulario, ejecucion: { ...a.formulario.ejecucion, boton: { ...b, estado: 'marcado' } } } };
   assert.doesNotMatch(html(marcado), /boton-apagado-motivo/);
   const sinRango = { ...a, formulario: { ...a.formulario, ejecucion: { ...a.formulario.ejecucion, boton: { ...b, nombre: null } } } };
-  assert.match(html(sinRango), /este registro aún no ha empezado su camino: se puede hacer igual/);
+  assert.match(html(sinRango), /este registro aún no ha empezado su camino: se puede hacer igual; el botón se encenderá cuando llegue a «aprendizaje profesional»/);
   // y el aro (interactuar) no lleva ni línea ni cuenta de T
   const sin = html(await arbol({ foco: { X: m.encargo.id, pv: 4 }, formulario: { X: m.encargo.id, accion: 'pay', valores: {} } }, m.eje, 'huesped', GRANDE, ES));
   assert.doesNotMatch(sin, /boton-apagado-motivo|ejecucion-t/);

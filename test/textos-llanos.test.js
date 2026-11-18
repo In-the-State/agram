@@ -68,7 +68,9 @@ test('3. en un alta nueva, ningún marcador lleva una marca en crudo («compra 1
 
 test('4. el motivo del botón de ejecutar apagado, en llano: sin rangos en cifras («0.3», «3.1»)', () => {
   for (const clave of ['ejecutarApagado', 'ejecutarApagadoSinRango']) {
-    const texto = t(clave, { nombre: 'idea', rango: '0.3', marca: '3.1' });
+    // La marca llega por su nombre (contrato.botonDeEjecutar: marca.nombre), nunca en cifras.
+    const texto = t(clave, { nombre: 'idea', marca: 'aprendizaje profesional' });
+    assert.ok(texto.includes('«aprendizaje profesional»'), 'dice el nivel que lo marca');
     assert.doesNotMatch(texto, /\d\.\d|rango|se marca/);
   }
   for (const estado of ['apagado', 'marcado', 'efectos']) assert.doesNotMatch(t('botonEjecutar_' + estado, { rango: '0.3' }), /\d\.\d|rango/);

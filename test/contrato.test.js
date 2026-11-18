@@ -882,7 +882,7 @@ test('valorDeRegistro y valorDeCelda (VG 12-11, decisión 7): el valor de un reg
 test('botonDeEjecutar (VG 12-11, decisión 7): cambia con el rango del 8: apagado (pero pulsable) al principio, marcado al llegar al 3, efectos al subir', async () => {
   const c = await ejemploCompra();
   const apagado = C.botonDeEjecutar(c.eje, c.compra.id);
-  assert.deepEqual([apagado.estado, apagado.pulsable, apagado.peldano, apagado.marca, apagado.subida], ['apagado', true, 0, { peldano: 3, nivel: 3, grado: 1 }, 0]);
+  assert.deepEqual([apagado.estado, apagado.pulsable, apagado.peldano, apagado.marca, apagado.subida], ['apagado', true, 0, { peldano: 3, nivel: 3, grado: 1, nombre: 'aprendizaje profesional' }, 0]);
   // administrar acuñando R propia (la posición 2): la celda 2 · 3 a cuatro de profundidad, una más que su peldaño (2.1): sube al 3 (3.1)
   const darR = () => [minuto('huesped'), { token: 'R', emisor: 'huesped', cantidad: 1, de: null, a: 'huesped' }];
   const coordina = await cadenaDe(c.eje, c.compra.id, 4, { autor: 'huesped', en: '2000000000', movimientos: darR });

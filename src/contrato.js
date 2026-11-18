@@ -959,7 +959,7 @@ export const BOTON_DE_EJECUTAR = Object.freeze({ marca: 3, estados: Object.freez
  * El botón de ejecutar del 4 sobre X (VG 12-11, decisión 7): cambia con el rango de X (el del 8, rango()). Siempre se puede
  * pulsar; `estado` es 'apagado' por debajo del nivel 3, 'marcado' en el primer peldaño del nivel 3 y 'efectos' (segundo
  * borde, o la capa de efectos en animado) al subir de ahí; `subida`, cuántos peldaños por encima de la marca (0 si no).
- * → { estado, pulsable: true, peldano, nivel, grado, nombre, marca: { peldano, nivel, grado } | null, subida }; sin rango
+ * → { estado, pulsable: true, peldano, nivel, grado, nombre, marca: { peldano, nivel, grado, nombre } | null, subida }; sin rango
  * (X fuera del eje o sin escalera en la época), apagado con peldaño null.
  */
 export function botonDeEjecutar(eje, X, opciones = {}) {
@@ -967,7 +967,7 @@ export function botonDeEjecutar(eje, X, opciones = {}) {
   const pasos = escalera(opciones);
   const marcado = pasos.find((p) => p.nivel === BOTON_DE_EJECUTAR.marca) ?? null;
   const r = rango(eje, X, opciones);
-  const marca = marcado ? { peldano: marcado.indice, nivel: marcado.nivel, grado: marcado.grado } : null;
+  const marca = marcado ? { peldano: marcado.indice, nivel: marcado.nivel, grado: marcado.grado, nombre: marcado.nombre ?? null } : null;
   if (!r) return { estado: 'apagado', pulsable: true, peldano: null, nivel: null, grado: null, nombre: null, marca, subida: 0 };
   const estado = !marca || r.peldano < marca.peldano ? 'apagado' : r.peldano === marca.peldano ? 'marcado' : 'efectos';
   return { estado, pulsable: true, peldano: r.peldano, nivel: r.nivel, grado: r.grado, nombre: r.nombre, marca, subida: marca && r.peldano > marca.peldano ? r.peldano - marca.peldano : 0 };
