@@ -49,7 +49,7 @@ const UMBRAL_ARRASTRE = 24;
  *   lanzar(X, accion, paso, { ejecutar, aro, pv })  abrir el formulario de una acción (o del paso del camino; ejecutar: desde una celda del 4);
  *                            aro: desde el aro o «escribir aquí» (se ejecuta ahora); pv: el punto de vista donde se compone en la bandeja
  *   cambioFormulario(form)   un campo del formulario de una acción cambió: la bandeja lo pone y dice si entra
- *   bandejaIr() · bandejaAbrir(id) · bandejaQuitar(id) · bandejaListo(form) · bandejaEjecutar() · bandejaArchivo(campo, form)
+ *   bandejaIr() · bandejaAbrir(id) · bandejaQuitar(id) · bandejaListo(form) · bandejaEjecutar() · bandejaArchivo(campo, form) · bandejaMover(id, delta)
  *                            la bandeja (A33): ir al 4, volver a abrir una entrada, quitarla, cerrar su formulario, ejecutarla entera
  *   denominacion(escala, form)  ejecutar: la escala de la que parte la T que se quema (el formulario sigue con lo escrito)
  *   cerrar()                 cerrar el aro, el formulario o la configuración (y antes que nada, el «+n» abierto)
@@ -259,6 +259,7 @@ export function instalar(raiz, m) {
     if ((el = b('[data-bandeja-listo]'))) { e.preventDefault(); m.bandejaListo?.(el.closest('[data-formulario]')); return; }
     // Un parámetro de archivo (A33): elegir el archivo del aparato, en el mismo gesto (el navegador solo abre el selector así).
     if ((el = b('[data-bandeja-archivo]'))) { e.preventDefault(); m.bandejaArchivo?.(el.dataset.bandejaArchivo, el.closest('[data-formulario]')); return; }
+    if ((el = b('[data-bandeja-mover]'))) { e.preventDefault(); m.bandejaMover?.(el.dataset.bandejaMover, Number(el.dataset.delta)); return; } // subir o bajar en el orden de la tanda
     if ((el = b('[data-bandeja-ejecutar]'))) { e.preventDefault(); if (!el.disabled && el.dataset.noLanza === undefined) m.bandejaEjecutar?.(); return; }
     if ((el = b('[data-guia-rapida]'))) { e.preventDefault(); m.guiaRapida?.(Number(el.dataset.guiaRapida)); return; }
     if ((el = b('[data-guia-vaciar]'))) { e.preventDefault(); m.guiaVaciar?.(); return; }

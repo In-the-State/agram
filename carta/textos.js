@@ -1284,6 +1284,10 @@ export const TEXTOS = Object.freeze({
     bandejaArchivoNoEsta: 'el archivo ya no está en este aparato: vuelve a elegirlo',
     bandejaRegistro: 'guardar ajustes',
     bandejaMarcaCorta: '✎{n}',
+    bandejaSubirTitulo: 'que vaya antes en la tanda',
+    bandejaBajarTitulo: 'que vaya después en la tanda',
+    bandejaNoSeMueve: 'no se puede mover ahí: va detrás de lo que nombra',
+    bandejaMarcadoAqui: 'marcado, lo preparado sobre esto ({n})',
   }),
   // The app's own texts in English (VG 19-11): the same keys and the same gaps {…} as the Spanish block, in plain English,
   // without internal jargon. test/textos-ingles.test.js checks that both blocks have the same keys and gaps.
@@ -2489,6 +2493,10 @@ export const TEXTOS = Object.freeze({
     bandejaArchivoNoEsta: 'the file is no longer on this device: choose it again',
     bandejaRegistro: 'save settings',
     bandejaMarcaCorta: '✎{n}',
+    bandejaSubirTitulo: 'run it earlier in the batch',
+    bandejaBajarTitulo: 'run it later in the batch',
+    bandejaNoSeMueve: 'it cannot move there: it goes after what it names',
+    bandejaMarcadoAqui: 'marked, what is prepared on this ({n})',
   }),
 });
 

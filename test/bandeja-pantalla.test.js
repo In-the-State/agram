@@ -515,3 +515,18 @@ test('en el 4 la bandeja no se come la matriz: un tercio de su caja como mucho y
   assert.match(h, /^<section class="bandeja-cuatro"[^>]*><h3>[^<]*<\/h3><ol class="bandeja-lista">/);
   assert.ok(h.indexOf('data-bandeja-ejecutar') > h.indexOf('</ol>'));
 });
+
+test('el 4 enseña la tanda en su orden, con subir y bajar por entrada (no en los bordes ni en lo que pone la bandeja), y lo de este registro marcado', () => {
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1', { X: 'X2' }), item(null, { puesta: true, para: 'b2', accion: 'reserva' }), item('b2'), item('b3', { X: 'X2' })], motivos: [] });
+  const h = htmlBandejaDelCuatro(v, 'X1');
+  const ids = [...h.matchAll(/data-bandeja-quitar="(b\d)"/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ['b1', 'b2', 'b3'], 'el orden de la tanda, no primero lo de X1');
+  const movidas = [...h.matchAll(/data-bandeja-mover="(b\d)" data-delta="(-?1)"/g)].map((m) => m[1] + m[2]);
+  assert.deepEqual(movidas, ['b11', 'b2-1', 'b21', 'b3-1'], 'el primero no sube, el último no baja');
+  assert.match(h, /class="bandeja-item aqui"[^>]*>[^]*?data-bandeja-quitar="b2"/, 'lo compuesto sobre X1, marcado');
+  assert.ok(h.includes(t('bandejaMarcadoAqui', { n: 2 })), 'la reserva y la entrada de X1');
+  const g = gestos();
+  g.disparar('click', { target: el({ '[data-bandeja-mover]': true, 'button': true }, { bandejaMover: 'b2', delta: '-1' }) });
+  assert.deepEqual(g.llamadas, [['bandejaMover', 'b2', -1]]);
+  for (const k of ['bandejaSubirTitulo', 'bandejaBajarTitulo', 'bandejaNoSeMueve', 'bandejaMarcadoAqui']) assert.ok(TEXTOS.es[k] && TEXTOS.en?.[k], k + ', con su par en inglés');
+});

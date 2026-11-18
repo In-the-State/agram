@@ -269,6 +269,27 @@ export function crearBandeja({ almacen, libro, cuenta }) {
       return ok ? { ok, quitadas: [id, ...dependientes], dependientes } : { ok, motivo: 'no se puede guardar el borrador en este dispositivo', quitadas: [], dependientes: [] };
     },
 
+    /**
+     * Mueve una entrada un puesto antes (delta < 0) o después (delta > 0) en el orden de la tanda: en un todo o nada el
+     * orden cuenta. No pasa por delante de una de la que depende ni por detrás de una que depende de ella (al componer,
+     * la que nombra va siempre detrás de la nombrada). → { ok, orden: [ids] } o { ok: false, porque: 'no-esta' | 'borde' |
+     * 'depende' }.
+     */
+    mover(id, delta) {
+      const b = leer();
+      const k = b.entradas.findIndex((e) => e.id === id);
+      if (k < 0) return { ok: false, porque: 'no-esta' };
+      const j = k + (delta < 0 ? -1 : 1);
+      if (!delta || j < 0 || j >= b.entradas.length) return { ok: false, porque: 'borde' };
+      // Tras el cambio, `va` queda delante de `queda`: no puede depender de ella.
+      const [va, queda] = delta < 0 ? [b.entradas[k], b.entradas[j]] : [b.entradas[j], b.entradas[k]];
+      if (va.de.includes(queda.id)) return { ok: false, porque: 'depende' };
+      const entradas = [...b.entradas];
+      [entradas[k], entradas[j]] = [entradas[j], entradas[k]];
+      if (!guardar({ siguiente: b.siguiente, entradas })) return { ok: false, porque: 'no-se-guarda' };
+      return { ok: true, orden: entradas.map((e) => e.id) };
+    },
+
     /** Vacía el borrador. → bool (si se pudo guardar). */
     vaciar() {
       const b = leer();

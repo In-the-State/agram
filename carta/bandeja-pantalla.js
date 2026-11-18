@@ -195,18 +195,26 @@ export function htmlMarcaDeLaBandeja(v, X, pv) {
  */
 export function htmlBandejaDelCuatro(v, X) {
   if (!v?.total) return '';
-  const li = (x) => `<li class="bandeja-item${x.puesta ? ' puesta' : ''}${x.entra ? '' : ' no-entra'}"${x.puesta ? ' data-bandeja-puesta' : ''}>`
+  const li = (x) => `<li class="bandeja-item${x.puesta ? ' puesta' : ''}${x.aqui ? ' aqui' : ''}${x.entra ? '' : ' no-entra'}"${x.puesta ? ' data-bandeja-puesta' : ''}>`
     + `${x.puesta ? `<small class="bandeja-la-pone" title="${escapar(t('bandejaPuestaTitulo'))}">${escapar(t('bandejaPuesta'))}</small> ` : ''}`
     + `${htmlResumen(x.resumen, { largo: true }) || `<b class="bandeja-nace">${escapar(x.nombre)}</b>`} ${estadoDe(x)}`
-    + `${x.puesta ? '' : ` <button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}">${escapar(t('bandejaQuitar'))}</button>`}</li>`;
-  const lista = ordenDelCuatro(v, X);
-  const aqui = lista.filter((x) => x.donde.X === X).length;
+    + `${x.puesta ? '' : ` ${mover(x)}<button type="button" class="bandeja-quitar" data-nodo="control" data-bandeja-quitar="${escapar(x.id)}" title="${escapar(t('bandejaQuitarTitulo'))}">${escapar(t('bandejaQuitar'))}</button>`}</li>`;
+  // En el orden de la tanda (el de ejecutar: en un todo o nada cuenta), con subir y bajar; lo compuesto sobre X, marcado.
+  // Supuesto de Core (reversible): antes, lo de X iba primero; con el orden a mano, la lista es la de la tanda.
+  const lista = v.items.map((x) => ({ ...x, aqui: x.donde.X === X }));
+  const propias = lista.filter((x) => !x.puesta);
+  const mover = (x) => {
+    const k = propias.indexOf(propias.find((y) => y.id === x.id));
+    const boton = (delta, clave, titulo, signo, hay) => (hay ? `<button type="button" class="bandeja-mover" data-nodo="control" data-bandeja-mover="${escapar(x.id)}" data-delta="${delta}" title="${escapar(t(titulo))}" aria-label="${escapar(t(titulo))}">${signo}</button>` : '');
+    return boton(-1, 'bandejaSubir', 'bandejaSubirTitulo', '↑', k > 0) + boton(1, 'bandejaBajar', 'bandejaBajarTitulo', '↓', k >= 0 && k < propias.length - 1);
+  };
+  const aqui = lista.filter((x) => x.aqui).length;
   const motivos = v.motivos.length ? `<ul class="motivos" role="alert">${v.motivos.map((m) => `<li>${escapar(m)}</li>`).join('')}</ul>` : '';
   const boton = v.ok
     ? `<button type="button" class="bandeja-ejecutar" data-nodo="accion" data-bandeja-ejecutar${v.ocupado ? ' disabled' : ''}>${escapar(t(v.ocupado ? 'bandejaEjecutando' : 'bandejaEjecutar', { n: v.items.length }))}</button>`
     : `<button type="button" class="bandeja-ejecutar no-lanza" data-nodo="accion" data-bandeja-ejecutar data-no-lanza aria-disabled="true">${escapar(t('bandejaNoSeLanza', { n: v.noEntran }))}</button>`;
   return `<section class="bandeja-cuatro" data-bandeja-cuatro data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTitulo'))}"><h3>${escapar(t('bandejaTitulo'))}</h3>`
-    + `${aqui && aqui < lista.length ? `<small class="bandeja-aqui">${escapar(t('bandejaPrimeroAqui', { n: aqui }))}</small>` : ''}`
+    + `${aqui && aqui < lista.length ? `<small class="bandeja-aqui">${escapar(t('bandejaMarcadoAqui', { n: aqui }))}</small>` : ''}`
     + `<ol class="bandeja-lista">${lista.map(li).join('')}</ol>${motivos}`
     + `<footer><p class="bandeja-total">${escapar(t('bandejaTotal', { t: textoDeT(v.cuesta) }))}</p>${boton}</footer></section>`;
 }

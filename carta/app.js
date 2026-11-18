@@ -1769,6 +1769,14 @@ const manejadores = {
     } else estado.aviso = r.motivo;
     pintar();
   },
+  /** Subir o bajar una entrada en el orden de la tanda (en un todo o nada el orden cuenta). */
+  bandejaMover(id, delta) {
+    const r = bandeja()?.mover(id, delta);
+    if (!r) return;
+    limpiarMensajes();
+    if (!r.ok && r.porque === 'depende') estado.aviso = t('bandejaNoSeMueve');
+    pintar();
+  },
   /** Volver a abrir una entrada de la bandeja: su formulario con lo escrito. */
   bandejaAbrir(id) {
     const e = bandeja()?.listar().entradas.find((x) => x.id === id);
