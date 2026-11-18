@@ -1,0 +1,515 @@
+// La tanda en los servidores de AGRAM (agram-equipo/CONTRATO_TANDA.md, 18-11): POST /eventos/tanda { eje, eventos },
+// todos o ninguno, con órdenes consecutivos, en el servidor de prueba (servidor/prueba, el api.js de la función de
+// Supabase con el almacén en memoria) y en la simulación de AARPIA (servidor/sim/aarpia, el mismo api.js sobre el relé).
+// La marca, la forma en orden viendo los anteriores, los topes, los duplicados, el 409, el 400 del suelto con marca, el
+// error que lanza un almacén con autoridad y lo que sirve GET /eventos.
+
+import { test, describe, before, after } from 'node:test';
+import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, readFileSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
+import { arrancar, almacenEnMemoria } from '../servidor/prueba/servidor.mjs';
+import { arrancar as arrancarSim } from '../servidor/sim/aarpia/servidor.mjs';
+import { crearServicio } from '../servidor/sim/aarpia/src/servicio.js';
+import { Autoridad, KIND_RECHAZO } from '../servidor/sim/aarpia/src/autoridad.js';
+import { Rele, KIND_EVENTO } from '../servidor/sim/aarpia/src/rele.js';
+import { envolver } from '../servidor/sim/aarpia/src/sobre.js';
+import { generarClaves as clavesNostr, aBytes, aHex } from '../servidor/sim/aarpia/src/nostr.js';
+import { crearApi, comprobarMarcaDeTanda, LIMITE_CUERPO } from '../servidor/supabase/funciones/eventos/api.js';
+import * as criptoNucleo from '../servidor/prueba/cripto-nucleo.mjs';
+import { Eje } from '../src/eje.js';
+import { generarClaves } from '../src/autoridad.js';
+import { canonico, cuerpo, hash, RAIZ } from '../servidor/supabase/funciones/eventos/verificar.js';
+import { schnorr } from '../servidor/supabase/funciones/eventos/noble-secp256k1.js';
+
+const T = (m) => '2026-11-18T09:' + String(m).padStart(2, '0') + ':00Z';
+
+/** Un registro firmado, hecho a mano (solo forma: los servidores no juzgan reglas, así que no hace falta que mueva tokens). */
+async function registro({ autor = 'vg', privada, sobre = null, t = T(1), payload = ['x'], contexto = {} }) {
+  const ev = { autor, sobre, en: RAIZ, t, movimientos: [], payload, contexto };
+  ev.id = await hash(canonico(cuerpo(ev)));
+  ev.firmante = autor;
+  ev.firma = aHex(schnorr.sign(aBytes(ev.id), aBytes(privada)));
+  return ev;
+}
+
+/**
+ * Una tanda bien marcada: cada miembro { autor?, privada, sobre?, payload?, contexto? } recibe contexto.tanda = { n, de,
+ * anterior } (anterior: el id del miembro de antes). `de` se puede forzar para las pruebas de la marca.
+ */
+async function tanda(miembros, { de = miembros.length } = {}) {
+  const hechos = [];
+  for (const [k, m] of miembros.entries()) {
+    const marca = k === 0 ? { n: 1, de } : { n: k + 1, de, anterior: hechos[k - 1].id };
+    hechos.push(await registro({ ...m, payload: m.payload ?? ['miembro ' + (k + 1)], contexto: { ...(m.contexto ?? {}), tanda: marca } }));
+  }
+  return hechos;
+}
+
+/** Un libro con su génesis firmado (Eje.genesis del núcleo) y la clave de vg. */
+async function libro() {
+  const claves = await generarClaves();
+  const eje = await Eje.genesis({ identidad: 'vg', foco: ['tanda'], t: T(0), clave: claves.publica, privada: claves.privada, exigirFirmas: true });
+  return { claves, genesis: eje.obtener(eje.genesisId) };
+}
+
+/** Las llamadas HTTP a un servidor { url }: crear un eje, subir uno, subir una tanda, bajar. */
+function cliente(servidor) {
+  const post = (camino, cuerpo, cabeceras = {}) => fetch(servidor.url + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cabeceras }, body: typeof cuerpo === 'string' ? cuerpo : JSON.stringify(cuerpo) });
+  const leer = async (r) => ({ estado: r.status, cuerpo: await r.json() });
+  return {
+    async crear(eje) {
+      const { claveLectura } = await (await post('/eventos/ejes', { eje }, { 'X-Crear-Ejes': 'prueba' })).json();
+      const cab = { 'X-Clave-Lectura': claveLectura };
+      return {
+        cab,
+        uno: async (evento) => leer(await post('/eventos', { eje, evento }, cab)),
+        tanda: async (eventos, cabeceras = cab) => leer(await post('/eventos/tanda', { eje, eventos }, cabeceras)),
+        crudo: (cuerpo) => post('/eventos/tanda', cuerpo, cab),
+        bajar: async (q = '') => (await fetch(servidor.url + '/eventos?eje=' + eje + q, { headers: cab })).json(),
+        recibo: async (id) => leer(await fetch(servidor.url + '/eventos/recibo?eje=' + eje + '&id=' + id, { headers: cab })),
+      };
+    },
+  };
+}
+
+const consecutivos = (ordenes) => ordenes.every((o, k) => k === 0 || o === ordenes[k - 1] + 1);
+
+test('la marca: de 2 a 32 contando los miembros reales, n su sitio, anterior el id del de antes y solo falta en el 1, sin más claves', async () => {
+  const { claves } = await libro();
+  const p = claves.privada;
+  const [a, b, c] = await tanda([{ privada: p }, { privada: p }, { privada: p }]);
+  assert.equal(comprobarMarcaDeTanda([a, b, c]), null);
+  assert.equal(comprobarMarcaDeTanda([a, b]).indice, 0, 'dice de = 3 y llegan 2: no se fía de `de`');
+  assert.match(comprobarMarcaDeTanda([a, b]).error, /de = 3 y la tanda trae 2/);
+  assert.equal(comprobarMarcaDeTanda([a, c, b]).indice, 1, 'fuera de su sitio');
+  assert.equal(comprobarMarcaDeTanda([a]).indice, null, 'no hay tandas de uno');
+  assert.equal(comprobarMarcaDeTanda('x').indice, null);
+  const [x, y] = await tanda([{ privada: p }, { privada: p }]);
+  const sinAnterior = await registro({ privada: p, contexto: { tanda: { n: 2, de: 2 } } });
+  assert.equal(comprobarMarcaDeTanda([x, sinAnterior]).indice, 1);
+  const conAnterior = await registro({ privada: p, contexto: { tanda: { n: 1, de: 2, anterior: y.id } } });
+  assert.equal(comprobarMarcaDeTanda([conAnterior, y]).indice, 0, 'el 1 no lleva anterior');
+  const otraClave = await registro({ privada: p, contexto: { tanda: { n: 1, de: 2, grupo: 'a' } } });
+  assert.match(comprobarMarcaDeTanda([otraClave, y]).error, /grupo/);
+  const suelto = await registro({ privada: p });
+  assert.equal(comprobarMarcaDeTanda([x, suelto]).indice, 1, 'un miembro sin marca');
+  assert.equal(comprobarMarcaDeTanda([x, { ...y, id: 'no' }]).indice, 1);
+});
+
+describe('servidor de prueba (servidor/prueba: el api.js de Supabase en memoria)', () => {
+  let servidor;
+  let api;
+  before(async () => {
+    servidor = await arrancar({ puerto: 0, secreto: 'prueba' });
+    api = cliente(servidor);
+  });
+  after(async () => servidor.cerrar());
+
+  test('una tanda válida de tres: 201 { tanda, eventos } con órdenes consecutivos, un recibo por miembro; repetida, 200 duplicado con los mismos órdenes', async () => {
+    const e = await api.crear('tres');
+    const { claves, genesis } = await libro();
+    assert.equal((await e.uno(genesis)).estado, 201);
+    const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+    const r = await e.tanda(miembros);
+    assert.equal(r.estado, 201);
+    assert.deepEqual(Object.keys(r.cuerpo), ['tanda', 'eventos']);
+    assert.equal(r.cuerpo.tanda, miembros[0].id, 'la tanda es el id de su miembro 1');
+    assert.deepEqual(r.cuerpo.eventos.map((x) => x.id), miembros.map((m) => m.id));
+    assert.deepEqual(Object.keys(r.cuerpo.eventos[0]), ['id', 'orden', 'recibido']);
+    const ordenes = r.cuerpo.eventos.map((x) => x.orden);
+    assert.ok(consecutivos(ordenes), 'órdenes seguidos: ' + ordenes);
+    // Lo guardado es lo subido, por llegada, y GET /eventos lo sirve igual.
+    const bajado = await e.bajar();
+    assert.deepEqual(bajado.eventos.map((x) => [x.orden, x.evento.id]), [[ordenes[0] - 1, genesis.id], ...miembros.map((m, k) => [ordenes[k], m.id])]);
+    assert.deepEqual(bajado.eventos[1].evento, JSON.parse(JSON.stringify(miembros[0])));
+    // Un recibo por miembro (el de prueba), todos.
+    for (const m of miembros) assert.equal((await e.recibo(m.id)).estado, 200);
+    const otra = await e.tanda(miembros);
+    assert.equal(otra.estado, 200);
+    assert.deepEqual(otra.cuerpo, { ...r.cuerpo, duplicado: true });
+    assert.equal(servidor.almacen.filas('tres').length, 4, 'el reintento no guarda nada');
+  });
+
+  test('un miembro con firma mala: su estado con { error, indice, id } y NADA guardado; tampoco con un autor sin alta (403)', async () => {
+    const e = await api.crear('firma');
+    const { claves, genesis } = await libro();
+    await e.uno(genesis);
+    const ajena = await generarClaves();
+    const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: ajena.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+    const r = await e.tanda(miembros);
+    assert.equal(r.estado, 400);
+    assert.deepEqual(Object.keys(r.cuerpo), ['error', 'indice', 'id']);
+    assert.equal(r.cuerpo.indice, 1);
+    assert.equal(r.cuerpo.id, miembros[1].id);
+    assert.match(r.cuerpo.error, /firma inválida/);
+    assert.equal(servidor.almacen.filas('firma').length, 1, 'ni el miembro 1, que estaba bien');
+    const ana = await generarClaves();
+    const sinAlta = await tanda([{ privada: claves.privada, sobre: genesis.id }, { autor: 'ana', privada: ana.privada, sobre: genesis.id }]);
+    const r2 = await e.tanda(sinAlta);
+    assert.deepEqual([r2.estado, r2.cuerpo.indice, r2.cuerpo.id], [403, 1, sinAlta[1].id]);
+    assert.equal(servidor.almacen.filas('firma').length, 1);
+    // Un miembro con el cuerpo tocado (el id ya no es su hash).
+    const tocada = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+    const r3 = await e.tanda([tocada[0], { ...tocada[1], payload: ['otra cosa'] }]);
+    assert.deepEqual([r3.estado, r3.cuerpo.indice], [400, 1]);
+    assert.match(r3.cuerpo.error, /el id no corresponde al cuerpo/);
+  });
+
+  test('en orden y viendo los anteriores: la tanda que abre un eje vacío (génesis el primero) y el alta de un autor en un miembro anterior', async () => {
+    const e = await api.crear('vacio');
+    const vg = await generarClaves();
+    const ana = await generarClaves();
+    const genesis = { privada: vg.privada, payload: [], contexto: { genesis: true, claves: { vg: vg.publica } } };
+    // El génesis solo vale para el primero: un eje vacío no admite otra cosa delante.
+    const alReves = await tanda([{ privada: vg.privada, sobre: 'a'.repeat(64) }, genesis]);
+    let r = await e.tanda(alReves);
+    assert.deepEqual([r.estado, r.cuerpo.indice], [400, 0]);
+    assert.match(r.cuerpo.error, /vacío: solo se admite su génesis/);
+    const dosGenesis = await tanda([genesis, { ...genesis, payload: ['otro'] }]);
+    r = await e.tanda(dosGenesis);
+    assert.deepEqual([r.estado, r.cuerpo.indice], [400, 1]);
+    assert.match(r.cuerpo.error, /ya tiene génesis/);
+    assert.equal(servidor.almacen.filas('vacio').length, 0);
+    // Aceptar una invitación son dos registros: la invitación (de vg, declara la clave de ana) y lo de ana, en la misma tanda.
+    const miembros = await tanda([
+      { ...genesis, payload: ['génesis en tanda'] },
+      { privada: vg.privada, sobre: null, contexto: { claves: { ana: ana.publica } } },
+      { autor: 'ana', privada: ana.privada },
+    ]);
+    r = await e.tanda(miembros);
+    assert.equal(r.estado, 201, JSON.stringify(r.cuerpo));
+    assert.deepEqual(servidor.almacen.filas('vacio').map((f) => f.id), miembros.map((m) => m.id));
+  });
+
+  test('parte de sus ids ya guardados: 409 { error, indice, id } y nada más entra', async () => {
+    const e = await api.crear('partida');
+    const { claves, genesis } = await libro();
+    await e.uno(genesis);
+    const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+    // No debería poder pasar (un miembro nunca entra suelto, ni por el almacén); se fuerza con insertarTanda para verlo.
+    const m = miembros[1];
+    await servidor.almacen.insertarTanda('partida', [{ id: m.id, autor: m.autor, firma: m.firma, cuerpo: m }]);
+    const r = await e.tanda(miembros);
+    assert.equal(r.estado, 409);
+    assert.deepEqual([r.cuerpo.indice, r.cuerpo.id], [1, m.id]);
+    assert.equal(servidor.almacen.filas('partida').length, 2);
+  });
+
+  test('POST /eventos con un registro que lleva contexto.tanda: 400, también si es de una tanda ya guardada', async () => {
+    const e = await api.crear('suelto');
+    const { claves, genesis } = await libro();
+    await e.uno(genesis);
+    const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+    let r = await e.uno(miembros[0]);
+    assert.equal(r.estado, 400);
+    assert.match(r.cuerpo.error, /no entra suelto/);
+    assert.equal(servidor.almacen.filas('suelto').length, 1);
+    assert.equal((await e.tanda(miembros)).estado, 201);
+    r = await e.uno(miembros[1]);
+    assert.equal(r.estado, 400, 'ni como duplicado');
+  });
+
+  test('tandas de 1 y de 33: 400, nada guardado; el cuerpo entero por encima del tope: 413; sin clave: 401; GET: 405', async () => {
+    const e = await api.crear('tamano');
+    const { claves, genesis } = await libro();
+    await e.uno(genesis);
+    const uno = await tanda([{ privada: claves.privada, sobre: genesis.id }]);
+    let r = await e.tanda(uno);
+    assert.deepEqual([r.estado, r.cuerpo.indice], [400, null]);
+    const treintaYTres = await tanda(Array.from({ length: 33 }, () => ({ privada: claves.privada, sobre: genesis.id })));
+    r = await e.tanda(treintaYTres);
+    assert.deepEqual([r.estado, r.cuerpo.indice], [400, null]);
+    assert.match(r.cuerpo.error, /de 2 a 32 miembros; llegan 33/);
+    // 32 sí.
+    r = await e.tanda(treintaYTres.slice(0, 32).map((m) => m)); // su marca dice de = 33: no vale
+    assert.equal(r.estado, 400);
+    const treintaYDos = await tanda(Array.from({ length: 32 }, () => ({ privada: claves.privada, sobre: genesis.id })));
+    r = await e.tanda(treintaYDos);
+    assert.equal(r.estado, 201);
+    assert.ok(consecutivos(r.cuerpo.eventos.map((x) => x.orden)));
+    const grandes = await tanda([{ privada: claves.privada, sobre: genesis.id, payload: ['x'.repeat(LIMITE_CUERPO / 2)] }, { privada: claves.privada, sobre: genesis.id, payload: ['y'.repeat(LIMITE_CUERPO / 2)] }]);
+    r = await e.tanda(grandes);
+    assert.deepEqual([r.estado, r.cuerpo.indice, r.cuerpo.id], [413, null, null], 'el tope es del cuerpo entero');
+    r = await e.tanda(uno, {});
+    assert.deepEqual(r, { estado: 401, cuerpo: { error: 'clave de lectura ausente o incorrecta', indice: null, id: null } });
+    assert.equal((await e.crudo('{no')).status, 400);
+    assert.equal((await fetch(servidor.url + '/eventos/tanda?eje=tamano', { headers: e.cab })).status, 405);
+    assert.equal(servidor.almacen.filas('tamano').length, 33);
+  });
+
+  test('GET /eventos no cambia (contrato, «Bajar»): una página puede cortar la tanda y la siguiente trae el resto; un fallo no deja nada que bajar', async () => {
+    const e = await api.crear('bajar');
+    const { claves, genesis } = await libro();
+    await e.uno(genesis);
+    const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+    const malos = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: (await generarClaves()).privada, sobre: genesis.id }]);
+    assert.equal((await e.tanda(malos)).estado, 400);
+    assert.deepEqual((await e.bajar()).eventos.map((x) => x.evento.id), [genesis.id], 'del fallo, nada');
+    await e.tanda(miembros);
+    const p1 = await e.bajar('&cuantos=2');
+    assert.deepEqual(p1.eventos.map((x) => x.evento.id), [genesis.id, miembros[0].id]);
+    assert.notEqual(p1.siguiente, null);
+    const p2 = await e.bajar('&desde=' + p1.siguiente);
+    assert.deepEqual(p2.eventos.map((x) => x.evento.id), [miembros[1].id, miembros[2].id]);
+    assert.equal(p2.siguiente, null);
+  });
+
+  test('el tope por minuto: la tanda cuenta como `de` escrituras; si no caben todas, 429 con el primer miembro que no cabe y no entra ninguna', async () => {
+    let ahora = Date.parse('2026-11-18T15:00:00Z');
+    const s = await arrancar({ puerto: 0, secreto: 'prueba', ahora: () => new Date(ahora), escriturasPorMinuto: 4 });
+    try {
+      const e = await cliente(s).crear('limite');
+      const { claves, genesis } = await libro();
+      assert.equal((await e.uno(genesis)).estado, 201); // 1 de 4
+      const de = (n) => tanda(Array.from({ length: n }, (_, k) => ({ privada: claves.privada, sobre: genesis.id, payload: ['t' + n + '-' + k + '-' + ahora] })));
+      const cuatro = await de(4);
+      let r = await e.tanda(cuatro);
+      assert.deepEqual([r.estado, r.cuerpo.indice, r.cuerpo.id], [429, 3, cuatro[3].id]);
+      assert.equal(s.almacen.filas('limite').length, 1, 'ni los tres que cabían');
+      assert.equal((await e.tanda(await de(3))).estado, 201); // 4 de 4
+      r = await e.tanda(await de(2));
+      assert.deepEqual([r.estado, r.cuerpo.indice], [429, 0]);
+      ahora += 60000;
+      assert.equal((await e.tanda(cuatro)).estado, 201, 'el minuto siguiente, entera');
+      assert.equal(s.almacen.filas('limite').length, 8);
+    } finally {
+      await s.cerrar();
+    }
+  });
+
+  test('con --archivo, la tanda se vuelca entera y sobrevive a reiniciar', async () => {
+    const carpeta = mkdtempSync(join(tmpdir(), 'agram-tanda-'));
+    const archivo = join(carpeta, 'libro.json');
+    try {
+      const s1 = await arrancar({ puerto: 0, secreto: 'prueba', archivo });
+      const e = await cliente(s1).crear('disco');
+      const { claves, genesis } = await libro();
+      await e.uno(genesis);
+      const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+      const r = await e.tanda(miembros);
+      await s1.cerrar();
+      const s2 = await arrancar({ puerto: 0, secreto: 'prueba', archivo });
+      assert.deepEqual(s2.almacen.filas('disco').map((f) => [f.orden, f.id]).slice(1), r.cuerpo.eventos.map((x) => [x.orden, x.id]));
+      await s2.cerrar();
+    } finally {
+      rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+});
+
+test('un almacén cuyo insertarTanda lanza { estado, indice, id } (la puerta con autoridad): la ruta responde ese estado y { error, indice, id }', async () => {
+  const almacen = almacenEnMemoria();
+  const llamadas = [];
+  let lanzar = null;
+  const original = almacen.insertarTanda;
+  almacen.insertarTanda = async (eje, filas) => {
+    llamadas.push(filas.map((f) => f.id));
+    if (lanzar) throw lanzar(filas);
+    return original(eje, filas);
+  };
+  const manejar = crearApi({ almacen, cripto: criptoNucleo, crearEjes: { secreto: 'prueba' } });
+  const pedir = async (camino, cuerpo, cab = {}) => {
+    const r = await manejar(new Request('http://127.0.0.1' + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cab }, body: JSON.stringify(cuerpo) }));
+    return { estado: r.status, cuerpo: await r.json() };
+  };
+  const { claveLectura } = (await pedir('/eventos/ejes', { eje: 'juez' }, { 'X-Crear-Ejes': 'prueba' })).cuerpo;
+  const cab = { 'X-Clave-Lectura': claveLectura };
+  const { claves, genesis } = await libro();
+  assert.equal((await pedir('/eventos', { eje: 'juez', evento: genesis }, cab)).estado, 201);
+  const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+  lanzar = (filas) => Object.assign(new Error('tanda rechazada: no pasa las reglas'), { estado: 422, indice: 1, id: filas[1].id });
+  let r = await pedir('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+  assert.deepEqual(r, { estado: 422, cuerpo: { error: 'tanda rechazada: no pasa las reglas', indice: 1, id: miembros[1].id } });
+  lanzar = () => Object.assign(new Error('el núcleo de esta puerta aún no trae tandas'), { estado: 501, indice: 0, id: null });
+  r = await pedir('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+  assert.deepEqual(r, { estado: 501, cuerpo: { error: 'el núcleo de esta puerta aún no trae tandas', indice: 0, id: null } });
+  lanzar = () => new Error('se cayó el disco');
+  r = await pedir('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+  assert.equal(r.estado, 500, 'un error sin estado es un 500, como siempre');
+  assert.equal(almacen.filas('juez').length, 1);
+  lanzar = null;
+  r = await pedir('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+  assert.equal(r.estado, 201);
+  assert.equal(llamadas.length, 4);
+  // insertarTanda que devuelve null (alguna llegó a la vez): si ya están todas, 200 duplicado.
+  almacen.insertarTanda = async () => null;
+  const otra = await tanda([{ privada: claves.privada, sobre: genesis.id, payload: ['a la vez'] }, { privada: claves.privada, sobre: genesis.id, payload: ['a la vez 2'] }]);
+  r = await pedir('/eventos/tanda', { eje: 'juez', eventos: otra }, cab);
+  assert.equal(r.estado, 500, 'null sin que estén: no se pudo guardar');
+});
+
+describe('simulación de AARPIA (servidor/sim/aarpia: el mismo api.js sobre el relé)', () => {
+  /** La décupla del recibo único: { clave: valor } de su par de listas. */
+  const pares = (sobre) => Object.fromEntries(sobre.recibo[2].map((k, i) => [k, sobre.recibo[3][i]]));
+
+  test('sin autoridad: 201 con órdenes consecutivos y un 7701 por miembro en órdenes seguidos de la cadena del eje; repetida, 200; un miembro malo no deja nada en el relé', async () => {
+    const s = await arrancarSim({ puerto: 0 });
+    try {
+      const e = await cliente(s).crear('sim');
+      const { claves, genesis } = await libro();
+      assert.equal((await e.uno(genesis)).estado, 201);
+      const malos = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: (await generarClaves()).privada, sobre: genesis.id }]);
+      const mal = await e.tanda(malos);
+      assert.deepEqual([mal.estado, mal.cuerpo.indice, mal.cuerpo.id], [400, 1, malos[1].id]);
+      assert.equal(s.servicio.rele.consultar({ kinds: [KIND_EVENTO] }).length, 1, 'en el relé, solo el génesis');
+      const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+      const r = await e.tanda(miembros);
+      assert.equal(r.estado, 201, JSON.stringify(r.cuerpo));
+      assert.deepEqual(r.cuerpo.eventos.map((x) => [x.id, x.orden]), miembros.map((m, k) => [m.id, k + 2]));
+      // Los recibos: uno por miembro, órdenes seguidos de la cadena, cada anterior el id del recibo de antes.
+      const recibos = [];
+      for (const id of [genesis.id, ...miembros.map((m) => m.id)]) recibos.push((await e.recibo(id)).cuerpo.sobre);
+      const cadena = recibos.map(pares);
+      assert.deepEqual(cadena.map((c) => c.orden), ['0', '1', '2', '3']);
+      for (let k = 1; k < recibos.length; k++) assert.equal(cadena[k].anterior, recibos[k - 1].id);
+      const otra = await e.tanda(miembros);
+      assert.deepEqual([otra.estado, otra.cuerpo.duplicado], [200, true]);
+      assert.deepEqual(otra.cuerpo.eventos, r.cuerpo.eventos);
+      assert.equal((await e.uno(miembros[0])).estado, 400, 'suelto, no');
+      const bajado = await e.bajar();
+      assert.deepEqual(bajado.eventos.map((x) => x.evento.id), [genesis.id, ...miembros.map((m) => m.id)]);
+    } finally {
+      await s.cerrar();
+    }
+  });
+
+  test('con autoridad: el núcleo juzga la tanda entera (anadirTanda); si un miembro no pasa, 422 con su índice, un solo 7703 y nada guardado; sin anadirTanda, 501', async () => {
+    const original = Object.getOwnPropertyDescriptor(Eje.prototype, 'anadirTanda');
+    const s = crearServicio({ autoridad: new Autoridad() });
+    const servidor = { url: 'http://127.0.0.1' };
+    const fetchLocal = async (url, opciones) => s.manejar(new Request(url, opciones));
+    const llamar = async (camino, cuerpo, cab = {}) => {
+      const r = await fetchLocal(servidor.url + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cab }, body: JSON.stringify(cuerpo) });
+      return { estado: r.status, cuerpo: await r.json() };
+    };
+    try {
+      const { claveLectura } = (await llamar('/eventos/ejes', { eje: 'juez' }, { 'X-Crear-Ejes': 'prueba' })).cuerpo;
+      const cab = { 'X-Clave-Lectura': claveLectura };
+      const { claves, genesis } = await libro();
+      assert.equal((await llamar('/eventos', { eje: 'juez', evento: genesis }, cab)).estado, 201);
+      const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+      const nada = () => s.rele.consultar({ kinds: [KIND_EVENTO] }).length;
+      // Sin anadirTanda en el núcleo: 501, ni 7703 ni nada guardado.
+      if (!original) {
+        const r = await llamar('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+        assert.deepEqual([r.estado, r.cuerpo.indice], [501, 0]);
+        assert.equal(nada(), 1);
+        assert.equal(s.rele.consultar({ kinds: [KIND_RECHAZO] }).length, 0);
+      }
+      // Un anadirTanda de mentira que rechaza el miembro 2 sin tocar el libro.
+      Object.defineProperty(Eje.prototype, 'anadirTanda', { configurable: true, writable: true, value: async () => ({ indice: 1, motivos: ['no pasa la regla de mentira'] }) });
+      let r = await llamar('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+      assert.deepEqual(r.cuerpo, { error: 'tanda rechazada: no pasa la regla de mentira', indice: 1, id: miembros[1].id });
+      assert.equal(r.estado, 422);
+      assert.equal(nada(), 1);
+      const rechazos = s.rele.consultar({ kinds: [KIND_RECHAZO] });
+      assert.equal(rechazos.length, 1, 'un solo 7703');
+      assert.equal(rechazos[0].tags.find((t) => t[0] === 'g')[1], miembros[1].id, 'el del miembro que falla');
+      // Uno que acepta: entra entera, con recibos de aceptación (marca nucleo) seguidos.
+      Object.defineProperty(Eje.prototype, 'anadirTanda', { configurable: true, writable: true, value: async () => ({ ok: true }) });
+      r = await llamar('/eventos/tanda', { eje: 'juez', eventos: miembros }, cab);
+      assert.equal(r.estado, 201, JSON.stringify(r.cuerpo));
+      assert.deepEqual(r.cuerpo.eventos.map((x) => x.orden), [2, 3, 4]);
+      assert.equal(nada(), 4);
+      // Suelto con marca, también con autoridad: 400, sin juicio ni 7703.
+      const suelto = await registro({ privada: claves.privada, sobre: genesis.id, contexto: { tanda: { n: 1, de: 2 } } });
+      assert.equal((await llamar('/eventos', { eje: 'juez', evento: suelto }, cab)).estado, 400);
+      assert.equal(s.rele.consultar({ kinds: [KIND_RECHAZO] }).length, 1);
+    } finally {
+      if (original) Object.defineProperty(Eje.prototype, 'anadirTanda', original);
+      else delete Eje.prototype.anadirTanda;
+    }
+  });
+
+  test('el relé con archivo: una tanda cortada al final no se carga al reabrir (ni sus recibos); una entera, sí', async () => {
+    const carpeta = mkdtempSync(join(tmpdir(), 'agram-rele-tanda-'));
+    const archivo = join(carpeta, 'rele.jsonl');
+    try {
+      const transporte = clavesNostr();
+      const { claves, genesis } = await libro();
+      const rele = new Rele({ archivo });
+      const sobre = (evento) => envolver({ evento, eje: 'r', privada: transporte.privada });
+      assert.equal((await rele.publicar(await sobre(genesis))).ok, true);
+      const entera = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+      assert.equal((await rele.publicarVarios(await Promise.all(entera.map(sobre)))).ok, true);
+      const cortada = await tanda([{ privada: claves.privada, sobre: genesis.id, payload: ['c1'] }, { privada: claves.privada, sobre: genesis.id, payload: ['c2'] }]);
+      assert.equal((await rele.publicarVarios(await Promise.all(cortada.map(sobre)))).ok, true);
+      assert.equal(rele.consultar({ kinds: [KIND_EVENTO] }).length, 5);
+      // Se corta la última escritura: falta el último recibo y la línea anterior queda a medias.
+      const lineas = readFileSync(archivo, 'utf8').trim().split('\n');
+      writeFileSync(archivo, lineas.slice(0, -2).join('\n') + '\n' + lineas.at(-2).slice(0, 40));
+      const otra = new Rele({ archivo });
+      await otra.abrir();
+      const cargados = otra.consultar({ kinds: [KIND_EVENTO] }).map((ev) => JSON.parse(ev.content).id);
+      assert.deepEqual(new Set(cargados), new Set([genesis.id, ...entera.map((m) => m.id)]));
+      assert.equal(otra.ultimoEslabon('r').orden, 2, 'la cadena sigue en el último recibo de la tanda entera');
+    } finally {
+      rmSync(carpeta, { recursive: true, force: true });
+    }
+  });
+});
+
+
+test('defensa en el guardado suelto: ningún almacén guarda por insertar un registro con contexto.tanda (memoria, relé de la simulación y el relé mismo), entre por donde entre', async () => {
+  const { claves, genesis } = await libro();
+  const [m1] = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+  const fila = { id: m1.id, autor: m1.autor, firma: m1.firma, cuerpo: m1 };
+  // El almacén en memoria del servidor de prueba.
+  const memoria = almacenEnMemoria();
+  await memoria.crearEje('m', 'a'.repeat(64));
+  await memoria.insertar('m', { id: genesis.id, autor: 'vg', firma: genesis.firma, cuerpo: genesis });
+  await assert.rejects(memoria.insertar('m', fila), /no se guarda suelto/);
+  assert.equal(memoria.filas('m').length, 1);
+  // El almacén sobre el relé de la simulación, y el relé por NIP-01 directamente (sin pasar por el servicio).
+  const s = crearServicio();
+  await s.almacen.crearEje('r', 'a'.repeat(64));
+  await s.almacen.insertar('r', { id: genesis.id, autor: 'vg', firma: genesis.firma, cuerpo: genesis });
+  await assert.rejects(s.almacen.insertar('r', fila), /no se guarda suelto/);
+  const sobre = await envolver({ evento: m1, eje: 'r', privada: s.transporte });
+  const r = await s.rele.publicar(sobre);
+  assert.equal(r.ok, false);
+  assert.match(r.motivo, /solo entra con la tanda entera/);
+  assert.equal(s.rele.consultar({ kinds: [KIND_EVENTO] }).length, 1, 'en el relé, solo el génesis');
+  assert.equal((await s.almacen.listar('r', 0, 10)).length, 1);
+});
+
+test('el enrutado: POST /eventos/tanda no cae en POST /eventos ni al revés; un camino parecido (tandaX, tanda/algo, Tanda, /tanda) es 404 y no guarda nada; la barra final y la query no cambian la ruta', async () => {
+  for (const arrancarUno of [arrancar, arrancarSim]) {
+    const s = await arrancarUno({ puerto: 0, secreto: 'prueba' });
+    try {
+      const e = await cliente(s).crear('rutas');
+      const { claves, genesis } = await libro();
+      assert.equal((await e.uno(genesis)).estado, 201);
+      const miembros = await tanda([{ privada: claves.privada, sobre: genesis.id }, { privada: claves.privada, sobre: genesis.id }]);
+      const post = async (camino, cuerpo) => {
+        const r = await fetch(s.url + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...e.cab }, body: JSON.stringify(cuerpo) });
+        return { estado: r.status, cuerpo: await r.json() };
+      };
+      const guardados = async () => (await e.bajar()).eventos.length;
+      for (const camino of ['/eventos/tandaX', '/eventos/tanda/algo', '/eventos/Tanda', '/eventos/tandas', '/tanda', '/eventos/tanda/eventos']) {
+        for (const cuerpo of [{ eje: 'rutas', eventos: miembros }, { eje: 'rutas', evento: miembros[0] }]) {
+          const r = await post(camino, cuerpo);
+          assert.equal(r.estado, 404, arrancarUno.name + ' ' + camino);
+        }
+      }
+      assert.equal(await guardados(), 1);
+      // La tanda por POST /eventos (el camino suelto): 400, nada guardado; un registro suelto por la ruta de la tanda: 400.
+      assert.equal((await post('/eventos', { eje: 'rutas', eventos: miembros })).estado, 400);
+      assert.equal((await post('/eventos/tanda', { eje: 'rutas', evento: miembros[0] })).estado, 400);
+      const suelto = await registro({ privada: claves.privada, sobre: genesis.id, payload: ['suelto'] });
+      assert.equal((await post('/eventos/tanda', { eje: 'rutas', evento: suelto })).estado, 400);
+      assert.equal(await guardados(), 1);
+      // La barra final y la query: la misma ruta de la tanda, entera.
+      const r = await post('/eventos/tanda/?eje=otro&x=1', { eje: 'rutas', eventos: miembros });
+      assert.equal(r.estado, 201, JSON.stringify(r.cuerpo));
+      assert.equal((await post('/eventos/tanda?x=1', { eje: 'rutas', eventos: miembros })).cuerpo.duplicado, true);
+      assert.equal(await guardados(), 3);
+      // Lo de siempre sigue igual: POST /eventos/ con barra final es POST /eventos.
+      assert.equal((await post('/eventos/', { eje: 'rutas', evento: suelto })).estado, 201);
+    } finally {
+      await s.cerrar();
+    }
+  }
+});

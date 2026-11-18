@@ -52,6 +52,42 @@ export function juzgadosAceptados(eventos) {
   return ids;
 }
 
+/** La marca de tanda (CONTRATO_TANDA de AGRAM: contexto.tanda = { n, de, anterior }) del registro AGRAM de un 7700, o null. */
+function marcaDeTanda(ev) {
+  if (ev.kind !== KIND_EVENTO) return null;
+  try {
+    const cuerpo = JSON.parse(ev.content);
+    return cuerpo?.contexto?.tanda ? { id: cuerpo.id, ...cuerpo.contexto.tanda } : null;
+  } catch { return null; }
+}
+
+/**
+ * Los ids Nostr que no se cargan al reabrir: los de una tanda cortada AL FINAL del archivo, y sus recibos. Una tanda se
+ * escribe en una sola escritura (guardarVarios: miembro, recibo, miembro, recibo…), así que solo la última puede quedar a
+ * medias, y siempre por el final. Se mira solo esa cola: desde el último miembro 1 que no tiene detrás nada ajeno a la
+ * tanda. Completa: `de` miembros con n = 1…de, cada «anterior» el id del de antes, y cada uno con su recibo. Lo anterior
+ * del archivo nunca se descarta, declare lo que declare un registro.
+ */
+export function tandaCortadaAlFinal(eventos) {
+  const fuera = new Set();
+  let inicio = -1;
+  for (let i = eventos.length - 1; i >= 0; i--) {
+    const ev = eventos[i];
+    const m = marcaDeTanda(ev);
+    if (m?.n === 1) { inicio = i; break; }
+    if (!m && ev.kind !== KIND_RECIBO) return fuera; // algo suelto detrás: la última escritura no fue una tanda
+  }
+  if (inicio < 0) return fuera;
+  const cola = eventos.slice(inicio);
+  const miembros = cola.filter((ev) => ev.kind === KIND_EVENTO);
+  const conRecibo = new Set(cola.filter((ev) => ev.kind === KIND_RECIBO).flatMap((ev) => valores(ev, 'e')));
+  const marcas = miembros.map(marcaDeTanda);
+  const de = marcas[0].de;
+  const completa = miembros.length === de && marcas.every((m, k) => m && m.de === de && m.n === k + 1 && (k === 0 || m.anterior === marcas[k - 1].id)) && miembros.every((ev) => conRecibo.has(ev.id));
+  if (!completa) for (const ev of miembros) fuera.add(ev.id);
+  return fuera;
+}
+
 /** Más reciente primero; a igual created_at, por id (como hacen los relés). */
 const masReciente = (a, b) => b.ev.created_at - a.ev.created_at || (a.ev.id < b.ev.id ? -1 : 1);
 
@@ -88,9 +124,19 @@ export class Rele {
   async abrir() {
     if (!this.archivo || !existsSync(this.archivo)) return 0;
     let n = 0;
-    for (const linea of readFileSync(this.archivo, 'utf8').split(/\r?\n/)) {
-      if (!linea.trim()) continue;
-      const ev = JSON.parse(linea);
+    const lineas = readFileSync(this.archivo, 'utf8').split(/\r?\n/).filter((l) => l.trim());
+    const leidos = [];
+    for (const [i, linea] of lineas.entries()) {
+      let ev;
+      // Un corte a mitad de escribir deja la ÚLTIMA línea truncada: se descarta (lo de antes ya estaba entero).
+      try { ev = JSON.parse(linea); } catch (e) { if (i === lineas.length - 1) break; throw e; }
+      leidos.push(ev);
+    }
+    // Una tanda se escribe de una vez (guardarVarios): solo la ÚLTIMA escritura puede quedar a medias. Si es una tanda
+    // incompleta, no se carga (ni sus 7700 ni sus 7701). Nada de antes se descarta por lo que declaren los registros.
+    const fuera = tandaCortadaAlFinal(leidos);
+    for (const ev of leidos) {
+      if (fuera.has(ev.id) || (ev.kind === KIND_RECIBO && valores(ev, 'e').some((e) => fuera.has(e)))) continue;
       if (this.eventos.has(ev.id)) continue;
       if (!(await verificar(ev))) throw new Error('el archivo del relé tiene un evento que no verifica: ' + ev.id);
       this.eventos.set(ev.id, { ev, llegada: this.siguiente++ });
@@ -120,11 +166,41 @@ export class Rele {
     return [...this.eventos.values()].sort((a, b) => a.llegada - b.llegada).map((x) => x.ev);
   }
 
+  /**
+   * Varios 7700 de una vez, todos o ninguno (una tanda, CONTRATO_TANDA de AGRAM). Comprueba todos antes de guardar nada;
+   * firma sus recibos en orden (órdenes seguidos de la cadena del eje); escribe los 2N en el archivo de una sola vez y solo
+   * después avisa (espejo, suscripciones): nadie ve la tanda a medias. Si un recibo no llega a firmarse, no se guarda nada
+   * y la cadena vuelve a donde estaba (lanza). → { ok, motivo?, recibos }.
+   */
+  async publicarVarios(evs) {
+    if (!Array.isArray(evs) || !evs.length) return { ok: false, motivo: 'invalid: sin eventos' };
+    if (evs.some((ev) => this.eventos.has(ev?.id))) return { ok: false, motivo: 'duplicate: alguno ya estaba' };
+    if (new Set(evs.map((ev) => ev?.id)).size !== evs.length) return { ok: false, motivo: 'invalid: ids repetidos' };
+    for (const ev of evs) {
+      if (ev?.kind !== KIND_EVENTO) return { ok: false, motivo: 'blocked: en una tanda solo van 7700' };
+      if (this.firmantesDeEvento && !this.firmantesDeEvento.includes(ev.pubkey)) return { ok: false, motivo: 'blocked: con autoridad, un 7700 solo entra por el servicio, ya juzgado' };
+      if (!(await verificar(ev))) return { ok: false, motivo: 'invalid: id o firma' };
+    }
+    const instante = this.ahora();
+    const ejes = new Set(evs.map((ev) => valores(ev, 'h')[0]).filter((e) => e !== undefined));
+    const cadenas = new Map([...ejes].map((e) => [e, this.cadenas.get(e)]));
+    const recibos = [];
+    try {
+      for (const ev of evs) recibos.push(await this.emitirRecibo(ev, instante));
+    } catch (e) {
+      for (const [eje, eslabon] of cadenas) if (eslabon === undefined) this.cadenas.delete(eje); else this.cadenas.set(eje, eslabon);
+      throw e;
+    }
+    this.guardarVarios(evs.flatMap((ev, i) => [ev, recibos[i]]));
+    return { ok: true, motivo: '', recibos };
+  }
+
   /** NIP-01 ["EVENT", ev] → { ok, motivo, recibo? }. Idempotente por id. */
   async publicar(ev) {
     if (this.eventos.has(ev?.id)) return { ok: true, motivo: 'duplicate: ya estaba', duplicado: true, recibo: this.reciboDe(ev.id) };
     if (!this.kinds.includes(ev?.kind)) return { ok: false, motivo: 'blocked: kind no admitido' };
     if (ev.kind === KIND_RECIBO) return { ok: false, motivo: 'blocked: los recibos 7701 solo los emite el relé' };
+    if (marcaDeTanda(ev)) return { ok: false, motivo: 'blocked: un miembro de una tanda solo entra con la tanda entera (publicarVarios)' };
     if (ev.kind === KIND_EVENTO && this.firmantesDeEvento && !this.firmantesDeEvento.includes(ev.pubkey)) return { ok: false, motivo: 'blocked: con autoridad, un 7700 solo entra por el servicio, ya juzgado' };
     if (ev.kind === KIND_RECHAZO && !this.firmantesDeRechazo.includes(ev.pubkey)) return { ok: false, motivo: 'blocked: los rechazos 7703 solo los firma la autoridad' };
     if (!(await verificar(ev))) return { ok: false, motivo: 'invalid: id o firma' };
@@ -154,11 +230,17 @@ export class Rele {
   }
 
   guardar(ev) {
-    const fila = { ev, llegada: this.siguiente++ };
-    this.eventos.set(ev.id, fila);
-    if (this.archivo) appendFileSync(this.archivo, JSON.stringify(ev) + '\n');
-    if (this.alGuardar) this.alGuardar(ev); // p. ej. el espejo hacia los relés de la casa (src/espejo.js)
-    for (const s of this.subs) if (s.filtros.some((f) => pasaFiltro(ev, f))) s.alLlegar(ev);
+    this.guardarVarios([ev]);
+  }
+
+  /** Guarda en orden, escribe en el archivo de una sola vez y, después de todo, avisa (de forma síncrona, sin cortes). */
+  guardarVarios(evs) {
+    for (const ev of evs) this.eventos.set(ev.id, { ev, llegada: this.siguiente++ });
+    if (this.archivo) appendFileSync(this.archivo, evs.map((ev) => JSON.stringify(ev) + '\n').join(''));
+    for (const ev of evs) {
+      if (this.alGuardar) this.alGuardar(ev); // p. ej. el espejo hacia los relés de la casa (src/espejo.js)
+      for (const s of this.subs) if (s.filtros.some((f) => pasaFiltro(ev, f))) s.alLlegar(ev);
+    }
   }
 
   /** NIP-01 ["REQ", …filtros] sin suscripción: los eventos guardados que pasan algún filtro. */
