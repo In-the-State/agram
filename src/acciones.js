@@ -1658,8 +1658,9 @@ export function porAutorizar(eje, yo, opciones = {}) {
 // ---------- 5. el camino ----------
 
 
-/** Los nombres que un registro o una plantilla escriben en su 9 (hojas de texto). */
-const nombresDel9 = (decupla) => hojas(Array.isArray(decupla) ? decupla[9] : undefined).filter((x) => typeof x === 'string' && !esFormula(x));
+/** Lo que dice el 7 de una fila de guía (X.9.8): que si está hecha lo dice su ancla, para quien mira. */
+const POR_SU_ANCLA = 'by its anchor';
+
 
 /**
  * Yo y mis cosas: lo escrito por una cosa mía (la que tiene mi alta como autor de la suya) cuenta como mío en el camino: el
@@ -1710,48 +1711,28 @@ export async function camino(eje, X, yo, opciones = {}) {
   const ev = eventoDe(eje, X);
   if (!ev || !eje?.obtener(ev.id)) return { pasos: [] };
   const epoca = epocaDe(opciones, eje);
-  const raiz = raizDe(epoca);
   const idioma = idiomaDe(eje, yo, opciones);
   const ctx = contextoDe(eje, epoca, { me: yo });
   const t = relojDe(eje, opciones);
   const plantillas = plantillasDeTransaccion(opciones);
   const porNombre = new Map(plantillas.map((p) => [p.nombre, p.plantilla]));
-  const reglas = (epoca.reglasConId ?? []).map((x) => x.regla);
   const pasos = [];
 
   // Lo escrito por una cosa mía cuenta como mío en el camino (yoYMisCosasDe).
   const yoYMisCosas = yoYMisCosasDe(eje, yo);
   /** Un paso mío con una plantilla: sus parámetros por defecto y si ya está hecho (un registro mío, o de una cosa mía, en su ancla); `falta` se lee con su 9 en el idioma. */
+  // Lo que trae la fila (`extra`) va por delante de los defectos al preparar, pero el paso da cada valor como lo deja
+  // preparar (un registro, como referencia): es lo que el formulario y la bandeja saben leer.
   const mio = (nombre, extra = {}, sobre = ev) => {
     const plantilla = porNombre.get(nombre);
     if (!plantilla) return null;
     const prep = preparar(eje, plantilla, sobre, yo, extra, { t, epoca, idioma });
     const hecho = hechoEnSuAncla(eje, prep, yoYMisCosas);
-    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...Object.fromEntries(Object.entries(prep.valores)), ...extra }, lectura: esLectura(plantilla) }, hecho, falta: mensajeDe(eje, epoca, plantilla, prep.candidata, yo, sobre, idioma) };
+    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta: mensajeDe(eje, epoca, plantilla, prep.candidata, yo, sobre, idioma) };
   };
 
-  // (1) El tutorial: el 9 de la plantilla de X (la de datos, o la de identidad si X es un alta) y el 9 del propio X.
-  const esAlta = [...eje.identidades()].some((id) => eje.alta(id)?.id === ev.id);
-  // El tutorial del alta (el 9 de la plantilla de identidad) es de quien la escribió: su dueño; salvo que X tenga un tipo
-  // cuyo 9 ya es un camino (nombra plantillas de transacción: el alta de una cosa con su tipo, como el nodo de la época de
-  // la clase state): entonces su camino es el de su tipo.
-  const delTipo = nombresDel9(plantillaDeDatos(eje, ev, opciones));
-  const deIdentidad = esAlta && ev.autor === yo && !delTipo.some((n) => porNombre.has(n)) ? nombresDel9(en(raiz, SITIO.identidad)) : [];
-  const nombres = [...delTipo, ...deIdentidad, ...nombresDel9(ev.payload)];
-  for (const n of nombres) {
-    if (porNombre.has(n)) {
-      const paso = mio(n);
-      if (paso) pasos.push({ fuente: 'tutorial', ...paso, espera: null });
-      continue;
-    }
-    const regla = reglas.find((r) => nombreDeRegla(r) === n);
-    if (regla) {
-      // Una regla en el tutorial: no se lanza, se cumple o no (la clave se declara en el alta misma).
-      const hecho = n === 'a key is declared at its alta' ? Boolean(eje.clave(ev.autor)) : null;
-      pasos.push({ fuente: 'tutorial', falta: mensaje(eje, regla, idioma, { ev, ...opciones }), hacer: null, espera: null, hecho, regla: n });
-    }
-  }
-
+  // (1) El tutorial y (2) lo que piden las reglas: las filas de la lectura de la época en X.9.8 (Core AGRAM 18-11, cuarta
+  // tanda): el tutorial va delante y su 2.1 lo dice («tutorial»); lo demás es de las reglas.
   // (2) Las reglas: las filas de la lectura de la época en X.9.8 (motor.pasosDeLasReglas; Core AGRAM 18-11,
   // NUCLEO_6_7_8 §6 y su tercera tanda), con la época de este camino, su reloj (las caducidades) y opciones.memoria (una
   // MemoriaDeLectura de quien llama: el contrato, la carta por fila). Cada fila trae lo que hace falta y aquí no se
@@ -1774,20 +1755,34 @@ export async function camino(eje, X, yo, opciones = {}) {
   };
   for (const grupo of grupos.values()) {
     const f = grupo[0];
+    // Quién la ve (su 3.2): si la fila lo dice, solo esas identidades (el tutorial del alta, su dueño).
+    if (f.ven.length && !f.ven.includes(yo)) continue;
+    const fuente = f.fuente ?? 'reglas';
+    const tratado = eje.obtener(f.sobre);
     const movimientos = grupo.filter((x) => x.a !== null && x.serie !== null && x.cantidad !== null).map((x) => movimientoLegible(eje, { serie: x.serie, cantidad: x.cantidad, de: x.de[0] ?? null, a: x.a }, idioma, opciones));
     const cuerpo = [f.texto, movimientos.join('; ')].filter(Boolean).join(': ');
-    const falta = [f.porque ? mensaje(eje, String(f.porque), idioma, opciones) ?? String(f.porque) : null, cuerpo].filter(Boolean).join(' · ');
+    // El título, el mensaje de la regla de su 2 (con el registro del que trata como ev, para sus huecos).
+    const falta = [f.porque ? mensaje(eje, String(f.porque), idioma, { ev: tratado ?? ev, ...opciones }) ?? String(f.porque) : null, cuerpo].filter(Boolean).join(' · ');
     const sobre = eje.obtener(f.lanzar ?? f.sobre) ?? ev;
     // De qué registro trata (si no es X): un anuncio del 4.1 de X o, si no, el registro que la fila nombra (una petición).
-    const tratado = eje.obtener(f.sobre);
     const deQue = tratado && tratado.id !== ev.id ? (tratado.sobre === ev.id && tratado.en === '4100000000' ? { anuncio: tratado.id } : { peticion: tratado.id }) : {};
-    const meToca = typeof f.accion === 'string' && (f.de.length === 0 || f.de.includes(yo)) && seOfrece(f.accion, sobre);
-    const paso = meToca ? mio(f.accion, f.parametros, sobre) : null;
-    if (paso) {
-      pasos.push({ fuente: 'reglas', regla: f.porque, ...paso, falta, hecho: false, espera: null, ...deQue });
+    // Sin acción: una regla que se cumple o no (su 7 lo dice); si la fila nombra a alguien, se le espera.
+    if (typeof f.accion !== 'string') {
+      if (f.de.length) pasos.push({ fuente, regla: f.porque, falta, hacer: null, espera: f.de.find((x) => x !== yo) ?? f.de[0], hecho: false, ...deQue });
+      else pasos.push({ fuente, falta, hacer: null, espera: null, hecho: typeof f.hay === 'boolean' ? f.hay : null, regla: f.porque });
       continue;
     }
-    pasos.push({ fuente: 'reglas', regla: f.porque, falta, hacer: null, espera: f.de.find((x) => x !== yo) ?? ev.autor, hecho: false, ...deQue });
+    // «by its anchor» en su 7: un paso de guía; es mío sin más, y si está hecho lo dice su ancla (un registro mío o de una cosa
+    // mía donde la acción escribe). Si no, es mío si la fila me nombra o no nombra a nadie y la acción se me ofrece.
+    const porSuAncla = f.hay === POR_SU_ANCLA;
+    const meToca = porSuAncla || ((f.de.length === 0 || f.de.includes(yo)) && seOfrece(f.accion, sobre));
+    const paso = meToca ? mio(f.accion, f.parametros, sobre) : null;
+    if (paso) {
+      pasos.push({ fuente, ...(f.porque ? { regla: f.porque } : {}), ...paso, falta: falta || paso.falta, hecho: porSuAncla ? paso.hecho : false, espera: null, ...deQue });
+      continue;
+    }
+    if (porSuAncla) continue;
+    pasos.push({ fuente, regla: f.porque, falta, hacer: null, espera: f.de.find((x) => x !== yo) ?? ev.autor, hecho: false, ...deQue });
   }
 
   // (3) Las sugerencias: un gancho sin LLM aquí; cada una pasa por las mismas reglas.
