@@ -58,7 +58,7 @@ test('léxico: tres estados, las palabras cortas y las cinco primitivas', () => 
   assert.deepEqual(ESTADOS, ['RESUELTO', 'PENDIENTE', 'ERROR']);
   // Encargo 3b: put … at … (colocar, mapa §16 [D]: «put v at X.d, solo reglas que escriben») entra en el léxico.
   // VG 12-11 (estudio BQL-transacciones, decisiones 1 y 2): moves (leer el libro), under (todo lo que cuelga) y by (ordenar).
-  assert.deepEqual(PALABRAS, ['first', 'last', 'nth', 'each', 'where', 'by', 'up', 'down', 'path', 'under', 'moves', 'count', 'sum', 'max', 'min', 'floor', 'and', 'or', 'not', 'in', 'put', 'at', 'from', 'to', 'exit', 'when', 'price', 'group', 'follow', 'keep', 'with', 'take']);
+  assert.deepEqual(PALABRAS, ['first', 'last', 'nth', 'each', 'where', 'by', 'up', 'down', 'path', 'under', 'moves', 'count', 'sum', 'max', 'min', 'floor', 'and', 'or', 'not', 'in', 'put', 'at', 'from', 'to', 'exit', 'when', 'price', 'group', 'follow', 'keep', 'with', 'take', 'cited']);
   // Core AGRAM 18-11 (§15, «la lente solo lee»): agrupar, seguir, filtrar tolerante, juntar y los n primeros.
   // VG 12-11 (decisión 5): los enlaces de los verbos y el nombre memo.
   assert.deepEqual([ENLACES, NOMBRES], [['from', 'to', 'exit', 'when', 'price'], ['ev', 'epoch', 'before', 'me', 'memo']]);

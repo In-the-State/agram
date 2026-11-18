@@ -7,11 +7,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluar, aplanar, esFila, Presupuesto, LLAMADAS_DE_LECTURA, TOPE_DE_APLICACION } from '../src/bqlm.js';
+import { evaluar, aplanar, esFila, Presupuesto, pendiente, POR_LIMITE, LLAMADAS_DE_LECTURA, TOPE_DE_APLICACION } from '../src/bqlm.js';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { Eje } from '../src/eje.js';
 import * as A from '../src/acciones.js';
 import { epocaRoadmap } from '../datos/epocas/roadmap/generar.mjs';
+import { olvidarIndices } from '../src/indice-de-nombres.js';
 
 /** Un payload de prueba, leído como `epoch` (datos inventados). */
 const P = [
@@ -190,6 +191,9 @@ const ACCIONES = (K, N) => '=take ' + N + ' (epoch.9.6.1 where first it2.8 = ' +
 // b) Las anteriores de una tarea (it): la última relación «this goes after» de su autor en su 2.6, y en su 6 las tareas.
 const ANTERIORES = '=(last (it.2.6 where first it2.3 = first it.3 and "this goes after" in payload(it2).4)) each (payload(it2).6) where "task" in payload(it2).5 and it2 != it';
 const ANT = JSON.stringify(ANTERIORES);
+// b) Lo que continúa desde una tarea, con cited (§15.3): las relaciones que la nombran en su 6, la tarea en que se anclan, si
+// es una tarea y la relación es la que manda (la tarea está entre sus anteriores).
+const SIGUIENTES = '=it follow ((it2 cited 6) each (up it3) where "task" in payload(it3).5 and it2 in apply(' + ANT + ', it3))';
 
 // c) La matriz del 4: el oficio (el PV de la plantilla que el registro nombra en su 4; si no, el dígito de la posición en
 // que se ancla) y la ejecución (0 si no mueve nada más que el coste, la asignación y la obtención; si no, la columna de la
@@ -221,6 +225,8 @@ test('§15 caso b: las cadenas del 7: las anteriores, lo que va antes, lo que va
   assert.deepEqual(n(medir(prueba, 'b) anteriores de A1', ANTERIORES, c, eje, { sujeto: t.A1.id })), []);
   assert.deepEqual(n(medir(prueba, 'b) lo que va antes de A4', '=it follow apply(' + ANT + ', it2)', c, eje, { sujeto: t.A4.id })), ['A4', 'A2', 'A3', 'A1']);
   assert.deepEqual(n(medir(prueba, 'b) lo que continúa desde A1 (en su proyecto)', '=it follow (under up it2 where "task" in payload(it3).5 and it2 in apply(' + ANT + ', it3))', c, eje, { sujeto: t.A1.id })), ['A1', 'A2', 'A3', 'A4']);
+  // Con «quién me nombra» (§15.3): las relaciones que nombran a la tarea en su 6, y la tarea en que se anclan.
+  assert.deepEqual(n(medir(prueba, 'b) lo que continúa desde A1, con cited', SIGUIENTES, c, eje, { sujeto: t.A1.id })), ['A1', 'A2', 'A3', 'A4', 'B1']);
   assert.deepEqual(n(medir(prueba, 'b) lo que continúa desde A1 (en todo el libro)', '=it follow (under (last path it2) where "task" in payload(it3).5 and it2 in apply(' + ANT + ', it3))', c, eje, { sujeto: t.A1.id })), ['A1', 'A2', 'A3', 'A4', 'B1']);
   assert.deepEqual(n(medir(prueba, 'b) sin anterior, en el proyecto A', '=under it where "task" in payload(it2).5 and count apply(' + ANT + ', it2) = 0', c, eje, { sujeto: pa.id })), ['A1', 'A5']);
   assert.deepEqual(n(medir(prueba, 'b) sin anterior, en todo el libro', '=under it where "task" in payload(it2).5 and count apply(' + ANT + ', it2) = 0', c, eje, { sujeto: eje.genesisId })), ['A1', 'A5']);
@@ -245,4 +251,109 @@ test('§15 caso c: la matriz del 4, los registros anclados en X agrupados por (o
     assert.deepEqual(celdas, [...js.values()], nombre + ': ' + JSON.stringify(celdas.map((f) => [f[0], f[1], f[2].map((id) => nombres.get(id) ?? id.slice(0, 6))])));
     assert.ok(celdas.every((f) => f.length === 3));
   }
+});
+
+// ---------- §15.3 «quién me nombra»: M cited d.d… ----------
+
+/** Lo mismo que M cited P, escrito como recorrido: para cada elemento, los registros de before.1 que lo llevan en payload(r).P. */
+const recorrido = (M, P, conSujeto) => M + ' each (before.1 where ' + (conSujeto ? 'it2 in payload(it3).' : 'it in payload(it2).') + P + ')';
+
+/** Que las dos den lo mismo: el mismo estado y, resuelto, la misma lista (por valor). */
+function iguales(c, M, P, opciones = {}) {
+  const conSujeto = Object.hasOwn(opciones, 'sujeto');
+  const a = evaluar(M + ' cited ' + P, c, opciones);
+  const b = evaluar(recorrido(M, P, conSujeto), c, opciones);
+  assert.equal(a.estado, b.estado, M + ' cited ' + P + ': ' + (a.motivo ?? a.texto) + ' / ' + (b.motivo ?? b.texto));
+  if (a.estado === 'RESUELTO') assert.deepEqual(aplanar(a.valor, c), aplanar(b.valor, c), M + ' cited ' + P);
+  return a;
+}
+
+test('§15.3 cited: da exactamente lo que el recorrido con where, en un libro, en una vista de antes y con una candidata', async () => {
+  const { eje, t, pa, nombres } = await roadmap();
+  olvidarIndices();
+  const casos = [['it', '6'], ['it', '2.6'], ['"task"', '5'], ['(it with "task" with 7)', '4'], ['before.5', '6'], ['it', '0'], ['(it with it)', '6'], ['"this goes after"', '4']];
+  const n = (r) => aplanar(r.valor, ctx).map((id) => nombres.get(id) ?? id.slice(0, 6));
+  // El libro entero, sin candidata.
+  const c = new ContextoEje(eje, { epoch: eje.epoca(), me: 'duena' });
+  for (const X of [t.A1, t.A4, pa]) for (const [M, P] of casos) iguales(c, M, P, { sujeto: X.id });
+  assert.deepEqual(n(iguales(c, 'it', '6', { sujeto: t.A1.id })).length, 2, 'las dos relaciones que nombran a A1 en su 6');
+  assert.deepEqual(n(iguales(c, '"task"', '5')), ['A1', 'A2', 'A3', 'A4', 'A5', 'B1']);
+  // Una vista de antes (lo que ve quien valida un registro): lo posterior no está.
+  const k = eje.orden.indexOf(t.A4.id) + 1;
+  const vista = eje.antes(k);
+  const cv = new ContextoEje(vista, { epoch: eje.epoca(), me: 'duena' });
+  for (const [M, P] of casos) iguales(cv, M, P, { sujeto: t.A1.id });
+  assert.deepEqual(n(iguales(cv, '"task"', '5')), ['A1', 'A2', 'A3', 'A4'], 'ni A5 ni B1, que llegaron después');
+  assert.deepEqual(aplanar(evaluar('it cited 6', cv, { sujeto: t.A1.id }).valor, cv), [], 'las relaciones, tampoco');
+  // Con una candidata: no está en before.1, así que no se nombra a sí misma.
+  const candidata = { autor: 'duena', t: T, movimientos: [], payload: [['x'], [], [], [], [], ['task'], [{ ref: t.A1.id }]] };
+  const cc = new ContextoEje(vista, { epoch: eje.epoca(), me: 'duena', ev: candidata });
+  for (const [M, P] of casos) iguales(cc, M, P, { sujeto: t.A1.id });
+  assert.deepEqual(n(iguales(cc, '"task"', '5')), ['A1', 'A2', 'A3', 'A4']);
+  // Las paradas, las mismas: una décupla no tiene valor (ERROR); sin libro, PENDIENTE; sobre nada, nada.
+  assert.equal(iguales(c, 'epoch.9.6', '6').estado, 'ERROR');
+  assert.equal(iguales(new ContextoEje(null, { epoch: P }), '"pan"', '1').estado, 'PENDIENTE');
+  assert.deepEqual(iguales(new ContextoEje(null, { epoch: P }), 'epoch.9', '1').valor, []);
+});
+
+test('§15.3 cited: un registro cuyo recorrido no se resuelve para la lectura igual que el recorrido; una lista vacía no lo mira', () => {
+  // Un contexto mínimo: tres registros; el payload del segundo lleva una referencia que no se puede seguir.
+  const R = ['r1', 'r2', 'r3'].map((id) => ({ k: 'reg', id }));
+  const PAYLOAD = { r1: ['a', 'b'], r2: 'roto', r3: ['b'] };
+  const c = {
+    nombre: (n) => (n === 'before' ? { k: 'before' } : undefined),
+    payload: (o) => (o?.k === 'reg' ? { k: 'dec', id: o.id } : undefined),
+    valor: (o) => (o?.k === 'reg' ? o.id : undefined),
+    padre: () => undefined,
+    hijos: () => undefined,
+    ocupantes(nodo, camino, pres) {
+      pres.gastar(1);
+      if (nodo.k === 'before') return camino[0] === 1 ? R : [];
+      if (nodo.k === 'dec' && camino[0] === 1) {
+        if (PAYLOAD[nodo.id] === 'roto') throw pendiente('referencia a un evento ausente del eje: ffffffff');
+        return PAYLOAD[nodo.id];
+      }
+      return [];
+    },
+  };
+  olvidarIndices();
+  const a = iguales(c, '"b"', '1');
+  assert.equal(a.estado, 'PENDIENTE');
+  assert.match(a.motivo, /ausente/);
+  assert.equal(iguales(c, '"zzz"', '1').estado, 'PENDIENTE', 'aunque lo que se busca no esté en ninguno');
+  assert.deepEqual(iguales(c, '("b" where 1 = 2)', '1').valor, []);
+  PAYLOAD.r2 = ['c'];
+  olvidarIndices();
+  assert.deepEqual(aplanar(iguales(c, '"b"', '1').valor, c), ['r1', 'r3']);
+});
+
+test('§15.3 cited: el coste lo fija la definición (un paso y un ocupante por elemento y por resultado), con índice guardado o sin él', async () => {
+  const { eje, t } = await roadmap();
+  const c = new ContextoEje(eje, { epoch: eje.epoca(), me: 'duena' });
+  const coste = (src, opciones = {}) => {
+    const presupuesto = new Presupuesto();
+    const r = evaluar(src, c, { ...opciones, presupuesto });
+    assert.equal(r.estado, 'RESUELTO', src + ': ' + r.motivo);
+    return [presupuesto.pasos, presupuesto.usados, r.valor.length];
+  };
+  olvidarIndices();
+  const fresco = coste('"task" cited 5');
+  assert.deepEqual(fresco, [1 + 6, 1 + 6, 6], 'un elemento y seis tareas');
+  assert.deepEqual(coste('"task" cited 5'), fresco, 'con el índice ya guardado, lo mismo');
+  olvidarIndices();
+  const dos = coste('it cited 6', { sujeto: t.A1.id });
+  assert.deepEqual(dos, [3, 3, 2]);
+  assert.deepEqual(coste('it cited 6', { sujeto: t.A1.id }), dos);
+  // El presupuesto corta igual: con un tope de 5, siete no caben, haya índice o no.
+  for (const limpio of [true, false]) {
+    if (limpio) olvidarIndices();
+    const r = evaluar('"task" cited 5', c, { limites: { ocupantes: 5 } });
+    assert.equal(r.subtipo, POR_LIMITE);
+  }
+  // Un libro que cambia tiene otra huella: el índice no sirve lo viejo.
+  const antes = coste('"task" cited 5')[2];
+  const r = await A.transaccion(eje, 'anchor here', { X: eje.genesisId, title: 'A6', content: ['id: A6'], type: 'task' }, 'duena', { t: T });
+  assert.ok(r.ok);
+  await eje.anadir(r.evento);
+  assert.equal(coste('"task" cited 5')[2], antes + 1);
 });

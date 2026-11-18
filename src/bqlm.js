@@ -22,6 +22,8 @@
 //                   mueve ni escribe; tope de anidamiento propio y sin aplicarse a sí misma) · take n M (los n primeros)
 //                   · A with B (los de A y luego los de B) · M keep cond (como where, pero el elemento cuya condición
 //                   queda PENDIENTE o da ERROR se cae; un límite de cálculo no; solo en una lectura, opciones.lectura)
+//                   · M cited d.d… (§15.3: los registros del libro que llevan el valor de cada elemento en esa posición
+//                   de su payload, por orden; cuesta uno por elemento y uno por resultado; índice en src/indice-de-nombres.js)
 //   recuento        count · sum · max · min
 //   aritmética      + - * / floor
 //   comparación     = != < <= > >=
@@ -87,6 +89,7 @@
 // puras). Hay una implementación sobre el eje en src/contexto-eje.js.
 
 import { canonico } from './evento.js';
+import { indiceDeNombres } from './indice-de-nombres.js';
 import { direccion } from './btml.js';
 import { sha256, sha256d, hashEtiquetado, concatenar, deHex, aHex, igualesBytes, menor, enteroLe, leerCabecera, leerTx, raizMerkle, aplicarOts, verificarBip340, tapleaf, taptweak } from './cripto.js';
 
@@ -113,7 +116,7 @@ export const ENLACES = Object.freeze(['from', 'to', 'exit', 'when', 'price']);
  * «put v at X.d, colocar, solo reglas que escriben»; encargo 3b): vale verdadero y anota una escritura, que solo
  * evalúa una regla con «put» en su 4 (evaluarEscritura) o, el nivel en mano, una plantilla (evaluarPlantilla).
  */
-export const PALABRAS = Object.freeze(['first', 'last', 'nth', 'each', 'where', 'by', 'up', 'down', 'path', 'under', 'moves', 'count', 'sum', 'max', 'min', 'floor', 'and', 'or', 'not', 'in', 'put', 'at', ...ENLACES, 'group', 'follow', 'keep', 'with', 'take']);
+export const PALABRAS = Object.freeze(['first', 'last', 'nth', 'each', 'where', 'by', 'up', 'down', 'path', 'under', 'moves', 'count', 'sum', 'max', 'min', 'floor', 'and', 'or', 'not', 'in', 'put', 'at', ...ENLACES, 'group', 'follow', 'keep', 'with', 'take', 'cited']);
 
 /**
  * Las dos llamadas de lectura (Core AGRAM 18-11; docs/BQLM.md §15): construir una fila y aplicar una fórmula guardada.
@@ -388,7 +391,7 @@ function tokenizar(src) {
   while (pos < src.length) {
     if (prueba(RE_ESPACIO)) continue;
     const previo = tokens[tokens.length - 1];
-    const tras = previo && ((previo.t === 'op' && previo.v === '.') || (previo.t === 'id' && previo.v === 'each'));
+    const tras = previo && ((previo.t === 'op' && previo.v === '.') || (previo.t === 'id' && (previo.v === 'each' || previo.v === 'cited')));
     const inicio = pos;
     let m;
     if (tras && (m = prueba(RE_DIGITOS))) tokens.push({ t: 'dig', v: m[0], pos: inicio });
@@ -604,6 +607,10 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
       } else if (es('id', 'each')) {
         i++;
         base = { n: 'paso', base, digitos: digitos(), posicionable: true, each: true };
+      } else if (es('id', 'cited')) {
+        // M cited d.d… (§15.3): los registros del libro que nombran a cada elemento de M en esa posición de su payload.
+        i++;
+        base = { n: 'cited', base, digitos: digitos(), posicionable: true };
       } else return base;
     }
   }
@@ -986,6 +993,8 @@ function calcular(nodo, st) {
       }
       return fuera;
     }
+    case 'cited':
+      return citados(nodo, st);
     case 'take': {
       // Los n primeros (§15).
       const k = numero(calcular(nodo.k, st), 'take', ctx);
@@ -1180,6 +1189,39 @@ function claveDeValor(v) {
   if (esBytes(v)) return 'x:' + aHex(v.b);
   if (esSimbolo(v)) return 'y:' + v.simbolo;
   return typeof v + ':' + String(v);
+}
+
+/**
+ * M cited d.d… (§15.3): para cada elemento x de M, en su orden, los registros de before.1 (por orden del libro) que llevan el
+ * valor de x en payload(r).d.d…; lo mismo, exactamente, que M each (before.1 where itN in payload(itN+1).d.d…), también
+ * en sus paradas. El coste lo fija esta definición, haya índice o no: un paso y un ocupante del presupuesto por elemento
+ * consultado y otro por cada registro que da. Lo encuentra el índice de src/indice-de-nombres.js.
+ */
+function citados(nodo, st) {
+  const { ctx } = st;
+  const base = calcular(nodo.base, st);
+  const fuera = [];
+  let indice;
+  for (const x of base) {
+    paso(st);
+    st.presupuesto.gastar(1);
+    indice ??= indiceDeNombres(ctx, nodo.digitos, {
+      valorDe: (o) => valorDe(o, ctx),
+      clave: claveDeValor,
+      presupuesto: () => new Presupuesto(Infinity, Infinity),
+      noEsRegistro: (r) => fallo('payload: «' + leer(r, ctx) + '» no es un registro ni la candidata'),
+    });
+    if (indice.sinLibro) throw pendiente('no hay before en este contexto');
+    if (!indice.registros) continue;
+    const v = valorDe(x, ctx);
+    if (v === undefined) throw fallo('cited: una décupla no tiene valor; lee una de sus posiciones');
+    if (indice.fallo) throw indice.fallo;
+    const rs = indice.porClave.get(claveDeValor(v)) ?? [];
+    paso(st, rs.length);
+    st.presupuesto.gastar(rs.length);
+    fuera.push(...rs);
+  }
+  return fuera;
 }
 
 /** row(a, b…): una fila con la lista de cada argumento en su posición. Paga un paso y un ocupante por cada uno que guarda. */
