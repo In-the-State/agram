@@ -192,7 +192,7 @@ export function editorDeBtml(eje, X, formato, { idioma = 'es', idiomas = [], opc
     };
   };
   const criterios = f.formateado ? [
-    criterio('fecha'), criterio('numeros'), criterio('estilo'), criterio('vista', t('btmlAlAbrir')),
+    criterio('fecha'), criterio('numeros'), criterio('estilo'), criterio('vista', t('btmlAlAbrir', {}, idioma)),
     { clave: 'idioma', etiqueta: t('criterio_idioma'), valor: idioma, guardaEn: 'libro', opciones: [...new Set([...idiomas, idioma])].map((valor) => ({ valor, texto: nombreDeIdioma(valor) })) },
   ] : [];
   return { formateado: f.formateado, formato: f, lineas: ev ? lineasDeBtml(ev.payload, f, { eje, idioma, opciones, cero }) : [], criterios };

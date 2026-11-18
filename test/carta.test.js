@@ -237,7 +237,7 @@ test('el libro local: ver quema un T de segundo y englobar asienta un minuto en 
   assert.deepEqual([b.local.pendientes, b.local.anterior], [0, ev.id]);
   // «guardar este rato» (la barra ya no existe, #38) está en el 1 del 0 de mi alta: su cruceta abierta.
   assert.doesNotMatch(html(b), /guardar este rato/);
-  assert.match(html(await arbol({ foco: { X: X.id, pv: 0 }, local: libro, sitio: { X: eje.alta('huesped').id, lugar: '0', general: true } }, eje, 'huesped', MOVIL, { t: T1 })), /data-posicion="1"[^]*?data-englobar[^]*?guardar este rato/);
+  assert.match(html(await arbol({ foco: { X: X.id, pv: 0 }, local: libro, sitio: { X: eje.alta('huesped').id, lugar: '0', general: true } }, eje, 'huesped', MOVIL, { t: T1 })), /data-posicion="1"[^]*?data-englobar[^]*?save this while/, 'en el idioma de quien mira (aquí, inglés)');
 });
 
 test('las preferencias se editan como un registro más: la candidata sale de la plantilla «preferences» y la configuración la lee', async () => {
@@ -552,7 +552,7 @@ test('Sequenced: abrir una fila (NIVEL.bloque) trae debajo el segundo nivel del 
   const h = html(a);
   const dentro = [...h.matchAll(/<div class="fila-contenido"[^>]*>/g)].length;
   assert.equal(dentro, 8);
-  assert.match(h, /escribir aquí · /);
+  assert.match(h, /write here · /, 'en el idioma de quien mira (aquí, inglés)');
   assert.match(h, /class="rejilla rejilla-apilada en-columna" data-rejilla="1" data-forma="cruceta"/);
   assert.match(trozoDe(h, 'data-rejilla="1"'), /^[^]*?<div class="centro-flotante"[^]*?<div class="rejilla-celdas rejilla-cruceta" style="--columnas:1;/, 'la tarjeta del pulsado, arriba de los hijos');
   assert.doesNotMatch(trozoDe(h, '<ol class="filas">'), /class="nada">∅/, 'sin la lista cruda vacía');
@@ -727,8 +727,8 @@ test('#21 #24: el anverso es la representación del foco (su HTML adjunto, SOLO 
   assert.doesNotMatch(h, /<h1>AGRAM/);
   assert.equal((h.match(/data-campo=/g) ?? []).length, 1);
   // Sin el contenido (aún no ha llegado, o no está): un hueco con su estado, nunca el HTML ni un <img>.
-  assert.match(anverso(html(con, { archivo: () => ({ estado: 'cargando' }) })), /rep-aislada rep-pendiente[^>]*>cargando…</);
-  assert.match(anverso(html(con)), /rep-aislada rep-pendiente[^>]*>archivo no disponible</);
+  assert.match(anverso(html(con, { archivo: () => ({ estado: 'cargando' }) })), /rep-aislada rep-pendiente[^>]*>loading…</);
+  assert.match(anverso(html(con)), /rep-aislada rep-pendiente[^>]*>file not available</);
   assert.doesNotMatch(html(con), /<img[^>]*archivo:/);
   // En el móvil (Sequenced) también arriba, con su input en la fila del 0.
   const m = await arbol({ foco: { X: X.id, pv: 0 } }, eje, 'huesped', MOVIL);
@@ -784,5 +784,5 @@ test('«Hablas con el agente de …»: una cosa que su dueño declaró agente lo
   assert.ok(agenteDe(eje, 'cocina', { idioma: 'es' }).texto.length > 0);
   assert.equal(agenteDe(eje, 'huesped'), null, 'una persona no es un agente');
   assert.equal(agenteDe(eje, 'nadie'), null);
-  assert.equal(t('hablasConAgente', { que: 'Víctor' }), 'Hablas con el agente de Víctor.');
+  assert.equal(t('hablasConAgente', { que: 'Víctor' }, 'es'), 'Hablas con el agente de Víctor.');
 });
