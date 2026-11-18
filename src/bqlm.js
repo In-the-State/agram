@@ -785,9 +785,10 @@ export function evaluar(src, contexto, opciones = {}) {
       return r.valor ? { ...r, valor: [...r.valor] } : { ...r };
     }
   }
-  const fuera = contexto?.vistasDeFuera;
+  // Solo con memoria se mira el contador de vistas de fuera: sin ella, al contexto no se le pide nada de más (vale uno derivado).
+  const fuera = clave ? contexto.vistasDeFuera : undefined;
   const r = evaluarSinMemoria(src, contexto, opciones, huella ? { memoria, ...huella } : null);
-  if (clave && r.subtipo !== POR_LIMITE && contexto?.vistasDeFuera === fuera) memoria.guardar(huella.libro, clave, r.valor ? { ...r, valor: [...r.valor] } : { ...r });
+  if (clave && r.subtipo !== POR_LIMITE && contexto.vistasDeFuera === fuera) memoria.guardar(huella.libro, clave, r.valor ? { ...r, valor: [...r.valor] } : { ...r });
   return r;
 }
 
