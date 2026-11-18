@@ -12,7 +12,7 @@
 //      ninguno. Si mañana uno sale como otra cosa (un evento «close» del DOM, por ejemplo), va en la lista de excepciones
 //      con su porqué, como lo demás.
 //   2. ESCRITURAS: los sitios de la carta que asientan un registro. Las vías: enviar( (carta/carta.js: transaccion,
-//      firma y eje.anadir), .anadir( (asentar un registro ya hecho), escribirDesde( (salida.escribirDesde), .aceptar( e
+//      firma y eje.anadir), .anadir( (asentar un registro ya hecho), .anadirTanda( (asentar una tanda entera), escribirDesde( (salida.escribirDesde), .aceptar( e
 //      .invitar( (las del eje: escriben un alta o una invitación) y Eje.genesis( (escribe el génesis de un libro). Se
 //      cuentan en el código, sin comentarios ni cadenas, por archivo, función que las contiene y vía; la definición de
 //      enviar en carta.js y el método enviar(form) de los gestos no cuentan (no son llamadas).
@@ -55,6 +55,9 @@ const ESCRITURAS_DE_HOY = {
   'app.js · invitadoAceptar · aceptar': 1,
   'archivos.js · adjuntarConAccion · enviar': 1,
   'archivos.js · adjuntarHtmlInicial · enviar': 1,
+  'bandeja.js · componerUna · anadir': 1, // sobre la vista en seco de la tanda (vistaTanda), no sobre el libro: así la entrada siguiente ve a la anterior
+  'bandeja.js · lanzar · anadir': 1, // el camino de ejecutar con una sola entrada: aquí acaban las demás escrituras de esta lista, esta se queda
+  'bandeja.js · lanzar · anadirTanda': 1, // el mismo camino con dos o más: la tanda entera o nada
   'carta.js · enviar · anadir': 1, // la vía misma: transaccion, firma y eje.anadir
   'carta.js · guardarRetoque · enviar': 1,
   'cuentas.js · crearCon · Eje.genesis': 1,
@@ -80,6 +83,7 @@ const nombresEnLaCarta = (nombres) => nombresEnArchivos(CARTA, ARCHIVOS, nombres
 const VIAS = [
   ['enviar', /(?<![\w$.])enviar\s*\(/g],
   ['anadir', /\.anadir\s*\(/g],
+  ['anadirTanda', /\.anadirTanda\s*\(/g],
   ['escribirDesde', /\bescribirDesde\s*\(/g],
   ['aceptar', /\.aceptar\s*\(/g],
   ['invitar', /\.invitar\s*\(/g],
