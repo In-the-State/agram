@@ -541,10 +541,11 @@ const AJUSTES = Object.freeze({ ...contrato.accionesDeAjuste(), criterio: accion
 /**
  * El sí del dueño para que el P de otro baje a una cosa suya (CH1, VG 17-11; docs/notas/R_EN_CANALES.md, «El P de la R solo
  * baja a una cosa de otro con el sí de su dueño»): la plantilla y la expresión que da los sí vigentes (it = la cosa; el
- * último de su dueño por identidad, que dice «yes»), tal como las dice la nota: la época no tiene lectura con nombre.
+ * último de su dueño por identidad, que dice «yes»). Las dos son dato (contrato.datosDelSiDelDueno: la acción y la lectura con
+ * nombre «who has the owner's yes», datos/provisional/ hasta la pasada única), no de la lente.
  */
-export const SI_DEL_DUENO = 'let P come down here';
-const QUIEN_TIENE_SI = '=(down it) where nth 1 it2.6.5 = "2100000000" and first it2.3 = first it.3 and "let P come down here" in (payload(it2)).4 and it2 = last ((down it) where nth 1 it3.6.5 = "2100000000" and first it3.3 = first it.3 and "let P come down here" in (payload(it3)).4 and first (payload(it3)).3.1 = first (payload(it2)).3.1) and "yes" in (payload(it2)).1.0 and not ("no" in (payload(it2)).1.0)';
+export const SI_DEL_DUENO = contrato.datosDelSiDelDueno().accion;
+const QUIEN_TIENE_SI = contrato.datosDelSiDelDueno().lectura;
 
 /**
  * Quién tiene el sí del dueño para bajar P a X: [{ id (el registro del sí), whom, quien (en llano), cuando, retirar }], y

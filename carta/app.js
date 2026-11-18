@@ -1843,22 +1843,25 @@ const manejadores = {
     pintar();
   },
   /**
-   * Arrastrar a una persona de una caja del 3 a otra (encargo pv3): reclasificar la conversación con «move to group»
-   * sobre su alta (al 5, vetar). Si no pasa, el formulario de la acción con el motivo.
+   * Arrastrar a una persona de una caja del 3 a otra (encargo pv3): reclasificar la conversación (al 5, vetar). Qué acción se
+   * lanza, sobre qué registro y con qué parámetros es dato (contrato.destinoDeGesto, «drop a person in a box»: hoy
+   * «move to group» sobre su alta). Si no pasa, el formulario de la acción con el motivo.
    */
   async reclasificar(persona, caja) {
+    const d = contrato.destinoDeGesto('drop a person in a box');
     const alta = estado.eje?.alta(persona)?.id;
-    if (!alta || !Number.isInteger(caja)) return;
+    if (!d?.accion || d.sobre !== 'the alta of the person' || !alta || !Number.isInteger(caja)) return;
     limpiarMensajes();
-    const valores = { whom: persona, zone: caja };
-    const r = await enviarPorLaBandeja(estado.eje, alta, 'move to group', valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
+    const da = { person: persona, box: caja }; // lo que el gesto da: la lista cerrada de la lente
+    const valores = Object.fromEntries(Object.entries(d.parametros).filter(([, de]) => de in da).map(([nombre, de]) => [nombre, da[de]]));
+    const r = await enviarPorLaBandeja(estado.eje, alta, d.accion, valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
     if (r.ok && r.asentado) {
       trasEscribir();
-      estado.exito = t('registrado', { accion: nombreDeAccion('move to group'), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
-      tocar(estado.foco.X, 'reclasificar ' + persona + ' 3.' + caja);
+      estado.exito = t('registrado', { accion: nombreDeAccion(d.accion), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
+      tocar(estado.foco.X, 'reclasificar ' + persona + ' ' + d.vista + '.' + caja);
       marcarNuevos();
     } else {
-      estado.formulario = { X: alta, accion: 'move to group', valores, motivos: motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)), resultado: null };
+      estado.formulario = { X: alta, accion: d.accion, valores, motivos: motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)), resultado: null };
     }
     pintar();
   },

@@ -1,0 +1,23 @@
+// Generado por datos/provisional/generar.mjs desde datos/provisional/si-del-dueno.json.
+// No se edita a mano: se cambia el JSON y se ejecuta `node datos/provisional/generar.mjs`.
+
+export const SI_DEL_DUENO_PROVISIONAL_DATOS = [
+  [
+    [
+      "owner's yes"
+    ],
+    [
+      "let P come down here"
+    ],
+    [
+      "who has the owner's yes"
+    ],
+    [
+      "Core AGRAM 20-11 (docs/notas/SITIOS_Y_PESOS.md §12): lo que la lente necesita para el sí del dueño (carta/reglas.js, siDelDueno), como dato: 1 la acción con que el dueño da o retira el sí (con «yes» o «no» y la identidad), 2 la lectura que dice quién lo tiene (datos/provisional/lecturas-de-la-lente.json). Provisional hasta la pasada única"
+    ],
+    [
+      "owner's yes",
+      "the action with which the owner of a thing lets an identity bring P down to it, and the reading that says who has that yes"
+    ]
+  ]
+];
