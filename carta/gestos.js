@@ -46,7 +46,11 @@ const UMBRAL_ARRASTRE = 24;
  *   filtrarAro(texto)        escribir en el centro del aro: filtrar su diccionario en la pantalla, sin repintar
  *   enterAro(input)          Enter en el centro del aro: elegir la entrada que coincide entera (→ true); si no hay, false
  *   opcion(X, pv, valor)     un valor de una lista del aro: escribirlo en la posición pv de X (como campo)
- *   lanzar(X, accion, paso, { ejecutar })  abrir el formulario de una acción (o del paso del camino; ejecutar: desde una celda del 4)
+ *   lanzar(X, accion, paso, { ejecutar, aro, pv })  abrir el formulario de una acción (o del paso del camino; ejecutar: desde una celda del 4);
+ *                            aro: desde el aro o «escribir aquí» (se ejecuta ahora); pv: el punto de vista donde se compone en la bandeja
+ *   cambioFormulario(form)   un campo del formulario de una acción cambió: la bandeja lo pone y dice si entra
+ *   bandejaIr() · bandejaAbrir(id) · bandejaQuitar(id) · bandejaListo(form) · bandejaEjecutar()
+ *                            la bandeja (A33): ir al 4, volver a abrir una entrada, quitarla, cerrar su formulario, ejecutarla entera
  *   denominacion(escala, form)  ejecutar: la escala de la que parte la T que se quema (el formulario sigue con lo escrito)
  *   cerrar()                 cerrar el aro, el formulario o la configuración
  *   enviar(form)             enviar el formulario de una acción
@@ -115,6 +119,17 @@ export function instalar(raiz, m) {
   const documento = raiz.ownerDocument ?? raiz;
   const pvDe = (el) => el?.closest?.('[data-pv]:not(.ocupante):not(.rejilla-celda):not(.hijo)'); // un ocupante anidado o un hijo de la rejilla también llevan data-pv (su color), pero no son un PV
   const xDe = (el) => el?.closest?.('[data-x]')?.dataset.x ?? null;
+  /**
+   * Desde dónde se lanza una acción (A33, la bandeja): { aro: true } desde el aro o desde «escribir aquí» (su atajo, que
+   * ejecuta al enviar); si no, { pv }, el punto de vista donde está el botón (su cabecera, su fila, su celda), que es donde
+   * se ve lo compuesto. Sin ninguno de los dos, {}.
+   */
+  const dondeSeLanza = (el) => {
+    if (el?.closest?.('.aro, .escribir-aqui')) return { aro: true };
+    const sitio = el?.closest?.('[data-pv-acciones]')?.dataset.pvAcciones ?? pvDe(el)?.dataset.pv ?? el?.closest?.('[data-centro]')?.dataset.centro ?? el?.closest?.('[data-fila-pv]')?.dataset.filaPv;
+    const pv = sitio === undefined || sitio === '' ? NaN : Number(sitio);
+    return Number.isInteger(pv) ? { pv } : {};
+  };
   /**
    * La caja (en coordenadas de la ventana, al abrir el aro) del elemento pulsado: el ocupante, el campo, la fila, la cuenta, la estrella,
    * el hijo de la rejilla, la tarjeta central o, si no, lo marcado con data-x. Si es grande (más de un tercio del ancho o un cuarto del
@@ -214,6 +229,13 @@ export function instalar(raiz, m) {
     if ((el = b('[data-aro-abrir]'))) { e.preventDefault(); m.aro?.(el.dataset.aroAbrir, null, { ancla: anclaDe(el.closest('li, .rejilla-celda') ?? el, e.clientX, e.clientY) }); return; }
     if ((el = b('.aro:not(.editando) [data-aro-centro]'))) { e.preventDefault(); m.aroEntrar?.(el.dataset.x ?? el.closest('.aro')?.dataset.x); return; }
     if (t.closest('.formulario, .aro, .guia') && !t.closest('button')) return; // dentro de un diálogo (o de la guía), nada más que los botones
+    // La bandeja (A33): la cuenta del marco lleva al 4; una entrada se vuelve a abrir o se quita; «listo» cierra su
+    // formulario; el 4 ejecuta la bandeja entera (si no se puede, el botón lo dice y no lanza).
+    if ((el = b('[data-bandeja-ir]'))) { e.preventDefault(); m.bandejaIr?.(); return; }
+    if ((el = b('[data-bandeja-quitar]'))) { e.preventDefault(); m.bandejaQuitar?.(el.dataset.bandejaQuitar); return; }
+    if ((el = b('[data-bandeja-abrir]'))) { e.preventDefault(); m.bandejaAbrir?.(el.dataset.bandejaAbrir); return; }
+    if ((el = b('[data-bandeja-listo]'))) { e.preventDefault(); m.bandejaListo?.(el.closest('[data-formulario]')); return; }
+    if ((el = b('[data-bandeja-ejecutar]'))) { e.preventDefault(); if (!el.disabled && el.dataset.noLanza === undefined) m.bandejaEjecutar?.(); return; }
     if ((el = b('[data-guia-rapida]'))) { e.preventDefault(); m.guiaRapida?.(Number(el.dataset.guiaRapida)); return; }
     if ((el = b('[data-guia-vaciar]'))) { e.preventDefault(); m.guiaVaciar?.(); return; }
     if ((el = b('[data-guia-exportar]'))) { e.preventDefault(); m.guiaExportar?.(); return; }
@@ -285,7 +307,9 @@ export function instalar(raiz, m) {
     }
     if ((el = b('[data-sitio]'))) { e.preventDefault(); m.sitio?.(el.dataset.sitioX ?? xDe(el), el.dataset.sitio, { general: el.dataset.sitioGeneral !== undefined }); return; }
     // data-ejecutar (VG 12-11, decisión 7): lanzado desde una celda abierta del 4, el formulario en modo ejecutar.
-    if ((el = b('[data-lanzar]'))) { e.preventDefault(); m.lanzar?.(el.dataset.x ?? xDe(el), el.dataset.lanzar, el.dataset.paso !== undefined ? Number(el.dataset.paso) : null, ...(el.dataset.ejecutar !== undefined ? [{ ejecutar: true }] : [])); return; }
+    // La bandeja (A33): desde el aro (o «escribir aquí», su atajo) se ejecuta ahora; desde un punto de vista se compone
+    // en la bandeja, con el sitio donde se compuso (`pv`).
+    if ((el = b('[data-lanzar]'))) { e.preventDefault(); m.lanzar?.(el.dataset.x ?? xDe(el), el.dataset.lanzar, el.dataset.paso !== undefined ? Number(el.dataset.paso) : null, { ...(el.dataset.ejecutar !== undefined ? { ejecutar: true } : {}), ...dondeSeLanza(el) }); return; }
     if ((el = b('[data-cargar-mas]'))) { e.preventDefault(); m.cargarMas?.(Number(el.dataset.cargarMas)); return; }
     if ((el = b('[data-seguir]'))) { e.preventDefault(); m.seguir?.(); return; }
     if ((el = b('[data-cohorte]'))) { e.preventDefault(); m.cohorte?.(el.dataset.cohorte); return; }
@@ -585,6 +609,7 @@ export function instalar(raiz, m) {
       input.hidden = !otro;
       input.value = otro ? '' : t.value;
       if (otro) input.focus?.();
+      else { const form = t.closest?.('[data-formulario]'); if (form) m.cambioFormulario?.(form); } // la bandeja: el valor elegido ya es un cambio
       return;
     }
     // El interruptor «retocar los textos de este libro» y el idioma de la hoja de un retoque (A20).
@@ -620,6 +645,8 @@ export function instalar(raiz, m) {
   on('input', (e) => {
     const t = e.target;
     if (t.matches?.('[data-campo]') && t.closest?.('.aro-edicion') && t.dataset.nuevo === undefined) m.filtrarAro?.(t.value);
+    // La bandeja (A33): cada cambio de un campo del formulario de una acción ya es el borrador (la app lo pone y dice si entra).
+    else if (t.matches?.('input[name]')) { const form = t.closest?.('[data-formulario]'); if (form) m.cambioFormulario?.(form); }
   });
   // Pulsar una entrada de esas listas no le quita el foco al campo: sin blur no hay change, y lo a medio escribir no se
   // escribe como valor nuevo antes de elegir la entrada.
