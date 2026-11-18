@@ -21,7 +21,7 @@ import * as contrato from '../src/contrato.js';
 import * as acciones from '../src/acciones.js';
 import { destinoDeArchivos } from '../src/sincronia.js';
 import { referenciaDeArchivo } from '../src/modelos.js';
-import { enviar } from './carta.js';
+import { enviarPorLaBandeja } from './bandeja.js';
 import { t, HOLA, holaInicial } from './textos.js';
 
 /** Tope de un archivo (el de la función). */
@@ -163,7 +163,7 @@ export async function adjuntarHtmlInicial(eje, X, identidad, firmar, idioma, opc
     if (!formato) return null;
     const a = accionDeRepresentacion(eje, { referencia: x.referencia, formato }, opciones);
     if (!a) return null;
-    const r = await enviar(eje, X, a.accion, a.valores, identidad, firmar, opciones);
+    const r = await enviarPorLaBandeja(eje, X, a.accion, a.valores, identidad, firmar, opciones); // el único camino de escribir (A33)
     return r.ok && r.asentado ? r.asentado : null;
   } catch {
     return null;

@@ -48,8 +48,8 @@ import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMov
 import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
-import { crearBandeja, ejecutarAhora, probarAhora } from './bandeja.js';
-import { vistaDeLaBandeja, htmlPieDeLaBandeja, htmlCuentaDeLaBandeja, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja } from './bandeja.js';
+import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -262,6 +262,7 @@ function textosDeLaBandeja() {
     quien: (x) => contrato.legible(estado.eje, x, ['identity'], o).texto,
     cuanto: (m) => contrato.legible(estado.eje, { serie: m.serie, cantidad: m.cantidad }, null, o).texto,
     llano: (motivos) => motivosEnLlano(motivos, estado.eje),
+    etiqueta: (accion, nombre) => etiquetaDeParametro(estado.eje, accion, nombre, o),
   };
 }
 /** Lo que se pinta de la bandeja (la cuenta del marco, la tira donde se compuso y el 4), o null. */
@@ -292,9 +293,8 @@ function repintarBandejaEnFormulario() {
   const datos = pieDelFormulario();
   if (!pie && datos) { pintar(); return; } // el formulario aún no está en pantalla: lo pinta entero el pintado
   if (pie && datos) pie.outerHTML = htmlPieDeLaBandeja(datos);
-  raiz.querySelector('[data-bandeja-ir]')?.remove();
-  const cuenta = htmlCuentaDeLaBandeja(vistaBandeja());
-  if (cuenta) raiz.querySelector('.carta')?.insertAdjacentHTML('afterbegin', cuenta);
+  // Lo compuesto se ve donde se compuso mientras se escribe (VG): la tira, la marca de la ficha, el 4 y la cuenta, al día.
+  ponerAlDiaEnPantalla(raiz, vistaBandeja());
 }
 /** Lo escrito en un formulario de la bandeja pasa al borrador: crea o actualiza su entrada, completa o a medias. */
 function ponerDesdeElFormulario(f, motivos = []) {
@@ -1842,7 +1842,7 @@ const manejadores = {
     if (!alta || !Number.isInteger(caja)) return;
     limpiarMensajes();
     const valores = { whom: persona, zone: caja };
-    const r = await enviar(estado.eje, alta, 'move to group', valores, estado.identidad, firmarCon(estado.identidad));
+    const r = await enviarPorLaBandeja(estado.eje, alta, 'move to group', valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
     if (r.ok && r.asentado) {
       trasEscribir();
       estado.exito = t('registrado', { accion: nombreDeAccion('move to group'), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
@@ -2685,7 +2685,7 @@ const manejadores = {
     let motivos = [];
     if (que === 'aceptar') {
       // Con su instante, si lo trae (la petición de alta de una cosa: su prueba de posesión firma el id de ese registro).
-      const r = await enviar(estado.eje, e.sobre, e.accion, e.parametros, estado.identidad, firmarCon(estado.identidad), e.t ? { t: e.t } : {});
+      const r = await enviarPorLaBandeja(estado.eje, e.sobre, e.accion, e.parametros, estado.identidad, firmarCon(estado.identidad), { idioma: idioma(), ...(e.t ? { t: e.t } : {}) }); // el único camino de escribir (A33)
       if (r.ok && r.asentado) {
         trasEscribir();
         externa.quitarPropuesta(almacenLocal(), dondePropuestas(), id);

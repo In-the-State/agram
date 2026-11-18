@@ -30,7 +30,8 @@ import {
   presionDeLosNombres, sueloDe, piezasDeGobiernoDe,
 } from '../src/versiones.js';
 import { caminoDePosicion, PREFIJO_DE_POSICION } from '../src/suelo.js';
-import { enviar, motivosEnLlano } from './carta.js';
+import { motivosEnLlano } from './carta.js';
+import { enviarPorLaBandeja } from './bandeja.js';
 import { t } from './textos.js';
 /** La lectura de la época que da las propuestas del libro, por llegada (docs/notas/GOBIERNO.md §4). */
 const LECTURA_DE_CAMBIOS = 'changes';
@@ -389,7 +390,7 @@ export async function actuar(eje, id, que, yo, firmar, opciones = {}) {
     if (e.accion !== APROBAR) return { ok: false, asentado: null, motivos: [{ regla: null, mensaje: t('reglasNoAprobado') }] };
     X = e.registro;
   }
-  const r = await enviar(eje, X, nombre, {}, yo, firmar, opciones);
+  const r = await enviarPorLaBandeja(eje, X, nombre, {}, yo, firmar, opciones); // el único camino de escribir (A33)
   return { ...r, motivos: motivosEnLlano(r.motivos, eje, opciones) };
 }
 
@@ -514,7 +515,7 @@ export async function proponer(eje, yo, datos = {}, firmar, opciones = {}) {
   const comprobacion = aviso ? { aviso, motivos: [], clase: null } : comprobarPropuesta(eje, yo, { cambio, titulo: datos.titulo, explicacion: datos.explicacion }, opciones);
   if (comprobacion.aviso) return { ok: false, asentado: null, motivos: comprobacion.motivos ?? [], aviso: comprobacion.aviso, comprobacion };
   const valores = { title: String(datos.titulo).trim(), explanation: String(datos.explicacion).trim(), change: cambio.raiz, class: comprobacion.clase, ...(cambio.registros?.length ? { records: cambio.registros.length === 1 ? cambio.registros[0] : cambio.registros } : {}) };
-  const r = await enviar(eje, eje.genesisId, PROPONER, valores, yo, firmar, opciones);
+  const r = await enviarPorLaBandeja(eje, eje.genesisId, PROPONER, valores, yo, firmar, opciones); // el único camino de escribir (A33)
   return { ...r, motivos: motivosEnLlano(r.motivos, eje, opciones), aviso: null, comprobacion };
 }
 

@@ -4,11 +4,12 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
 import { Eje } from '../src/eje.js';
 import { generarClaves, firmar, firmarPosesion } from '../src/autoridad.js';
 import * as A from '../src/acciones.js';
 import { SEGUNDOS } from '../src/tokens.js';
-import { crearBandeja, ejecutarAhora, resumenDe, claveDelBorrador, MAXIMO_DE_ENTRADAS, TOPE_POR_REGISTRO } from '../carta/bandeja.js';
+import { crearBandeja, ejecutarAhora, enviarPorLaBandeja, resumenDe, claveDelBorrador, MAXIMO_DE_ENTRADAS, TOPE_POR_REGISTRO } from '../carta/bandeja.js';
 
 const T = (m) => '2026-11-18T10:' + String(m).padStart(2, '0') + ':00Z';
 
@@ -466,4 +467,28 @@ test('lo que la lente sabe que falta fuera del libro (opciones.revisar: un archi
   assert.equal((await b.ejecutar(eje, 'vg', firmarVg, { revisar })).ok, false);
   assert.equal(eje.orden.length, antes);
   assert.equal((await b.probar(eje, 'vg')).ok, true, 'sin revisar, entra');
+});
+
+test('enviarPorLaBandeja: lo que hacía enviar (una acción, ya) por el único camino, con la forma de enviar; sin firma en un libro que no la pide', async () => {
+  const { eje, firmarVg } = await libro();
+  const n = eje.orden.length;
+  const r = await enviarPorLaBandeja(eje, eje.genesisId, 'write to X', { text: 'hola' }, 'vg', firmarVg);
+  assert.equal(r.ok, true, JSON.stringify(r.motivos));
+  assert.equal(r.asentado.id, eje.orden.at(-1));
+  assert.equal(r.evento, r.asentado);
+  assert.ok(r.asentado.firma);
+  assert.equal(eje.orden.length, n + 1);
+  const no = await enviarPorLaBandeja(eje, 'f'.repeat(64), 'write to X', { text: 'x' }, 'vg', firmarVg);
+  assert.deepEqual([no.ok, no.asentado, no.fase], [false, null, 'componer']);
+  assert.ok(no.motivos.length > 0);
+  // Quien tiene clave y no firma: el libro lo rechaza (como con enviar sin firma).
+  const sin = await enviarPorLaBandeja(eje, eje.genesisId, 'write to X', { text: 'sin firma' }, 'vg', undefined);
+  assert.equal(sin.ok, false);
+  assert.equal(eje.orden.length, n + 1);
+  for (const [archivo, sitio] of [['app.js', 'reclasificar'], ['app.js', 'propuesta'], ['reglas.js', 'actuar'], ['reglas.js', 'proponer'], ['carta.js', 'guardarRetoque'], ['archivos.js', 'adjuntarHtmlInicial']]) {
+    const fuente = readFileSync(new URL('../carta/' + archivo, import.meta.url), 'utf8');
+    const i = Math.max(fuente.indexOf('async function ' + sitio + '('), fuente.indexOf('async ' + sitio + '('));
+    assert.ok(i >= 0, sitio);
+    assert.match(fuente.slice(i, i + 3000), /enviarPorLaBandeja\(/, archivo + ' · ' + sitio);
+  }
 });

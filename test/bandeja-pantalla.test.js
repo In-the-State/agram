@@ -11,8 +11,8 @@ import { html } from '../carta/dom.js';
 import { instalar } from '../carta/gestos.js';
 import { crearBandeja, probarAhora } from '../carta/bandeja.js';
 import {
-  vistaDeLaBandeja, delSitio, ordenDelCuatro, tienePendiente, textoDeT, PV_DE_LA_BANDEJA,
-  htmlCuentaDeLaBandeja, htmlTiraDeLaBandeja, htmlMarcaDeLaBandeja, htmlBandejaDelCuatro, htmlEstadoDeLaEntrada, htmlPieDeLaBandeja,
+  vistaDeLaBandeja, etiquetaDeParametro, delSitio, ordenDelCuatro, tienePendiente, textoDeT, PV_DE_LA_BANDEJA,
+  htmlCuentaDeLaBandeja, htmlTiraDeLaBandeja, htmlMarcaDeLaBandeja, htmlBandejaDelCuatro, htmlEstadoDeLaEntrada, htmlPieDeLaBandeja, ponerAlDiaEnPantalla,
 } from '../carta/bandeja-pantalla.js';
 import { t, TEXTOS } from '../carta/textos.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
@@ -231,4 +231,101 @@ test('la app: tocar un campo y una acción con archivo ya no escriben directo (s
   assert.match(app, /opcionesDelAparato, \.\.\.\(estado\.cuenta/, 'el aparato da las opciones de un parámetro de archivo');
   const archivos = readFileSync(new URL('../carta/archivos.js', import.meta.url), 'utf8');
   assert.doesNotMatch(archivos, /adjuntarConAccion|validarSinFirmar/);
+});
+
+test('la cuenta no tapa nada (repaso a 400 px): en Mapped va en el flujo del marco; en Sequenced, encima de los dígitos y con su alto guardado; con un formulario abierto no se pinta', () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const regla = (sel) => { const i = css.indexOf(sel + '{'); assert.ok(i >= 0, 'falta ' + sel); return css.slice(i, css.indexOf('}', i)); };
+  assert.doesNotMatch(regla('.bandeja-cuenta'), /position:fixed/, 'por defecto, en el flujo');
+  const apilada = regla('.carta-apilada>.bandeja-cuenta');
+  assert.match(apilada, /position:fixed/);
+  assert.match(apilada, /bottom:calc\(var\(--emparejar-alto,0px\) \+ 41px/, 'encima de la fila de los dígitos (4 + 32 + 4 px y su borde)');
+  assert.match(regla('.carta-apilada:has(>.bandeja-cuenta)'), /padding-bottom:calc\(48px \+ 44px/, 'la columna guarda su alto: no tapa lo último');
+  assert.match(regla('.carta:has(.formulario-fondo)>.bandeja-cuenta'), /display:none/);
+  const digito = regla('.digito');
+  assert.match(digito, /height:32px/, 'si cambia el alto de los dígitos, cambia también el sitio de la cuenta');
+});
+
+test('lo que falta se dice con la etiqueta del parámetro en el idioma, la misma del formulario, nunca con su nombre interno', async () => {
+  const { formulario } = await import('../carta/carta.js');
+  const { eje, X, deLa, b } = await escena();
+  const accion = deLa(7).nombradas[0]; // «comprometer tiempo»: pide cosas que no tienen defecto
+  const campos = formulario(eje, X, accion.id, 'huesped', {}, { idioma: 'es' }).campos;
+  const faltan = campos.filter((c) => c.falta);
+  assert.ok(faltan.length > 0, 'pide algo');
+  for (const c of faltan) assert.equal(etiquetaDeParametro(eje, accion.id, c.nombre, { idioma: 'es' }), c.etiqueta, c.nombre);
+  b.poner({ accion: accion.id, X, valores: {}, donde: { X, pv: 7 }, completa: false });
+  const probado = await b.probar(eje, 'huesped', { idioma: 'es' });
+  const v = vistaDeLaBandeja(probado, { etiqueta: (a, n) => etiquetaDeParametro(eje, a, n, { idioma: 'es' }) });
+  const motivo = v.items[0].motivo;
+  assert.ok(probado.items[0].faltan.length > 0);
+  for (const n of probado.items[0].faltan) {
+    const etiqueta = etiquetaDeParametro(eje, accion.id, n, { idioma: 'es' });
+    assert.ok(motivo.includes(etiqueta), etiqueta);
+    if (etiqueta !== n) assert.ok(!new RegExp(`\b${n}\b`).test(motivo.replace(etiqueta, '')), 'sin el nombre interno: ' + n);
+  }
+});
+
+test('la tira dice el nombre una sola vez (el resumen ya empieza por él); a medias, solo el nombre', () => {
+  const v = vistaDeLaBandeja({ ok: false, items: [item('b1'), item('b2', { faltan: ['x'], entra: false })], motivos: [] }, { nombre: () => 'comprometer tiempo', registro: () => 'la compra' });
+  v.items[1].resumen = null;
+  const tira = htmlTiraDeLaBandeja(v, 'X1', 3);
+  const primera = tira.slice(0, tira.indexOf('</li>'));
+  assert.equal(primera.split('comprometer tiempo').length - 1, 1, 'una vez');
+  assert.ok(primera.includes(t('bandejaNace', { accion: 'comprometer tiempo', sobre: 'la compra' })));
+  const segunda = tira.slice(tira.indexOf('</li>'));
+  assert.equal(segunda.split('comprometer tiempo').length - 1, 1);
+});
+
+/** Un DOM de mentira, lo justo para ponerAlDiaEnPantalla: hermanos, clases, outerHTML e insertAdjacentHTML que se apuntan. */
+function domDeMentira() {
+  const hechos = [];
+  const nodo = (clases, dataset = {}, hijos = []) => {
+    const n = {
+      dataset, hijos, siguiente: null, quitado: false,
+      classList: { contains: (c) => clases.includes(c), toggle: (c, si) => { const i = clases.indexOf(c); if (si && i < 0) clases.push(c); if (!si && i >= 0) clases.splice(i, 1); } },
+      clases,
+      get nextElementSibling() { return n.siguiente && !n.siguiente.quitado ? n.siguiente : null; },
+      matches: (sel) => sel.split(',').some((s) => clases.includes(s.trim().slice(1))),
+      remove: () => { n.quitado = true; hechos.push(['quitar', clases.join(' ')]); },
+      insertAdjacentHTML: (donde, html) => hechos.push(['meter', dataset.x ?? clases.join(' '), html]),
+      querySelectorAll: () => hijos,
+      set outerHTML(html) { hechos.push(['cambiar', dataset.x, html]); },
+    };
+    return n;
+  };
+  const botonA = nodo(['accion'], { lanzar: 'acc-b1' });
+  const botonB = nodo(['accion', 'pendiente'], { lanzar: 'otra' });
+  const cab3 = nodo(['pv-acciones'], { x: 'X1', pvAcciones: '3' }, [botonA, botonB]);
+  const viejaTira = nodo(['bandeja-tira'], { x: 'X1' });
+  cab3.siguiente = viejaTira;
+  const cab6 = nodo(['pv-acciones', 'marca'], { x: 'X1', pvAcciones: '6' });
+  const cuatro = nodo(['bandeja-cuatro'], { x: 'X1' });
+  const carta = nodo(['carta']);
+  const raiz = {
+    querySelectorAll: (sel) => (sel.startsWith('.pv-acciones') ? [cab3, cab6] : sel === '[data-bandeja-cuatro]' ? [cuatro] : []),
+    querySelector: (sel) => (sel === '.carta' ? carta : null),
+  };
+  return { raiz, hechos, botonA, botonB, viejaTira };
+}
+
+test('con el formulario abierto, lo compuesto se ve ya donde se compuso: la tira, la marca de la ficha, el 4 y la cuenta se ponen al día sin repintar', () => {
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1'), item('b2', { pv: 6 })], motivos: [] });
+  const d = domDeMentira();
+  ponerAlDiaEnPantalla(d.raiz, v);
+  assert.equal(d.viejaTira.quitado, true, 'la tira de antes se va');
+  const metidos = d.hechos.filter((h) => h[0] === 'meter');
+  assert.ok(metidos.some((h) => h[1] === 'X1' && h[2].includes('data-bandeja-tira="3"') && h[2].includes('data-bandeja-abrir="b1"')), 'la tira nueva, tras la cabecera del 3');
+  assert.ok(metidos.some((h) => h[1] === 'X1' && h[2].includes('data-bandeja-marca="6"')), 'en el 6 comprimido, la marca');
+  assert.ok(metidos.some((h) => h[1] === 'carta' && h[2].includes('data-bandeja-ir')), 'la cuenta');
+  assert.ok(d.hechos.some((h) => h[0] === 'cambiar' && h[2].includes('data-bandeja-cuatro')), 'el 4');
+  assert.ok(d.botonA.clases.includes('pendiente') && !d.botonB.clases.includes('pendiente'), 'la marca de pendiente en la ficha, y fuera donde ya no hay');
+  // Vacía: se quita todo.
+  const d2 = domDeMentira();
+  ponerAlDiaEnPantalla(d2.raiz, null);
+  assert.equal(d2.viejaTira.quitado, true);
+  assert.ok(!d2.hechos.some((h) => h[0] === 'meter'));
+  assert.ok(d2.hechos.some((h) => h[0] === 'quitar' && h[1] === 'bandeja-cuatro'));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /function repintarBandejaEnFormulario\(\) \{[^]*?ponerAlDiaEnPantalla\(raiz, vistaBandeja\(\)\);/, 'cada cambio de un campo lo pone al día');
 });

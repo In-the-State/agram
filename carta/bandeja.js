@@ -588,10 +588,10 @@ async function lanzar(eje, yo, firmar, entradas, opciones = {}) {
       firmados = await opciones.firmarTanda(eventos);
       if (!Array.isArray(firmados) || firmados.length !== eventos.length) throw new Error('la firma de la tanda no devolvió un registro firmado por miembro');
     } else {
-      if (typeof firmar !== 'function') throw new Error('no hay con qué firmar');
+      // Sin con qué firmar (un libro de ejemplo sin claves), los registros van sin firma, como con enviar: el libro dice si los quiere.
       firmados = [];
       for (const ev of eventos) {
-        const f = await firmar(ev);
+        const f = typeof firmar === 'function' ? await firmar(ev) : ev;
         if (!f) throw new Error('firma cancelada');
         firmados.push(f);
       }
@@ -649,3 +649,16 @@ export async function probarAhora(eje, yo, { tipo, en, accion = null, X, valores
 }
 
 export { TANDA_MINIMA, TANDA_MAXIMA };
+
+/**
+ * Lo que hacía carta.enviar (una acción, ya, firmada y asentada) por el único camino que queda: ejecutarAhora, con lo que
+ * la acción exige antes en el mismo todo o nada. Para los sitios que escribían con enviar y no componen nada (reclasificar,
+ * una propuesta importada, las reglas, un retoque, el HTML inicial). → la forma de enviar: { ok, asentado (el registro de
+ * la acción: el último), evento, motivos }, más eventos, tanda y, si no entró, fase.
+ */
+export async function enviarPorLaBandeja(eje, X, accion, valores, yo, firmar, opciones = {}) {
+  const r = await ejecutarAhora(eje, yo, firmar, { accion, X, valores: valores ?? {} }, opciones);
+  if (!r.ok) return { ok: false, asentado: null, evento: null, motivos: r.motivos ?? [], fase: r.fase ?? null };
+  const asentado = r.eventos.at(-1);
+  return { ok: true, asentado, evento: asentado, motivos: [], eventos: r.eventos, tanda: r.tanda };
+}
