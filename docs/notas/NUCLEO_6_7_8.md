@@ -744,3 +744,32 @@ La fila crece en tres cosas, todas dato:
 
 - **Lo que no se busca:** las plantillas que define un libro y se nombran por su nombre (por su id o una referencia, sí). El JavaScript de antes sí las buscaba, pero recorría el libro entero; ningún ejemplo ni prueba las usa.
 - **Un cambio pequeño:** la caducidad dice «expiry» en su 2, porque el mensaje de la regla que llevaba antes era el de un fallo. Su texto vuelve a empezar por «expiry».
+
+**2. Lo que cuesta, con el tutorial dentro.** Ocupantes del presupuesto, con `ahora` = 2026-11-20T18:00:00Z; se mide con `node test/medida-camino.mjs`. Las peticiones de atención se buscan ahora solo si X es un alta: antes se recorría todo lo que movió el dueño de X para cualquier X, y eso hacía crecer la última compra con el libro.
+
+| Lectura | X.4.9 | X.9.8 sin memoria | X.9.8 con memoria, la primera vez | La segunda |
+|---|---|---|---|---|
+| Booking (17 registros), reserva | 2 838 | 3 356 | 1 343 | 0 |
+| Booking, habitación | 1 368 | 2 320 | 963 | 0 |
+| Booking, alta de la casa (es el génesis) | 125 | 5 576 | 2 484 | 0 |
+| Tasks (15), tarea | 3 700 | 5 498 | 2 494 | 0 |
+| Compra ×10 (27 registros), menú | 1 391 | 1 433 | 404 | 0 |
+| Compra ×10, alta de la huésped | 104 | 4 565 | 1 801 | 0 |
+| Compra ×10, génesis | 116 | 4 391 | 1 627 | 0 |
+| Compra ×10, última compra | 948 | 994 | 577 | 0 |
+| Compra ×30 (67), menú | 1 451 | 1 493 | 464 | 0 |
+| Compra ×30, alta de la huésped | 104 | 5 045 | 2 281 | 0 |
+| Compra ×30, última compra | 948 | 994 | 577 | 0 |
+| Compra ×60 (127), menú | 1 541 | 1 583 | 554 | 0 |
+| Compra ×60, alta de la huésped | 104 | 5 765 | 3 001 | 0 |
+| Compra ×60, génesis | 116 | 4 391 | 1 627 | 0 |
+| Compra ×60, última compra | 948 | 994 | 577 | 0 |
+
+Qué dice la tabla:
+
+- **El tutorial de un alta cuesta unos 4 300 sin memoria.** Lo caro es buscar el tipo entre las plantillas de la época y mirar cada nombre entre las 74 acciones y las 104 reglas. Con memoria se queda en algo más de 2 000, porque esas listas son subexpresiones cerradas.
+- **Cabe en los 10 000 de hoy:** sin memoria, el máximo medido es 5 765, un 42 % de holgura; con memoria, la primera vez 3 001.
+- **Lo que crece con el libro** es el alta de quien más mueve: unos 24 ocupantes por compra. Las peticiones de atención salen de todo lo que movió el dueño del alta. A ese ritmo, sin memoria, el alta de una persona con unas 230 compras pasaría de 10 000.
+- **El menú, una compra y el génesis apenas crecen.**
+
+Si hace falta, el remedio es un índice: leer las devoluciones de R a una identidad sin recorrer todo lo que movió. Es la misma clase de índice que `cited` (quién me nombra).
