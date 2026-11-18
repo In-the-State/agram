@@ -189,6 +189,8 @@ export function instalar(raiz, m) {
   on('click', (e) => {
     const t = e.target;
     if (t.closest('input, textarea, select, option, pre')) return;
+    // El «+n» de las acciones de una cabecera (VG 18-11): se despliega en el sitio (el details del navegador) y no amplía el punto de vista.
+    if (t.closest('.pv-acciones-mas > summary')) return;
     // Un rosetón ampliado (VG, 14-11, #91) se cierra al pulsar fuera de él (o su «cerrar» a pantalla completa): ese clic no hace nada más.
     if (raiz.querySelector?.('.roseton.nivel-2, .roseton-pantalla') && !t.closest('.roseton, .roseton-pantalla')) { e.preventDefault(); m.cerrarRoseton?.(); return; }
     if (Date.now() - primerClic.t > DOBLE_MS && !t.closest('.aro, .formulario, .guia')) primerClic = { t: Date.now(), X: elementoDe(t), centro: !!t.closest('[data-centro]') };
@@ -201,8 +203,7 @@ export function instalar(raiz, m) {
     if ((el = b('[data-retocar]'))) { e.preventDefault(); m.retocarTexto?.(el.dataset.retocar, el.dataset.retocarIdioma || null); return; }
     if ((el = b('[data-retoque-original]'))) { e.preventDefault(); m.retoqueOriginal?.(el.dataset.clave, el.dataset.idioma); return; }
     // Dentro del aro: un valor de una lista se escribe; un clic en el centro (sin editarlo) entra en el elemento.
-    // Un valor para escribir en una posición: en el aro o en la franja de un punto de vista (VG 18-11).
-    if ((el = b('[data-opcion]'))) { e.preventDefault(); m.opcion?.(el.dataset.x ?? el.closest('.aro, [data-pv-acciones]')?.dataset.x, Number(el.dataset.opcion), el.dataset.valor); return; }
+    if ((el = b('.aro [data-opcion]'))) { e.preventDefault(); m.opcion?.(el.dataset.x ?? el.closest('.aro')?.dataset.x, Number(el.dataset.opcion), el.dataset.valor); return; }
     // El atajo visible al aro de un ocupante (lo mismo que mantenerlo pulsado).
     if ((el = b('[data-aro-abrir]'))) { e.preventDefault(); m.aro?.(el.dataset.aroAbrir, null, { ancla: anclaDe(el.closest('li, .rejilla-celda') ?? el, e.clientX, e.clientY) }); return; }
     if ((el = b('.aro:not(.editando) [data-aro-centro]'))) { e.preventDefault(); m.aroEntrar?.(el.dataset.x ?? el.closest('.aro')?.dataset.x); return; }

@@ -772,9 +772,8 @@ export const TEXTOS = Object.freeze({
     invitadoDentro: 'Ya estás dentro de «{nombre}». Está en tus libros.',
     // Las acciones a la vista en cada punto de vista (dom.js htmlFranja; VG 18-11)
     franjaTitulo: 'lo que se puede hacer en {que}',
-    franjaMas: 'más ({n})',
     franjaMasTitulo: 'todo lo que se puede hacer en {que}',
-    franjaCrear: 'crear algo aquí',
+    franjaCuantas: '{n} cosas que se pueden hacer en {que}: amplíalo para verlas',
     abrirAroTitulo: 'acciones sobre {que} (lo mismo que mantenerlo pulsado)',
     // La ficha de detalle de un registro (dom.js htmlFicha; CONTRATO §12.9)
     fichaTitulo: 'ficha de detalle',

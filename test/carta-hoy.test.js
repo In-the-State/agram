@@ -42,7 +42,8 @@ test('#85 cada celda de la cruceta de un sitio enseña el nombre de su posición
   const uno = posicionDe(h, 1);
   assert.match(uno, /<button type="button" class="sitio-tocar"[^>]*data-sitio-lanzar="[^"]+" data-x="[0-9a-f]{64}"[^>]*><span class="nombre">cuánto<\/span><span class="valor sin-configurar">sin configurar<\/span><\/button>/);
   assert.equal((uno.match(/<button/g) ?? []).length, 1);
-  assert.doesNotMatch(h, /class="accion"/, 'el botón repetido ya no existe');
+  // En la cruceta del sitio no hay botón de acción repetido (las del punto de vista van en su cabecera, VG 18-11).
+  assert.doesNotMatch([0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => posicionDe(h, k)).join(''), /class="accion"/, 'el botón repetido ya no existe');
   assert.doesNotMatch(h, /<span class="valor">—<\/span>/, 'sin el «—»');
 });
 

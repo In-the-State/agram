@@ -25,6 +25,7 @@
 
 import * as contrato from '../src/contrato.js';
 import * as acciones from '../src/acciones.js';
+import { siguiente as siguienteDe } from '../src/motor.js';
 import * as pasosDe from '../src/pasos.js';
 import * as modelos from '../src/modelos.js';
 import * as exterior from '../src/exterior.js';
@@ -699,12 +700,12 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   nodo.comprimido = propio && typeof propio.k === 'number'
     ? { dato: propio.k, de: propio.de, que: propio.nombre }
     : { dato: todo.total, de: null, que: nodo.etiqueta };
+  // Las acciones de su cabecera (VG 18-11, la forma C): en comprimido, cuántas (y la destacada, si es de aquí).
+  const cabecera = cabeceraDe(eje, X, pv, nivelDeTabla(nivel), ctx);
+  if (cabecera) nodo.acciones = cabecera;
   if (nivel < NIVEL.tarjeta) return nodo;
   // El personaje del sitio (VG, 12-11, #38): cada cuadrante abierto tiene su responsable, el nodo X.<pv>.
   nodo.sitio = sitioDe(ctx, eje, X, String(pv), pv);
-  // Las acciones a la vista (VG 18-11): la franja del punto de vista, en tarjeta y en bloque.
-  const franja = franjaDe(eje, X, pv, ctx);
-  if (franja) nodo.franja = franja;
   // Tarjeta y bloque: los ocupantes que caben, paginados por el paso de la configuración (en Mapped, por páginas).
   const cuantos = mapa ? mapa.cuantos : nivel >= NIVEL.bloque ? paso * (ctx.estado.paginas?.[pv] ?? 1) : nodo.tamano?.datos ?? paso;
   const pagina = mapa ? paginaDe(ctx, eje, X, pv, cuantos) : null;
@@ -715,7 +716,7 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   nodo.ocupantes = {
     total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden,
-    lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(nivel - 1, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado, de: X })),
+    lista: conPasosDeFila(eje, o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(nivel - 1, ctx.opciones), ctx, tipoDato, { pv, lado: g.lado, de: X })), ctx),
     cargarMas: !mapa && o.total > o.desde + o.ocupantes.length,
     pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null,
   };
@@ -833,9 +834,10 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
   // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
-  // Las acciones a la vista del punto de vista que se pinta (VG 18-11): el 0 en el anverso, el 5 en el reverso, el abierto en los demás.
-  const franja = franjaDe(eje, X, g.cara === 'anverso' ? CENTROS[0] : g.cara === 'reverso' ? CENTROS[1] ?? 5 : pv, ctx);
-  if (franja) base.franja = franja;
+  // La cabecera del punto de vista que se pinta (VG 18-11, la forma C): el 0 en el anverso, el 5 en el reverso, el abierto
+  // en los demás; con todas sus acciones, en el orden de la época.
+  const cabecera = cabeceraDe(eje, X, g.cara === 'anverso' ? CENTROS[0] : g.cara === 'reverso' ? CENTROS[1] ?? 5 : pv, 'abierto', ctx);
+  if (cabecera) base.acciones = cabecera;
   if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), ...fichaDe(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
@@ -864,7 +866,7 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   const o = contrato.ocupantes(eje, X, pv, pagina ? pagina.desde : 0, cuantos, ordenVertical(eje, pv, ctx)); // la lista vertical del 6 y el 7, en su orden (#18)
   const tipoDato = contrato.tipo(eje, X, pv, ctx.opciones);
   const d = contrato.division(eje, X, { datos: mapa ? mapa.datos : Math.max(1, o.ocupantes.length || 1), forma: hueco, ...ctx.opciones });
-  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv, de: X })), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
+  const ocupantes = { total: o.total, desde: o.desde, cuantos: o.cuantos, orden: o.orden, lista: conPasosDeFila(eje, o.ocupantes.map((x) => nodoOcupante(eje, x, tamanoDeNivel(2, ctx.opciones), ctx, tipoDato, { pv, de: X })), ctx), cargarMas: !mapa && o.total > o.desde + o.ocupantes.length, pagina: pagina ? { actual: pagina.actual, de: pagina.de } : null };
   // En animado, el PV a pantalla completa lleva sus dos sitios del arte (VG 14-11, #94; escenaDe): el fondo del mundo y el
   // marco alrededor de su bloque de campos. Con rejilla (Mapped), la escena es de la rejilla (el elemento que divide, R);
   // sin ella (Sequenced, un mundo sin división), del centro, con sus ocupantes como subelementos.
@@ -1046,10 +1048,11 @@ function accionesDelPv(eje, X, pv, ctx) {
   if (guardadas?.has(clave)) { memo.set(clave, guardadas.get(clave)); return guardadas.get(clave); }
   const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones), lecturas: null };
   const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
+  const todas = lista.map((a) => resumenDeAccion(a, lecturas, ctx)); // en el orden de la época
   const r = {
-    accion: porDefecto ? resumenDeAccion(porDefecto, lecturas, ctx) : null,
-    otras: lista.filter((a) => a !== porDefecto).map((a) => resumenDeAccion(a, lecturas, ctx)),
-    crear: creablesDe(lista, [pv]).length > 0,
+    todas,
+    accion: porDefecto ? todas[lista.indexOf(porDefecto)] : null,
+    otras: todas.filter((_, i) => lista[i] !== porDefecto),
   };
   memo.set(clave, r);
   guardadas?.set(clave, r);
@@ -1057,19 +1060,93 @@ function accionesDelPv(eje, X, pv, ctx) {
 }
 
 /**
- * La franja de acciones de un punto de vista sobre X, a la vista (VG 18-11): todo lo que el aro ofrece en ese sitio, la
- * acción por defecto, las demás y los valores que se pueden escribir en la posición (contrato.opciones), y si se puede
- * crear algo nuevo ahí (con el nombre, como en el aro de un hueco vacío). En el 0 y el 5 (el anverso y el reverso), sus
- * acciones y los valores del 0 y del 5 que el centro del aro ofrece. → { pv, X, etiqueta, accion, otras, opciones, crear }
- * o null si no hay nada que hacer ahí o no hay quien mire.
+ * Cuántos botones con nombre pinta la cabecera de un punto de vista en cada nivel, y en cuántas filas de un punto de vista
+ * se busca el siguiente paso de cada registro (VG 18-11, la forma C). ES DATO: pasará a la época y a las preferencias; hasta
+ * entonces vive aquí, en una sola tabla, y solo la lee botonesDeNivel. «todas»: todas, en el orden de la época.
  */
-function franjaDe(eje, X, pv, ctx) {
+export const BOTONES_POR_NIVEL = Object.freeze({ comprimido: 0, tarjeta: 1, bloque: 3, abierto: 'todas', filas: 12 });
+
+/** Lo que la tabla dice para un nivel ('comprimido', 'tarjeta', 'bloque', 'abierto' o 'filas'): un número (Infinity: todas). */
+export function botonesDeNivel(nivel, tabla = BOTONES_POR_NIVEL) {
+  const v = tabla?.[nivel];
+  if (v === 'todas') return Infinity;
+  return Number.isInteger(v) && v >= 0 ? v : 0;
+}
+
+/** El nombre del nivel de un nodo lateral para la tabla (NIVEL → 'comprimido' | 'tarjeta' | 'bloque'). */
+const nivelDeTabla = (nivel) => (nivel >= NIVEL.bloque ? 'bloque' : nivel >= NIVEL.tarjeta ? 'tarjeta' : 'comprimido');
+
+/**
+ * La acción destacada de la pantalla (VG 18-11, la forma C): la del primer paso mío del camino del elemento enfocado, si es
+ * de una plantilla que el núcleo ofrece en uno de sus puntos de vista (el primero, del 0 al 9). Una sola por pantalla. Se
+ * reconoce por el id de la plantilla que el camino ya trae, nunca por su nombre. → { X, pv, id } o null.
+ */
+function destacadaDe(eje, X, camino, ctx) {
+  const paso = (camino?.pasos ?? []).find((p) => p.mio && p.hacer);
+  if (!paso || paso.hacer.X !== X || !ctx.yo) return null;
+  for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {
+    if (accionesDelPv(eje, X, pv, ctx).todas.some((a) => a.id === paso.hacer.id)) return { X, pv, id: paso.hacer.id };
+  }
+  return null;
+}
+
+/**
+ * La cabecera de acciones de un punto de vista sobre X (VG 18-11, la forma C: un botón actúa sobre lo que lo contiene).
+ * `nivel`: el de la tabla (botonesDeNivel). Con nombre van tantas como dice la tabla: la destacada de la pantalla si es de
+ * este punto de vista y, si no, la por defecto, y detrás las demás en el orden de la época; el resto, tras «+n», en el
+ * orden de la época. En comprimido, solo cuántas hay (y la destacada, si es de aquí: la fila cerrada de Sequenced la
+ * lleva). Cada botón lanza como el aro (lanzar: el formulario). → { pv, X, etiqueta, total, nombradas, resto, destacada }
+ * o null si no hay ninguna o nadie mira.
+ */
+function cabeceraDe(eje, X, pv, nivel, ctx) {
   if (!ctx.yo || typeof X !== 'string' || !eje.obtener(X)) return null;
-  const { accion, otras, crear } = accionesDelPv(eje, X, pv, ctx);
-  const opciones = opcionesDe(eje, X, pv, ctx);
-  const conCrear = crear && LATERALES.includes(pv);
-  if (!accion && !otras.length && !opciones.length && !conCrear) return null;
-  return { pv, X, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), accion, otras, opciones, crear: conCrear };
+  const { todas, accion } = accionesDelPv(eje, X, pv, ctx);
+  if (!todas.length) return null;
+  const dest = ctx.destacada && ctx.destacada.X === X && ctx.destacada.pv === pv ? todas.find((a) => a.id === ctx.destacada.id) ?? null : null;
+  const k = botonesDeNivel(nivel);
+  let nombradas;
+  if (k === Infinity) nombradas = todas;
+  else {
+    const primera = dest ?? accion ?? todas[0];
+    nombradas = k > 0 ? [primera, ...todas.filter((a) => a !== primera)].slice(0, k) : [];
+  }
+  const resto = todas.filter((a) => !nombradas.includes(a));
+  return { pv, X, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), nivel, total: todas.length, nombradas, resto, destacada: dest?.id ?? null };
+}
+
+/**
+ * El siguiente paso de un registro que aparece en una fila, si me toca a mí (motor.siguiente: lo que me falta en él), como
+ * botón: el de la primera de mis faltas que es una plantilla de la época del libro (la reconoce por el nombre que da el
+ * núcleo, no por uno escrito aquí), sobre el registro que dice. → { id, nombre, X } o null. Guardado como la cabecera.
+ */
+function pasoDeFila(eje, R, ctx) {
+  if (!ctx.yo || typeof R !== 'string' || !eje.obtener(R)) return null;
+  const clave = 'fila|' + R + '|' + ctx.yo + '|' + (ctx.opciones?.idioma ?? '');
+  const guardadas = guardadasDe(eje, ctx);
+  if (guardadas?.has(clave)) return guardadas.get(clave);
+  let r = null;
+  try {
+    for (const f of siguienteDe(eje, R, ctx.yo).faltaDeMi ?? []) {
+      const p = acciones.plantillasDeTransaccion(ctx.opciones).find((x) => x.nombre === f.plantilla);
+      if (!p) continue;
+      r = { id: p.id, nombre: accionDe(f.plantilla, ctx.opciones, eje).nombre, X: f.transaccion?.sobre ?? R };
+      break;
+    }
+  } catch { r = null; }
+  guardadas?.set(clave, r);
+  return r;
+}
+
+/** Los ocupantes que se pintan con su siguiente paso (los primeros que dice la tabla, en filas). */
+function conPasosDeFila(eje, lista, ctx) {
+  const tope = botonesDeNivel('filas');
+  let n = 0;
+  return lista.map((o) => {
+    if (!o?.X || n >= tope) return o;
+    n++;
+    const paso = pasoDeFila(eje, o.X, ctx);
+    return paso ? { ...o, paso } : o;
+  });
 }
 
 /**
@@ -1994,7 +2071,13 @@ const tieneHijos = (eje, X, pv, nivel, ctx) => contrato.hijosDe(eje, X, pv, { ni
  */
 function accionPorDefecto(eje, R, pv, ctx) {
   // La misma lista que la franja y el aro (accionesDelPv): una sola llamada al núcleo por (R, pv) y pintado.
-  if (typeof R !== 'string' || !eje.obtener(R) || !ctx.yo) return null;
+  if (typeof R !== 'string' || !eje.obtener(R)) return null;
+  if (!ctx.yo) {
+    // Sin nadie que mire, lo de antes (la lista del núcleo sin espectador), por si alguien pinta así el vacío.
+    const lista = acciones.acciones(eje, R, pv, ctx.yo, ctx.opciones);
+    const a = lista.find((x) => x.porDefecto) ?? lista[0] ?? null;
+    return a ? { id: a.id, nombre: a.etiqueta } : null;
+  }
   const a = accionesDelPv(eje, R, pv, ctx).accion;
   return a ? { id: a.id, nombre: a.nombre } : null;
 }
@@ -2784,6 +2867,7 @@ function secuenciaDe(eje, X, pvs, ctx, m) {
     hilo: nodos[pv].hilo ?? null,
     sitio: sitioDe(ctx, eje, X, String(pv), pv),
     abierta: !nodos[pv].hilo && nodos[pv].nivel >= NIVEL.bloque,
+    acciones: nodos[pv].acciones ?? null, // la cabecera de su punto de vista: en la fila cerrada, cuántas y la destacada
     nodo: nodos[pv].hilo ? null : nodos[pv],
   }));
   const deZona = (z) => digitos.map((pv) => nodos[pv]).find((n) => n.hilo === z) ?? null; // antes: el pasado; despues: el futuro
@@ -2872,6 +2956,8 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     ctx.arte = arte && ctx.cadena.some((x) => x.nombre === arte.modelo) ? arte : null;
   }
   const camino = await caminoDe(eje, X, yo, ctx);
+  // La acción destacada de la pantalla (VG 18-11): la del primer paso mío del camino, en su punto de vista. Una sola.
+  ctx.destacada = destacadaDe(eje, X, camino, ctx);
   // Lo previsualizado de un paso del camino (encargo «datos3»): la app lo guarda en estado.previa y aquí solo se pasa.
   if (estado.previa && estado.previa.foco === X) camino.previa = estado.previa;
   // Cuántos datos caben en la pantalla, en huecos comprimidos; la época dice qué puntos de vista y cómo se disponen.
