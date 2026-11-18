@@ -24,6 +24,8 @@
 //                   queda PENDIENTE o da ERROR se cae; un límite de cálculo no; solo en una lectura, opciones.lectura)
 //                   · M cited d.d… (§15.3: los registros del libro que llevan el valor de cada elemento en esa posición
 //                   de su payload, por orden; cuesta uno por elemento y uno por resultado; índice en src/indice-de-nombres.js)
+// Además (§15.5): explicar(src, contexto, opciones), el mismo veredicto que evaluar y su porqué (un árbol corto), con
+// presupuesto y topes propios; solo lee y nada del núcleo la llama al firmar ni en una regla.
 //   recuento        count · sum · max · min
 //   aritmética      + - * / floor
 //   comparación     = != < <= > >=
@@ -407,6 +409,8 @@ function tokenizar(src) {
     } else if ((m = prueba(RE_NOMBRE))) tokens.push({ t: 'id', v: m[0], pos: inicio });
     else if ((m = prueba(RE_OPERADOR))) tokens.push({ t: 'op', v: m[0], pos: inicio });
     else throw fallo('sintaxis: carácter inesperado en ' + pos + ': «' + src.slice(pos, pos + 8) + '»');
+    // Dónde acaba el token (el espacio de cada nodo del árbol, §15.5: explicar enseña el trozo de la fórmula).
+    tokens[tokens.length - 1].fin = pos;
   }
   return tokens;
 }
@@ -705,10 +709,55 @@ export function analizar(src, { sujeto = false, anidamiento: topeAnidamiento = L
     return { n: 'verbo', v, q, s, ...enlaces };
   }
 
+  // El espacio de cada nodo (§15.5): ini y fin, las posiciones en el texto (sin el «=») donde empieza y acaba lo que lo
+  // escribe. Cada función de la gramática marca el nodo que devuelve si aún no lo está; los nodos de en medio de una
+  // cadena (a or b or c) lo toman de sus hijos al final. No cambia lo que vale nada.
+  const conEspacio = (f) => (...args) => {
+    const ini = i;
+    const n = f(...args);
+    if (n && typeof n === 'object' && typeof n.n === 'string' && n.ini === undefined && tokens[ini]) {
+      n.ini = tokens[ini].pos;
+      n.fin = tokens[i - 1]?.fin ?? n.ini;
+    }
+    return n;
+  };
+  expresion = conEspacio(expresion);
+  disyuncion = conEspacio(disyuncion);
+  conjuncion = conEspacio(conjuncion);
+  negacion = conEspacio(negacion);
+  comparacion = conEspacio(comparacion);
+  union = conEspacio(union);
+  suma = conEspacio(suma);
+  producto = conEspacio(producto);
+  prefija = conEspacio(prefija);
+  posfija = conEspacio(posfija);
+  primaria = conEspacio(primaria);
+
   if (!tokens.length) throw fallo('sintaxis: expresión vacía');
   const arbol = expresion();
   if (i < tokens.length) throw fallo('sintaxis: sobra ' + donde());
+  rellenarEspacios(arbol);
+  Object.defineProperty(arbol, 'fuente', { value: cuerpo });
   return arbol;
+}
+
+/** Los nodos sin espacio (los de en medio de una cadena) lo toman de sus hijos: del primero al último. */
+function rellenarEspacios(n) {
+  if (!n || typeof n !== 'object' || typeof n.n !== 'string') return;
+  let ini = Infinity;
+  let fin = -Infinity;
+  for (const x of Object.values(n)) {
+    for (const h of Array.isArray(x) ? x : [x]) {
+      if (!h || typeof h !== 'object' || typeof h.n !== 'string') continue;
+      rellenarEspacios(h);
+      if (h.ini < ini) ini = h.ini;
+      if (h.fin > fin) fin = h.fin;
+    }
+  }
+  if (n.ini === undefined && ini !== Infinity) {
+    n.ini = ini;
+    n.fin = fin;
+  }
 }
 
 // ---------- evaluación ----------
@@ -772,6 +821,248 @@ function evaluarSinMemoria(src, contexto, opciones, recuerdo) {
     if (e instanceof Parada) return { estado: e.estado, ...(e.subtipo ? { subtipo: e.subtipo } : {}), motivo: e.message };
     return { estado: 'ERROR', motivo: 'fallo al evaluar: ' + e.message };
   }
+}
+
+// ---------- el porqué de un veredicto (Core AGRAM 18-11, 8a de docs/notas/NUCLEO_6_7_8.md; docs/BQLM.md §15.5) ----------
+
+/** Los topes de forma de una explicación: niveles del árbol, muestras de un where y nodos en total. */
+export const TOPES_DE_EXPLICAR = Object.freeze({ niveles: 6, muestras: 3, nodos: 20 });
+
+/** Lo que pone una explicación cortada por su presupuesto. */
+export const EXPLICACION_CORTADA = 'no se puede explicar más: límite de cálculo';
+
+/** Una parada de la pasada de explicar: su presupuesto propio se agotó. */
+class Corte extends Error {}
+
+/**
+ * explicar (8a): lo MISMO que `evaluar` (el veredicto lo da `evaluar` con las mismas opciones: estado, valor, texto,
+ * subtipo, motivo) y, además, `porque`: un árbol pequeño que dice qué parte decidió el veredicto, qué valían sus lados y
+ * sobre qué elemento. Es una pasada aparte, solo a petición, con su propio presupuesto (del tamaño de los límites de la
+ * evaluación) y sus topes de forma (TOPES_DE_EXPLICAR): al agotarlos se corta («no se puede explicar más: límite de
+ * cálculo») sin tocar el veredicto. Solo lee: con mover o escribir no explica (ERROR), y no entra en lo que se firma ni
+ * en una regla (nadie del núcleo la llama ahí). No usa la memoria de lectura. No lanza.
+ *
+ * Cada nodo de `porque`: { expr (el trozo de la fórmula), dio (true, false, PENDIENTE, ERROR o RESUELTO), vale (lo que da,
+ * o en una comparación lo de cada lado; como mucho 3 ocupantes), sobre (el elemento que era it en ese punto), motivo (si
+ * paró), hijos, y en un where: de (cuántos había), pasan, muestras (hasta 3 de los que no pasan, los que más partes de la
+ * condición cumplen, cada uno con la parte que falla) }.
+ */
+export function explicar(src, contexto, opciones = {}) {
+  if (opciones.mover || opciones.escribir) return { estado: 'ERROR', motivo: 'explicar solo lee: no explica una plantilla de transacción ni una regla que escribe', porque: null };
+  const r = evaluar(src, contexto, opciones);
+  let porque;
+  try {
+    porque = porqueDe(src, contexto, opciones, r);
+  } catch (e) {
+    porque = { expr: typeof src === 'string' ? src : textoDeNodo(src, src?.fuente), dio: r.estado, motivo: e instanceof Parada ? e.message : 'no se puede explicar: ' + e.message };
+  }
+  return { ...r, porque };
+}
+
+function porqueDe(src, contexto, opciones, r) {
+  const conSujeto = Object.hasOwn(opciones, 'sujeto');
+  const lim = limitesDe(contexto, opciones);
+  let arbol;
+  try {
+    arbol = typeof src === 'string' ? analizar(src, { sujeto: conSujeto, anidamiento: lim.anidamiento }) : src;
+  } catch (e) {
+    return { expr: String(src), dio: r.estado, motivo: e.message };
+  }
+  const fuente = arbol.fuente;
+  // Lo que el veredicto ya dijo antes de calcular (sintaxis, un verbo, put o keep fuera de sitio): eso es el porqué.
+  const { verbo, put } = queMueve(arbol);
+  const lectura = opciones.lectura === true;
+  if (verbo || put || (!lectura && llevaKeep(arbol))) return { expr: textoDeNodo(arbol, fuente), dio: r.estado, motivo: r.motivo };
+  const st = {
+    ctx: contexto, its: conSujeto ? [opciones.sujeto] : [], pasos: 0, tope: lim.pasos, hilo: lim.hilo, presupuesto: new Presupuesto(lim.ocupantes, lim.bytes),
+    escrituras: null, movimientos: null, lectura, aplicando: [], topeAplicacion: opciones.limites?.aplicacion ?? TOPE_DE_APLICACION, anidamiento: lim.anidamiento,
+    memoria: null, cerrados: null, claveDeLimites: '',
+  };
+  const ex = { st, fuente, nodos: 0, cortado: false };
+  const raiz = explicarNodo(arbol, ex, 0);
+  if (conSujeto && raiz) raiz.sobre = leerCorto([opciones.sujeto], contexto);
+  if (ex.cortado && raiz) raiz.cortada = EXPLICACION_CORTADA;
+  return raiz;
+}
+
+/** El trozo de la fórmula que escribe un nodo (§15.5: su espacio), o su clase si no lo tiene. */
+function textoDeNodo(n, fuente) {
+  if (typeof fuente === 'string' && Number.isInteger(n?.ini) && Number.isInteger(n?.fin)) return fuente.slice(n.ini, n.fin);
+  return n?.n ?? '';
+}
+
+/** Cómo se lee una lista, corta: como mucho tres ocupantes. */
+function leerCorto(lista, ctx) {
+  return textoDe(lista.slice(0, 3), ctx) + (lista.length > 3 ? '… (' + lista.length + ')' : '');
+}
+
+/** Lo que da un nodo en la pasada de explicar: { valor } o { parada }. Un límite agotado corta la explicación. */
+function medir(n, ex) {
+  try {
+    return { valor: calcular(n, ex.st) };
+  } catch (e) {
+    if (e instanceof Parada && e.subtipo === POR_LIMITE) {
+      ex.cortado = true;
+      throw new Corte();
+    }
+    if (e instanceof Parada) return { parada: e };
+    return { parada: fallo('fallo al evaluar: ' + e.message) };
+  }
+}
+
+const sinParentesis = (n) => {
+  while (n?.n === 'paren') n = n.e;
+  return n;
+};
+
+/** Los términos de un and, aplanados: a and b and c → [a, b, c]. */
+function terminos(n) {
+  n = sinParentesis(n);
+  return n?.n === 'and' ? [...terminos(n.a), ...terminos(n.b)] : [n];
+}
+
+// Lo que cuelga de un nodo, en el orden en que se evalúa (sin el cuerpo de las palabras que dan it: ese va por elemento).
+const ORDEN_DE_HIJOS = ['base', 'k', 'a', 'arg', 'expr', 'b', 'v', 't', 'q', 's'];
+function hijosEnOrden(n) {
+  const fuera = [];
+  for (const k of ORDEN_DE_HIJOS) if (n[k] && typeof n[k] === 'object' && typeof n[k].n === 'string' && !(CUERPO[n.n] === k)) fuera.push(n[k]);
+  for (const k of ['args', 'partes']) for (const h of Array.isArray(n[k]) ? n[k] : []) if (h && typeof h.n === 'string') fuera.push(h);
+  return fuera;
+}
+
+/** Con `it` (del nivel `nivel`) = o, calcula f; deja it como estaba. */
+function conIt(st, nivel, o, f) {
+  const antes = st.its[nivel - 1];
+  st.its[nivel - 1] = o;
+  try {
+    return f();
+  } finally {
+    st.its[nivel - 1] = antes;
+  }
+}
+
+function explicarNodo(n, ex, nivel) {
+  n = sinParentesis(n);
+  if (!n || ex.cortado || nivel >= TOPES_DE_EXPLICAR.niveles || ex.nodos >= TOPES_DE_EXPLICAR.nodos) return null;
+  ex.nodos++;
+  const { st } = ex;
+  const ctx = st.ctx;
+  const nodo = { expr: textoDeNodo(n, ex.fuente) };
+  let m;
+  try {
+    m = medir(n, ex);
+  } catch (e) {
+    if (e instanceof Corte) return { ...nodo, dio: 'PENDIENTE', motivo: EXPLICACION_CORTADA };
+    throw e;
+  }
+  const hijos = [];
+  const anadir = (h) => {
+    if (h) hijos.push(h);
+  };
+  const debajo = (h) => {
+    try {
+      return explicarNodo(h, ex, nivel + 1);
+    } catch (e) {
+      if (e instanceof Corte) return null;
+      throw e;
+    }
+  };
+  try {
+    if (m.parada) {
+      nodo.dio = m.parada.estado;
+      nodo.motivo = m.parada.message;
+      // Dónde se paró: el primer hijo que se para; en una palabra que da it, el primer elemento cuyo cuerpo se para.
+      let culpable = null;
+      for (const h of hijosEnOrden(n)) {
+        if (medir(h, ex).parada) {
+          culpable = h;
+          break;
+        }
+      }
+      if (culpable) anadir(debajo(culpable));
+      else if (!CUERPO[n.n] && hijosEnOrden(n).length) {
+        // Se paró en la operación misma (una división por cero, una lista donde hacía falta un valor): lo que valían sus lados.
+        nodo.vale = hijosEnOrden(n).map((h) => leerCorto(medir(h, ex).valor ?? [], ctx));
+      } else if (CUERPO[n.n]) {
+        const base = medir(n.base, ex).valor ?? [];
+        for (const o of base) {
+          const cuerpo = n[CUERPO[n.n]];
+          if (conIt(st, n.nivel, o, () => medir(cuerpo, ex)).parada) {
+            const h = conIt(st, n.nivel, o, () => debajo(cuerpo));
+            anadir(h ? { ...h, sobre: leerCorto([o], ctx) } : { expr: textoDeNodo(cuerpo, ex.fuente), sobre: leerCorto([o], ctx) });
+            break;
+          }
+        }
+      }
+    } else {
+      const v = m.valor;
+      const booleano = v.length === 1 && typeof v[0] === 'boolean';
+      nodo.dio = booleano ? v[0] : 'RESUELTO';
+      if (!booleano) nodo.vale = leerCorto(v, ctx);
+      if (n.n === 'and') {
+        // Falso: el primer término falso (es perezoso, como evaluar). Verdadero: los dos.
+        if (!v[0]) anadir(debajo(medir(n.a, ex).valor?.[0] === false ? n.a : n.b));
+        else { anadir(debajo(n.a)); anadir(debajo(n.b)); }
+      } else if (n.n === 'or') {
+        if (v[0]) anadir(debajo(medir(n.a, ex).valor?.[0] === true ? n.a : n.b));
+        else { anadir(debajo(n.a)); anadir(debajo(n.b)); }
+      } else if (n.n === 'not') {
+        anadir(debajo(n.a));
+      } else if (n.n === 'cmp') {
+        // Una comparación es una hoja: lo que vale cada lado. Si un lado es count (M where c), por qué pasan los que pasan.
+        nodo.vale = [leerCorto(medir(n.a, ex).valor ?? [], ctx), leerCorto(medir(n.b, ex).valor ?? [], ctx)];
+        for (const lado of [n.a, n.b]) {
+          const l = sinParentesis(lado);
+          const w = l?.n === 'pref' && l.op === 'count' ? sinParentesis(l.arg) : null;
+          if (w && (w.n === 'where' || w.n === 'keep')) anadir(explicarWhere(w, ex, nivel + 1));
+        }
+      } else if (n.n === 'where' || n.n === 'keep') {
+        explicarWhere(n, ex, nivel + 1, nodo);
+      }
+    }
+  } catch (e) {
+    if (!(e instanceof Corte)) throw e;
+  }
+  if (hijos.length) nodo.hijos = hijos;
+  return nodo;
+}
+
+/**
+ * Un where (o un keep): cuántos había, cuántos pasan y, si no pasa ninguno, las muestras: los que más términos de la
+ * condición cumplen (los de su and), cada uno con el término que falla explicado. Si `nodo` se da, se completa ese.
+ */
+function explicarWhere(w, ex, nivel, nodo) {
+  if (ex.cortado || nivel >= TOPES_DE_EXPLICAR.niveles || ex.nodos >= TOPES_DE_EXPLICAR.nodos) return null;
+  const { st } = ex;
+  const ctx = st.ctx;
+  const fuera = nodo ?? (ex.nodos++, { expr: textoDeNodo(w, ex.fuente) });
+  const base = medir(w.base, ex);
+  if (base.parada) return fuera;
+  const partes = terminos(w.cond);
+  const filas = base.valor.map((o, k) => {
+    const dan = partes.map((p) => conIt(st, w.nivel, o, () => medir(p, ex)));
+    return { o, k, cumple: dan.filter((d) => d.valor?.length === 1 && d.valor[0] === true).length, falla: partes.find((_, j) => !(dan[j].valor?.length === 1 && dan[j].valor[0] === true)) };
+  });
+  fuera.de = filas.length;
+  fuera.pasan = filas.filter((f) => !f.falla).length;
+  if (!nodo) fuera.dio = fuera.pasan;
+  if (fuera.pasan === 0 && filas.length) {
+    const muestras = [...filas].sort((a, b) => b.cumple - a.cumple || a.k - b.k).slice(0, TOPES_DE_EXPLICAR.muestras);
+    fuera.muestras = [];
+    for (const f of muestras) {
+      if (ex.cortado || ex.nodos >= TOPES_DE_EXPLICAR.nodos) break;
+      const h = conIt(st, w.nivel, f.o, () => {
+        try {
+          return explicarNodo(f.falla, ex, nivel + 1);
+        } catch (e) {
+          if (e instanceof Corte) return null;
+          throw e;
+        }
+      });
+      fuera.muestras.push({ sobre: leerCorto([f.o], ctx), cumple: f.cumple + ' de ' + partes.length, ...(h ? { hijos: [h] } : {}) });
+    }
+  }
+  return fuera;
 }
 
 const MUEVE = new WeakMap();
