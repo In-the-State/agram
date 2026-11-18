@@ -810,6 +810,10 @@ Una pantalla vuelve a pedir las mismas lecturas sobre el mismo libro. `MemoriaDe
 - **Qué guarda:** un RESUELTO, un PENDIENTE corriente o un ERROR (un acierto repite la misma parada); nunca un PENDIENTE POR LÍMITE. Un acierto cuesta un paso.
 - **Cuánto vale:** mientras no cambie lo que ve el contexto. Se vacía entera si cambia la parte del libro de su huella (`ContextoEje.huella()`, antes de «#»: el eje, su lista de registros, cuántos y el último, y la época). El sello, el recibo de llegada y el pago (`X.6.8.1` a `X.6.8.3`) llegan de fuera sin cambiar el libro: lo que los lee no se recuerda (el contexto cuenta esas lecturas, `vistasDeFuera`; SEG-29). Guarda como mucho 4 000 entradas (`ENTRADAS_DE_MEMORIA`); se tira la más vieja.
 
+**Dónde se usa.** Solo en la lectura de un punto de vista del contrato (`contrato.leer` y `contrato.leerRuta`, por `aplicarLectura`), la que ya pasa `lectura: true`: el contrato guarda **una memoria por eje** (`contrato.memoriaDeLectura(eje)`) y se la pasa. Ninguna regla, escritura ni validación la recibe (`test/lectura-pantalla.test.js`: `keep` funciona por ahí y no por el camino de una regla; la segunda lectura de la misma pantalla es un acierto de un paso; validar y asentar un registro no la consulta ni la llena, y la pantalla siguiente ve lo nuevo).
+
+**Por qué basta la huella para ver que el libro cambió.** El eje solo alarga su lista de registros (`push`, que cambia cuántos hay y el último) o la sustituye entera (reordenar, deshacer una tanda, adoptar una copia: otra lista, otro número en la huella); nunca la cambia en su sitio. Lo prueba `test/lectura-pantalla.test.js`: con añadir, reordenar, una tanda que no entra y una vista de antes, y buscando en `src/`, `servidor/`, `ejemplos/` y `carta/` cualquier escritura en su sitio (`splice`, `sort`, `orden[k] =`…), que no hay. Una escritura así desde fuera del eje no está en su contrato.
+
 **Lo que cuesta, con y sin memoria** (ocupantes del presupuesto; pasos entre paréntesis):
 
 | Lectura | Sin memoria | Con memoria, la primera vez | La segunda |
