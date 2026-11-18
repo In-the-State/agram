@@ -34,6 +34,7 @@ import { nombreDeRegla } from '../src/bqlm.js';
 import { esReferencia, esLista, esDecupla, indicesDe, direccion } from '../src/btml.js';
 import { t, etiquetaLlana, usarRetoques, textoDeLaCarta, retoqueDeLaCartaNoVale, huecosDe, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { editorDeBtml, fechaDelRegistro } from './formato-btml.js';
+import { enviarPorLaBandeja } from './bandeja.js';
 import { EPOCA_0_BTML } from '../src/epocas.js';
 
 /** El tipo de una pieza del modelo de visualización que la carta pide (vocabulario de la cabecera epoch.9.7.0.4). */
@@ -1663,7 +1664,7 @@ export async function guardarRetoque(eje, yo, { clave, idioma, texto = null } = 
   if (aviso) return { ok: false, asentado: null, motivos: [], aviso };
   const p = plantillaDeRetoque(opciones);
   if (!p) return { ok: false, asentado: null, motivos: [], aviso: t('retoqueNoExiste') };
-  const r = await enviar(eje, eje.genesisId, p.nombre, valoresDeRetoque(p, idioma, clave, texto === null ? null : String(texto).trim()), yo, firmar, opciones);
+  const r = await enviarPorLaBandeja(eje, eje.genesisId, p.nombre, valoresDeRetoque(p, idioma, clave, texto === null ? null : String(texto).trim()), yo, firmar, opciones);
   return { ...r, motivos: motivosEnLlano(r.motivos, eje, opciones), aviso: null };
 }
 

@@ -43,19 +43,15 @@ const NOMBRES_DE_HOY = {
  */
 const ESCRITURAS_DE_HOY = {
   'app.js · escribirPreferencias · escribirDesde': 1,
-  'app.js · reclasificar · enviar': 1,
   'app.js · configurar · escribirDesde': 2,
   'app.js · configurar · enviar': 1,
   'app.js · autorizar · anadir': 1,
   'app.js · formato · escribirDesde': 1,
-  'app.js · propuesta · enviar': 1,
   'app.js · invitadoAceptar · aceptar': 1,
-  'archivos.js · adjuntarHtmlInicial · enviar': 1,
   'bandeja.js · componerUna · anadir': 1, // sobre la vista en seco de la tanda (vistaTanda), no sobre el libro: así la entrada siguiente ve a la anterior
   'bandeja.js · lanzar · anadir': 1, // el camino de ejecutar con una sola entrada: aquí acaban las demás escrituras de esta lista, esta se queda
   'bandeja.js · lanzar · anadirTanda': 1, // el mismo camino con dos o más: la tanda entera o nada
   'carta.js · enviar · anadir': 1, // la vía misma: transaccion, firma y eje.anadir
-  'carta.js · guardarRetoque · enviar': 1,
   'cuentas.js · crearCon · Eje.genesis': 1,
   'cuentas.js · crearCon · escribirDesde': 2,
   'externa.js · anclarOpinion · anadir': 1,
@@ -64,8 +60,6 @@ const ESCRITURAS_DE_HOY = {
   'libros.js · abrirLibroPrivado · enviar': 1,
   'libros.js · anunciarLibroPrivado · enviar': 1,
   'puente.js · escribir · enviar': 1,
-  'reglas.js · actuar · enviar': 1,
-  'reglas.js · proponer · enviar': 1,
   'sincronia.js · ejeDelServidor · anadir': 1, // asienta lo que baja del servidor (escrito por otros), no escribe por su cuenta
 };
 

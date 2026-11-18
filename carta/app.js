@@ -48,7 +48,7 @@ import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMov
 import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
-import { crearBandeja, ejecutarAhora, probarAhora } from './bandeja.js';
+import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja } from './bandeja.js';
 import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
@@ -1842,7 +1842,7 @@ const manejadores = {
     if (!alta || !Number.isInteger(caja)) return;
     limpiarMensajes();
     const valores = { whom: persona, zone: caja };
-    const r = await enviar(estado.eje, alta, 'move to group', valores, estado.identidad, firmarCon(estado.identidad));
+    const r = await enviarPorLaBandeja(estado.eje, alta, 'move to group', valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
     if (r.ok && r.asentado) {
       trasEscribir();
       estado.exito = t('registrado', { accion: nombreDeAccion('move to group'), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
@@ -2685,7 +2685,7 @@ const manejadores = {
     let motivos = [];
     if (que === 'aceptar') {
       // Con su instante, si lo trae (la petición de alta de una cosa: su prueba de posesión firma el id de ese registro).
-      const r = await enviar(estado.eje, e.sobre, e.accion, e.parametros, estado.identidad, firmarCon(estado.identidad), e.t ? { t: e.t } : {});
+      const r = await enviarPorLaBandeja(estado.eje, e.sobre, e.accion, e.parametros, estado.identidad, firmarCon(estado.identidad), { idioma: idioma(), ...(e.t ? { t: e.t } : {}) }); // el único camino de escribir (A33)
       if (r.ok && r.asentado) {
         trasEscribir();
         externa.quitarPropuesta(almacenLocal(), dondePropuestas(), id);
