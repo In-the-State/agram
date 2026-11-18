@@ -480,6 +480,11 @@ export class Libro {
     return this.#transacciones.length;
   }
 
+  /** Las transacciones asentadas, en orden (una copia de la lista; cada una, la misma que llevan sus asientos). */
+  transacciones() {
+    return this.#transacciones.slice();
+  }
+
   // ---- escribir ----
 
   /** Una simulación vacía sobre el libro de ahora. */

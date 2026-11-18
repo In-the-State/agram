@@ -1,0 +1,347 @@
+{
+  "descripcion": "CONTRATO_TANDA (agram-equipo): una tanda válida de tres y una inválida, sobre el mismo libro. Claves de PRUEBA, generadas por test/tanda.test.js (TANDA_VECTOR=escribir). Las firmas BIP-340 llevan azar auxiliar: al regenerar cambian las claves, los ids y las firmas, no la forma ni el resultado.",
+  "exigirFirmas": true,
+  "libro": [
+    {
+      "autor": "vg",
+      "sobre": null,
+      "en": "0000000000",
+      "t": "2026-11-18T10:00:00Z",
+      "movimientos": [],
+      "payload": [
+        "libro de prueba de tandas"
+      ],
+      "contexto": {
+        "genesis": true,
+        "epoca": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
+        "claves": {
+          "vg": "070dea66e663c5404f03f4685bfa1f9c7749ca8c0082657ceac6355ee9fcb16e"
+        }
+      },
+      "id": "4e7428913ce327a819773c2be49fab60af74f8d6ba179b9351004a51e9c9202b",
+      "firmante": "vg",
+      "firma": "95d528f0c37bafe8e037f47dd907a266de045dea867afc85bd8def137ff351840c3ea7d9b6a12cafab2f12d016667a9ab03f7997bb2a6619cc3febd87acc5026"
+    },
+    {
+      "autor": "vg",
+      "sobre": "4e7428913ce327a819773c2be49fab60af74f8d6ba179b9351004a51e9c9202b",
+      "en": "0000000000",
+      "t": "2026-11-18T10:00:00Z",
+      "movimientos": [
+        {
+          "token": "T",
+          "escala": "minuto",
+          "cantidad": 1,
+          "de": "vg",
+          "a": null
+        },
+        {
+          "token": "R",
+          "cantidad": 10,
+          "emisor": "vg",
+          "de": null,
+          "a": "vg"
+        }
+      ],
+      "payload": [
+        "Emisión inicial de vg"
+      ],
+      "contexto": {},
+      "id": "af49fea8ebf061d7d2aaad0b5cb51f7a8a0c069da3a1cc45e16ea773387275b7",
+      "firmante": "vg",
+      "firma": "0f65d0edc3fbc62ad44cf4e7b4cd9768f62c4ad5bd149d7636ec13fd4f2abba95b634f9020261a4aa81f0aa2261fecf26887eff2323686ec42165f0a454232c9"
+    }
+  ],
+  "valida": {
+    "eventos": [
+      {
+        "autor": "vg",
+        "sobre": "4e7428913ce327a819773c2be49fab60af74f8d6ba179b9351004a51e9c9202b",
+        "en": "3000000000",
+        "t": "2026-11-18T10:01:00Z",
+        "movimientos": [
+          {
+            "token": "T",
+            "escala": "minuto",
+            "cantidad": 15,
+            "de": "vg",
+            "a": null
+          },
+          {
+            "token": "R",
+            "cantidad": 1,
+            "emisor": "vg",
+            "de": "vg",
+            "a": "vg",
+            "estado": "bloqueo",
+            "salida": "ana"
+          }
+        ],
+        "payload": [
+          [
+            "invitation"
+          ],
+          [
+            "1 R:vg"
+          ],
+          [
+            {
+              "ref": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448"
+            }
+          ],
+          [
+            [
+              "vg"
+            ],
+            [
+              "ana"
+            ],
+            [
+              "sin grupo común"
+            ],
+            [
+              "yo y tú"
+            ],
+            [
+              "te invito"
+            ],
+            [
+              "4919aa3dd5667d1d5d11922969bc1e1ae4a5c2b30f622b8c3fe5c5980117d94a"
+            ]
+          ],
+          [
+            "tu primera transacción firmada, anclada sobre esta invitación: tu alta"
+          ],
+          [
+            {
+              "ref": "4e7428913ce327a819773c2be49fab60af74f8d6ba179b9351004a51e9c9202b"
+            }
+          ],
+          [
+            {
+              "ref": "4e7428913ce327a819773c2be49fab60af74f8d6ba179b9351004a51e9c9202b"
+            }
+          ],
+          [
+            "sin plazo"
+          ],
+          [
+            0
+          ],
+          [
+            "invitación de vg"
+          ]
+        ],
+        "contexto": {
+          "claves": {
+            "ana": "4919aa3dd5667d1d5d11922969bc1e1ae4a5c2b30f622b8c3fe5c5980117d94a"
+          },
+          "tanda": {
+            "n": 1,
+            "de": 3
+          }
+        },
+        "id": "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1",
+        "firmante": "vg",
+        "firma": "0077151d69edff775d57ff3c4404cbd07ead80248c840b4a7cc8db98dc13e8a512229a21601839947e539abae8761f007e53c9cc419c7a9b6b5fbdfe225d8f4c"
+      },
+      {
+        "autor": "ana",
+        "sobre": "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1",
+        "en": "0000000000",
+        "t": "2026-11-18T10:02:00Z",
+        "movimientos": [
+          {
+            "token": "T",
+            "escala": "minuto",
+            "cantidad": 1,
+            "de": "ana",
+            "a": null
+          },
+          {
+            "token": "R",
+            "emisor": "vg",
+            "cantidad": 1,
+            "de": "vg",
+            "a": "ana",
+            "salida": "ana"
+          }
+        ],
+        "payload": [
+          "Alta de ana"
+        ],
+        "contexto": {
+          "claves": {
+            "ana": "4919aa3dd5667d1d5d11922969bc1e1ae4a5c2b30f622b8c3fe5c5980117d94a"
+          },
+          "tanda": {
+            "n": 2,
+            "de": 3,
+            "anterior": "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1"
+          }
+        },
+        "id": "3e44fd05cb6900e34ff1851a53a7944cbf34ca8be33f737db19c24d079b9b70f",
+        "firmante": "ana",
+        "firma": "3af077a488ed539f60e5d9055e758d2505e600ce8d7de9ebbd18199bc3e852a29af4cf407d9aacd068c67a78ff9525357d3647ecec5daf959b58e9136f7042d2"
+      },
+      {
+        "autor": "ana",
+        "sobre": "3e44fd05cb6900e34ff1851a53a7944cbf34ca8be33f737db19c24d079b9b70f",
+        "en": "0000000000",
+        "t": "2026-11-18T10:03:00Z",
+        "movimientos": [
+          {
+            "token": "T",
+            "escala": "minuto",
+            "cantidad": 1,
+            "de": "ana",
+            "a": null
+          }
+        ],
+        "payload": [
+          "Hola, soy ana"
+        ],
+        "contexto": {
+          "tanda": {
+            "n": 3,
+            "de": 3,
+            "anterior": "3e44fd05cb6900e34ff1851a53a7944cbf34ca8be33f737db19c24d079b9b70f"
+          }
+        },
+        "id": "f81b675465ea7730457c915d149192ba9b6de6fbcfa0850e1b0bc178d4a9bb06",
+        "firmante": "ana",
+        "firma": "96785b66443f4d114d0c498328f3e2bc5ae943847f72b2035e0632a468eb75743ebc63c0b02295eb3875b99a2ad01b0bc57f59a81baeedcd713729a554686c6e"
+      }
+    ],
+    "tanda": "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1",
+    "ids": [
+      "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1",
+      "3e44fd05cb6900e34ff1851a53a7944cbf34ca8be33f737db19c24d079b9b70f",
+      "f81b675465ea7730457c915d149192ba9b6de6fbcfa0850e1b0bc178d4a9bb06"
+    ],
+    "esperado": {
+      "ok": true,
+      "tanda": "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1",
+      "eventos": [
+        "c25a471462e5696c89302e467a41c0bb6ba1217787eff1a170cc6954050893d1",
+        "3e44fd05cb6900e34ff1851a53a7944cbf34ca8be33f737db19c24d079b9b70f",
+        "f81b675465ea7730457c915d149192ba9b6de6fbcfa0850e1b0bc178d4a9bb06"
+      ]
+    }
+  },
+  "invalida": {
+    "eventos": [
+      {
+        "autor": "vg",
+        "sobre": "4e7428913ce327a819773c2be49fab60af74f8d6ba179b9351004a51e9c9202b",
+        "en": "0000000000",
+        "t": "2026-11-18T10:01:00Z",
+        "movimientos": [
+          {
+            "token": "T",
+            "escala": "minuto",
+            "cantidad": 1,
+            "de": "vg",
+            "a": null
+          }
+        ],
+        "payload": [
+          "Primero de la tanda inválida"
+        ],
+        "contexto": {
+          "tanda": {
+            "n": 1,
+            "de": 3
+          }
+        },
+        "id": "49134d3ba5c070b757387a8686dd366a0dd7aa4a9e5ae0165e889d2f3befa67d",
+        "firmante": "vg",
+        "firma": "0d959aeeb774497cc70e3c60093d36983059e6ec7439138bdfb95d28a6f56efbc0455a837765dd5c2f666c486176fc367cfea6fcf199131dd69f042c432f1a22"
+      },
+      {
+        "autor": "vg",
+        "sobre": "49134d3ba5c070b757387a8686dd366a0dd7aa4a9e5ae0165e889d2f3befa67d",
+        "en": "0000000000",
+        "t": "2026-11-18T10:02:00Z",
+        "movimientos": [
+          {
+            "token": "T",
+            "escala": "minuto",
+            "cantidad": 1,
+            "de": "vg",
+            "a": null
+          },
+          {
+            "token": "R",
+            "emisor": "vg",
+            "cantidad": 500,
+            "de": "vg",
+            "a": "vg",
+            "estado": "bloqueo",
+            "salida": "nada"
+          }
+        ],
+        "payload": [
+          "Bloqueo lo que no tengo"
+        ],
+        "contexto": {
+          "tanda": {
+            "n": 2,
+            "de": 3,
+            "anterior": "49134d3ba5c070b757387a8686dd366a0dd7aa4a9e5ae0165e889d2f3befa67d"
+          }
+        },
+        "id": "9420fa592cb5d1ca1e17d08938d7a554b8c3c5596a4f4e87fe1a3b75d8406fa4",
+        "firmante": "vg",
+        "firma": "0e8297efa3857f92660258adb89459aa50b9b8e76c15fc9f84538ab77a922db4f0b4cfad8e8d7564994cbf9b7bf1350161ba7760571846cbe970ad48c76cbe1e"
+      },
+      {
+        "autor": "vg",
+        "sobre": "49134d3ba5c070b757387a8686dd366a0dd7aa4a9e5ae0165e889d2f3befa67d",
+        "en": "0000000000",
+        "t": "2026-11-18T10:03:00Z",
+        "movimientos": [
+          {
+            "token": "T",
+            "escala": "minuto",
+            "cantidad": 1,
+            "de": "vg",
+            "a": null
+          }
+        ],
+        "payload": [
+          "Tercero"
+        ],
+        "contexto": {
+          "tanda": {
+            "n": 3,
+            "de": 3,
+            "anterior": "9420fa592cb5d1ca1e17d08938d7a554b8c3c5596a4f4e87fe1a3b75d8406fa4"
+          }
+        },
+        "id": "e398e8da94c41310c6d569a528eb5a421e78a066e3e8fa0ee93cd4b817790b34",
+        "firmante": "vg",
+        "firma": "a6375bb6cf0312406f961f5bba765c10d54bef7346f77eed8815d926bce052d67701047005f307fec68032bdbc1636bc37e0b36a2cd41199c0988584df390da6"
+      }
+    ],
+    "tanda": "49134d3ba5c070b757387a8686dd366a0dd7aa4a9e5ae0165e889d2f3befa67d",
+    "ids": [
+      "49134d3ba5c070b757387a8686dd366a0dd7aa4a9e5ae0165e889d2f3befa67d",
+      "9420fa592cb5d1ca1e17d08938d7a554b8c3c5596a4f4e87fe1a3b75d8406fa4",
+      "e398e8da94c41310c6d569a528eb5a421e78a066e3e8fa0ee93cd4b817790b34"
+    ],
+    "esperado": {
+      "ok": false,
+      "indice": 1,
+      "id": "9420fa592cb5d1ca1e17d08938d7a554b8c3c5596a4f4e87fe1a3b75d8406fa4",
+      "motivos": [
+        {
+          "texto": "saldo disponible insuficiente para bloquear R:vg en vg",
+          "regla": null,
+          "estado": "falla",
+          "causa": null
+        }
+      ]
+    }
+  }
+}
