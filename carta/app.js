@@ -40,7 +40,7 @@ import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas 
 import { instalar as instalarEmparejar } from './emparejar.js';
 import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
-import { Archivos, adjuntarHtmlInicial, adjuntarConAccion, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
+import { Archivos, adjuntarHtmlInicial, valoresDeArchivo, subirLosNombrados, referenciasEn, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
@@ -212,13 +212,45 @@ async function probarBandeja() {
   const eje = estado.eje;
   let r = null;
   try {
-    r = await b.probar(eje, estado.identidad, { idioma: idioma() });
+    r = await b.probar(eje, estado.identidad, opcionesDeLaBandeja());
   } catch (e) {
     console.error(e);
   }
   if (estado.eje !== eje || claveDeLaPrueba() !== clave) return; // cambió mientras se probaba: el próximo pintado vuelve a probar
   estado.bandeja.probado = r;
 }
+/**
+ * Los archivos elegidos en este aparato para lo que se compone (A33): referencia `archivo:<sha256>` → { p (lo de
+ * Archivos.preparar), nombre }. Viven en la pestaña: lo que nombra uno que ya no está (se recargó) no entra hasta volver a
+ * elegirlo. Se suben justo antes de firmar (subirLosNombrados).
+ */
+const archivosElegidos = new Map();
+/** Las opciones de la bandeja: el idioma y lo que la lente sabe que falta fuera del libro (un archivo que ya no está aquí). */
+function opcionesDeLaBandeja(extra = {}) {
+  const revisar = (entrada) => {
+    const faltan = [...referenciasEn(entrada.valores)].filter((ref) => !archivosElegidos.has(ref) && archivos.cache.get(ref.slice('archivo:'.length))?.estado !== 'listo'); // sin bajar nada: lo que ya está en esta pestaña
+    return faltan.length ? t('bandejaArchivoNoEsta') : null;
+  };
+  return { idioma: idioma(), revisar, ...extra };
+}
+/** Lo que ofrece el aparato a un parámetro de base file (contrato.opciones, opcionesDelAparato): los archivos elegidos aquí. */
+function opcionesDelAparato({ base, faceta }) {
+  if (base !== 'file') return [];
+  const lista = [...archivosElegidos.entries()];
+  if (faceta === 'ref') return lista.map(([ref, x]) => ({ valor: ref, texto: x.nombre || ref.slice(0, 16) }));
+  if (faceta === 'format') return [...new Set(lista.map(([, x]) => { try { return valoresDeArchivo(x.p, [{ nombre: 'f', archivo: 'format' }], { eje: estado.eje }).f; } catch { return null; } }).filter(Boolean))].map((f) => ({ valor: f, texto: f }));
+  return [];
+}
+/** Sube, antes de firmar, los archivos de este aparato que nombran unos valores. → null si bien; si no, el motivo en llano. */
+async function subirAntesDeFirmar(valores) {
+  try {
+    await subirLosNombrados(archivos, new Map([...archivosElegidos].map(([ref, x]) => [ref, x.p])), valores);
+    return null;
+  } catch (e) {
+    return enLlano(String(e?.message ?? e), e);
+  }
+}
+
 /** Cómo dice la bandeja las cosas en el idioma de quien mira: el nombre de una acción, un registro, una identidad, una cantidad y los motivos. */
 function textosDeLaBandeja() {
   const o = { idioma: idioma() };
@@ -248,8 +280,9 @@ function pieDelFormulario() {
   const f = estado.formulario;
   const modo = modoDelFormulario(f);
   if (!modo) return null;
-  if (modo === 'ahora') return { modo, vista: f.prueba ? vistaDeLaBandeja(f.prueba, textosDeLaBandeja()) : null, probando: !f.prueba, ocupado: Boolean(f.ocupado) };
-  return { modo, id: f.entrada ?? null, vista: vistaBandeja() };
+  const archivosDelForm = (f.camposDeArchivo ?? []).filter((c) => c.archivo === 'ref');
+  if (modo === 'ahora') return { modo, archivos: archivosDelForm, vista: f.prueba ? vistaDeLaBandeja(f.prueba, textosDeLaBandeja()) : null, probando: !f.prueba, ocupado: Boolean(f.ocupado) };
+  return { modo, id: f.entrada ?? null, archivos: archivosDelForm, vista: vistaBandeja() };
 }
 /** Repinta solo el pie del formulario y la cuenta del marco (mientras se escribe no se repinta todo: se perdería el foco). */
 function repintarBandejaEnFormulario() {
@@ -276,7 +309,7 @@ async function probarFormularioAhora() {
   const f = estado.formulario;
   if (modoDelFormulario(f) !== 'ahora') return;
   const eje = estado.eje;
-  const r = await probarAhora(eje, estado.identidad, { accion: f.accion, X: f.X, valores: f.valores ?? {} }, { idioma: idioma() }).catch((e) => ({ ok: false, items: [], motivos: [{ mensaje: String(e?.message ?? e) }] }));
+  const r = await probarAhora(eje, estado.identidad, { accion: f.accion, X: f.X, valores: f.valores ?? {} }, opcionesDeLaBandeja()).catch((e) => ({ ok: false, items: [], motivos: [{ mensaje: String(e?.message ?? e) }] }));
   if (estado.formulario !== f || estado.eje !== eje) return;
   f.prueba = r;
   repintarBandejaEnFormulario();
@@ -874,7 +907,7 @@ async function pintar() {
     if (!estado.eje) usarRetoques(null); // sin libro, los textos de la carta tal como nacieron (arbol instala los de cada libro)
     if (estado.eje) {
       try {
-        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: sugerenciasDelCamino(), pasosDeLaGuia: pasosDeLaGuiaDelFoco, firmar: firmarParaVer(estado.identidad), ...(estado.cuenta ? { libros: librosDelArbol() } : {}) });
+        a = await arbol(estado, estado.eje, estado.identidad, medidas(), { sugerencias: sugerenciasDelCamino(), pasosDeLaGuia: pasosDeLaGuiaDelFoco, firmar: firmarParaVer(estado.identidad), opcionesDelAparato, ...(estado.cuenta ? { libros: librosDelArbol() } : {}) });
       } catch (e) {
         a = { vacio: true, avisos: [t('noSePinta', { motivo: e.message ?? e })] };
         console.error(e);
@@ -883,7 +916,10 @@ async function pintar() {
     if (a && !a.vacio) a.guia = datosGuia();
     // La bandeja (A33): el pie del formulario que va por ella y, si cambió el libro, quién mira o el borrador (lo bajado al
     // sincronizar también), otra prueba en seco y otro pintado.
-    if (a?.formulario && estado.formulario) a.formulario.bandeja = pieDelFormulario();
+    if (a?.formulario && estado.formulario) {
+      estado.formulario.camposDeArchivo = (a.formulario.campos ?? []).filter((c) => c.archivo).map((c) => ({ nombre: c.nombre, archivo: c.archivo, etiqueta: c.etiqueta }));
+      a.formulario.bandeja = pieDelFormulario();
+    }
     const fa = estado.formulario;
     if (modoDelFormulario(fa) === 'ahora' && !fa.prueba && !fa.pidiendo) { fa.pidiendo = true; void probarFormularioAhora(); }
     if (estado.eje && claveDeLaPrueba() !== estado.bandeja.clave) void probarBandeja().then(() => pintar());
@@ -1338,8 +1374,8 @@ async function entrarEnEjemplo() {
   await pintar();
 }
 
-/** Abre el selector de archivos para una acción que pide uno (los tipos que admite la función `archivos`). */
-function elegirArchivo(X, accion, campos) {
+/** Abre el selector de archivos (los tipos que admite la función `archivos`); al elegir, `alElegir(archivo)`. */
+function elegirArchivo(alElegir) {
   const input = document.createElement('input');
   input.type = 'file';
   input.accept = Object.keys(TIPOS_DE_ARCHIVO).join(',');
@@ -1347,7 +1383,7 @@ function elegirArchivo(X, accion, campos) {
   input.addEventListener('change', () => {
     const elegido = input.files?.[0];
     input.remove();
-    if (elegido) void adjuntarArchivo(X, accion, campos, elegido);
+    if (elegido) void alElegir(elegido);
   }, { once: true });
   input.addEventListener('cancel', () => input.remove(), { once: true });
   document.body.append(input);
@@ -1355,23 +1391,23 @@ function elegirArchivo(X, accion, campos) {
 }
 
 /**
- * Adjunta un archivo elegido: lo sube (carta/archivos.js; sin red queda pendiente y se sube al sincronizar) y escribe la
- * transacción de la acción con su referencia (`archivo:<sha256>`) y su formato en los parámetros que los piden.
+ * Un archivo elegido para el formulario abierto (A33): se prepara aquí (su id, su referencia, su tipo; lo que no vale o no
+ * cabe se dice ya, antes de componer) y su referencia, su formato y su tamaño van a los parámetros de archivo por su
+ * faceta (valoresDeArchivo). En la bandeja, eso ya es su entrada. Se sube justo antes de firmar.
  */
-async function adjuntarArchivo(X, accion, campos, elegido) {
+async function archivoElegido(f, elegido) {
   limpiarMensajes();
   try {
-    // Primero se comprueba que la acción entraría con este archivo (su id, calculado aquí); solo entonces se sube.
-    const r = await adjuntarConAccion(archivos, { eje: estado.eje, X, accion, campos, archivo: elegido, yo: estado.identidad, firmar: firmarCon(estado.identidad) });
-    const a = r.adjunto;
-    if (r.ok && r.asentado) {
-      trasEscribir();
-      estado.exito = t(a.sinRed ? 'archivoPendiente' : 'archivoAdjuntado', { id: a.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
-      tocar(X, 'hecho ' + canonicoDe(accion));
-      marcarNuevos();
-    } else estado.aviso = enLlano((r.motivos ?? []).map((m) => m.mensaje).join(' · '));
+    const p = await archivos.preparar(elegido);
+    const valores = valoresDeArchivo(p, f.camposDeArchivo ?? [], { eje: estado.eje });
+    archivosElegidos.set(p.referencia, { p, nombre: elegido.name ?? '' });
+    f.valores = { ...(f.valores ?? {}), ...valores };
+    f.motivos = [];
+    estado.exito = t('bandejaArchivoElegido', { nombre: elegido.name ?? p.id.slice(0, 8) });
+    if (modoDelFormulario(f) === 'bandeja') ponerDesdeElFormulario(f);
+    else { f.prueba = null; f.pidiendo = false; }
   } catch (e) {
-    estado.aviso = enLlano(String(e.message ?? e), e);
+    f.motivos = [{ mensaje: enLlano(String(e?.message ?? e), e) }];
   }
   pintar();
 }
@@ -1628,7 +1664,7 @@ const manejadores = {
     if (!X || valor === undefined || valor === '') return;
     const nuevo = Number.isInteger(estado.aro?.nuevo);
     if (!nuevo) estado.aro = null;
-    return manejadores.campo(X, pv, valor, { nuevo });
+    return manejadores.campo(X, pv, valor, { nuevo, aro: true }); // desde el aro: ejecutar ahora (A33)
   },
   /** Las teclas 1-4 y 6-9 con el aro abierto: lanzar la acción por defecto de ese sitio (si no tiene, nada). */
   aroTecla(pv) {
@@ -1638,18 +1674,6 @@ const manejadores = {
   lanzar(X, accion, paso, { ejecutar = false, aro = false, pv = null } = {}) {
     const sobre = X ?? estado.aro?.X ?? estado.foco.X;
     estado.accionesAbiertas?.clear(); // lanzada desde el «+n», la lista flotante se cierra (también si pide un archivo)
-    // Una acción que pide un archivo (un parámetro cuyo 4 es «file»: «adjuntar un archivo»): el selector de archivos, ya
-    // (en el mismo gesto: el navegador solo lo abre así); al elegir, se sube y se escribe la transacción con su referencia.
-    const deArchivo = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad)?.campos.filter((c) => c.archivo) ?? [] : [];
-    if (deArchivo.length) {
-      estado.aro = null;
-      estado.formulario = null;
-      limpiarMensajes();
-      tocar(sobre, 'lanzar ' + canonicoDe(accion));
-      elegirArchivo(sobre, accion, deArchivo);
-      pintar();
-      return;
-    }
     // Ejecutar desde el 4 (VG 12-11, decisión 7): desde una celda abierta del 4 o un paso del camino del 9, el formulario
     // enseña lo exigido en T, la denominación y el botón de ejecutar por el rango.
     // Un paso del camino lleva sus parámetros (el anuncio que cumple «deliver», por ejemplo): el formulario sale con ellos.
@@ -1677,7 +1701,21 @@ const manejadores = {
         if (r?.ok) estado.exito = t('bandejaPuesto', { accion: nombreDeAccion(accion) });
       }
     } else if (!soloLee(accion)) f.modo = 'ahora'; // el pintado lo prueba en seco y enseña el resumen
+    // Una acción que pide un archivo (la faceta ref de la base file) y aún no lo tiene: el selector, ya (en el mismo gesto:
+    // el navegador solo lo abre así); el formulario se queda abierto y el archivo elegido va a sus campos.
+    if (estado.formulario === f) {
+      const deArchivo = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, f.valores)?.campos.filter((c) => c.archivo) ?? [] : [];
+      f.camposDeArchivo = deArchivo.map((c) => ({ nombre: c.nombre, archivo: c.archivo, etiqueta: c.etiqueta }));
+      if (deArchivo.some((c) => c.archivo === 'ref' && c.falta)) elegirArchivo((elegido) => archivoElegido(f, elegido));
+    }
     pintar();
+  },
+  /** «elegir un archivo…» en el formulario (A33): el selector; lo escrito hasta ahora se guarda antes. */
+  bandejaArchivo(campo, form) {
+    const f = estado.formulario;
+    if (!f) return;
+    if (form) f.valores = { ...(f.valores ?? {}), ...valoresDelFormulario(form).valores };
+    elegirArchivo((elegido) => archivoElegido(f, elegido));
   },
   /** Un campo del formulario de una acción cambió (A33): en la bandeja, su entrada se pone o se actualiza y se dice si entra; en «ahora», se prueba. */
   cambioFormulario(form) {
@@ -1747,7 +1785,10 @@ const manejadores = {
     pintar();
     let r;
     try {
-      r = await b.ejecutar(estado.eje, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() });
+      // Los archivos que nombra lo que se va a lanzar se suben antes de firmar; si no se puede, no se lanza nada.
+      const probado = await b.probar(estado.eje, estado.identidad, opcionesDeLaBandeja());
+      const fallo = probado.ok ? await subirAntesDeFirmar(b.listar().entradas.map((e) => e.valores)) : null;
+      r = fallo ? { ok: false, motivos: [{ mensaje: fallo }] } : await b.ejecutar(estado.eje, estado.identidad, firmarCon(estado.identidad), opcionesDeLaBandeja());
     } catch (e) {
       r = { ok: false, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] };
     }
@@ -1878,7 +1919,10 @@ const manejadores = {
     repintarBandejaEnFormulario();
     let r;
     try {
-      r = await ejecutarAhora(estado.eje, estado.identidad, firmarCon(estado.identidad), { accion: f.accion, X: f.X, valores }, { idioma: idioma(), ...(denominacion ? { denominacion } : {}) });
+      const opciones = opcionesDeLaBandeja(denominacion ? { denominacion } : {});
+      const prueba = await probarAhora(estado.eje, estado.identidad, { accion: f.accion, X: f.X, valores }, opciones);
+      const fallo = prueba.ok ? await subirAntesDeFirmar([valores]) : null;
+      r = fallo ? { ok: false, motivos: [{ mensaje: fallo }] } : await ejecutarAhora(estado.eje, estado.identidad, firmarCon(estado.identidad), { accion: f.accion, X: f.X, valores }, opciones);
     } catch (e) {
       r = { ok: false, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] };
     }
@@ -2272,11 +2316,27 @@ const manejadores = {
     abrirSincronia();
     pintar();
   },
-  async campo(X, pv, texto, { nuevo = false } = {}) {
+  /**
+   * Tocar un valor en un campo (A33): el registro «pointed» en la posición pv de X. Desde un punto de vista (el campo del
+   * anverso, una fila) se compone en la bandeja, como lo demás; desde el aro (su centro, sus listas, el aro de un hueco),
+   * ejecutar ahora por el mismo camino (ejecutarAhora). Nada escribe ya directo.
+   */
+  async campo(X, pv, texto, { nuevo = false, aro = false } = {}) {
+    // Desde el aro de un hueco bajado por dígitos, la dirección entera (estado.aro.en); si no, la posición pv de X.
+    const en = nuevo && estado.aro?.X === X && estado.aro?.nuevo === pv && Array.isArray(estado.aro.en) ? estado.aro.en : [pv];
+    const entrada = { tipo: 'campo', en: direccion(en), X, valores: { texto } };
+    if (!nuevo && !aro && !estado.aro) {
+      limpiarMensajes();
+      const r = bandeja()?.poner({ ...entrada, donde: { X, pv } });
+      if (r?.ok) estado.exito = t('bandejaPuestoCampo', { texto });
+      else estado.aviso = r?.motivo ?? t('sinRegistro');
+      pintar();
+      return;
+    }
     try {
-      // Desde el aro de un hueco bajado por dígitos, la dirección entera (estado.aro.en); si no, la posición pv de X.
-      const en = nuevo && estado.aro?.X === X && estado.aro?.nuevo === pv && Array.isArray(estado.aro.en) ? estado.aro.en : [pv];
-      const ev = await salida.escribirDesde(estado.eje, { modo: 'pointed', autor: estado.identidad, sobre: X, en: direccion(en), payload: salida.desdePointed(estado.eje, texto), ...horaDe() }, privadaDe(estado.identidad));
+      const r = await ejecutarAhora(estado.eje, estado.identidad, firmarCon(estado.identidad), entrada, opcionesDeLaBandeja(horaDe()));
+      if (!r.ok) throw Object.assign(new Error(motivosConGuardian(motivosEnLlano(r.motivos ?? [], estado.eje)).map((m) => m.mensaje).join(' · ')), { yaEnLlano: true });
+      const ev = r.eventos.at(-1);
       trasEscribir();
       // Lo escrito desde el centro del aro en edición: hecho, se cierra. Desde el aro de un hueco (issue #22): el elemento
       // nuevo existe y se abre su aro (en su 2, «adjuntar un archivo»), en el mismo sitio.
@@ -2286,7 +2346,7 @@ const manejadores = {
       tocar(X, 'escribir ' + pv);
       marcarNuevos();
     } catch (e) {
-      estado.aviso = enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e);
+      estado.aviso = e?.yaEnLlano ? e.message : enLlano(String(e.message ?? e).replace(/^evento (rechazado|mal formado): /, ''), e);
     }
     pintar();
   },

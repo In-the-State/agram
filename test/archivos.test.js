@@ -8,7 +8,8 @@ import assert from 'node:assert/strict';
 import { createHash } from 'node:crypto';
 import { arrancar } from '../servidor/prueba/servidor.mjs';
 import { LIMITE_ARCHIVO, TIPOS, POLITICA, tipoPorContenido, crearArchivos } from '../servidor/supabase/funciones/archivos/api.js';
-import { Archivos, tipoDeArchivo, formatoDeTipo, LIMITE, LIMITE_HTML, adjuntarConAccion } from '../carta/archivos.js';
+import { Archivos, tipoDeArchivo, formatoDeTipo, LIMITE, LIMITE_HTML, valoresDeArchivo, subirLosNombrados, referenciasEn } from '../carta/archivos.js';
+import { probarAhora, ejecutarAhora } from '../carta/bandeja.js';
 import { crearCuenta, firmarCon } from '../carta/cuentas.js';
 import * as A from '../src/acciones.js';
 import * as C from '../src/contrato.js';
@@ -180,29 +181,51 @@ test('«attach a file» (PV2, no preferente): escribe una representación rica a
   assert.equal(C.representaciones(eje, compra.id).some((x) => x.formato === 'html'), false);
 });
 
-test('carta/archivos.js adjuntarConAccion: con la plantilla de arte, un .html no llega al servidor (motivo en llano) y un .svg sí, y se escribe firmado', async () => {
+test('una acción con archivo va por la bandeja (A33): sus valores por la faceta, la misma prueba en seco antes de subir; un .html no llega al servidor y un .svg sí, y se escribe firmado', async () => {
   const almacen = new Map();
   globalThis.localStorage = { getItem: (k) => almacen.get(k) ?? null, setItem: (k, v) => almacen.set(k, String(v)), removeItem: (k) => almacen.delete(k) };
   try {
-    // Una cuenta con clave: la candidata sin firmar falla solo en la firma, que se pone al final.
     const c = await crearCuenta({ nombre: 'Arte' });
     const yo = c.cuenta.identidad;
     const destino = () => ({ url: servidor.url, eje: 'archivos', claveLectura: clave });
     const a = new Archivos({ destino });
     const campos = [{ nombre: 'file', archivo: 'ref' }, { nombre: 'format', archivo: 'format' }];
     const ARTE = 'attach art to this element';
+    // Lo que no vale o no cabe se dice al elegirlo, antes de componer.
+    await assert.rejects(a.preparar({ nombre: 'nada.exe', bytes: new Uint8Array([1]) }));
+    await assert.rejects(a.preparar({ nombre: 'grande.svg', bytes: new Uint8Array(LIMITE + 1) }));
     const html = new TextEncoder().encode('<!doctype html><p>arte que no vale</p>');
-    const r = await adjuntarConAccion(a, { eje: c.eje, X: c.cuenta.alta, accion: ARTE, campos, archivo: { nombre: 'arte.html', bytes: html }, yo, firmar: firmarCon(c.privada) });
-    assert.equal(r.ok, false);
-    assert.equal(r.sinSubir, true);
-    assert.match(r.motivos.map((m) => m.mensaje).join(' '), /html no/);
-    assert.equal((await bajar(sha(html))).status, 404, 'el .html no llegó al servidor');
+    const ph = await a.preparar({ nombre: 'arte.html', bytes: html });
+    const vh = valoresDeArchivo(ph, campos, { eje: c.eje });
+    assert.deepEqual(vh, { file: ph.referencia, format: 'html' });
+    const prueba = await probarAhora(c.eje, yo, { accion: ARTE, X: c.cuenta.alta, valores: vh });
+    assert.equal(prueba.ok, false);
+    assert.match(JSON.stringify(prueba.items.map((x) => x.motivos)), /html no/);
+    assert.equal((await bajar(sha(html))).status, 404, 'no entra: el .html no se sube');
     const svg = new TextEncoder().encode('<svg xmlns="http://www.w3.org/2000/svg" width="4" height="4"><rect width="4" height="4"/></svg>');
-    const s = await adjuntarConAccion(a, { eje: c.eje, X: c.cuenta.alta, accion: ARTE, campos, archivo: { nombre: 'arte.svg', bytes: svg }, yo, firmar: firmarCon(c.privada) });
-    assert.ok(s.asentado, JSON.stringify(s.motivos));
-    assert.ok(s.asentado.firma, 'firmado sobre el registro final');
-    assert.equal(s.adjunto.referencia, 'archivo:' + sha(svg));
+    const ps = await a.preparar({ nombre: 'arte.svg', bytes: svg });
+    const vs = valoresDeArchivo(ps, [...campos, { nombre: 'size', archivo: 'size' }], { eje: c.eje });
+    assert.equal(vs.size, svg.length, 'la faceta size, sus bytes');
+    delete vs.size;
+    // El control genérico del núcleo: el parámetro de archivo ofrece lo que da el aparato (lo elegido aquí).
+    // (las plantillas de hoy aún lo declaran con el 4 «file»; con su tipo de base file y faceta ref, así)
+    const plantilla = structuredClone(A.plantillaDeTransaccion(ARTE, { eje: c.eje }));
+    plantilla[1].find((d) => Array.isArray(d) && d[0]?.[0] === 'file')[1] = ['file', 'ref'];
+    const param = A.parametros(plantilla, { eje: c.eje }).find((x) => x.nombre === 'file');
+    assert.deepEqual([param.base, param.faceta, A.archivoDe(param)], ['file', 'ref', 'ref']);
+    assert.deepEqual(C.opciones(c.eje, c.cuenta.alta, null, { yo, parametro: param, opcionesDelAparato: ({ base, faceta }) => (base === 'file' && faceta === 'ref' ? [{ valor: ps.referencia, texto: 'arte.svg' }] : []) }), [{ valor: ps.referencia, texto: 'arte.svg' }]);
+    assert.equal((await probarAhora(c.eje, yo, { accion: ARTE, X: c.cuenta.alta, valores: vs })).ok, true);
+    assert.deepEqual([...referenciasEn([vs])], [ps.referencia]);
+    const subidos = await subirLosNombrados(a, new Map([[ps.referencia, ps], [ph.referencia, ph]]), [vs]);
+    assert.deepEqual(subidos.map((x) => x.referencia), [ps.referencia], 'solo lo que nombra lo que se lanza');
+    const r = await ejecutarAhora(c.eje, yo, firmarCon(c.privada), { accion: ARTE, X: c.cuenta.alta, valores: vs });
+    assert.equal(r.ok, true, JSON.stringify(r.motivos));
+    assert.ok(r.eventos[0].firma, 'firmado sobre el registro final');
+    assert.ok(JSON.stringify(r.eventos[0].payload).includes(ps.referencia));
     assert.equal((await bajar(sha(svg))).status, 200, 'el .svg sí llegó');
+    assert.equal((await bajar(sha(html))).status, 404);
+    // Sin servidor no se sube y lo dice: no se lanza nada.
+    await assert.rejects(subirLosNombrados(new Archivos({ destino: () => null }), new Map([[ps.referencia, ps]]), [vs]));
   } finally {
     delete globalThis.localStorage;
   }

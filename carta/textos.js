@@ -1273,6 +1273,12 @@ export const TEXTOS = Object.freeze({
     bandejaNoRegistrado: 'No se ha registrado nada: {motivo}',
     ahoraResumen: 'Lo que se va a registrar',
     ahoraEjecutar: 'ejecutar ahora',
+    bandejaCampo: 'escribir «{texto}»',
+    bandejaPuestoCampo: 'En la bandeja: escribir «{texto}». Se ejecuta desde el 4.',
+    bandejaElegirArchivo: 'elegir un archivo…',
+    bandejaElegirArchivoTitulo: 'elige el archivo de este aparato que va en «{campo}»',
+    bandejaArchivoElegido: 'Archivo elegido: {nombre}',
+    bandejaArchivoNoEsta: 'el archivo ya no está en este aparato: vuelve a elegirlo',
   }),
 });
 

@@ -202,3 +202,33 @@ test('la app: el método enviar(form) ya no escribe por su cuenta (sin enviar( n
   assert.match(app, /bandejaEjecutar\(\) \{[^]*?b\.ejecutar\(estado\.eje, estado\.identidad, firmarCon\(estado\.identidad\)/, 'el 4 ejecuta con el firmante de hoy');
   assert.match(app, /function trasEjecutar\(r\) \{[^]*?trasEscribir\(\);/, 'al asentar, guardar y la cola de subida, como enviar');
 });
+
+test('un campo en la bandeja se nombra por lo que escribe y no se reabre (no tiene formulario); el pie ofrece elegir el archivo de un parámetro de archivo', () => {
+  const campo = { ...item('b1'), accion: null, entrada: { id: 'b1', tipo: 'campo', en: '3000000000', accion: null, X: 'X1', valores: { texto: 'hola <b>' }, donde: { X: 'X1', pv: 3 }, completa: true, de: [] } };
+  const v = vistaDeLaBandeja({ ok: true, items: [campo], motivos: [] }, { nombre: () => 'NO' });
+  assert.equal(v.items[0].nombre, t('bandejaCampo', { texto: 'hola <b>' }));
+  assert.equal(v.items[0].tipo, 'campo');
+  const tira = htmlTiraDeLaBandeja(v, 'X1', 3);
+  assert.ok(!tira.includes('data-bandeja-abrir') && tira.includes('data-bandeja-quitar="b1"') && tira.includes('hola &lt;b&gt;'));
+  const pie = htmlPieDeLaBandeja({ modo: 'bandeja', id: null, archivos: [{ nombre: 'file', etiqueta: 'archivo' }] });
+  assert.match(pie, /data-bandeja-archivo="file"/);
+  assert.ok(!htmlPieDeLaBandeja({ modo: 'ahora' }).includes('data-bandeja-archivo'));
+  const g = gestos();
+  const form = { f: 1 };
+  g.disparar('click', { target: el({ '[data-bandeja-archivo]': true, 'button': true, '[data-formulario]': form, '.formulario': true }, { bandejaArchivo: 'file' }) });
+  assert.deepEqual(g.llamadas, [['bandejaArchivo', 'file', form]]);
+});
+
+test('la app: tocar un campo y una acción con archivo ya no escriben directo (sin escribirDesde en campo, sin adjuntarConAccion); se suben los archivos antes de firmar', () => {
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  const campo = app.slice(app.indexOf('  async campo(X, pv, texto'), app.indexOf('  cargarMas(pv) {'));
+  assert.ok(campo.length > 100);
+  assert.doesNotMatch(campo, /escribirDesde\(/);
+  assert.match(campo, /bandeja\(\)\?\.poner\(\{ \.\.\.entrada, donde: \{ X, pv \} \}\)/, 'desde un punto de vista, a la bandeja');
+  assert.match(campo, /ejecutarAhora\(/, 'desde el aro, ahora');
+  assert.doesNotMatch(app, /adjuntarConAccion/);
+  assert.match(app, /subirAntesDeFirmar\(b\.listar\(\)\.entradas\.map/);
+  assert.match(app, /opcionesDelAparato, \.\.\.\(estado\.cuenta/, 'el aparato da las opciones de un parámetro de archivo');
+  const archivos = readFileSync(new URL('../carta/archivos.js', import.meta.url), 'utf8');
+  assert.doesNotMatch(archivos, /adjuntarConAccion|validarSinFirmar/);
+});
