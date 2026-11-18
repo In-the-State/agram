@@ -364,3 +364,44 @@ La época 0 no se toca hasta la pasada única.
 - **La capa de la preferencia:** solo está el hueco, `opciones.preferencia`.
 
 **Pendiente:** el paso 2, que la carta lea del lector. Espera a que se funda el carril del aro.
+
+## 9. Paso 2: la carta lee del dato (19-11)
+
+Siete commits, uno por grupo de tablas. Las 43 huellas siguieron iguales en cada uno, sin regenerarlas.
+
+| Commit | Qué sale del dato |
+|---|---|
+| 2a | Botones por nivel y cuentas de listas: P1-P5 |
+| 2b | Órdenes y lo que se abre al empezar: S3, S6, O1, O3 |
+| 2c | Dos de clase (a): el PV del camino, por su forma en 8.7 (S8), y el 4 del rosetón, la tarjeta de 9.5.2 (P6) |
+| 2d | El código muerto: S4, S5, S9 |
+| 2e | Los sitios en carta.js, fuera del aro: S1, S2, S7 |
+| 2f | app.js y dom.js |
+| 2g | El aro |
+
+**Cómo funciona:**
+- **El lector, una vez por pintado:** `arbol` lee `contrato.sitios` y `contrato.pesos` una sola vez y los pasa hacia abajo en `ctx.sitios` y `ctx.pesos`.
+- **El árbol los lleva:** van en `lente` (`{ sitios, pesos, camino }`).
+  - `dom.js` los fija al empezar `html()`, como ya hace con los archivos.
+  - `app.js` los lee del último árbol pintado.
+- **Las exportadas:** `GEOMETRIA`, `CENTROS`, `LATERALES`, `ORDEN_ROSETONES` y `BOTONES_POR_NIVEL` siguen exportadas, pero ya no son tablas: son la vista de sin libro del lector, para las pruebas y para lo que va fuera de un pintado.
+- **El reparto de Mapped:** recibe los sitios como opción (`ampliar`, `ampliarTodos`, `repartir`).
+- **Comprobado con un libro distinto:** una prueba usa un libro cuya época cambia sitios, hilo y orden. Cambia la caja de Mapped, el sitio en el aro, el pasado del hilo y el orden de las filas del móvil.
+
+**Hallazgos:**
+- **Código muerto.** En el móvil (apilado) el árbol trae siempre su secuencia y nunca rosetones; una prueba lo comprueba. Por eso no se pintaban ni las tiras de rosetones del móvil (`ARRIBA`) ni las franjas de la cruz y de la X, y «hermano» sobre un PV no hacía nada. Se han quitado.
+  - Las reglas de `estilo.css` que las pintaban (`.rosetones-arriba`, `.rosetones-abajo`, `.franja-cruz`, `.franja-x`) quedan sin uso. No las toco: estilo.css es de otro carril.
+  - La clave «top strip» de 9.5.8 ya no la lee nadie. Que se quite o se quede lo decide VG.
+- **La pasada única por la época 0.** La época no admite huecos (`cargarEpocaBtml`: «hueco»). Si entran 9.5.6 y 9.5.8, 9.5.7 tiene que ir lleno, con una nota, como 9.5.3 y 9.5.5.
+- **El anverso como dígito 0 en app.js.** Los estados iniciales de app.js siguen escribiendo el anverso como el dígito 0 (`foco: { pv: 0 }`, `irA(X, 0)`). No era una constante; el paso 2 no lo toca. Hoy da igual, porque el suelo exige que el 0 y el 5 estén en el centro, pero no que el 0 sea el anverso. Si un libro dijera que el 5 es el anverso, el foco empezaría en su reverso.
+
+**Esperan a VG** (apuntados, sin tocar):
+- **El desajuste del móvil apaisado:** el JS mide la tarjeta en 120 px con 375 de alto y el CSS la pinta en 110.
+- **El estilo de un libro** que tapa fuera de su caja en el móvil.
+
+**Siguen en código, y por qué:**
+- **Los píxeles y los umbrales (M1-M9):** son del aparato.
+- **Los diez dígitos (POSICIONES):** son el lenguaje.
+- **Las formas (F1):** son de la fila 1.
+- **El suelo del lector:** no puede depender del libro que se lee.
+- **La preferencia de la persona:** sin construir; solo está el hueco.
