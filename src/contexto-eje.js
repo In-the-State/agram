@@ -209,12 +209,13 @@ export class ContextoEje {
    * Qué ve este contexto, como un texto (docs/BQLM.md §15): cuál es el eje y en qué estado (su lista de registros, cuántos
    * y el último), la época, quién mira, el reloj fijado y la candidata. Dos evaluaciones con la misma huella leen lo mismo,
    * salvo las vistas de fuera del libro (vistasDeFuera). La usan el índice de «quién me nombra» y la memoria de las
-   * lecturas de pantalla. undefined sin eje, o con una época sin id.
+   * lecturas de pantalla. Antes de «#», lo del libro; detrás, la mirada. undefined sin eje, o con una época sin id.
    */
   huella() {
     const o = this.#eje?.orden;
     if (!Array.isArray(o) || (this.#epoch && this.#idEpoca === null)) return undefined;
-    return [serial(this.#eje), serial(o), o.length, o[o.length - 1] ?? '', this.#idEpoca ?? '', this.#me ?? '', this.#ahora ?? '', this.#ev ? serial(this.#ev) : ''].join('|');
+    // Antes de «#», el libro (lo que, si cambia, invalida lo recordado); detrás, la mirada (quién, cuándo y qué candidata).
+    return [serial(this.#eje), serial(o), o.length, o[o.length - 1] ?? '', this.#idEpoca ?? ''].join('|') + '#' + [this.#me ?? '', this.#ahora ?? '', this.#ev ? serial(this.#ev) : ''].join('|');
   }
 
   /** Cuántas veces ha leído este contexto una vista de fuera del libro (X.6.8.1 a 6.8.3: recibo, sello y pago), que cambia sin cambiar la huella. */

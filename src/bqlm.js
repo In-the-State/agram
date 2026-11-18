@@ -724,6 +724,25 @@ const esNodo = (o) => o !== null && typeof o === 'object';
  * PENDIENTE con subtipo «PENDIENTE POR LÍMITE».
  */
 export function evaluar(src, contexto, opciones = {}) {
+  // La memoria de las lecturas de pantalla (§15.4): solo con opciones.lectura (nunca con mover ni escribir) y una
+  // MemoriaDeLectura que trae quien llama; una evaluación entera se recuerda por (fórmula, sujeto, mirada, límites).
+  const memoria = opciones.lectura === true && !opciones.mover && !opciones.escribir && opciones.memoria instanceof MemoriaDeLectura ? opciones.memoria : null;
+  const huella = memoria ? huellaDe(contexto) : undefined;
+  const clave = huella ? claveDeEvaluacion(src, opciones, contexto, huella.mirada) : undefined;
+  if (clave) {
+    const r = memoria.leer(huella.libro, clave);
+    if (r) {
+      if (opciones.presupuesto instanceof Presupuesto) opciones.presupuesto.pasos += 1;
+      return r.valor ? { ...r, valor: [...r.valor] } : { ...r };
+    }
+  }
+  const fuera = contexto?.vistasDeFuera;
+  const r = evaluarSinMemoria(src, contexto, opciones, huella ? { memoria, ...huella } : null);
+  if (clave && r.subtipo !== POR_LIMITE && contexto?.vistasDeFuera === fuera) memoria.guardar(huella.libro, clave, r.valor ? { ...r, valor: [...r.valor] } : { ...r });
+  return r;
+}
+
+function evaluarSinMemoria(src, contexto, opciones, recuerdo) {
   try {
     const conSujeto = Object.hasOwn(opciones, 'sujeto');
     const lim = limitesDe(contexto, opciones);
@@ -741,6 +760,11 @@ export function evaluar(src, contexto, opciones = {}) {
       ctx: contexto, its: conSujeto ? [opciones.sujeto] : [], pasos: 0, tope: lim.pasos, hilo: lim.hilo, presupuesto: opciones.presupuesto instanceof Presupuesto ? opciones.presupuesto : new Presupuesto(lim.ocupantes, lim.bytes),
       escrituras: opciones.escribir && !opciones.mover ? [] : null, movimientos: opciones.mover ? [] : null,
       lectura, aplicando: [], topeAplicacion: opciones.limites?.aplicacion ?? TOPE_DE_APLICACION, anidamiento: lim.anidamiento,
+      // La memoria (§15.4), solo en una lectura: dónde se recuerda, el libro y la mirada, los límites y las subexpresiones
+      // cerradas del árbol que se evalúa (las que no leen ningún it de fuera).
+      memoria: recuerdo?.memoria ?? null, libro: recuerdo?.libro, mirada: recuerdo?.mirada,
+      claveDeLimites: recuerdo ? JSON.stringify([lim, opciones.limites?.aplicacion ?? TOPE_DE_APLICACION]) : '',
+      cerrados: recuerdo ? cerradosDe(arbol) : null,
     };
     const valor = calcular(arbol, st);
     return { estado: 'RESUELTO', valor, texto: textoDe(valor, contexto), ...(st.escrituras ? { escrituras: st.escrituras } : {}), ...(st.movimientos ? { movimientos: st.movimientos } : {}) };
@@ -796,6 +820,178 @@ function llevaKeep(arbol) {
   }
   CON_KEEP.set(arbol, hay);
   return hay;
+}
+
+// ---------- la memoria de las lecturas de pantalla (Core AGRAM 18-11; docs/BQLM.md §15.4, pendiente de revisar VG) ----------
+
+/** Cuántas entradas guarda por omisión una MemoriaDeLectura; se tira la más vieja. */
+export const ENTRADAS_DE_MEMORIA = 4000;
+
+/**
+ * Lo que recuerda una lectura de pantalla (§15.4): la trae quien llama (el contrato, una por eje) en opciones.memoria, y
+ * solo se usa con opciones.lectura (nunca con mover ni escribir, ni en evaluarRegla, leerRegla, evaluarEscritura o
+ * evaluarPlantilla). Recuerda evaluaciones enteras, aplicaciones de apply(F, x) y subexpresiones cerradas, con su
+ * resultado: un RESUELTO, un PENDIENTE corriente o un ERROR, nunca un PENDIENTE POR LÍMITE. Vale mientras el libro no
+ * cambie: si la huella del libro del contexto es otra, se vacía entera. Guarda como mucho `tope` entradas.
+ */
+export class MemoriaDeLectura {
+  #entradas = new Map();
+  #libro;
+
+  constructor(tope = ENTRADAS_DE_MEMORIA) {
+    this.tope = tope;
+    this.aciertos = 0;
+    this.fallos = 0;
+  }
+
+  /** Cuántas entradas tiene. */
+  get tamano() {
+    return this.#entradas.size;
+  }
+
+  #al(libro) {
+    if (libro !== this.#libro) {
+      this.#entradas.clear();
+      this.#libro = libro;
+    }
+  }
+
+  /** Lo recordado con esta clave para este libro, o undefined (y se cuenta el fallo). */
+  leer(libro, clave) {
+    this.#al(libro);
+    if (!this.#entradas.has(clave)) {
+      this.fallos++;
+      return undefined;
+    }
+    const v = this.#entradas.get(clave);
+    this.#entradas.delete(clave);
+    this.#entradas.set(clave, v);
+    this.aciertos++;
+    return v;
+  }
+
+  /** Recuerda `valor` con esta clave para este libro; si pasa del tope, olvida lo más viejo. */
+  guardar(libro, clave, valor) {
+    this.#al(libro);
+    this.#entradas.set(clave, valor);
+    while (this.#entradas.size > this.tope) this.#entradas.delete(this.#entradas.keys().next().value);
+  }
+
+  /** Lo olvida todo. */
+  vaciar() {
+    this.#entradas.clear();
+    this.#libro = undefined;
+  }
+}
+
+/** La huella de lo que ve el contexto, partida en { libro, mirada } (ContextoEje.huella), o undefined si no la da. */
+function huellaDe(contexto) {
+  const h = typeof contexto?.huella === 'function' ? contexto.huella() : undefined;
+  if (typeof h !== 'string') return undefined;
+  const k = h.indexOf('#');
+  return k < 0 ? { libro: h, mirada: '' } : { libro: h.slice(0, k), mirada: h.slice(k + 1) };
+}
+
+/** La clave de un sujeto (it) para recordar: un valor plano o un registro; lo demás (una décupla, un nodo), undefined. */
+function claveDeSujeto(x) {
+  if (typeof x === 'string') return 's:' + x;
+  if (typeof x === 'number') return 'n:' + x;
+  if (typeof x === 'boolean') return 'b:' + x;
+  if (x && typeof x === 'object' && x.k === 'reg' && typeof x.id === 'string') return 'r:' + x.id;
+  return undefined;
+}
+
+const SERIALES = new WeakMap();
+let ultimoSerial = 0;
+/** Un número por nodo de un árbol (los árboles analizados se guardan por su texto: el mismo nodo, el mismo número). */
+function serialDe(o) {
+  if (!SERIALES.has(o)) SERIALES.set(o, ++ultimoSerial);
+  return SERIALES.get(o);
+}
+
+/** La clave de una evaluación entera: la fórmula (su texto, o el número de su árbol), el sujeto, la mirada y los límites. */
+function claveDeEvaluacion(src, opciones, contexto, mirada) {
+  const formula = typeof src === 'string' ? 't:' + src : src && typeof src === 'object' ? 'a:' + serialDe(src) : undefined;
+  if (formula === undefined) return undefined;
+  let sujeto = '-';
+  if (Object.hasOwn(opciones, 'sujeto')) {
+    sujeto = claveDeSujeto(opciones.sujeto);
+    if (sujeto === undefined) return undefined;
+  }
+  return 'E|' + formula + '|' + sujeto + '|' + mirada + '|' + JSON.stringify([limitesDe(contexto, opciones), opciones.limites?.aplicacion ?? TOPE_DE_APLICACION]);
+}
+
+// Los nodos que vale la pena recordar cuando son cerrados (leen posiciones, recorren, aplican); los demás (literales,
+// aritmética, comparaciones) se calculan, y se recuerdan sus hijos cerrados.
+const RECORDABLES = new Set(['paso', 'clave', 'where', 'keep', 'by', 'group', 'follow', 'mapa', 'with', 'pref', 'nth', 'take', 'llamada', 'cited']);
+// Las palabras que dan el siguiente it a su cuerpo (where, by…): su `nivel` está atado dentro de ese cuerpo.
+const CUERPO = { where: 'cond', keep: 'cond', by: 'clave', group: 'clave', follow: 'rel', mapa: 'e' };
+
+const CERRADOS = new WeakMap();
+/**
+ * Las subexpresiones cerradas de un árbol que se recuerdan (§15.4): las que no leen ningún it de fuera de ellas (sus
+ * valores dependen solo del contexto, de la pila de apply y de los límites), de las clases de RECORDABLES, y la más alta
+ * de cada rama (no la raíz: esa la recuerda la evaluación entera o apply).
+ */
+function cerradosDe(raiz) {
+  if (CERRADOS.has(raiz)) return CERRADOS.get(raiz);
+  const libres = new Map();
+  const hijos = (n) => {
+    const fuera = [];
+    for (const [k, x] of Object.entries(n)) {
+      if (k === 'base' || k === 'cond' || k === 'clave' || k === 'rel' || k === 'e' || k === 'a' || k === 'b' || k === 'arg' || k === 'k' || k === 'expr' || k === 'v' || k === 't' || k === 'q' || k === 's' || ENLACES.includes(k)) {
+        if (x && typeof x === 'object' && typeof x.n === 'string') fuera.push([k, x]);
+      } else if (k === 'args' || k === 'partes') {
+        for (const y of x) if (y && typeof y === 'object' && typeof y.n === 'string') fuera.push([k, y]);
+      }
+    }
+    return fuera;
+  };
+  const libresDe = (n) => {
+    if (libres.has(n)) return libres.get(n);
+    const l = new Set();
+    if (n.n === 'it') l.add(n.nivel);
+    for (const [k, h] of hijos(n)) {
+      for (const v of libresDe(h)) if (!(CUERPO[n.n] === k && v === n.nivel)) l.add(v);
+    }
+    libres.set(n, l);
+    return l;
+  };
+  const marcados = new Set();
+  const marcar = (n, raizDeArbol) => {
+    if (!raizDeArbol && RECORDABLES.has(n.n) && libresDe(n).size === 0) {
+      marcados.add(n);
+      return;
+    }
+    for (const [, h] of hijos(n)) marcar(h, false);
+  };
+  marcar(raiz, true);
+  CERRADOS.set(raiz, marcados);
+  return marcados;
+}
+
+/**
+ * Lo recordado con esta clave o, si no lo hay, lo que da `calcularlo`, que se recuerda (§15.4). Un acierto cuesta un paso
+ * y repite lo que pasó: el valor o la misma parada. No se recuerda un PENDIENTE POR LÍMITE, ni lo que leyó una vista de
+ * fuera del libro (contexto.vistasDeFuera: el sello, el recibo, el pago), que cambia sin cambiar la huella.
+ */
+function recordar(st, clave, calcularlo) {
+  const r = st.memoria.leer(st.libro, clave);
+  if (r) {
+    paso(st);
+    if (r.parada) throw r.parada;
+    return [...r.valor];
+  }
+  const fuera = st.ctx?.vistasDeFuera;
+  let valor;
+  try {
+    valor = calcularlo();
+  } catch (e) {
+    if (e instanceof Parada && e.subtipo !== POR_LIMITE && st.ctx?.vistasDeFuera === fuera) st.memoria.guardar(st.libro, clave, { parada: e });
+    throw e;
+  }
+  if (st.ctx?.vistasDeFuera === fuera) st.memoria.guardar(st.libro, clave, { valor: [...valor] });
+  return valor;
 }
 
 function paso(st, n = 1) {
@@ -884,6 +1080,12 @@ function bajar(o, digitos, st) {
 }
 
 function calcular(nodo, st) {
+  // Una subexpresión cerrada (no lee ningún it de fuera), en una lectura con memoria: se recuerda (§15.4).
+  if (st.memoria && st.cerrados?.has(nodo)) return recordar(st, 'C|' + serialDe(nodo) + '|' + JSON.stringify(st.aplicando) + '|' + st.claveDeLimites + '|' + st.mirada, () => calcularNodo(nodo, st));
+  return calcularNodo(nodo, st);
+}
+
+function calcularNodo(nodo, st) {
   const { ctx } = st;
   switch (nodo.n) {
     case 'lit':
@@ -1333,16 +1535,30 @@ function aplicar(nodo, st) {
   }
   const xs = calcular(nodo.args[1], st);
   const its = st.its;
+  const cerrados = st.cerrados;
   const fuera = [];
+  // En una lectura con memoria (§15.4), cada aplicación se recuerda por (F, x) cuando x es un registro o un valor plano,
+  // con la pila de lo que se está aplicando (de ella dependen el ciclo y el tope).
+  const clave = (x) => {
+    if (!st.memoria) return undefined;
+    const k = claveDeSujeto(x);
+    return k === undefined ? undefined : 'A|' + f + '|' + k + '|' + JSON.stringify(st.aplicando) + '|' + st.claveDeLimites + '|' + st.mirada;
+  };
+  const claves = xs.map(clave);
   st.aplicando.push(f);
+  if (st.memoria) st.cerrados = cerradosDe(arbol);
   try {
-    for (const x of xs) {
-      paso(st);
-      st.its = [x];
-      fuera.push(...calcular(arbol, st));
-    }
+    xs.forEach((x, k) => {
+      const una = () => {
+        paso(st);
+        st.its = [x];
+        return calcular(arbol, st);
+      };
+      fuera.push(...(claves[k] ? recordar(st, claves[k], una) : una()));
+    });
   } finally {
     st.its = its;
+    st.cerrados = cerrados;
     st.aplicando.pop();
   }
   return fuera;
@@ -1878,7 +2094,7 @@ export function evaluarRegla(regla, contexto, opciones = {}) {
   }
   if (r.valor[0]) return { pasa: true, estado: 'RESUELTO', motivo: null };
   const mensaje = ultimo(regla[9]);
-  return { pasa: false, estado: 'RESUELTO', motivo: typeof mensaje === 'string' ? rellenar(mensaje, contexto, opciones) : nombre + ': no se cumple' };
+  return { pasa: false, estado: 'RESUELTO', motivo: typeof mensaje === 'string' ? rellenar(mensaje, contexto, { ...opciones, lectura: false }) : nombre + ': no se cumple' };
 }
 
 /**

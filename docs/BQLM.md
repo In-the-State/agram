@@ -800,3 +800,27 @@ Ir hacia delante por una relación (lo que va después de una tarea) crecía al 
 - **Qué da, exactamente:** lo mismo que `M each (before.1 where itN in payload(itN+1).d.d…)`, también en sus paradas: lo que el contexto no ve (lo posterior a una candidata, otra vista del libro) no está; sin libro es PENDIENTE; un elemento sin valor (una décupla) es ERROR; si recorrer un registro queda PENDIENTE o da ERROR (una referencia a un registro que no está), la lectura se para igual, con la parada del primero por orden; sobre una lista vacía no se mira nada. Lo prueba `test/tablas-bqlm.test.js` contra el recorrido, en un libro, en una vista de antes y con una candidata.
 - **Qué cuesta:** lo fija la definición, no la máquina: un paso y un ocupante del presupuesto por elemento consultado y otro por cada registro que da. Es el mismo haya índice o no, así que una regla puede usarla y un PENDIENTE POR LÍMITE no depende del dispositivo.
 - **Cómo se encuentra:** un índice (valor en la ruta → registros, por orden) en su propio módulo, `src/indice-de-nombres.js`, perezoso: se construye la primera vez que se pide, solo con lo que da el contexto (`before.1` y `payload(r)`, las mismas llamadas que el recorrido) y no se cobra a nadie. Se guardan los últimos 16 por la **huella** del contexto (`ContextoEje.huella()`, el único gancho en `src/contexto-eje.js`: el eje, su lista de registros, cuántos y el último, la época, quién mira, el reloj fijado y la candidata) y la ruta; un libro que cambia tiene otra huella y otro índice.
+
+### 15.4 La memoria de las lecturas de pantalla (Core, pendiente de revisar VG)
+
+Una pantalla vuelve a pedir las mismas lecturas sobre el mismo libro. `MemoriaDeLectura` (de `src/bqlm.js`) las recuerda, con una **regla dura: nada cambia para las reglas, las condiciones, las transacciones ni las reglas que escriben**, ni el resultado ni lo que se cobra.
+
+- **Cuándo existe:** solo con `opciones.lectura: true` y una memoria que trae quien llama en `opciones.memoria` (el contrato, una por eje; no hay ninguna global). Con `mover` o `escribir` no se mira; `evaluarRegla` (también al rellenar su mensaje) y `leerRegla` quitan `lectura`, y `evaluarEscritura` y `evaluarPlantilla` llevan `escribir` o `mover`: en ninguna se consulta ni se llena (SEG-28), y una regla cuesta lo mismo con memoria que sin ella, aunque una lectura haya recordado su misma fórmula (SEG-30).
+- **Qué recuerda:** una evaluación entera, por (fórmula, sujeto); cada aplicación de `apply(F, x)`, por (F, x) cuando x es un registro o un valor plano, con la pila de lo que se está aplicando (de ella dependen el ciclo y el tope); y, la tercera clave, **cada subexpresión cerrada**: la más alta de cada rama que no lee ningún `it` de fuera de ella (de las que leen posiciones, recorren o aplican), cuyo valor depende solo del contexto, de esa pila y de los límites. Es la que recoge lo caro de la matriz del 4 si el oficio se escribe con `lookup`: `lookup(epoch.9.6.1 each (first it3.0), epoch.9.6.1 each (first it3.8), nombre)` busca entre las 75 plantillas con dos listas cerradas, que se calculan una vez y no una por registro. Todas las claves llevan la mirada (quién mira, el reloj fijado, la candidata) y los límites.
+- **Qué guarda:** un RESUELTO, un PENDIENTE corriente o un ERROR (un acierto repite la misma parada); nunca un PENDIENTE POR LÍMITE. Un acierto cuesta un paso.
+- **Cuánto vale:** mientras no cambie lo que ve el contexto. Se vacía entera si cambia la parte del libro de su huella (`ContextoEje.huella()`, antes de «#»: el eje, su lista de registros, cuántos y el último, y la época). El sello, el recibo de llegada y el pago (`X.6.8.1` a `X.6.8.3`) llegan de fuera sin cambiar el libro: lo que los lee no se recuerda (el contexto cuenta esas lecturas, `vistasDeFuera`; SEG-29). Guarda como mucho 4 000 entradas (`ENTRADAS_DE_MEMORIA`); se tira la más vieja.
+
+**Lo que cuesta, con y sin memoria** (ocupantes del presupuesto; pasos entre paréntesis):
+
+| Lectura | Sin memoria | Con memoria, la primera vez | La segunda |
+|---|---|---|---|
+| a) el libro de la prueba (19 registros) | 685 (254) | 683 (253) | 0 (1) |
+| a) otra tarea, con la memoria de la primera | 685 (254) | 566 (188) | 0 (1) |
+| c) proyecto A, 5 anclados, oficio por where | 3 826 (1 721) | 2 396 (1 657) | 0 (1) |
+| c) proyecto A, 5 anclados, oficio con lookup | 5 701 (2 101) | 1 563 (837) | 0 (1) |
+| c) 10 anclados: where · lookup | 7 651 · 11 401 | 4 446 · 2 103 | 0 (1) |
+| c) 20 anclados: where · lookup | 15 301 · 22 801 | 8 546 · 3 183 | 0 (1) |
+| c) 40 anclados: where · lookup | 30 601 · 45 601 | 16 746 · 5 343 | 0 (1) |
+| a) con 10, 20 y 40 tareas | 769 · 949 · 1 309 | 767 · 947 · 1 307 | 0 (1) |
+
+Con el oficio escrito con `lookup` y memoria, la matriz cuesta unos 1 300 ocupantes fijos más unos 100 por registro anclado: una de 40 anclados se pinta con 5 343, dentro de los 10 000 de hoy, y sin memoria pide unos 31 000 (con el oficio por `where`). **Propuesta de Core** (para decidir): un presupuesto propio para las lecturas de pantalla, de 50 000 ocupantes, como dato de la época junto a los de las reglas (8.8, en la pasada única); con memoria cubre matrices de varios cientos de anclados y, sin ella, la primera vez de unas 60.

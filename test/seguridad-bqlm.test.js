@@ -5,7 +5,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluar, evaluarRegla, evaluarEscritura, evaluarPlantilla, leerRegla, leerFormula, Presupuesto, aplanar, POR_LIMITE, LIMITES, NADIE, DESTINOS_DE_PUT, VERIFICACION, COSTE_FIRMA, queMueve } from '../src/bqlm.js';
+import { evaluar, evaluarRegla, evaluarEscritura, evaluarPlantilla, leerRegla, leerFormula, Presupuesto, aplanar, MemoriaDeLectura, POR_LIMITE, LIMITES, NADIE, DESTINOS_DE_PUT, VERIFICACION, COSTE_FIRMA, queMueve } from '../src/bqlm.js';
 import { readFileSync } from 'node:fs';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { EPOCA_0_BTML, cargarEpocaBtml } from '../src/epocas.js';
@@ -414,4 +414,88 @@ test('SEG-27 keep no se traga un límite de cálculo: presupuesto, pasos, el top
   // Lo que no es un límite sí se cae: el ciclo de apply es ERROR, la posición vacía PENDIENTE.
   assert.deepEqual(lee('(1 with 2) keep apply(last epoch.5, it) > 0', L).valor, []);
   assert.deepEqual(lee('(1 with 2) keep it + epoch.9.9 > 0', L).valor, []);
+});
+
+// ---------- §15.4 (Core AGRAM 18-11): la memoria de las lecturas de pantalla no toca reglas ni transacciones ----------
+
+const T_MEM = '2026-11-08T10:00:00Z';
+async function libroDeMemoria() {
+  const eje = await Eje.genesis({ demostracion: true, identidad: 'g', t: T_MEM, foco: 'raíz' });
+  await entrarPorInvitacion(eje, { por: 'g', quien: 'ana', t: T_MEM, da: [] });
+  return eje;
+}
+const reglaDe = (dos, cuatro = []) => [['regla de memoria'], [], [dos], [], cuatro, [], [], [], [], ['no se cumple: {count before.1}']];
+
+test('SEG-28 memoria: con mover, escribir, evaluarRegla, leerRegla, evaluarEscritura y evaluarPlantilla, ni se consulta ni se llena', async () => {
+  const eje = await libroDeMemoria();
+  const c = new ContextoEje(eje, { epoch: EPOCA_0_BTML, me: 'g' });
+  const memoria = new MemoriaDeLectura();
+  const nada = (que) => assert.deepEqual([memoria.tamano, memoria.aciertos, memoria.fallos], [0, 0, 0], que);
+  const f = '=count before.1 > 0 and count (before.1 where count it.3 > 0) > 0';
+  evaluar(f, c, { memoria }); nada('sin lectura');
+  evaluar(f, c, { memoria, lectura: true, mover: true }); nada('con mover');
+  evaluar(f, c, { memoria, lectura: true, escribir: true }); nada('con escribir');
+  assert.equal(evaluarRegla(reglaDe(f), c, { memoria, lectura: true }).pasa, true); nada('evaluarRegla');
+  assert.equal(evaluarRegla(reglaDe('=count before.1 = 0'), c, { memoria, lectura: true }).pasa, false); nada('evaluarRegla, con su mensaje');
+  assert.equal(leerRegla(reglaDe(f, ['read']), eje.genesisId, c, { memoria, lectura: true }).estado, 'RESUELTO'); nada('leerRegla');
+  evaluarEscritura(reglaDe(f, ['put']), c, { memoria, lectura: true }); nada('evaluarEscritura');
+  evaluarPlantilla([f], c, { sujeto: eje.genesisId, memoria, lectura: true }); nada('evaluarPlantilla');
+  // Una lectura sí la usa.
+  evaluar(f, c, { memoria, lectura: true });
+  assert.ok(memoria.tamano > 0);
+});
+
+test('SEG-29 memoria: un libro que cambia no sirve lo viejo; tampoco una vista de fuera (el sello) ni otra mirada; un límite no se recuerda', async () => {
+  const eje = await libroDeMemoria();
+  const memoria = new MemoriaDeLectura();
+  const lee = (src, opciones = {}, me = 'g') => evaluar(src, new ContextoEje(eje, { epoch: EPOCA_0_BTML, me }), { lectura: true, memoria, ...opciones });
+  const antes = lee('count before.1').valor[0];
+  assert.deepEqual(lee('count before.1').valor, [antes]);
+  assert.equal(memoria.aciertos, 1);
+  await entrarPorInvitacion(eje, { por: 'g', quien: 'bea', t: T_MEM, da: [] });
+  assert.ok(lee('count before.1').valor[0] > antes, 'un registro más: otra huella, la memoria se vacía');
+  // Otra mirada (me) no reutiliza lo de la primera.
+  assert.deepEqual(lee('count (me where 1 = 1)', {}, 'g').valor, [1]);
+  assert.deepEqual(lee('me', {}, 'ana').valor, ['ana']);
+  // El sello llega de fuera sin cambiar el libro: lo que lo lee no se recuerda.
+  const id = eje.genesisId;
+  assert.deepEqual(lee('count it.6.8.2', { sujeto: id }).valor, [0]);
+  assert.ok(eje.marcarSello(id, { altura: 900000, hash: 'a'.repeat(64), instante: '2026-11-08T11:00:00Z' }));
+  assert.deepEqual(lee('count it.6.8.2', { sujeto: id }).valor, [3], 'el sello nuevo se ve');
+  // Un PENDIENTE POR LÍMITE no se recuerda; un PENDIENTE corriente y un ERROR, sí.
+  memoria.vaciar();
+  assert.equal(lee('count (1 follow it + 1)').subtipo, POR_LIMITE);
+  assert.equal(memoria.tamano, 0);
+  assert.equal(lee('(1 where 1 = 2) + 1').estado, 'PENDIENTE');
+  assert.equal(lee('1 / 0').estado, 'ERROR');
+  const a = memoria.aciertos;
+  assert.equal(lee('(1 where 1 = 2) + 1').estado, 'PENDIENTE');
+  assert.equal(lee('1 / 0').estado, 'ERROR');
+  assert.equal(memoria.aciertos, a + 2);
+  // Tamaño acotado: se tira lo más viejo.
+  const corta = new MemoriaDeLectura(3);
+  for (let k = 0; k < 10; k++) evaluar('count before.1 + ' + k, new ContextoEje(eje, { epoch: EPOCA_0_BTML }), { lectura: true, memoria: corta });
+  assert.equal(corta.tamano, 3);
+});
+
+test('SEG-30 memoria: una regla cuesta lo mismo con memoria y sin ella, aunque una lectura haya recordado su fórmula', async () => {
+  const eje = await libroDeMemoria();
+  const c = new ContextoEje(eje, { epoch: EPOCA_0_BTML, me: 'g' });
+  const f = '=count (before.1 where count it.3 > 0 and count before.3 > 0) > 0';
+  const coste = (hacer) => {
+    const presupuesto = new Presupuesto();
+    const r = hacer(presupuesto);
+    return [r.pasa ?? r.estado, presupuesto.pasos, presupuesto.usados];
+  };
+  const sin = coste((presupuesto) => evaluarRegla(reglaDe(f), c, { presupuesto }));
+  const memoria = new MemoriaDeLectura();
+  // La misma fórmula leída como lectura de pantalla, dos veces: la memoria la recuerda (y sus subexpresiones cerradas).
+  evaluar(f, c, { lectura: true, memoria });
+  evaluar(f, c, { lectura: true, memoria });
+  assert.ok(memoria.aciertos > 0 && memoria.tamano > 0);
+  const con = coste((presupuesto) => evaluarRegla(reglaDe(f), c, { presupuesto, memoria, lectura: true }));
+  assert.deepEqual(con, sin);
+  const sinL = coste((presupuesto) => evaluar(f, c, { presupuesto }));
+  assert.deepEqual(coste((presupuesto) => evaluar(f, c, { presupuesto, memoria })), sinL, 'evaluar sin lectura, igual');
+  assert.deepEqual(coste((presupuesto) => evaluar(f, c, { presupuesto, memoria, lectura: true, mover: true })), sinL, 'con mover, igual');
 });

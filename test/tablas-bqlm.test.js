@@ -7,7 +7,7 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { evaluar, aplanar, esFila, Presupuesto, pendiente, POR_LIMITE, LLAMADAS_DE_LECTURA, TOPE_DE_APLICACION } from '../src/bqlm.js';
+import { evaluar, aplanar, esFila, Presupuesto, MemoriaDeLectura, pendiente, POR_LIMITE, LLAMADAS_DE_LECTURA, TOPE_DE_APLICACION } from '../src/bqlm.js';
 import { ContextoEje } from '../src/contexto-eje.js';
 import { Eje } from '../src/eje.js';
 import * as A from '../src/acciones.js';
@@ -205,6 +205,10 @@ const MUEVE = '(moves it where not (it3.4.1 in ("asignacion" with "obtencion")) 
 const FAMILIA = (k, f) => '(' + k + ' where ' + f + ' in ' + MUEVE + ' each (first it3.0.0.0))';
 const EJECUCION = '=first ((0 where count ' + MUEVE + ' = 0) with ' + FAMILIA(1, 'E') + ' with ' + FAMILIA(2, 'P') + ' with ' + FAMILIA(3, 'R') + ' with ' + FAMILIA(4, 'T') + ')';
 const MATRIZ = '=(down it) group row(apply(' + JSON.stringify(OFICIO) + ', it2), apply(' + JSON.stringify(EJECUCION) + ', it2))';
+// El mismo oficio con lookup (§15.4): los nombres y los PV de las plantillas son una subexpresión cerrada (no leen it), que
+// la memoria de una lectura de pantalla recuerda de un registro al siguiente; sin memoria cuesta algo más que OFICIO.
+const OFICIO_CON_LOOKUP = '=first ((payload(it).4 each (first lookup(epoch.9.6.1 each (first it3.0), epoch.9.6.1 each (first it3.8), it2))) with lookup(' + DIGITOS + ', 0 with 1 with 2 with 3 with 4 with 5 with 6 with 7 with 8 with 9, text(slice(utf8(nth 1 it.6.5), 0, 1))))';
+const MATRIZ_CON_LOOKUP = '=(down it) group row(apply(' + JSON.stringify(OFICIO_CON_LOOKUP) + ', it2), apply(' + JSON.stringify(EJECUCION) + ', it2))';
 
 test('§15 caso a: las acciones que se ofrecen, como una lectura, dan lo mismo que acciones.acciones', async (prueba) => {
   const { eje, t, pa, ctx: c } = await roadmap();
@@ -239,8 +243,9 @@ test('§15 caso b: las cadenas del 7: las anteriores, lo que va antes, lo que va
 
 test('§15 caso c: la matriz del 4, los registros anclados en X agrupados por (oficio, ejecución), frente a acciones.ejecuciones', async (prueba) => {
   const { eje, t, pa, nombres, ctx: c } = await roadmap();
-  for (const [nombre, X] of [['el proyecto A', pa], ['la tarea A4', t.A4], ['el génesis', { id: eje.genesisId }]]) {
-    const celdas = medir(prueba, 'c) ' + nombre, MATRIZ, c, eje, { sujeto: X.id });
+  const memoria = new MemoriaDeLectura();
+  for (const [nombre, X] of [['el proyecto A', pa], ['la tarea A4', t.A4], ['el génesis', { id: eje.genesisId }]]) for (const [como, formula, opciones] of [['', MATRIZ, {}], [' con lookup', MATRIZ_CON_LOOKUP, {}], [' con lookup y memoria', MATRIZ_CON_LOOKUP, { lectura: true, memoria }], [' con lookup y memoria, otra vez', MATRIZ_CON_LOOKUP, { lectura: true, memoria }]]) {
+    const celdas = medir(prueba, 'c) ' + nombre + como, formula, c, eje, { sujeto: X.id, ...opciones });
     // Lo mismo que dice el JavaScript, celda a celda: [oficio, ejecución, registros].
     const js = new Map();
     for (const e of A.ejecuciones(eje, X.id).filter((x) => x.ocupante?.ref)) {
@@ -356,4 +361,19 @@ test('§15.3 cited: el coste lo fija la definición (un paso y un ocupante por e
   assert.ok(r.ok);
   await eje.anadir(r.evento);
   assert.equal(coste('"task" cited 5')[2], antes + 1);
+});
+
+// ---------- §15.4 la memoria de las lecturas de pantalla ----------
+
+test('§15.4 memoria: a) da lo mismo con memoria y sin ella; la segunda vez cuesta un paso', async (prueba) => {
+  const { eje, t, ctx: c } = await roadmap();
+  const memoria = new MemoriaDeLectura();
+  const sin = medir(prueba, 'a) PV 7 sobre la tarea A5, sin memoria', ACCIONES(7, 50), c, eje, { sujeto: t.A5.id, lectura: true });
+  assert.deepEqual(medir(prueba, 'a) PV 7 sobre la tarea A5, con memoria', ACCIONES(7, 50), c, eje, { sujeto: t.A5.id, lectura: true, memoria }), sin);
+  const presupuesto = new Presupuesto();
+  const r = evaluar(ACCIONES(7, 50), c, { sujeto: t.A5.id, lectura: true, memoria, presupuesto });
+  assert.deepEqual(aplanar(r.valor, c), sin);
+  assert.deepEqual([presupuesto.pasos, presupuesto.usados], [1, 0], 'un acierto cuesta un paso');
+  assert.deepEqual(medir(prueba, 'a) PV 7 sobre la tarea A4, con la memoria de A5', ACCIONES(7, 50), c, eje, { sujeto: t.A4.id, lectura: true, memoria }), A.acciones(eje, t.A4.id, 7, 'duena').map((x) => x.nombre));
+  assert.ok(memoria.tamano > 0 && memoria.tamano < 100, 'pocas entradas: ' + memoria.tamano);
 });
