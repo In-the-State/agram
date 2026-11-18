@@ -152,8 +152,13 @@ function errorDelGuardian(e) {
   if (clave === 'guardianSesionCerrada') estado.guardian.sesionCerrada = true;
   return t(clave);
 }
-/** El texto de un fallo: el del guardián en llano si lo fue, si no el que ya se daba. */
-const enLlano = (texto, e) => errorDelGuardian(e) ?? texto;
+/** Un rechazo del eje con sus motivos, dicho en el idioma de quien mira (contrato.rechazoEnLlano); sin motivos o sin libro, nada. */
+function rechazoDelEje(e) {
+  if (!estado.eje || !Array.isArray(e?.motivos) || !e.motivos.length) return null;
+  try { return contrato.rechazoEnLlano(estado.eje, e, { idioma: idioma() }) || null; } catch { return null; }
+}
+/** El texto de un fallo: el del guardián en llano si lo fue, el del eje en el idioma si trae motivos, si no el que ya se daba. */
+const enLlano = (texto, e) => errorDelGuardian(e) ?? rechazoDelEje(e) ?? texto;
 /** Los motivos de un formulario que no pasó: si lo paró el guardián, solo su texto llano. */
 const motivosConGuardian = (motivos) => { const g = errorDelGuardian(); return g ? [{ mensaje: g }] : motivos; };
 /**
