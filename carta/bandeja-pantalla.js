@@ -13,6 +13,8 @@
 // de la lente (PV_DE_LA_BANDEJA) y no sale de la época. Ninguna acción se nombra aquí: todo llega por su id.
 
 import { t } from './textos.js';
+import * as acciones from '../src/acciones.js';
+import * as contrato from '../src/contrato.js';
 
 /** El punto de vista donde se ejecuta la bandeja (VG 18-11: «ejecutar está en el 4»). De la lente, no de la época. */
 export const PV_DE_LA_BANDEJA = 4;
@@ -32,10 +34,24 @@ export function textoDeT(segundos) {
   return partes.length ? partes.join(' ') : t('tPieza_minuto', { n: 0 });
 }
 
+/**
+ * La etiqueta de un parámetro de una acción en el idioma de quien mira, la misma que enseña su formulario (carta.js
+ * formulario: la del núcleo, con el retoque del libro si lo hay). Sin plantilla, su nombre.
+ */
+export function etiquetaDeParametro(eje, accion, nombre, { idioma } = {}) {
+  const epoca = typeof eje?.epoca === 'function' ? eje.epoca() : undefined;
+  const o = { idioma, ...(epoca ? { epoca } : {}) };
+  const p = acciones.plantillaDeTransaccion(accion, o) ?? acciones.plantillaDeTransaccion(accion);
+  if (!p) return nombre;
+  const delNucleo = acciones.parametros(p, { ...o, eje }).find((x) => x.nombre === nombre)?.etiqueta ?? nombre;
+  return contrato.texto(eje, contrato.claves.parametro(acciones.nombreDeAccion(p), nombre, 'label'), idioma, { original: delNucleo, ...(epoca ? { epoca } : {}) }) ?? delNucleo;
+}
+
 /** El motivo de un item en una línea llana: «falta por rellenar: …» o los mensajes (ya en llano) unidos. */
-function motivoDe(x, llano) {
+function motivoDe(x, llano, etiqueta = (n) => n) {
   if (x.entra) return null;
-  if (x.faltan) return t('bandejaFalta', { campos: x.faltan.join(', ') || '…' });
+  // Lo que falta, por la etiqueta del parámetro en el idioma (la que enseña el formulario), nunca por su nombre interno.
+  if (x.faltan) return t('bandejaFalta', { campos: x.faltan.map(etiqueta).join(', ') || '…' });
   const ms = llano(x.motivos ?? []).map((m) => m?.mensaje ?? String(m)).filter(Boolean);
   return ms.length ? ms.join(' · ') : t('bandejaNoEntra');
 }
@@ -54,6 +70,7 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
   const quien = textos.quien ?? ((x) => String(x));
   const cuanto = textos.cuanto ?? ((m) => `${m.cantidad} ${m.serie}`);
   const llano = textos.llano ?? ((ms) => ms);
+  const etiquetaDe = textos.etiqueta ?? ((accion, n) => n);
   const porId = new Map(probado.items.filter((x) => x.id !== null).map((x) => [x.id, x]));
   const items = probado.items.map((x) => {
     // Lo que pone la bandeja se ve donde se compuso lo que lo necesita.
@@ -72,7 +89,7 @@ export function vistaDeLaBandeja(probado, textos = {}, extra = {}) {
     } : null;
     return {
       id: x.id, puesta: Boolean(x.puesta), para: x.para ?? null, accion, nombre: suNombre, ...(esCampo ? { tipo: 'campo' } : {}), entra: Boolean(x.entra),
-      motivo: motivoDe(x, llano), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
+      motivo: motivoDe(x, llano, (n) => etiquetaDe(accion, n)), donde: entrada?.donde ?? { X: null, pv: null }, valores: entrada?.valores ?? null, resumen,
     };
   });
   const total = items.filter((x) => !x.puesta).length;

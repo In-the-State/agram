@@ -49,7 +49,7 @@ import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
 import { crearBandeja, ejecutarAhora, probarAhora } from './bandeja.js';
-import { vistaDeLaBandeja, htmlPieDeLaBandeja, htmlCuentaDeLaBandeja, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { vistaDeLaBandeja, etiquetaDeParametro, htmlPieDeLaBandeja, htmlCuentaDeLaBandeja, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -262,6 +262,7 @@ function textosDeLaBandeja() {
     quien: (x) => contrato.legible(estado.eje, x, ['identity'], o).texto,
     cuanto: (m) => contrato.legible(estado.eje, { serie: m.serie, cantidad: m.cantidad }, null, o).texto,
     llano: (motivos) => motivosEnLlano(motivos, estado.eje),
+    etiqueta: (accion, nombre) => etiquetaDeParametro(estado.eje, accion, nombre, o),
   };
 }
 /** Lo que se pinta de la bandeja (la cuenta del marco, la tira donde se compuso y el 4), o null. */

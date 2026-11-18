@@ -11,7 +11,7 @@ import { html } from '../carta/dom.js';
 import { instalar } from '../carta/gestos.js';
 import { crearBandeja, probarAhora } from '../carta/bandeja.js';
 import {
-  vistaDeLaBandeja, delSitio, ordenDelCuatro, tienePendiente, textoDeT, PV_DE_LA_BANDEJA,
+  vistaDeLaBandeja, etiquetaDeParametro, delSitio, ordenDelCuatro, tienePendiente, textoDeT, PV_DE_LA_BANDEJA,
   htmlCuentaDeLaBandeja, htmlTiraDeLaBandeja, htmlMarcaDeLaBandeja, htmlBandejaDelCuatro, htmlEstadoDeLaEntrada, htmlPieDeLaBandeja,
 } from '../carta/bandeja-pantalla.js';
 import { t, TEXTOS } from '../carta/textos.js';
@@ -244,4 +244,24 @@ test('la cuenta no tapa nada (repaso a 400 px): en Mapped va en el flujo del mar
   assert.match(regla('.carta:has(.formulario-fondo)>.bandeja-cuenta'), /display:none/);
   const digito = regla('.digito');
   assert.match(digito, /height:32px/, 'si cambia el alto de los dígitos, cambia también el sitio de la cuenta');
+});
+
+test('lo que falta se dice con la etiqueta del parámetro en el idioma, la misma del formulario, nunca con su nombre interno', async () => {
+  const { formulario } = await import('../carta/carta.js');
+  const { eje, X, deLa, b } = await escena();
+  const accion = deLa(7).nombradas[0]; // «comprometer tiempo»: pide cosas que no tienen defecto
+  const campos = formulario(eje, X, accion.id, 'huesped', {}, { idioma: 'es' }).campos;
+  const faltan = campos.filter((c) => c.falta);
+  assert.ok(faltan.length > 0, 'pide algo');
+  for (const c of faltan) assert.equal(etiquetaDeParametro(eje, accion.id, c.nombre, { idioma: 'es' }), c.etiqueta, c.nombre);
+  b.poner({ accion: accion.id, X, valores: {}, donde: { X, pv: 7 }, completa: false });
+  const probado = await b.probar(eje, 'huesped', { idioma: 'es' });
+  const v = vistaDeLaBandeja(probado, { etiqueta: (a, n) => etiquetaDeParametro(eje, a, n, { idioma: 'es' }) });
+  const motivo = v.items[0].motivo;
+  assert.ok(probado.items[0].faltan.length > 0);
+  for (const n of probado.items[0].faltan) {
+    const etiqueta = etiquetaDeParametro(eje, accion.id, n, { idioma: 'es' });
+    assert.ok(motivo.includes(etiqueta), etiqueta);
+    if (etiqueta !== n) assert.ok(!new RegExp(`\b${n}\b`).test(motivo.replace(etiqueta, '')), 'sin el nombre interno: ' + n);
+  }
 });
