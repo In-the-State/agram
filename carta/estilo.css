@@ -1342,7 +1342,7 @@ html.mapped body{padding:0}
 .bandeja-entra{color:var(--ok);font-size:12px}
 .bandeja-no-entra{color:var(--warn);font-size:12px}
 .bandeja-cuesta,.bandeja-la-pone,.bandeja-en,.bandeja-aqui{color:var(--muted)}
-.bandeja-marca{margin-left:4px;padding:0 5px;border:1px dashed var(--accent);border-radius:999px;font-size:11px;color:var(--fg)}
+.bandeja-marca{flex:0 0 auto;white-space:nowrap;margin-left:4px;padding:0 5px;border:1px dashed var(--accent);border-radius:999px;font-size:11px;color:var(--fg)}
 .bandeja-cuatro{margin:6px 0;padding:8px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
 .bandeja-cuatro h3{margin:0;font-size:15px}
 .bandeja-lista{margin:0;padding:0;list-style:none;display:grid;gap:4px}

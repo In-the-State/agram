@@ -478,3 +478,15 @@ test('cada tipo de entrada dice su nombre (nunca «null»): en la vista y en el 
   const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
   assert.match(app, /t\('registrado', \{ accion: nombreDeLaEntrada\(x\.puesta \? null : x\.entrada, x\.accion, nombreDeAccion\)/);
 });
+
+test('la marca de una fila cerrada no se parte a 400 px: solo la cifra en corto, sin saltos, y el texto entero en su título', () => {
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1', { pv: 4 })], motivos: [] });
+  const m = htmlMarcaDeLaBandeja(v, 'X1', 4);
+  assert.match(m, new RegExp(`>${t('bandejaMarcaCorta', { n: 1 })}</small>$`), 'a la vista, «✎1»');
+  assert.ok(m.includes(`title="${t('bandejaMarcaTitulo', { n: 1 })}"`) && m.includes(`aria-label="${t('bandejaMarca', { n: 1 })}"`));
+  assert.ok(!/\s/.test(t('bandejaMarcaCorta', { n: 12 })), 'sin espacios por donde partir');
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const regla = css.slice(css.indexOf('.bandeja-marca{'), css.indexOf('}', css.indexOf('.bandeja-marca{')));
+  assert.match(regla, /white-space:nowrap/);
+  assert.match(regla, /flex:0 0 auto/);
+});

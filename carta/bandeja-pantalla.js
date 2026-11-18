@@ -182,10 +182,10 @@ export function htmlTiraDeLaBandeja(v, X, pv) {
   return `<ul class="bandeja-tira" data-bandeja-tira="${escapar(pv)}" data-x="${escapar(X)}" aria-label="${escapar(t('bandejaTira'))}">${lista.map(li).join('')}</ul>`;
 }
 
-/** En un sitio comprimido (o una fila cerrada): solo cuántas hay compuestas ahí. */
+/** En un sitio comprimido (o una fila cerrada): solo cuántas hay compuestas ahí, en corto («✎1»: no se parte en una columna estrecha), con el texto entero en su título. */
 export function htmlMarcaDeLaBandeja(v, X, pv) {
   const n = delSitio(v, X, pv).filter((x) => !x.puesta).length;
-  return n ? `<small class="bandeja-marca" data-bandeja-marca="${escapar(pv)}" title="${escapar(t('bandejaMarcaTitulo', { n }))}">${escapar(t('bandejaMarca', { n }))}</small>` : '';
+  return n ? `<small class="bandeja-marca" data-bandeja-marca="${escapar(pv)}" title="${escapar(t('bandejaMarcaTitulo', { n }))}" aria-label="${escapar(t('bandejaMarca', { n }))}">${escapar(t('bandejaMarcaCorta', { n }))}</small>` : '';
 }
 
 /**
