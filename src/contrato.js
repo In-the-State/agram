@@ -86,6 +86,7 @@ import { ocupantes as ocupantesDe } from './encaje.js';
 import { ESCALAS_T, ESCALAS_INFORMATIVAS, ESCALAS_REALES, SEGUNDOS, ANUNCIADO, partirClave, franjaDe, capacidadDe, claveToken, movimientosReales } from './tokens.js';
 import { esInstante, msUTC, msDeGuardado } from './instante.js';
 import { HITOS, cajaDeCuota, confluir, situar, SIN_BASE_ESCRITA } from './bases.js';
+import { nombreDelHito } from './lente-provisional.js';
 import { pasoDe } from './pasos.js';
 import { ajustesDelEje, url as urlDelExterior } from './exterior.js';
 import { recuento, miradasDe } from './motor.js';
@@ -656,7 +657,7 @@ function cajasDeHitos(opciones = {}) {
   const pasos = escalera(opciones);
   return HITOS.map((h) => {
     const [nivel, grado] = String(h.nivel).split('.').map(Number);
-    return { indice: h.indice, nivel, grado, nombre: h.nombre, ...(pasos[h.indice] ? { direccion: pasos[h.indice].direccion } : {}) };
+    return { indice: h.indice, nivel, grado, nombre: nombreDelHito(h.nivel, opciones.idioma), ...(pasos[h.indice] ? { direccion: pasos[h.indice].direccion } : {}) };
   });
 }
 
@@ -743,7 +744,7 @@ export function escalera(opciones = {}) {
     const profundidad = direccion.length - direccion.replace(new RegExp('^' + direccion[0] + '+'), '').length;
     const h = HITOS[indice];
     const [nivel, grado] = h ? String(h.nivel).split('.').map(Number) : [null, null];
-    return { indice, direccion, digito, profundidad, fila: indice, columna: digito, nivel, grado, nombre: h?.nombre ?? null };
+    return { indice, direccion, digito, profundidad, fila: indice, columna: digito, nivel, grado, nombre: h ? nombreDelHito(h.nivel, opciones.idioma) : null };
   });
 }
 
@@ -4362,4 +4363,4 @@ export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ENTREGADA_DESBL
 // Los sitios y los pesos de la pantalla (docs/notas/SITIOS_Y_PESOS.md): dónde va cada PV y cuánto se enseña, leídos de la época y del archivo de la lente.
 export { sitios, pesos } from './sitios.js';
 // Lo que la lente necesita saber de unas acciones y aún es provisional: las de «Ajustes de este elemento» y lo que va antes y después (src/lente-provisional.js).
-export { accionesDeAjuste, antesDe, despuesDe } from './lente-provisional.js';
+export { accionesDeAjuste, antesDe, despuesDe, nivelesDeLosHitos, nombreDelHito } from './lente-provisional.js';
