@@ -51,10 +51,10 @@ test('el «+n» abierto: tocar fuera lo cierra y no hace nada más; tocar dentro
   const dentro = gestos({ abierto: true });
   const lanzar = { dataset: { lanzar: 'a2', x: 'X1' } };
   dentro.disparar('click', { target: { closest: (sel) => (sel === '.pv-acciones-mas' ? {} : sel === '[data-lanzar]' ? lanzar : null) }, preventDefault() {} });
-  assert.deepEqual(dentro.llamadas, [['lanzar', 'X1', 'a2', null]], 'dentro: lanza la acción de la lista');
+  assert.deepEqual(dentro.llamadas, [['lanzar', 'X1', 'a2', null, {}]], 'dentro: lanza la acción de la lista');
   const cerrado = gestos({ abierto: false });
   cerrado.disparar('click', { target: objetivo({ '[data-lanzar]': lanzar }), preventDefault() {} });
-  assert.deepEqual(cerrado.llamadas, [['lanzar', 'X1', 'a2', null]]);
+  assert.deepEqual(cerrado.llamadas, [['lanzar', 'X1', 'a2', null, {}]]);
 });
 
 /** Un «+n» abierto de mentira: su botón y su lista con sus cajas; la lista guarda dónde se la pone. */

@@ -23,7 +23,7 @@
 // «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida, filtrarDiccionarioEnPantalla, coincidenciaEnPantalla, situarDesplegadas } from './dom.js';
 import { instalar } from './gestos.js';
@@ -48,6 +48,8 @@ import { reglasDelLibro, cambioDelLibro, actuar as actuarEnCambio, parametrosMov
 import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
+import { crearBandeja, ejecutarAhora, probarAhora } from './bandeja.js';
+import { vistaDeLaBandeja, htmlPieDeLaBandeja, htmlCuentaDeLaBandeja, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -94,6 +96,9 @@ const estado = {
   // enviar: { serie } | null, traer: { enlace } | null, aviso, motivos, exito, ocupado }) o null.
   puente: null,
   invitado: null, // el diálogo de «Entrar en un libro al que me han invitado» (carta/invitado.js)
+  // La bandeja (A33; carta/bandeja.js): lo que dio su última prueba en seco y con qué libro, borrador y lector se hizo
+  // (`clave`: si cambia, se vuelve a probar), lo que dijo la última vez que se ejecutó y si se está ejecutando.
+  bandeja: { clave: null, probado: null, motivos: [], ocupado: false },
 };
 /** Los registros cuyo segundo factor se está firmando con el anfitrión ahora (su botón, inactivo: no dos firmas por dos toques). */
 const autorizando = new Set();
@@ -180,6 +185,112 @@ function canonicoDe(accion) {
 function nombreDeAccion(accion) {
   const canonico = canonicoDe(accion);
   return contrato.texto(estado.eje, contrato.claves.plantilla(canonico), idioma(), { original: canonico });
+}
+
+// ---------- la bandeja (A33; agram-equipo/DISENO_BANDEJA_PV4.md; carta/bandeja.js y carta/bandeja-pantalla.js) ----------
+
+/** La bandeja del libro y la cuenta en pantalla: su borrador vive en este navegador (leerLocal/guardarLocal). */
+function bandeja() {
+  if (!estado.eje || !estado.identidad) return null;
+  return crearBandeja({ almacen: { leer: leerLocal, guardar: guardarLocal }, libro: estado.eje.genesisId, cuenta: estado.identidad });
+}
+/** Con qué se hizo la prueba de la bandeja: el libro (y su último registro), quién mira y el borrador guardado. Si cambia, se vuelve a probar. */
+function claveDeLaPrueba() {
+  const b = bandeja();
+  return b ? [estado.eje.genesisId, estado.identidad, estado.eje.orden.length, estado.eje.orden.at(-1), leerLocal(b.clave) ?? ''].join('|') : null;
+}
+/**
+ * Vuelve a probar la bandeja en seco (bandeja.probar) si cambió el libro (otro registro, lo bajado al sincronizar), quién
+ * mira o el borrador. Una entrada que deja de entrar se queda con su motivo: nunca desaparece sola.
+ */
+async function probarBandeja() {
+  const b = bandeja();
+  const clave = claveDeLaPrueba();
+  if (!b) { estado.bandeja.probado = null; estado.bandeja.clave = null; return; }
+  if (clave === estado.bandeja.clave) return;
+  estado.bandeja.clave = clave;
+  const eje = estado.eje;
+  let r = null;
+  try {
+    r = await b.probar(eje, estado.identidad, { idioma: idioma() });
+  } catch (e) {
+    console.error(e);
+  }
+  if (estado.eje !== eje || claveDeLaPrueba() !== clave) return; // cambió mientras se probaba: el próximo pintado vuelve a probar
+  estado.bandeja.probado = r;
+}
+/** Cómo dice la bandeja las cosas en el idioma de quien mira: el nombre de una acción, un registro, una identidad, una cantidad y los motivos. */
+function textosDeLaBandeja() {
+  const o = { idioma: idioma() };
+  return {
+    nombre: (accion) => nombreDeAccion(accion),
+    registro: (id) => contrato.legible(estado.eje, { ref: id }, null, o).texto,
+    quien: (x) => contrato.legible(estado.eje, x, ['identity'], o).texto,
+    cuanto: (m) => contrato.legible(estado.eje, { serie: m.serie, cantidad: m.cantidad }, null, o).texto,
+    llano: (motivos) => motivosEnLlano(motivos, estado.eje),
+  };
+}
+/** Lo que se pinta de la bandeja (la cuenta del marco, la tira donde se compuso y el 4), o null. */
+const vistaBandeja = () => (estado.eje ? vistaDeLaBandeja(estado.bandeja.probado, textosDeLaBandeja(), { motivos: estado.bandeja.motivos, ocupado: estado.bandeja.ocupado }) : null);
+/** ¿Solo lee? (una plantilla de lectura: no escribe nada y no pasa por la bandeja). */
+function soloLee(accion) {
+  const epoca = typeof estado.eje?.epoca === 'function' ? estado.eje.epoca() : undefined;
+  const p = acciones.plantillaDeTransaccion(accion, epoca ? { epoca } : {}) ?? acciones.plantillaDeTransaccion(accion);
+  return Boolean(p) && acciones.esLectura(p);
+}
+/**
+ * Cómo va el formulario abierto: 'bandeja' (lanzado desde un punto de vista: se compone, no escribe), 'ahora' (desde el
+ * aro, sus atajos o cualquier otro sitio: ejecutar ahora, por el mismo camino) o null (solo lee).
+ */
+const modoDelFormulario = (f) => (!f || soloLee(f.accion) ? null : f.modo === 'bandeja' ? 'bandeja' : 'ahora');
+/** El pie del formulario que va por la bandeja (bandeja-pantalla.js htmlPieDeLaBandeja): su modo, su entrada y lo que dice. */
+function pieDelFormulario() {
+  const f = estado.formulario;
+  const modo = modoDelFormulario(f);
+  if (!modo) return null;
+  if (modo === 'ahora') return { modo, vista: f.prueba ? vistaDeLaBandeja(f.prueba, textosDeLaBandeja()) : null, probando: !f.prueba, ocupado: Boolean(f.ocupado) };
+  return { modo, id: f.entrada ?? null, vista: vistaBandeja() };
+}
+/** Repinta solo el pie del formulario y la cuenta del marco (mientras se escribe no se repinta todo: se perdería el foco). */
+function repintarBandejaEnFormulario() {
+  const pie = raiz.querySelector('[data-formulario] [data-bandeja-pie]');
+  const datos = pieDelFormulario();
+  if (!pie && datos) { pintar(); return; } // el formulario aún no está en pantalla: lo pinta entero el pintado
+  if (pie && datos) pie.outerHTML = htmlPieDeLaBandeja(datos);
+  raiz.querySelector('[data-bandeja-ir]')?.remove();
+  const cuenta = htmlCuentaDeLaBandeja(vistaBandeja());
+  if (cuenta) raiz.querySelector('.carta')?.insertAdjacentHTML('afterbegin', cuenta);
+}
+/** Lo escrito en un formulario de la bandeja pasa al borrador: crea o actualiza su entrada, completa o a medias. */
+function ponerDesdeElFormulario(f, motivos = []) {
+  const b = bandeja();
+  if (!b || !f) return null;
+  const completa = motivos.length === 0 && (f.requeridos ?? []).every((n) => f.valores?.[n] !== undefined);
+  const r = b.poner({ id: f.entrada ?? null, accion: f.accion, X: f.X, valores: f.valores ?? {}, donde: f.donde ?? { X: f.X, pv: null }, completa });
+  if (r.ok) f.entrada = r.entrada.id;
+  else estado.aviso = r.motivo;
+  return r;
+}
+/** Prueba en seco lo que haría «ejecutar ahora» con el formulario abierto, y lo repinta en él. */
+async function probarFormularioAhora() {
+  const f = estado.formulario;
+  if (modoDelFormulario(f) !== 'ahora') return;
+  const eje = estado.eje;
+  const r = await probarAhora(eje, estado.identidad, { accion: f.accion, X: f.X, valores: f.valores ?? {} }, { idioma: idioma() }).catch((e) => ({ ok: false, items: [], motivos: [{ mensaje: String(e?.message ?? e) }] }));
+  if (estado.formulario !== f || estado.eje !== eje) return;
+  f.prueba = r;
+  repintarBandejaEnFormulario();
+}
+/** Tras ejecutar (la bandeja o «ahora»): lo que nace con lo registrado, guardar y subir, y decir qué se registró. */
+async function trasEjecutar(r) {
+  for (let k = 0; k < r.eventos.length; k++) {
+    // Una cosa dada de alta nace también con su HTML básico en el PV0 (VG 14-11, #84), como mi cuenta.
+    if (canonicoDe(r.items[k]?.accion) === 'register a thing') await adjuntarHtmlInicial(estado.eje, r.eventos[k].id, estado.identidad, firmarCon(estado.identidad), idioma());
+  }
+  trasEscribir(); // guardar y dejar la subida en la cola (la tanda entera)
+  const firmado = r.eventos.some((e) => e.firma) ? ' ' + t('firmado') : '';
+  estado.exito = t('bandejaRegistrado', { lista: r.items.map((x, k) => t('registrado', { accion: nombreDeAccion(x.accion), id: r.eventos[k].id.slice(0, 8) })).join(' · ') }) + firmado;
+  marcarNuevos();
 }
 
 /** Las claves de las identidades de ejemplo guardadas en este navegador; se generan las que falten (como la web antigua). */
@@ -363,6 +474,7 @@ function extraDe() {
     entradaReglas: estado.eje ? conGobierno(estado.eje) : false, genesisId: estado.eje?.genesisId,
     parteConfiguracion: estado.config || undefined, arranque: estado.arranque, ensayo: estado.arranque ? botonEnsayo() ?? undefined : undefined, copia: estado.copia, opinar: opinar.estadoDe(globalThis.localStorage),
     archivo: (id) => archivos.contenido(id), // los archivos adjuntos (el HTML del PV0 en su iframe aislado, las imágenes)
+    bandeja: vistaBandeja(), // la bandeja (A33): la cuenta del marco, la tira donde se compuso y el 4
   };
 }
 
@@ -769,6 +881,12 @@ async function pintar() {
       }
     }
     if (a && !a.vacio) a.guia = datosGuia();
+    // La bandeja (A33): el pie del formulario que va por ella y, si cambió el libro, quién mira o el borrador (lo bajado al
+    // sincronizar también), otra prueba en seco y otro pintado.
+    if (a?.formulario && estado.formulario) a.formulario.bandeja = pieDelFormulario();
+    const fa = estado.formulario;
+    if (modoDelFormulario(fa) === 'ahora' && !fa.prueba && !fa.pidiendo) { fa.pidiendo = true; void probarFormularioAhora(); }
+    if (estado.eje && claveDeLaPrueba() !== estado.bandeja.clave) void probarBandeja().then(() => pintar());
     const extra = extraDe();
     limpiarLottie();
     for (const [k, v] of Object.entries(variablesDeColor(a?.colores))) document.documentElement.style.setProperty(k, v);
@@ -1495,7 +1613,7 @@ const manejadores = {
     const b = coincidenciaEnPantalla(raiz, input?.value ?? '');
     if (!b) return false;
     const X = b.dataset.x ?? estado.aro?.X;
-    if (b.dataset.lanzar !== undefined) manejadores.lanzar(X, b.dataset.lanzar, null);
+    if (b.dataset.lanzar !== undefined) manejadores.lanzar(X, b.dataset.lanzar, null, { aro: true }); // desde el aro: ejecutar ahora (A33)
     else manejadores.opcion(X, Number(b.dataset.opcion), b.dataset.valor);
     return true;
   },
@@ -1515,9 +1633,9 @@ const manejadores = {
   /** Las teclas 1-4 y 6-9 con el aro abierto: lanzar la acción por defecto de ese sitio (si no tiene, nada). */
   aroTecla(pv) {
     const hueco = ultimo?.aro?.huecos?.find((h) => h.pv === pv);
-    if (estado.aro && hueco?.accion) manejadores.lanzar(estado.aro.X, hueco.accion.id);
+    if (estado.aro && hueco?.accion) manejadores.lanzar(estado.aro.X, hueco.accion.id, null, { aro: true }); // desde el aro: ejecutar ahora (A33)
   },
-  lanzar(X, accion, paso, { ejecutar = false } = {}) {
+  lanzar(X, accion, paso, { ejecutar = false, aro = false, pv = null } = {}) {
     const sobre = X ?? estado.aro?.X ?? estado.foco.X;
     estado.accionesAbiertas?.clear(); // lanzada desde el «+n», la lista flotante se cierra (también si pide un archivo)
     // Una acción que pide un archivo (un parámetro cuyo 4 es «file»: «adjuntar un archivo»): el selector de archivos, ya
@@ -1542,6 +1660,106 @@ const manejadores = {
     estado.aro = null;
     limpiarMensajes();
     tocar(sobre, 'lanzar ' + canonicoDe(accion));
+    // La bandeja (A33, VG 18-11): desde un punto de vista no se escribe nada: se compone. Si la acción ya tiene entrada en
+    // ese sitio, se abre esa; si no pide nada, la entrada se pone al tocar; si pide algo, el formulario sin botón que
+    // escriba (cada cambio es el borrador). Desde el aro (o sus atajos), «ejecutar ahora» por el mismo camino.
+    const f = estado.formulario;
+    if (!soloLee(accion) && !aro) {
+      const donde = { X: sobre, pv: Number.isInteger(pv) ? pv : null };
+      const campos = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad, valores)?.campos ?? [] : [];
+      Object.assign(f, { modo: 'bandeja', donde, entrada: null, requeridos: campos.filter((c) => c.requerido).map((c) => c.nombre) });
+      const previa = bandeja()?.listar().entradas.find((e) => e.accion === accion && e.X === sobre && e.donde.X === donde.X && e.donde.pv === donde.pv);
+      if (previa) Object.assign(f, { valores: { ...previa.valores }, entrada: previa.id });
+      else if (!campos.some((c) => c.falta)) {
+        // No pide nada: la entrada, al tocar (los defectos los pone el núcleo al componer); ningún formulario.
+        const r = ponerDesdeElFormulario(f);
+        estado.formulario = null;
+        if (r?.ok) estado.exito = t('bandejaPuesto', { accion: nombreDeAccion(accion) });
+      }
+    } else if (!soloLee(accion)) f.modo = 'ahora'; // el pintado lo prueba en seco y enseña el resumen
+    pintar();
+  },
+  /** Un campo del formulario de una acción cambió (A33): en la bandeja, su entrada se pone o se actualiza y se dice si entra; en «ahora», se prueba. */
+  cambioFormulario(form) {
+    const f = estado.formulario;
+    if (!f || !form) return;
+    const { valores, motivos } = valoresDelFormulario(form);
+    f.valores = valores;
+    const modo = modoDelFormulario(f);
+    if (modo === 'bandeja') {
+      ponerDesdeElFormulario(f, motivos);
+      repintarBandejaEnFormulario();
+      void probarBandeja().then(() => { if (estado.formulario === f) repintarBandejaEnFormulario(); });
+    } else if (modo === 'ahora') {
+      clearTimeout(f.espera);
+      f.espera = setTimeout(() => void probarFormularioAhora(), 300);
+    }
+  },
+  /** «listo» en el formulario de la bandeja: lo escrito ya está en el borrador; se cierra y se ve donde se compuso. */
+  bandejaListo(form) {
+    const f = estado.formulario;
+    if (!f) return;
+    // Cerrar sin tocar nada no deja entrada: solo se pone lo que ya es entrada (algún campo cambió).
+    if (form && f.entrada && modoDelFormulario(f) === 'bandeja') {
+      const { valores, motivos } = valoresDelFormulario(form);
+      f.valores = valores;
+      ponerDesdeElFormulario(f, motivos);
+    }
+    estado.formulario = null;
+    pintar();
+  },
+  /** Quitar una entrada de la bandeja (y lo que depende de ella); si su formulario estaba abierto, se cierra. */
+  bandejaQuitar(id) {
+    const b = bandeja();
+    if (!b || !id) return;
+    const r = b.quitar(id);
+    limpiarMensajes();
+    if (r.ok) {
+      if (estado.formulario && r.quitadas.includes(estado.formulario.entrada)) estado.formulario = null;
+      estado.exito = t('bandejaQuitado', { n: r.quitadas.length });
+    } else estado.aviso = r.motivo;
+    pintar();
+  },
+  /** Volver a abrir una entrada de la bandeja: su formulario con lo escrito. */
+  bandejaAbrir(id) {
+    const e = bandeja()?.listar().entradas.find((x) => x.id === id);
+    if (!e || typeof e.X !== 'string' || !estado.eje?.obtener(e.X)) return;
+    const campos = formulario(estado.eje, e.X, e.accion, estado.identidad, e.valores)?.campos ?? [];
+    estado.formulario = { X: e.X, accion: e.accion, valores: { ...e.valores }, motivos: [], resultado: null, modo: 'bandeja', donde: e.donde, entrada: e.id, requeridos: campos.filter((c) => c.requerido).map((c) => c.nombre) };
+    estado.aro = null;
+    limpiarMensajes();
+    pintar();
+  },
+  /** La cuenta del marco: al 4 del registro en que estás. */
+  bandejaIr() {
+    if (!estado.foco.X) return;
+    estado.formulario = null;
+    if (enSecuencia()) manejadores.digito(PV_DE_LA_BANDEJA);
+    else irA(estado.foco.X, PV_DE_LA_BANDEJA);
+  },
+  /** El botón del 4: ejecutar la bandeja entera, todo o nada, con el firmante de hoy. Si falla antes de asentar, el borrador sigue y se ve el motivo. */
+  async bandejaEjecutar() {
+    const b = bandeja();
+    if (!b || estado.bandeja.ocupado) return;
+    limpiarMensajes();
+    estado.bandeja.ocupado = true;
+    estado.bandeja.motivos = [];
+    pintar();
+    let r;
+    try {
+      r = await b.ejecutar(estado.eje, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() });
+    } catch (e) {
+      r = { ok: false, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] };
+    }
+    estado.bandeja.ocupado = false;
+    if (r.ok) {
+      await trasEjecutar(r);
+      tocar(estado.foco.X, 'ejecutar la bandeja');
+    } else {
+      const motivos = motivosConGuardian(motivosEnLlano(r.motivos ?? [], estado.eje));
+      estado.bandeja.motivos = [{ mensaje: t('bandejaNoRegistrado', { motivo: motivos.map((m) => m.mensaje).join(' · ') }) }];
+    }
+    estado.bandeja.clave = null; // otra prueba en seco con lo de ahora
     pintar();
   },
   /** El 3 por tema (encargo pv3): el botón de una caja cicla todos → doy → recibo. */
@@ -1640,43 +1858,41 @@ const manejadores = {
     const { valores, motivos } = valoresDelFormulario(form);
     f.valores = valores;
     if (motivos.length) { f.motivos = motivos; f.resultado = null; pintar(); return; }
+    // La bandeja (A33): un formulario de la bandeja no escribe (Enter es «listo»); uno de lectura lee sin escribir; lo
+    // demás («ejecutar ahora»: el aro, sus atajos y lo que se abre fuera de un punto de vista) va por el mismo camino que
+    // el 4: lo que exige antes (la reserva de un mensaje) en el mismo todo o nada, prueba en seco, firma y asiento.
+    const modo = modoDelFormulario(f);
+    if (modo === 'bandeja') { manejadores.bandejaListo(form); return; }
+    if (!modo) {
+      const r = await previsualizar(estado.eje, f.X, f.accion, valores, estado.identidad, undefined, { idioma: idioma() });
+      if (r.ok && r.lectura) { f.resultado = sinNombreInterno(r.lectura.mensaje, estado.eje); f.motivos = []; }
+      else { f.motivos = motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)); f.resultado = null; }
+      pintar();
+      return;
+    }
     // Ejecutar desde el 4 (VG 12-11, decisión 7): la T se quema en la denominación que enseña el formulario (la propuesta o
     // la que sale de la escala elegida); el botón no se bloquea por el rango: apagado también se pulsa.
     const denominacion = f.ejecutar ? (f.escala ?? acciones.ejecucion(estado.eje, f.accion, { X: f.X, ...valores }, estado.identidad, { idioma: idioma() }).denominacion ?? undefined) : undefined;
-    // Un mensaje de una conversación pide antes la reserva de quien escribe (docs/notas/R_EN_CANALES.md): se escribe aquí,
-    // con su coste a la vista y confirmada; si no entra, el mensaje no se intenta.
-    const antes = await antesDelMensaje(estado.eje, f.X, f.accion, valores, estado.identidad, { idioma: idioma() });
-    for (const x of antes.registros) {
-      if (!(await confirmarEnPagina(t('reservaAntes', { coste: x.coste ? textoDelCoste(x.coste) : t('salidaSinCoste') })))) return;
-      const rr = await enviar(estado.eje, x.X, x.plantilla, x.valores, estado.identidad, firmarCon(estado.identidad));
-      if (!rr.asentado) {
-        f.motivos = [{ mensaje: t('reservaNoEntra', { motivo: motivosConGuardian(motivosEnLlano(rr.motivos, estado.eje)).map((m) => m.mensaje).join('; ') }) }];
-        f.resultado = null;
-        pintar();
-        return;
-      }
-      trasEscribir();
-      estado.exito = t('reservaHecha');
+    if (f.ocupado) return;
+    f.ocupado = true;
+    repintarBandejaEnFormulario();
+    let r;
+    try {
+      r = await ejecutarAhora(estado.eje, estado.identidad, firmarCon(estado.identidad), { accion: f.accion, X: f.X, valores }, { idioma: idioma(), ...(denominacion ? { denominacion } : {}) });
+    } catch (e) {
+      r = { ok: false, motivos: [{ mensaje: enLlano(String(e?.message ?? e), e) }] };
     }
-    const r = await enviar(estado.eje, f.X, f.accion, valores, estado.identidad, firmarCon(estado.identidad), denominacion ? { denominacion } : {});
-    if (r.ok && r.asentado) {
-      // Una cosa dada de alta nace también con su HTML básico en el PV0 (VG 14-11, #84), como mi cuenta.
-      if (canonicoDe(f.accion) === 'register a thing') await adjuntarHtmlInicial(estado.eje, r.asentado.id, estado.identidad, firmarCon(estado.identidad), idioma());
-      trasEscribir();
+    f.ocupado = false;
+    if (r.ok) {
+      await trasEjecutar(r);
       if (f.propuesta) externa.quitarPropuesta(almacenLocal(), dondePropuestas(), f.propuesta);
-      estado.formulario = null;
-      estado.exito = t('registrado', { accion: nombreDeAccion(f.accion), id: r.asentado.id.slice(0, 8) }) + (r.asentado.firma ? ' ' + t('firmado') : '');
+      if (estado.formulario === f) estado.formulario = null;
       tocar(f.X, 'hecho ' + canonicoDe(f.accion));
-      marcarNuevos();
-    } else if (r.ok && r.lectura) {
-      f.resultado = sinNombreInterno(r.lectura.mensaje, estado.eje);
-      f.motivos = [];
-    } else if (r.ok && !r.evento) {
-      f.resultado = r.pasos ? t('pasosMios', { cuantos: r.pasos.length }) : r.paso ? t('elPaso', { que: r.paso.hacer ? nombreDeAccion(r.paso.hacer.plantilla) : r.paso.falta }) : t('nadaQueHacer');
-      f.motivos = [];
     } else {
-      f.motivos = motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)); // lo escrito sigue en el formulario (f.valores)
+      f.motivos = motivosConGuardian(motivosEnLlano(r.motivos ?? [], estado.eje)); // lo escrito sigue en el formulario (f.valores)
       f.resultado = null;
+      f.prueba = null;
+      f.pidiendo = false; // otra prueba en seco con lo de ahora
     }
     pintar();
   },

@@ -597,4 +597,15 @@ export async function ejecutarAhora(eje, yo, firmar, { accion, X, valores = {} }
   return lanzar(eje, yo, firmar, [entrada], opciones);
 }
 
+/**
+ * Lo que enseña el aro antes de «ejecutar ahora»: la misma prueba en seco que el 4 (componer), con esa acción y lo que
+ * exige antes, sin borrador. → lo que da probar.
+ */
+export async function probarAhora(eje, yo, { accion, X, valores = {} } = {}, opciones = {}) {
+  const entrada = { id: 'ahora', accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
+  const falla = fallaDeEntrada(entrada, new Set());
+  if (falla) return { ok: false, items: [], motivos: [motivo(falla)], cuesta: { segundos: 0 } };
+  return componer(eje, yo, [entrada], opciones);
+}
+
 export { TANDA_MINIMA, TANDA_MAXIMA };

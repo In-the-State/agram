@@ -678,7 +678,7 @@ test('gestos: un clic en una celda de la rejilla o en la acción de un sitio del
   g.disparar('click', { target: enContenedorConFila({ dataset: { celda: 'R2', pv: '1' }, closest: () => ({ dataset: { rejilla: '1' } }) }, '[data-celda]'), preventDefault() {} });
   g.disparar('click', { target: enContenedorConFila({ dataset: { lanzar: 'A1', x: 'X1' } }, '[data-lanzar]'), preventDefault() {} });
   g.disparar('click', { target: { closest: (sel) => (sel === 'button[data-fila]' ? { dataset: { fila: '3' } } : null) }, preventDefault() {} });
-  assert.deepEqual(g.llamadas, [['celda', 1, 'R2'], ['lanzar', 'X1', 'A1', null], ['fila', 3]]);
+  assert.deepEqual(g.llamadas, [['celda', 1, 'R2'], ['lanzar', 'X1', 'A1', null, {}], ['fila', 3]]);
 });
 
 test('gestos: el doble clic (o doble toque) pone como foco lo que había bajo el primer clic, aunque el primero ya entrara y repintara (#23); sobre el centro sigue editando; dentro del aro no hace nada; el clic y el mantener no cambian', () => {

@@ -11,6 +11,7 @@
 import { NIVEL, ANIMAR, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { cssSeguro } from '../src/contrato.js';
+import { PV_DE_LA_BANDEJA, tienePendiente, htmlCuentaDeLaBandeja, htmlTiraDeLaBandeja, htmlMarcaDeLaBandeja, htmlBandejaDelCuatro, htmlPieDeLaBandeja } from './bandeja-pantalla.js';
 
 export const escapar = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const corto = (id) => String(id ?? '').slice(0, 8);
@@ -175,6 +176,8 @@ function htmlEscena(e, bloque) {
  * carta/archivos.js); html() lo fija en cada pintado. Sin él, un archivo se pinta como «no disponible».
  */
 let archivoDe = () => null;
+/** La bandeja de este pintado (extra.bandeja, carta/bandeja-pantalla.js vistaDeLaBandeja) o null; html() la fija. */
+let bandejaEnPantalla = null;
 
 /**
  * La política que lleva delante el HTML aislado (además del sandbox): nada se pide fuera (sin red, sin referer), solo
@@ -1421,7 +1424,9 @@ function htmlLateral(n, arbol, { enFila = false } = {}) {
       ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}><button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(n.escribir.id)}">${htmlEscribir(n.escribir)}</button></p>`
       : `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</p>`;
     const lista = n.vacio ? vacio : htmlOcupantes(n.ocupantes, { pv: n.pv, disposicion: n.disposicion, conAro: true });
-    cuerpo = fondo + (enFila ? '' : cabeza) + (n.rejilla ? htmlRejilla(n.rejilla, { apilada: enFila }) : lista) + (n.nivel >= NIVEL.tarjeta ? htmlPorAutorizar(n.porAutorizar) : '') + (n.nivel >= NIVEL.bloque ? htmlDiario(n.diario) + htmlOpiniones(n.opiniones) : '') + camino
+    // El 4 (A33): arriba, la bandeja entera del libro, primero lo compuesto sobre este registro.
+    const bandeja = n.pv === PV_DE_LA_BANDEJA ? htmlBandejaDelCuatro(bandejaEnPantalla, n.X) : '';
+    cuerpo = fondo + (enFila ? '' : cabeza) + bandeja + (n.rejilla ? htmlRejilla(n.rejilla, { apilada: enFila }) : lista) + (n.nivel >= NIVEL.tarjeta ? htmlPorAutorizar(n.porAutorizar) : '') + (n.nivel >= NIVEL.bloque ? htmlDiario(n.diario) + htmlOpiniones(n.opiniones) : '') + camino
       + `<footer class="pv-pie"><button type="button" class="entrar" data-foco-pv="${n.pv}" data-x="${n.X}">${t('entrar')}</button><small class="ayuda">${escapar(n.ayuda ?? '')}</small></footer>`;
   }
   return `<section class="${clases}"${nodo('pv', { tam: n.pasoDeTamano?.nombre ?? NOMBRE_NIVEL[n.nivel], rep: repDe(n.representacion) })} data-pv="${n.pv}" data-x="${n.X}" data-nivel="${n.nivel}" aria-label="${attr(n.etiqueta)}" tabindex="0">${cuerpo}</section>`;
@@ -1547,7 +1552,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   return `<section class="nucleo abierto tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'abierto', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}"${c.estilo && !c.rejilla ? ` data-id="${attr(c.X)}"` : ''} aria-label="${attr(c.etiqueta)}">
     <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}${htmlAccionesDeCabecera(c.acciones)}</header>
     ${c.rejilla ? '' : htmlFondo(c.escena?.fondo)}
-    ${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
+    ${c.pv === PV_DE_LA_BANDEJA ? htmlBandejaDelCuatro(bandejaEnPantalla, c.X) : ''}${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
     <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${c.pv === caminoDelPintado() && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
   </section>`;
 }
@@ -1641,11 +1646,12 @@ const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" cla
 export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false, sin = null } = {}) {
   if (!a || !a.total) return '';
   const X = a.X;
-  const boton = (x) => htmlBotonDeAccion(x, X, 'accion' + (x.id === a.destacada ? ' destacada' : ''));
+  // La ficha de una acción con algo suyo en la bandeja lleva la marca de pendiente (A33).
+  const boton = (x) => htmlBotonDeAccion(x, X, 'accion' + (x.id === a.destacada ? ' destacada' : '') + (tienePendiente(bandejaEnPantalla, X, x.id) ? ' pendiente' : ''));
   const etiqueta = `role="group" aria-label="${attr(t('franjaTitulo', { que: a.etiqueta ?? '' }))}"`;
   if (marca) {
     const dest = conDestacada && a.destacada ? a.nombradas.concat(a.resto).find((x) => x.id === a.destacada) : null;
-    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small></span>`;
+    return `<span class="pv-acciones marca"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${dest ? boton(dest) : ''}<small class="pv-acciones-cuantas" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</small></span>${htmlMarcaDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;
   }
   const nombradas = a.nombradas.filter((x) => x.id !== sin);
   const resto = a.resto.filter((x) => x.id !== sin);
@@ -1653,7 +1659,8 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
   while (nombradas.length < a.nombradas.length && resto.length) nombradas.push(resto.shift());
   if (!nombradas.length && !resto.length) return '';
   const mas = resto.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${resto.length}</summary><div class="pv-acciones-desplegadas">${resto.map(boton).join('')}</div></details>` : '';
-  return `<div class="pv-acciones"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${nombradas.map(boton).join('')}${mas}</div>`;
+  // Bajo la cabecera, lo compuesto en este sitio y aún en la bandeja (A33: «lo compuesto se ve donde se compuso»).
+  return `<div class="pv-acciones"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${nombradas.map(boton).join('')}${mas}</div>${htmlTiraDeLaBandeja(bandejaEnPantalla, X, a.pv)}`;
 }
 
 /**
@@ -1822,8 +1829,10 @@ function htmlFormulario(f) {
   const motivos = f.motivos?.length ? `<ul class="motivos" role="alert">${f.motivos.map((m) => `<li>${retocable(m.mensaje, m.retocar)}</li>`).join('')}</ul>` : '';
   const resultado = f.resultado ? `<p class="exito" role="status">${escapar(f.resultado)}</p>` : '';
   const reverso = Boolean(f.reverso);
+  // Por la bandeja (A33): sin botón que escriba («listo» y «quitar»), o, desde el aro, el resumen y «ejecutar ahora».
   const pie = reverso
     ? `<button type="button"${nodo('control')} data-voltear-formulario title="${attr(t('formularioVolverTitulo'))}">${t('formularioVolver')}</button>`
+    : f.bandeja ? htmlPieDeLaBandeja(f.bandeja)
     : f.ejecucion ? `<button type="submit"${atributosDelBoton(f.ejecucion.boton)}>${f.animado && f.ejecucion.boton?.estado === 'efectos' ? '<span class="capa capa-efectos capa-ejecutar" aria-hidden="true"></span>' : ''}${tr('ejecutar')}</button>` : `<button type="submit">${tr(f.lectura ? 'leer' : f.camino ? 'darElPaso' : 'lanzar')}</button>`;
   return `<div class="formulario-fondo" data-cerrar><form class="formulario" data-formulario${nodo('formulario')} data-x="${f.X}" data-accion="${attr(f.accion)}"${reverso ? ' data-reverso' : ''} aria-label="${attr(f.nombre)}">
     <header><h2>${retocable(f.nombre, f.retocar)}</h2><button type="button" class="voltear-formulario" data-voltear-formulario aria-pressed="${reverso}" aria-label="${attr(t('formularioVoltear'))}" title="${attr(t('formularioVoltear'))}">↻</button><button type="button" class="cerrar" data-cerrar aria-label="${attr(t('cerrar'))}">×</button></header>
@@ -2440,6 +2449,7 @@ export function html(arbol, extra = {}) {
   conAnfitrion = extra.anfitrion === true; // la app que lleva la carta firma: lo por autorizar lleva «autorizar» (htmlPorAutorizar)
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
   retocando = arbol?.retocar ?? null; // el modo «retocar textos» (A20): solo lo trae el árbol de quien puede retocar
+  bandejaEnPantalla = extra.bandeja ?? null; // la bandeja (A33): su cuenta en el marco, la tira donde se compuso y el 4
   // Sin eje (nadie ha elegido aún cuenta ni ejemplo): la pantalla de arranque entera.
   if (extra.arranque && (!arbol || arbol.vacio)) return `<div class="carta vacia">${extra.aviso ? `<p class="aviso" role="alert">${escapar(extra.aviso)}</p>` : ''}${htmlArranque(extra.arranque, { cuentas: extra.cuentas, sobreCarta: false, emparejar: extra.emparejar, ensayo: extra.ensayo })}${htmlInvitado(extra.invitado)}</div>`;
   if (!arbol || arbol.vacio) return `<div class="carta vacia"><p class="aviso">${escapar(arbol?.avisos?.join(' · ') ?? t('sinRegistro'))}</p></div>`;
@@ -2458,7 +2468,7 @@ export function html(arbol, extra = {}) {
     ${a.apilada ? htmlCeroColumna(a.centro?.sitio) : ''}
     ${htmlTusLibros(extra.libros)}
     ${avisos.length ? `<p class="aviso" role="alert">${avisos.map(escapar).join(' · ')}</p>` : ''}${htmlGuardian(extra.guardian)}
-    ${extra.exito ? `<p class="exito" role="status">${escapar(extra.exito)}</p>` : ''}
+    ${extra.exito ? `<p class="exito" role="status">${escapar(extra.exito)}</p>` : ''}${htmlCuentaDeLaBandeja(extra.bandeja)}
     ${htmlRosetones(a.rosetones, { apilada: a.apilada, parte: 'arriba' })}
     <div class="escena">${escena}</div>
     ${htmlRosetones(a.rosetones, { apilada: a.apilada, parte: 'abajo' })}
