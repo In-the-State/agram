@@ -65,6 +65,33 @@ export class Autoridad {
     else await eje.anadir(evento);
   }
 
+  /**
+   * Juzga y aplica una tanda entera (CONTRATO_TANDA de AGRAM), todos o ninguno, con eje.anadirTanda del núcleo: valida en
+   * orden, cada miembro viendo los anteriores, y si uno falla no toca el libro. → { ok: true } o { ok: false, indice,
+   * reason, sinTandas? }. Con un núcleo sin tandas, no entra ninguna (sinTandas). Traído de la rama `tanda` de
+   * aarpia-transporte (1ba105c), sin el código de límite, que esta copia aún no tiene.
+   */
+  async aplicarTanda(nombre, eventos) {
+    let eje = this.ejes.get(nombre);
+    let resto = eventos;
+    let nuevo = null;
+    if (!eje) {
+      // Eje vacío: el primero es el génesis (solo vale para el primero); el libro solo se guarda si entra la tanda entera.
+      try { nuevo = await Eje.desde([eventos[0]], { exigirFirmas: this.exigirFirmas }); } catch (e) { return { ok: false, indice: 0, reason: [String(e.message)] }; }
+      eje = nuevo;
+      resto = eventos.slice(1);
+    }
+    if (typeof eje.anadirTanda !== 'function') return { ok: false, indice: 0, reason: ['el núcleo de esta puerta aún no trae tandas (eje.anadirTanda)'], sinTandas: true };
+    let r;
+    try { r = await eje.anadirTanda(resto); } catch (e) { r = { indice: e?.indice ?? 0, motivos: e?.motivos ?? [String(e.message)] }; }
+    if (r && Number.isInteger(r.indice)) {
+      const motivos = (r.motivos ?? []).map((m) => m?.texto ?? m?.mensaje ?? String(m));
+      return { ok: false, indice: r.indice + (nuevo ? 1 : 0), reason: motivos };
+    }
+    if (nuevo) this.ejes.set(nombre, nuevo);
+    return { ok: true };
+  }
+
   /** Rehace el libro y los rechazos desde el archivo del relé (en orden de llegada), sin volver a juzgar. */
   async restaurar(eventosEnOrden) {
     const aceptados = juzgadosAceptados(eventosEnOrden); // solo lo que aceptó la autoridad (recibo con `nucleo`)

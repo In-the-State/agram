@@ -24,7 +24,7 @@ import { createServer } from 'node:http';
 import { readFileSync, writeFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
-import { crearApi, hashDeClave } from '../supabase/funciones/eventos/api.js';
+import { crearApi, hashDeClave, llevaMarcaDeTanda } from '../supabase/funciones/eventos/api.js';
 import * as criptoNucleo from './cripto-nucleo.mjs';
 import { crearGuia } from '../supabase/funciones/guia/api.js';
 import { crearArchivos } from '../supabase/funciones/archivos/api.js';
@@ -87,11 +87,25 @@ export function almacenEnMemoria({ archivo, ahora = () => new Date() } = {}) {
       return f ? { orden: f.orden, recibido: f.recibido } : null;
     },
     async insertar(eje, { id, autor, firma, cuerpo }) {
+      // Un miembro de una tanda nunca se guarda por el camino suelto, venga de donde venga (CONTRATO_TANDA): solo insertarTanda.
+      if (llevaMarcaDeTanda(cuerpo)) throw Object.assign(new Error('un miembro de una tanda no se guarda suelto'), { estado: 400 });
       if (lista(eje).some((x) => x.id === id)) return null;
       const fila = { eje, id, orden: datos.siguienteOrden++, recibido: ahora().toISOString(), autor, firma, cuerpo };
       datos.eventos[eje].push(fila);
       volcar();
       return { orden: fila.orden, recibido: fila.recibido };
+    },
+    // Una tanda (CONTRATO_TANDA), todas o ninguna: se comprueba y se escribe sin ningún await entre medias, así que nada
+    // de otra petición se cuela (Node atiende de una en una dentro de un paso síncrono) y los órdenes salen seguidos. Un
+    // solo volcado al archivo, con la tanda entera.
+    async insertarTanda(eje, filas) {
+      const ids = new Set(lista(eje).map((x) => x.id));
+      if (filas.some((f) => ids.has(f.id)) || new Set(filas.map((f) => f.id)).size !== filas.length) return null;
+      const recibido = ahora().toISOString();
+      const nuevas = filas.map(({ id, autor, firma, cuerpo }) => ({ eje, id, orden: datos.siguienteOrden++, recibido, autor, firma, cuerpo }));
+      datos.eventos[eje].push(...nuevas);
+      volcar();
+      return nuevas.map((f) => ({ orden: f.orden, recibido: f.recibido }));
     },
     async listar(eje, desde, cuantos) {
       return lista(eje).filter((f) => f.orden > desde).slice(0, cuantos).map((f) => ({ orden: f.orden, recibido: f.recibido, cuerpo: f.cuerpo }));

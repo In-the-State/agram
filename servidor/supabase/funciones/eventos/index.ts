@@ -15,7 +15,7 @@
 // necesita la clave anónima. Cómo probarla a mano: LEEME.md en esta carpeta.
 
 // deno-lint-ignore-file no-explicit-any
-import { crearApi } from './api.js';
+import { crearApi, llevaMarcaDeTanda } from './api.js';
 
 type Fila = Record<string, any>;
 
@@ -67,8 +67,26 @@ function almacenPostgrest(url: string, servicio: string) {
       return fila ? { orden: Number(fila.orden), recibido: iso(fila.recibido) } : null;
     },
     async insertar(eje: string, { id, autor, firma, cuerpo }: Fila) {
+      // Un miembro de una tanda nunca se guarda por el camino suelto (CONTRATO_TANDA); el disparador de 0003_tanda.sql lo impide también en la base.
+      if (llevaMarcaDeTanda(cuerpo)) throw Object.assign(new Error('un miembro de una tanda no se guarda suelto'), { estado: 400 });
       const fila = await insertar('eventos', { eje, id, autor, firma, cuerpo });
       return fila ? { orden: Number(fila.orden), recibido: iso(fila.recibido) } : null;
+    },
+    async insertarTanda(eje: string, filas: Fila[]) {
+      // Una tanda, todas o ninguna: la función SQL insertar_tanda (migraciones/0003_tanda.sql) las inserta en UNA
+      // transacción, con la tabla bloqueada contra otras inserciones (órdenes consecutivos). Devuelve una fila por
+      // miembro, en orden; ninguna si alguna ya estaba (no inserta nada). Un choque de clave a la vez: 409 (nada entra).
+      const r = await fetch(base + 'rpc/insertar_tanda', {
+        method: 'POST',
+        headers: cabeceras,
+        body: JSON.stringify({ p_eje: eje, p_filas: filas.map(({ id, autor, firma, cuerpo }) => ({ id, autor, firma, cuerpo })) }),
+      });
+      if (r.status === 409) return null;
+      if (!r.ok) throw new Error('PostgREST ' + r.status + ' al insertar la tanda: ' + (await r.text()));
+      const salida = (await r.json()) as Fila[];
+      if (!salida.length) return null;
+      if (salida.length !== filas.length) throw new Error('insertar_tanda devolvió ' + salida.length + ' filas para ' + filas.length + ' miembros');
+      return salida.map((f) => ({ orden: Number(f.orden), recibido: iso(f.recibido) })).sort((a, b) => a.orden - b.orden);
     },
     async listar(eje: string, desde: number, cuantos: number) {
       const filas = await consultar('eventos', { select: 'orden,recibido,cuerpo', eje: eq(eje), orden: 'gt.' + desde, order: 'orden.asc', limit: String(cuantos) });

@@ -2,7 +2,7 @@
 // (servidor/supabase/funciones/eventos/api.js, la de AGRAM, importada sin tocar), con el almacén cambiado:
 // en vez de Postgres, el relé Nostr (en memoria aquí; uno real mañana).
 //
-//   POST /eventos/ejes · POST /eventos · GET /eventos?eje&desde&cuantos   → idénticos a AGRAM
+//   POST /eventos/ejes · POST /eventos · POST /eventos/tanda · GET /eventos?eje&desde&cuantos   → idénticos a AGRAM
 //   GET  /eventos/recibo?eje=…&id=<id AGRAM>                            → el reloj X.6.8.1 (nuevo, no rompe nada)
 //        { instante, rele, firma, recibo, sobre }: `sobre` es el recibo único entero (stateark.recibo@1:
 //        schema, emisor, t, recibo, id, firma), con «orden» y «anterior» (la llegada encadenada, docs/notas/ORDEN_FIRMADO.md)
@@ -27,7 +27,7 @@
 // creció desde el lote anterior: el remate del orden firmado (Correcciones del 17-11, punto 5). Quien tenga la
 // cadena pide la prueba de ese id al mismo sellador, como la de cualquier id.
 
-import { crearApi, hashDeClave } from '../../../supabase/funciones/eventos/api.js';
+import { crearApi, hashDeClave, llevaMarcaDeTanda } from '../../../supabase/funciones/eventos/api.js';
 import * as verificar from '../../../supabase/funciones/eventos/verificar.js';
 import { Rele, relojDeRecibo, KIND_EVENTO, juzgadosAceptados } from './rele.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
@@ -52,13 +52,15 @@ export function sobreDe(recibo) {
  * El almacén que espera api.js, sobre un relé. Los ejes (nombre y hash de la
  * clave de lectura) viven aquí: un relé no sabe de ejes; solo los etiqueta (h).
  */
-export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(), antesDePublicar = async () => {}, alCrearEje = () => {}, soloJuzgados = false }) {
+export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(), antesDePublicar = async () => {}, antesDePublicarTanda = null, alCrearEje = () => {}, soloJuzgados = false }) {
   const ejes = new Map(); // nombre → { eje, clave_lectura_hash, creado }
   const indices = new Map(); // eje → [{ orden, id, nostr, recibido }] por llegada
   const lista = (eje) => indices.get(eje) ?? [];
   const eventoDe = (fila) => desenvolver(rele.consultar({ ids: [fila.nostr] })[0]);
   let enCursoInsertar = Promise.resolve();
   async function insertarYa(eje, { id, cuerpo }) {
+    // Un miembro de una tanda nunca se guarda por el camino suelto, venga de donde venga (CONTRATO_TANDA): solo insertarTanda.
+    if (llevaMarcaDeTanda(cuerpo)) throw Object.assign(new Error('un miembro de una tanda no se guarda suelto'), { estado: 400 });
     if (lista(eje).some((x) => x.id === id)) return null;
     await antesDePublicar(eje, cuerpo);
     const sobre = await envolver({ evento: cuerpo, eje, privada: privadaTransporte, claveDe: (n) => almacen.claveDe(eje, n), ahora: ahora() });
@@ -67,6 +69,29 @@ export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(),
     const fila = { orden: lista(eje).length + 1, id, nostr: sobre.id, recibido: relojDeRecibo(r.recibo).instante };
     indices.get(eje).push(fila);
     return { orden: fila.orden, recibido: fila.recibido };
+  }
+  // Una tanda (CONTRATO_TANDA de AGRAM), en la misma cola que insertar: con autoridad se juzga entera antes
+  // (antesDePublicarTanda lanza { estado, indice, id } si no entra); el relé la guarda de una vez (publicarVarios) y solo
+  // después entra en el índice, de golpe: GET /eventos no ve nunca media tanda.
+  async function insertarTandaYa(eje, filas) {
+    if (filas.some((f) => lista(eje).some((x) => x.id === f.id))) return null;
+    if (antesDePublicarTanda) await antesDePublicarTanda(eje, filas.map((f) => f.cuerpo));
+    // Los destinatarios (p) se resuelven por el alta, también la que viene en un miembro anterior de la misma tanda.
+    const claveDe = async (nombre) => {
+      const guardada = await almacen.claveDe(eje, nombre);
+      if (guardada !== undefined) return guardada;
+      const alta = filas.find((f) => Object.hasOwn(f.cuerpo?.contexto?.claves ?? {}, nombre));
+      return alta?.cuerpo.contexto.claves[nombre];
+    };
+    const sobres = [];
+    for (const f of filas) sobres.push(await envolver({ evento: f.cuerpo, eje, privada: privadaTransporte, claveDe, ahora: ahora() }));
+    const r = await rele.publicarVarios(sobres);
+    if (!r.ok) throw new Error('el relé no aceptó la tanda: ' + r.motivo);
+    if (!indices.has(eje)) indices.set(eje, []);
+    const base = lista(eje).length;
+    const nuevas = filas.map((f, i) => ({ orden: base + i + 1, id: f.id, nostr: sobres[i].id, recibido: relojDeRecibo(r.recibos[i]).instante }));
+    indices.get(eje).push(...nuevas);
+    return nuevas.map((f) => ({ orden: f.orden, recibido: f.recibido }));
   }
 
   const almacen = {
@@ -99,6 +124,12 @@ export function almacenRele({ rele, privadaTransporte, ahora = () => new Date(),
     // De uno en uno: el `orden` servido y el «orden» firmado de la cadena se dan en el mismo paso (nada se cruza entre dos POST).
     insertar(eje, datos) {
       const r = enCursoInsertar.then(() => insertarYa(eje, datos));
+      enCursoInsertar = r.catch(() => {});
+      return r;
+    },
+    /** [{ id, autor, firma, cuerpo }] → [{ orden, recibido }] con órdenes consecutivos, o null si alguna ya estaba (no inserta ninguna). */
+    insertarTanda(eje, filas) {
+      const r = enCursoInsertar.then(() => insertarTandaYa(eje, filas));
       enCursoInsertar = r.catch(() => {});
       return r;
     },
@@ -154,6 +185,7 @@ export function crearServicio({
   const almacen = almacenRele({
     rele, privadaTransporte, ahora, soloJuzgados: Boolean(autoridad),
     antesDePublicar: autoridad ? (eje, ev) => autoridad.aplicar(eje, ev) : undefined,
+    antesDePublicarTanda: autoridad ? (eje, eventos) => juzgarTanda(eje, eventos) : null,
     alCrearEje: archivoEjes ? (filas) => writeFileSync(archivoEjes, JSON.stringify(filas)) : undefined,
   });
   // El sellado de los recibos 7701 por lotes; cada lote lleva además el id del último recibo encadenado de cada eje que
@@ -187,12 +219,34 @@ export function crearServicio({
     if (autoridad) await autoridad.restaurar(eventos);
     return n;
   }
+  /**
+   * Con autoridad, la tanda se juzga entera aquí (no miembro a miembro en comprobar): aplicarTanda del libro de la
+   * autoridad, todos o ninguno. Si no entra, un solo 7703, el del miembro que falla, y un error { estado: 422, indice, id }
+   * para la respuesta (501 si el núcleo aún no trae anadirTanda, sin 7703). Como la rama `tanda` de aarpia-transporte.
+   */
+  async function juzgarTanda(nombre, eventos) {
+    const r = await autoridad.aplicarTanda(nombre, eventos);
+    if (r.ok) return;
+    const evento = eventos[r.indice];
+    if (!r.sinTandas && evento && !autoridad.rechazos.has(evento.id)) {
+      const claveAutor = evento.contexto?.claves?.[evento.autor] ?? (await almacen.claveDe(nombre, evento.autor));
+      await rele.publicar(await autoridad.rechazo({ nombre, evento, reason: r.reason, claveAutor, ahora: ahora() }));
+    }
+    throw Object.assign(new Error((r.sinTandas ? '' : 'tanda rechazada: ') + r.reason.join('; ')), { estado: r.sinTandas ? 501 : 422, indice: r.indice, id: evento?.id ?? null });
+  }
   let ejeEnCurso = null; // el eje del POST que se está atendiendo (los POST van de uno en uno)
+  let enRutaTanda = false; // el POST que se atiende es POST /eventos/tanda: lo fija la ruta, no la marca del registro
   const cripto = !autoridad ? verificar : {
     ...verificar,
     async comprobar(evento, contexto) {
       const r = await verificar.comprobar(evento, contexto);
       if (!r.ok) return r; // mala forma, id, firma o alta: 400/403 como en AGRAM, sin 7703
+      // Un miembro de una tanda se juzga con la tanda entera al insertarla (insertarTanda → juzgarTanda), no suelto. La
+      // marca la pone el cliente, así que no basta para saltarse el juicio: lo decide la ruta. Suelto, api.js ya da 400.
+      if (r.evento?.contexto?.tanda !== undefined) {
+        if (enRutaTanda) return r;
+        return { ok: false, estado: 400, error: 'un miembro de una tanda no entra suelto: va entera por POST /eventos/tanda' };
+      }
       const juicio = await autoridad.juzgar(ejeEnCurso, r.evento);
       if (juicio.ok) return r;
       if (!autoridad.rechazos.has(r.evento.id)) {
@@ -248,7 +302,8 @@ export function crearServicio({
         let datos = null;
         try { datos = JSON.parse(texto); } catch { /* api.js responde 400 */ }
         ejeEnCurso = datos?.eje ?? null;
-        const respuesta = await api(request);
+        enRutaTanda = /\/eventos\/tanda\/*$/.test(url.pathname); // el mismo camino exacto que reconoce api.js
+        const respuesta = await api(request).finally(() => { enRutaTanda = false; });
         if (respuesta.status !== 422) return respuesta;
         const detalle = autoridad.rechazos.get(datos?.evento?.id);
         const cuerpo = { ...(await respuesta.json()), ...detalle };
