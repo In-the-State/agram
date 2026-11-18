@@ -167,8 +167,6 @@ let irTrasPintar = null;
 const idioma = () => contrato.configuracion(estado.eje, estado.identidad).language;
 /** La clave de localStorage del libro local de quien mira: por cuenta, o la de los ejemplos. */
 const claveLocalDe = (id) => (estado.cuenta ? cuentas.CLAVES.local(estado.cuenta.alta, id) : CLAVES_EJEMPLO.local(id));
-/** El PV donde la carta pinta el camino (la geometría de VG: la cruz, abajo); ahí se abre el tutorial de un alta nueva. */
-const PV_CAMINO = Number(Object.keys(GEOMETRIA).find((pv) => GEOMETRIA[pv].grupo === 'cruz' && GEOMETRIA[pv].fila === 'abajo'));
 /** El nombre canónico de una acción del aro (por su id o su nombre): lo que anota el libro local. */
 function canonicoDe(accion) {
   // Con la época del libro abierto: una plantilla de una época hija (la de la guía) también tiene nombre.
@@ -2658,7 +2656,10 @@ const manejadores = {
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');
       estado.exito = t('cuentaCreada');
-      estado.niveles[PV_CAMINO] = NIVEL.tarjeta; // el tutorial del alta nueva, a la vista
+      // El tutorial del alta nueva, a la vista: lo que los pesos abren al empezar (epoch.9.5.8, «open at start»: el 9, en el
+      // tamaño de 9.5.2 que es su paso de nivel, la tarjeta).
+      const { alEmpezar } = contrato.pesos(r.eje);
+      if (alEmpezar.pv !== null && alEmpezar.tamano !== null) estado.niveles[alEmpezar.pv] = alEmpezar.tamano;
       estado.foco = { X: r.cuenta.alta, pv: 0 };
       tocar(r.cuenta.alta, null);
       marcarNuevos();

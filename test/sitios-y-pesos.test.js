@@ -60,6 +60,10 @@ const YA_NO = [
   ['carta.js', 'BOTONES_POR_NIVEL = Object.freeze({'],
   ['dom.js', 'const EJECUCIONES_EN_CELDA ='],
   ['dom.js', 'const SERIES_EN_EL_PIE ='],
+  ['carta.js', 'Object.freeze([1, 2, 0, 3, 4, 6, 7, 5, 8, 9])'],
+  ['carta.js', 'const digitos = [...pvs].sort('],
+  ['carta.js', '[...CENTROS, ...LATERALES].sort('],
+  ['app.js', 'PV_CAMINO'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
@@ -68,10 +72,10 @@ test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las t
   assert.deepEqual([p.proponenALaVista, p.ejecucionesEnCelda, p.ejecucionesEnCeldaAbierta, p.seriesEnElPie], [FOTO.proponenALaVista, FOTO.ejecucionesEnCelda, FOTO.ejecucionesEnCeldaAbierta, FOTO.seriesEnElPie]);
   // Las que aún están en el código (el paso 2 en curso), por su línea.
   tiene('dom.js', 'const ARRIBA = [' + FOTO.tiraDeArriba.join(', ') + '];');
-  tiene('carta.js', 'const digitos = [...pvs].sort((a, b) => a - b);');
-  tiene('carta.js', 'for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {');
-  assert.ok(fuente('app.js').includes('estado.niveles[PV_CAMINO] = NIVEL.tarjeta;'));
+  assert.deepEqual([p.rosetones, p.ordenDeSequenced, p.buscarDestacado, p.alEmpezar], [FOTO.rosetones, FOTO.ordenDeSequenced, FOTO.buscarDestacado, FOTO.alEmpezar]);
+  // Lo que se abre al empezar: su tamaño de 9.5.2 es el paso de nivel con que la app lo abre (la tarjeta).
   assert.equal(NIVEL.tarjeta, FOTO.alEmpezar.tamano);
+  assert.ok(fuente('app.js').includes('estado.niveles[alEmpezar.pv] = alEmpezar.tamano;'));
 });
 
 test('la foto: lo que la propuesta deja de escribir se deduce sin pérdida', () => {

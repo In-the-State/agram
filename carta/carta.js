@@ -1137,7 +1137,8 @@ const nivelDeTabla = (nivel) => (nivel >= NIVEL.bloque ? 'bloque' : nivel >= NIV
 
 /**
  * La acción destacada de la pantalla (VG 18-11, la forma C): la del primer paso mío del camino del elemento enfocado, si es
- * de una plantilla que el núcleo ofrece en uno de sus puntos de vista (el primero, del 0 al 9). Una sola por pantalla. Se
+ * de una plantilla que el núcleo ofrece en uno de sus puntos de vista (el primero en el orden de los pesos, «highlight search»:
+ * hoy del 0 al 9). Una sola por pantalla. Se
  * reconoce por el id de la plantilla que el camino ya trae, nunca por su nombre. → { X, pv, id } o null.
  */
 function destacadaDe(eje, X, camino, ctx) {
@@ -1147,7 +1148,7 @@ function destacadaDe(eje, X, camino, ctx) {
   if (!paso || paso.hacer.X !== X || !ctx.yo) return null;
   // El índice del paso va con ella: su botón lleva data-paso y abre el formulario con los parámetros del paso (el anuncio
   // que cumple, por ejemplo), igual que tocarlo en el camino (app.js lanzar).
-  for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {
+  for (const pv of pesosDe(ctx).buscarDestacado) {
     if (accionesDelPv(eje, X, pv, ctx).todas.some((a) => a.id === paso.hacer.id)) return { X, pv, id: paso.hacer.id, paso: i };
   }
   return null;
@@ -1784,14 +1785,14 @@ function interruptoresDe(configuracion, opciones) {
 
 /**
  * Los rosetones: diez mosaicos muy comprimidos de mi propio foco (mi alta), uno por PV, el 0 y el 5 incluidos. El
- * orden es el de las dos tiras del móvil (VG, 10-11): arriba el tetraedro de la X con su centro (1, 2, 0, 3, 4),
- * abajo la cruz con el suyo (6, 7, 5, 8, 9). En el ordenador, cada uno en su `sitio` (su esquina o lateral).
+ * orden es el de los pesos (epoch.9.5.8, «rosette order»; VG, 10-11: arriba el tetraedro de la X con su centro, 1 2 0 3 4,
+ * abajo la cruz con el suyo, 6 7 5 8 9). En el ordenador, cada uno en su `sitio` (su esquina o lateral). Esta es la de sin libro.
  */
-export const ORDEN_ROSETONES = Object.freeze([1, 2, 0, 3, 4, 6, 7, 5, 8, 9]);
+export const ORDEN_ROSETONES = PESOS_SIN_LIBRO.rosetones;
 function rosetonesDe(eje, yoDatos, ctx, medidas) {
   if (!yoDatos) return [];
   const alta = yoDatos.alta;
-  return ORDEN_ROSETONES.map((pv) => {
+  return pesosDe(ctx).rosetones.map((pv) => {
     const nivel = ctx.estado.rosetones?.[pv] ?? NIVEL.comprimido;
     const total = contrato.ocupantes(eje, alta, pv, 0, 0, ctx.opciones).total;
     const nodo = {
@@ -2907,7 +2908,7 @@ const zonaDelHilo = (pv) => (GEOMETRIA[pv]?.grupo === 'cruz' && GEOMETRIA[pv]?.f
 
 /**
  * Sequenced (el móvil en vertical, VG 11-11): lo que la columna necesita. Una fila por cada PV de la división (en el
- * orden de sus dígitos), cada una con su nodo: cerrada (comprimido, por defecto) o abierta (bloque, cuando
+ * orden de los pesos, «sequenced order»: hoy el de sus dígitos), cada una con su nodo: cerrada (comprimido, por defecto) o abierta (bloque, cuando
  * estado.niveles la pone en tarjeta o más), con el segundo nivel del PV (nodoLateral en bloque, con la rejilla). Las
  * filas del hilo (el pasado y el futuro) no se abren: su nodo, en bloque y paginado, va encima y debajo de la tarjeta.
  * La fila de dígitos lleva los mismos PV. → { filas, pasado, futuro, digitos, nodos }.
@@ -2916,7 +2917,7 @@ function secuenciaDe(eje, X, pvs, ctx, m) {
   const hueco = { ancho: m.ancho, alto: m.alto };
   const abierta = (pv) => (ctx.estado.niveles?.[pv] ?? NIVEL.comprimido) >= NIVEL.tarjeta;
   const nodos = {};
-  const digitos = [...pvs].sort((a, b) => a - b);
+  const digitos = pesosDe(ctx).ordenDeSequenced.filter((pv) => pvs.includes(pv)); // en el orden de los pesos («sequenced order»)
   for (const pv of digitos) {
     const hilo = zonaDelHilo(pv);
     const nivel = hilo || abierta(pv) ? NIVEL.bloque : NIVEL.comprimido;
