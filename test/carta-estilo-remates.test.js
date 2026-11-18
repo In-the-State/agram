@@ -41,3 +41,20 @@ test('matriz del 4: el nombre de una ficha no se parte por la mitad de una palab
   assert.ok(conEstado.length >= 2, 'la matriz tiene fichas con estado: ' + conEstado.length);
   for (const f of conEstado) assert.match(f, /class="ocupante[^"]*"[^]*class="abrir-aro"[^]*class="estacion-nombre"/);
 });
+
+test('el aro al editar el centro: las listas salen fuera del aro (la del 5 encima, la del 0 debajo) y no tapan los sitios 8 y 9', async () => {
+  // Se colocan respecto al aro: el centro y su caja de edición dejan de ser su referencia.
+  const estatico = regla('.aro.editando:not(.aro-nuevo) .aro-centro,.aro.editando:not(.aro-nuevo) .aro-centro>.aro-edicion,.aro.anclado.editando:not(.aro-nuevo) .aro-centro>.aro-edicion');
+  assert.match(estatico ?? '', /position:static/);
+  assert.match(regla('.aro.editando:not(.aro-nuevo) .aro-edicion .opciones') ?? '', /left:50%;transform:translateX\(-50%\)/, 'centradas en el aro');
+  assert.match(regla('.aro-edicion .opciones-arriba') ?? '', /bottom:calc\(100% \+ 4px\)/, 'la del 5, encima');
+  assert.match(regla('.aro-edicion .opciones-abajo') ?? '', /top:calc\(100% \+ 4px\)/, 'la del 0, debajo');
+  assert.match(regla('.aro') ?? '', /position:relative/, 'el aro es la referencia');
+  assert.match(regla('.aro.anclado') ?? '', /position:fixed/, 'también anclado');
+  // El HTML que la regla supone: las dos listas dentro de la caja de edición del centro, dentro del aro (no del aro de un hueco).
+  const claves = {};
+  for (const k of EJEMPLOS[0].identidades) claves[k] = await generarClaves();
+  const { eje, foco } = await EJEMPLOS[0].crear(comida, claves);
+  const h = html(await arbol({ foco: { X: foco, pv: 0 }, aro: { X: foco, pv: null, editar: true } }, eje, 'huesped', { ancho: 1440, alto: 900 }));
+  assert.match(h, /<div class="aro editando"[^]*<div class="aro-centro"[^]*<div class="aro-edicion"><ul class="opciones opciones-arriba"[^]*<input class="campo-input"[^]*<ul class="opciones opciones-abajo"/);
+});

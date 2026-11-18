@@ -266,6 +266,11 @@ small{color:var(--muted)}
 .aro-edicion .opciones{position:absolute;left:0;min-width:100%;width:max-content;max-width:min(60vw,320px);max-height:min(40vh,240px);overflow:auto;margin:0;padding:4px;list-style:none;display:grid;gap:2px;background:var(--bg);border:2px solid var(--accent);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:5}
 .aro-edicion .opciones-abajo{top:calc(100% + 4px)}
 .aro-edicion .opciones-arriba{bottom:calc(100% + 4px)}
+/* Al editar el centro, las dos listas salen fuera del aro, la del 5 encima de todo y la del 0 debajo de todo, centradas:
+   así no tapan el sitio 8 (encima del centro) ni el 9 (debajo). Se colocan respecto al aro y no al campo. No en el aro de
+   un hueco (crear), que no tiene sitios. */
+.aro.editando:not(.aro-nuevo) .aro-centro,.aro.editando:not(.aro-nuevo) .aro-centro>.aro-edicion,.aro.anclado.editando:not(.aro-nuevo) .aro-centro>.aro-edicion{position:static}
+.aro.editando:not(.aro-nuevo) .aro-edicion .opciones{left:50%;transform:translateX(-50%);min-width:var(--centro-ancho)}
 .aro-edicion .opcion,.hueco .otras .opcion{font-size:12px;width:100%;text-align:left;min-height:30px}
 .aro .opcion{background:color-mix(in oklab,var(--accent) 10%,var(--bg))}
 /* El diccionario del centro del aro (VG 18-11): tras los valores, las acciones de ese punto de vista, con la píldora de los
