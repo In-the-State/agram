@@ -942,6 +942,48 @@ const textoPointed = (v) => (esReferencia(v) ? '@' + v.ref + (v.dir && v.dir !==
 const opcionesDe = (eje, X, pv, ctx) => contrato.opciones(eje, X, pv, { yo: ctx.yo, ...ctx.opciones }).map((o) => ({ valor: textoPointed(o.valor), texto: o.texto }));
 
 /**
+ * Las acciones de un centro (el 0 o el 5) para el diccionario del centro del aro (VG 18-11: «escribir algo que coincida con
+ * algo de una lista … o crear uno nuevo si no coincide con ninguno»; «todas caben en el centro del aro»): las que el núcleo
+ * ofrece en ese punto de vista (accionesDelPv, la misma lista que su cabecera) menos las que escriben sobre su propia hoja,
+ * que ya son los valores. Cada una con su nombre en el idioma y el canónico del núcleo (`canonico`: por él también se
+ * filtra). → [{ id, nombre, canonico, faltan, retocar? }]
+ */
+function accionesDelCentro(eje, X, pv, ctx) {
+  if (!ctx.yo || typeof X !== 'string' || !eje.obtener(X)) return [];
+  const { todas, canonicos, sobreSuHoja } = accionesDelPv(eje, X, pv, ctx);
+  return todas.filter((a) => !sobreSuHoja?.has(a.id)).map((a) => ({ ...a, canonico: canonicos?.get(a.id) ?? a.nombre }));
+}
+
+/**
+ * El diccionario del centro del aro: filtrar con cada letra (VG 18-11). Normaliza para comparar: sin mayúsculas, sin
+ * acentos ni diacríticos, con los espacios de los extremos fuera y los de dentro reducidos a uno. Pura.
+ */
+export function normalizarBusqueda(texto) {
+  return String(texto ?? '').normalize('NFD').replace(/\p{M}/gu, '').toLowerCase().replace(/\s+/g, ' ').trim();
+}
+
+/**
+ * Las entradas de un diccionario ({ etiqueta, nombre, … }) que contienen el texto (subcadena, normalizada) en su etiqueta o
+ * en su nombre, en su orden. Texto vacío: todas. Pura.
+ */
+export function filtrarDiccionario(entradas, texto) {
+  const q = normalizarBusqueda(texto);
+  const lista = Array.isArray(entradas) ? entradas : [];
+  if (!q) return lista.slice();
+  return lista.filter((e) => normalizarBusqueda(e?.etiqueta).includes(q) || normalizarBusqueda(e?.nombre).includes(q));
+}
+
+/**
+ * La entrada que coincide ENTERA con el texto (normalizado) por su etiqueta o su nombre: la primera en el orden dado, o null.
+ * Una coincidencia parcial nunca cuenta, aunque sea la única. Pura.
+ */
+export function coincidenciaEntera(entradas, texto) {
+  const q = normalizarBusqueda(texto);
+  if (!q || !Array.isArray(entradas)) return null;
+  return entradas.find((e) => normalizarBusqueda(e?.etiqueta) === q || normalizarBusqueda(e?.nombre) === q) ?? null;
+}
+
+/**
  * El aro sobre X: ocho sitios, uno por PV lateral, dispuestos como la matriz 3 × 3 sin centro (`celda`: [fila, columna] de
  * GEOMETRIA; el centro es el propio elemento). Cada sitio trae su acción por defecto (`accionPorDefecto`: la primera de
  * acciones.acciones, lo que hace un clic), las demás (`alternativas`) y los valores posibles de su posición (`opciones`:
@@ -978,6 +1020,10 @@ function nodoAro(eje, X, yo, ctx) {
     valor: texto,
     opciones0: opcionesDe(eje, X, anverso, ctx),
     opciones5: reverso === undefined ? [] : opcionesDe(eje, X, reverso, ctx),
+    // Un solo diccionario (VG 18-11): tras los valores de cada lista, las acciones de ese punto de vista que no son
+    // cambiar su valor, las mismas que su cabecera (forma C) y que se lanzan igual.
+    acciones0: accionesDelCentro(eje, X, anverso, { ...ctx, yo }),
+    acciones5: reverso === undefined ? [] : accionesDelCentro(eje, X, reverso, { ...ctx, yo }),
     pv5: reverso ?? null,
     editando: Boolean(ctx.estado.aro?.editar),
   };
@@ -1053,6 +1099,11 @@ function accionesDelPv(eje, X, pv, ctx) {
     todas,
     accion: porDefecto ? todas[lista.indexOf(porDefecto)] : null,
     otras: todas.filter((_, i) => lista[i] !== porDefecto),
+    // Para el diccionario del centro del aro (diccionarioDelCentro): el nombre canónico de cada una (lo da el núcleo; se
+    // filtra también por él) y las que escriben sobre la propia hoja de pv (el 5 de su plantilla es justo «pv»: cambiar
+    // ese valor, que el centro ya ofrece como valores).
+    canonicos: new Map(lista.map((a) => [a.id, a.nombre])),
+    sobreSuHoja: new Set(lista.filter((a) => String(hojas(a.plantilla?.[5])[0] ?? '') === String(pv)).map((a) => a.id)),
   };
   memo.set(clave, r);
   guardadas?.set(clave, r);

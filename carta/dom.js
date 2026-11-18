@@ -8,7 +8,7 @@
 // más de N animaciones a la vez (data-animaciones, un dato de la configuración), primero lo nuevo y lo enfocado; las
 // que salen de pantalla se pausan.
 
-import { NIVEL, LATERALES, ANIMAR, GEOMETRIA } from './carta.js';
+import { NIVEL, LATERALES, ANIMAR, GEOMETRIA, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { cssSeguro } from '../src/contrato.js';
 
@@ -1650,8 +1650,44 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
 /** El atajo visible al aro de un ocupante (VG 18-11): lo mismo que mantenerlo pulsado (app.js aro). Pequeño, junto a él. */
 const htmlAbrirAro = (o) => (o?.X ? `<button type="button" class="abrir-aro"${nodo('control')} data-aro-abrir="${attr(o.X)}" title="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}" aria-label="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}">⋯</button>` : '');
 
-/** Una lista de valores posibles (contrato.opciones) para escribir en la posición pv de X: cada uno, un botón (data-opcion, data-valor). */
-const htmlOpciones = (lista, pv, X, clase = 'opciones') => (lista?.length ? `<ul class="${clase}" data-opciones="${pv}">${lista.map((o) => `<li><button type="button" class="opcion"${nodo('opcion')} data-opcion="${pv}" data-valor="${attr(o.valor)}" data-x="${attr(X)}" title="${attr(o.texto)}">${escapar(o.texto)}</button></li>`).join('')}</ul>` : '');
+/**
+ * Una lista de valores posibles (contrato.opciones) para escribir en la posición pv de X: cada uno, un botón (data-opcion,
+ * data-valor). En el centro del aro (VG 18-11, un solo diccionario) van detrás las acciones de ese punto de vista
+ * (`acciones`): cada una, un botón que lanza como el de la cabecera (data-lanzar), con su píldora (opcion-accion). Cada
+ * entrada lleva su etiqueta y su nombre (data-dic-etiqueta, data-dic-nombre): por ellos se filtra al escribir
+ * (filtrarDiccionarioEnPantalla), sin repintar.
+ */
+const htmlOpciones = (lista, pv, X, clase = 'opciones', acciones = []) => {
+  const valores = (lista ?? []).map((o) => `<li><button type="button" class="opcion"${nodo('opcion')} data-opcion="${pv}" data-valor="${attr(o.valor)}" data-x="${attr(X)}" data-dic-etiqueta="${attr(o.texto)}" data-dic-nombre="${attr(o.valor)}" title="${attr(o.texto)}">${escapar(o.texto)}</button></li>`);
+  const deAccion = (acciones ?? []).map((a, i) => `<li class="con-accion${i === 0 ? ' primera-accion' : ''}"><button type="button" class="opcion opcion-accion"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}" data-dic-etiqueta="${attr(a.nombre)}" data-dic-nombre="${attr(a.canonico ?? a.nombre)}" title="${attr(a.nombre)}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button></li>`);
+  return valores.length || deAccion.length ? `<ul class="${clase}" data-opciones="${pv}">${valores.join('')}${deAccion.join('')}</ul>` : '';
+};
+
+/**
+ * El filtro del diccionario del centro del aro en la pantalla, sin repintar (VG 18-11): en cada lista de `.aro-edicion`, oculta
+ * las entradas que no casan con `texto` (filtrarDiccionario: subcadena, sin mayúsculas ni acentos, por etiqueta y nombre) y
+ * la lista entera si no le queda ninguna. Texto vacío: todas a la vista.
+ */
+export function filtrarDiccionarioEnPantalla(raiz, texto) {
+  for (const lista of raiz?.querySelectorAll?.('.aro-edicion .opciones') ?? []) {
+    const botones = [...lista.querySelectorAll('[data-dic-etiqueta]')];
+    const entradas = botones.map((b) => ({ etiqueta: b.dataset.dicEtiqueta, nombre: b.dataset.dicNombre, b }));
+    const quedan = new Set(filtrarDiccionario(entradas, texto).map((e) => e.b));
+    for (const b of botones) b.closest('li').hidden = !quedan.has(b);
+    lista.hidden = quedan.size === 0;
+  }
+}
+
+/**
+ * La entrada del diccionario del centro del aro que coincide ENTERA con `texto` (coincidenciaEntera), o null. El orden: la
+ * lista del 0 (la del propio campo) antes que la del 5; en cada una, los valores antes que las acciones.
+ */
+export function coincidenciaEnPantalla(raiz, texto) {
+  const orden = ['.aro-edicion .opciones-abajo', '.aro-edicion .opciones-arriba'];
+  const botones = orden.flatMap((sel) => [...(raiz?.querySelector?.(sel)?.querySelectorAll?.('[data-dic-etiqueta]') ?? [])]);
+  const e = coincidenciaEntera(botones.map((b) => ({ etiqueta: b.dataset.dicEtiqueta, nombre: b.dataset.dicNombre, b })), texto);
+  return e ? e.b : null;
+}
 
 /**
  * El aro: ocho sitios alrededor del elemento, en la matriz 3 × 3 sin centro (data-fila y data-columna de cada sitio; el CSS los
@@ -1688,7 +1724,7 @@ function htmlAro(aro) {
     return `<div class="aro-fondo" data-cerrar><div class="aro aro-nuevo editando"${nodo('aro', { nuevo: c.pv })} data-x="${aro.X}" data-nuevo="${c.pv}" role="dialog" aria-label="${attr(aro.texto)}"><ul></ul><div class="aro-centro" data-aro-centro data-x="${aro.X}"><b>${escapar(t('aroCrear'))}</b><small class="aro-donde">${escapar(t('aroCrearDonde', { que: c.etiqueta ?? '', de: c.de ?? '' }))}</small><div class="aro-edicion">${input}${crear}</div></div></div></div>`;
   }
   const edicion = c?.editando
-    ? `<div class="aro-edicion">${htmlOpciones(c.opciones5, c.pv5, aro.X, 'opciones opciones-arriba')}<input class="campo-input" data-campo="${c.pv}" data-x="${aro.X}" value="${attr(c.valor ?? '')}" aria-label="${attr(c.etiqueta ?? '')}" autocomplete="off">${htmlOpciones(c.opciones0, c.pv, aro.X, 'opciones opciones-abajo')}</div>`
+    ? `<div class="aro-edicion">${htmlOpciones(c.opciones5, c.pv5, aro.X, 'opciones opciones-arriba', c.acciones5)}<input class="campo-input" data-campo="${c.pv}" data-x="${aro.X}" value="${attr(c.valor ?? '')}" aria-label="${attr(c.etiqueta ?? '')}" autocomplete="off">${htmlOpciones(c.opciones0, c.pv, aro.X, 'opciones opciones-abajo', c.acciones0)}</div>`
     : '';
   return `<div class="aro-fondo" data-cerrar><div class="aro${c?.editando ? ' editando' : ''}"${nodo('aro')} data-x="${aro.X}" role="dialog" aria-label="${attr(t('aroDe', { que: aro.texto }))}"><ul>${huecos}</ul><div class="aro-centro" data-aro-centro data-x="${aro.X}" title="${attr(t('aroCentroTitulo'))}">${htmlIconoPropio(aro)}<b>${escapar(aro.texto)}</b>${edicion}</div></div></div>`;
 }

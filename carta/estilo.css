@@ -268,6 +268,11 @@ small{color:var(--muted)}
 .aro-edicion .opciones-arriba{bottom:calc(100% + 4px)}
 .aro-edicion .opcion,.hueco .otras .opcion{font-size:12px;width:100%;text-align:left;min-height:30px}
 .aro .opcion{background:color-mix(in oklab,var(--accent) 10%,var(--bg))}
+/* El diccionario del centro del aro (VG 18-11): tras los valores, las acciones de ese punto de vista, con la píldora de los
+   botones de la forma C y una raya fina entre los valores y la primera; el filtro oculta entradas y listas con [hidden]. */
+.aro-edicion .opciones li:not(.con-accion)+li.primera-accion{border-top:1px dashed var(--rule);margin-top:4px;padding-top:6px}
+.aro-edicion .opcion.opcion-accion{border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--fg);padding:3px 10px}
+.aro-edicion .opciones[hidden],.aro-edicion .opciones li[hidden]{display:none}
 .hueco{position:relative;min-width:0;z-index:1}
 .hueco.desplegado{z-index:3}
 .hueco[data-fila="1"]{align-self:center;height:var(--sitio-alto)} /* 6 y 7: a la altura de su chip, en el medio del elemento */
@@ -1136,6 +1141,8 @@ html.mapped body{padding:0}
 .fila>.fila-cabeza{grid-column:1}
 .fila>.campo-input{grid-column:2}
 .fila>.sitio-fila{grid-column:3;justify-self:end}
+/* Las acciones de una fila abierta (forma C) ocupan la fila entera, no solo la columna de la etiqueta. */
+.fila>.pv-acciones:not(.marca){grid-column:1/-1}
 .fila:has(>.sitio-fila):not(:has(>.campo-input))>.fila-cabeza{grid-column:1 / 3}
 .caja-tres .personas{list-style:none;margin:0;padding:4px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
 .persona{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:28px;padding:2px 8px;border-radius:999px;border:1px solid color-mix(in oklab,var(--c,var(--rule)) 40%,var(--rule));background:var(--bg);color:inherit;font-size:12px;cursor:grab;touch-action:none;user-select:none;-webkit-touch-callout:none}

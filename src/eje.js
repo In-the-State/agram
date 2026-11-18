@@ -48,7 +48,7 @@ import { acotarAltaV2, gastaAsignacion, esInformativoT, validosDe } from './cicl
 import { evaluarEscritura, nombreDeRegla, CAUSA_LIMITE } from './bqlm.js';
 import { EPOCA_0_BTML, EPOCAS_POR_ID, cargarEpocaEscrita, epocaEscritaDe, erroresDeEpocaEscrita, idDeRegistro } from './epocas.js';
 import { msUTC, msDeGuardado, segundosUTC, esInstante } from './instante.js';
-import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ, cuerpo, hash, congelar, esMiembroDeTanda, fallosDeTanda, partirTandas, TANDA_MAXIMA } from './evento.js';
+import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ, cuerpo, hash, congelar, esMiembroDeTanda, fallosDeTanda, partirTandas, prefijosAMiembros, TANDA_MAXIMA } from './evento.js';
 import { sha256, aHex } from './cripto.js';
 import { firmar, firmarPosesion, verificar } from './autoridad.js';
 import { Libro, EMISION, acunar, transferir, bloquear, liberar, quemar, transaccion } from './libro.js';
@@ -721,10 +721,34 @@ export class Eje {
         if (p > 0) await eje.anadir(parte.eventos[0]);
         continue;
       }
-      const r = parte.errores.length ? { ok: false, motivos: formados(parte.errores) } : await eje.#tandaEnSitio(parte.eventos, { aplicados: p === 0 ? 1 : 0, deshacer: false });
-      if (!r.ok) throw rechazo((p === 0 ? 'génesis rechazado: ' : 'evento rechazado: ') + textoDeTanda(parte, r), r.motivos);
+      const r = parte.errores.length ? { ok: false, indice: fallosDeTanda(parte.eventos)[0]?.indice ?? null, motivos: formados(parte.errores) } : await eje.#tandaEnSitio(parte.eventos, { aplicados: p === 0 ? 1 : 0, deshacer: false });
+      if (!r.ok) {
+        // El error dice qué miembro de esa tanda falla (desde 0; null si es la tanda entera), como eje.anadirTanda.
+        const e = rechazo((p === 0 ? 'génesis rechazado: ' : 'evento rechazado: ') + motivoDeTanda(parte, r), r.motivos);
+        e.indice = Number.isInteger(r.indice) ? r.indice : null;
+        e.id = e.indice === null ? null : idDe(parte.eventos[e.indice]);
+        throw e;
+      }
     }
     return eje;
+  }
+
+  /**
+   * Abre un libro con una tanda cuyo miembro 1 es su génesis (CONTRATO_TANDA, precisión 5: abrir un libro y sus primeros
+   * registros entra todo o nada; «eje vacío» solo vale para el miembro 1). Lo que usa una puerta con autoridad ante un eje
+   * vacío, en vez de abrir el eje con el génesis y añadir el resto (eso partiría la tanda). → { ok: true, eje, tanda,
+   * eventos } o { ok: false, indice (desde 0; null si falla la lista entera), id, motivos }: entonces no hay libro.
+   */
+  static async abrirConTanda(eventos, { exigirFirmas = false, eventosV2 = 0 } = {}) {
+    const fallo = fallosDeTanda(eventos)[0];
+    if (fallo) return { ok: false, indice: fallo.indice, id: fallo.indice === null ? null : idDe(eventos[fallo.indice]), motivos: formados([fallo.texto]) };
+    try {
+      const eje = await Eje.desde(eventos, { exigirFirmas, eventosV2 });
+      return { ok: true, eje, tanda: eje.genesisId, eventos: eje.orden.slice(0, eventos.length).map((id) => eje.obtener(id)) };
+    } catch (e) {
+      const indice = Number.isInteger(e?.indice) ? e.indice : e?.indice === null ? null : 0;
+      return { ok: false, indice, id: indice === null ? null : idDe(eventos[indice]), motivos: e?.motivos ?? formados([String(e?.message ?? e)]) };
+    }
   }
 
   /**
@@ -802,8 +826,8 @@ export class Eje {
         continue;
       }
       // El génesis no se rechaza: si abre una tanda que no entra entera, el libro no se rehace.
-      if (p === 0) throw new Error('génesis rechazado: ' + textoDeTanda(parte, r));
-      const motivo = textoDeTanda(parte, r);
+      if (p === 0) throw new Error('génesis rechazado: ' + motivoDeTanda(parte, r));
+      const motivo = motivoDeTanda(parte, r);
       for (const ev of parte.eventos) rechazados.push({ id: ev?.id, motivo, tanda: parte.tanda });
     }
     this.#adoptar(nuevo);
@@ -848,9 +872,18 @@ export class Eje {
    * eje cambia mientras se valida (otra escritura entre esperas), se vuelve a validar sobre el eje nuevo.
    *
    * Devuelve { ok: true, tanda (el id del miembro 1), eventos (lo que devuelve eje.anadir por miembro: su copia guardada) }
-   * o { ok: false, indice (del miembro que falla, desde 0; 0 si falla la lista entera), id, motivos (como eje.motivos) }.
+   * o { ok: false, indice, id, motivos (como eje.motivos) }: `indice` (desde 0) e `id` son los del miembro que falla; los
+   * dos null si falla la lista entera (vacía, de uno, de más de 32, un `de` que no coincide con su largo). Los duplicados,
+   * antes que la forma (CONTRATO_TANDA, precisiones 7 y 11): si todos sus ids ya están en el libro, { ok: false, indice:
+   * null, id: null, motivos: [«tanda ya registrada»] }; si solo parte, el índice y el id del primero que ya estaba.
    */
   async anadirTanda(eventos) {
+    if (Array.isArray(eventos) && eventos.length > 0) {
+      const ya = eventos.map((ev) => idDe(ev) !== null && this.eventos.has(ev.id));
+      if (ya.every(Boolean)) return { ok: false, indice: null, id: null, motivos: formados([TANDA_YA_REGISTRADA]) };
+      const k = ya.indexOf(true);
+      if (k >= 0) return { ok: false, indice: k, id: idDe(eventos[k]), motivos: formados(['evento ya registrado: parte de la tanda ya está en el libro y parte no (el miembro ' + (k + 1) + ' ya estaba): una tanda no se parte']) };
+    }
     for (let intento = 0; intento < 3; intento++) {
       const orden = this.orden;
       const n = orden.length;
@@ -874,7 +907,7 @@ export class Eje {
    */
   async #tandaEnSitio(crudos, { aplicados = 0, deshacer = true } = {}) {
     // La marca se juzga sobre lo que se guardaría (la copia por JSON de cada miembro), no sobre lo que llega.
-    if (!Array.isArray(crudos)) return { ok: false, indice: 0, id: null, motivos: formados(['una tanda es una lista de registros']) };
+    if (!Array.isArray(crudos)) return { ok: false, indice: null, id: null, motivos: formados(['una tanda es una lista de registros']) };
     const eventos = [];
     for (let k = 0; k < crudos.length; k++) {
       try {
@@ -884,7 +917,7 @@ export class Eje {
       }
     }
     const fallo = fallosDeTanda(eventos)[0];
-    if (fallo) return { ok: false, indice: fallo.indice, id: idDe(eventos[fallo.indice]), motivos: formados([fallo.texto]) };
+    if (fallo) return { ok: false, indice: fallo.indice, id: fallo.indice === null ? null : idDe(eventos[fallo.indice]), motivos: formados([fallo.texto]) };
     const antesDeLaTanda = this.orden.length; // cuántos registros había antes de los miembros que se aplican aquí
     const guardados = this.orden.slice(antesDeLaTanda - aplicados).map((id) => this.eventos.get(id));
     for (let k = aplicados; k < eventos.length; k++) {
@@ -905,6 +938,9 @@ export class Eje {
    * SECO, una copia del eje que nunca se adopta. En ella no se comprueban firmas: quien tiene clave cuenta como si
    * firmase (firmará al lanzar, y entonces sí se comprueba), y lo que se asienta en ella lleva una firma de mentira que
    * no pasa en ningún otro eje. Un candidato que falla no se aplica, y los siguientes se prueban como si no estuviera.
+   * Además de las reglas, lo que haría fallar la tanda al marcarla: un autor distinto del del primero (todos los miembros
+   * llevan el mismo) y una referencia por prefijo («@25ddaa89») a otro candidato (CONTRATO_TANDA, precisión 6: al marcar,
+   * los ids cambian y el prefijo se quedaría apuntando al de antes; entre miembros, por id entero).
    *
    * Devuelve { vista, resultados }: `resultados`, uno por candidato, { ok, motivos } (motivos como eje.motivos; más allá
    * del 32 dice además que una tanda no cabe); `vista`, el eje en seco con los que pasan aplicados, para componer el
@@ -914,12 +950,31 @@ export class Eje {
   async vistaTanda(candidatos = []) {
     const vista = this.#copia(this.orden.length, { enSeco: true });
     const resultados = [];
-    for (let k = 0; k < candidatos.length; k++) {
-      const extra = k >= TANDA_MAXIMA ? formados(['una tanda lleva como mucho ' + TANDA_MAXIMA + ' registros: este no cabe en la misma']) : [];
+    // Los ids de los candidatos (con el suyo calculado si no lo traen): los de antes de marcar.
+    const conId = [];
+    for (const c of candidatos) {
       let ev;
       try {
-        ev = copiaGuardable(candidatos[k]);
+        ev = copiaGuardable(c);
         if (ev && typeof ev === 'object' && typeof ev.id !== 'string') ev = congelar({ ...ev, id: await hash(canonico(cuerpo(ev))) });
+      } catch (e) {
+        ev = e;
+      }
+      conId.push(ev);
+    }
+    const ids = conId.map(idDe).filter((id) => id !== null);
+    const autor = conId[0] && typeof conId[0] === 'object' && !(conId[0] instanceof Error) ? conId[0].autor : undefined;
+    for (let k = 0; k < conId.length; k++) {
+      const ev = conId[k];
+      const extra = k >= TANDA_MAXIMA ? formados(['una tanda lleva como mucho ' + TANDA_MAXIMA + ' registros: este no cabe en la misma']) : [];
+      try {
+        if (ev instanceof Error) throw ev;
+        const tanda = [];
+        if (k > 0 && ev && typeof ev === 'object' && ev.autor !== autor) tanda.push('su autor es ' + String(ev.autor) + ' y el del primero, ' + String(autor) + ': todos los registros de una tanda llevan el mismo autor');
+        for (const { prefijo, id } of prefijosAMiembros(ev, ids.filter((i) => i !== ev?.id))) {
+          tanda.push('nombra a otro registro de la tanda por prefijo (' + prefijo + ', el ' + id.slice(0, 8) + '): al lanzarla su id cambia; entre registros de una tanda, por id entero');
+        }
+        if (tanda.length) throw rechazo('evento rechazado: ' + tanda.join('; '), formados(tanda));
         await vista.#anadir(ev);
         resultados.push({ ok: extra.length === 0, motivos: extra });
       } catch (e) {
@@ -1973,14 +2028,20 @@ const FIRMA_EN_SECO = 'sin firmar: prueba en seco de la bandeja';
 /** El id de un registro, o null. */
 const idDe = (ev) => (ev && typeof ev === 'object' && typeof ev.id === 'string' ? ev.id : null);
 
+/** El motivo de eje.anadirTanda cuando la tanda entera ya está en el libro (CONTRATO_TANDA, precisión 11). */
+export const TANDA_YA_REGISTRADA = 'tanda ya registrada';
+
 /**
- * El motivo con que se rechaza entera una tanda al rehacer un libro (reordenar, desde): `parte`, la de partirTandas;
- * `r`, lo que dio su validación ({ indice, motivos }).
+ * El motivo, uno para todos sus miembros, con que se rechaza entera una tanda al rehacer o al bajar un libro (reordenar,
+ * desde, src/sincronia.js): `parte`, la de partirTandas; `r`, lo que dio su validación ({ indice, motivos }; sin él,
+ * los errores de la parte).
  */
-function textoDeTanda(parte, r) {
-  const quien = parte.tanda ? 'la tanda ' + parte.tanda.slice(0, 8) : 'un miembro de tanda';
-  if (parte.errores.length) return quien + ' se rechaza entera: ' + parte.errores.join('; ');
-  return quien + ' se rechaza entera: el miembro ' + (r.indice + 1) + ' no pasa: ' + r.motivos.map((m) => m.texto).join('; ');
+export function motivoDeTanda(parte, r = {}) {
+  const quien = parte?.tanda ? 'la tanda ' + parte.tanda.slice(0, 8) : 'un miembro de tanda';
+  if (parte?.errores?.length) return quien + ' se rechaza entera: ' + parte.errores.join('; ');
+  const textos = (r.motivos ?? []).map((m) => (typeof m === 'string' ? m : m?.texto)).join('; ');
+  if (!Number.isInteger(r.indice)) return quien + ' se rechaza entera: ' + textos;
+  return quien + ' se rechaza entera: el miembro ' + (r.indice + 1) + ' no pasa: ' + textos;
 }
 
 /** El error de un rechazo (#100): su mensaje, de siempre; `motivos`, con forma; `code`, la causa si es por límite. */

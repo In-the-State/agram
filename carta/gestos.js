@@ -41,7 +41,10 @@ const UMBRAL_ARRASTRE = 24;
  *                            en la ventana ({ x, y, ancho, alto }, getBoundingClientRect al abrirlo): la app lo ancla ahí en Mapped
  *   aroTecla(pv)             con el aro abierto, las teclas 1-4 y 6-9 lanzan la acción por defecto de ese sitio
  *   aroEntrar(X)             un clic en el centro del aro: cerrarlo y entrar en el elemento
- *   editarAro()              mantener el centro del aro: editarlo (el input con la lista del 0 debajo y la del 5 encima)
+ *   editarAro({ texto })     mantener el centro del aro: editarlo (el input con la lista del 0 debajo y la del 5 encima: valores
+ *                            y acciones, un solo diccionario); con el aro abierto, teclear lo abre con esa letra (`texto`)
+ *   filtrarAro(texto)        escribir en el centro del aro: filtrar su diccionario en la pantalla, sin repintar
+ *   enterAro(input)          Enter en el centro del aro: elegir la entrada que coincide entera (→ true); si no hay, false
  *   opcion(X, pv, valor)     un valor de una lista del aro: escribirlo en la posición pv de X (como campo)
  *   lanzar(X, accion, paso, { ejecutar })  abrir el formulario de una acción (o del paso del camino; ejecutar: desde una celda del 4)
  *   denominacion(escala, form)  ejecutar: la escala de la que parte la T que se quema (el formulario sigue con lo escrito)
@@ -138,7 +141,8 @@ export function instalar(raiz, m) {
     if (dentro) {
       const sitio = t.closest('.hueco');
       if (sitio && sitio.dataset.conLista !== undefined) { ultimoMantener = Date.now(); m.aro?.(dentro.dataset.x, Number(sitio.dataset.pv), { desplegar: true }); return true; }
-      if (t.closest('[data-aro-centro]') && !t.closest('input')) { ultimoMantener = Date.now(); m.editarAro?.(); return true; }
+      // Mantener dentro del campo o de sus listas (el diccionario del centro) no vuelve a abrir la edición: se perdería lo escrito.
+      if (t.closest('[data-aro-centro]') && !t.closest('input, .opciones')) { ultimoMantener = Date.now(); m.editarAro?.(); return true; }
       return false;
     }
     // Un paso del camino del 9 (VG 14-11, #90): mantenerlo pulsado enseña lo que haría, una frase, sin escribir nada.
@@ -542,6 +546,8 @@ export function instalar(raiz, m) {
     if (e.key === 'Escape') { m.cerrar?.(); return; }
     // con el aro abierto, gana él: 1-4 y 6-9 lanzan la acción por defecto de ese sitio; 0 y 5 no hacen nada (no hay sitio)
     if (/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && raiz.querySelector('.aro')) { e.preventDefault(); m.aroTecla?.(Number(e.key)); return; }
+    // Supuesto por confirmar (VG 18-11): con el aro abierto, teclear una letra abre el campo del centro con ella ya escrita. Quitarlo es quitar esta línea.
+    if (/^\S$/u.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey && raiz.querySelector('.aro:not(.editando)')) { e.preventDefault(); m.editarAro?.({ texto: e.key }); return; }
     if (/^[0-9]$/.test(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) { e.preventDefault(); m.saltar?.(Number(e.key)); return; }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') { e.preventDefault(); m.hermano?.(e.key === 'ArrowRight' ? +1 : -1, null); return; }
     if (e.key === 'Enter') {
@@ -592,12 +598,33 @@ export function instalar(raiz, m) {
     if (t.matches('[data-quien]')) m.quien?.(t.value);
     else if (t.matches('[data-ejemplo]')) m.ejemplo?.(t.value);
     else if (t.matches('[data-campo]')) {
+      if (t.dataset.elegido !== undefined) return; // Enter ya eligió una entrada del diccionario del centro del aro (enterAro)
       const texto = t.value.trim();
       if (texto) m.campo?.(t.dataset.x, Number(t.dataset.campo), texto, { nuevo: t.dataset.nuevo !== undefined });
     }
   });
   on('keydown', (e) => {
-    if (e.key === 'Enter' && e.target.matches?.('[data-campo]')) { e.preventDefault(); e.target.blur(); }
+    if (e.key !== 'Enter' || !e.target.matches?.('[data-campo]')) return;
+    e.preventDefault();
+    // En el centro del aro (VG 18-11, un solo diccionario): si lo escrito coincide entero con una entrada, se elige esa
+    // (enterAro); si no, se crea un valor nuevo como siempre (el blur da el change: campo).
+    const t = e.target;
+    if (t.closest?.('.aro-edicion') && t.dataset.nuevo === undefined) {
+      t.dataset.elegido = '';
+      if (m.enterAro?.(t)) return;
+      delete t.dataset.elegido;
+    }
+    t.blur();
+  });
+  // Escribir en el centro del aro filtra su diccionario (valores y acciones) en la pantalla, con cada letra.
+  on('input', (e) => {
+    const t = e.target;
+    if (t.matches?.('[data-campo]') && t.closest?.('.aro-edicion') && t.dataset.nuevo === undefined) m.filtrarAro?.(t.value);
+  });
+  // Pulsar una entrada de esas listas no le quita el foco al campo: sin blur no hay change, y lo a medio escribir no se
+  // escribe como valor nuevo antes de elegir la entrada.
+  on('mousedown', (e) => {
+    if (e.target.closest?.('.aro-edicion .opciones button')) e.preventDefault();
   });
 
   // ---- tirar al final: cargar más (el botón entra en pantalla) ----

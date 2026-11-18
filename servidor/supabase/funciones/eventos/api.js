@@ -14,10 +14,12 @@
 //                              Un registro con contexto.tanda no entra suelto: 400 (va entero por /eventos/tanda).
 //   POST {url}/eventos/tanda   { eje, eventos: [e1, …, em] } → 201 { tanda, eventos: [{ id, orden, recibido }] }: una tanda
 //                              (agram-equipo/CONTRATO_TANDA.md), todos o ninguno, con órdenes consecutivos; tanda = id de e1.
-//                              200 lo mismo y duplicado: true si la tanda entera ya estaba. Si no puede entrar, el estado
-//                              de siempre (400, 401, 403, 413, 429…) con { error, indice, id } (qué miembro falló; null
-//                              si es de la petición entera) y nada guardado; 409 si parte de sus ids ya estaba y parte no.
-//                              El cuerpo entero cabe en el mismo tope (256 KB) y la tanda cuenta como m escrituras.
+//                              200 lo mismo y duplicado: true si sus m ids ya estaban, seguidos y en ese orden. Si no puede
+//                              entrar, el estado de siempre (400 forma y marca, 401, 403, 413, 429…) con { error, indice, id }
+//                              (el miembro que falla, desde 0; null si es de la petición o de la lista entera) y nada
+//                              guardado; 409 con el primer miembro que ya estaba si trae miembros ya subidos y otros no.
+//                              Un solo autor en todos los miembros. Topes: cada miembro 256 KB (413 con su índice), la
+//                              petición entera 1 MB (413 con null). Gasta m escrituras del minuto solo si pasa la forma.
 //   GET  {url}/eventos?eje=…&desde=<orden>&cuantos=<≤500>
 //                              → { eventos: [{ orden, recibido, evento }], siguiente } con orden > desde, por llegada;
 //                              siguiente es el desde de la página siguiente, o null si no hay más.
@@ -37,8 +39,10 @@ import * as verificar from './verificar.js';
 
 /** Orígenes admitidos por CORS: la carta publicada y el desarrollo local. */
 export const ORIGENES = Object.freeze(['https://agram.ikisai.com', 'https://aarpia.ikisai.com', 'https://stateark.ikisai.com', 'https://beta.agram.ikisai.com', 'https://agram-beta.pages.dev', /^http:\/\/localhost(:\d+)?$/, /^http:\/\/127\.0\.0\.1(:\d+)?$/]);
-/** Tope del cuerpo de una petición, en bytes. */
+/** Tope del cuerpo de una petición, en bytes; en una tanda, el de cada miembro. */
 export const LIMITE_CUERPO = 256 * 1024;
+/** Tope del cuerpo entero de una petición de tanda (POST /eventos/tanda), en bytes (CONTRATO_TANDA, precisión 9). */
+export const LIMITE_TANDA = 1024 * 1024;
 /** Escrituras admitidas por eje y minuto. */
 export const ESCRITURAS_POR_MINUTO = 60;
 /** Tope de eventos por página. */
@@ -53,28 +57,37 @@ export const TANDA_MAXIMA = 32;
 export const llevaMarcaDeTanda = (ev) => Boolean(ev && typeof ev === 'object' && ev.contexto && typeof ev.contexto === 'object' && Object.hasOwn(ev.contexto, 'tanda'));
 
 /**
- * La marca de una tanda que llega (CONTRATO_TANDA: contexto.tanda = { n, de, anterior }): null si vale, o
- * { indice, error } (indice del primer miembro que no, o null si es la lista entera). `de` se compara con los miembros
- * que llegan de verdad, nunca al revés: de 2 a 32, `n` su sitio (1…de), `anterior` el id del miembro n − 1 y ausente
- * solo en el 1, sin más claves; ids distintos. Mira los registros crudos y no comprueba ids ni firmas (eso es la
- * forma, después).
+ * La marca de una tanda que llega (CONTRATO_TANDA, con sus «Precisiones tras las tres entregas»): null si vale, o
+ * { indice, error } (indice del primer miembro que falla, desde 0, o null si el fallo es de la lista entera). Un fallo de
+ * marca es siempre 400. De la lista entera (indice null): que no sea una lista, que traiga menos de 2 o más de 32, y un
+ * `de` que no es el número de miembros que llegan (`de` se compara con los reales, nunca al revés). De un miembro: sin
+ * marca o con claves de sobra (solo n, de y anterior), `n` que no es su sitio, el 1 con `anterior`, un `anterior` que no
+ * es el id del de antes, un id que no es un hash o repetido, y un autor distinto del del miembro 1 (todos los miembros
+ * llevan el mismo autor). Mira los registros crudos; ids de verdad y firmas son la forma, después.
  *
- * Es la comprobación LOCAL del servidor mientras el núcleo no exponga la suya (src/evento.js, la marca de tanda):
- * cuando exista, esta función se sustituye por la del núcleo y nada más cambia.
+ * Es la comprobación LOCAL de la puerta: la función de Supabase se despliega sola y no importa el núcleo (src/evento.js,
+ * fallosDeTanda, endurece la marca con las mismas reglas). La paridad de las dos la miran las pruebas.
  */
 export function comprobarMarcaDeTanda(eventos) {
   if (!Array.isArray(eventos)) return { indice: null, error: 'eventos debe ser una lista de registros' };
   const de = eventos.length;
   if (de < TANDA_MINIMA || de > TANDA_MAXIMA) return { indice: null, error: 'una tanda tiene de ' + TANDA_MINIMA + ' a ' + TANDA_MAXIMA + ' miembros; llegan ' + de };
+  const marcaDe = (ev) => (llevaMarcaDeTanda(ev) ? ev.contexto.tanda : undefined);
+  // `de` es de la lista entera: si un miembro dice otro número, el fallo no es de ese miembro sino de la tanda que llega.
+  for (const ev of eventos) {
+    const m = marcaDe(ev);
+    if (m && typeof m === 'object' && !Array.isArray(m) && Object.hasOwn(m, 'de') && m.de !== de) return { indice: null, error: 'un miembro dice de = ' + JSON.stringify(m.de) + ' y la tanda trae ' + de + ' (incompleta o de más)' };
+  }
   const vistos = new Set();
+  const autor = eventos[0]?.autor;
   for (let k = 0; k < de; k++) {
     const ev = eventos[k];
-    const marca = llevaMarcaDeTanda(ev) ? ev.contexto.tanda : undefined;
+    const marca = marcaDe(ev);
     const no = (texto) => ({ indice: k, error: 'el miembro ' + (k + 1) + ' ' + texto });
     if (!marca || typeof marca !== 'object' || Array.isArray(marca)) return no('no lleva la marca contexto.tanda = { n, de, anterior }');
     const sobra = Object.keys(marca).filter((c) => c !== 'n' && c !== 'de' && c !== 'anterior');
     if (sobra.length) return no('lleva en contexto.tanda claves que no son n, de ni anterior: ' + sobra.join(', '));
-    if (marca.de !== de) return no('dice de = ' + JSON.stringify(marca.de) + ' y la tanda trae ' + de);
+    if (marca.de !== de) return no('no dice de = ' + de);
     if (marca.n !== k + 1) return no('dice n = ' + JSON.stringify(marca.n) + ' y está en el sitio ' + (k + 1));
     if (k === 0) {
       if (Object.hasOwn(marca, 'anterior')) return no('es el primero y no lleva anterior');
@@ -84,6 +97,7 @@ export function comprobarMarcaDeTanda(eventos) {
     if (!verificar.esHash(ev.id)) return no('no tiene un id (hash SHA-256 en hexadecimal)');
     if (vistos.has(ev.id)) return no('repite el id de otro miembro');
     vistos.add(ev.id);
+    if (typeof ev.autor !== 'string' || ev.autor !== autor) return no('es de otro autor (' + JSON.stringify(ev.autor) + '): todos los miembros de una tanda son del autor del miembro 1 (' + JSON.stringify(autor) + ')');
   }
   return null;
 }
@@ -114,7 +128,7 @@ export const hashDeClave = (clave) => verificar.hash(clave);
  *   listar(eje, desde, cuantos) → [{ orden, recibido, cuerpo }] con orden > desde, por orden
  * `crearEjes` es { servicio, secreto }: lo que autoriza POST /ejes (cualquiera de los dos; ninguno, deshabilitado).
  */
-export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes = ORIGENES, limiteCuerpo = LIMITE_CUERPO, escriturasPorMinuto = ESCRITURAS_POR_MINUTO, ahora = () => new Date() }) {
+export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes = ORIGENES, limiteCuerpo = LIMITE_CUERPO, limiteTanda = LIMITE_TANDA, escriturasPorMinuto = ESCRITURAS_POR_MINUTO, ahora = () => new Date() }) {
   const ventanas = new Map(); // eje → { minuto, n }: el contador simple en memoria de las escrituras
 
   const cors = (request) => {
@@ -130,11 +144,11 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
   const json = (request, estado, cuerpo) => new Response(JSON.stringify(cuerpo), { status: estado, headers: { 'Content-Type': 'application/json; charset=utf-8', ...cors(request) } });
   const error = (request, estado, texto) => json(request, estado, { error: texto });
 
-  async function leerCuerpo(request) {
+  async function leerCuerpo(request, tope = limiteCuerpo) {
     const declarado = Number(request.headers.get('content-length'));
-    if (Number.isFinite(declarado) && declarado > limiteCuerpo) return { error: 413 };
+    if (Number.isFinite(declarado) && declarado > tope) return { error: 413 };
     const texto = await request.text();
-    if (new TextEncoder().encode(texto).length > limiteCuerpo) return { error: 413 };
+    if (new TextEncoder().encode(texto).length > tope) return { error: 413 };
     try {
       const datos = JSON.parse(texto);
       return datos && typeof datos === 'object' && !Array.isArray(datos) ? { datos } : { error: 400 };
@@ -169,17 +183,25 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
   }
 
   /**
-   * ¿Caben `n` escrituras más este minuto en el eje? Si caben, las cuenta todas y devuelve -1; si no, no cuenta ninguna
-   * y devuelve cuántas cabían (el índice del primer miembro que ya no cabe). El mismo contador que pasaElLimite.
+   * Reserva `n` escrituras de este minuto en el eje, todas o ninguna (el mismo contador que pasaElLimite).
+   * → { reserva: { eje, minuto, n } } si caben, o { libres } (cuántas cabían) si no. La reserva se toma sin ninguna espera
+   * entre mirar y contar, así que dos tandas a la vez no pasan juntas del tope aunque quepan por separado; si la tanda no
+   * llega a guardarse (la autoridad la rechaza, el almacén dice que ya estaba, falla), devolverEscrituras la deshace.
    */
-  function cabenEscrituras(eje, n) {
+  function reservarEscrituras(eje, n) {
     const minuto = Math.floor(ahora().getTime() / 60000);
     const v = ventanas.get(eje);
     const usadas = v && v.minuto === minuto ? v.n : 0;
     const libres = Math.max(0, escriturasPorMinuto - usadas);
-    if (n > libres) return libres;
+    if (n > libres) return { libres };
     ventanas.set(eje, { minuto, n: usadas + n });
-    return -1;
+    return { reserva: { eje, minuto, n } };
+  }
+
+  /** Devuelve una reserva que no se gastó. Si el minuto ya cambió, no hay nada que devolver: la ventana es otra. */
+  function devolverEscrituras({ eje, minuto, n }) {
+    const v = ventanas.get(eje);
+    if (v && v.minuto === minuto) v.n = Math.max(0, v.n - n);
   }
 
   async function crearEje(request) {
@@ -230,8 +252,8 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
   async function subirTanda(request) {
     const falla = (estado, texto, indice = null, id = null) => json(request, estado, { error: texto, indice, id });
     const idDe = (ev) => (ev && typeof ev === 'object' && verificar.esHash(ev.id) ? ev.id : null);
-    const leido = await leerCuerpo(request);
-    if (leido.error) return falla(leido.error, leido.error === 413 ? 'cuerpo demasiado grande (tope ' + limiteCuerpo + ' bytes, la tanda entera)' : 'el cuerpo debe ser un objeto JSON { eje, eventos }');
+    const leido = await leerCuerpo(request, limiteTanda);
+    if (leido.error) return falla(leido.error, leido.error === 413 ? 'cuerpo demasiado grande (tope ' + limiteTanda + ' bytes, la petición de tanda entera)' : 'el cuerpo debe ser un objeto JSON { eje, eventos }');
     const { eje: nombre, eventos } = leido.datos;
     const abierto = await abrirEje(request, nombre);
     if (abierto.respuesta) return falla(abierto.estado, abierto.texto);
@@ -239,15 +261,20 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
     const marca = comprobarMarcaDeTanda(eventos);
     if (marca) return falla(400, 'tanda mal marcada: ' + marca.error, marca.indice, marca.indice === null ? null : idDe(eventos[marca.indice]));
     const de = eventos.length;
+    // Cada miembro, dentro del tope de un registro suelto: si uno solo se pasa, 413 con su índice.
+    for (let k = 0; k < de; k++) {
+      if (new TextEncoder().encode(JSON.stringify(eventos[k])).length > limiteCuerpo) return falla(413, 'el miembro ' + (k + 1) + ' no cabe (tope ' + limiteCuerpo + ' bytes por registro)', k, idDe(eventos[k]));
+    }
     // Reintentar sin duplicar: si la tanda entera ya estaba, sus órdenes (sin volver a comprobar nada, como POST /eventos).
     const yaEstaba = async () => {
       const previos = [];
       for (const ev of eventos) previos.push(await almacen.obtener(nombre, ev.id));
       const cuantos = previos.filter(Boolean).length;
-      if (cuantos === de) return json(request, 200, { tanda: eventos[0].id, eventos: eventos.map((ev, k) => ({ id: ev.id, orden: previos[k].orden, recibido: previos[k].recibido })), duplicado: true });
+      const seguidos = cuantos === de && previos.every((p, k) => k === 0 || p.orden === previos[k - 1].orden + 1);
+      if (seguidos) return json(request, 200, { tanda: eventos[0].id, eventos: eventos.map((ev, k) => ({ id: ev.id, orden: previos[k].orden, recibido: previos[k].recibido })), duplicado: true });
       if (cuantos > 0) {
         const k = previos.findIndex(Boolean);
-        return falla(409, 'parte de la tanda ya está guardada y parte no (' + cuantos + ' de ' + de + '): una tanda no se parte', k, eventos[k].id);
+        return falla(409, 'la tanda trae miembros ya subidos (' + cuantos + ' de ' + de + (cuantos === de ? ', no seguidos o en otro orden' : '') + '): es una tanda recompuesta; no se guarda nada y lo ya subido sigue como estaba', k, eventos[k].id);
       }
       return null;
     };
@@ -272,17 +299,20 @@ export function crearApi({ almacen, cripto = verificar, crearEjes = {}, origenes
       comprobados.push(r.evento);
     }
     // 3. Que cabe: las `de` escrituras dentro del tope por minuto, o ninguna.
-    const cabian = cabenEscrituras(nombre, de);
-    if (cabian >= 0) return falla(429, 'la tanda son ' + de + ' escrituras y este minuto solo caben ' + cabian + ' en el eje ' + nombre + ' (tope ' + escriturasPorMinuto + '): no entra ninguna', cabian, eventos[cabian].id);
+    // Se reservan aquí y solo quedan gastadas si la tanda se guarda (201): rechazada o duplicada, no gasta (precisión 10).
+    const { reserva, libres } = reservarEscrituras(nombre, de);
+    if (!reserva) return falla(429, 'la tanda son ' + de + ' escrituras y este minuto solo caben ' + libres + ' en el eje ' + nombre + ' (tope ' + escriturasPorMinuto + '): no entra ninguna');
     // Guardar todas en un solo paso.
     let filas;
     try {
       filas = await almacen.insertarTanda(nombre, comprobados.map((ev) => ({ id: ev.id, autor: ev.autor, firma: ev.firma, cuerpo: ev })));
     } catch (e) {
+      devolverEscrituras(reserva);
       // La puerta con autoridad juzga la tanda dentro de insertarTanda: { estado, indice, id } (422 reglas, 501 sin tandas).
       if (Number.isInteger(e?.estado) && e.estado >= 400 && e.estado <= 599) return falla(e.estado, e.message, Number.isInteger(e.indice) ? e.indice : null, verificar.esHash(e.id) ? e.id : null);
       throw e;
     }
+    if (!filas) devolverEscrituras(reserva);
     if (filas) {
       if (!Array.isArray(filas) || filas.length !== de) return falla(500, 'el almacén no devolvió un orden por miembro');
       return json(request, 201, { tanda: comprobados[0].id, eventos: comprobados.map((ev, k) => ({ id: ev.id, orden: filas[k].orden, recibido: filas[k].recibido })) });

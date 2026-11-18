@@ -24,6 +24,15 @@
 // escritura rechazada por el servidor (4xx) se anota en `rechazados` y espera
 // como sin red: lo que viene detrás depende de ella, así que no se salta.
 //
+// La tanda (agram-equipo/CONTRATO_TANDA.md): varios registros que entran todos o ninguno. Al bajar, lo nuevo se parte
+// (partirTandas): cada tanda se asienta entera con eje.anadirTanda y, si no entra, se rechazan todos sus miembros con el
+// mismo motivo; una tanda que la página cortó (le faltan miembros solo porque la lista se acaba) se queda esperando, sin
+// rechazarse, y se vuelve a bajar en la pasada siguiente; una incompleta, o con otros registros entre sus miembros, que la
+// puerta sirva como si estuviera entera, se rechaza entera. Al subir, la tanda va entera por POST /eventos/tanda, nunca un
+// miembro suelto: 200 con `duplicado` vale como subida; 404 o 405 (una puerta sin tandas) no cae a subir de uno en uno:
+// se queda pendiente con su motivo y espera como sin red; 400, 409 y 422 la dejan parada con su motivo, sin reintentar
+// sola (olvidarRechazados la vuelve a intentar); 429 y sin red, como un registro suelto.
+//
 // El reloj: el `recibido` del servidor es la hora a la que los demás vieron el
 // evento, y entra en el eje como el reloj de los demás (eje.marcarReloj →
 // `before.6.3`), sin tocar las reglas ni ningún evento.
@@ -58,7 +67,8 @@
 // sello, tras cada pasada se pide la prueba del id del último recibo encadenado (un id por pasada; lo sella la puerta) y,
 // verificada, se guarda: `ordenSellado()`. Nada de esto entra en las reglas del libro ni cambia ids.
 
-import { Eje } from './eje.js';
+import { Eje, motivoDeTanda } from './eje.js';
+import { partirTandas } from './evento.js';
 import { configuracion } from './contrato.js';
 import { exterior } from './exterior.js';
 import { decuplaDeSello } from './sello.js';
@@ -131,12 +141,19 @@ export class SinRed extends Error {
 
 /** El servidor respondió con un error (estado HTTP y su texto). */
 export class ErrorDelServidor extends Error {
-  constructor(estado, texto) {
+  constructor(estado, texto, datos = null) {
     super('servidor ' + estado + ': ' + texto);
     this.name = 'ErrorDelServidor';
     this.estado = estado;
+    // El cuerpo de la respuesta (una tanda dice { error, indice, id }: qué miembro falló), o null.
+    this.datos = datos;
   }
 }
+
+/** Los estados con que una tanda se queda parada en la cola, sin reintentar sola (CONTRATO_TANDA): forma, 409 y reglas. */
+const TANDA_PARADA = Object.freeze([400, 409, 422]);
+/** Los estados de una puerta sin tandas (sin la ruta POST /eventos/tanda): la tanda se queda pendiente, no se parte. */
+const SIN_TANDAS = Object.freeze([404, 405]);
 
 export class Sincronia {
   #url;
@@ -148,7 +165,7 @@ export class Sincronia {
   #desde = 0; // el mayor orden bajado
   #ordenes = new Map(); // id → orden del servidor
   #recibidos = new Map(); // id → recibido (ISO)
-  #cola = new Map(); // id → { intentos, proximo, error }: lo pendiente de subir con sus reintentos
+  #cola = new Map(); // id → { intentos, proximo, error, parada? }: lo pendiente de subir con sus reintentos (parada: una tanda que no se reintenta sola)
   #rechazados = new Map(); // id → { motivo, de }: lo que no entró (de: 'reglas', 'reorden' o 'servidor')
   #recibos = new Map(); // id → 'por pedir' | 'sin recibo' (el servidor no lo tiene) | { instante, rele, firma, recibo? }
   #recibosPorPasada = RECIBOS_POR_PASADA; // cuántos recibos se piden por pasada (por defecto RECIBOS_POR_PASADA; solo las pruebas lo cambian)
@@ -245,9 +262,10 @@ export class Sincronia {
     return [...this.#rechazados].map(([id, r]) => ({ id, ...r }));
   }
 
-  /** Olvida los rechazos (para volver a intentarlo tras arreglar algo). */
+  /** Olvida los rechazos (para volver a intentarlo tras arreglar algo); una tanda parada en la cola se vuelve a intentar. */
   olvidarRechazados() {
     this.#rechazados.clear();
+    for (const [id, c] of this.#cola) if (c.parada) this.#cola.set(id, { intentos: c.intentos, proximo: 0, error: c.error });
   }
 
   /**
@@ -334,7 +352,7 @@ export class Sincronia {
     } catch {
       datos = null;
     }
-    if (!respuesta.ok) throw new ErrorDelServidor(respuesta.status, datos?.error ?? 'sin detalle');
+    if (!respuesta.ok) throw new ErrorDelServidor(respuesta.status, datos?.error ?? 'sin detalle', datos);
     return datos;
   }
 
@@ -345,6 +363,20 @@ export class Sincronia {
     const r = await this.#pedir('/eventos', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ eje: this.#eje, evento: ev }) });
     this.#anotar(ev.id, r.orden, r.recibido);
     return { orden: r.orden, recibido: r.recibido, duplicado: r.duplicado === true };
+  }
+
+  /**
+   * Sube una tanda entera (POST /eventos/tanda { eje, eventos }; CONTRATO_TANDA): todos o ninguno. Devuelve { tanda,
+   * eventos: [{ id, orden, recibido }], duplicado }. Lanza SinRed o ErrorDelServidor (con `datos`: { error, indice, id }).
+   */
+  async subirTanda(eventos) {
+    const evs = [];
+    for (const ev of eventos) evs.push(!ev.firma && this.#firmar ? await this.#firmar(ev) : ev);
+    const r = await this.#pedir('/eventos/tanda', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ eje: this.#eje, eventos: evs }) });
+    const filas = Array.isArray(r?.eventos) ? r.eventos : [];
+    if (filas.length !== evs.length || filas.some((f, k) => f?.id !== evs[k].id)) throw new Error('la puerta no devolvió un orden por miembro de la tanda');
+    for (const f of filas) this.#anotar(f.id, f.orden, f.recibido);
+    return { tanda: r.tanda, eventos: filas, duplicado: r.duplicado === true };
   }
 
   /** Baja una página (GET /eventos): { eventos: [{ orden, recibido, evento }], siguiente }. */
@@ -409,7 +441,7 @@ export class Sincronia {
   async sincronizar(ejeLocal, { bajar = true, subir = true, exigirFirmas = true } = {}) {
     if (ejeLocal !== null && ejeLocal !== undefined && !(ejeLocal instanceof Eje)) throw new TypeError('sincronizar: hace falta el eje local (o null para crearlo desde el servidor)');
     let eje = ejeLocal ?? null;
-    const informe = { eje, bajados: 0, anadidos: [], rechazados: [], subidos: [], pendientes: [], reordenado: false, sinRed: false, errores: [] };
+    const informe = { eje, bajados: 0, anadidos: [], rechazados: [], subidos: [], pendientes: [], enEspera: [], reordenado: false, sinRed: false, errores: [] };
     const nuevos = new Map(); // id → evento del servidor que el eje local no tiene
     if (bajar || !eje) {
       try {
@@ -426,13 +458,20 @@ export class Sincronia {
         else informe.errores.push('bajar: ' + e.message);
       }
       // Sin eje local, el primero que llega del servidor es el génesis: el eje nace de él y lo demás entra detrás.
+      // Si el génesis abre una tanda (CONTRATO_TANDA, precisión 5), el eje nace de la tanda entera, o no nace.
       if (!eje && nuevos.size) {
-        const [primero] = [...nuevos.keys()].sort((a, b) => this.#ordenes.get(a) - this.#ordenes.get(b));
+        const [apertura] = partirTandas([...nuevos.keys()].sort((a, b) => this.#ordenes.get(a) - this.#ordenes.get(b)).map((id) => nuevos.get(id)));
+        if (apertura.alFinal) {
+          this.#esperar(apertura.eventos, nuevos, informe);
+          return informe;
+        }
         try {
-          eje = await Eje.desde([nuevos.get(primero)], { exigirFirmas });
+          eje = await Eje.desde(apertura.eventos, { exigirFirmas });
           informe.eje = eje;
-          informe.anadidos.push(primero);
-          nuevos.delete(primero);
+          for (const ev of apertura.eventos) {
+            informe.anadidos.push(ev.id);
+            nuevos.delete(ev.id);
+          }
           this.marcarReloj(eje);
         } catch (e) {
           informe.errores.push('génesis: ' + e.message);
@@ -700,44 +739,125 @@ export class Sincronia {
       this.#rechazados.set(id, { motivo, de });
       informe.rechazados.push({ id, motivo, de });
     };
+    // Las tandas de lo nuevo (CONTRATO_TANDA, «Bajar»), antes de asentar nada: la que la página cortó espera a la pasada
+    // siguiente; la incompleta o partida, o con algo conocido entre sus miembros en el orden del servidor (un registro ya
+    // rechazado, que no está en la lista), se rechaza entera, con el mismo motivo para todos.
+    for (const parte of partirTandas([...nuevos.keys()].sort(porOrden).map((id) => nuevos.get(id)))) {
+      if (!parte.marcada) continue;
+      if (parte.alFinal) {
+        this.#esperar(parte.eventos, nuevos, informe);
+        continue;
+      }
+      const ids = parte.eventos.map((ev) => ev.id);
+      const mal = parte.errores.length ? parte : this.#conAlgoEntreMedias(ids) ? { ...parte, errores: ['la puerta la sirve con otros registros entre sus miembros'] } : null;
+      if (!mal) continue;
+      const motivo = motivoDeTanda(mal);
+      for (const id of ids) {
+        anotarRechazo(id, motivo, 'reglas');
+        nuevos.delete(id);
+      }
+    }
+    if (!nuevos.size) return true;
     if (porDetras) {
-      for (const id of [...nuevos.keys()].sort(porOrden)) {
+      for (const parte of partirTandas([...nuevos.keys()].sort(porOrden).map((id) => nuevos.get(id)))) {
+        const ids = parte.eventos.map((ev) => ev.id);
+        if (!parte.marcada) {
+          try {
+            await ejeLocal.anadir(parte.eventos[0]);
+            informe.anadidos.push(ids[0]);
+          } catch (e) {
+            anotarRechazo(ids[0], e.message, 'reglas');
+          }
+          continue;
+        }
+        let r;
         try {
-          await ejeLocal.anadir(nuevos.get(id));
-          informe.anadidos.push(id);
+          r = await ejeLocal.anadirTanda(parte.eventos);
         } catch (e) {
-          anotarRechazo(id, e.message, 'reglas');
+          // No es de las reglas (el eje cambió mientras): se vuelve a bajar en la pasada siguiente.
+          informe.errores.push('tanda ' + ids[0].slice(0, 8) + ': ' + e.message);
+          this.#esperar(parte.eventos, nuevos, informe);
+          continue;
+        }
+        if (r.ok) informe.anadidos.push(...ids);
+        else {
+          const motivo = motivoDeTanda(parte, r);
+          for (const id of ids) anotarRechazo(id, motivo, 'reglas');
         }
       }
       return true;
     }
-    // El orden del servidor, con lo nuevo en su sitio; lo pendiente de subir queda detrás (eje.reordenar).
+    // El orden del servidor, con lo nuevo en su sitio; lo pendiente de subir queda detrás (eje.reordenar, que toma cada
+    // tanda como una sola cosa: un miembro rechazado lleva `tanda`, y todos los de una tanda, el mismo motivo).
     const lista = [...conocidos, ...nuevos.keys()].sort(porOrden).map((id) => nuevos.get(id) ?? id);
     const { anadidos, rechazados } = await ejeLocal.reordenar(lista);
     informe.reordenado = true;
     informe.anadidos.push(...anadidos);
-    for (const { id, motivo } of rechazados) anotarRechazo(id, motivo, nuevos.has(id) ? 'reglas' : 'reorden');
+    for (const r of rechazados) anotarRechazo(r.id, r.motivo, Object.hasOwn(r, 'tanda') || nuevos.has(r.id) ? 'reglas' : 'reorden');
     return true;
+  }
+
+  /**
+   * Deja esperando, sin rechazarla, una tanda bajada a la que le faltan miembros (la página la cortó): fuera de lo que se
+   * asienta ahora, en `informe.enEspera`, y con el punto de bajada antes de su primer miembro, para que la pasada
+   * siguiente la vuelva a bajar entera (lo ya asentado que vuelva a bajar no se repite).
+   */
+  #esperar(eventos, nuevos, informe) {
+    const ordenes = [];
+    for (const ev of eventos) {
+      nuevos.delete(ev.id);
+      informe.enEspera.push(ev.id);
+      if (Number.isSafeInteger(this.#ordenes.get(ev.id))) ordenes.push(this.#ordenes.get(ev.id));
+    }
+    if (ordenes.length) this.#desde = Math.max(0, Math.min(this.#desde, Math.min(...ordenes) - 1));
+  }
+
+  /** ¿Hay, en el orden del servidor, algún registro conocido que no es de la tanda entre su primer y su último miembro? */
+  #conAlgoEntreMedias(ids) {
+    const ordenes = ids.map((id) => this.#ordenes.get(id));
+    if (!ordenes.every(Number.isSafeInteger)) return false;
+    if (ordenes.some((o, k) => k > 0 && o <= ordenes[k - 1])) return true;
+    const desde = ordenes[0];
+    const hasta = ordenes[ordenes.length - 1];
+    const suyos = new Set(ids);
+    for (const [id, o] of this.#ordenes) if (o > desde && o < hasta && !suyos.has(id)) return true;
+    return false;
   }
 
   async #subirPendientes(ejeLocal, informe) {
     const ahora = this.#ahora();
-    for (const id of this.pendientes(ejeLocal)) {
-      const entrada = this.#cola.get(id) ?? { intentos: 0, proximo: 0, error: null };
-      if (entrada.proximo > ahora) break; // espera creciente: lo de detrás depende de esto, así que no se salta
+    // Lo pendiente, en orden de entrada, partido en sueltos y tandas: una tanda sube entera (CONTRATO_TANDA).
+    for (const parte of partirTandas(this.pendientes(ejeLocal).map((id) => ejeLocal.obtener(id)))) {
+      const ids = parte.eventos.map((ev) => ev.id);
+      const entrada = this.#cola.get(ids[0]) ?? { intentos: 0, proximo: 0, error: null };
+      if (entrada.parada || entrada.proximo > ahora) break; // espera creciente: lo de detrás depende de esto, así que no se salta
       try {
-        const r = await this.subir(ejeLocal.obtener(id));
-        ejeLocal.marcarReloj(r.recibido);
-        informe.subidos.push(id);
+        if (!parte.marcada) {
+          const r = await this.subir(parte.eventos[0]);
+          ejeLocal.marcarReloj(r.recibido);
+        } else {
+          if (parte.errores.length) throw new ErrorDelServidor(400, 'la tanda local no está entera: ' + parte.errores.join('; '));
+          const r = await this.subirTanda(parte.eventos);
+          for (const f of r.eventos) ejeLocal.marcarReloj(f.recibido);
+        }
+        informe.subidos.push(...ids);
       } catch (e) {
+        const deTanda = parte.marcada && e instanceof ErrorDelServidor;
+        const indice = deTanda && Number.isInteger(e.datos?.indice) ? e.datos.indice : null;
+        const motivo = !deTanda ? e.message
+          : SIN_TANDAS.includes(e.estado) ? 'la puerta no acepta tandas (POST /eventos/tanda: ' + e.estado + '): la tanda se queda pendiente; no se sube de uno en uno'
+            : e.message + (indice !== null ? ' (miembro ' + (indice + 1) + ')' : '');
         entrada.intentos += 1;
         entrada.proximo = ahora + espera(entrada.intentos);
-        entrada.error = e instanceof SinRed ? null : e.message;
-        this.#cola.set(id, entrada);
+        entrada.error = e instanceof SinRed ? null : motivo;
+        if (deTanda && TANDA_PARADA.includes(e.estado)) entrada.parada = true;
+        for (const id of ids) this.#cola.set(id, { ...entrada });
         if (e instanceof SinRed) informe.sinRed = true;
         else {
-          this.#rechazados.set(id, { motivo: e.message, de: 'servidor' });
-          informe.rechazados.push({ id, motivo: e.message, de: 'servidor' });
+          for (const id of ids) {
+            this.#rechazados.set(id, { motivo, de: 'servidor' });
+            informe.rechazados.push({ id, motivo, de: 'servidor' });
+          }
         }
         break;
       }
@@ -819,7 +939,7 @@ export class Sincronia {
     s.#desde = Number.isSafeInteger(datos.desde) && datos.desde >= 0 ? datos.desde : 0;
     for (const [id, orden] of datos.ordenes ?? []) s.#ordenes.set(id, orden);
     for (const [id, recibido] of datos.recibidos ?? []) s.#recibidos.set(id, recibido);
-    for (const [id, c] of datos.cola ?? []) s.#cola.set(id, { intentos: c.intentos ?? 0, proximo: c.proximo ?? 0, error: c.error ?? null });
+    for (const [id, c] of datos.cola ?? []) s.#cola.set(id, { intentos: c.intentos ?? 0, proximo: c.proximo ?? 0, error: c.error ?? null, ...(c.parada === true ? { parada: true } : {}) });
     for (const [id, r] of datos.rechazados ?? []) s.#rechazados.set(id, { motivo: r.motivo, de: r.de });
     for (const [id, e] of datos.recibos ?? []) {
       if (e === 'por pedir' || e === 'sin recibo') s.#recibos.set(id, e);
