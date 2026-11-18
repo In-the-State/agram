@@ -197,6 +197,35 @@ function llavesDe(e) {
   return Object.entries(claves).map(([titular, clave]) => ({ k: 'llave', titular, clave, prueba: Object.hasOwn(pruebas, titular) ? pruebas[titular] : undefined }));
 }
 
+const VISTAS_CON_PROVISIONALES = new WeakMap(); // época cargada → { raiz, registros } o null
+/**
+ * La época cargada como la lee el BQL cuando ofrece plantillas provisionales (Core AGRAM 18-11): su raíz con las
+ * referencias de esas plantillas detrás de las suyas en el 9.6.1, y sus registros con ellas. Por el mismo camino por el
+ * que el núcleo las ofrece (sus `transacciones` marcadas provisional), sin tocar la época. null si no ofrece ninguna o si
+ * su 9.6.1 no es una lista de referencias. Una por época: el contexto se crea muchas veces.
+ */
+function vistaConProvisionales(epoch) {
+  if (!epoch || Array.isArray(epoch) || !Array.isArray(epoch.transacciones) || !Array.isArray(epoch.registro)) return null;
+  if (VISTAS_CON_PROVISIONALES.has(epoch)) return VISTAS_CON_PROVISIONALES.get(epoch);
+  const provisionales = epoch.transacciones.filter((t) => t?.provisional && typeof t.id === 'string');
+  const r = epoch.registro;
+  const lista = r[9]?.[6]?.[1];
+  let vista = null;
+  if (provisionales.length && esLista(lista) && lista.every(esReferencia)) {
+    const seis = [...r[9][6]];
+    seis[1] = Object.freeze([...lista, ...provisionales.map((t) => Object.freeze({ ref: t.id }))]);
+    const nueve = [...r[9]];
+    nueve[6] = Object.freeze(seis);
+    const raiz = [...r];
+    raiz[9] = Object.freeze(nueve);
+    const registros = new Map(epoch.registros instanceof Map ? epoch.registros : []);
+    for (const t of provisionales) if (!registros.has(t.id)) registros.set(t.id, t.plantilla);
+    vista = { raiz: Object.freeze(raiz), registros };
+  }
+  VISTAS_CON_PROVISIONALES.set(epoch, vista);
+  return vista;
+}
+
 /** El payload de la época: la décupla misma, o lo que expone su cargador (src/epocas.js, cargarEpocaBtml). */
 function payloadDeEpoca(epoch) {
   if (Array.isArray(epoch)) return epoch;
@@ -238,6 +267,14 @@ export class ContextoEje {
     this.#me = typeof me === 'string' && me ? me : null;
     this.#epoch = epoch ? payloadDeEpoca(epoch) : null;
     this.#registrosDeEpoca = epoch?.registros instanceof Map ? epoch.registros : new Map();
+    // Las plantillas provisionales que la época cargada ofrece (src/epocas.js, cargarEpocaBtml: sus transacciones marcadas
+    // provisional) se leen también en epoch.9.6.1, detrás de las suyas, y su referencia alcanza su registro: lo que el núcleo
+    // ofrece es lo que el BQL ve (el tutorial de «path steps», el tipo «an action»). La época no cambia (ni su id).
+    const vista = vistaConProvisionales(epoch);
+    if (vista) {
+      this.#epoch = vista.raiz;
+      this.#registrosDeEpoca = vista.registros;
+    }
     this.#idEpoca = typeof epoch?.id === 'string' ? epoch.id : null;
     this.#epocaCargada = epoch && !Array.isArray(epoch) && Array.isArray(epoch.registro) ? epoch : undefined;
     // Las de la época y, detrás, las provisionales (src/provisional.js: lo que irá a la 0 en su pasada única) que la época
@@ -596,7 +633,10 @@ export class ContextoEje {
     if (!e) return undefined;
     const p = e.payload;
     if (p === undefined || p === null) return { k: 'dec', id: null, camino: [], v: [] };
-    return Array.isArray(p) ? { k: 'dec', id: null, camino: [], v: p } : p;
+    // Un payload terminal (una hoja: el 0 del registro, como lo lee contrato.representaciones) es la décupla cuyo 0 es esa
+    // hoja. Antes se devolvía la hoja suelta, y un texto que coincidía con una identidad del libro se recorría como ella:
+    // (payload(X)).2 de un alta con el 0 «ana» de la identidad «ana» era su criterio, una décupla (Core AGRAM 18-11).
+    return { k: 'dec', id: null, camino: [], v: Array.isArray(p) ? p : [p] };
   }
 
   /** El valor de un nodo: el id de un registro (o de la candidata, si lo tiene); una décupla no tiene. */

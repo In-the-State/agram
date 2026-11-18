@@ -167,3 +167,27 @@ test('si la lectura del camino no se resuelve, camino lo dice (estado y motivo),
   assert.match(c.motivo, /división por cero/);
   assert.equal((await camino(eje, reserva.id, 'huesped')).estado, undefined, 'resuelta, sin estado');
 });
+
+test('el alta cuyo 0 se llama como su identidad (crear la cuenta «ana» da la identidad «ana»): «path steps» se resuelve, en la 0 y en la de cuenta', async () => {
+  const { epocaCuenta } = await import('../datos/epocas/cuenta/generar.mjs');
+  const { evaluar } = await import('../src/bqlm.js');
+  const { ContextoEje } = await import('../src/contexto-eje.js');
+  for (const epoca of [null, epocaCuenta()]) {
+    const filas = {};
+    for (const foco of ['Ana', 'ana']) {
+      const eje = await Eje.genesis({ identidad: 'ana', foco, t: T0, ...(epoca ? { epoca } : {}), demostracion: true });
+      const alta = eje.alta('ana').id;
+      const r = pasosDeLasReglas(eje, alta);
+      assert.equal(r.estado, 'RESUELTO', foco + ': ' + r.motivo);
+      const c = await camino(eje, alta, 'ana');
+      assert.ok(c.pasos.length > 0, foco + ': el camino del alta no sale vacío');
+      filas[foco] = r.filas.map((f) => [f.accion ?? f.porque, f.fuente]);
+      // La causa: payload() de un payload terminal es la décupla cuyo 0 es esa hoja, no un texto suelto que se recorre
+      // como la identidad que se llama igual (su 2 era el criterio de «ana», una décupla, y el «in» de «what is missing» fallaba).
+      const ctx = new ContextoEje(eje, { epoch: eje.epoca() });
+      assert.deepEqual(evaluar('(payload(it)).0', ctx, { sujeto: alta }).valor, [foco]);
+      assert.deepEqual(evaluar('(payload(it)).2', ctx, { sujeto: alta }).valor, []);
+    }
+    assert.deepEqual(filas.ana, filas.Ana, 'lo mismo se llame como se llame');
+  }
+});

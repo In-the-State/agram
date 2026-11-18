@@ -221,3 +221,26 @@ test('pedir el nombre de todo un libro: una evaluación por registro y versión 
   await hacer(eje, NOMBRAR, el.id, { name: 'Padre bis' }, 'autora');
   assert.deepEqual(C.representaciones(eje, el.id).map((r) => r.texto), ['Padre bis']);
 });
+
+test('el tutorial reconoce una acción provisional: la ve en epoch.9.6.1 por las transacciones de la época, sin tocarla', async () => {
+  const { ejemploReserva } = await import('../ejemplos/ikisai/reserva-booking.mjs');
+  const { camino } = await import('../src/acciones.js');
+  const { pagaElCoste } = await import('./ayudas-coste.js');
+  const { evaluar } = await import('../src/bqlm.js');
+  const { ContextoEje } = await import('../src/contexto-eje.js');
+  const { EPOCA_0_BTML } = await import('../src/epocas.js');
+  const { eje } = await ejemploReserva({ confirmar: false });
+  const x = await eje.escribir({ autor: 'casa', sobre: eje.genesisId, t: '2026-11-09T10:00:00Z', payload: ['con camino', 'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', [NOMBRAR, ZONA, 'anchor here', 'no es nada']], movimientos: [pagaElCoste('casa')] });
+  const p = (await camino(eje, x.id, 'casa')).pasos.filter((q) => q.fuente === 'tutorial');
+  assert.deepEqual(p.map((q) => [q.hacer?.plantilla, q.hecho]), [[NOMBRAR, false], [ZONA, false], ['anchor here', false]]);
+  // El BQL ve en epoch.9.6.1 las suyas y, detrás, las provisionales; su referencia lleva a la plantilla. La época no cambia.
+  const ctx = new ContextoEje(eje, { epoch: eje.epoca() });
+  const nombres = evaluar('epoch.9.6.1 each 0', ctx, {}).valor;
+  const propias = eje.epoca().transacciones.filter((t) => !t.provisional).map((t) => t.plantilla[0][0]);
+  assert.deepEqual(nombres, [...propias, NOMBRAR, ZONA, PASO]);
+  assert.equal(eje.epoca().registro[9][6][1].length, propias.length, 'la raíz de la época sigue con sus referencias');
+  assert.equal(EPOCA_0_BTML.id, IDS[0]);
+  // Cumplir el paso: «name it» sobre X lo da por hecho por su ancla.
+  await hacer(eje, NOMBRAR, x.id, { name: 'Con nombre' }, 'casa');
+  assert.equal((await camino(eje, x.id, 'casa')).pasos.find((q) => q.hacer?.plantilla === NOMBRAR)?.hecho, true);
+});
