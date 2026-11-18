@@ -773,3 +773,10 @@ Qué dice la tabla:
 - **El menú, una compra y el génesis apenas crecen.**
 
 Si hace falta, el remedio es un índice: leer las devoluciones de R a una identidad sin recorrer todo lo que movió. Es la misma clase de índice que `cited` (quién me nombra).
+
+**3. Lo anunciado «como antes» y `anuncioDe`.**
+
+- **Nada usa ya `anuncioDe`** (ni `src/`, ni la carta, ni los ejemplos, ni las pruebas); lo comprueba `test/camino-reglas.test.js`.
+- **Los ejemplos de `ejemplos/` solo escriben lo anunciado de ahora**, un movimiento con estado «anunciado»: Booking, Tasks, la compra y el volcado del roadmap.
+- **Lo anunciado «como antes»**, un payload `[[serie], [cuánto], [para qué], [[de], [a]]]` en el 4.1, solo lo escriben las pruebas, como libros de ensayo: `motor`, `acciones`, `contrato`, `efectos`, `conformidad-motor`, `ejemplo-booking`, `carta-mapped`, `sitios-y-pesos` y `tiempo`. Sigue saliendo: la lectura X.4.9 tiene su rama para él (su texto es el 2 del payload; el movimiento, el de su payload). Una prueba nueva compara un anuncio de antes con el mismo anuncio de ahora: el mismo paso («pay»), el mismo texto y la misma espera para el otro.
+- **Si se quiere retirar la forma de antes**, hay que cambiar esas pruebas y quitar la rama de la lectura (y la de «stage», que también la lee). Es una decisión para la pasada única.

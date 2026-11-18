@@ -130,3 +130,29 @@ test('el tutorial es la quinta clase de filas de X.9.8: lo pide la lectura; el d
   const p = (await camino(eje, conNueve.id, 'recepcion')).pasos.filter((x) => x.fuente === 'tutorial');
   assert.deepEqual(p.map((x) => [x.hacer?.plantilla ?? x.regla, x.hecho]), [['anchor here', false], ['attended', null]]);
 });
+
+test('lo anunciado «como antes» (un payload que imita un movimiento) sale en el camino igual que lo anunciado de ahora', async () => {
+  const { ejemploCompra } = await import('../ejemplos/ikisai/compra-food.mjs');
+  const c = await ejemploCompra();
+  const { eje, menu } = c;
+  const T1 = '2026-11-07T16:00:00Z';
+  const encargo = (titulo) => eje.escribir({ autor: 'cocina', sobre: menu.id, t: T1, payload: [titulo, ['x'], ['all announced movements happened'], ['cocina', 'huesped']], movimientos: [pagaElCoste('cocina')] });
+  const deAntes = await encargo('Encargo de antes');
+  await eje.escribir({ autor: 'cocina', sobre: deAntes.id, en: '4100000000', t: T1, payload: [['E:casa/EUR'], [7], ['pagar'], [['huesped'], ['cocina']]], movimientos: [pagaElCoste('cocina')] });
+  const deAhora = await encargo('Encargo de ahora');
+  await eje.escribir({ autor: 'cocina', sobre: deAhora.id, en: '4100000000', t: T1, payload: 'pagar', movimientos: [pagaElCoste('cocina'), { token: 'E', emisor: 'casa', denominacion: 'EUR', cantidad: 7, de: 'huesped', a: 'cocina', estado: 'anunciado' }] });
+  const paso = async (X) => (await camino(eje, X, 'huesped', { t: T1 })).pasos.filter((p) => p.regla === 'stage').map((p) => [p.hacer?.plantilla, p.falta]);
+  const antes = await paso(deAntes.id);
+  assert.equal(antes.length, 1);
+  assert.equal(antes[0][0], 'pay');
+  assert.match(antes[0][1], / · pagar: huesped .*7.* cocina$/);
+  assert.deepEqual(antes, await paso(deAhora.id), 'el mismo paso y el mismo texto');
+  assert.deepEqual((await camino(eje, deAntes.id, 'cocina', { t: T1 })).pasos.filter((p) => p.regla === 'stage').map((p) => p.espera), ['huesped']);
+});
+
+test('nada usa ya anuncioDe: ni src, ni la carta, ni los ejemplos, ni las pruebas', async () => {
+  const { readdirSync } = await import('node:fs');
+  for (const carpeta of ['src', 'carta', 'ejemplos/ikisai', 'test']) {
+    for (const f of readdirSync(carpeta).filter((x) => /\.(m?js)$/.test(x) && x !== 'camino-reglas.test.js')) assert.ok(!/\banuncioDe\b/.test(readFileSync(carpeta + '/' + f, 'utf8')), carpeta + '/' + f);
+  }
+});
