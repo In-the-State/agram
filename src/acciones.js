@@ -1745,7 +1745,8 @@ export async function camino(eje, X, yo, opciones = {}) {
   // distingue ninguna por su nombre: quién actúa (su 3.0; nadie, quien tenga la acción ofrecida), la acción y dónde se
   // lanza (su 4), sus parámetros (su 8), el registro del que trata (su 5) y su texto (su 9, y detrás los movimientos si la
   // fila los tiene); la regla de su 2 encabeza el texto con su mensaje. Un proceso terminado no da filas de X.4.9.
-  const filas = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria }).filas;
+  const lectura = pasosDeLasReglas(eje, ev.id, { epoca, ahora: t, memoria: opciones.memoria });
+  const filas = lectura.filas;
   // Las filas de un mismo paso (los movimientos de un anuncio que mueve la misma persona): lo mismo en todo menos el movimiento.
   const grupos = new Map();
   for (const f of filas) {
@@ -1823,7 +1824,8 @@ export async function camino(eje, X, yo, opciones = {}) {
   const rango = (p) => (p.hacer && delDueno.includes(p.hacer.plantilla) ? 0 : p.hacer && mios.includes(p.hacer.plantilla) ? 1 : 2);
   pasos.sort((a, b) => rango(a) - rango(b));
 
-  const fuera = { pasos };
+  // Si la lectura no se resuelve (PENDIENTE, por límite, o ERROR), el camino lo dice: nunca «no falta nada» en silencio.
+  const fuera = { pasos, ...(lectura.estado === 'RESUELTO' ? {} : { estado: lectura.estado, ...(lectura.subtipo ? { subtipo: lectura.subtipo } : {}), motivo: lectura.motivo }) };
   const m = madurez(eje, ev, opciones);
   if (!m || !m.nivel) {
     const propios = hojas(plantillaDeDatos(eje, ev, opciones)?.[8]?.[8]).filter((x) => typeof x === 'string');

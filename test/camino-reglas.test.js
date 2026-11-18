@@ -156,3 +156,14 @@ test('nada usa ya anuncioDe: ni src, ni la carta, ni los ejemplos, ni las prueba
     for (const f of readdirSync(carpeta).filter((x) => /\.(m?js)$/.test(x) && x !== 'camino-reglas.test.js')) assert.ok(!/\banuncioDe\b/.test(readFileSync(carpeta + '/' + f, 'utf8')), carpeta + '/' + f);
   }
 });
+
+test('si la lectura del camino no se resuelve, camino lo dice (estado y motivo), no da «nada» en silencio', async () => {
+  const { eje, reserva } = await ejemploReserva({ confirmar: false });
+  const epoca = epocaDelEje(eje);
+  const rota = structuredClone(LECTURAS_PROVISIONALES.find((r) => nombreDeRegla(r) === 'path steps'));
+  rota[2] = ['=1 / 0'];
+  const c = await camino(eje, reserva.id, 'huesped', { epoca: { ...epoca, lecturas: [...epoca.lecturas, rota] } });
+  assert.equal(c.estado, 'ERROR');
+  assert.match(c.motivo, /división por cero/);
+  assert.equal((await camino(eje, reserva.id, 'huesped')).estado, undefined, 'resuelta, sin estado');
+});

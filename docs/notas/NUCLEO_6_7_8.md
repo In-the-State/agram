@@ -830,3 +830,10 @@ Medido con `node test/medida-camino.mjs`, en ocupantes de X.9.8:
 | Compra ×60, génesis | 4 391 | 4 312 | 1 548 |
 
 Lo demás no cambia: reserva 3 356, habitación 2 320, Tasks 5 498, menú 1 583, última compra 994. El máximo medido sin memoria es 5 498 (la tarea de Tasks), con un 45 % de holgura sobre los 10 000.
+
+**Regresión arreglada: el camino del nodo de la época state.** El tutorial de «path steps» miraba cada nombre contra todas las acciones y las reglas de la época, una vez por nombre. En la época state (116 acciones, 122 reglas), el nodo pasaba de los 10 000 ocupantes. La lectura quedaba PENDIENTE POR LÍMITE y `camino` lo callaba (`pasos: []`).
+
+- **Ahora, una sola pasada:** los nombres del tutorial, las acciones y las reglas van en una lista agrupada por nombre que se guarda en el 0 de una fila (`(row(G)) each (…)`, un «sea G» del lenguaje) para mirarla sin recalcular. El tutorial del nodo cuesta 4 139 ocupantes; el máximo, en 186 registros de Booking, Tasks, state y la cuenta, es 4 462.
+- **Medido contra la fórmula de antes** en esos 186 registros: las mismas filas. La única diferencia de diseño es que un nombre repetido en el tutorial da un solo paso.
+- **`camino` ya no calla:** si la lectura no se resuelve, devuelve `estado`, `subtipo` y `motivo`.
+- **Pruebas:** `test/epoca-state.test.js` entera (43 de 43) y las diez `sim-stateark-*`, de una en una, en verde.
