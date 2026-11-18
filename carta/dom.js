@@ -1619,7 +1619,7 @@ function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
 }
 
 /** Un botón de acción: lanza igual que el aro (data-lanzar, data-x; gestos.js → app.js lanzar, que abre el formulario). */
-const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" class="${clase}"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}"${Number.isInteger(a.paso) ? ` data-paso="${a.paso}"` : ''} title="${attr(a.nombre)}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button>`;
+const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" class="${clase}"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}"${Number.isInteger(a.paso) ? ` data-paso="${a.paso}"` : ''} title="${attr(a.nombre + (a.faltan?.length ? ' [' + a.faltan.join(', ') + ']' : ''))}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button>`;
 
 /**
  * Las acciones de la cabecera de un punto de vista (VG 18-11, la forma C: un botón actúa sobre lo que lo contiene). Va

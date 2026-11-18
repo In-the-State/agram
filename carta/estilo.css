@@ -1076,6 +1076,10 @@ html.mapped body{padding:0}
 .pv-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex-basis:100%;margin:4px 0 0;min-width:0;max-width:100%}
 .pv-cabeza,.nucleo-cabeza,.hilo-cabeza{flex-wrap:wrap}
 .pv-acciones>button,.pv-acciones-desplegadas>button,.paso-de-fila{min-height:30px;padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--fg);font-size:13px;max-width:100%;overflow-wrap:anywhere;text-align:left}
+/* En la cabecera del centro (el 0 o el 5 en foco), fichas más compactas que envuelven en línea: lo que falta por rellenar
+   ([…]) no se pinta aquí (va en el título del botón y en su formulario). */
+.nucleo-cabeza .pv-acciones>button{font-size:12px;padding:2px 9px;min-height:26px}
+.nucleo-cabeza .pv-acciones>button>small{display:none}
 .pv-acciones .destacada{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
 .pv-acciones.marca{display:inline-flex;flex-basis:auto;margin:0 0 0 6px;gap:4px}
 .pv-acciones-cuantas{display:inline-block;min-width:1.4em;padding:0 5px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:11px;text-align:center}
