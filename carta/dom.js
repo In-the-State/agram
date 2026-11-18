@@ -8,7 +8,7 @@
 // más de N animaciones a la vez (data-animaciones, un dato de la configuración), primero lo nuevo y lo enfocado; las
 // que salen de pantalla se pausan.
 
-import { NIVEL, LATERALES, ANIMAR, GEOMETRIA, filtrarDiccionario, coincidenciaEntera } from './carta.js';
+import { NIVEL, ANIMAR, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { cssSeguro } from '../src/contrato.js';
 
@@ -505,8 +505,13 @@ function htmlMedidaDeHijo(c) {
   return medida || precio || recursos ? `<footer class="hijo-pie">${medida}${precio}${recursos}</footer>` : '';
 }
 
-/** Cuántas series caben en la tabla pequeña del pie de un hijo del 1; las demás, contadas. */
-const SERIES_EN_EL_PIE = 4;
+/**
+ * La lente del pintado en curso (contrato.sitios y contrato.pesos, epoch.9.5.6 y 9.5.8; y el PV del camino): la trae el árbol
+ * en `lente` y la fija html(); fuera de un pintado, la de sin libro.
+ */
+let lenteDelPintado = null;
+const pesos = () => (lenteDelPintado ?? LENTE_SIN_LIBRO).pesos;
+const caminoDelPintado = () => (lenteDelPintado ?? LENTE_SIN_LIBRO).camino;
 
 /**
  * Lo que el núcleo mide de un hijo del 1 (encargo «datos2», issue #11): el coste («coste EUR 12»), la capacidad con la
@@ -523,8 +528,8 @@ function htmlRecursosDeHijo(c) {
   }
   let flujo = '';
   if (c.flujo?.length) {
-    const filas = c.flujo.slice(0, SERIES_EN_EL_PIE).map((f) => `<tr><th scope="row" title="${attr(f.texto)}">${escapar(f.texto)}</th><td>${f.entra ? escapar(f.entra) : ''}</td><td>${f.sale ? escapar(f.sale) : ''}</td></tr>`).join('');
-    const mas = c.flujo.length > SERIES_EN_EL_PIE ? `<tr class="hijo-flujo-mas"><td colspan="3">${escapar(t('hijoFlujoMas', { n: c.flujo.length - SERIES_EN_EL_PIE }))}</td></tr>` : '';
+    const filas = c.flujo.slice(0, pesos().seriesEnElPie).map((f) => `<tr><th scope="row" title="${attr(f.texto)}">${escapar(f.texto)}</th><td>${f.entra ? escapar(f.entra) : ''}</td><td>${f.sale ? escapar(f.sale) : ''}</td></tr>`).join('');
+    const mas = c.flujo.length > pesos().seriesEnElPie ? `<tr class="hijo-flujo-mas"><td colspan="3">${escapar(t('hijoFlujoMas', { n: c.flujo.length - pesos().seriesEnElPie }))}</td></tr>` : '';
     flujo = `<table class="hijo-flujo"><thead><tr><th scope="col">${escapar(t('hijoFlujoSerie'))}</th><th scope="col">${escapar(t('hijoFlujoEntra'))}</th><th scope="col">${escapar(t('hijoFlujoSale'))}</th></tr></thead><tbody>${filas}${mas}</tbody></table>`;
   }
   return coste + capacidad + flujo;
@@ -545,9 +550,6 @@ function htmlFlotante(f) {
     + `<section class="flotante-cara cara-5" aria-hidden="true">${cabeza(5)}<p class="tipo">${f.plantilla ? `${t('plantilla')} <b>${escapar(f.plantilla)}</b>` : t('sinPlantilla')}</p>${ancla}${pasos}</section>`
     + `</div></div>`;
 }
-
-/** Las ejecuciones que se ven en una celda de la matriz; las demás, contadas («+n»). */
-const EJECUCIONES_EN_CELDA = 3;
 
 /** El nombre de una estación de la fábrica (propuesta, autorizada, ejecutada, verificada: «en firme»), en el idioma de la interfaz. */
 const textoEstacion = (estado) => t({ verificada: 'estadoVerificada', ejecutada: 'estadoEjecutada', autorizada: 'estadoAutorizada' }[estado] ?? 'estadoPropuesta');
@@ -850,8 +852,9 @@ function htmlQuienGuarda(q) {
  */
 function htmlEjecuciones(lista) {
   if (!lista.length) return '';
-  const items = lista.slice(0, EJECUCIONES_EN_CELDA).map((o) => `<li class="ejecucion"${o.estado ? ` data-estado="${attr(o.estado)}" title="${attr(textoEstacion(o.estado))}"` : ''}>${htmlOcupanteDeCelda(o)}${o.estado ? `<small class="estacion-nombre">${escapar(textoEstacion(o.estado))}</small>` : ''}${marcaVerificado(o)}</li>`).join('');
-  const mas = lista.length > EJECUCIONES_EN_CELDA ? `<li class="ejecucion-mas">${escapar(t('matrizMas', { n: lista.length - EJECUCIONES_EN_CELDA }))}</li>` : '';
+  // Las ejecuciones que se ven en una celda de la matriz (los pesos: «executions in cell»); las demás, contadas («+n»).
+  const items = lista.slice(0, pesos().ejecucionesEnCelda).map((o) => `<li class="ejecucion"${o.estado ? ` data-estado="${attr(o.estado)}" title="${attr(textoEstacion(o.estado))}"` : ''}>${htmlOcupanteDeCelda(o)}${o.estado ? `<small class="estacion-nombre">${escapar(textoEstacion(o.estado))}</small>` : ''}${marcaVerificado(o)}</li>`).join('');
+  const mas = lista.length > pesos().ejecucionesEnCelda ? `<li class="ejecucion-mas">${escapar(t('matrizMas', { n: lista.length - pesos().ejecucionesEnCelda }))}</li>` : '';
   return `<ul class="ejecuciones">${items}${mas}</ul>`;
 }
 
@@ -1545,7 +1548,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
     <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}${htmlAccionesDeCabecera(c.acciones)}</header>
     ${c.rejilla ? '' : htmlFondo(c.escena?.fondo)}
     ${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
-    <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${GEOMETRIA[c.pv]?.grupo === 'cruz' && GEOMETRIA[c.pv]?.fila === 'abajo' && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
+    <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${c.pv === caminoDelPintado() && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
   </section>`;
 }
 
@@ -1582,26 +1585,26 @@ function htmlCartera(cartera) {
 
 /**
  * Los rosetones de identidad: diez mosaicos muy comprimidos de mi foco, uno por PV (el 0 y el 5 incluidos). En la
- * matriz, una barra fija abajo; apilada (el móvil), dos tiras: arriba el tetraedro de la X con su centro, abajo la cruz
- * con el suyo (las que traza la geometría: la X son los PV 1-4, la cruz 6-9, y el 0 y el 5 el centro de cada una).
+ * matriz, cada uno en su esquina o lateral (su `sitio`); apilada (el móvil), el árbol no los trae.
  */
 function htmlRoseton(r, { enSuSitio = false, marca = null } = {}) {
   const sitio = enSuSitio && r.sitio ? ` sitio-f${r.sitio.fila} sitio-c${r.sitio.columna}${r.sitio.centro ? ' sitio-centro' : ''}` : '';
   // A pantalla completa (nivel 3) el rosetón se queda comprimido en su sitio: lo grande es la hoja de htmlRosetonPantalla.
   const nivel = r.nivel >= NIVEL.bloque ? NIVEL.comprimido : r.nivel;
+  // Ampliado (la tarjeta), los ocupantes que el árbol trae: los de la tarjeta de 9.5.2 (hoy 4); el árbol ya los corta.
   const ampliado = nivel >= NIVEL.tarjeta && r.ocupantes;
   // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
   return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
     <span class="numero">${r.pv}</span>${r.comprimido.dato ? `<span class="dato">${escapar(r.comprimido.dato)}</span>` : ''}${htmlMarcaDelRoseton(marca)}
-    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>${htmlCartera(r.cartera)}` : ''}
+    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>${htmlCartera(r.cartera)}` : ''}
   </button>`;
 }
 /** El doble toque: la misma vista del rosetón ampliado a pantalla completa, con lo que el núcleo da de esa posición de mi alta. */
 function htmlRosetonPantalla(lista, guia = null) {
   const r = lista.find((x) => x.nivel >= NIVEL.bloque && x.ocupantes);
   if (!r) return '';
-  // El 9 (la cruz de abajo: el camino) lleva también la guía con su «guía | Core», como su tarjeta a nivel bloque.
-  const conGuia = GEOMETRIA[r.pv]?.grupo === 'cruz' && GEOMETRIA[r.pv]?.fila === 'abajo' ? htmlGuia(guia) : '';
+  // El del camino (el 9: su forma es «camino») lleva también la guía con su «guía | Core», como su tarjeta a nivel bloque.
+  const conGuia = r.pv === caminoDelPintado() ? htmlGuia(guia) : '';
   const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
   return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
     <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span>${r.ocupantes.total ? `<small>${escapar(r.ocupantes.total)}</small>` : ''}<button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
@@ -1617,13 +1620,11 @@ const htmlMarcaDelRoseton = (a) => (a?.total ? `<span class="roseton-marca" data
 /** Las cabeceras de los laterales comprimidos de Mapped, por posición: lo que llevan sus rosetones como marca. */
 const marcasDeComprimidos = (laterales) => Object.fromEntries((laterales ?? []).filter((n) => n.nivel <= NIVEL.comprimido && n.acciones?.total).map((n) => [n.pv, n.acciones]));
 const nav = (lista, clase, enSuSitio = false, marcas = {}) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio, marca: marcas[r.pv] })).join('')}</nav>`;
-const ARRIBA = [1, 2, 0, 3, 4];
 function htmlRosetones(lista, { apilada = false, parte, guia = null, marcas = {} } = {}) {
   if (!lista?.length) return '';
-  // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa).
-  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true, marcas) + htmlRosetonPantalla(lista, guia) : '';
-  const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
-  return mias.length ? nav(mias, `rosetones-${parte}`) : '';
+  // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa). Apilada
+  // (Sequenced) el árbol no trae rosetones (test/sitios-y-pesos.test.js lo comprueba): las dos tiras del móvil ya no existen.
+  return !apilada && parte === 'mapa' ? nav(lista, 'rosetones-mapa', true, marcas) + htmlRosetonPantalla(lista, guia) : '';
 }
 
 /** Un botón de acción: lanza igual que el aro (data-lanzar, data-x; gestos.js → app.js lanzar, que abre el formulario). */
@@ -2434,6 +2435,7 @@ export function htmlCopia(c) {
  * `anfitrion` (true si la carta va dentro de una app que firma: carta/anfitrion.js), `autorizando` (los ids que firma ya) y `emparejar` (sin anfitrión, A25: { vivo }; la pantalla de arranque ofrece emparejar con la app).
  */
 export function html(arbol, extra = {}) {
+  lenteDelPintado = arbol?.lente ?? null;
   archivoDe = typeof extra.archivo === 'function' ? extra.archivo : () => null; // los archivos adjuntos de esta pestaña (htmlRepresentacion)
   conAnfitrion = extra.anfitrion === true; // la app que lleva la carta firma: lo por autorizar lleva «autorizar» (htmlPorAutorizar)
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();
@@ -2444,18 +2446,11 @@ export function html(arbol, extra = {}) {
   const a = { ...arbol };
   const clase = ['carta', a.apilada ? 'carta-apilada' : 'carta-matriz', a.animado ? 'animado' : 'sobrio', `disposicion-${a.disposicion}`].join(' ');
   const laterales = Object.fromEntries(a.laterales.map((n) => [n.pv, htmlLateral(n, a)]));
-  const de = (pv) => laterales[pv] ?? '';
-  // La franja de la cruz se lee como la cruz: el lado del PV1 (6), arriba (8), abajo (9) y el lado del PV2 (7).
-  const ordenCruz = (n) => (n.fila === 'arriba' ? 1 : n.fila === 'abajo' ? 2 : n.lado === a.laterales.find((l) => l.pv === 1)?.lado ? 0 : 3);
-  const cruz = a.laterales.filter((n) => n.grupo === 'cruz').sort((p, q) => ordenCruz(p) - ordenCruz(q)).map((n) => n.pv);
-  const x = LATERALES.filter((pv) => a.laterales.find((n) => n.pv === pv)?.grupo === 'x');
   const avisos = [...(a.avisos ?? []), ...(extra.aviso ? [extra.aviso] : [])];
-  // Sequenced (el móvil en vertical): una columna, el pasado encima de la tarjeta del foco y el futuro debajo (sin
-  // árbol de la secuencia, las franjas de antes).
+  // Sequenced (el móvil en vertical): una columna, el pasado encima de la tarjeta del foco y el futuro debajo. El árbol apilado
+  // trae siempre su secuencia (test/sitios-y-pesos.test.js): las franjas de antes ya no existen.
   const escena = a.apilada
-    ? (a.secuencia
-      ? `<div class="secuencia" data-secuencia>${htmlHilo(a.secuencia.pasado)}<div class="secuencia-ahora">${htmlCentro(a.centro, a, extra)}${htmlHilo(a.secuencia.futuro)}</div></div>`
-      : `<div class="franja franja-cruz" data-franja="cruz">${cruz.map(de).join('')}</div>${htmlCentro(a.centro, a, extra)}<div class="franja franja-x" data-franja="x">${x.map(de).join('')}</div>`)
+    ? `<div class="secuencia" data-secuencia>${htmlHilo(a.secuencia.pasado)}<div class="secuencia-ahora">${htmlCentro(a.centro, a, extra)}${htmlHilo(a.secuencia.futuro)}</div></div>`
     : htmlMapa(a, extra, laterales);
   const estilos = htmlEstilos(a);
   return `<div class="${clase}"${nodo('carta', { modo: a.apilada ? 'apilada' : 'matriz', render: a.animado ? 'animado' : 'sobrio', ancho: a.medidas?.ancho, alto: a.medidas?.alto, x0: a.centro?.representacion?.texto ?? '' })} data-x="${a.X}" data-disposicion="${attr(a.disposicion)}" data-animaciones="${Number(a.limite) || 0}">

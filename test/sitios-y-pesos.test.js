@@ -3,8 +3,8 @@
 //
 //   1. FOTO (test/ayudas-sitios.mjs): los valores de hoy, escritos a mano. No cambia al mover: en el paso 1 el lector (contrato.sitios y
 //      contrato.pesos) tiene que darlos tal cual sin libro, y en el paso 2 la carta los lee de él.
-//   2. Lo que la carta usa hoy coincide con la FOTO (las constantes exportadas y, para las que no se exportan, su línea
-//      en el fuente). Esta parte se reescribe en el paso 2, cuando las constantes desaparecen.
+//   2. Lo que la carta usa coincide con la FOTO y lo lee del dato: las tablas que se fueron no vuelven al código, y las que
+//      aún quedan, por su línea en el fuente.
 //   3. Huellas: sha256 de la salida de las funciones puras que leen las tablas y del HTML de la carta (html(arbol(…)))
 //      sobre el ejemplo de la compra, con el reloj fijo, en un juego de pantallas y estados. Mismo HTML y mismo
 //      estilo.css: misma pantalla, píxel a píxel.
@@ -20,12 +20,15 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import {
   arbol, ampliar, ampliarTodos, repartir, escalaDeTamanos, medidasDePantalla, botonesDeNivel,
-  GEOMETRIA, CENTROS, LATERALES, ORDEN_ROSETONES, BOTONES_POR_NIVEL, NIVEL,
+  GEOMETRIA, CENTROS, LATERALES, ORDEN_ROSETONES, BOTONES_POR_NIVEL, NIVEL, LENTE_SIN_LIBRO,
 } from '../carta/carta.js';
 import { html } from '../carta/dom.js';
 import * as C from '../src/contrato.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 import { FOTO } from './ayudas-sitios.mjs';
+import { EPOCA_0_BTML, cargarEpocaBtml, REGISTROS_DE_MODELOS } from '../src/epocas.js';
+import { EPOCA_0_BTML_DATOS, REGLAS_DE_EPOCA_DATOS, PLANTILLAS_DE_EPOCA_DATOS } from '../datos/epocas/epocas.js';
+import { LENTE_0_DATOS } from '../datos/lente/lente-0.js';
 
 const T = '2026-11-08T10:00:00Z';
 const YO = 'huesped';
@@ -36,7 +39,7 @@ const IMPRIMIR = Boolean(process.env.AGRAM_HUELLAS);
 
 // La FOTO vive en test/ayudas-sitios.mjs: la usan esta prueba y la del lector (test/lente-lector.test.js).
 
-// ---------- 2. lo que la carta usa hoy coincide con la foto (se reescribe en el paso 2) ----------
+// ---------- 2. lo que la carta usa coincide con la foto y lo lee del dato ----------
 
 const fuente = (f) => readFileSync(new URL('../carta/' + f, import.meta.url), 'utf8');
 const tiene = (f, linea) => assert.ok(fuente(f).includes(linea), 'carta/' + f + ' ya no dice «' + linea + '»: si es a propósito, cambia la FOTO o esta línea');
@@ -50,18 +53,42 @@ test('la foto: las constantes exportadas de la carta son las de la FOTO', () => 
   assert.deepEqual(['comprimido', 'tarjeta', 'bloque', 'abierto', 'filas'].map((n) => botonesDeNivel(n)), [0, 1, 3, Infinity, 12]);
 });
 
-test('la foto: las que no se exportan, por su línea en el fuente', () => {
-  tiene('dom.js', 'const ARRIBA = [' + FOTO.tiraDeArriba.join(', ') + '];');
-  tiene('carta.js', 'const CUENTA_PROPONEN_A_LA_VISTA = ' + FOTO.proponenALaVista + ';');
-  tiene('dom.js', 'const EJECUCIONES_EN_CELDA = ' + FOTO.ejecucionesEnCelda + ';');
-  tiene('carta.js', 'const EJECUCIONES_EN_CELDA_ABIERTA = ' + FOTO.ejecucionesEnCeldaAbierta + ';');
-  tiene('dom.js', 'const SERIES_EN_EL_PIE = ' + FOTO.seriesEnElPie + ';');
-  // El orden de Sequenced y el de buscar el destacado: del 0 al 9.
-  tiene('carta.js', 'const digitos = [...pvs].sort((a, b) => a - b);');
-  tiene('carta.js', 'for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {');
-  // Lo que se abre al empezar (una cuenta nueva): el PV del camino, en tarjeta.
-  assert.ok(fuente('app.js').includes('estado.niveles[PV_CAMINO] = NIVEL.tarjeta;'));
+/**
+ * Las tablas que ya se han ido de la carta al dato (paso 2): ninguna vuelve al código. [archivo, el texto que no puede volver].
+ * Lo que la carta enseña con ellas lo fijan las huellas, que no cambian.
+ */
+const YA_NO = [
+  ['carta.js', 'const CUENTA_PROPONEN_A_LA_VISTA ='],
+  ['carta.js', 'const EJECUCIONES_EN_CELDA_ABIERTA ='],
+  ['carta.js', 'BOTONES_POR_NIVEL = Object.freeze({'],
+  ['dom.js', 'const EJECUCIONES_EN_CELDA ='],
+  ['dom.js', 'const SERIES_EN_EL_PIE ='],
+  ['carta.js', 'Object.freeze([1, 2, 0, 3, 4, 6, 7, 5, 8, 9])'],
+  ['carta.js', 'const digitos = [...pvs].sort('],
+  ['carta.js', '[...CENTROS, ...LATERALES].sort('],
+  ['app.js', 'PV_CAMINO'],
+  ['dom.js', "GEOMETRIA[c.pv]?.grupo === 'cruz'"],
+  ['dom.js', "GEOMETRIA[r.pv]?.grupo === 'cruz'"],
+  ['dom.js', 'r.ocupantes.lista.slice(0, 4)'],
+  ['dom.js', 'const ARRIBA ='],
+  ['dom.js', 'ordenCruz'],
+  ['app.js', 'LATERALES.indexOf(pv)'],
+  ['carta.js', 'export const GEOMETRIA = Object.freeze({'],
+  ['carta.js', 'const esPvDelPasado = (pv) => GEOMETRIA'],
+  ['carta.js', 'const zonaDelHilo = (pv) => (GEOMETRIA'],
+  ['carta.js', 'Object.keys(GEOMETRIA)'],
+  ['app.js', 'GEOMETRIA'], ['app.js', 'CENTROS'], ['app.js', 'LATERALES'], ['dom.js', 'GEOMETRIA'], ['dom.js', 'LATERALES'],
+];
+
+test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
+  for (const [archivo, texto] of YA_NO) assert.equal(fuente(archivo).includes(texto), false, 'carta/' + archivo + ' vuelve a tener «' + texto + '»');
+  const p = C.pesos(null);
+  assert.deepEqual([p.proponenALaVista, p.ejecucionesEnCelda, p.ejecucionesEnCeldaAbierta, p.seriesEnElPie], [FOTO.proponenALaVista, FOTO.ejecucionesEnCelda, FOTO.ejecucionesEnCeldaAbierta, FOTO.seriesEnElPie]);
+  // Las que aún están en el código (el paso 2 en curso), por su línea.
+  assert.deepEqual([p.rosetones, p.ordenDeSequenced, p.buscarDestacado, p.alEmpezar], [FOTO.rosetones, FOTO.ordenDeSequenced, FOTO.buscarDestacado, FOTO.alEmpezar]);
+  // Lo que se abre al empezar: su tamaño de 9.5.2 es el paso de nivel con que la app lo abre (la tarjeta).
   assert.equal(NIVEL.tarjeta, FOTO.alEmpezar.tamano);
+  assert.ok(fuente('app.js').includes('estado.niveles[alEmpezar.pv] = alEmpezar.tamano;'));
 });
 
 test('la foto: lo que la propuesta deja de escribir se deduce sin pérdida', () => {
@@ -78,9 +105,9 @@ test('la foto: lo que la propuesta deja de escribir se deduce sin pérdida', () 
   const camino = Number(Object.keys(GEOMETRIA).find((pv) => GEOMETRIA[pv].grupo === 'cruz' && GEOMETRIA[pv].fila === 'abajo'));
   assert.equal(camino, FOTO.camino);
   for (const modo of ['sequenced', 'mapped']) assert.deepEqual(FOTO.laterales.filter((pv) => C.formaDe(null, pv, modo)?.forma === 'camino'), [FOTO.camino]);
-  // El rosetón ampliado enseña 4 (dom.js slice(0, 4)): los de la tarjeta de 9.5.2.
-  tiene('dom.js', 'r.ocupantes.lista.slice(0, 4)');
+  // El rosetón ampliado enseña los de la tarjeta de 9.5.2 (4), que el árbol ya corta; y el PV del camino de la lente es el 9.
   assert.equal(C.tamanos()[1].datos, 4);
+  assert.equal(LENTE_SIN_LIBRO.camino, FOTO.camino);
 });
 
 // ---------- 3. las huellas ----------
@@ -194,6 +221,46 @@ async function huellasDelHtml() {
   }
   return fuera;
 }
+
+test('lo muerto que se quitó: apilado, el árbol trae siempre su secuencia y nunca rosetones (sin tiras del móvil, sin franjas, sin «hermano» sobre un PV)', async () => {
+  const { eje, compra } = await ejemploCompra();
+  for (const [ancho, alto] of [PANTALLAS.movil, [360, 640], [500, 900]]) {
+    for (const niveles of [{}, { 1: NIVEL.tarjeta }, { 9: NIVEL.bloque }]) {
+      const a = await arbol({ foco: { X: compra.id, pv: 0 }, niveles, rosetones: { 1: 2, 9: 3 } }, eje, YO, medidasDePantalla(ancho, alto), { t: T });
+      assert.equal(a.apilada, true);
+      assert.ok(a.secuencia, 'apilado, con secuencia');
+      assert.deepEqual(a.rosetones, [], 'apilado, sin rosetones');
+    }
+  }
+});
+
+test('un libro con otros sitios y pesos cambia la carta: la caja y el sitio del aro del 1, el hilo y el orden de Sequenced', async () => {
+  const datos = JSON.parse(JSON.stringify(EPOCA_0_BTML_DATOS));
+  const sitios = JSON.parse(JSON.stringify(LENTE_0_DATOS['epoch.9.5.6']));
+  const fila = (pv) => sitios[1].find((f) => f[0][0] === pv);
+  fila(1)[1] = [0, 2]; fila(1)[4] = [2]; // el 1 y el 2 cambian de esquina
+  fila(2)[1] = [0, 0]; fila(2)[4] = [1];
+  fila(6)[4] = [1, 'future']; fila(7)[4] = [2, 'past']; // y el pasado y el futuro, de lado
+  datos[9][5][6] = sitios;
+  datos[9][5][7] = ['una posición BTML no puede quedar vacía: 9.5.7, entre las dos, lleva su nota'];
+  datos[9][5][8] = [['lens'], ['-'], ['-'], Array(10).fill('sequenced order'), [9, 8, 7, 6, 5, 4, 3, 2, 1, 0]];
+  const epoca = cargarEpocaBtml(datos, { registros: [...REGLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS], plantillas: JSON.parse(JSON.stringify(PLANTILLAS_DE_EPOCA_DATOS)), id: EPOCA_0_BTML.id });
+  const { eje, compra } = await ejemploCompra();
+  const X = compra.id;
+  const pinta = (estado, [ancho, alto], conEpoca) => arbol({ foco: { X, pv: 0 }, niveles: {}, rosetones: {}, ...estado }, eje, YO, medidasDePantalla(ancho, alto), { t: T, ...(conEpoca ? { epoca } : {}) });
+  const tope = escalaDeTamanos().tope;
+  for (const [con, columna] of [[false, 0], [true, 2]]) {
+    const a = await pinta({ niveles: { 1: tope } }, PANTALLAS.ordenador, con);
+    assert.deepEqual(a.laterales.find((n) => n.pv === 1).celda, [0, columna], 'el 1 en su esquina');
+    assert.equal(a.laterales.find((n) => n.pv === 1).caja.x > 0.5, columna === 2, 'su caja, a ese lado');
+    const aro = await pinta({ aro: { X, pv: null } }, PANTALLAS.ordenador, con);
+    assert.deepEqual(aro.aro.huecos.find((h) => h.pv === 1).celda, [0, columna], 'el sitio del 1 en el aro');
+    const m = await pinta({}, PANTALLAS.movil, con);
+    assert.equal(m.secuencia.pasado?.pv, con ? 7 : 6, 'el pasado del hilo');
+    const orden = m.secuencia.filas.map((x) => x.pv);
+    assert.deepEqual(orden, [...orden].sort((p, q) => (con ? q - p : p - q)), 'el orden de Sequenced');
+  }
+});
 
 test('las huellas: el reparto de Mapped, los toques de tamaño y las medidas de pantalla no cambian', () => {
   comparar('puras · ', huellasPuras());
