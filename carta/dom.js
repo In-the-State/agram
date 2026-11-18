@@ -8,9 +8,9 @@
 // más de N animaciones a la vez (data-animaciones, un dato de la configuración), primero lo nuevo y lo enfocado; las
 // que salen de pantalla se pausan.
 
-import { NIVEL, LATERALES, ANIMAR, GEOMETRIA, filtrarDiccionario, coincidenciaEntera } from './carta.js';
+import { NIVEL, LATERALES, ANIMAR, GEOMETRIA, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
-import { cssSeguro, pesos as pesosDeLaLente } from '../src/contrato.js';
+import { cssSeguro } from '../src/contrato.js';
 
 export const escapar = (s) => String(s ?? '').replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
 const corto = (id) => String(id ?? '').slice(0, 8);
@@ -506,12 +506,12 @@ function htmlMedidaDeHijo(c) {
 }
 
 /**
- * Los pesos del pintado en curso (contrato.pesos, epoch.9.5.8: cuántos se ven de cada lista): los trae el árbol en `lente` y
- * los fija html(); fuera de un pintado, los de sin libro.
+ * La lente del pintado en curso (contrato.sitios y contrato.pesos, epoch.9.5.6 y 9.5.8; y el PV del camino): la trae el árbol
+ * en `lente` y la fija html(); fuera de un pintado, la de sin libro.
  */
-const PESOS_SIN_LIBRO = pesosDeLaLente(null);
-let pesosDelPintado = null;
-const pesos = () => pesosDelPintado ?? PESOS_SIN_LIBRO;
+let lenteDelPintado = null;
+const pesos = () => (lenteDelPintado ?? LENTE_SIN_LIBRO).pesos;
+const caminoDelPintado = () => (lenteDelPintado ?? LENTE_SIN_LIBRO).camino;
 
 /**
  * Lo que el núcleo mide de un hijo del 1 (encargo «datos2», issue #11): el coste («coste EUR 12»), la capacidad con la
@@ -1548,7 +1548,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
     <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}${htmlAccionesDeCabecera(c.acciones)}</header>
     ${c.rejilla ? '' : htmlFondo(c.escena?.fondo)}
     ${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
-    <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${GEOMETRIA[c.pv]?.grupo === 'cruz' && GEOMETRIA[c.pv]?.fila === 'abajo' && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
+    <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${c.pv === caminoDelPintado() && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
   </section>`;
 }
 
@@ -1592,19 +1592,20 @@ function htmlRoseton(r, { enSuSitio = false } = {}) {
   const sitio = enSuSitio && r.sitio ? ` sitio-f${r.sitio.fila} sitio-c${r.sitio.columna}${r.sitio.centro ? ' sitio-centro' : ''}` : '';
   // A pantalla completa (nivel 3) el rosetón se queda comprimido en su sitio: lo grande es la hoja de htmlRosetonPantalla.
   const nivel = r.nivel >= NIVEL.bloque ? NIVEL.comprimido : r.nivel;
+  // Ampliado (la tarjeta), los ocupantes que el árbol trae: los de la tarjeta de 9.5.2 (hoy 4); el árbol ya los corta.
   const ampliado = nivel >= NIVEL.tarjeta && r.ocupantes;
   // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
   return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
     <span class="numero">${r.pv}</span>${r.comprimido.dato ? `<span class="dato">${escapar(r.comprimido.dato)}</span>` : ''}
-    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>${htmlCartera(r.cartera)}` : ''}
+    ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>${htmlCartera(r.cartera)}` : ''}
   </button>`;
 }
 /** El doble toque: la misma vista del rosetón ampliado a pantalla completa, con lo que el núcleo da de esa posición de mi alta. */
 function htmlRosetonPantalla(lista, guia = null) {
   const r = lista.find((x) => x.nivel >= NIVEL.bloque && x.ocupantes);
   if (!r) return '';
-  // El 9 (la cruz de abajo: el camino) lleva también la guía con su «guía | Core», como su tarjeta a nivel bloque.
-  const conGuia = GEOMETRIA[r.pv]?.grupo === 'cruz' && GEOMETRIA[r.pv]?.fila === 'abajo' ? htmlGuia(guia) : '';
+  // El del camino (el 9: su forma es «camino») lleva también la guía con su «guía | Core», como su tarjeta a nivel bloque.
+  const conGuia = r.pv === caminoDelPintado() ? htmlGuia(guia) : '';
   const filas = r.ocupantes.lista.map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('rosetonVacio')}</li>`;
   return `<section class="roseton-pantalla"${nodo('roseton', { tam: 'pantalla' })} data-roseton-pantalla="${r.pv}" data-color="${r.pv}" role="dialog" aria-label="${attr(r.etiqueta)}">
     <header><span class="numero">${r.pv}</span><span class="etiqueta">${escapar(r.etiqueta)}</span>${r.ocupantes.total ? `<small>${escapar(r.ocupantes.total)}</small>` : ''}<button type="button" class="cerrar" data-roseton-cerrar${nodo('control')} aria-label="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}" title="${attr(t('rosetonCerrarTitulo', { que: r.etiqueta }))}">${t('rosetonCerrar')}</button></header>
@@ -2399,7 +2400,7 @@ export function htmlCopia(c) {
  * `anfitrion` (true si la carta va dentro de una app que firma: carta/anfitrion.js), `autorizando` (los ids que firma ya) y `emparejar` (sin anfitrión, A25: { vivo }; la pantalla de arranque ofrece emparejar con la app).
  */
 export function html(arbol, extra = {}) {
-  pesosDelPintado = arbol?.lente?.pesos ?? null;
+  lenteDelPintado = arbol?.lente ?? null;
   archivoDe = typeof extra.archivo === 'function' ? extra.archivo : () => null; // los archivos adjuntos de esta pestaña (htmlRepresentacion)
   conAnfitrion = extra.anfitrion === true; // la app que lleva la carta firma: lo por autorizar lleva «autorizar» (htmlPorAutorizar)
   autorizando = extra.autorizando instanceof Set ? extra.autorizando : new Set();

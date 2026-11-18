@@ -20,7 +20,7 @@ import { readFileSync } from 'node:fs';
 import { createHash } from 'node:crypto';
 import {
   arbol, ampliar, ampliarTodos, repartir, escalaDeTamanos, medidasDePantalla, botonesDeNivel,
-  GEOMETRIA, CENTROS, LATERALES, ORDEN_ROSETONES, BOTONES_POR_NIVEL, NIVEL,
+  GEOMETRIA, CENTROS, LATERALES, ORDEN_ROSETONES, BOTONES_POR_NIVEL, NIVEL, LENTE_SIN_LIBRO,
 } from '../carta/carta.js';
 import { html } from '../carta/dom.js';
 import * as C from '../src/contrato.js';
@@ -64,6 +64,9 @@ const YA_NO = [
   ['carta.js', 'const digitos = [...pvs].sort('],
   ['carta.js', '[...CENTROS, ...LATERALES].sort('],
   ['app.js', 'PV_CAMINO'],
+  ['dom.js', "GEOMETRIA[c.pv]?.grupo === 'cruz'"],
+  ['dom.js', "GEOMETRIA[r.pv]?.grupo === 'cruz'"],
+  ['dom.js', 'r.ocupantes.lista.slice(0, 4)'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
@@ -92,9 +95,9 @@ test('la foto: lo que la propuesta deja de escribir se deduce sin pérdida', () 
   const camino = Number(Object.keys(GEOMETRIA).find((pv) => GEOMETRIA[pv].grupo === 'cruz' && GEOMETRIA[pv].fila === 'abajo'));
   assert.equal(camino, FOTO.camino);
   for (const modo of ['sequenced', 'mapped']) assert.deepEqual(FOTO.laterales.filter((pv) => C.formaDe(null, pv, modo)?.forma === 'camino'), [FOTO.camino]);
-  // El rosetón ampliado enseña 4 (dom.js slice(0, 4)): los de la tarjeta de 9.5.2.
-  tiene('dom.js', 'r.ocupantes.lista.slice(0, 4)');
+  // El rosetón ampliado enseña los de la tarjeta de 9.5.2 (4), que el árbol ya corta; y el PV del camino de la lente es el 9.
   assert.equal(C.tamanos()[1].datos, 4);
+  assert.equal(LENTE_SIN_LIBRO.camino, FOTO.camino);
 });
 
 // ---------- 3. las huellas ----------

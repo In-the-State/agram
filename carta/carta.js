@@ -77,6 +77,21 @@ const SITIOS_SIN_LIBRO = contrato.sitios(null);
 const PESOS_SIN_LIBRO = contrato.pesos(null);
 const sitiosDe = (ctx) => ctx?.sitios ?? SITIOS_SIN_LIBRO;
 const pesosDe = (ctx) => ctx?.pesos ?? PESOS_SIN_LIBRO;
+/**
+ * El PV que pinta el camino y lleva la guía: el lateral cuya forma en epoch.8.7 es la del camino (FORMAS.camino), en Mapped o en
+ * Sequenced. Lo dice la época, no la geometría; null si ninguno.
+ */
+function pvDelCamino(eje, sitios, opciones) {
+  const esCamino = (pv, modo) => {
+    try {
+      const forma = contrato.formaDe(eje, pv, modo, opciones)?.forma;
+      return Object.hasOwn(FORMAS, forma) && FORMAS[forma] === FORMAS.camino;
+    } catch {
+      return false;
+    }
+  };
+  return sitios.laterales.find((pv) => esCamino(pv, 'mapped') || esCamino(pv, 'sequenced')) ?? null;
+}
 
 /**
  * Las medidas por defecto (VG): el hueco comprimido, 48 px (un dato: un número o un icono); la tarjeta, 160 px (con
@@ -2121,6 +2136,8 @@ const FORMAS = {
   cadenas: { geometria: () => ({ columnas: 1, filas: 1 }), celdas: (...a) => cadenasDeRejilla(...a), hilo: true },
 };
 const geometriaDe = (d) => FORMAS[d.forma]?.geometria(d) ?? null;
+/** La lente de sin libro (lo que el pintado usa con un árbol que no la trae): sus sitios, sus pesos y el PV del camino. */
+export const LENTE_SIN_LIBRO = Object.freeze({ sitios: SITIOS_SIN_LIBRO, pesos: PESOS_SIN_LIBRO, camino: pvDelCamino(null, SITIOS_SIN_LIBRO, {}) });
 /** Lo que mide la fila del 3 por tema (encargo pv3): sus hijos son cajas de personas. */
 const MIDE_GRUPOS = 'groups';
 
@@ -3116,8 +3133,8 @@ export async function arbol(estado, eje, yo, medidas = {}, opciones = {}) {
     cargarMas: d.cargarMas,
     medidas: m,
     animado,
-    // Los sitios y los pesos de este pintado, para el pintado y la app (contrato.sitios, contrato.pesos).
-    lente: { sitios: ctx.sitios, pesos: ctx.pesos },
+    // Los sitios y los pesos de este pintado, para el pintado y la app (contrato.sitios, contrato.pesos), y el PV del camino.
+    lente: { sitios: ctx.sitios, pesos: ctx.pesos, camino: pvDelCamino(eje, ctx.sitios, opciones) },
     // El pintado (#25, epoch.9.3.2): sobrio, propio (solo el arte propio de cada elemento) o todo.
     pintado: { valor: hojas(configuracion.render ?? defectos.render)[0] ?? null, animado, soloPropio },
     limite,
