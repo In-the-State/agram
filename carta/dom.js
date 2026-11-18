@@ -1585,14 +1585,14 @@ function htmlCartera(cartera) {
  * matriz, una barra fija abajo; apilada (el móvil), dos tiras: arriba el tetraedro de la X con su centro, abajo la cruz
  * con el suyo (las que traza la geometría: la X son los PV 1-4, la cruz 6-9, y el 0 y el 5 el centro de cada una).
  */
-function htmlRoseton(r, { enSuSitio = false } = {}) {
+function htmlRoseton(r, { enSuSitio = false, marca = null } = {}) {
   const sitio = enSuSitio && r.sitio ? ` sitio-f${r.sitio.fila} sitio-c${r.sitio.columna}${r.sitio.centro ? ' sitio-centro' : ''}` : '';
   // A pantalla completa (nivel 3) el rosetón se queda comprimido en su sitio: lo grande es la hoja de htmlRosetonPantalla.
   const nivel = r.nivel >= NIVEL.bloque ? NIVEL.comprimido : r.nivel;
   const ampliado = nivel >= NIVEL.tarjeta && r.ocupantes;
   // Su nombre es el 0 de la posición de mi alta, en el idioma de la cuenta (VG, 14-11, #91): no «de mi alta».
   return `<button type="button" class="roseton grupo-${r.grupo} lado-${r.lado ?? ''} fila-${r.fila ?? ''} nivel-${nivel}${sitio}"${nodo('roseton', { tam: NOMBRE_NIVEL[nivel] })} data-roseton="${r.pv}" data-x="${r.X}" title="${attr(t('rosetonTitulo', { que: r.etiqueta }))}" aria-expanded="${r.nivel >= NIVEL.tarjeta}">
-    <span class="numero">${r.pv}</span>${r.comprimido.dato ? `<span class="dato">${escapar(r.comprimido.dato)}</span>` : ''}
+    <span class="numero">${r.pv}</span>${r.comprimido.dato ? `<span class="dato">${escapar(r.comprimido.dato)}</span>` : ''}${htmlMarcaDelRoseton(marca)}
     ${ampliado ? `<span class="etiqueta">${escapar(r.etiqueta)}</span><ul>${r.ocupantes.lista.slice(0, 4).map((o) => `<li>${escapar(o.texto)}</li>`).join('') || `<li class="nada">${t('nada')}</li>`}</ul>${htmlCartera(r.cartera)}` : ''}
   </button>`;
 }
@@ -1608,12 +1608,20 @@ function htmlRosetonPantalla(lista, guia = null) {
     <ul>${filas}</ul>${htmlCartera(r.cartera)}${conGuia}
   </section>`;
 }
-const nav = (lista, clase, enSuSitio = false) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio })).join('')}</nav>`;
+/**
+ * Mapped (VG 18-11, la forma C): un punto de vista comprimido no se pinta; su rosetón (el de la misma posición) lleva la
+ * marca con cuántas acciones ofrece ese punto de vista sobre el foco (la cabecera de su nodo lateral: carta.js cabeceraDe),
+ * pequeña y encima, sin cambiar su tamaño ni su sitio.
+ */
+const htmlMarcaDelRoseton = (a) => (a?.total ? `<span class="roseton-marca" data-marca-pv="${a.pv}" title="${attr(t('franjaCuantas', { n: a.total, que: a.etiqueta ?? '' }))}">${a.total}</span>` : '');
+/** Las cabeceras de los laterales comprimidos de Mapped, por posición: lo que llevan sus rosetones como marca. */
+const marcasDeComprimidos = (laterales) => Object.fromEntries((laterales ?? []).filter((n) => n.nivel <= NIVEL.comprimido && n.acciones?.total).map((n) => [n.pv, n.acciones]));
+const nav = (lista, clase, enSuSitio = false, marcas = {}) => `<nav class="rosetones ${clase}"${nodo('rosetones')} aria-label="${attr(t('miFoco'))}">${lista.map((r) => htmlRoseton(r, { enSuSitio, marca: marcas[r.pv] })).join('')}</nav>`;
 const ARRIBA = [1, 2, 0, 3, 4];
-function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
+function htmlRosetones(lista, { apilada = false, parte, guia = null, marcas = {} } = {}) {
   if (!lista?.length) return '';
   // En el ordenador, cada uno en su esquina o lateral, por encima de los bloques (dentro de la escena: htmlMapa).
-  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true) + htmlRosetonPantalla(lista, guia) : '';
+  if (!apilada) return parte === 'mapa' ? nav(lista, 'rosetones-mapa', true, marcas) + htmlRosetonPantalla(lista, guia) : '';
   const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
   return mias.length ? nav(mias, `rosetones-${parte}`) : '';
 }
@@ -2510,7 +2518,7 @@ function htmlMapa(a, extra, laterales) {
     return `<div class="mapa completa" data-completa="${a.mapa.completa.pv}"><div class="mapa-celdas">${centro}</div><nav class="vecinos" aria-label="${attr(t('pantallaCompleta', { que: a.centro.etiqueta }))}">${a.mapa.completa.vecinos.filter((v) => !v.centro).map(flecha).join('')}${centros.length ? `<span class="vecinos-centro">${centros.map(flecha).join('')}</span>` : ''}</nav></div>`;
   }
   const celdas = a.laterales.filter((n) => n.caja).map((n) => htmlCeldaMapa(n, laterales[n.pv] ?? '')).join('');
-  return `<div class="mapa${a.mapa.matriz ? ' en-matriz' : ''}"><div class="mapa-celdas">${centro}${celdas}</div>${htmlRosetones(a.rosetones, { apilada: false, parte: 'mapa', guia: a.guia })}</div>`;
+  return `<div class="mapa${a.mapa.matriz ? ' en-matriz' : ''}"><div class="mapa-celdas">${centro}${celdas}</div>${htmlRosetones(a.rosetones, { apilada: false, parte: 'mapa', guia: a.guia, marcas: marcasDeComprimidos(a.laterales) })}</div>`;
 }
 
 /**

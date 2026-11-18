@@ -461,6 +461,9 @@ html.mapped body{padding:0}
 .rosetones-mapa .roseton{position:absolute;pointer-events:auto;width:28px;height:28px;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .rosetones-mapa .roseton .numero{top:2px;font-size:7px}
 .rosetones-mapa .roseton.sitio-centro{width:22px;height:22px;font-size:10px}
+/* La marca de acciones de un punto de vista comprimido (forma C), sobre su rosetón: no cambia su tamaño ni su sitio. */
+.roseton-marca{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-size:9px;font-weight:600;line-height:15px;text-align:center;pointer-events:none;box-shadow:0 0 0 1.5px var(--bg)}
+.rosetones-mapa .sitio-c2 .roseton-marca{right:auto;left:-7px}
 .rosetones-mapa .sitio-f0{top:0} .rosetones-mapa .sitio-f2{bottom:0} .rosetones-mapa .sitio-f1{top:50%;transform:translateY(-50%)}
 .rosetones-mapa .sitio-c0{left:0} .rosetones-mapa .sitio-c2{right:0} .rosetones-mapa .sitio-c1{left:50%;transform:translateX(-50%)}
 .rosetones-mapa .sitio-f0.sitio-centro{top:3px;margin-left:34px} .rosetones-mapa .sitio-f2.sitio-centro{bottom:3px;margin-left:34px}
