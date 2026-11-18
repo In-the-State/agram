@@ -46,6 +46,7 @@ import { plantillaDePreferencias, preferencias } from './carta.js';
 import { adjuntarHtmlInicial } from './archivos.js';
 import { CLAVES as GUIA, ajustesEditablesDe } from './guia.js';
 import { esDePreferencias } from './sitio.js';
+import { t } from './textos.js';
 import { crearEnElGuardian, firmanteDeCuenta, tieneLaCuenta } from './anfitrion.js';
 
 /** Las claves de localStorage de las cuentas. Las de los ejemplos, aparte (CLAVES_EJEMPLO), y no se cruzan. */
@@ -122,16 +123,16 @@ function claveIdioma(opciones) {
 }
 
 /**
- * Los campos que pide crear una cuenta, con las etiquetas, ayudas y marcadores del núcleo en el idioma dado: el
- * nombre (el 0 del alta: la etiqueta de la posición 0 de un registro sin plantilla, la regla corta de la época) y el
+ * Los campos que pide crear una cuenta, en el idioma dado: el nombre (el 0 del alta, con la etiqueta y la ayuda en llano
+ * de la carta) y el
  * idioma (la posición «language» de la plantilla «preferences», con los idiomas que tienen mensajes en la época).
  * → [{ nombre: 'nombre' | 'idioma', pv, etiqueta, ayuda, marcador, opciones?, valor? }]
  */
 export function camposDelAlta({ idioma, epoca } = {}) {
   const o = { idioma, epoca };
-  const candidata = { payload: [] };
-  // Sin marcador: el de la regla corta del 0 es un ejemplo de fórmula, no un nombre.
-  const campos = [{ nombre: 'nombre', pv: 0, etiqueta: contrato.etiqueta(null, candidata, 0, o), ayuda: contrato.ayuda(null, candidata, 0, o), marcador: [] }];
+  // El nombre se pide en llano (textos de la carta), no con la etiqueta y la ayuda de la posición 0 de la época («representación»,
+  // «PV0: la lente libre…»); sin marcador: el de la regla corta del 0 es un ejemplo de fórmula, no un nombre.
+  const campos = [{ nombre: 'nombre', pv: 0, etiqueta: t('altaNombre'), ayuda: t('altaNombreAyuda'), marcador: [] }];
   const p = plantillaDePreferencias(o);
   const clave = claveIdioma(o);
   if (p && clave) {

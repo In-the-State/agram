@@ -414,6 +414,8 @@ const esElCeroGuardado = (eje, X, texto) => typeof texto === 'string' && eje?.ob
 /**
  * Un valor en texto legible, como lo dice el núcleo en el idioma de quien mira (contrato.legible); `tipo`, el de la posición o el parámetro.
  * Una referencia a un registro entero (sin posición) enseña su 0 legible (ceroDe) cuando lo que da el núcleo es el 0 guardado.
+ * Una serie de P o de E atada a un registro («P sobre <registro>»), igual: el registro por su 0 legible, no por el mensaje
+ * canónico en inglés que guardó la plantilla que lo escribió («commit P: huesped commits 10 P to ∅»).
  */
 function legibleDe(eje, o, tipo, opciones) {
   const l = contrato.legible(eje, o, tipo, opciones);
@@ -421,8 +423,18 @@ function legibleDe(eje, o, tipo, opciones) {
   if (esReferencia(o) && p?.X && !p.dir && esElCeroGuardado(eje, p.X, p.representacion) && l.texto === p.representacion) {
     return { ...l, texto: ceroDe(eje, p.X, { opciones }, l.texto) };
   }
+  if ((p?.familia === 'P' || p?.familia === 'E') && typeof p.registro === 'string' && esElCeroGuardado(eje, p.registro, p.registroTexto) && l.texto.includes(p.registroTexto)) {
+    return { ...l, texto: l.texto.replace(p.registroTexto, () => ceroDe(eje, p.registro, { opciones }, p.registroTexto)) };
+  }
+  // Una lista (la junta el núcleo con «·»): cada ocupante con lo mismo de arriba.
+  if (Array.isArray(o) && Array.isArray(p?.lista) && p.lista.length === o.length) {
+    return { ...l, texto: o.map((v) => legibleDe(eje, v, tipo, opciones).texto).filter((x) => x !== '').join(' · ') };
+  }
   return l;
 }
+
+/** ¿Lleva `x` una marca de BTML o de fórmula en crudo («[[ref menú:1]…», «=…»)? Lo que se enseña nunca la lleva. */
+const conMarcas = (x) => typeof x === 'string' && (/\[\[|\]\]|\[ref\b|\{ref\b/.test(x) || /^\s*=/.test(x));
 
 /**
  * Los nombres internos de la época (los de sus plantillas de transacción y de datos y los de sus reglas), de mayor a menor
@@ -808,7 +820,9 @@ function camposDe(eje, X, ctx) {
       pv,
       etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones),
       ayuda: contrato.ayuda(eje, X, pv, ctx.opciones),
-      marcador: contrato.marcador(eje, X, pv, ctx.opciones),
+      // El marcador sin los ejemplos con marcas en crudo de la regla corta («compra 1 = [[ref menú:1]…») y cada uno como lo
+      // lee el núcleo en el idioma (el nombre de una acción, «register the node», por su traducción).
+      marcador: contrato.marcador(eje, X, pv, ctx.opciones).filter((m) => !conMarcas(m)).map((m) => (typeof m === 'string' ? legibleDe(eje, m, null, ctx.opciones).texto : m)),
       tipo,
       valor: o.ocupantes.length ? legibleDe(eje, o.ocupantes[0], tipo, ctx.opciones).texto : '',
       total: o.total,
@@ -1270,9 +1284,15 @@ function anclaDeAccion(plantilla) {
  * posición de un registro no se escribe en el input de un tipo simple: no sale.
  */
 function opcionesDeParametro(eje, X, p, en, yo, o) {
+  // El texto de cada opción, si es la lectura de siempre del núcleo, con los registros por su 0 legible (legibleDe): en el
+  // idioma de quien mira, no en el inglés de la plantilla que los escribió.
+  // Una opción cuyo texto lleva marcas en crudo se dice como la lee el núcleo; si es una décupla guardada como texto JSON
+  // (lo que dejó escrito alguien a mano), se lee la décupla.
+  const comoDecupla = (v) => { try { const d = typeof v === 'string' && v.trim().startsWith('[') ? JSON.parse(v) : null; return Array.isArray(d) ? d : v; } catch { return v; } };
+  const llano = (x) => (conMarcas(x.texto) ? legibleDe(eje, comoDecupla(x.valor), null, o).texto : contrato.legible(eje, x.valor, null, o).texto === x.texto ? legibleDe(eje, x.valor, null, o).texto : x.texto);
   return contrato.opciones(eje, X, null, { ...o, yo, parametro: { ...p, ...(en ? { en } : {}) } })
     .filter((x) => !(esReferencia(x.valor) && x.valor.dir && x.valor.dir !== '0000000000'))
-    .map((x) => ({ valor: esReferencia(x.valor) ? x.valor.ref : String(x.valor), texto: x.texto }));
+    .map((x) => ({ valor: esReferencia(x.valor) ? x.valor.ref : String(x.valor), texto: llano(x) }));
 }
 
 /**
