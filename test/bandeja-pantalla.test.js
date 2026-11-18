@@ -241,7 +241,7 @@ test('la cuenta no tapa nada (repaso a 400 px): en Mapped va en el flujo del mar
   assert.match(apilada, /position:fixed/);
   assert.match(apilada, /bottom:calc\(var\(--emparejar-alto,0px\) \+ 41px/, 'encima de la fila de los dígitos (4 + 32 + 4 px y su borde)');
   assert.match(regla('.carta-apilada:has(>.bandeja-cuenta)'), /padding-bottom:calc\(48px \+ 44px/, 'la columna guarda su alto: no tapa lo último');
-  assert.match(regla('.carta:has(.formulario-fondo)>.bandeja-cuenta'), /display:none/);
+  assert.match(regla('.carta:has(.formulario-fondo,.aro-fondo,.sitio-fondo,.puente-fondo,.core-fondo,.roseton-pantalla)>.bandeja-cuenta'), /display:none/);
   const digito = regla('.digito');
   assert.match(digito, /height:32px/, 'si cambia el alto de los dígitos, cambia también el sitio de la cuenta');
 });
@@ -424,4 +424,22 @@ test('en una fila cerrada (Sequenced), la marca de la bandeja va dentro de la ca
   const span = h.slice(i, h.indexOf('</span>', h.indexOf('pv-acciones-cuantas', i)) + 7);
   assert.match(span, new RegExp(`<small class="bandeja-marca" data-bandeja-marca="${fila.pv}"`), 'dentro del span');
   assert.ok(!h.slice(i + span.length, i + span.length + 40).includes('bandeja-marca'), 'no detrás, en línea propia');
+});
+
+test('en el escritorio la cuenta va en el marco, fuera de la escena donde están los rosetones; con la configuración o cualquier diálogo abierto no se pinta', async () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const fijas = [...css.matchAll(/([^{}]*\.bandeja-cuenta[^{}]*)\{([^}]*)\}/g)].filter((m) => /position:fixed/.test(m[2])).map((m) => m[1].trim());
+  assert.deepEqual(fijas, ['.carta-apilada>.bandeja-cuenta'], 'solo es fija en Sequenced; en el escritorio, en el flujo');
+  const oculta = css.match(/\.carta:has\(([^)]*)\)>\.bandeja-cuenta\{display:none\}/);
+  assert.ok(oculta, 'se esconde con un diálogo abierto');
+  for (const fondo of ['.formulario-fondo', '.aro-fondo', '.sitio-fondo', '.puente-fondo', '.core-fondo', '.roseton-pantalla']) assert.ok(oculta[1].split(',').includes(fondo), fondo);
+  const dom = readFileSync(new URL('../carta/dom.js', import.meta.url), 'utf8');
+  assert.match(dom, /export function htmlConfiguracion[^]*?<div class="formulario-fondo" data-cerrar><form class="formulario configuracion"/, 'la configuración es un formulario-fondo');
+  // En Mapped: la cuenta antes de la escena; los rosetones, dentro de ella.
+  const { eje, X, b } = await escena();
+  b.poner({ accion: 'x', X, valores: {} });
+  const v = vistaDeLaBandeja({ ok: false, items: [item('b1', { X })], motivos: [] });
+  const h = html(await arbol({ foco: { X, pv: 0 } }, eje, 'huesped', PC), { bandeja: v });
+  assert.ok(h.indexOf('data-bandeja-ir') > 0 && h.indexOf('data-bandeja-ir') < h.indexOf('<div class="escena">'));
+  assert.ok(h.indexOf('rosetones-mapa') > h.indexOf('<div class="escena">'), 'los rosetones del escritorio, dentro de la escena');
 });

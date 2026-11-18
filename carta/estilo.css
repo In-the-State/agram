@@ -1324,13 +1324,13 @@ html.mapped body{padding:0}
    formulario que va por la bandeja. */
 /* La cuenta no tapa nada en ningún ancho: en Mapped va en el marco, en el flujo, como los avisos (la escena se encoge);
    en Sequenced, fija justo encima de la fila de los dígitos (4 + 32 + 4 px y su borde) y la columna le guarda su alto;
-   con un formulario abierto no se pinta (el formulario dice ya lo de su entrada y nada puede tapar sus botones). */
+   con un formulario o un diálogo abierto (configuración, aro, sitio, puente, Core, un rosetón a pantalla completa) no se pinta. */
 .bandeja-cuenta{display:block;width:100%;min-height:36px;margin:4px 0;padding:4px 14px;border:2px solid var(--accent);border-radius:999px;background:var(--bg);color:var(--fg);font-size:14px;font-weight:600;text-align:center}
 .bandeja-cuenta.no-entra{border-color:var(--warn);background:var(--warnbg);color:var(--warn)}
 .carta-apilada>.bandeja-cuenta{position:fixed;z-index:8;left:max(8px,env(safe-area-inset-left,0px));right:max(8px,env(safe-area-inset-right,0px));width:auto;margin:0;bottom:calc(var(--emparejar-alto,0px) + 41px + env(safe-area-inset-bottom,0px) + 4px)}
 .carta-apilada:not(:has(>.digitos))>.bandeja-cuenta{bottom:calc(var(--emparejar-alto,0px) + env(safe-area-inset-bottom,0px) + 4px)}
 .carta-apilada:has(>.bandeja-cuenta){padding-bottom:calc(48px + 44px + env(safe-area-inset-bottom,0px))}
-.carta:has(.formulario-fondo)>.bandeja-cuenta{display:none}
+.carta:has(.formulario-fondo,.aro-fondo,.sitio-fondo,.puente-fondo,.core-fondo,.roseton-pantalla)>.bandeja-cuenta{display:none}
 .pv-acciones>button.pendiente,.pv-acciones-desplegadas>button.pendiente{border-style:dashed;border-color:var(--accent)}
 .pv-acciones>button.pendiente::after,.pv-acciones-desplegadas>button.pendiente::after{content:" •";color:var(--accent)}
 .bandeja-tira{flex-basis:100%;list-style:none;margin:4px 0 0;padding:0;display:grid;gap:4px;min-width:0}
