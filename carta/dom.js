@@ -1655,6 +1655,36 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
   return `<div class="pv-acciones"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${nombradas.map(boton).join('')}${mas}</div>`;
 }
 
+/**
+ * El «+n» abierto de una cabecera es una lista flotante (position: fixed en el CSS), pegada a su botón y dentro de la
+ * pantalla: debajo si cabe, si no encima, y nunca fuera por los lados. Lo llama la app tras pintar y al desplazar. Si un
+ * antepasado cambia la referencia de lo fijo, se corrige midiendo dónde ha caído.
+ */
+export function situarDesplegadas(raiz) {
+  const MARGEN = 8;
+  const vista = raiz?.ownerDocument?.defaultView ?? globalThis;
+  const vw = raiz?.ownerDocument?.documentElement?.clientWidth || vista.innerWidth || 0;
+  const vh = vista.innerHeight || 0;
+  for (const mas of raiz?.querySelectorAll?.('.pv-acciones-mas[open]') ?? []) {
+    const boton = mas.querySelector('summary');
+    const lista = mas.querySelector('.pv-acciones-desplegadas');
+    if (!boton || !lista) continue;
+    const b = boton.getBoundingClientRect();
+    const l = lista.getBoundingClientRect();
+    const debajo = b.bottom + 4;
+    const encima = b.top - 4 - l.height;
+    const top = debajo + l.height <= vh - MARGEN || encima < MARGEN ? Math.min(debajo, Math.max(MARGEN, vh - MARGEN - l.height)) : encima;
+    const left = Math.min(Math.max(MARGEN, b.left), Math.max(MARGEN, vw - MARGEN - l.width));
+    lista.style.left = Math.round(left) + 'px';
+    lista.style.top = Math.round(top) + 'px';
+    const r = lista.getBoundingClientRect();
+    if (Math.abs(r.left - left) > 1 || Math.abs(r.top - top) > 1) {
+      lista.style.left = Math.round(2 * left - r.left) + 'px';
+      lista.style.top = Math.round(2 * top - r.top) + 'px';
+    }
+  }
+}
+
 /** El atajo visible al aro de un ocupante (VG 18-11): lo mismo que mantenerlo pulsado (app.js aro). Pequeño, junto a él. */
 const htmlAbrirAro = (o) => (o?.X ? `<button type="button" class="abrir-aro"${nodo('control')} data-aro-abrir="${attr(o.X)}" title="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}" aria-label="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}">⋯</button>` : '');
 

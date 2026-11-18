@@ -1089,7 +1089,10 @@ html.mapped body{padding:0}
 .pv-acciones-mas{display:inline-block;max-width:100%}
 .pv-acciones-mas>summary{cursor:pointer;list-style:none;padding:2px 10px;border:1px dashed var(--rule);border-radius:999px;font-size:13px}
 .pv-acciones-mas>summary::-webkit-details-marker{display:none}
-.pv-acciones-desplegadas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+/* El «+n» abierto: una lista flotante por encima de todo, pegada a su botón y dentro de la pantalla (dom.js
+   situarDesplegadas la coloca); no empuja ni recorta nada. Tocar fuera o Escape la cierran (gestos.js, app.js). */
+.pv-acciones-mas[open]>summary{background:var(--panel2);border-style:solid}
+.pv-acciones-desplegadas{position:fixed;z-index:40;display:grid;justify-items:start;gap:4px;margin:0;padding:6px;width:max-content;max-width:min(320px,calc(100vw - 16px));max-height:min(50vh,360px);overflow:auto;box-sizing:border-box;background:var(--bg);border:2px solid var(--accent);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3)}
 .paso-de-fila{margin-left:6px;min-height:0;padding:1px 8px;font-size:12px}
 .abrir-aro{min-height:0;padding:0 6px;margin-left:4px;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--muted);font-size:13px;line-height:1.4;vertical-align:middle}
 .abrir-aro:hover,.abrir-aro:focus-visible{color:var(--fg);border-color:var(--accent)}
