@@ -78,6 +78,8 @@ const YA_NO = [
   ['carta.js', 'const zonaDelHilo = (pv) => (GEOMETRIA'],
   ['carta.js', 'Object.keys(GEOMETRIA)'],
   ['app.js', 'GEOMETRIA'], ['app.js', 'CENTROS'], ['app.js', 'LATERALES'], ['dom.js', 'GEOMETRIA'], ['dom.js', 'LATERALES'],
+  // El anverso de la lente, no el dígito 0: los estados iniciales y los irA de app.js.
+  ['app.js', 'pv: 0 }'], ['app.js', 'function irA(X, pv = 0)'], ['app.js', 'irA(X, 0)'], ['app.js', 'irA(otro, 0)'], ['app.js', 'irA(registro, 0)'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {

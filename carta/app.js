@@ -62,7 +62,7 @@ const FRASE_MINIMA = 8;
 
 const raiz = document.querySelector('#carta');
 const estado = {
-  eje: null, claves: {}, identidad: null, foco: { X: null, pv: 0 }, niveles: {}, recientes: [], paginas: {}, profundidad: {}, aro: null, formulario: null,
+  eje: null, claves: {}, identidad: null, foco: { X: null, pv: contrato.sitios(null).centros[0] }, niveles: {}, recientes: [], paginas: {}, profundidad: {}, aro: null, formulario: null,
   rosetones: {}, local: null, leido: leidoAbierto(), aviso: '', exito: '', guardado: '', config: false, motivosPreferencias: [],
   vistos: new Set(), nuevos: new Set(), hermanos: null,
   // Mi cuenta: la abierta ({ nombre, idioma, identidad, alta, publica, privada }) o null en un ejemplo; la pantalla
@@ -166,6 +166,8 @@ const medidas = () => medidasDePantalla(window.innerWidth, window.innerHeight);
 const enMapped = () => Boolean(ultimo && !ultimo.vacio && !ultimo.apilada);
 /** Los sitios de la pantalla (contrato.sitios, epoch.9.5.6): los del último árbol pintado; sin árbol, los del libro abierto. */
 const sitios = () => ultimo?.lente?.sitios ?? contrato.sitios(estado.eje);
+/** El anverso de un libro (el primero de sus centros, contrato.sitios): donde se abre un libro recién puesto en pantalla, sin árbol suyo aún. */
+const anversoDe = (eje) => contrato.sitios(eje).centros[0];
 /** ¿Está la carta en Sequenced con su columna (la tarjeta con sus filas y el hilo)? */
 const enSecuencia = () => Boolean(ultimo && !ultimo.vacio && ultimo.apilada && ultimo.secuencia);
 /** Sequenced: a qué fila o zona del hilo llevar la pantalla tras el próximo pintado (un dígito tocado), o null. */
@@ -986,7 +988,7 @@ function limpiarMensajes() {
 }
 
 /** Enfocar un registro (o un PV de un registro como foco). */
-function irA(X, pv = 0) {
+function irA(X, pv = sitios().centros[0]) {
   if (!estado.eje?.obtener(X)) return;
   const cambia = estado.foco.X !== X;
   estado.foco = { X, pv };
@@ -1005,7 +1007,7 @@ function cambiarDeEje(eje, identidad) {
   guardarLibroLocal();
   estado.eje = eje;
   estado.identidad = identidad;
-  estado.foco = { X: null, pv: 0 };
+  estado.foco = { X: null, pv: anversoDe(eje) };
   estado.niveles = {};
   estado.recientes = [];
   estado.paginas = {};
@@ -1199,7 +1201,7 @@ async function seguirPasoDeGuia(guiaAlta, pasoId) {
   // La guía, vista desde el libro donde se hace el paso (el mismo eje si es el mismo libro): sus parámetros, leídos con su tipo.
   const guiaEje = ejeGuia.genesisId === estado.eje.genesisId ? estado.eje : ejeGuia;
   const s = contrato.sugerenciasDeGuia(guiaEje, estado.eje, X, yo, { idioma: idioma(), autor: hallado.autor }).find((x) => x.id === pasoId);
-  irA(X, 0);
+  irA(X);
   if (!s) { estado.aviso = t('guiaPasoNoEsta'); pintar(); return; }
   if (s.invalida) { estado.aviso = t('guiaPasoInvalidoPor', { motivo: s.invalida }); pintar(); return; }
   const v = await validarSinFirmar(estado.eje, s.sobre, s.plantilla, s.parametros ?? {}, yo);
@@ -1332,7 +1334,7 @@ async function entrarEnEjemplo() {
   if (!estado.eje.identidades().includes(estado.identidad)) estado.identidad = estado.eje.identidades()[0];
   cuentas.recordarUltima(EJEMPLO);
   abrirLibroLocal();
-  estado.foco = { X: foco, pv: 0 };
+  estado.foco = { X: foco, pv: anversoDe(estado.eje) };
   tocar(foco, null);
   marcarNuevos();
   await pintar();
@@ -2534,7 +2536,7 @@ const manejadores = {
     const hermanos = estado.eje.sobre(ev.sobre).map((h) => h.id);
     const i = hermanos.indexOf(ev.id);
     const otro = hermanos[(i + delta + hermanos.length) % hermanos.length];
-    if (otro && otro !== ev.id) irA(otro, 0);
+    if (otro && otro !== ev.id) irA(otro);
   },
   saltar(pv) {
     if (enSecuencia()) return manejadores.digito(pv); // las teclas 0-9, como la fila de dígitos
@@ -2655,7 +2657,7 @@ const manejadores = {
     const { libro, registro } = z.destino;
     if (libro === null) {
       if (guiasCarta.pasoDelLibro(estado.eje, registro)) return seguirPasoDeGuia(null, registro);
-      return irA(registro, 0);
+      return irA(registro);
     }
     const entrada = await guiasCarta.libroDeEntrada(libro, { entradas: estado.cuenta ? misEntradas() : [], libros: librosDelDispositivo, actual: libroAbierto() });
     if (!entrada) { limpiarMensajes(); estado.aviso = t('zonaLibroNoEsta'); pintar(); return; }
@@ -2797,7 +2799,7 @@ const manejadores = {
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: rc.eje.orden.length }) : t('sinAlmacenamiento');
       estado.exito = t('cuentaRestaurada', { nombre: rc.cuenta.nombre, cuantos: rc.eje.orden.length }) + (delLibro ? ' · ' + t('ejeDelServidor', { cuantos: rc.eje.orden.length }) : '');
       estado.aviso = aviso;
-      estado.foco = { X: rc.cuenta.alta, pv: 0 };
+      estado.foco = { X: rc.cuenta.alta, pv: anversoDe(estado.eje) };
       tocar(rc.cuenta.alta, null);
       marcarNuevos();
       if (estado.sincronia) void sincronizar();
@@ -2881,7 +2883,7 @@ const manejadores = {
       // tamaño de 9.5.2 que es su paso de nivel, la tarjeta).
       const { alEmpezar } = contrato.pesos(r.eje);
       if (alEmpezar.pv !== null && alEmpezar.tamano !== null) estado.niveles[alEmpezar.pv] = alEmpezar.tamano;
-      estado.foco = { X: r.cuenta.alta, pv: 0 };
+      estado.foco = { X: r.cuenta.alta, pv: anversoDe(estado.eje) };
       tocar(r.cuenta.alta, null);
       marcarNuevos();
       await pintar();
@@ -2935,7 +2937,7 @@ const manejadores = {
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');
       estado.exito = t('cuentaRestaurada', { nombre: r.cuenta.nombre, cuantos: r.eje.orden.length }) + (delLibro ? ' · ' + t('ejeDelServidor', { cuantos: r.eje.orden.length }) : '') + (existia ? ' · ' + t('cuentaSustituida') : '');
       estado.aviso = aviso;
-      estado.foco = { X: r.cuenta.alta, pv: 0 };
+      estado.foco = { X: r.cuenta.alta, pv: anversoDe(estado.eje) };
       tocar(r.cuenta.alta, null);
       marcarNuevos();
       await pintar();
