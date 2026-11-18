@@ -103,9 +103,10 @@ test('Mapped: en la rejilla, la fila de acciones de un punto de vista es de una 
   assert.doesNotMatch(html(movil), /una-linea/);
 });
 
-test('el CSS de la fila de una línea: no pasa de una línea, la primera se recorta y «+n» no encoge', () => {
+test('el CSS de la fila de una línea: no pasa de una línea, la primera se recorta y «+n» no encoge; en animado, la cabecera es una franja sobre el arte', () => {
   const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
   assert.match(css, /\.pv-acciones\.una-linea\{[^}]*flex-direction:row-reverse[^}]*flex-wrap:wrap[^}]*max-height:34px[^}]*overflow:hidden/);
   assert.match(css, /\.pv-acciones\.una-linea>\.accion\{[^}]*text-overflow:ellipsis/);
   assert.match(css, /\.pv-acciones\.una-linea>\.pv-acciones-mas\{flex:none\}/);
+  assert.match(css, /\.carta\.animado \.mapa \.pv>\.pv-cabeza\{position:relative;background:inherit/);
 });
