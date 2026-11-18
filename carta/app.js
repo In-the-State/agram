@@ -2345,7 +2345,8 @@ const manejadores = {
       // Lo escrito desde el centro del aro en edición: hecho, se cierra. Desde el aro de un hueco (issue #22): el elemento
       // nuevo existe y se abre su aro (en su 2, «adjuntar un archivo»), en el mismo sitio.
       estado.aro = nuevo ? { X: ev.id, pv: null, ancla: estado.aro?.ancla ?? null, editar: false } : null;
-      estado.exito = t(nuevo ? 'creado' : 'escrito', { id: ev.id.slice(0, 8), pv, X: X.slice(0, 8) }) + (ev.firma ? ' ' + t('firmado') : '');
+      // Como la bandeja: qué se ha registrado, sin ids.
+      estado.exito = t(nuevo ? 'creado' : 'escrito', { texto }) + (ev.firma ? ' ' + t('firmado') : '');
       estado.aviso = '';
       tocar(X, 'escribir ' + pv);
       marcarNuevos();
