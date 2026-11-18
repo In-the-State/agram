@@ -154,3 +154,16 @@ test('lo que cuesta: con memoria, la primera vez menos y la segunda un paso', as
     assert.deepEqual(segunda, { ocupantes: 0, pasos: 1 }, nombre);
   }
 });
+
+test('siguiente y camino pasan opciones.memoria a loQueFalta: la segunda vez, X.4.9 sale de la memoria', async () => {
+  const { eje, reserva } = await ejemploReserva({ confirmar: false });
+  const memoria = new MemoriaDeLectura();
+  const antes = siguiente(eje, reserva.id, 'huesped');
+  assert.deepEqual(siguiente(eje, reserva.id, 'huesped', { memoria }), antes);
+  const aciertos = memoria.aciertos;
+  assert.deepEqual(siguiente(eje, reserva.id, 'casa', { memoria }).faltaDeMi.map((f) => f.plantilla), ['pay']);
+  assert.ok(memoria.aciertos > aciertos, 'otra persona, la misma lectura: de la memoria');
+  const a = memoria.aciertos;
+  await camino(eje, reserva.id, 'recepcion', { memoria });
+  assert.ok(memoria.aciertos > a, 'camino también');
+});

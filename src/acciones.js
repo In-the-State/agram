@@ -1708,7 +1708,8 @@ export async function camino(eje, X, yo, opciones = {}) {
   const sinPasos = ['error', 'caducado', 'decidido'].includes(cerradoDe(eje, ev.id).fin);
   // Lo que falta lo dice la lectura de la época en X.4.9 (motor.loQueFalta; Core AGRAM 18-11, NUCLEO_6_7_8 §6): sus filas
   // nombran los anuncios pendientes, por llegada, y la acción de quien tiene que actuar en cada uno.
-  const filas = sinPasos ? [] : loQueFalta(eje, ev.id).filas;
+  // Con opciones.memoria (una MemoriaDeLectura de quien llama: el contrato, la carta por fila), como lectura de pantalla.
+  const filas = sinPasos ? [] : loQueFalta(eje, ev.id, { memoria: opciones.memoria }).filas;
   const pendientes = [...new Set(filas.filter((f) => typeof f.sobre === 'string' && f.sobre !== ev.id).map((f) => f.sobre))].map((id) => eje.obtener(id)).filter(Boolean);
   for (const anuncio of pendientes) {
     const a = anuncioDe(anuncio);

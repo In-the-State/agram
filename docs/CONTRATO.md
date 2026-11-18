@@ -930,7 +930,7 @@ El catálogo (MUNDOS_DISEÑO §11 con la corrección de VG al 4), con su condici
 
 Los **tipos declarados** son dato: décuplas con el molde de un parámetro (0 nombre; 1 de qué deriva; 2 la validación; 9, delante de la ayuda, la fórmula de opciones). Viven en `epoch.9.2.0.3`, que es colección al heredar (`COLECCIONES`).
 
-**Tres capas, de abajo arriba:** la época 0, lo provisional (`datos/provisional/tipos.json`, leído por `src/provisional.js` hasta la pasada única) y la época del libro.
+**Tres capas, de abajo arriba:** la época 0, lo provisional (`datos/provisional/tipos.json`, con su copia generada `tipos.js`, leída por `src/provisional.js` hasta la pasada única) y la época del libro.
 
 **Cómo se resuelve un tipo** (`resolverTipo(p[1], { epoca })`):
 

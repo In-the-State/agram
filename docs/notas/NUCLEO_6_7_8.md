@@ -583,7 +583,7 @@ Un hallazgo que no pido decidir aquí, pero conviene saber: entregar las plazas 
 
 En qué se aparta de lo de arriba:
 
-1. **Un JSON por clase, no una carpeta.** `datos/provisional/tipos.json` y no `tipos/*.json`: el navegador no lista carpetas y un módulo JSON se carga síncrono.
+1. **Un JSON por clase, no una carpeta.** `datos/provisional/tipos.json` y no `tipos/*.json`, con su copia importable generada (`datos/provisional/generar.mjs` escribe `tipos.js` y `lecturas.js`; `test/provisional.test.js` comprueba que están al día): el patrón de la casa, sin módulos JSON.
 2. **`tipo` sigue siendo la base** (lo que lee la carta). El tipo declarado va en `declarado`.
 3. **Un tipo declarado fija su faceta:** un parámetro no se la cambia. Para otra faceta del mismo control, se nombra la base: `["book", "line keys"]`.
 4. **«Mi alta allí» no es faceta de book.**

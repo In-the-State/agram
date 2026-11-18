@@ -63,7 +63,7 @@ test('todos los parámetros de las acciones de la 0 y de las hijas se resuelven,
 });
 
 test('lo provisional: tipos como dato (JSON), congelados, que se resuelven y no chocan con la 0 ni con un tipo base', () => {
-  assert.ok(existsSync('datos/provisional/tipos.json'));
+  assert.ok(existsSync('datos/provisional/tipos.json') && existsSync('datos/provisional/tipos.js'));
   assert.deepEqual(JSON.parse(readFileSync('datos/provisional/tipos.json', 'utf8')), TIPOS_PROVISIONALES.map((x) => structuredClone(x)));
   assert.ok(Object.isFrozen(TIPOS_PROVISIONALES) && Object.isFrozen(TIPOS_PROVISIONALES[0][0]));
   const deLa0 = new Set((EPOCA_0_BTML.registro[9][2][0][3] ?? []).map((x) => x[0][0]));

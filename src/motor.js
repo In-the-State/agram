@@ -438,9 +438,10 @@ export function loQueFalta(eje, X, { memoria, limites } = {}) {
  * transacción misma, lista para eje.escribir); lo de otros, marcado como espera. Si X es el alta de `yo` aceptando
  * una invitación (mapa §16 [D]: «el tutorial de cero al mínimo = aceptar una invitación»), además lo que la
  * invitación anuncia de mí y `tutorial`: las posiciones de la identidad en el orden del tutorial de la época
- * (epoch.9.1), cada una con lo que dice la plantilla de identidad (epoch.3.0).
+ * (epoch.9.1), cada una con lo que dice la plantilla de identidad (epoch.3.0). Con `memoria` (una MemoriaDeLectura de
+ * src/bqlm.js, la de quien llama: el contrato, la carta), X.4.9 se lee como lectura de pantalla (loQueFalta).
  */
-export function siguiente(eje, X, yo) {
+export function siguiente(eje, X, yo, { memoria } = {}) {
   const id = typeof X === 'string' ? X : X?.id;
   const reg = eje.obtener(id);
   if (!reg) throw new Error('registro desconocido: ' + String(id).slice(0, 8));
@@ -452,7 +453,7 @@ export function siguiente(eje, X, yo) {
   // Lo que falta lo dice la lectura de la época en X.4.9 («what is missing», Core AGRAM 18-11; NUCLEO_6_7_8 §6): una fila
   // por movimiento anunciado que aún no ha pasado y por recuento que no pasa, con quién tiene que actuar y la acción que lo
   // cumple. Aquí solo se reparte entre lo mío y lo que espero de otros.
-  const lqf = loQueFalta(eje, id);
+  const lqf = loQueFalta(eje, id, { memoria });
   const filas = lqf.filas;
   const anuncios = [...new Set(filas.filter((f) => typeof f.sobre === 'string' && f.sobre !== id).map((f) => f.sobre))];
   for (const aid of anuncios) {
@@ -502,7 +503,7 @@ export function siguiente(eje, X, yo) {
   const inv = reg.sobre ? eje.obtener(reg.sobre) : null;
   const esInvitacion = Array.isArray(inv?.payload) && [inv.payload[0]].flat().includes('invitation');
   if (yo && reg.autor === yo && eje.alta(yo)?.id === id && esInvitacion) {
-    const deLaInvitacion = siguiente(eje, inv.id, yo);
+    const deLaInvitacion = siguiente(eje, inv.id, yo, { memoria });
     fuera.faltaDeMi.push(...deLaInvitacion.faltaDeMi);
     fuera.espera.push(...deLaInvitacion.espera);
     const plantilla = epocaDelEje(eje).registro[3][0];
