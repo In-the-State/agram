@@ -8,7 +8,7 @@
 // más de N animaciones a la vez (data-animaciones, un dato de la configuración), primero lo nuevo y lo enfocado; las
 // que salen de pantalla se pausan.
 
-import { NIVEL, ANIMAR, GEOMETRIA, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
+import { NIVEL, ANIMAR, LENTE_SIN_LIBRO, filtrarDiccionario, coincidenciaEntera } from './carta.js';
 import { t, PREFIJO_DE_LA_CARTA } from './textos.js';
 import { cssSeguro } from '../src/contrato.js';
 

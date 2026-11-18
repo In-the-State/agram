@@ -23,7 +23,7 @@
 // «Entrar» y «Volver» cambian de libro con un foco de llegada.
 
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
-import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
+import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
 import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida, filtrarDiccionarioEnPantalla, coincidenciaEnPantalla } from './dom.js';
 import { instalar } from './gestos.js';
@@ -159,6 +159,8 @@ const motivosConGuardian = (motivos) => { const g = errorDelGuardian(); return g
 const medidas = () => medidasDePantalla(window.innerWidth, window.innerHeight);
 /** ¿Está la carta en Mapped (la matriz del ordenador)? Lo dice el último árbol (la época decide por la forma de la pantalla). */
 const enMapped = () => Boolean(ultimo && !ultimo.vacio && !ultimo.apilada);
+/** Los sitios de la pantalla (contrato.sitios, epoch.9.5.6): los del último árbol pintado; sin árbol, los del libro abierto. */
+const sitios = () => ultimo?.lente?.sitios ?? contrato.sitios(estado.eje);
 /** ¿Está la carta en Sequenced con su columna (la tarjeta con sus filas y el hilo)? */
 const enSecuencia = () => Boolean(ultimo && !ultimo.vacio && ultimo.apilada && ultimo.secuencia);
 /** Sequenced: a qué fila o zona del hilo llevar la pantalla tras el próximo pintado (un dígito tocado), o null. */
@@ -1308,7 +1310,7 @@ const manejadores = {
     if (enMapped()) {
       // Mapped: los pasos de la época (carta.ampliar): sube o baja ese PV; pasado el tope, a pantalla completa; si compite
       // con otro tocado antes en su fila o columna, gana el más reciente y el otro baja un paso.
-      const r = ampliar(estado, pv, delta, { pvs: ultimo?.pvs });
+      const r = ampliar(estado, pv, delta, { pvs: ultimo?.pvs, sitios: sitios() });
       estado.niveles = r.niveles;
       estado.recientes = r.recientes;
       limpiarMensajes();
@@ -1350,14 +1352,14 @@ const manejadores = {
     const f = ultimo?.secuencia?.filas?.find((x) => x.pv === pv);
     if (!f) return;
     if (!f.hilo) estado.niveles[pv] = NIVEL.bloque;
-    if (estado.foco.pv !== CENTROS[0]) estado.foco.pv = CENTROS[0]; // las filas están en el anverso
+    if (estado.foco.pv !== sitios().centros[0]) estado.foco.pv = sitios().centros[0]; // las filas están en el anverso
     irTrasPintar = pv;
     tocar(estado.foco.X, 'dígito ' + pv);
     pintar();
   },
   /** Mapped: los puntitos del foco suben un paso todos los PV (hasta el 3×3); su mando, los baja. */
   todos(delta) {
-    const r = ampliarTodos(estado, delta, { pvs: ultimo?.pvs });
+    const r = ampliarTodos(estado, delta, { pvs: ultimo?.pvs, sitios: sitios() });
     estado.niveles = r.niveles;
     estado.recientes = r.recientes;
     limpiarMensajes();
@@ -1409,13 +1411,13 @@ const manejadores = {
     if (pv !== null && pv !== undefined) return manejadores.nivel(pv, delta, X);
     if (enMapped()) return manejadores.todos(delta);
     // Sin PV: todos los laterales a la vez.
-    for (const k of LATERALES) estado.niveles[k] = Math.min(NIVEL.bloque, Math.max(NIVEL.comprimido, (estado.niveles[k] ?? NIVEL.comprimido) + delta));
+    for (const k of sitios().laterales) estado.niveles[k] = Math.min(NIVEL.bloque, Math.max(NIVEL.comprimido, (estado.niveles[k] ?? NIVEL.comprimido) + delta));
     tocar(estado.foco.X, 'profundidad ' + delta);
     pintar();
   },
   foco(X, pv) { irA(X, pv); },
   voltear() {
-    const [anverso, reverso] = CENTROS;
+    const [anverso, reverso] = sitios().centros;
     estado.foco.pv = estado.foco.pv === anverso ? reverso : anverso;
     limpiarMensajes();
     tocar(estado.foco.X, 'voltear ' + estado.foco.pv);
@@ -1500,7 +1502,7 @@ const manejadores = {
   aroEntrar(X) {
     if (!X) return;
     estado.aro = null;
-    irA(X, CENTROS[0]);
+    irA(X, sitios().centros[0]);
   },
   /** Un valor de una lista del aro (contrato.opciones): se escribe en la posición pv de X como cualquier campo, y el aro se cierra (en el de un hueco, crea el elemento). */
   opcion(X, pv, valor) {
@@ -1604,7 +1606,7 @@ const manejadores = {
     else if (estado.aro) estado.aro = null;
     else if (estado.celdaMatriz) estado.celdaMatriz = null; // la celda abierta de la matriz del 4 (encargo «el4»)
     else if (enMapped() && estado.profundidad[estado.foco.pv]?.length) estado.profundidad[estado.foco.pv].pop(); // subir un nivel de la rejilla
-    else if (enMapped() && LATERALES.includes(estado.foco.pv)) estado.foco = { ...estado.foco, pv: CENTROS[0] }; // salir de la pantalla completa
+    else if (enMapped() && sitios().laterales.includes(estado.foco.pv)) estado.foco = { ...estado.foco, pv: sitios().centros[0] }; // salir de la pantalla completa
     else return;
     pintar();
   },
@@ -2317,7 +2319,7 @@ const manejadores = {
   },
   saltar(pv) {
     if (enSecuencia()) return manejadores.digito(pv); // las teclas 0-9, como la fila de dígitos
-    if (CENTROS.includes(pv)) { estado.foco.pv = pv; pintar(); return; }
+    if (sitios().centros.includes(pv)) { estado.foco.pv = pv; pintar(); return; }
     estado.niveles[pv] = Math.max(NIVEL.tarjeta, estado.niveles[pv] ?? NIVEL.comprimido);
     pintar();
     raiz.querySelector(`[data-pv="${pv}"]:not(.ocupante):not(.rejilla-celda)`)?.focus();

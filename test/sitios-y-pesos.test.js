@@ -74,6 +74,7 @@ const YA_NO = [
   ['carta.js', 'const esPvDelPasado = (pv) => GEOMETRIA'],
   ['carta.js', 'const zonaDelHilo = (pv) => (GEOMETRIA'],
   ['carta.js', 'Object.keys(GEOMETRIA)'],
+  ['app.js', 'GEOMETRIA'], ['app.js', 'CENTROS'], ['app.js', 'LATERALES'], ['dom.js', 'GEOMETRIA'], ['dom.js', 'LATERALES'],
 ];
 
 test('la foto: la carta lee del dato (contrato.sitios y contrato.pesos), y las tablas que se fueron no vuelven', () => {
