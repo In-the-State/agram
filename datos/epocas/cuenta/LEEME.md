@@ -4,10 +4,10 @@ A34, parte de datos (Core AGRAM 18-11; `agram-equipo/DISENO_LIBRO_DE_CUENTA.md`)
 
 | Archivo | Qué es |
 |---|---|
-| `cuenta-0.raiz.json` | la raíz: lo propio y, donde hereda, `"<hereda>"`. Lo propio: la guía de inicio, el tutorial del alta (`epoch.3.0.9`), con «a pairing» y «a book of mine» detrás de los pasos de la 0 (una hija cambia ese 9 entero, por posición) |
+| `cuenta-0.raiz.json` | la raíz: lo propio y, donde hereda, `"<hereda>"`. Lo propio: la guía de inicio, el tutorial del alta (`epoch.3.0.9`), con el aviso «this account lives only here» el primero tras la etiqueta y «a pairing» y «a book of mine» detrás de los pasos de la 0 (una hija cambia ese 9 entero, por posición) |
 | `plantillas/*.json` | «a book of mine» ([1, 40], en el 1 de mi alta), «an invitation received» ([3, 40]) y «a pairing» ([3, 41]), en su 3. Las tres: solo el dueño de la alta, sobre ella (o sobre una suya anterior, para cambiarla), en modo persona; su 4 es `write`. Nunca un secreto |
 | `prestadas.json` | las dos plantillas de la guía y sus textos, leídos de la fuente de `guia-libro` sin copiarlos (el generador de toda hija los toma de ahí). Al congelar, si pasan a la 0, se quitan de aquí |
-| `reglas/*.json` | tres lecturas con nombre, en BQL, con `it` = mi alta: «my books», «my pending invitations» y «my pairings»: lo vigente (sin una nueva mía encima ni un «close by decision» mío) |
+| `reglas/*.json` | tres lecturas con nombre, en BQL, con `it` = mi alta: «my books», «my pending invitations» y «my pairings»: lo vigente (sin una nueva mía encima ni un «close by decision» mío); y el aviso de la guía de inicio, «this account lives only here» (abajo) |
 | `textos/es.json`, `textos/en.json` | los textos de la época por clave (detrás de los prestados) |
 | `generar.mjs` | el generador: `npm run epoca:cuenta` (el de toda hija, `datos/epocas/hija.mjs`) |
 | `cuenta-0.btml.json`, `cuenta-0.ids.json` | el resultado y sus ids |
@@ -19,3 +19,5 @@ Lo que escribe cada plantilla (manda la décupla sobre el diseño):
 - **a pairing**: 0 el nombre del navegador o aparato; 1.0 la clave pública de la sesión y 1.1 hasta cuándo vale (opcional); 2.0 criterio y 2.1 una nota (opcional); 3; 4; 5.0 el relé (wss o https).
 
 Cambiar: la nueva se lanza sobre la vieja, con sus defectos; manda la última. Retirar (olvidar un libro, rechazar una invitación, revocar un emparejamiento): «close by decision» de la 0, que se ofrece a su autor; «close» no (pide algo anunciado). Se cambia la fuente y se regenera; `test/cuenta-libro.test.js` falla si no está al día con su fuente o con el id de la 0. Nada real: es genérica.
+
+La guía de inicio avisa (VG 18-11): antes de tener un nodo, el libro de cuenta vive solo en el dispositivo, y lo primero que enseña el tutorial del alta es «tu cuenta está solo aquí: haz un respaldo o únete a un nodo» (en: «your account is only here: make a backup or join a node»). Es DATO: una regla de la época, «this account lives only here», que es una lectura (su 3 es X, su 4 es `read`: no se materializa, no rechaza nada, no escribe) y cuyo 9 es el texto, con su traducción en `textos/es.json`; el 9 del alta (`epoch.3.0.9`) la nombra y el camino la trae como un paso del tutorial sin acción, que sale por la carta tal como sale «a key is declared at its alta» (`caminoDe` → `htmlCamino`; la carta le quita el nombre interno delante). **No tiene condición de «hecho»**: hoy «unirse a un nodo» no existe como acción y un respaldo no se lee del libro, así que su `hecho` es `null` y queda siempre a la vista (la carta lo pinta como un paso aún sin hacer, sin marca). Cuando «unirse a un nodo» sea una acción, el aviso se sustituye por ese paso (por su ancla) y la regla se quita.

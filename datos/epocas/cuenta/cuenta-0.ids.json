@@ -1,7 +1,7 @@
 {
-  "epoca": "8f3c81dafe504c5700702408000b824175e013c209e20f128c008ce47c06fd0e",
+  "epoca": "58d457eed36e43b19b611d5bb3487c2eb7e461c52b8ce19d110aac026a4c0558",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
-  "registrosAlPublicar": 10,
+  "registrosAlPublicar": 11,
   "reglas": [
     {
       "nombre": "my books",
@@ -17,6 +17,11 @@
       "nombre": "my pending invitations",
       "archivo": "my-pending-invitations.json",
       "id": "dec026fc960bb502c9111aa9c8f586ba307a91ac6888724f7147898d60ad327c"
+    },
+    {
+      "nombre": "this account lives only here",
+      "archivo": "this-account-lives-only-here.json",
+      "id": "4e321dd0f1218f3875072acd3b6b28c233732722bfbb40ce9d292d9c86f12135"
     }
   ],
   "plantillas": [

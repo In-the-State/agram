@@ -57,5 +57,6 @@
   "template a pairing message: un emparejamiento: {me} empareja {first memo.0}",
   "my books: mis libros: los libros vigentes del dueño de esta alta",
   "my pending invitations: mis invitaciones pendientes: las invitaciones recibidas por el dueño de esta alta, vigentes y aún sin aceptar",
-  "my pairings: mis emparejamientos: los emparejamientos vigentes del dueño de esta alta"
+  "my pairings: mis emparejamientos: los emparejamientos vigentes del dueño de esta alta",
+  "this account lives only here: tu cuenta está solo aquí: haz un respaldo o únete a un nodo"
 ]

@@ -17,6 +17,7 @@ const ID_DE_LA_0 = '7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a
 const LIBRO = 'a book of mine';
 const INVITACION = 'an invitation received';
 const EMPAREJAMIENTO = 'a pairing';
+const AVISO = 'this account lives only here';
 const T = '2026-11-18T10:00:00Z';
 const OTRO = 'ab'.repeat(32);
 const OTRO2 = 'cd'.repeat(32);
@@ -51,13 +52,13 @@ test('la época se genera desde su fuente, al día con ella y con el id de la 0;
   const guia = JSON.parse(readFileSync('datos/epocas/guia-libro/guia-libro-0.ids.json', 'utf8')).plantillas;
   for (const p of guia) assert.equal(g.plantillas.find((x) => x.nombre === p.nombre).id, p.id, 'la de la guía, la misma: ' + p.nombre);
   assert.ok(!readdirSync('datos/epocas/cuenta/plantillas').some((f) => /step|zone/.test(f)), 'no copiadas: vienen de prestadas.json');
-  assert.deepEqual(g.reglas.map((r) => r.nombre), ['my books', 'my pairings', 'my pending invitations']);
+  assert.deepEqual(g.reglas.map((r) => r.nombre), ['my books', 'my pairings', 'my pending invitations', AVISO]);
   const e = cargarEpocaEscrita(epocaCuenta());
   assert.equal(e.id, g.id);
   assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length + 5);
   for (const carpeta of ['src', 'carta']) {
     const fuentes = readdirSync(carpeta).filter((f) => f.endsWith('.js')).map((f) => readFileSync(join(carpeta, f), 'utf8'));
-    for (const n of [LIBRO, INVITACION, EMPAREJAMIENTO, 'my books', 'my pending invitations', 'my pairings']) assert.ok(!fuentes.some((s) => s.includes(`'${n}'`) || s.includes(`"${n}"`)), `${carpeta}/ no conoce «${n}» por su nombre`);
+    for (const n of [LIBRO, INVITACION, EMPAREJAMIENTO, 'my books', 'my pending invitations', 'my pairings', AVISO]) assert.ok(!fuentes.some((s) => s.includes(`'${n}'`) || s.includes(`"${n}"`)), `${carpeta}/ no conoce «${n}» por su nombre`);
   }
   assert.deepEqual(sinTraducir('es', { epoca: e }).map((x) => x.clave), []);
 });
@@ -116,10 +117,40 @@ test('la guía de inicio: el tutorial del alta enseña los pasos nuevos detrás 
   const bea = eje.alta('bea').id;
   const pasos = async () => Object.fromEntries((await A.camino(eje, bea, 'bea', { t: T })).pasos.filter((p) => p.fuente === 'tutorial').map((p) => [p.hacer?.plantilla ?? p.regla, p.hecho]));
   const antes = await pasos();
-  assert.deepEqual(Object.keys(antes), ['a key is declared at its alta', 'set a group price', 'anchor here', EMPAREJAMIENTO, LIBRO]);
+  assert.deepEqual(Object.keys(antes), [AVISO, 'a key is declared at its alta', 'set a group price', 'anchor here', EMPAREJAMIENTO, LIBRO]);
+  assert.equal(antes[AVISO], null, 'el aviso no tiene «hecho»: ninguna condición del libro lo cumple, queda siempre a la vista');
   assert.deepEqual([antes[EMPAREJAMIENTO], antes[LIBRO]], [false, false]);
   await hacer(eje, EMPAREJAMIENTO, bea, { name: 'Móvil inventado', 'session key': CLAVE, relay: 'https://rele.invalid' }, 'bea');
   await hacer(eje, LIBRO, bea, { name: 'Libro inventado', 'my alta there': ID, book: OTRO }, 'bea');
   const despues = await pasos();
   assert.deepEqual([despues[EMPAREJAMIENTO], despues[LIBRO]], [true, true]);
+});
+
+test('la guía de inicio avisa, el primero, de que la cuenta vive solo en el dispositivo: dato de la época, en es y en en; sin condición de hecho; no escribe nada', async () => {
+  const eje = await cuenta();
+  const ana = eje.alta('ana').id;
+  const epoca = eje.epoca();
+  const orden = epoca.registro[3][0][9];
+  assert.equal(orden[orden.indexOf(AVISO) - 1], 'cómo: su guía', 'el primer paso tras la etiqueta del tutorial');
+  assert.equal(orden.indexOf('a key is declared at its alta'), orden.indexOf(AVISO) + 1, 'delante de los demás pasos');
+  const aviso = async (idioma) => (await A.camino(eje, ana, 'ana', { t: T, idioma })).pasos.filter((p) => p.fuente === 'tutorial')[0];
+  const es = await aviso('es');
+  assert.deepEqual([es.regla, es.hacer, es.hecho, es.falta], [AVISO, null, null, 'tu cuenta está solo aquí: haz un respaldo o únete a un nodo']);
+  const en = await aviso('en');
+  assert.deepEqual([en.regla, en.hacer, en.hecho], [AVISO, null, null]);
+  assert.equal(en.falta, AVISO + ': your account is only here: make a backup or join a node', 'el canónico en inglés (la carta le quita el nombre interno delante)');
+  // Es una lectura: ni escribe ni rechaza nada y no se ofrece como acción.
+  const antesDeLeer = eje.orden.length;
+  await aviso('es');
+  assert.equal(eje.orden.length, antesDeLeer, 'el aviso no escribe');
+  assert.ok(!ofrece(eje, ana, 9, 'ana').includes(AVISO));
+  // Escribir lo demás no lo da por hecho: sigue a la vista.
+  await hacer(eje, EMPAREJAMIENTO, ana, { name: 'Móvil inventado', 'session key': CLAVE, relay: 'https://rele.invalid' }, 'ana');
+  assert.equal((await aviso('es')).hecho, null);
+  // La otra mitad: el aviso viene del DATO. En una copia de la época sin el nombre en el 9, el tutorial no lo trae.
+  const sin = JSON.parse(JSON.stringify(epocaCuenta()));
+  const raizDelAlta = sin.raiz[3][0];
+  raizDelAlta[raizDelAlta.length - 1] = raizDelAlta.at(-1).filter((n) => n !== AVISO);
+  const ejeSin = await Eje.genesis({ identidad: 'ana', foco: 'cuenta inventada', t: T, epoca: sin, demostracion: true });
+  assert.ok(!(await A.camino(ejeSin, ejeSin.alta('ana').id, 'ana', { t: T })).pasos.some((p) => p.regla === AVISO));
 });

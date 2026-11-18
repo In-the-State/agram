@@ -2428,8 +2428,8 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
         ${ar.conClave ? `<button type="button" class="principal" data-arranque="crear-mio">${escapar(t('libroNuevoConMiClave'))}</button><button type="button" data-arranque="crear">${escapar(t('personaNueva'))}</button><button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button>` : `<button type="button" class="principal" data-arranque="crear">${escapar(t(conLaApp ? 'emparejarAbrirLibro' : 'crearMiCuenta'))}</button>${conLaApp && emparejar?.aceptada ? `<button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button>` : ''}`}
         ${emparejarBoton}
         <button type="button" data-arranque="restaurar">${t('restaurarUnaCuenta')}</button>
-        <button type="button" data-arranque="ejemplo">${t('probarConEjemplo')}</button>
       </div>
+      <p class="arranque-ejemplo"><button type="button" class="enlace" data-arranque="ejemplo">${escapar(t('verUnEjemplo'))}</button> <small class="ayuda">${escapar(t('verUnEjemploNota'))}</small></p>
     </div>`;
   }
   return sobreCarta ? `<div class="formulario-fondo arranque"${nodo('arranque')} data-cerrar>${cuerpo}</div>` : `<div class="arranque-pantalla arranque"${nodo('arranque')}>${cuerpo}</div>`;
