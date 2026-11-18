@@ -40,7 +40,7 @@ import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas 
 import { instalar as instalarEmparejar } from './emparejar.js';
 import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
-import { Archivos, adjuntarHtmlInicial, valoresDeArchivo, subirLosNombrados, referenciasEn, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
+import { Archivos, adjuntarHtmlInicial, valoresDeArchivo, subirLosNombrados, faltaParaLosArchivos, TIPOS as TIPOS_DE_ARCHIVO, destinoDe as destinoDeLosArchivos } from './archivos.js';
 import { EJEMPLOS, crearEjemplo, restaurarEjemplo, elegirEjemplo, ejemploElegido } from './ejemplos.js';
 import { alternarLeido, leidoAbierto } from './leido.js';
 import { leerLocal, guardarLocal } from './cuentas.js';
@@ -229,10 +229,12 @@ async function probarBandeja() {
 const archivosElegidos = new Map();
 /** Las opciones de la bandeja: el idioma y lo que la lente sabe que falta fuera del libro (un archivo que ya no está aquí). */
 function opcionesDeLaBandeja(extra = {}) {
-  const revisar = (entrada) => {
-    const faltan = [...referenciasEn(entrada.valores)].filter((ref) => !archivosElegidos.has(ref) && archivos.cache.get(ref.slice('archivo:'.length))?.estado !== 'listo'); // sin bajar nada: lo que ya está en esta pestaña
-    return faltan.length ? t('bandejaArchivoNoEsta') : null;
-  };
+  // Lo que falta fuera del libro, antes de componer: un archivo que ya no está aquí, o elegido aquí y sin servidor donde subirlo.
+  const revisar = (entrada) => faltaParaLosArchivos(entrada.valores, {
+    elegidos: new Set(archivosElegidos.keys()),
+    listo: (id) => archivos.cache.get(id)?.estado === 'listo', // sin bajar nada: lo que ya está en esta pestaña
+    hayServidor: Boolean(destinoDeArchivos()),
+  });
   return { idioma: idioma(), revisar, ...extra };
 }
 /** Lo que ofrece el aparato a un parámetro de base file (contrato.opciones, opcionesDelAparato): los archivos elegidos aquí. */

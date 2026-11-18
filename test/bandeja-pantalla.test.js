@@ -385,3 +385,27 @@ test('el motivo del último intento de ejecutar se va en cuanto cambia el borrad
   assert.match(app, /estado\.bandeja\.motivosDe = borradorDeAhora\(\);/);
   assert.match(app, /motivosDelUltimoIntento\(\{ motivos: estado\.bandeja\.motivos, de: estado\.bandeja\.motivosDe \?\? null \}, borradorDeAhora\(\)\)/);
 });
+
+test('un archivo elegido aquí sin servidor donde subirlo: la prueba en seco ya dice que no entra, en llano, antes de ejecutar', async () => {
+  const { faltaParaLosArchivos } = await import('../carta/archivos.js');
+  const ref = 'archivo:' + 'b'.repeat(64);
+  const elegidos = new Set([ref]);
+  assert.equal(faltaParaLosArchivos({ file: ref }, { elegidos, hayServidor: false }), t('archivoSinServidor'));
+  assert.equal(faltaParaLosArchivos({ file: ref }, { elegidos, hayServidor: true }), null);
+  assert.equal(faltaParaLosArchivos({ file: 'archivo:' + 'c'.repeat(64) }, { elegidos, hayServidor: true }), t('bandejaArchivoNoEsta'), 'ni elegido aquí ni en esta pestaña');
+  assert.equal(faltaParaLosArchivos({ file: 'archivo:' + 'c'.repeat(64) }, { listo: () => true }), null, 'ya bajado');
+  assert.equal(faltaParaLosArchivos({ text: 'sin archivos' }), null);
+  // Por la bandeja: la entrada con el archivo no entra y el 4 lo dice.
+  const { eje, X, a, b } = await escena();
+  const adj = a.laterales.flatMap((n) => [...(n.acciones?.nombradas ?? []), ...(n.acciones?.resto ?? [])]).find((x) => x.nombre === 'adjuntar un archivo');
+  b.poner({ accion: adj.id, X, valores: { file: ref, format: 'svg' }, donde: { X, pv: 2 } });
+  const revisar = (e) => faltaParaLosArchivos(e.valores, { elegidos, hayServidor: false });
+  const probado = await b.probar(eje, 'huesped', { idioma: 'es', revisar });
+  assert.equal(probado.items[0].entra, false);
+  assert.equal(probado.items[0].motivos[0].mensaje, t('archivoSinServidor'));
+  const v = vistaDeLaBandeja(probado);
+  assert.ok(htmlBandejaDelCuatro(v, X).includes(escaparTexto(t('archivoSinServidor'))) && htmlBandejaDelCuatro(v, X).includes('data-no-lanza'));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /const revisar = \(entrada\) => faltaParaLosArchivos\(entrada\.valores, \{[^]*?hayServidor: Boolean\(destinoDeArchivos\(\)\)/);
+});
+const escaparTexto = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
