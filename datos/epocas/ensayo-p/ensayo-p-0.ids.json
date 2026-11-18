@@ -1,0 +1,13 @@
+{
+  "epoca": "632a0acebd0addd7797dd68bdddb2721fca3c80fc3b7f389181d922809ba450a",
+  "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
+  "registrosAlPublicar": 3,
+  "reglas": [
+    {
+      "nombre": "P is repositioned one step at a time",
+      "archivo": "p-is-repositioned-one-step-at-a-time.json",
+      "id": "23469b2e024e93bc5f3bb6964a288c574ffca6ef88ef3d0dd23eabbe4f48c84f"
+    }
+  ],
+  "plantillas": []
+}

@@ -1,0 +1,81 @@
+[
+  [
+    "época de ensayo de P 0",
+    "P rehearsal epoch 0"
+  ],
+  [
+    "<hereda>",
+    [
+      "<hereda>",
+      [
+        [["de representación"], [0]],
+        [["económico"], [1]],
+        [["administrativo"], [2]],
+        [["social"], [3]],
+        [["técnico"], [4]],
+        [["de encaje"], [5]],
+        [["de origen"], [6]],
+        [["de futuro"], [7]],
+        [["de comparación"], [8]],
+        [["de camino"], [9]]
+      ],
+      "<hereda>",
+      "<hereda>",
+      [
+        "<hereda>",
+        "<hereda>",
+        "<hereda>",
+        "<hereda>",
+        [1]
+      ]
+    ]
+  ],
+  [
+    "<reglas>"
+  ],
+  "<hereda>",
+  "<hereda>",
+  "<hereda>",
+  [
+    [
+      "VG 18-11 (por Core State): el criterio son diez medidas; el 6 es el origen; el paso lateral no pierde. Época hija de ensayo: la 0 no se toca"
+    ],
+    [
+      "hereda"
+    ],
+    [
+      "<id de la 0>"
+    ]
+  ],
+  "<hereda>",
+  "<hereda>",
+  [
+    "<hereda>",
+    "<hereda>",
+    "<hereda>",
+    "<hereda>",
+    [
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      [
+        [
+          "es",
+          "español"
+        ],
+        [
+          "<textos es>"
+        ]
+      ],
+      [
+        [
+          "en",
+          "English"
+        ],
+        [
+          "<textos en>"
+        ]
+      ]
+    ]
+  ]
+]
