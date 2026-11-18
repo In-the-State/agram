@@ -45,7 +45,6 @@ const NOMBRES_DE_HOY = {
 const ESCRITURAS_DE_HOY = {
   'app.js · escribirPreferencias · escribirDesde': 1,
   'app.js · reclasificar · enviar': 1,
-  'app.js · enviar · enviar': 2, // el método enviar(form) de los gestos: el formulario de una acción
   'app.js · configurar · escribirDesde': 2,
   'app.js · configurar · enviar': 1,
   'app.js · campo · escribirDesde': 1,
