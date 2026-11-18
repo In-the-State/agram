@@ -67,7 +67,8 @@ test('#91 se cierra al pulsar el mismo rosetón; uno solo abierto; Esc y «cerra
   assert.doesNotMatch(APP.match(/roseton\(pv\) \{[^}]*\}/)[0], /irA\(/);
   assert.match(APP, /rosetonCompleto\(pv\) \{[^}]*rosetonAPantallaCompleta\(pv\)/);
   assert.match(APP, /cerrarRoseton\(\) \{\s*estado\.rosetones = \{\};/);
-  assert.match(APP, /cerrar\(\) \{\s*if \(hayRosetonAmpliado\(estado\.rosetones\)\) estado\.rosetones = \{\};/);
+  // Antes solo va el «+n» abierto (una lista flotante, forma C); después, el rosetón, antes que nada más.
+  assert.match(APP, /cerrar\(\) \{\s*if \(estado\.accionesAbiertas\?\.size\) [^\n]*\n\s*else if \(hayRosetonAmpliado\(estado\.rosetones\)\) estado\.rosetones = \{\};/);
 });
 
 /** Un documento de mentira con un rosetón ampliado o no: lo que querySelector responde sobre la carta. */
