@@ -299,8 +299,8 @@ Las dos quedan para una mirada en el navegador cuando se pueda usar.
 
    Si falla, se ignora entera la 9.5.6 de esa capa y se usa la de la siguiente. La carta da un aviso discreto: «este libro trae sitios que no valen; se usan los de la época 0».
 3. **Los órdenes nunca esconden un PV:**
-   - «rosette order», «sequenced order» y «highlight search» se leen como permutaciones del 0 al 9: lo repetido se quita y lo que falta va detrás, en orden;
-   - «top strip» es una parte de los rosetones: lo que no es, se ignora;
+   - «rosette order», «sequenced order» y «highlight search» tienen que ser permutaciones del 0 al 9: un orden con un dígito repetido o que falta no vale y esa clave cae a la capa siguiente (Core 18-11; antes se proponía arreglarlo);
+   - «top strip» es una parte de los dígitos, sin repetir; si no, cae igual;
    - Sequenced enseña siempre todos los PV que da 8.3; el orden solo los ordena.
 4. **Las cuentas:**
    - Son un entero de 0 en adelante, o «all»; lo demás es «no lo dice».
@@ -345,3 +345,22 @@ Las dos quedan para una mirada en el navegador cuando se pueda usar.
 - **`servidor/`, `retoques/`, `sw.js`:** no he mirado nada. De `sw.js` solo su lista de precarga: guarda cada módulo al primer uso, así que un archivo nuevo no debería pedir tocarlo, pero se comprueba en la fase 2.
 - **Las épocas hijas:** solo he visto que heredan 9.5 entera y que roadmap cambia 8.7. No he leído sus filas.
 - **El libro de cuenta con otro libro abierto:** no he mirado si la app lo tiene cargado (el hueco del apartado 3).
+
+## 8. Estado (18-11, noche)
+
+Core decidió las tres cosas del apartado 6 como supuestos, reversibles, que hay que confirmar con VG:
+- 9.5.6 y 9.5.8 con la forma de esta nota;
+- la persona solo dice pesos y órdenes;
+- el suelo, como está, y además: una tabla de sitios hostil o incompleta cae entera a la capa siguiente y el lector nunca lanza.
+
+La época 0 no se toca hasta la pasada única.
+
+**Hecho:**
+- **Paso 0:** `test/sitios-y-pesos.test.js`, con la FOTO en `test/ayudas-sitios.mjs`. Trae 43 huellas, que se regeneran a propósito con `AGRAM_HUELLAS=1`.
+- **Paso 1:**
+  - el dato en `datos/lente/lente-0.json` y su copia importable `lente-0.js` (`node datos/lente/generar.mjs`, como `datos/efectos.js`);
+  - el lector en `src/sitios.js`, reexportado como `contrato.sitios` y `contrato.pesos`, con el suelo dentro;
+  - sus pruebas en `test/lente-lector.test.js`.
+- **La capa de la preferencia:** solo está el hueco, `opciones.preferencia`.
+
+**Pendiente:** el paso 2, que la carta lea del lector. Espera a que se funda el carril del aro.
