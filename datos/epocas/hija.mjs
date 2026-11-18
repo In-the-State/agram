@@ -22,7 +22,8 @@
 //
 // Uso, desde el generar.mjs de cada hija: const g = generadorDeHija({ aqui, nombre: 'state-0' }) y, si se ejecuta,
 // g.principal(process.argv) ([--comprobar]: sin escribir, sale con 1 si los archivos no están al día). Una carpeta sin
-// reglas/ no lleva reglas propias. «<hereda>» vale en cualquier sitio de la raíz, también dentro de un grupo de plantillas
+// reglas/ no lleva reglas propias. Con prestadas.json, lleva además plantillas (o reglas) y textos de otra hija, leídos de
+// su fuente sin copiarlos (la época del libro de cuenta toma así las de la guía). «<hereda>» vale en cualquier sitio de la raíz, también dentro de un grupo de plantillas
 // de datos del 9.2 (la marca es por dirección: lo de la base en esa misma dirección).
 
 import { existsSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
@@ -52,16 +53,18 @@ export function generadorDeHija({ aqui, nombre }) {
   const ARCHIVO = join(aqui, nombre + '.btml.json');
   const ARCHIVO_IDS = join(aqui, nombre + '.ids.json');
 
+  // Lo prestado de otra hija (prestadas.json, opcional): { plantillas: [rutas], textos: { es: [rutas], en: [rutas] } },
+  // relativas a esta carpeta. Se leen de su fuente, sin copiarlas: si cambian allí, esta época cambia de id al regenerarse.
+  const PRESTADAS = existsSync(join(aqui, 'prestadas.json')) ? leer(join(aqui, 'prestadas.json')) : {};
+
   function registrosDe(carpeta) {
-    if (!existsSync(join(aqui, carpeta))) return [];
-    return readdirSync(join(aqui, carpeta))
-      .filter((f) => f.endsWith('.json'))
-      .sort()
-      .map((archivo) => {
-        const registro = leer(join(aqui, carpeta, archivo));
-        if (archivo !== kebab(registro[0][0]) + '.json') throw new Error(`${carpeta}/${archivo}: se llama como su 0 en kebab (${kebab(registro[0][0])}.json)`);
-        return { archivo, nombre: registro[0][0], registro, id: idDeRegistro(registro) };
-      });
+    const propios = existsSync(join(aqui, carpeta)) ? readdirSync(join(aqui, carpeta)).filter((f) => f.endsWith('.json')).sort().map((f) => [f, join(aqui, carpeta, f)]) : [];
+    const prestados = (PRESTADAS[carpeta] ?? []).map((ruta) => [ruta, join(aqui, ruta)]);
+    return [...propios, ...prestados].map(([archivo, ruta]) => {
+      const registro = leer(ruta);
+      if (basename(archivo) !== kebab(registro[0][0]) + '.json') throw new Error(`${carpeta}/${archivo}: se llama como su 0 en kebab (${kebab(registro[0][0])}.json)`);
+      return { archivo, nombre: registro[0][0], registro, id: idDeRegistro(registro) };
+    });
   }
 
   /**
@@ -101,7 +104,9 @@ export function generadorDeHija({ aqui, nombre }) {
     }
 
     // La raíz: las marcas de herencia, las referencias y los textos.
-    const textos = { '<textos es>': leer(join(aqui, 'textos', 'es.json')), '<textos en>': leer(join(aqui, 'textos', 'en.json')) };
+    // Los textos: los prestados delante y los propios detrás.
+    const textosDe = (idioma) => [...(PRESTADAS.textos?.[idioma] ?? []).flatMap((ruta) => leer(join(aqui, ruta))), ...leer(join(aqui, 'textos', idioma + '.json'))];
+    const textos = { '<textos es>': textosDe('es'), '<textos en>': textosDe('en') };
     const sustituir = (x) => {
       if (x === HEREDA) return { ref: base };
       if (!Array.isArray(x)) return x;

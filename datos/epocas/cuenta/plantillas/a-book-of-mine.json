@@ -1,0 +1,335 @@
+[
+  [
+    "a book of mine"
+  ],
+  [
+    [
+      [
+        "name"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "required"
+      ],
+      [
+        1
+      ],
+      [
+        "=first ((payload(it)).0 where \"a book of mine\" in (payload(it)).4 and first it.3 = me)",
+        "the name of the book, as I call it"
+      ]
+    ],
+    [
+      [
+        "my alta there"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "required"
+      ],
+      [
+        2
+      ],
+      [
+        "=first ((payload(it)).1.0 where \"a book of mine\" in (payload(it)).4 and first it.3 = me)",
+        "my alta in that book: its id (64 hexadecimal characters in lower case), a datum and not a reference"
+      ]
+    ],
+    [
+      [
+        "purpose"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        3
+      ],
+      [
+        "=first ((payload(it)).2.1 where \"a book of mine\" in (payload(it)).4 and first it.3 = me)",
+        "what I am in it for, in plain words (optional). Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ],
+    [
+      [
+        "criteria"
+      ],
+      [
+        "text"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "required"
+      ],
+      [
+        4
+      ],
+      [
+        "=first epoch.9.0.1.2",
+        "the closing template, as in any anchored record"
+      ]
+    ],
+    [
+      [
+        "who"
+      ],
+      [
+        "identity"
+      ],
+      [
+        "=it = me"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "required"
+      ],
+      [
+        5
+      ],
+      [
+        "=me",
+        "who writes it: the owner of this alta"
+      ]
+    ],
+    [
+      [
+        "actions"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"a book of mine\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "required"
+      ],
+      [
+        6
+      ],
+      [
+        "a book of mine",
+        "the action that wrote it"
+      ]
+    ],
+    [
+      [
+        "book"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it and it != first before.5"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "required"
+      ],
+      [
+        7
+      ],
+      [
+        "=first ((payload(it)).5.0 where \"a book of mine\" in (payload(it)).4 and first it.3 = me)",
+        "the book: the id of its genesis (64 hexadecimal characters in lower case), a datum; another book than this one"
+      ]
+    ],
+    [
+      [
+        "download from"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(cat(utf8(it), bytes(\"0000000000000000\")), 0, 8)) = \"68747470733a2f2f\" or hex(slice(cat(utf8(it), bytes(\"0000000000000000\")), 0, 7)) = \"687474703a2f2f\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.1"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        8
+      ],
+      [
+        "=first ((payload(it)).5.1 where \"a book of mine\" in (payload(it)).4 and first it.3 = me)",
+        "where it can be downloaded from (optional): the public address of the shared book (http or https). Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ],
+    [
+      [
+        "shared name"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.2"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a book of mine»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        9
+      ],
+      [
+        "=first ((payload(it)).5.2 where \"a book of mine\" in (payload(it)).4 and first it.3 = me)",
+        "the name of the shared book at that address (optional, after the address): public. Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ]
+  ],
+  [
+    "=first it.5 = first me.6 or \"a book of mine\" in (payload(it)).4 and first it.3 = me"
+  ],
+  [
+    [
+      "me"
+    ],
+    [
+      "person"
+    ]
+  ],
+  [
+    "write"
+  ],
+  [
+    "1"
+  ],
+  [
+    "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): un libro mío, en el 1 de mi alta (lo que tengo): «mis libros» deja de ser una lista guardada en el navegador y pasa a ser registros de mi libro de cuenta, que la lente enseña. Solo el dueño de la alta, sobre ella, en modo persona; su 4 es «write». Cambiar: la nueva se lanza sobre la vieja (anclada en su 1), con sus defectos; manda la última. Retirar (olvidar el libro): «close by decision» de la 0 sobre ella",
+    "La décupla (manda sobre el diseño): 0 el nombre; 1.0 mi alta en ese libro; 2.0 el criterio de cierre y 2.1 para qué (el diseño lo ponía en el 2, opcional: un hueco delante del 3; va detrás del criterio, al final de su décupla); 3 quién; 4 «a book of mine»; 5.0 el libro (su génesis, distinto de este), 5.1 dónde se puede bajar y 5.2 el nombre del libro compartido allí (opcionales, al final). Nunca un secreto"
+  ],
+  [
+    "account book epoch 0"
+  ],
+  [
+    1,
+    40
+  ],
+  [
+    "a book of mine: {me} keeps the book {first memo.0}"
+  ]
+]

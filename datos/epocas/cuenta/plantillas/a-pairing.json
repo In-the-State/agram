@@ -1,0 +1,302 @@
+[
+  [
+    "a pairing"
+  ],
+  [
+    [
+      [
+        "name"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "required"
+      ],
+      [
+        1
+      ],
+      [
+        "=first ((payload(it)).0 where \"a pairing\" in (payload(it)).4 and first it.3 = me)",
+        "the name I give to the browser or the device"
+      ]
+    ],
+    [
+      [
+        "session key"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(bytes(it), 0, 32)) = it"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "required"
+      ],
+      [
+        2
+      ],
+      [
+        "=first ((payload(it)).1.0 where \"a pairing\" in (payload(it)).4 and first it.3 = me)",
+        "the public key of the session (64 hexadecimal characters, x-only), a datum. Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ],
+    [
+      [
+        "valid until"
+      ],
+      [
+        "instant"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "1.1"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        3
+      ],
+      [
+        "=first ((payload(it)).1.1 where \"a pairing\" in (payload(it)).4 and first it.3 = me)",
+        "until when it is valid (optional): an instant"
+      ]
+    ],
+    [
+      [
+        "note"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it != \"\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2.1"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "optional"
+      ],
+      [
+        4
+      ],
+      [
+        "=first ((payload(it)).2.1 where \"a pairing\" in (payload(it)).4 and first it.3 = me)",
+        "a note (optional). Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ],
+    [
+      [
+        "criteria"
+      ],
+      [
+        "text"
+      ],
+      [
+        "any"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "2.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "required"
+      ],
+      [
+        5
+      ],
+      [
+        "=first epoch.9.0.1.2",
+        "the closing template, as in any anchored record"
+      ]
+    ],
+    [
+      [
+        "who"
+      ],
+      [
+        "identity"
+      ],
+      [
+        "=it = me"
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "3"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "required"
+      ],
+      [
+        6
+      ],
+      [
+        "=me",
+        "who writes it: the owner of this alta"
+      ]
+    ],
+    [
+      [
+        "actions"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=it = \"a pairing\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "4"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "required"
+      ],
+      [
+        7
+      ],
+      [
+        "a pairing",
+        "the action that wrote it"
+      ]
+    ],
+    [
+      [
+        "relay"
+      ],
+      [
+        "text"
+      ],
+      [
+        "=hex(slice(cat(utf8(it), bytes(\"0000000000000000\")), 0, 6)) = \"7773733a2f2f\" or hex(slice(cat(utf8(it), bytes(\"0000000000000000\")), 0, 8)) = \"68747470733a2f2f\""
+      ],
+      [
+        "me"
+      ],
+      [
+        "payload"
+      ],
+      [
+        "5.0"
+      ],
+      [
+        "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): parámetro de «a pairing»"
+      ],
+      [
+        "required"
+      ],
+      [
+        8
+      ],
+      [
+        "=first ((payload(it)).5.0 where \"a pairing\" in (payload(it)).4 and first it.3 = me)",
+        "the relay: its address (wss or https). Never a secret here: no read key, no private key, no QR text, no phrase."
+      ]
+    ]
+  ],
+  [
+    "=first it.5 = first me.6 or \"a pairing\" in (payload(it)).4 and first it.3 = me"
+  ],
+  [
+    [
+      "me"
+    ],
+    [
+      "person"
+    ]
+  ],
+  [
+    "write"
+  ],
+  [
+    "3"
+  ],
+  [
+    "Core AGRAM 18-11 (A34, parte de datos; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): un emparejamiento, en el 3 de mi alta: el navegador o el aparato emparejado, su clave pública de sesión y el relé por el que habla. Solo el dueño de la alta, sobre ella, en modo persona; su 4 es «write». Cambiar: la nueva sobre la vieja; manda la última. Retirar (darlo por revocado): «close by decision» de la 0",
+    "La décupla (manda sobre el diseño): 0 el nombre; 1.0 la clave pública de la sesión y 1.1 hasta cuándo vale (en el 7 del registro pediría llenar el 6: va en 1.1, opcional, al final); 2.0 el criterio de cierre y 2.1 una nota (opcional); 3 quién; 4 «a pairing»; 5.0 el relé. Nunca un secreto: ni el texto del QR ni una clave de lectura"
+  ],
+  [
+    "account book epoch 0"
+  ],
+  [
+    3,
+    41
+  ],
+  [
+    "a pairing: {me} pairs {first memo.0}"
+  ]
+]

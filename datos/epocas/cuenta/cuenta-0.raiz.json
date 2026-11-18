@@ -1,0 +1,83 @@
+[
+  [
+    "época del libro de cuenta 0",
+    "account book epoch 0"
+  ],
+  "<hereda>",
+  [
+    "<reglas>"
+  ],
+  [
+    [
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      [
+        "cómo: su guía",
+        "a key is declared at its alta",
+        "set a group price",
+        "anchor here",
+        "a pairing",
+        "a book of mine"
+      ]
+    ]
+  ],
+  "<hereda>",
+  "<hereda>",
+  [
+    [
+      "VG 18-11 (A34, por Core AGRAM; agram-equipo/DISENO_LIBRO_DE_CUENTA.md): el libro de cuenta y el de la guía son el mismo. Mis libros, mis invitaciones y mis emparejamientos son registros de mi libro de cuenta, sobre mi alta, para que la lente los enseñe sin pantallas fijas. Hereda de la época 0 definitiva y no la cambia",
+      "Core AGRAM 18-11: lleva las dos plantillas de la guía («a step of the guide», «a zone of the face»), leídas de la fuente de guia-libro sin copiarlas (prestadas.json; al congelar, si pasan a la 0, aquí se quitan); tres plantillas nuevas («a book of mine» en el 1 de mi alta, «an invitation received» y «a pairing» en su 3); tres lecturas con nombre («my books», «my pending invitations», «my pairings»); y la guía de inicio: el tutorial del alta (3.0.9) con «a pairing» y «a book of mine» detrás de los pasos de la 0"
+    ],
+    [
+      "hereda"
+    ],
+    [
+      "<id de la 0>"
+    ]
+  ],
+  "<hereda>",
+  "<hereda>",
+  [
+    "<hereda>",
+    "<hereda>",
+    "<hereda>",
+    "<hereda>",
+    [
+      "<hereda>",
+      "<hereda>",
+      "<hereda>",
+      [
+        [
+          "es",
+          "español"
+        ],
+        [
+          "<textos es>"
+        ]
+      ],
+      [
+        [
+          "en",
+          "English"
+        ],
+        [
+          "<textos en>"
+        ]
+      ]
+    ],
+    "<hereda>",
+    [
+      "<hereda>",
+      [
+        "<plantillas>"
+      ]
+    ]
+  ]
+]
