@@ -16,6 +16,7 @@ export const COPIAS = Object.freeze([
   Object.freeze(['lecturas.json', 'lecturas.js', 'LECTURAS_PROVISIONALES_DATOS']),
   Object.freeze(['finales.json', 'finales.js', 'FINALES_PROVISIONALES_DATOS']),
   Object.freeze(['cadenas.json', 'cadenas.js', 'CADENAS_PROVISIONALES_DATOS']),
+  Object.freeze(['gestos.json', 'gestos.js', 'GESTOS_PROVISIONALES_DATOS']),
 ]);
 
 /** El texto de una copia .js para su JSON. */

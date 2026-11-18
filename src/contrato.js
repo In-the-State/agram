@@ -4051,6 +4051,8 @@ export { zonas, pasosDeGuia, guias, pasoHecho, sugerenciasDeGuia, PLANTILLAS_DE_
 export { notaDeDetalle, partirNota, NOTA } from './nota-detalle.js';
 // Las invitaciones de un libro (§12.11): las pendientes para una clave, y si ya hay un alta con ella.
 export { invitacionesParaClave, altaConClave, invitacionPendiente } from './invitaciones.js';
+// Los gestos de la lente (src/gestos.js; Core AGRAM 18-11, supuesto por confirmar con VG): la lista cerrada y el destino «gesto».
+export { gestos, validarGesto, DESTINO_GESTO } from './gestos.js';
 export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ENTREGADA_DESBLOQUEA, ESTADOS_DE_PASO, MOTIVOS_DE_DESCARTE } from './cadenas.js'; // las cadenas del 7 del roadmap (§12.10)
 // Los sitios y los pesos de la pantalla (docs/notas/SITIOS_Y_PESOS.md): dónde va cada PV y cuánto se enseña, leídos de la época y del archivo de la lente.
 export { sitios, pesos } from './sitios.js';

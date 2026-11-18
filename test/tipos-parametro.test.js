@@ -68,7 +68,7 @@ test('lo provisional: tipos como dato (JSON), congelados, que se resuelven y no 
   assert.ok(Object.isFrozen(TIPOS_PROVISIONALES) && Object.isFrozen(TIPOS_PROVISIONALES[0][0]));
   const deLa0 = new Set((EPOCA_0_BTML.registro[9][2][0][3] ?? []).map((x) => x[0][0]));
   const nombres = TIPOS_PROVISIONALES.map((x) => x[0][0]);
-  assert.deepEqual(nombres, ['an id', 'a positive number', 'a text', 'an identity with alta', 'another book', 'cohort']);
+  assert.deepEqual(nombres, ['an id', 'a positive number', 'a text', 'an identity with alta', 'another book', 'cohort', 'a record', 'a view', 'a lens level', 'an action']);
   for (const n of nombres) {
     assert.ok(!deLa0.has(n), '«' + n + '» ya está en la 0: quítalo de datos/provisional/');
     assert.ok(!Object.hasOwn(TIPOS_BASE, n));

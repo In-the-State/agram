@@ -194,5 +194,133 @@ export const TIPOS_PROVISIONALES_DATOS = [
     [
       "the cohort X is compared with: siblings, project, genesis"
     ]
+  ],
+  [
+    [
+      "a record"
+    ],
+    [
+      "ref"
+    ],
+    [
+      "=count it.5 > 0"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md, tercera tanda, punto 8): provisional hasta la pasada única por la época 0; lo piden los parámetros de los gestos de la lente (datos/provisional/gestos.json)"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "a record of this book"
+    ]
+  ],
+  [
+    [
+      "a view"
+    ],
+    [
+      "number"
+    ],
+    [
+      "=it >= 0 and it <= 9 and floor it = it"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md, tercera tanda, punto 8): provisional hasta la pasada única por la época 0; lo piden los parámetros de los gestos de la lente (datos/provisional/gestos.json)"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "a point of view: a digit, 0 to 9"
+    ]
+  ],
+  [
+    [
+      "a lens level"
+    ],
+    [
+      "number"
+    ],
+    [
+      "=it >= 0 and floor it = it"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md, tercera tanda, punto 8): provisional hasta la pasada única por la época 0; lo piden los parámetros de los gestos de la lente (datos/provisional/gestos.json)"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "a level of the lens: a whole number, 0 or more"
+    ]
+  ],
+  [
+    [
+      "an action"
+    ],
+    [
+      "text"
+    ],
+    [
+      "=it in (epoch.9.6.1 each 0)"
+    ],
+    [
+      "me"
+    ],
+    [
+      "payload"
+    ],
+    [
+      "*"
+    ],
+    [
+      "Core AGRAM 18-11 (docs/notas/NUCLEO_6_7_8.md, tercera tanda, punto 8): provisional hasta la pasada única por la época 0; lo piden los parámetros de los gestos de la lente (datos/provisional/gestos.json)"
+    ],
+    [
+      "optional"
+    ],
+    [
+      0
+    ],
+    [
+      "the name of an action of the epoch of this book"
+    ]
   ]
 ];

@@ -711,3 +711,17 @@ Cada sugerencia pasa por las mismas reglas: `transaccion` en seco, y `invalida` 
 - 7, la que la entrega («deliver»).
 
 `src/cadenas.js` la lee y `NOMBRES_DE_LAS_CADENAS` sale de ahí. Ya no nombra ninguna acción, y la deuda de `nucleo-limpio` baja a 17 nombres. Su sitio final no es la época 0 sino la época que define la relación (hoy, la hija del roadmap). Esa decisión es de la pasada única.
+
+**8. La tabla de gestos, del lado del núcleo. SUPUESTO POR CONFIRMAR CON VG.**
+
+- **La lista:** `datos/provisional/gestos.json`, con su copia generada, es la lista cerrada de los verbos de la lente: focus (enfocar), enter (entrar), turn (girar), change level (cambiar de nivel), launch (lanzar), compose (componer) y execute (ejecutar).
+- **Cada gesto** dice sus parámetros en su orden, con un tipo de parámetro de `src/tipos.js`. Cuatro tipos provisionales más:
+  - «a record»: un registro de este libro;
+  - «a view»: un dígito;
+  - «a lens level»: un entero de 0 en adelante;
+  - «an action»: una acción de la época del libro, `it in (epoch.9.6.1 each 0)`.
+- **En `contrato`:**
+  - `contrato.gestos(eje)` da la lista con cada parámetro resuelto;
+  - `contrato.validarGesto(eje, destino)` dice si vale un destino «gesto». Es una décupla con «gesture» en su 0, el nombre en su 1 y, desde su 2, los valores en su orden. Los motivos son «forma», «no es un gesto», «falta», «sobran», «no vale» y «tipo».
+- **Lo que no hace:** no ejecuta nada, y no toca la carta ni las plantillas de zona y paso. Que una zona o un paso nombre un gesto como destino es otro carril.
+- **Prueba:** `test/gestos.test.js`.
