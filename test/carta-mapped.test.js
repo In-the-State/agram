@@ -918,9 +918,11 @@ test('arrastrar a alguien de una caja del 3 a otra reclasifica la conversación 
   h.disparar('pointermove', { pointerId: 2, clientX: 40, clientY: 0, target: objetivo({}), preventDefault() {} });
   h.disparar('pointerup', { pointerId: 2, clientX: 40, clientY: 0, target: objetivo({ '[data-caja]': { dataset: { caja: '3' } } }) });
   assert.deepEqual(h.llamadas, []);
-  // lo que hace la app (carta/app.js): «move to group» sobre su alta, con la persona y la caja
+  // lo que hace la app (carta/app.js): la acción del destino del gesto (dato: contrato.destinoDeGesto, hoy «move to group»)
+  // sobre su alta, con la persona y la caja
   const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
-  assert.match(app, /async reclasificar\(persona, caja\) \{[\s\S]*?enviarPorLaBandeja\(estado\.eje, alta, 'move to group', valores/);
+  assert.match(app, /async reclasificar\(persona, caja\) \{[\s\S]*?contrato\.destinoDeGesto\('drop a person in a box'\)[\s\S]*?enviarPorLaBandeja\(estado\.eje, alta, d\.accion, valores/);
+  assert.equal(C.destinoDeGesto('drop a person in a box').accion, 'move to group');
   const r = await A.transaccion(eje, 'move to group', { X: eje.alta('ana').id, whom: 'ana', zone: 5 }, 'casa', { t: '2026-11-08T10:09:00Z' });
   assert.equal(r.ok, true, JSON.stringify(r.motivos));
   await eje.anadir(r.evento);

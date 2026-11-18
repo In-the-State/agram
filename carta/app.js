@@ -49,7 +49,7 @@ import * as puente from './puente.js';
 import * as guiasCarta from './guias.js';
 import * as invitado from './invitado.js';
 import { crearBandeja, ejecutarAhora, probarAhora, enviarPorLaBandeja, escribirPorLaBandeja } from './bandeja.js';
-import { vistaDeLaBandeja, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
+import { vistaDeLaBandeja, nombreDeLaEntrada, motivosDelUltimoIntento, queFaltan, estaCompleta, etiquetaDeParametro, htmlPieDeLaBandeja, ponerAlDiaEnPantalla, PV_DE_LA_BANDEJA } from './bandeja-pantalla.js';
 
 const { CLAVES_EJEMPLO, EJEMPLO } = cuentas;
 const CLAVE_EJE = CLAVES_EJEMPLO.eje;
@@ -152,8 +152,13 @@ function errorDelGuardian(e) {
   if (clave === 'guardianSesionCerrada') estado.guardian.sesionCerrada = true;
   return t(clave);
 }
-/** El texto de un fallo: el del guardián en llano si lo fue, si no el que ya se daba. */
-const enLlano = (texto, e) => errorDelGuardian(e) ?? texto;
+/** Un rechazo del eje con sus motivos, dicho en el idioma de quien mira (contrato.rechazoEnLlano); sin motivos o sin libro, nada. */
+function rechazoDelEje(e) {
+  if (!estado.eje || !Array.isArray(e?.motivos) || !e.motivos.length) return null;
+  try { return contrato.rechazoEnLlano(estado.eje, e, { idioma: idioma() }) || null; } catch { return null; }
+}
+/** El texto de un fallo: el del guardián en llano si lo fue, el del eje en el idioma si trae motivos, si no el que ya se daba. */
+const enLlano = (texto, e) => errorDelGuardian(e) ?? rechazoDelEje(e) ?? texto;
 /** Los motivos de un formulario que no pasó: si lo paró el guardián, solo su texto llano. */
 const motivosConGuardian = (motivos) => { const g = errorDelGuardian(); return g ? [{ mensaje: g }] : motivos; };
 /**
@@ -331,7 +336,8 @@ async function trasEjecutar(r) {
   }
   trasEscribir(); // guardar y dejar la subida en la cola (la tanda entera)
   const firmado = r.eventos.some((e) => e.firma) ? ' ' + t('firmado') : '';
-  estado.exito = t('bandejaRegistrado', { lista: r.items.map((x, k) => t('registrado', { accion: nombreDeAccion(x.accion), id: r.eventos[k].id.slice(0, 8) })).join(' · ') }) + firmado;
+  // Cada entrada dice su nombre según su tipo (un campo, por lo que escribe; un registro, «guardar ajustes»): nunca «null».
+  estado.exito = t('bandejaRegistrado', { lista: r.items.map((x, k) => t('registrado', { accion: nombreDeLaEntrada(x.puesta ? null : x.entrada, x.accion, nombreDeAccion), id: r.eventos[k].id.slice(0, 8) })).join(' · ') }) + firmado;
   marcarNuevos();
 }
 
@@ -1768,6 +1774,14 @@ const manejadores = {
     } else estado.aviso = r.motivo;
     pintar();
   },
+  /** Subir o bajar una entrada en el orden de la tanda (en un todo o nada el orden cuenta). */
+  bandejaMover(id, delta) {
+    const r = bandeja()?.mover(id, delta);
+    if (!r) return;
+    limpiarMensajes();
+    if (!r.ok && r.porque === 'depende') estado.aviso = t('bandejaNoSeMueve');
+    pintar();
+  },
   /** Volver a abrir una entrada de la bandeja: su formulario con lo escrito. */
   bandejaAbrir(id) {
     const e = bandeja()?.listar().entradas.find((x) => x.id === id);
@@ -1843,22 +1857,25 @@ const manejadores = {
     pintar();
   },
   /**
-   * Arrastrar a una persona de una caja del 3 a otra (encargo pv3): reclasificar la conversación con «move to group»
-   * sobre su alta (al 5, vetar). Si no pasa, el formulario de la acción con el motivo.
+   * Arrastrar a una persona de una caja del 3 a otra (encargo pv3): reclasificar la conversación (al 5, vetar). Qué acción se
+   * lanza, sobre qué registro y con qué parámetros es dato (contrato.destinoDeGesto, «drop a person in a box»: hoy
+   * «move to group» sobre su alta). Si no pasa, el formulario de la acción con el motivo.
    */
   async reclasificar(persona, caja) {
+    const d = contrato.destinoDeGesto('drop a person in a box');
     const alta = estado.eje?.alta(persona)?.id;
-    if (!alta || !Number.isInteger(caja)) return;
+    if (!d?.accion || d.sobre !== 'the alta of the person' || !alta || !Number.isInteger(caja)) return;
     limpiarMensajes();
-    const valores = { whom: persona, zone: caja };
-    const r = await enviarPorLaBandeja(estado.eje, alta, 'move to group', valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
+    const da = { person: persona, box: caja }; // lo que el gesto da: la lista cerrada de la lente
+    const valores = Object.fromEntries(Object.entries(d.parametros).filter(([, de]) => de in da).map(([nombre, de]) => [nombre, da[de]]));
+    const r = await enviarPorLaBandeja(estado.eje, alta, d.accion, valores, estado.identidad, firmarCon(estado.identidad), { idioma: idioma() }); // el único camino de escribir (A33)
     if (r.ok && r.asentado) {
       trasEscribir();
-      estado.exito = t('registrado', { accion: nombreDeAccion('move to group'), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
-      tocar(estado.foco.X, 'reclasificar ' + persona + ' 3.' + caja);
+      estado.exito = t('registrado', { accion: nombreDeAccion(d.accion), id: r.asentado.id.slice(0, 8) }) + ' · ' + t('reclasificado', { que: persona, caja }) + (r.asentado.firma ? ' ' + t('firmado') : '');
+      tocar(estado.foco.X, 'reclasificar ' + persona + ' ' + d.vista + '.' + caja);
       marcarNuevos();
     } else {
-      estado.formulario = { X: alta, accion: 'move to group', valores, motivos: motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)), resultado: null };
+      estado.formulario = { X: alta, accion: d.accion, valores, motivos: motivosConGuardian(motivosEnLlano(r.motivos, estado.eje)), resultado: null };
     }
     pintar();
   },

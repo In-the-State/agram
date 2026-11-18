@@ -461,3 +461,24 @@ Los lectores están en `src/lente-provisional.js` y se reexportan en `contrato`.
 **Hallazgos:**
 - **El dato dice qué hace falta, el código cómo.** Que un mensaje pida una reserva es dato. Cuándo la pide y con qué parámetros lo sigue calculando código de la época state (`registrosParaUnMensaje`). Para que sea dato entero haría falta escribir en la época state la regla «va antes» con sus parámetros, y eso es tocar `datos/epocas/state`.
 - **Los nombres de los hitos solo están en español.** El botón de ejecutar apagado dice ahora el nivel que lo enciende por su nombre: `contrato.botonDeEjecutar` lleva `marca.nombre`. Pero esos nombres solo existen en español, en el núcleo (`src/bases.js`, `HITOS`). Hoy da igual, porque los textos de la carta solo están en español. Con otro idioma haría falta llevarlos a los mensajes de la época.
+
+## 12. Los hitos en dos idiomas y la deuda de nombres en 1 (20-11)
+
+**Hecho:**
+
+| Qué | Dato provisional | Quién lo lee | Dónde iría en la pasada única |
+|---|---|---|---|
+| Los nombres de los diez hitos nivel.grado, en inglés y en español | `datos/provisional/hitos.json`: los niveles y, por idioma, «milestone <nivel>: nombre» | `contrato.nivelesDeLosHitos` y `contrato.nombreDelHito(nivel, idioma)`; `src/bases.js` construye `HITOS` desde ahí | Los textos de cada idioma de epoch.9.4, con la clave «milestone <nivel>» (el registro «en», el canónico). Los niveles pueden quedarse en el núcleo (son el mapa §2.2) o ir a la fila del 8 de 8.7, que ya trae un «link» por caja |
+| Quién tiene el sí del dueño | `lecturas-de-la-lente.json`: la lectura «who has the owner's yes», con el molde de una regla de lectura; y `si-del-dueno.json`, que dice la acción y esa lectura | `contrato.datosDelSiDelDueno` y `contrato.lecturaDeLaLente` (carta/reglas.js) | Las lecturas de la época 0, junto a «chosen cohort». Hoy no se materializa en ninguna posición; dónde lo hará lo decide la pasada |
+| Qué hace soltar a una persona en una caja del 3 | `destinos-de-gestos.json`: el gesto, el punto de vista (3), la acción, sus parámetros con lo que el gesto da para cada uno, y sobre qué registro se lanza | `contrato.destinoDeGesto` (app.js `reclasificar`) | Junto a la lista cerrada de gestos (`gestos.json`), en la época 0 |
+
+`contrato.escalera`, las cajas de los hitos, `contrato.rango` y `botonDeEjecutar` dan el nombre en el idioma de `opciones.idioma`, así que la carta en inglés dice los hitos en inglés: el cielo del 8, el camino del 9 y el botón apagado. Los textos de la carta siguen solo en español.
+
+**Supuestos tomados:**
+- **Sin idioma, el nombre de un hito sale en español,** como hasta hoy. La pasada única decide si el canónico pasa a ser el inglés.
+- **Los archivos del núcleo en `datos/provisional/` no se tocan:** son archivos nuevos y una línea cada uno en `generar.mjs`. Por eso la lectura nueva va en `lecturas-de-la-lente.json` y no en `lecturas.json`, y no se materializa (el contexto solo materializa las del núcleo).
+- **El destino del gesto lanza la acción como antes,** escribiendo por el camino de la bandeja; no compone. Lo que el gesto da («person», «box») y sobre qué registro («the alta of the person») es la lista cerrada de la lente.
+
+**Queda en NOMBRES_DE_HOY un nombre:** «second factor» (app.js `configurar`), que espera la decisión de VG.
+
+**Queda en el núcleo:** `src/bases.js` sigue usando `HITOS` con el nombre en español para sus registros de base (`bloqueDe`, la caja de cada cuenta). Lo que se pinta pasa por `contrato`, en el idioma de quien mira.

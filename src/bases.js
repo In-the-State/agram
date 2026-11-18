@@ -49,6 +49,7 @@ import { ocupantes } from './encaje.js';
 import { quemaDelCoste, escalaQueAlcanza } from './escritura.js';
 import { esFormula, leerFormula, Presupuesto } from './bqlm.js';
 import { contextoDeLectura } from './contexto-eje.js';
+import { nivelesDeLosHitos, nombreDelHito } from './lente-provisional.js';
 
 /** La posición 8 (el cielo) en la raíz del registro: ahí se anclan sus bases. */
 export const CIELO = '8000000000';
@@ -63,22 +64,13 @@ export const SECCIONES = Object.freeze(['hijos', 'subarbol']);
 export const SIN_BASE_ESCRITA = 'sin base escrita';
 
 /**
- * Las diez etiquetas de caja del 8 (índice → nivel.grado), literales del mapa
+ * Las diez etiquetas de caja del 8 (índice → nivel.grado), las del mapa
  * (§2.2 [D20]; auditoría C32). Texto informativo de la caja, nunca un juicio
- * (decisión 2 de VG, 7-11 noche): nada asigna nivel ni grado al foco.
+ * (decisión 2 de VG, 7-11 noche): nada asigna nivel ni grado al foco. Los niveles
+ * y sus nombres son dato (datos/provisional/hitos.json, src/lente-provisional.js);
+ * `nombre`, el de siempre (en español): en otro idioma, nombreDelHito(nivel, idioma).
  */
-export const HITOS = Object.freeze([
-  { indice: 0, nivel: '0.3', nombre: 'idea' },
-  { indice: 1, nivel: '1.1', nombre: 'aprendizaje' },
-  { indice: 2, nivel: '2.1', nombre: 'avanzado' },
-  { indice: 3, nivel: '3.1', nombre: 'aprendizaje profesional' },
-  { indice: 4, nivel: '3.2', nombre: 'resolución profesional' },
-  { indice: 5, nivel: '4.1', nombre: 'aprendizaje superior' },
-  { indice: 6, nivel: '4.2', nombre: 'solución profesional avanzada' },
-  { indice: 7, nivel: '5.1', nombre: 'investigación' },
-  { indice: 8, nivel: '5.2', nombre: 'trabajo maestro' },
-  { indice: 9, nivel: '5.3', nombre: 'resolución experimental muy avanzada' },
-]);
+export const HITOS = Object.freeze(nivelesDeLosHitos().map((nivel, indice) => Object.freeze({ indice, nivel, nombre: nombreDelHito(nivel) })));
 
 /** Las etiquetas de las diez cajas: los HITOS. Solo etiquetas. */
 export const ETIQUETAS = HITOS;

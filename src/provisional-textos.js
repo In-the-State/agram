@@ -73,7 +73,18 @@ export const TEXTOS_PROVISIONALES_DATOS = [
       "position B.3: the identities of the book",
       "position B.4: the series of the book",
       "position B.5: the genesis",
-      "position B.6.0: the time of the book"
+      "position B.6.0: the time of the book",
+      "value whole: whole",
+      "value aggregate: aggregate",
+      "value part: part",
+      "reason series does not admit so much: the series {series} does not admit so much",
+      "reason insufficient available to lock: {holder} does not have enough {series} available to lock",
+      "reason nothing locked with that exit: {holder} does not have {amount} of {series} locked with the exit {exit}",
+      "reason insufficient P: {holder} does not have enough P on {scope}",
+      "reason insufficient P of origin: {holder} does not have enough P of origin {origin} on {scope}",
+      "reason insufficient balance: {holder} does not have enough {series}",
+      "reason record too large: it does not fit: signed it takes {bytes} bytes and the cap per record is {cap}",
+      "value the whole book: the whole book"
     ]
   ],
   [
@@ -145,7 +156,18 @@ export const TEXTOS_PROVISIONALES_DATOS = [
       "position B.3: las identidades del libro",
       "position B.4: las series del libro",
       "position B.5: el génesis",
-      "position B.6.0: la hora del libro"
+      "position B.6.0: la hora del libro",
+      "value whole: todo",
+      "value aggregate: agregado",
+      "value part: parte",
+      "reason series does not admit so much: la serie {series} no admite tanto",
+      "reason insufficient available to lock: {holder} no tiene disponible bastante {series} para bloquear",
+      "reason nothing locked with that exit: {holder} no tiene {amount} de {series} bloqueado con la salida {exit}",
+      "reason insufficient P: {holder} no tiene bastante P sobre {scope}",
+      "reason insufficient P of origin: {holder} no tiene bastante P de origen {origin} sobre {scope}",
+      "reason insufficient balance: {holder} no tiene bastante {series}",
+      "reason record too large: no cabe: firmado ocupa {bytes} bytes y el tope por registro es {cap}",
+      "value the whole book: todo el libro"
     ]
   ]
 ];

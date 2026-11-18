@@ -65,6 +65,17 @@
     "position B.3: las identidades del libro",
     "position B.4: las series del libro",
     "position B.5: el génesis",
-    "position B.6.0: la hora del libro"
+    "position B.6.0: la hora del libro",
+    "value whole: todo",
+    "value aggregate: agregado",
+    "value part: parte",
+    "reason series does not admit so much: la serie {series} no admite tanto",
+    "reason insufficient available to lock: {holder} no tiene disponible bastante {series} para bloquear",
+    "reason nothing locked with that exit: {holder} no tiene {amount} de {series} bloqueado con la salida {exit}",
+    "reason insufficient P: {holder} no tiene bastante P sobre {scope}",
+    "reason insufficient P of origin: {holder} no tiene bastante P de origen {origin} sobre {scope}",
+    "reason insufficient balance: {holder} no tiene bastante {series}",
+    "reason record too large: no cabe: firmado ocupa {bytes} bytes y el tope por registro es {cap}",
+    "value the whole book: todo el libro"
   ]
 ]

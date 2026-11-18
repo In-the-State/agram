@@ -1,0 +1,32 @@
+// Generado por datos/provisional/generar.mjs desde datos/provisional/destinos-de-gestos.json.
+// No se edita a mano: se cambia el JSON y se ejecuta `node datos/provisional/generar.mjs`.
+
+export const DESTINOS_DE_GESTOS_PROVISIONALES_DATOS = [
+  [
+    [
+      "drop a person in a box"
+    ],
+    [
+      3
+    ],
+    [
+      "move to group"
+    ],
+    [
+      "whom",
+      "person",
+      "zone",
+      "box"
+    ],
+    [
+      "the alta of the person"
+    ],
+    [
+      "Core AGRAM 20-11 (docs/notas/SITIOS_Y_PESOS.md §12; encargo pv3; agram-equipo/OPINION_BOTONES_PV.md §10, «arrastrar a una posición es crear ahí lo que la época permita»): qué hace en el libro un gesto de la lente que suelta algo en un sitio, como dato y no en la lente. Supuesto por confirmar con VG, provisional hasta la pasada única, junto a la lista cerrada de gestos (datos/provisional/gestos.json)",
+      "0 el gesto; 1 el punto de vista donde se hace (las cajas del 3); 2 la acción que lanza; 3 sus parámetros a pares: el nombre del parámetro y lo que el gesto da para él (person, la persona que se arrastra; box, la caja donde se suelta); 4 sobre qué registro se lanza (the alta of the person). Lo que el gesto da y sobre qué registro es la lista cerrada de la lente; qué acción y con qué parámetros, del libro"
+    ],
+    [
+      "drop a person in a box: reclassify the conversation with that person into the group of that box (to the 5, block)"
+    ]
+  ]
+];
