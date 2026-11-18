@@ -54,7 +54,7 @@ import { firmar as firmarEvento } from './autoridad.js';
 import { escalaQueCubre, ESCALA_MINIMA_PROPUESTA } from './tiempo.js';
 import { contarPosiciones } from './modos.js';
 import { direccion, esReferencia, esDecupla } from './btml.js';
-import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo } from './contrato.js';
+import { plantilla as plantillaDeDatos, etiqueta as etiquetaDe, ocupantes as ocupantesDeContrato, nombreDePlantilla, madurez, niveles as nivelesGenericos, configuracion, mensaje, legible, texto as textoDe, claves, motivo as motivoDe, guia as guiaDeLaEpoca, desdeLegible, anclaDeLasOpiniones, celdaDeEjecucion, configuracionDe, clavesDeConfiguracionDe, enlacesDe, gradoDelEnlace, porqueEnLlano, porqueNoSeOfrece, porqueFijo, textoDeFila, mensajeEnLlano } from './contrato.js';
 import { recuento, pasosDeLasReglas } from './motor.js';
 import { resolverTipo, valeElValor } from './tipos.js';
 
@@ -1728,7 +1728,7 @@ export async function camino(eje, X, yo, opciones = {}) {
     if (!plantilla) return null;
     const prep = preparar(eje, plantilla, sobre, yo, extra, { t, epoca, idioma });
     const hecho = hechoEnSuAncla(eje, prep, yoYMisCosas);
-    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta: mensajeDe(eje, epoca, plantilla, prep.candidata, yo, sobre, idioma) };
+    return { hacer: { plantilla: nombre, X: sobre.id, parametros: { ...extra, ...Object.fromEntries(Object.entries(prep.valores)) }, lectura: esLectura(plantilla) }, hecho, falta: mensajeEnLlano(eje, plantilla, { candidata: prep.candidata, X: sobre, me: yo, idioma, epoca }) };
   };
 
   // (1) El tutorial y (2) lo que piden las reglas: las filas de la lectura de la época en X.9.8 (Core AGRAM 18-11, cuarta
@@ -1760,7 +1760,8 @@ export async function camino(eje, X, yo, opciones = {}) {
     const fuente = f.fuente ?? 'reglas';
     const tratado = eje.obtener(f.sobre);
     const movimientos = grupo.filter((x) => x.a !== null && x.serie !== null && x.cantidad !== null).map((x) => movimientoLegible(eje, { serie: x.serie, cantidad: x.cantidad, de: x.de[0] ?? null, a: x.a }, idioma, opciones));
-    const cuerpo = [f.texto, movimientos.join('; ')].filter(Boolean).join(': ');
+    // El texto de la fila en el idioma de quien lee: el 0 del registro del que trata, legible, si es eso lo que trae.
+    const cuerpo = [textoDeFila(eje, f, { idioma, epoca }), movimientos.join('; ')].filter(Boolean).join(': ');
     // El título, el mensaje de la regla de su 2 (con el registro del que trata como ev, para sus huecos).
     const falta = [f.porque ? mensaje(eje, String(f.porque), idioma, { ev: tratado ?? ev, ...opciones }) ?? String(f.porque) : null, cuerpo].filter(Boolean).join(' · ');
     const sobre = eje.obtener(f.lanzar ?? f.sobre) ?? ev;
