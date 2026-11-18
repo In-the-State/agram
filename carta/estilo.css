@@ -1109,6 +1109,8 @@ html.mapped body{padding:0}
 /* El «+n» abierto: una lista flotante por encima de todo, pegada a su botón y dentro de la pantalla (dom.js
    situarDesplegadas la coloca); no empuja ni recorta nada. Tocar fuera o Escape la cierran (gestos.js, app.js). */
 .pv-acciones-mas[open]>summary{background:var(--panel2);border-style:solid}
+/* El punto de vista aísla su pila (isolation): con la lista abierta sube entero, o el vecino de después la tapa. */
+.pv:has(.pv-acciones-mas[open]){z-index:41}
 .pv-acciones-desplegadas{position:fixed;z-index:40;display:grid;justify-items:start;gap:4px;margin:0;padding:6px;width:max-content;max-width:min(320px,calc(100vw - 16px));max-height:min(50vh,360px);overflow:auto;box-sizing:border-box;background:var(--bg);border:2px solid var(--accent);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3)}
 .paso-de-fila{margin-left:6px;min-height:0;padding:1px 8px;font-size:12px}
 .abrir-aro{min-height:0;padding:0 6px;margin-left:4px;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--muted);font-size:13px;line-height:1.4;vertical-align:middle}
@@ -1365,6 +1367,10 @@ html.mapped body{padding:0}
 .bandeja-cuatro{flex:0 1 auto;max-height:33%;min-height:0;overflow:hidden;margin:6px 0;padding:8px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
 .bandeja-cuatro>h3,.bandeja-cuatro>small,.bandeja-cuatro>footer,.bandeja-cuatro>.motivos{flex:0 0 auto}
 .bandeja-cuatro>.bandeja-lista{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
+/* Con varios libros la lista va en un bloque por libro: la caja entera se desplaza y el pie con «ejecutar» no se pierde. */
+.bandeja-cuatro:has(>.bandeja-libro){overflow:auto;overscroll-behavior:contain;max-height:60%}
+.bandeja-cuatro:has(>.bandeja-libro)>*{flex:0 0 auto}
+.bandeja-cuatro:has(>.bandeja-libro)>footer{position:sticky;bottom:-8px;padding:6px 0 8px;background:var(--bg)}
 .bandeja-cuatro h3{margin:0;font-size:15px}
 .bandeja-lista{margin:0;padding:0;list-style:none;display:grid;gap:4px}
 .bandeja-mueve{margin:2px 0 0;padding-left:16px;flex-basis:100%;font-size:12px}
