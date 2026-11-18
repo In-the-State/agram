@@ -490,3 +490,19 @@ test('la marca de una fila cerrada no se parte a 400 px: solo la cifra en corto,
   assert.match(regla, /white-space:nowrap/);
   assert.match(regla, /flex:0 0 auto/);
 });
+
+test('en el 4 la bandeja no se come la matriz: un tercio de su caja como mucho y la lista se desplaza dentro (1366×768, tres borradores o más)', async () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const regla = (sel) => { const i = css.indexOf(sel + '{'); assert.ok(i >= 0, 'falta ' + sel); return css.slice(i, css.indexOf('}', i)); };
+  const caja = regla('.bandeja-cuatro');
+  assert.match(caja, /max-height:33%/);
+  assert.match(caja, /min-height:0/);
+  assert.match(caja, /overflow:hidden/);
+  assert.match(regla('.bandeja-cuatro>.bandeja-lista'), /overflow:auto/);
+  assert.match(regla('.bandeja-cuatro>h3,.bandeja-cuatro>small,.bandeja-cuatro>footer,.bandeja-cuatro>.motivos'), /flex:0 0 auto/, 'la cabecera y el botón, siempre a la vista');
+  // El HTML: la lista es hija directa de la caja (lo que se desplaza) y el botón va fuera de ella.
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1'), item('b2'), item('b3'), item('b4')], motivos: [] });
+  const h = htmlBandejaDelCuatro(v, 'X1');
+  assert.match(h, /^<section class="bandeja-cuatro"[^>]*><h3>[^<]*<\/h3><ol class="bandeja-lista">/);
+  assert.ok(h.indexOf('data-bandeja-ejecutar') > h.indexOf('</ol>'));
+});

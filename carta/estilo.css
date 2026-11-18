@@ -1343,7 +1343,11 @@ html.mapped body{padding:0}
 .bandeja-no-entra{color:var(--warn);font-size:12px}
 .bandeja-cuesta,.bandeja-la-pone,.bandeja-en,.bandeja-aqui{color:var(--muted)}
 .bandeja-marca{flex:0 0 auto;white-space:nowrap;margin-left:4px;padding:0 5px;border:1px dashed var(--accent);border-radius:999px;font-size:11px;color:var(--fg)}
-.bandeja-cuatro{margin:6px 0;padding:8px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
+/* En el 4, la bandeja no se come la matriz: como mucho un tercio del alto de su caja (supuesto de Core, reversible) y su
+   lista se desplaza dentro; la cabecera y el botón de ejecutar quedan siempre a la vista. */
+.bandeja-cuatro{flex:0 1 auto;max-height:33%;min-height:0;overflow:hidden;margin:6px 0;padding:8px 10px;border:2px solid var(--accent);border-radius:8px;background:var(--bg);display:flex;flex-direction:column;gap:6px;min-width:0}
+.bandeja-cuatro>h3,.bandeja-cuatro>small,.bandeja-cuatro>footer,.bandeja-cuatro>.motivos{flex:0 0 auto}
+.bandeja-cuatro>.bandeja-lista{flex:1 1 auto;min-height:0;overflow:auto;overscroll-behavior:contain}
 .bandeja-cuatro h3{margin:0;font-size:15px}
 .bandeja-lista{margin:0;padding:0;list-style:none;display:grid;gap:4px}
 .bandeja-mueve{margin:2px 0 0;padding-left:16px;flex-basis:100%;font-size:12px}
