@@ -11,6 +11,7 @@
 //                                                    mientras haya emparejamiento vivo; si no, null
 //   GUARDIAN_DE_RECHAZO, claveDeRechazo, claveDeQR   los códigos del emparejamiento dichos en llano (carta/textos.js)
 //   asentarFirmadas(emparejamiento, eje, …)          tras recargar: lo firmado que aún no está en el libro se asienta
+//   permisoDeCuenta, genesisDeCuenta                 el génesis del libro de cuenta al emparejar (Carril F)
 //   leerConCamara, soltarCamara, puedeLeerConCamara  la lectura del QR con BarcodeDetector, aislada (se prueba con dobles)
 //
 // Sin DOM: lo prueba test/carta-emparejado.test.js en Node.
@@ -161,6 +162,41 @@ export function esperando(emparejamiento) {
 export function porQueSoloLeer(publica, emparejamiento) {
   const e = emparejamiento?.estado();
   return e && e.app !== publica ? 'otraClave' : null;
+}
+
+/**
+ * ¿Trae la sesión emparejada el permiso de un solo uso para el génesis de cuenta (agram-equipo/LIBRO_DE_CUENTA_ALOJADO.md
+ * §6 y §9; StateArk §4.2), aceptada, para la época `epoca` y aún en plazo? `e` es emparejamiento.estado(). Nunca lanza.
+ */
+export function permisoDeCuenta(e, { epoca, reloj = () => Date.now() } = {}) {
+  try {
+    return Boolean(e?.aceptada && typeof epoca === 'string' && e.cuenta?.epoca === epoca && reloj() < Date.parse(e.cuenta.permiso.hasta));
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * El génesis de cuenta por la app (Carril F; §6 y StateArk §4): lo que la carta pasa a cuentas.crearCuenta al crear la
+ * cuenta con la app emparejada. La época de cuenta (`epoca`, su id) va por referencia: el génesis la nombra y es UN
+ * registro. Con el permiso vivo (permisoDeCuenta), pide las claves a la app y el contexto del génesis lleva `eje` y
+ * `next`, los que dio; lo demás de «claves» (lectura, escritura y contenido: secretos) se suelta aquí, sin guardarlo: este
+ * carril no lo usa. Sin permiso (una app que no lo da, o caducado) no se pide nada y el génesis va sin ellos: la app
+ * sacará su diálogo, la regla de siempre. Si pedir las claves falla, igual, y `sinClaves` dice su code.
+ * → { epoca: { base, cambios: [] }, contexto?, sinClaves? }, o null sin época de cuenta (el génesis nace como antes).
+ */
+export async function genesisDeCuenta(emparejamiento, { epoca, reloj = () => Date.now() } = {}) {
+  if (typeof epoca !== 'string' || !/^[0-9a-f]{64}$/.test(epoca)) return null;
+  const deCuenta = { epoca: { base: epoca, cambios: [] } };
+  let e = null;
+  try { e = emparejamiento?.estado() ?? null; } catch { e = null; }
+  if (!permisoDeCuenta(e, { epoca, reloj })) return deCuenta;
+  try {
+    const { eje, next } = await emparejamiento.pedirClaves({ publica: e.app });
+    return { ...deCuenta, contexto: { eje, next } };
+  } catch (err) {
+    return { ...deCuenta, sinClaves: typeof err?.code === 'string' ? err.code : 'no_answer' };
+  }
 }
 
 const asentando = new WeakMap(); // emparejamiento → ids que se están asentando ahora (no dos veces a la vez)

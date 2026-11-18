@@ -47,6 +47,9 @@ import { claveToken, origenDe, cantidadBase, partirClave, validarMovimiento, cap
 import { acotarAltaV2, gastaAsignacion, esInformativoT, validosDe } from './ciclo.js';
 import { evaluarEscritura, nombreDeRegla, CAUSA_LIMITE } from './bqlm.js';
 import { EPOCA_0_BTML, EPOCAS_POR_ID, cargarEpocaEscrita, epocaEscritaDe, erroresDeEpocaEscrita, idDeRegistro } from './epocas.js';
+// La época del libro de cuenta, registrada por su id al cargar este módulo (src/epoca-cuenta.js): un génesis que la nombra
+// se lee con ella y no cae a la 0, en la carta, en be.mjs y en las pruebas.
+import './epoca-cuenta.js';
 import { msUTC, msDeGuardado, segundosUTC, esInstante } from './instante.js';
 import { crearEvento, validarForma, normalizarEvento, esConsumoT, esPresente, canonico, verificarId, RAIZ, cuerpo, hash, congelar, esMiembroDeTanda, fallosDeTanda, partirTandas, prefijosAMiembros, TANDA_MAXIMA, TANDA_MINIMA, REGLA_NO_CABE, bytesDeMiembro, bytesDeTanda } from './evento.js';
 import { sha256, aHex } from './cripto.js';

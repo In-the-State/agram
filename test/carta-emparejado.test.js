@@ -5,7 +5,11 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { Eje, autoridad, persistencia, salida } from '../src/index.js';
+import { createHash } from 'node:crypto';
+import { Eje, autoridad, persistencia, salida, ID_EPOCA_DE_CUENTA } from '../src/index.js';
+import * as Acc from '../src/acciones.js';
+import { verificarBip340 } from '../src/cripto.js';
+import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js';
 import { crearEvento, canonico, cuerpo } from '../src/evento.js';
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import * as Q from '../carta/cuentas.js';
@@ -16,7 +20,7 @@ import { htmlGuardian, htmlArranque, htmlReglas } from '../carta/dom.js';
 import { preferencias } from '../carta/carta.js';
 import { TEXTOS, t } from '../carta/textos.js';
 import { publicaDe } from '../src/autoridad.js';
-import { V, APP, SESION, M, AHORA, qr, revocacion, hasta, conLaApp, mundo, aHex } from './ayudas-emparejamiento.js';
+import { V, APP, SESION, M, AHORA, qr, revocacion, hasta, conLaApp, mundo, aHex, hex, CLAVES_DE_PRUEBA, PERMISO_MS } from './ayudas-emparejamiento.js';
 
 const T1 = '2026-11-17T10:30:00Z';
 const codeDe = async (p) => { try { await p; return 'ok'; } catch (e) { return e.code; } };
@@ -656,4 +660,203 @@ test('emparejada sin libros, con mi alta ya hecha: «Añadirlo a tus libros» gu
       assert.deepEqual([r.cuenta.guardian, r.cuenta.publica, r.soloLeer ?? false], [true, APP, false]);
     } finally { w.cerrar(); }
   });
+});
+
+// ---------- el libro de cuenta al emparejar (Carril F, 18-11; agram-equipo/LIBRO_DE_CUENTA_ALOJADO.md §6 y §9, StateArk §3 y §4) ----------
+
+const CON_CUENTA = { hola: 'aceptar', propuesta: 'firmar' };
+/** Un mundo cuya carta anuncia la época de cuenta, emparejado y aceptado, con su adaptador. */
+async function emparejadoConCuenta(modo = CON_CUENTA) {
+  const w = mundo({ modo, epocaDeCuenta: ID_EPOCA_DE_CUENTA });
+  await w.carta.emparejar(V.qr.texto);
+  await hasta(() => w.carta.estado()?.aceptada, w.app, 'emparejada');
+  w.g = G.guardianEmparejado(w.carta, { reloj: w.reloj });
+  return w;
+}
+/** Lo que sale por la consola mientras dura `fn`. */
+async function conConsola(fn) {
+  const dicho = [];
+  const antes = {};
+  for (const k of ['log', 'error', 'warn', 'info', 'debug']) { antes[k] = console[k]; console[k] = (...a) => dicho.push(a.map(String).join(' ')); }
+  try { return { valor: await fn(), dicho }; } finally { Object.assign(console, antes); }
+}
+const SECRETOS = [CLAVES_DE_PRUEBA.lectura, CLAVES_DE_PRUEBA.escritura, CLAVES_DE_PRUEBA.contenido];
+const ORDEN = Object.freeze({ schema: 'agram.orden@1', eje: CLAVES_DE_PRUEBA.eje, accion: 'crear', n: 0, lectura: 'a1'.repeat(32), escritura: 'b2'.repeat(32), cuando: '2026-11-17T10:30:00Z' });
+
+test('libro de cuenta: «hola» anuncia la época; «emparejada» trae el permiso de 10 minutos y estado() lo dice (y se guarda con la sesión); una app vieja, sin él', async () => {
+  assert.ok(ID_EPOCA_DE_CUENTA, 'la época de cuenta se conoce');
+  const w = await emparejadoConCuenta();
+  try {
+    const hola = w.app.recibidos.find((m) => m.tipo === 'hola');
+    assert.deepEqual(hola.cuenta, { epoca: ID_EPOCA_DE_CUENTA });
+    const e = w.carta.estado();
+    assert.deepEqual(e.cuenta, { epoca: ID_EPOCA_DE_CUENTA, permiso: { hasta: new Date(AHORA + PERMISO_MS).toISOString() } });
+    assert.equal(G.permisoDeCuenta(e, { epoca: ID_EPOCA_DE_CUENTA, reloj: w.reloj }), true);
+    assert.equal(G.permisoDeCuenta(e, { epoca: 'ab'.repeat(32), reloj: w.reloj }), false, 'otra época, no');
+    assert.equal(G.permisoDeCuenta(e, { epoca: ID_EPOCA_DE_CUENTA, reloj: () => AHORA + PERMISO_MS }), false, 'caducado, no');
+    // Se guarda con la sesión: otra carta sobre el mismo almacén lo recupera.
+    const otra = w.nueva();
+    try {
+      await otra.cargar();
+      assert.deepEqual(otra.estado().cuenta, e.cuenta);
+    } finally { otra.cerrar(); }
+  } finally { w.cerrar(); }
+  // Sin época anunciada, «hola» va como siempre; una app vieja no da permiso.
+  const sin = mundo({ modo: CON_CUENTA });
+  try {
+    await sin.carta.emparejar(V.qr.texto);
+    await hasta(() => sin.carta.estado()?.aceptada, sin.app);
+    assert.ok(!('cuenta' in sin.app.recibidos.find((m) => m.tipo === 'hola')));
+    assert.equal(sin.carta.estado().cuenta, null);
+  } finally { sin.cerrar(); }
+  const vieja = await emparejadoConCuenta({ ...CON_CUENTA, cuenta: 'vieja' });
+  try {
+    assert.equal(vieja.carta.estado().cuenta, null);
+  } finally { vieja.cerrar(); }
+});
+
+test('pedirClaves: da las siete; lectura, escritura y contenido no van al almacén, ni a los avisos, ni a la consola; not_accepted, unknown_account, no_answer y el fin de la sesión, cada uno con su code', async () => {
+  const w = await emparejadoConCuenta();
+  try {
+    const { valor, dicho } = await conConsola(() => conLaApp(w.carta.pedirClaves({ publica: APP }), w.app));
+    assert.deepEqual(valor, { ...CLAVES_DE_PRUEBA });
+    assert.deepEqual(w.app.recibidos.find((m) => m.tipo === 'pedir_claves'), { schema: M, tipo: 'pedir_claves', publica: APP });
+    const guardado = JSON.stringify(w.almacen.volcado());
+    for (const s of SECRETOS) {
+      assert.ok(!guardado.includes(s), 'nada secreto en el almacén');
+      assert.ok(!JSON.stringify(w.avisos).includes(s), 'ni en los avisos');
+      assert.ok(!dicho.some((x) => x.includes(s)), 'ni en la consola');
+      assert.ok(!JSON.stringify(w.carta.estado()).includes(s), 'ni en estado()');
+    }
+  } finally { w.cerrar(); }
+  for (const [claves, code] of [['no_aceptada', 'not_accepted'], ['rechazar', 'unknown_account']]) {
+    const x = await emparejadoConCuenta({ ...CON_CUENTA, claves });
+    try {
+      assert.equal(await codeDe(conLaApp(x.carta.pedirClaves({ publica: APP }), x.app)), code);
+    } finally { x.cerrar(); }
+  }
+  const muda = await emparejadoConCuenta({ ...CON_CUENTA, claves: 'callar' });
+  try {
+    const p = muda.carta.pedirClaves({ publica: APP });
+    p.catch(() => {});
+    await hasta(() => muda.app.recibidos.some((m) => m.tipo === 'pedir_claves'), muda.app);
+    muda.temporizador.disparar(); // pasa el plazo
+    assert.equal(await codeDe(p), 'no_answer');
+    const q = muda.carta.pedirClaves({ publica: APP });
+    q.catch(() => {});
+    await muda.carta.olvidar();
+    assert.equal(await codeDe(q), 'pairing_forgotten', 'al terminar la sesión, lo pedido acaba con su code');
+    assert.equal(await codeDe(muda.carta.pedirClaves({ publica: APP })), 'no_pairing');
+  } finally { muda.cerrar(); }
+});
+
+test('firmarGobierno: la firma con gobierno sobre el id de la orden (el SHA-256 de su canónico), comprobada con la pública de «claves»; un rechazo con ese id da su code', async () => {
+  const w = await emparejadoConCuenta();
+  try {
+    await conLaApp(w.carta.pedirClaves({ publica: APP }), w.app);
+    const r = await conLaApp(w.carta.firmarGobierno({ publica: APP, orden: ORDEN }), w.app);
+    assert.equal(r.id, createHash('sha256').update(canonico(ORDEN)).digest('hex'));
+    assert.equal(verificarBip340(hex(r.firma), hex(r.id), hex(CLAVES_DE_PRUEBA.gobierno)), true);
+    assert.deepEqual(w.app.recibidos.find((m) => m.tipo === 'gobierno'), { schema: M, tipo: 'gobierno', publica: APP, orden: ORDEN });
+  } finally { w.cerrar(); }
+  const no = await emparejadoConCuenta({ ...CON_CUENTA, gobierno: 'rechazar' });
+  try {
+    assert.equal(await codeDe(conLaApp(no.carta.firmarGobierno({ publica: APP, orden: ORDEN }), no.app)), 'cancelled_by_holder');
+    assert.equal(await codeDe(no.carta.firmarGobierno({ publica: APP, orden: 'no' })), 'message_invalid');
+  } finally { no.cerrar(); }
+});
+
+/** Crear la cuenta como app.js (`crear`) con la app emparejada: genesisDeCuenta y crearCuenta con el guardián emparejado. */
+async function crearConLaApp(w, { nombre = 'Víctor Inventado', idioma = 'es' } = {}) {
+  const deCuenta = await conLaApp(G.genesisDeCuenta(w.carta, { epoca: ID_EPOCA_DE_CUENTA, reloj: w.reloj }), w.app);
+  const guardian = G.guardianDeLaCarta({ adaptador: w.g, emparejamiento: w.carta });
+  const antes = w.app.recibidos.filter((m) => m.tipo === 'propuesta').length;
+  const r = await conLaApp(Q.crearCuenta({ nombre, idioma, t: T1, htmlInicial: true, guardian, epoca: deCuenta.epoca, ...(deCuenta.contexto ? { contexto: deCuenta.contexto } : {}) }), w.app);
+  return { r, deCuenta, propuestas: w.app.recibidos.filter((m) => m.tipo === 'propuesta').slice(antes) };
+}
+const tutorialDe = async (eje, quien) => (await Acc.camino(eje, eje.alta(quien).id, quien, { t: T1, idioma: 'es' })).pasos.filter((p) => p.fuente === 'tutorial').map((p) => [p.hacer?.plantilla ?? p.regla, p.hecho, p.falta ?? null]);
+
+test('crear la cuenta emparejada: el génesis es UN registro con la época de cuenta por id y el eje y el next de la app; la app lo firma sin segundo diálogo; el aviso «tu cuenta está solo aquí» sale como en una del navegador', async () => {
+  await conAlmacen(async () => {
+    const w = await emparejadoConCuenta();
+    try {
+      const { r, deCuenta, propuestas } = await crearConLaApp(w);
+      assert.deepEqual(deCuenta.contexto, { eje: CLAVES_DE_PRUEBA.eje, next: CLAVES_DE_PRUEBA.next }, 'solo eje y next: lo secreto se suelta');
+      const g = r.eje.obtener(r.eje.genesisId);
+      assert.equal(g.sobre, null);
+      assert.deepEqual(Object.keys(g.contexto).sort(), ['claves', 'eje', 'epoca', 'genesis', 'next']);
+      assert.deepEqual(g.contexto, { eje: CLAVES_DE_PRUEBA.eje, genesis: true, epoca: ID_EPOCA_DE_CUENTA, claves: { 'victor-inventado': APP }, next: CLAVES_DE_PRUEBA.next });
+      assert.equal(g.payload, 'Víctor Inventado');
+      assert.equal(r.eje.epoca().id, ID_EPOCA_DE_CUENTA);
+      assert.equal(propuestas[0].id, r.eje.genesisId, 'el génesis, la primera propuesta: una sola, no una tanda');
+      assert.deepEqual(w.app.sinDialogo, [r.eje.genesisId], 'la app lo firma sin segundo diálogo (y solo a él: el permiso es de un uso)');
+      // Lo que nace detrás, como hoy: el idioma (si no es el de la época, «es») y la página inicial.
+      assert.equal(propuestas.length, r.eje.orden.length, 'una propuesta por registro');
+      assert.equal(propuestas.length, 2, 'en español (el de la época): génesis y página inicial');
+      for (const id of r.eje.orden) assert.equal(await autoridad.verificar(r.eje.obtener(id), APP), true);
+      assert.deepEqual((await Eje.desde(persistencia.serializar(r.eje).eventos, { exigirFirmas: true })).epoca().id, ID_EPOCA_DE_CUENTA);
+      // El aviso de la guía de inicio, igual que en una cuenta del navegador (nacida con la época escrita).
+      const navegador = await Q.crearCuenta({ nombre: 'Víctor Inventado', idioma: 'es', t: T1, htmlInicial: true, epoca: EPOCA_DE_CUENTA_DATOS });
+      const pasos = await tutorialDe(r.eje, r.cuenta.identidad);
+      assert.deepEqual(pasos, await tutorialDe(navegador.eje, navegador.cuenta.identidad));
+      assert.equal(pasos[0][2], 'tu cuenta está solo aquí: haz un respaldo o únete a un nodo');
+    } finally { w.cerrar(); }
+    // En inglés: el génesis, el idioma y la página inicial, tres propuestas (y una más por cada grupo de ajustes del sitio).
+    const en = await emparejadoConCuenta();
+    try {
+      const { propuestas } = await crearConLaApp(en, { idioma: 'en' });
+      assert.equal(propuestas.length, 3);
+    } finally { en.cerrar(); }
+  });
+});
+
+test('una app vieja o el permiso caducado: el génesis nace igual con la época de cuenta por id, sin eje ni next, sin pedir claves; la app saca su diálogo', async () => {
+  await conAlmacen(async () => {
+    for (const caso of ['vieja', 'caducado']) {
+      const w = await emparejadoConCuenta(caso === 'vieja' ? { ...CON_CUENTA, cuenta: 'vieja' } : CON_CUENTA);
+      try {
+        if (caso === 'caducado') w.ahora = AHORA + PERMISO_MS + 1000;
+        const { r, deCuenta } = await crearConLaApp(w);
+        assert.deepEqual(deCuenta, { epoca: { base: ID_EPOCA_DE_CUENTA, cambios: [] } }, caso);
+        const g = r.eje.obtener(r.eje.genesisId);
+        assert.deepEqual(Object.keys(g.contexto).sort(), ['claves', 'epoca', 'genesis'], caso);
+        assert.equal(g.contexto.epoca, ID_EPOCA_DE_CUENTA);
+        assert.ok(!w.app.recibidos.some((m) => m.tipo === 'pedir_claves'), caso + ': no se piden claves');
+        assert.deepEqual(w.app.sinDialogo, [], caso + ': con el diálogo de siempre');
+      } finally { w.cerrar(); }
+    }
+    // Sin época de cuenta (la copia generada no cargó): nada que nombrar, el génesis nace como antes.
+    assert.equal(await G.genesisDeCuenta(null, { epoca: null }), null);
+  });
+});
+
+test('la pantalla: aceptada, sin libro de la app y con permiso, se va derecho al formulario de nombre e idioma, con invitación y restaurar debajo; sin permiso, el diálogo de siempre', async () => {
+  for (const conPermiso of [true, false]) {
+    const w = mundo({ modo: conPermiso ? CON_CUENTA : { ...CON_CUENTA, cuenta: 'vieja' }, epocaDeCuenta: ID_EPOCA_DE_CUENTA });
+    try {
+      const d = documentoDePrueba();
+      const abiertos = [];
+      const p = instalar({ raiz: d.raiz, emparejamiento: w.carta, sinLibro: () => true, cuentaNueva: () => G.permisoDeCuenta(w.carta.estado(), { epoca: ID_EPOCA_DE_CUENTA, reloj: w.reloj }), abrirArranque: (que) => abiertos.push(que), entorno: {} });
+      d.pulsa('[data-emparejar]');
+      d.dialogo.texto.value = V.qr.texto;
+      d.pulsa('[data-emparejar-leer]');
+      await hasta(() => w.carta.estado()?.aceptada, w.app, 'emparejada');
+      p.avisar({ tipo: 'emparejada' });
+      if (conPermiso) {
+        assert.deepEqual(abiertos, ['crear'], 'derecho a crear');
+        assert.equal(d.dialogo.innerHTML, '', 'sin el paso de «abrir un libro con la clave de la app»');
+        p.avisar({ tipo: 'emparejada' });
+        assert.deepEqual(abiertos, ['crear'], 'una vez');
+      } else {
+        assert.deepEqual(abiertos, []);
+        assert.ok(d.dialogo.innerHTML.includes('data-emparejar-arranque="crear"'), 'el diálogo de siempre');
+      }
+    } finally { w.cerrar(); }
+  }
+  const h = htmlArranque({ modo: 'crear', campos: Q.camposDelAlta({ idioma: 'es' }), conLaApp: true });
+  assert.ok(h.includes(t('cuentaConLaApp')) && h.includes(t('cuentaConLaAppAyuda')));
+  assert.ok(h.includes('name="nombre"') && h.includes('name="idioma"'), 'nombre e idioma');
+  assert.ok(h.indexOf('type="submit"') < h.indexOf('data-libro-invitado') && h.includes('data-arranque="restaurar"'), 'crear lo principal; invitación y restaurar, debajo');
+  assert.ok(!htmlArranque({ modo: 'crear', campos: Q.camposDelAlta({ idioma: 'es' }) }).includes('data-crear-otros'), 'sin la app, como siempre');
+  for (const k of ['cuentaConLaApp', 'cuentaConLaAppAyuda', 'cuentaConLaAppOtros']) assert.ok(existe(k) && typeof TEXTOS.en[k] === 'string' && TEXTOS.en[k] !== TEXTOS.es[k], k);
 });

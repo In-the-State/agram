@@ -11,6 +11,7 @@ import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { canonico } from '../src/evento.js';
 import { hashEtiquetado, verificarBip340 } from '../src/cripto.js';
 import { publicaDe } from '../src/autoridad.js';
+import { sha256, aHex as hexDe } from '../src/cripto.js';
 import * as E from '../carta/emparejamiento.js';
 
 export const V = JSON.parse(readFileSync(new URL('./vectores/emparejamiento.json', import.meta.url), 'utf8'));
@@ -27,6 +28,18 @@ export const PRIV_SESION = V.claves.sesion.privada;
 export const SESION = V.claves.sesion.publica;
 export const RELE = V.qr.objeto.rele;
 export const M = E.ESQUEMA_MENSAJE;
+
+/**
+ * Lo que da «claves» en las pruebas (Carril F; StateArk, claves_de_cuenta): INVENTADO. Gobierno es una pública de verdad
+ * (la de una privada de prueba) para comprobar firma_gobierno; el eje, el SHA-256 de su pública; lo demás, relleno.
+ */
+export const PRIV_GOBIERNO = '3c'.repeat(32);
+export const CLAVES_DE_PRUEBA = Object.freeze({
+  eje: hexDe(sha256(Uint8Array.from(publicaDe(PRIV_GOBIERNO).match(/.{2}/g), (x) => parseInt(x, 16)))),
+  gobierno: publicaDe(PRIV_GOBIERNO), n: 0, lectura: '4a'.repeat(32), escritura: '5b'.repeat(32), contenido: '6c'.repeat(32), next: '7d'.repeat(32),
+});
+/** El permiso de «emparejada» dura 10 minutos (StateArk §4.2). */
+export const PERMISO_MS = 10 * 60 * 1000;
 
 export const firmaDe = (mensajeBytes, privada) => aHex(schnorr.sign(mensajeBytes, hex(privada), CEROS));
 
@@ -120,12 +133,33 @@ export class ReleSim {
  * La app, simulada: abre lo que le llega y responde según `modo` ({ hola: 'aceptar' | 'rechazar', propuesta: 'firmar' |
  * 'callar' | 'rechazar', code }). Firma con la clave de la cuenta (= la larga); a una propuesta con otra pública responde
  * unknown_account, como la app de verdad. Idempotente por id.
+ *
+ * El libro de cuenta (Carril F; StateArk, RESPUESTA_LIBRO_DE_CUENTA.md §3 y §4): si «hola» anuncia la época, «emparejada»
+ * lleva el permiso de un solo uso (10 minutos), salvo con `cuenta: 'vieja'` (una app que no lo conoce). A «pedir_claves»
+ * da CLAVES_DE_PRUEBA (`claves`: 'dar' | 'callar' | 'rechazar' | 'no_aceptada'); a «gobierno», la firma con gobierno
+ * (`gobierno`: 'firmar' | 'rechazar'). `sinDialogo`: los ids de las propuestas que firmaría SIN segundo diálogo, con las
+ * condiciones de StateArk §4.5; las demás llevarían el diálogo de siempre.
  */
 export class AppSim {
   vistos = new Set();
   respuestas = new Map();
   recibidos = [];
+  sinDialogo = [];
+  permiso = null; // { sesion, epoca, hasta, usado }
   constructor({ rele, reloj, modo = { hola: 'aceptar', propuesta: 'firmar' } }) { this.rele = rele; this.reloj = reloj; this.modo = modo; }
+
+  /** ¿La firmaría sin segundo diálogo? (StateArk §4.5: todas a la vez; gasta el permiso). */
+  cumplePermiso(m, sesion) {
+    const p = this.permiso;
+    if (!p || p.sesion !== sesion || p.usado || this.reloj() >= Date.parse(p.hasta)) return false;
+    let c;
+    try { c = JSON.parse(m.canonico); } catch { return false; }
+    const x = c?.contexto ?? {};
+    const ok = c.sobre === null && x.genesis === true && x.epoca === p.epoca && m.publica === APP && x.claves?.[c.autor] === m.publica
+      && !('tanda' in x) && !('epocaEscrita' in x) && (!('eje' in x) || x.eje === CLAVES_DE_PRUEBA.eje);
+    if (ok) p.usado = true;
+    return ok;
+  }
 
   async mandar(mensaje, sesion) {
     const t = seg(this.reloj());
@@ -142,8 +176,23 @@ export class AppSim {
       this.recibidos.push(m);
       const sesion = a.remitente;
       if (m.tipo === 'hola') {
-        await this.mandar(this.modo.hola === 'aceptar' ? { schema: M, tipo: 'emparejada' } : { schema: M, tipo: 'rechazo', id: sesion, code: 'pairing_refused', motivo: 'no' }, sesion);
+        const conPermiso = this.modo.hola === 'aceptar' && m.cuenta && this.modo.cuenta !== 'vieja';
+        if (conPermiso) this.permiso = { sesion, epoca: m.cuenta.epoca, hasta: new Date(this.reloj() + PERMISO_MS).toISOString(), usado: false };
+        if (this.modo.hola === 'aceptar') this.aceptadas = new Set([...(this.aceptadas ?? []), sesion]);
+        await this.mandar(this.modo.hola === 'aceptar' ? { schema: M, tipo: 'emparejada', ...(conPermiso ? { cuenta: { epoca: m.cuenta.epoca, permiso: { hasta: this.permiso.hasta } } } : {}) } : { schema: M, tipo: 'rechazo', id: sesion, code: 'pairing_refused', motivo: 'no' }, sesion);
+      } else if (m.tipo === 'pedir_claves') {
+        const modo = this.modo.claves ?? 'dar';
+        if (modo === 'callar') continue;
+        const aceptada = this.aceptadas?.has(sesion) && modo !== 'no_aceptada';
+        if (!aceptada) await this.mandar({ schema: M, tipo: 'rechazo', id: sesion, code: 'not_accepted', motivo: 'aún no' }, sesion);
+        else if (modo === 'rechazar' || m.publica !== APP) await this.mandar({ schema: M, tipo: 'rechazo', id: m.publica, code: 'unknown_account', motivo: 'no es mi cuenta' }, sesion);
+        else await this.mandar({ schema: M, tipo: 'claves', ...CLAVES_DE_PRUEBA }, sesion);
+      } else if (m.tipo === 'gobierno') {
+        const id = hexDe(sha256(new TextEncoder().encode(canonico(m.orden))));
+        if (this.modo.gobierno === 'rechazar') await this.mandar({ schema: M, tipo: 'rechazo', id, code: 'cancelled_by_holder', motivo: 'no' }, sesion);
+        else await this.mandar({ schema: M, tipo: 'firma_gobierno', id, firma: firmaDe(hex(id), PRIV_GOBIERNO) }, sesion);
       } else if (m.tipo === 'propuesta') {
+        if (this.cumplePermiso(m, sesion)) this.sinDialogo.push(m.id);
         let resp = this.respuestas.get(m.id);
         if (!resp) {
           const modo = this.modo.propuesta;
@@ -184,14 +233,14 @@ export async function conLaApp(promesa, app) {
 }
 
 /** Un mundo de prueba: reloj, temporizador, relé, app, almacén y la carta (un Emparejamiento). */
-export function mundo({ modo, almacen = E.almacenEnMemoria() } = {}) {
+export function mundo({ modo, almacen = E.almacenEnMemoria(), epocaDeCuenta = null } = {}) {
   const w = { ahora: AHORA, avisos: [] };
   w.reloj = () => w.ahora;
   w.temporizador = new Temporizador();
   w.rele = new ReleSim({ reloj: w.reloj });
   w.app = new AppSim({ rele: w.rele, reloj: w.reloj, modo });
   w.almacen = almacen;
-  w.nueva = () => new E.Emparejamiento({ almacen: w.almacen, abrirSocket: w.rele.abrirSocket, reloj: w.reloj, temporizador: w.temporizador, agente: 'navegador · prueba', avisar: (a) => w.avisos.push(a) });
+  w.nueva = () => new E.Emparejamiento({ almacen: w.almacen, abrirSocket: w.rele.abrirSocket, reloj: w.reloj, temporizador: w.temporizador, agente: 'navegador · prueba', avisar: (a) => w.avisos.push(a), epocaDeCuenta });
   w.carta = w.nueva();
   w.cerrar = () => { w.carta.cerrar(); w.rele.cortarTodo(); };
   return w;

@@ -6,8 +6,10 @@
 // de la 0]] y lo que no fija lleva la marca { ref: <id de la 0> }); si la 0 cambia, esta época cambia de id (la prueba
 // test/cuenta-libro.test.js lo vigila).
 //
-// La época NO viaja con el núcleo (#115): src/ no la importa. Se escribe en el libro de cuenta al nacer
-// (Eje.genesis({ epoca }) o node be.mjs epoca --publicar datos/epocas/cuenta/cuenta-0.btml.json). Ningún archivo de src/
+// La época NO viaja con el núcleo (#115) salvo por su id: src/epoca-cuenta.js carga su copia importable y la registra,
+// para que el génesis de cuenta emparejado con la app la nombre sin escribirla (Carril F, 18-11). Las cuentas del
+// navegador la escriben en el libro de cuenta al nacer (Eje.genesis({ epoca }) o node be.mjs epoca --publicar
+// datos/epocas/cuenta/cuenta-0.btml.json). Ningún archivo de src/
 // ni de carta/ conoce sus plantillas: la lente enseña lo anclado en el 1 y el 3 de mi alta, y sus lecturas con nombre
 // («my books», «my pending invitations», «my pairings») son BQL de la época.
 //

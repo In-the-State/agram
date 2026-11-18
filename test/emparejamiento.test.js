@@ -619,3 +619,47 @@ test('nada se escribe fuera del almacén inyectado; la privada solo vive en «se
     assert.doesNotMatch(s, /localStorage|sessionStorage|Math\.random|document\.|innerHTML|fetch\(/, f);
   }
 });
+
+test('libro de cuenta (Carril F): las formas exactas de hola y emparejada con «cuenta», pedir_claves y claves, gobierno y firma_gobierno; quién manda cada uno', () => {
+  const m = (tipo, resto = {}) => ({ schema: M, tipo, ...resto });
+  const H = 'ab'.repeat(32);
+  const vale = (x) => assert.equal(E.formaDelMensaje(x), null, JSON.stringify(x).slice(0, 120));
+  const no = (x) => assert.notEqual(E.formaDelMensaje(x), null, JSON.stringify(x).slice(0, 120));
+  assert.deepEqual(E.DE_LA_CARTA, ['hola', 'propuesta', 'pedir_claves', 'gobierno']);
+  assert.deepEqual(E.DE_LA_APP, ['emparejada', 'firma', 'rechazo', 'revocada', 'claves', 'firma_gobierno']);
+  // hola: «cuenta» opcional, { epoca } de 64 hex.
+  vale(m('hola', { agente: 'navegador' }));
+  vale(m('hola', { agente: 'navegador', cuenta: { epoca: H } }));
+  no(m('hola', { agente: 'navegador', cuenta: { epoca: 'AB'.repeat(32) } }));
+  no(m('hola', { agente: 'navegador', cuenta: { epoca: H, mas: 1 } }));
+  no(m('hola', { agente: 'navegador', cuenta: H }));
+  // emparejada: sin nada, o con { epoca, permiso: { hasta } } (un instante ISO).
+  vale(m('emparejada'));
+  vale(m('emparejada', { cuenta: { epoca: H, permiso: { hasta: '2026-11-17T10:10:00Z' } } }));
+  vale(m('emparejada', { cuenta: { epoca: H, permiso: { hasta: '2026-11-17T10:10:00.000Z' } } }));
+  no(m('emparejada', { cuenta: { epoca: H } }));
+  no(m('emparejada', { cuenta: { epoca: H, permiso: { hasta: 'mañana' } } }));
+  no(m('emparejada', { cuenta: { epoca: H, permiso: { hasta: '2026-11-17T10:10:00Z', usos: 1 } } }));
+  no(m('emparejada', { otra: 1 }));
+  // pedir_claves y claves.
+  vale(m('pedir_claves', { publica: H }));
+  no(m('pedir_claves', { publica: H, n: 0 }));
+  no(m('pedir_claves', {}));
+  const claves = { eje: H, gobierno: H, n: 0, lectura: H, escritura: H, contenido: H, next: H };
+  vale(m('claves', claves));
+  vale(m('claves', { ...claves, n: 7 }));
+  no(m('claves', { ...claves, n: -1 }));
+  no(m('claves', { ...claves, n: 1.5 }));
+  no(m('claves', { ...claves, lectura: 'ab' }));
+  const { next: _next, ...sinNext } = claves;
+  no(m('claves', sinNext));
+  no(m('claves', { ...claves, privada: H }));
+  // gobierno y firma_gobierno.
+  vale(m('gobierno', { publica: H, orden: { schema: 'agram.orden@1' } }));
+  no(m('gobierno', { publica: H, orden: [] }));
+  no(m('gobierno', { publica: H }));
+  vale(m('firma_gobierno', { id: H, firma: 'cd'.repeat(64) }));
+  no(m('firma_gobierno', { id: H, firma: H }));
+  // La carta solo anuncia una época que es un id.
+  assert.throws(() => new E.Emparejamiento({ almacen: E.almacenEnMemoria(), epocaDeCuenta: 'no' }), /época de cuenta/);
+});

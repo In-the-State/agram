@@ -115,9 +115,12 @@ const FINALES = Object.freeze({ rechazada: 'emparejarRechazada', caducada: 'empa
  * página; `adaptador`: su guardián (guardian-emparejado.js, para saber cuántas propuestas esperan ahora); `alCambiar(aviso)`:
  * tras emparejar u olvidar (la carta vuelve a mirar su guardián); `abrirArranque(que)`: «Abrir un libro con la clave de la
  * app» (crear) y «Restaurar una copia» (restaurar); `sinLibro()`: ¿no hay ningún libro de la clave de la app aquí?
+ * `cuentaNueva()` (Carril F): ¿sin libro de la clave de la app y con el permiso de «emparejada» vivo? Entonces, aceptado el
+ * emparejamiento, el diálogo se cierra y se va derecho al formulario de nombre e idioma (abrirArranque('crear')), una
+ * vez por QR leído; sin permiso, el diálogo ofrece abrir un libro, entrar por invitación o restaurar, como siempre.
  * → { pintar(), abrir(), avisar(aviso) }.
  */
-export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = () => {}, abrirArranque = () => {}, sinLibro = () => false, entorno = globalThis }) {
+export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = () => {}, abrirArranque = () => {}, sinLibro = () => false, cuentaNueva = () => false, entorno = globalThis }) {
   const documento = raiz.ownerDocument;
   const caja = documento.createElement('div');
   caja.className = 'emparejamiento';
@@ -125,7 +128,7 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
   raiz.after(caja);
   const cajaLinea = caja.querySelector('[data-emparejar-caja-linea]');
   const cajaDialogo = caja.querySelector('[data-emparejar-caja-dialogo]');
-  const ui = { abierto: false, fase: 'leer', camaraActiva: false, texto: '', error: null, ocupado: false, resultado: null, mensaje: '', mensajeDialogo: '', rele: null, pendientesAbierto: false, turno: 0, confirmando: null };
+  const ui = { abierto: false, fase: 'leer', camaraActiva: false, texto: '', error: null, ocupado: false, resultado: null, mensaje: '', mensajeDialogo: '', rele: null, pendientesAbierto: false, turno: 0, confirmando: null, aCrear: false };
   /** Pregunta dentro de la página; resuelve true con «Seguir», false con «Cancelar», el fondo o Escape (y false si ya hay otra pregunta abierta). */
   const confirmar = (texto) => new Promise((resolver) => {
     if (ui.confirmando) { resolver(false); return; }
@@ -178,6 +181,13 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
     const pregunta = ui.confirmando ? htmlConfirmarEmparejar({ texto: ui.confirmando.texto }) : '';
     if (!ui.abierto) { cajaDialogo.innerHTML = pregunta; cajaDialogo.querySelector('[data-emparejar-confirmar="no"]')?.focus?.(); return; }
     const estado = emparejamiento.estado();
+    // Aceptada, sin libro de la clave de la app y con su permiso: derecho a crear la cuenta (una vez por QR leído).
+    if (ui.fase === 'hecho' && !ui.aCrear && !pregunta && estado?.aceptada && sinLibro() && cuentaNueva()) {
+      ui.aCrear = true;
+      cerrar();
+      void abrirArranque('crear');
+      return;
+    }
     cajaDialogo.innerHTML = htmlDialogoEmparejar({
       fase: ui.fase, camara: puedeLeerConCamara(entorno), camaraActiva: ui.camaraActiva, texto: ui.texto, error: ui.error, ocupado: ui.ocupado,
       resultado: ui.resultado, aceptada: Boolean(estado?.aceptada), sinLibro: sinLibro(), mensaje: ui.mensajeDialogo,
@@ -221,6 +231,7 @@ export function instalar({ raiz, emparejamiento, adaptador = null, alCambiar = (
     try {
       ui.resultado = await emparejamiento.emparejar(texto); // tal cual: lo valida el módulo
       ui.fase = 'hecho';
+      ui.aCrear = false;
       ui.texto = '';
       ui.mensajeDialogo = n ? t('emparejarSustituidas', { n }) : '';
       ui.mensaje = ui.mensajeDialogo;

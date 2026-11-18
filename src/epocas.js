@@ -930,8 +930,13 @@ function cargarConCambios(escrita, { conocidas, nombre }) {
   });
 }
 
-/** ¿Es `epoca` una época que trae el código (la 0, o una registrada por su id sin forma escrita)? */
-const esDelCodigo = (epoca) => !epoca?.escrita && !epoca?.anterior && typeof epoca?.id === 'string' && (epoca === EPOCA_0_BTML || EPOCAS_POR_ID.get(epoca.id) === epoca);
+/**
+ * ¿Es `epoca` una época que trae el código: la 0, o la MISMA que está registrada por su id (registrarEpoca; hoy la del
+ * libro de cuenta, src/epoca-cuenta.js), aunque se cargara de su forma escrita? Es la que un génesis que nombra ese id
+ * resuelve, así que un libro nacido de ella también puede nombrarla por su id (Carril F, 18-11). Una época escrita en un
+ * libro se resuelve aparte (otro objeto, aunque tenga el mismo id): esa no cuenta, y sus hijos la escriben como ella.
+ */
+const esDelCodigo = (epoca) => !epoca?.anterior && typeof epoca?.id === 'string' && (epoca === EPOCA_0_BTML || EPOCAS_POR_ID.get(epoca.id) === epoca);
 
 /**
  * La época escrita de una época cargada, para que otro libro nazca con ella (Eje.genesis({ epoca })):
@@ -959,12 +964,13 @@ export function epocaEscritaDe(epoca = EPOCA_0_BTML, { porReferencia = false } =
     const { cambios: deNacimiento = [], ...forma } = nacimiento;
     return { ...forma, cambios: [...deNacimiento, ...cambios] };
   }
+  // Por referencia, una época del código se nombra por su id aunque tenga forma escrita (la registrada).
+  if (porReferencia && esDelCodigo(epoca)) return { base: epoca.id, cambios: [] };
   if (epoca?.escrita) {
     const e = epoca.escrita;
     const cambios = e.cambios ? { cambios: [...e.cambios] } : {};
     return e.base !== undefined ? { base: e.base, ...cambios } : { raiz: e.raiz, registros: [...e.registros], ...cambios };
   }
-  if (porReferencia && esDelCodigo(epoca)) return { base: epoca.id, cambios: [] };
   if (epoca !== EPOCA_0_BTML) throw new TypeError('epocaEscritaDe: solo la época 0 o una época cargada de su forma escrita');
   const crudos = new Map([...REGLAS_DE_EPOCA_DATOS, ...PLANTILLAS_DE_EPOCA_DATOS, ...REGISTROS_DE_MODELOS, ...GUIA_DE_EPOCA_DATOS].map((r) => [r.id, r.registro]));
   const vistos = new Set();

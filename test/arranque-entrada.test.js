@@ -54,7 +54,8 @@ test('arranque: «crear mi cuenta» nace con la época del libro de cuenta: la a
   const app = readFileSync('carta/app.js', 'utf8');
   assert.ok(app.includes("import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js';"));
   const crear = app.slice(app.indexOf('async crear(form) {'), app.indexOf('async restaurar(form) {'));
-  assert.ok(crear.includes('...(porLaApp ? {} : { epoca: EPOCA_DE_CUENTA_DATOS })'), 'la llamada de crear lleva la época, salvo emparejada con la app (su génesis lo firma la app: otro carril)');
+  assert.ok(crear.includes(': { epoca: EPOCA_DE_CUENTA_DATOS };') && crear.includes('...conEpoca,'), 'la llamada de crear lleva la época escrita, salvo emparejada con la app');
+  assert.ok(crear.includes('genesisDeCuenta(mio ? null : emparejado.emparejamiento, { epoca: ID_EPOCA_DE_CUENTA })'), 'emparejada con la app, la época de cuenta por su id (Carril F, test/carta-emparejado.test.js)');
   assert.ok(crear.includes('const porLaApp = Boolean(guardian && emparejado.adaptador && guardian === emparejado.adaptador);'));
   assert.deepEqual(EPOCA_DE_CUENTA_DATOS, epocaCuenta(), 'la copia importable es el contenido de cuenta-0.btml.json');
   assert.ok(!readFileSync('datos/epocas/cuenta/cuenta-0.js', 'utf8').includes("type: 'json'"));

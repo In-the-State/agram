@@ -31,13 +31,14 @@ import * as opinar from './opinar.js';
 import { t, idiomaDeInterfaz, usarRetoques } from './textos.js';
 import * as cuentas from './cuentas.js';
 import { EPOCA_DE_CUENTA_DATOS } from '../datos/epocas/cuenta/cuenta-0.js'; // la época con que nace «crear mi cuenta» (su guía de inicio; copia generada por npm run epoca:cuenta)
+import { ID_EPOCA_DE_CUENTA } from '../src/epoca-cuenta.js'; // la misma, registrada por su id: el génesis de cuenta emparejado la nombra (Carril F)
 import * as ajustesDelSitio from './sitio.js';
 import * as sinc from './sincronia.js';
 import * as guia from './guia.js';
 import * as externa from './externa.js';
 import { anfitrion, autorizarCon, guardian, firmanteDeCuenta, firmanteDeServicio, sesionAbierta, claveDelError, codigoDe, pasarCriterios, pedirSesion, puedePedirSesion, clavesDeLinea, puedeDarClavesDeLinea, hayAnfitrion, usarGuardian, tieneLaCuenta } from './anfitrion.js';
 import { Emparejamiento, almacenIndexedDB } from './emparejamiento.js';
-import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas } from './guardian-emparejado.js';
+import { guardianEmparejado, guardianDeLaCarta, porQueSoloLeer, asentarFirmadas, permisoDeCuenta, genesisDeCuenta } from './guardian-emparejado.js';
 import { instalar as instalarEmparejar } from './emparejar.js';
 import { confirmarEnPagina } from './confirmar.js';
 import * as libros from './libros.js';
@@ -3062,7 +3063,7 @@ const manejadores = {
     if (que === 'crear' || que === 'crear-mio') {
       // «crear-mio» (A24, §4.2): un libro nuevo con la clave del libro abierto; «crear», persona nueva (una clave nueva).
       const conMiClave = que === 'crear-mio' && firmaLaCuenta();
-      estado.arranque = { modo: 'crear', campos: cuentas.camposDelAlta({ idioma: idiomaDeInterfaz() }), valores: {}, motivos: [], conClave: firmaLaCuenta(), conMiClave };
+      estado.arranque = { modo: 'crear', campos: cuentas.camposDelAlta({ idioma: idiomaDeInterfaz() }), valores: {}, motivos: [], conClave: firmaLaCuenta(), conMiClave, ...(que === 'crear' && cuentaNuevaConLaApp() ? { conLaApp: true } : {}) };
     } else if (que === 'restaurar') {
       estado.arranque = { modo: 'restaurar', motivos: [] };
     } else if (que === EJEMPLO) {
@@ -3098,9 +3099,14 @@ const manejadores = {
       const ajustes = mio ? Object.fromEntries(Object.entries(ajustesDelSitio.defectos() ?? {}).filter(([k]) => k !== sincronia.CONFIGURACION.eje)) : ajustesDelSitio.defectos();
       // Con el emparejamiento por QR (A25), un libro nuevo con la clave de una cuenta del navegador no pasa por la app.
       const conGuardian = guardian && !(mio && mio.guardian !== true && guardian === emparejado.adaptador);
-      // Emparejada con la app (A25), el génesis lo firma la app registro a registro: ese libro nace como hasta ahora, sin la época de cuenta (la firma del génesis emparejado es de otro carril).
+      // Emparejada con la app (A25), el génesis lo firma la app (Carril F): nace con la época de cuenta POR SU ID, un solo
+      // registro, y con el permiso de «emparejada» vivo lleva `eje` y `next` de la app, que lo firma sin segundo diálogo.
+      // Sin permiso (app vieja o caducado), igual sin ellos: la app saca su diálogo. Un libro nuevo con mi clave no lo gasta.
       const porLaApp = Boolean(guardian && emparejado.adaptador && guardian === emparejado.adaptador);
-      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...(porLaApp ? {} : { epoca: EPOCA_DE_CUENTA_DATOS }), ...(conGuardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
+      const deCuenta = porLaApp ? await genesisDeCuenta(mio ? null : emparejado.emparejamiento, { epoca: ID_EPOCA_DE_CUENTA }) : null;
+      if (deCuenta?.sinClaves) console.error('emparejamiento (claves de la cuenta):', deCuenta.sinClaves);
+      const conEpoca = porLaApp ? (deCuenta ? { epoca: deCuenta.epoca, ...(deCuenta.contexto ? { contexto: deCuenta.contexto } : {}) } : {}) : { epoca: EPOCA_DE_CUENTA_DATOS };
+      const r = await cuentas.crearCuenta({ nombre: ar.valores.nombre, idioma: ar.valores.idioma, ajustes, htmlInicial: true, ...conEpoca, ...(conGuardian ? { guardian } : {}), ...(mio ? { conClave: { publica: mio.publica, privada: mio.privada }, identidad: mio.identidad } : {}) });
       const guardada = await cuentas.guardarCuenta(r);
       entrarCon(r);
       estado.guardado = guardada ? t('guardadoEnNavegador', { cuantos: r.eje.orden.length }) : t('sinAlmacenamiento');
@@ -3454,17 +3460,22 @@ function sinLibroDeLaApp() {
   return Boolean(e) && !cuentas.cuentas().some((c) => c.guardian === true && cuentas.mismaClave(c.publica, e.app));
 }
 
+/** ¿Recién emparejada, sin libro de la clave de la app aquí y con el permiso de «emparejada» vivo? (Carril F: se va derecho a crear la cuenta) */
+function cuentaNuevaConLaApp() {
+  return sinLibroDeLaApp() && permisoDeCuenta(emparejado.emparejamiento?.estado(), { epoca: ID_EPOCA_DE_CUENTA });
+}
+
 /** Sin anfitrión: el emparejamiento (en IndexedDB), su pantalla y lo guardado (si sigue en plazo); su guardián, si está vivo. Nunca lanza. */
 async function iniciarEmparejamiento() {
   if (hayAnfitrion) return;
   try {
     const emparejamiento = new Emparejamiento({
-      almacen: almacenIndexedDB(), agente: ('navegador · ' + location.host).slice(0, 200),
+      almacen: almacenIndexedDB(), agente: ('navegador · ' + location.host).slice(0, 200), epocaDeCuenta: ID_EPOCA_DE_CUENTA,
       avisar: (a) => { emparejado.pantalla?.avisar(a); void trasEmparejamiento(a); },
     });
     emparejado.emparejamiento = emparejamiento;
     emparejado.adaptador = guardianEmparejado(emparejamiento, { avisar: (a) => emparejado.pantalla?.avisar(a) });
-    emparejado.pantalla = instalarEmparejar({ raiz, emparejamiento, adaptador: emparejado.adaptador, alCambiar: (a) => trasEmparejamiento(a), abrirArranque: (que) => (que === 'invitado' ? manejadores.invitado() : manejadores.arranque(que)), sinLibro: sinLibroDeLaApp });
+    emparejado.pantalla = instalarEmparejar({ raiz, emparejamiento, adaptador: emparejado.adaptador, alCambiar: (a) => trasEmparejamiento(a), abrirArranque: (que) => (que === 'invitado' ? manejadores.invitado() : manejadores.arranque(que)), sinLibro: sinLibroDeLaApp, cuentaNueva: cuentaNuevaConLaApp });
     await emparejamiento.cargar();
   } catch (e) {
     console.error('emparejamiento:', String(e?.message ?? e));
