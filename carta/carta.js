@@ -1019,9 +1019,9 @@ const resumenDeAccion = (a, lecturas, ctx) => ({ id: a.id, nombre: a.etiqueta, l
 
 /**
  * Las acciones que el núcleo ofrece a quien mira (ctx.yo) sobre X en el punto de vista pv (acciones.acciones: qué se ofrece
- * lo decide él, aquí no hay lógica de oferta): { accion (la por defecto), otras, crear (las que crean algo nuevo en X.pv:
- * creableEn) }. La misma lista para el aro (sus huecos) y para la franja de cada punto de vista; se calcula una vez por
- * pintado y por (X, pv). Con «retocar textos» (A20), con las claves con que se leyeron los nombres.
+ * lo decide él, aquí no hay lógica de oferta): { todas (en el orden de la época), accion (la por defecto), otras }. La misma
+ * lista para el aro (sus huecos) y para la cabecera de cada punto de vista; se calcula una vez por pintado y por (X, pv) y se
+ * guarda entre pintados mientras el libro no cambie. Con «retocar textos» (A20), con las claves con que se leyeron los nombres.
  */
 const ACCIONES_POR_PINTADO = new WeakMap(); // ctx.opciones (uno por pintado; las copias de ctx lo comparten) → Map
 /**
@@ -1082,10 +1082,14 @@ const nivelDeTabla = (nivel) => (nivel >= NIVEL.bloque ? 'bloque' : nivel >= NIV
  * reconoce por el id de la plantilla que el camino ya trae, nunca por su nombre. → { X, pv, id } o null.
  */
 function destacadaDe(eje, X, camino, ctx) {
-  const paso = (camino?.pasos ?? []).find((p) => p.mio && p.hacer);
+  const pasos = camino?.pasos ?? [];
+  const i = pasos.findIndex((p) => p.mio && p.hacer);
+  const paso = pasos[i];
   if (!paso || paso.hacer.X !== X || !ctx.yo) return null;
+  // El índice del paso va con ella: su botón lleva data-paso y abre el formulario con los parámetros del paso (el anuncio
+  // que cumple, por ejemplo), igual que tocarlo en el camino (app.js lanzar).
   for (const pv of [...CENTROS, ...LATERALES].sort((a, b) => a - b)) {
-    if (accionesDelPv(eje, X, pv, ctx).todas.some((a) => a.id === paso.hacer.id)) return { X, pv, id: paso.hacer.id };
+    if (accionesDelPv(eje, X, pv, ctx).todas.some((a) => a.id === paso.hacer.id)) return { X, pv, id: paso.hacer.id, paso: i };
   }
   return null;
 }
@@ -1102,16 +1106,21 @@ function cabeceraDe(eje, X, pv, nivel, ctx) {
   if (!ctx.yo || typeof X !== 'string' || !eje.obtener(X)) return null;
   const { todas, accion } = accionesDelPv(eje, X, pv, ctx);
   if (!todas.length) return null;
-  const dest = ctx.destacada && ctx.destacada.X === X && ctx.destacada.pv === pv ? todas.find((a) => a.id === ctx.destacada.id) ?? null : null;
+  const deEsta = ctx.destacada && ctx.destacada.X === X && ctx.destacada.pv === pv ? todas.find((a) => a.id === ctx.destacada.id) ?? null : null;
+  // La destacada es el paso del camino: lleva su índice (data-paso) para abrirse con sus parámetros.
+  const dest = deEsta ? { ...deEsta, paso: ctx.destacada.paso } : null;
+  const lista = dest ? todas.map((a) => (a === deEsta ? dest : a)) : todas;
   const k = botonesDeNivel(nivel);
   let nombradas;
-  if (k === Infinity) nombradas = todas;
+  if (k === Infinity) nombradas = lista;
   else {
-    const primera = dest ?? accion ?? todas[0];
-    nombradas = k > 0 ? [primera, ...todas.filter((a) => a !== primera)].slice(0, k) : [];
+    const primera = dest ?? accion ?? lista[0];
+    nombradas = k > 0 ? [primera, ...lista.filter((a) => a !== primera)].slice(0, k) : [];
   }
-  const resto = todas.filter((a) => !nombradas.includes(a));
-  return { pv, X, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), nivel, total: todas.length, nombradas, resto, destacada: dest?.id ?? null };
+  const resto = lista.filter((a) => !nombradas.includes(a));
+  // «+n» abierto se queda abierto al repintar (lo guarda la app por elemento y punto de vista).
+  const abierta = Boolean(ctx.estado?.accionesAbiertas?.has?.(X + '|' + pv));
+  return { pv, X, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), nivel, total: todas.length, nombradas, resto, destacada: dest?.id ?? null, ...(abierta ? { abierta } : {}) };
 }
 
 /**
@@ -1129,7 +1138,12 @@ function pasoDeFila(eje, R, ctx) {
     for (const f of siguienteDe(eje, R, ctx.yo).faltaDeMi ?? []) {
       const p = acciones.plantillasDeTransaccion(ctx.opciones).find((x) => x.nombre === f.plantilla);
       if (!p) continue;
-      r = { id: p.id, nombre: accionDe(f.plantilla, ctx.opciones, eje).nombre, X: f.transaccion?.sobre ?? R };
+      const sobre = f.transaccion?.sobre ?? R;
+      // Solo si el formulario de esa acción sobre ese registro sale completo con lo que pone el núcleo: un paso que necesita
+      // parámetros que el motor no da (o que no es de este registro) no se pinta en la fila; queda en el aro y en el camino.
+      const form = eje.obtener(sobre) ? formulario(eje, sobre, p.id, ctx.yo, {}, ctx.opciones) : null;
+      if (!form || form.campos.some((c) => c.requerido && (c.valor === null || c.valor === undefined || c.valor === ''))) continue;
+      r = { id: p.id, nombre: accionDe(f.plantilla, ctx.opciones, eje).nombre, X: sobre };
       break;
     }
   } catch { r = null; }

@@ -189,8 +189,10 @@ export function instalar(raiz, m) {
   on('click', (e) => {
     const t = e.target;
     if (t.closest('input, textarea, select, option, pre')) return;
-    // El «+n» de las acciones de una cabecera (VG 18-11): se despliega en el sitio (el details del navegador) y no amplía el punto de vista.
-    if (t.closest('.pv-acciones-mas > summary')) return;
+    // El «+n» de las acciones de una cabecera (VG 18-11): se despliega en el sitio, no amplía el punto de vista, y la app
+    // recuerda que está abierto (si no, se cerraría en cada repintado).
+    const masDe = t.closest('.pv-acciones-mas > summary');
+    if (masDe) { e.preventDefault(); const a = masDe.closest('[data-pv-acciones]'); m.accionesMas?.(a?.dataset.x ?? null, Number(a?.dataset.pvAcciones)); return; }
     // Un rosetón ampliado (VG, 14-11, #91) se cierra al pulsar fuera de él (o su «cerrar» a pantalla completa): ese clic no hace nada más.
     if (raiz.querySelector?.('.roseton.nivel-2, .roseton-pantalla') && !t.closest('.roseton, .roseton-pantalla')) { e.preventDefault(); m.cerrarRoseton?.(); return; }
     if (Date.now() - primerClic.t > DOBLE_MS && !t.closest('.aro, .formulario, .guia')) primerClic = { t: Date.now(), X: elementoDe(t), centro: !!t.closest('[data-centro]') };

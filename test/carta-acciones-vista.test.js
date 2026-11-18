@@ -4,7 +4,10 @@
 
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { arbol, botonesDeNivel, BOTONES_POR_NIVEL, medidasDePantalla, LATERALES } from '../carta/carta.js';
+import { arbol, botonesDeNivel, BOTONES_POR_NIVEL, medidasDePantalla, LATERALES, escalaDeTamanos } from '../carta/carta.js';
+
+/** Los ocho laterales en tarjeta (Mapped): el paso de tamaño en que un punto de vista ya ocupa pantalla (escalaDeTamanos). */
+const EN_TARJETA = () => Object.fromEntries(LATERALES.map((pv) => [pv, escalaDeTamanos({}).conEspacio]));
 import { html } from '../carta/dom.js';
 import { ejemploCompra } from '../ejemplos/ikisai/compra-food.mjs';
 
@@ -48,7 +51,9 @@ test('cuántas van con nombre lo dice una sola tabla: comprimido 0 (la marca con
   assert.equal(abierto.centro.acciones.resto.length, 0, 'abierto: todas con nombre');
   // En el HTML: dentro de la cabecera, y el «+n» con el resto.
   const h = html(a);
-  assert.match(h, /<header class="pv-cabeza">[^]*?<div class="pv-acciones"[^]*?<\/header>/, 'las acciones van dentro de la cabecera');
+  // Dentro de UNA cabecera: entre su <header> y su </header>, sin saltar a la siguiente.
+  assert.match(h, /<header class="pv-cabeza">(?:(?!<\/header>)[^])*<div class="pv-acciones"(?:(?!<\/header>)[^])*<\/header>/, 'las acciones van dentro de la cabecera');
+  for (const cab of h.match(/<header class="pv-cabeza">(?:(?!<\/header>)[^])*<\/header>/g) ?? []) assert.ok((cab.match(/class="pv-acciones"/g) ?? []).length <= 1, 'una sola fila de acciones por cabecera');
   assert.ok(h.includes('class="pv-acciones-mas"'));
 });
 
@@ -66,9 +71,13 @@ test('la que lleva nombre: la del primer paso mío del camino, en su punto de vi
   const fila = movil.secuencia.filas.find((f) => f.acciones?.destacada === paso.hacer.id);
   assert.ok(fila && !fila.abierta, 'en una fila cerrada');
   // En Mapped, abierto ese punto de vista en tarjeta, es la que lleva nombre.
-  const pc = await arbol({ foco: { X, pv: 0 }, niveles: Object.fromEntries(LATERALES.map((pv) => [pv, 2])) }, eje, yo, PC);
+  const pc = await arbol({ foco: { X, pv: 0 }, niveles: EN_TARJETA() }, eje, yo, PC);
   const suyo = pc.laterales.find((n) => n.acciones?.destacada === paso.hacer.id);
-  if (suyo && suyo.nivel === 2) assert.equal(suyo.acciones.nombradas[0].id, paso.hacer.id);
+  assert.ok(suyo, 'en Mapped, la destacada está en el punto de vista de su acción');
+  assert.ok(suyo.nivel >= 2, 'que se pinta en tarjeta o más (nivel ' + suyo.nivel + ')');
+  assert.equal(suyo.acciones.nombradas[0].id, paso.hacer.id, 'y es la que lleva nombre');
+  assert.equal(suyo.acciones.nombradas[0].paso, pc.camino.pasos.findIndex((p) => p.mio && p.hacer), 'con el índice de su paso');
+  assert.equal((html(pc).match(/class="accion destacada"/g) ?? []).length, 1, 'una sola en la pantalla de PC');
   // Sin paso del camino ahí, la por defecto (la de la época): en otro punto de vista, ninguna destacada.
   for (const n of pc.laterales) if (n !== suyo && n.acciones) assert.equal(n.acciones.destacada, null);
 });
@@ -84,4 +93,57 @@ test('la cabecera no lleva valores ni escribe directo: los valores a un toque so
   // Con el aro abierto, sus valores siguen ahí.
   const conAro = await arbol({ foco: { X: compra.id, pv: 0 }, aro: { X: compra.id, pv: null } }, eje, 'huesped', PC);
   assert.ok(conAro.aro.huecos.some((h) => h.opciones.length), 'el aro sigue ofreciendo valores');
+});
+
+test('el paso destacado se abre como desde el camino: su botón lleva data-paso y el paso trae el anuncio que cumple («deliver»)', async () => {
+  const A = await import('../src/acciones.js');
+  const { formulario } = await import('../carta/carta.js');
+  const { eje, compra } = await ejemploCompra();
+  const r = await A.transaccion(eje, 'declare future T', { X: compra.id, what: 'servir', when: '2026-12-01T10:00:00Z', units: 90 }, 'huesped', { t: '2026-11-08T12:00:00Z' });
+  assert.ok(r.ok, JSON.stringify(r.motivos));
+  const anuncio = await eje.anadir(r.evento);
+  const a = await arbol({ foco: { X: compra.id, pv: 0 }, niveles: EN_TARJETA() }, eje, 'huesped', PC);
+  const i = a.camino.pasos.findIndex((p) => p.mio && p.hacer);
+  const paso = a.camino.pasos[i];
+  assert.equal(paso.hacer.parametros.announcement?.ref, anuncio.id, 'el paso del camino trae su anuncio');
+  const h = html(a);
+  const boton = h.match(new RegExp(`<button type="button" class="accion destacada"[^>]*data-lanzar="${paso.hacer.id}"[^>]*>`))?.[0];
+  assert.ok(boton, 'el botón destacado está');
+  assert.ok(boton.includes(`data-paso="${i}"`), 'con el índice del paso: app.js lanzar rellena el formulario con sus parámetros');
+  assert.ok(boton.includes(`data-x="${paso.hacer.X}"`));
+  // Y aunque se lance sin el paso (desde «+n» o el aro), el formulario sale apuntando al anuncio, no a otro registro.
+  const f = formulario(eje, compra.id, paso.hacer.id, 'huesped', {});
+  assert.equal(f.campos.find((c) => c.nombre === 'announcement')?.valor?.ref, anuncio.id);
+});
+
+test('mantener pulsado un punto de vista vacío sigue abriendo el aro de crear (#22): el botón «escribir aquí» no lleva data-x propio', async () => {
+  const { eje, compra } = await ejemploCompra();
+  const a = await arbol({ foco: { X: compra.id, pv: 0 } }, eje, 'huesped', MOVIL);
+  const h = html(a);
+  const vacios = h.match(/<(p|li) class="(vacio-pv|hilo-vacio)"[^>]*>(?:(?!<\/(p|li)>)[^])*<\/(p|li)>/g) ?? [];
+  const conBoton = vacios.filter((v) => v.includes('escribir-aqui'));
+  assert.ok(conBoton.length > 0, 'hay vacíos con su botón: ' + vacios.length);
+  for (const v of conBoton) {
+    assert.match(v, /^<(p|li) class="[^"]+" data-hueco-x="[0-9a-f]{64}" data-hueco-pv="\d"/, 'el contenedor es el hueco');
+    const boton = v.match(/<button[^>]*escribir-aqui[^>]*>/)[0];
+    assert.ok(!/ data-x=/.test(boton), 'el botón no lleva data-x: lo más cercano con data-x o data-hueco-x es el hueco');
+    assert.ok(/ data-lanzar="[^"]+"/.test(boton));
+  }
+});
+
+test('la cabecera: «+n» abierto sigue abierto; si la de «escribir aquí» iba con nombre, ocupa su sitio la siguiente; la marca sin «1 cosas»', async () => {
+  const { htmlAccionesDeCabecera } = await import('../carta/dom.js');
+  const { t } = await import('../carta/textos.js');
+  const ac = (id) => ({ id, nombre: id, faltan: [] });
+  const base = { pv: 6, X: 'a'.repeat(64), etiqueta: 'pasado', total: 3, nombradas: [ac('escribir')], resto: [ac('dos'), ac('tres')], destacada: null };
+  const h = htmlAccionesDeCabecera(base, { sin: 'escribir' });
+  assert.ok(!h.includes('data-lanzar="escribir"'));
+  assert.match(h, /<div class="pv-acciones"[^>]*><button[^>]*data-lanzar="dos"/, 'la siguiente ocupa su sitio');
+  assert.match(h, /<summary[^>]*>\+1<\/summary>/);
+  assert.ok(!h.includes('<details class="pv-acciones-mas" open'));
+  assert.ok(htmlAccionesDeCabecera({ ...base, abierta: true }).includes('<details class="pv-acciones-mas" open>'), 'abierta al repintar');
+  const { eje, compra } = await ejemploCompra();
+  const abierta = await arbol({ foco: { X: compra.id, pv: 0 }, accionesAbiertas: new Set([compra.id + '|9']) }, eje, 'huesped', PC);
+  assert.equal(abierta.laterales.find((n) => n.pv === 9).acciones.abierta, true, 'la app lo guarda por elemento y punto de vista');
+  assert.ok(!t('franjaCuantas', { n: 1, que: 'x' }).includes('1 cosas'));
 });

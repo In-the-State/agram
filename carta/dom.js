@@ -1414,7 +1414,8 @@ function htmlLateral(n, arbol, { enFila = false } = {}) {
     // 14-11, #94): el fondo del mundo, detrás de todo. El marco, con sus huecos, es de la pantalla completa (htmlEscena).
     const fondo = arbol?.animado ? htmlFondo(n.fondo) : '';
     const vacio = escribe
-      ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}><button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(n.escribir.id)}" data-x="${attr(n.X)}">${htmlEscribir(n.escribir)}</button></p>`
+      // Sin data-x propio: el clic lanza sobre el del punto de vista (gestos.js xDe) y mantener pulsado sigue encontrando antes el hueco (issue #22).
+      ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}><button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(n.escribir.id)}">${htmlEscribir(n.escribir)}</button></p>`
       : `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</p>`;
     const lista = n.vacio ? vacio : htmlOcupantes(n.ocupantes, { pv: n.pv, disposicion: n.disposicion, conAro: true });
     cuerpo = fondo + (enFila ? '' : cabeza) + (n.rejilla ? htmlRejilla(n.rejilla, { apilada: enFila }) : lista) + (n.nivel >= NIVEL.tarjeta ? htmlPorAutorizar(n.porAutorizar) : '') + (n.nivel >= NIVEL.bloque ? htmlDiario(n.diario) + htmlOpiniones(n.opiniones) : '') + camino
@@ -1469,7 +1470,7 @@ function htmlHilo(n) {
   const cartas = [...(n.ocupantes?.lista ?? []).map((o) => `<li class="hilo-carta">${htmlOcupante(o)}</li>`), ...(n.diario?.entradas ?? []).map(entrada)];
   // El vacío que dice «escribir aquí · <acción>» la lanza él mismo (abre el formulario) y la cabecera no la repite.
   const escribe = !cartas.length && n.escribir?.id ? n.escribir.id : null;
-  const vacio = cartas.length ? '' : `<li class="hilo-vacio"${htmlHueco(n.X, n.pv)}>${escribe ? `<button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(escribe)}" data-x="${attr(n.X)}">${htmlEscribir(n.escribir)}</button>` : htmlEscribir(n.escribir)}</li>`;
+  const vacio = cartas.length ? '' : `<li class="hilo-vacio"${htmlHueco(n.X, n.pv)}>${escribe ? `<button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(escribe)}">${htmlEscribir(n.escribir)}</button>` : htmlEscribir(n.escribir)}</li>`;
   const mas = n.cargarMas ? `<li class="cargar-mas"><button type="button"${nodo('control')} data-cargar-mas="${n.pv}">${escapar(t('cargarMas', { cuantos: n.faltan }))}</button></li>` : '';
   const total = (n.ocupantes?.total ?? 0) + (n.diario?.total ?? 0);
   const cabeza = `<header class="pv-cabeza hilo-cabeza"><span class="numero">${n.pv}</span><span class="etiqueta">${escapar(n.etiqueta)}</span>${n.rejilla ? '' : `<small>${escapar(t(pasado ? 'hiloPasado' : 'hiloFuturo', { n: total }))}</small>`}${htmlAccionesDeCabecera(n.acciones, { sin: escribe })}</header>`; // con una forma propia (las cadenas), la cuenta de tarjetas no dice nada
@@ -1618,7 +1619,7 @@ function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
 }
 
 /** Un botón de acción: lanza igual que el aro (data-lanzar, data-x; gestos.js → app.js lanzar, que abre el formulario). */
-const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" class="${clase}"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}" title="${attr(a.nombre)}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button>`;
+const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" class="${clase}"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}"${Number.isInteger(a.paso) ? ` data-paso="${a.paso}"` : ''} title="${attr(a.nombre)}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button>`;
 
 /**
  * Las acciones de la cabecera de un punto de vista (VG 18-11, la forma C: un botón actúa sobre lo que lo contiene). Va
@@ -1639,8 +1640,10 @@ export function htmlAccionesDeCabecera(a, { marca = false, conDestacada = false,
   }
   const nombradas = a.nombradas.filter((x) => x.id !== sin);
   const resto = a.resto.filter((x) => x.id !== sin);
+  // Si la que ya enseña el punto de vista («escribir aquí · …») iba con nombre, ocupa su sitio la siguiente.
+  while (nombradas.length < a.nombradas.length && resto.length) nombradas.push(resto.shift());
   if (!nombradas.length && !resto.length) return '';
-  const mas = resto.length ? `<details class="pv-acciones-mas"><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${resto.length}</summary><div class="pv-acciones-desplegadas">${resto.map(boton).join('')}</div></details>` : '';
+  const mas = resto.length ? `<details class="pv-acciones-mas"${a.abierta ? ' open' : ''}><summary title="${attr(t('franjaMasTitulo', { que: a.etiqueta ?? '' }))}">+${resto.length}</summary><div class="pv-acciones-desplegadas">${resto.map(boton).join('')}</div></details>` : '';
   return `<div class="pv-acciones"${nodo('acciones')} data-pv-acciones="${a.pv}" data-x="${attr(X)}" ${etiqueta}>${nombradas.map(boton).join('')}${mas}</div>`;
 }
 

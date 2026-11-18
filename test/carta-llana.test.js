@@ -275,7 +275,11 @@ test('#85 cada celda de la cruceta de un sitio enseña su término y su valor (�
     assert.equal((celda.match(/<button/g) ?? []).length, 1, 'la ' + k + ': un solo botón, la celda entera');
   }
   // En la cruceta del sitio, ni un botón de acción repetido ni «—» (las acciones del punto de vista van en su cabecera, VG 18-11).
-  const cruceta = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9].map((k) => posicionDe(h, k)).join('');
+  // Todo el diálogo del sitio (su cruceta entera, con su cabecera y sus entradas), no solo las diez posiciones.
+  const i = h.indexOf('<div class="sitio-fondo"');
+  assert.ok(i >= 0, 'el diálogo del sitio está');
+  const cruceta = h.slice(i, h.indexOf('</ol></div></div>', i) + '</ol></div></div>'.length);
+  assert.ok(cruceta.includes('class="sitio-cruceta"') && cruceta.includes('sitio-posiciones'));
   assert.doesNotMatch(cruceta, /class="accion"|<span class="valor">—<\/span>/);
   // el 0 de mi alta: lo anclado en su 0 es un archivo (el HTML inicial): se dice qué es, no el mensaje con que lo escribió la plantilla
   const { cuenta, eje: e2 } = await cuentas.crearCuenta({ nombre: 'Vic', idioma: 'es', htmlInicial: true });
