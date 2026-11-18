@@ -26,6 +26,7 @@ import { createHash } from 'node:crypto';
 import { pathToFileURL } from 'node:url';
 import { crearApi, hashDeClave, llevaMarcaDeTanda } from '../supabase/funciones/eventos/api.js';
 import * as criptoNucleo from './cripto-nucleo.mjs';
+import { TANDA_TOPE_POR_MIEMBRO, TANDA_TOPE_POR_PETICION } from '../../src/evento.js';
 import { crearGuia } from '../supabase/funciones/guia/api.js';
 import { crearArchivos } from '../supabase/funciones/archivos/api.js';
 
@@ -149,7 +150,7 @@ async function aRequest(req, base) {
  */
 export async function arrancar({ puerto = 0, archivo, secreto = process.env.AGRAM_CREAR_EJES ?? 'prueba', ahora = () => new Date(), ...opciones } = {}) {
   const almacen = almacenEnMemoria({ archivo, ahora });
-  const manejarEjes = crearApi({ almacen, cripto: criptoNucleo, crearEjes: { secreto }, ahora, ...opciones });
+  const manejarEjes = crearApi({ almacen, cripto: criptoNucleo, crearEjes: { secreto }, ahora, limiteMiembro: TANDA_TOPE_POR_MIEMBRO, limiteTanda: TANDA_TOPE_POR_PETICION, ...opciones }); // los topes de la tanda, los del núcleo
   const manejarGuia = crearGuia({ almacen, llamar: ecoDeLaGuia, ahora, ...(opciones.preguntasPorMinuto ? { preguntasPorMinuto: opciones.preguntasPorMinuto } : {}) });
   const manejarArchivos = crearArchivos({ almacen, ahora, ...(opciones.limiteArchivo ? { limite: opciones.limiteArchivo } : {}) });
   // /eventos/recibo: la misma autorización que GET /eventos (la clave de lectura del eje).

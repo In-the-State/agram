@@ -25,7 +25,7 @@
 import { autoridad, persistencia, local, salida, contrato, acciones, direccion, leerEvento, sincronia, exterior } from '../src/index.js';
 import { arbol, porFirmar, ceroDe, enviar, validarSinFirmar, antesDelMensaje, horaDeEscribir, usarReloj, previsualizar, formulario, creableEn, conEtiquetasLlanas, motivosEnLlano, sinNombreInterno, medidasDePantalla, preferencias, segundoFactorDeConfiguracion, guardarRetoque, textosRetocados, ampliar, ampliarTodos, alternarRoseton, rosetonAPantallaCompleta, hayRosetonAmpliado, NIVEL, LATERALES, CENTROS, GEOMETRIA } from './carta.js';
 import { formatoDeLibro, formatoValido, registroDeFormato, olvidarFormatoLocal } from './formato-btml.js';
-import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida, filtrarDiccionarioEnPantalla, coincidenciaEnPantalla } from './dom.js';
+import { html, htmlSincronia, htmlGuia, trasPintar, variablesDeColor, resolverArchivos, textoDelCoste, textoDelPasoDeSalida, filtrarDiccionarioEnPantalla, coincidenciaEnPantalla, situarDesplegadas } from './dom.js';
 import { instalar } from './gestos.js';
 import * as opinar from './opinar.js';
 import { t, idiomaDeInterfaz, usarRetoques } from './textos.js';
@@ -780,6 +780,7 @@ async function pintar() {
     raiz.innerHTML = html(a, extra);
     situarAro();
     if (enSecuencia()) colocarSecuencia(antes, mismoFoco);
+    situarDesplegadas(raiz);
     lineaPintada = htmlSincronia(extra.sincronia);
     limpiarLottie = a?.animado ? trasPintar(raiz) : () => {};
     // Lo nuevo se anima una vez: en cuanto se ha pintado con lottie-web, deja de ser nuevo (si lottie aún no está, el
@@ -1518,6 +1519,7 @@ const manejadores = {
   },
   lanzar(X, accion, paso, { ejecutar = false } = {}) {
     const sobre = X ?? estado.aro?.X ?? estado.foco.X;
+    estado.accionesAbiertas?.clear(); // lanzada desde el «+n», la lista flotante se cierra (también si pide un archivo)
     // Una acción que pide un archivo (un parámetro cuyo 4 es «file»: «adjuntar un archivo»): el selector de archivos, ya
     // (en el mismo gesto: el navegador solo lo abre así); al elegir, se sube y se escribe la transacción con su referencia.
     const deArchivo = estado.eje?.obtener(sobre) ? formulario(estado.eje, sobre, accion, estado.identidad)?.campos.filter((c) => c.archivo) ?? [] : [];
@@ -1591,7 +1593,8 @@ const manejadores = {
     pintar();
   },
   cerrar() {
-    if (hayRosetonAmpliado(estado.rosetones)) estado.rosetones = {};
+    if (estado.accionesAbiertas?.size) estado.accionesAbiertas.clear(); // el «+n» abierto, una lista flotante
+    else if (hayRosetonAmpliado(estado.rosetones)) estado.rosetones = {};
     else if (estado.copia) estado.copia = null;
     else if (estado.libroPrivado) estado.libroPrivado = null;
     else if (estado.arranque && estado.eje) estado.arranque = null;
@@ -2487,7 +2490,14 @@ const manejadores = {
     if (!X || !Number.isInteger(pv)) return;
     const abiertas = (estado.accionesAbiertas ??= new Set());
     const clave = X + '|' + pv;
-    if (abiertas.has(clave)) abiertas.delete(clave); else abiertas.add(clave);
+    // Una lista flotante cada vez: abrir una cierra la que hubiera.
+    if (abiertas.has(clave)) abiertas.delete(clave); else { abiertas.clear(); abiertas.add(clave); }
+    pintar();
+  },
+  /** Tocar fuera del «+n» abierto, o Escape: se cierra. */
+  cerrarAccionesMas() {
+    if (!estado.accionesAbiertas?.size) return;
+    estado.accionesAbiertas.clear();
     pintar();
   },
   /** Una de las preguntas hechas de la época (los botones rápidos). */
@@ -3134,6 +3144,10 @@ async function arrancar() {
     anchoAnterior = window.innerWidth;
     clearTimeout(temporizador); temporizador = setTimeout(pintar, 120);
   });
+  // El «+n» abierto flota pegado a su botón: al desplazar la página o un punto de vista, o al cambiar la ventana, se recoloca.
+  const recolocar = () => { if (estado.accionesAbiertas?.size) situarDesplegadas(raiz); };
+  window.addEventListener('scroll', recolocar, { capture: true, passive: true });
+  window.addEventListener('resize', recolocar);
   // Lo escrito en la pregunta de la guía se recuerda (un repintado entero no lo pierde).
   raiz.addEventListener('input', (e) => { if (e.target.matches?.('[data-guia-pregunta]')) estado.guia.borrador = e.target.value; });
   if (retoques()) {

@@ -461,6 +461,9 @@ html.mapped body{padding:0}
 .rosetones-mapa .roseton{position:absolute;pointer-events:auto;width:28px;height:28px;font-size:12px;box-shadow:0 1px 4px rgba(0,0,0,.18)}
 .rosetones-mapa .roseton .numero{top:2px;font-size:7px}
 .rosetones-mapa .roseton.sitio-centro{width:22px;height:22px;font-size:10px}
+/* La marca de acciones de un punto de vista comprimido (forma C), sobre su rosetón: no cambia su tamaño ni su sitio. */
+.roseton-marca{position:absolute;top:-5px;right:-7px;min-width:15px;height:15px;padding:0 3px;box-sizing:border-box;border-radius:8px;background:var(--accent);color:var(--accent-fg);font-size:9px;font-weight:600;line-height:15px;text-align:center;pointer-events:none;box-shadow:0 0 0 1.5px var(--bg)}
+.rosetones-mapa .sitio-c2 .roseton-marca{right:auto;left:-7px}
 .rosetones-mapa .sitio-f0{top:0} .rosetones-mapa .sitio-f2{bottom:0} .rosetones-mapa .sitio-f1{top:50%;transform:translateY(-50%)}
 .rosetones-mapa .sitio-c0{left:0} .rosetones-mapa .sitio-c2{right:0} .rosetones-mapa .sitio-c1{left:50%;transform:translateX(-50%)}
 .rosetones-mapa .sitio-f0.sitio-centro{top:3px;margin-left:34px} .rosetones-mapa .sitio-f2.sitio-centro{bottom:3px;margin-left:34px}
@@ -1076,13 +1079,20 @@ html.mapped body{padding:0}
 .pv-acciones{display:flex;flex-wrap:wrap;align-items:center;gap:6px;flex-basis:100%;margin:4px 0 0;min-width:0;max-width:100%}
 .pv-cabeza,.nucleo-cabeza,.hilo-cabeza{flex-wrap:wrap}
 .pv-acciones>button,.pv-acciones-desplegadas>button,.paso-de-fila{min-height:30px;padding:3px 10px;border:1px solid var(--rule);border-radius:999px;background:var(--panel);color:var(--fg);font-size:13px;max-width:100%;overflow-wrap:anywhere;text-align:left}
+/* En la cabecera del centro (el 0 o el 5 en foco), fichas más compactas que envuelven en línea: lo que falta por rellenar
+   ([…]) no se pinta aquí (va en el título del botón y en su formulario). */
+.nucleo-cabeza .pv-acciones>button{font-size:12px;padding:2px 9px;min-height:26px}
+.nucleo-cabeza .pv-acciones>button>small{display:none}
 .pv-acciones .destacada{background:var(--accent);color:var(--accent-fg);border-color:var(--accent);font-weight:600}
 .pv-acciones.marca{display:inline-flex;flex-basis:auto;margin:0 0 0 6px;gap:4px}
 .pv-acciones-cuantas{display:inline-block;min-width:1.4em;padding:0 5px;border-radius:999px;background:var(--panel2);color:var(--muted);font-size:11px;text-align:center}
 .pv-acciones-mas{display:inline-block;max-width:100%}
 .pv-acciones-mas>summary{cursor:pointer;list-style:none;padding:2px 10px;border:1px dashed var(--rule);border-radius:999px;font-size:13px}
 .pv-acciones-mas>summary::-webkit-details-marker{display:none}
-.pv-acciones-desplegadas{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}
+/* El «+n» abierto: una lista flotante por encima de todo, pegada a su botón y dentro de la pantalla (dom.js
+   situarDesplegadas la coloca); no empuja ni recorta nada. Tocar fuera o Escape la cierran (gestos.js, app.js). */
+.pv-acciones-mas[open]>summary{background:var(--panel2);border-style:solid}
+.pv-acciones-desplegadas{position:fixed;z-index:40;display:grid;justify-items:start;gap:4px;margin:0;padding:6px;width:max-content;max-width:min(320px,calc(100vw - 16px));max-height:min(50vh,360px);overflow:auto;box-sizing:border-box;background:var(--bg);border:2px solid var(--accent);border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3)}
 .paso-de-fila{margin-left:6px;min-height:0;padding:1px 8px;font-size:12px}
 .abrir-aro{min-height:0;padding:0 6px;margin-left:4px;border:1px solid var(--rule);border-radius:6px;background:transparent;color:var(--muted);font-size:13px;line-height:1.4;vertical-align:middle}
 .abrir-aro:hover,.abrir-aro:focus-visible{color:var(--fg);border-color:var(--accent)}
@@ -1143,6 +1153,11 @@ html.mapped body{padding:0}
 .fila>.sitio-fila{grid-column:3;justify-self:end}
 /* Las acciones de una fila abierta (forma C) ocupan la fila entera, no solo la columna de la etiqueta. */
 .fila>.pv-acciones:not(.marca){grid-column:1/-1}
+/* Fila cerrada: la marca con cuántas acciones va dentro de la fila, al final (tras el «?», en una columna fija para que los campos de todas las filas se alineen), sin crecer de alto. Si lleva la
+   destacada (el siguiente paso, una por pantalla), va debajo, a lo ancho, como un botón más. */
+.filas>.fila{grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto 1.9em}
+.fila>.pv-acciones.marca{grid-row:1;grid-column:4;margin:0;align-self:center;justify-self:end}
+.fila>.pv-acciones.marca:has(>.accion){grid-row:2;grid-column:1/-1;justify-self:start}
 .fila:has(>.sitio-fila):not(:has(>.campo-input))>.fila-cabeza{grid-column:1 / 3}
 .caja-tres .personas{list-style:none;margin:0;padding:4px;display:flex;flex-wrap:wrap;gap:4px;align-content:flex-start}
 .persona{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:28px;padding:2px 8px;border-radius:999px;border:1px solid color-mix(in oklab,var(--c,var(--rule)) 40%,var(--rule));background:var(--bg);color:inherit;font-size:12px;cursor:grab;touch-action:none;user-select:none;-webkit-touch-callout:none}

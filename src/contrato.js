@@ -74,7 +74,7 @@
 
 import { epocaDelEje, EPOCA_0_BTML, RETOQUES_DE_LA_0, esPlantillaDeDatos, plantillasDeDominio } from './epocas.js';
 import { ContextoEje } from './contexto-eje.js';
-import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla } from './bqlm.js';
+import { evaluar, rellenar, nombreDeRegla, esFormula, leerRegla, MemoriaDeLectura } from './bqlm.js';
 import { escalaElegida, escalasQuemadas, esPeticionDeFirmeza, horaDeCabecera, LECTURA_PEDIDO, LECTURA_A_TIEMPO } from './anclas.js';
 import { eslabonesValidos, GRADOS_DE_LA_FORMULA } from './sello.js';
 import { esReferencia, esLista, esTerminal, esDecupla, indicesDe, resolver, direccion, ARIDAD } from './btml.js';
@@ -1229,6 +1229,17 @@ function nivelDe(eje, desde, valor) {
   return arriba >= 0 ? -arriba : undefined;
 }
 
+// La memoria de las lecturas de pantalla (docs/BQLM.md §15.4): una por eje, solo para aplicarLectura. Ninguna regla,
+// escritura ni validación la recibe; se vacía sola cuando cambia el libro (la huella del contexto).
+const MEMORIAS_DE_LECTURA = new WeakMap();
+
+/** La memoria de las lecturas de pantalla de un eje (la crea la primera vez); null sin eje. */
+export function memoriaDeLectura(eje) {
+  if (!eje || typeof eje !== 'object') return null;
+  if (!MEMORIAS_DE_LECTURA.has(eje)) MEMORIAS_DE_LECTURA.set(eje, new MemoriaDeLectura());
+  return MEMORIAS_DE_LECTURA.get(eje);
+}
+
 /**
  * Lo que da la lectura de un PV aplicada a un nodo: lo de cada fórmula de su 2 y cada lectura JS que nombra, sin
  * repetir. Cada valor lleva de qué fórmula sale (`formula`, su índice entre las del 2) y, si es un registro, su `nivel`
@@ -1238,8 +1249,10 @@ function aplicarLectura(eje, lectura, nodo, ctx, me, opciones) {
   if (!lectura) return [];
   const fuera = [];
   lectura.formulas.forEach((f, formula) => {
-    // La lectura de un PV es para la pantalla: la única que puede usar keep (docs/BQLM.md §15).
-    const v = vale(f, ctx, { sujeto: nodo, lectura: true });
+    // La lectura de un PV es para la pantalla: la única que puede usar keep (docs/BQLM.md §15) y la única que usa la
+    // memoria de las lecturas de pantalla, la de su eje (§15.4).
+    const memoria = memoriaDeLectura(eje);
+    const v = vale(f, ctx, { sujeto: nodo, lectura: true, ...(memoria ? { memoria } : {}) });
     if (v) for (const o of v) {
       const x = plano(o, ctx);
       if (x === undefined || x === null || typeof x === 'boolean') continue;

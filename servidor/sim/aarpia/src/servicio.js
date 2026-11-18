@@ -29,6 +29,7 @@
 
 import { crearApi, hashDeClave, llevaMarcaDeTanda, comprobarMarcaDeTanda } from '../../../supabase/funciones/eventos/api.js';
 import * as verificar from '../../../supabase/funciones/eventos/verificar.js';
+import { TANDA_TOPE_POR_MIEMBRO, TANDA_TOPE_POR_PETICION } from '../../../../src/evento.js';
 import { Rele, relojDeRecibo, KIND_EVENTO, juzgadosAceptados } from './rele.js';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { envolver, desenvolver } from './sobre.js';
@@ -258,7 +259,7 @@ export function crearServicio({
       return { ok: false, estado: 422, error: 'evento rechazado: ' + juicio.reason.join('; ') };
     },
   };
-  const api = crearApi({ almacen, cripto, crearEjes, ahora, ...opciones });
+  const api = crearApi({ almacen, cripto, crearEjes, ahora, limiteMiembro: TANDA_TOPE_POR_MIEMBRO, limiteTanda: TANDA_TOPE_POR_PETICION, ...opciones }); // los topes de la tanda, los del núcleo
   let cola = Promise.resolve(); // POST /eventos de uno en uno: juzgar y aplicar contra el mismo estado
   const enCola = (f) => {
     const r = cola.then(f, f);

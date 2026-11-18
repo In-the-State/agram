@@ -48,7 +48,8 @@ const UMBRAL_ARRASTRE = 24;
  *   opcion(X, pv, valor)     un valor de una lista del aro: escribirlo en la posición pv de X (como campo)
  *   lanzar(X, accion, paso, { ejecutar })  abrir el formulario de una acción (o del paso del camino; ejecutar: desde una celda del 4)
  *   denominacion(escala, form)  ejecutar: la escala de la que parte la T que se quema (el formulario sigue con lo escrito)
- *   cerrar()                 cerrar el aro, el formulario o la configuración
+ *   cerrar()                 cerrar el aro, el formulario o la configuración (y antes que nada, el «+n» abierto)
+ *   accionesMas(X, pv) · cerrarAccionesMas()  abrir o cerrar el «+n» de una cabecera (lista flotante); tocar fuera lo cierra
  *   enviar(form)             enviar el formulario de una acción
  *   reglas() · reglasCambio(id) · reglasVolver() · reglasProponer() · reglasActuar(que, id) · reglasPosicion(posicion, form) · reglasPropuesta(form)
  *                            «Reglas del libro» (A21; carta/reglas.js): abrirla, un cambio, volver a la lista, proponer, sus acciones
@@ -192,6 +193,13 @@ export function instalar(raiz, m) {
   };
   on('click', (e) => {
     const t = e.target;
+    // El «+n» abierto es una lista flotante: tocar fuera de ella la cierra y ese toque no hace nada más (salvo dar el foco
+    // a un campo).
+    if (raiz.querySelector?.('.pv-acciones-mas[open]') && !t.closest?.('.pv-acciones-mas')) {
+      m.cerrarAccionesMas?.();
+      if (!t.closest?.('input, textarea, select, option')) e.preventDefault?.();
+      return;
+    }
     if (t.closest('input, textarea, select, option, pre')) return;
     // El «+n» de las acciones de una cabecera (VG 18-11): se despliega en el sitio, no amplía el punto de vista, y la app
     // recuerda que está abierto (si no, se cerraría en cada repintado).

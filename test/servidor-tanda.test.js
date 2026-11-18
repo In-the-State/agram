@@ -16,11 +16,11 @@ import { Autoridad, KIND_RECHAZO } from '../servidor/sim/aarpia/src/autoridad.js
 import { Rele, KIND_EVENTO } from '../servidor/sim/aarpia/src/rele.js';
 import { envolver } from '../servidor/sim/aarpia/src/sobre.js';
 import { generarClaves as clavesNostr, aBytes, aHex } from '../servidor/sim/aarpia/src/nostr.js';
-import { crearApi, comprobarMarcaDeTanda, LIMITE_CUERPO, LIMITE_TANDA } from '../servidor/supabase/funciones/eventos/api.js';
+import { crearApi, comprobarMarcaDeTanda, LIMITE_CUERPO, LIMITE_TANDA, MARGEN_ENVOLTORIO } from '../servidor/supabase/funciones/eventos/api.js';
 import * as criptoNucleo from '../servidor/prueba/cripto-nucleo.mjs';
 import { Eje } from '../src/eje.js';
 import { generarClaves, firmar } from '../src/autoridad.js';
-import { marcarTanda } from '../src/evento.js';
+import { marcarTanda, bytesDeMiembro, bytesDeTanda, TANDA_TOPE_POR_MIEMBRO, TANDA_TOPE_POR_PETICION } from '../src/evento.js';
 import { quemaDelCoste } from '../src/escritura.js';
 import { canonico, cuerpo, hash, RAIZ } from '../servidor/supabase/funciones/eventos/verificar.js';
 import { schnorr } from '../servidor/supabase/funciones/eventos/noble-secp256k1.js';
@@ -750,4 +750,85 @@ test('con autoridad (simulación, núcleo de verdad): una tanda que el núcleo r
   for (let i = 0; i < 3; i++) assert.equal((await llamar('/eventos/tanda', { eje: 'juez', eventos: sinCoste }, cab)).estado, 422);
   const r = await llamar('/eventos/tanda', { eje: 'juez', eventos: await validos(lib, 2) }, cab);
   assert.equal(r.estado, 201, 'quedaban 2: los 422 no gastaron ' + JSON.stringify(r.cuerpo));
+});
+
+/**
+ * Una tanda de vg colgada del génesis cuyos miembros pesan EXACTAMENTE `tamanos` bytes con la medida del núcleo
+ * (bytesDeMiembro: el JSON canónico de cada miembro marcado y firmado). El relleno es ASCII: un byte por carácter.
+ */
+async function tandaDeTamanos({ claves, genesis }, tamanos) {
+  const de = tamanos.length;
+  const hechos = [];
+  for (const [k, objetivo] of tamanos.entries()) {
+    const marca = k === 0 ? { n: 1, de } : { n: k + 1, de, anterior: hechos[k - 1].id };
+    const hacer = (largo) => registro({ privada: claves.privada, sobre: genesis.id, payload: ['m' + k + ' ' + 'x'.repeat(largo)], contexto: { tanda: marca } });
+    const prueba = await hacer(1000);
+    const ev = await hacer(1000 + objetivo - bytesDeMiembro(prueba, k, de));
+    assert.equal(bytesDeMiembro(ev, k, de), objetivo);
+    hechos.push(ev);
+  }
+  return hechos;
+}
+
+test('los topes de la puerta son los del núcleo y con su misma medida: un «cabe» en seco no acaba en 413 (miembro y petición, justos y un byte por encima)', async () => {
+  // La función de Supabase no importa el núcleo: repite los números; aquí se comprueba que son los mismos.
+  assert.equal(LIMITE_CUERPO, TANDA_TOPE_POR_MIEMBRO);
+  assert.equal(LIMITE_TANDA, TANDA_TOPE_POR_PETICION);
+  assert.ok(MARGEN_ENVOLTORIO >= 85, 'el envoltorio { "eje": <64>, "eventos": … } cabe en el margen');
+  for (const arrancarUno of [arrancar, arrancarSim]) {
+    const s = await arrancarUno({ puerto: 0, secreto: 'prueba' });
+    try {
+      const c = cliente(s);
+      const lib = await libro();
+      // Un miembro justo en el tope entra; un byte más, 413 con su índice y su id.
+      let e = await c.crear('miembro');
+      await e.uno(lib.genesis);
+      const justo = await tandaDeTamanos(lib, [TANDA_TOPE_POR_MIEMBRO, 2000]);
+      let r = await e.tanda(justo);
+      assert.equal(r.estado, 201, arrancarUno.name + ': ' + JSON.stringify(r.cuerpo).slice(0, 200));
+      const pasado = await tandaDeTamanos(lib, [2000, TANDA_TOPE_POR_MIEMBRO + 1]);
+      r = await e.tanda(pasado);
+      assert.deepEqual([r.estado, r.cuerpo.indice, r.cuerpo.id], [413, 1, pasado[1].id]);
+      // La petición: la lista justa en 1 MiB con la medida del núcleo (el cuerpo crudo pasa de 1 MiB por el envoltorio)
+      // entra; un byte más, 413 con null.
+      e = await c.crear('peticion');
+      await e.uno(lib.genesis);
+      const cada = (TANDA_TOPE_POR_PETICION - 2 - 4) / 5; // [m1,m2,m3,m4,m5]: corchetes y cuatro comas
+      const llena = await tandaDeTamanos(lib, [cada, cada, cada, cada, cada]);
+      assert.equal(bytesDeTanda(llena), TANDA_TOPE_POR_PETICION);
+      assert.ok(new TextEncoder().encode(JSON.stringify({ eje: 'peticion', eventos: llena })).length > TANDA_TOPE_POR_PETICION);
+      r = await e.tanda(llena);
+      assert.equal(r.estado, 201, arrancarUno.name + ': ' + JSON.stringify(r.cuerpo).slice(0, 200));
+      const unoMas = await tandaDeTamanos(lib, [cada, cada, cada, cada, cada + 1]);
+      assert.equal(bytesDeTanda(unoMas), TANDA_TOPE_POR_PETICION + 1);
+      r = await e.tanda(unoMas);
+      assert.deepEqual([r.estado, r.cuerpo.indice, r.cuerpo.id], [413, null, null]);
+      // Con espacios (otro cliente que formatea): la medida es la misma; el crudo solo tiene que caber con el margen.
+      const formateada = await tandaDeTamanos(lib, [cada - 10, cada, cada, cada, cada]);
+      const conEspacios = await e.crudo(JSON.stringify({ eje: 'peticion', eventos: formateada }, null, 1));
+      assert.equal(conEspacios.status, 201);
+    } finally {
+      await s.cerrar();
+    }
+  }
+});
+
+test('con autoridad: la tanda que abre un eje (génesis como miembro 1) va por Eje.abrirConTanda; si un miembro no pasa las reglas, 422 con su índice y nada abierto', async () => {
+  const s = crearServicio({ autoridad: new Autoridad() });
+  const llamar = async (camino, cuerpo, cab = {}) => {
+    const r = await s.manejar(new Request('http://127.0.0.1' + camino, { method: 'POST', headers: { 'Content-Type': 'application/json', ...cab }, body: JSON.stringify(cuerpo) }));
+    return { estado: r.status, cuerpo: await r.json() };
+  };
+  const { claveLectura } = (await llamar('/eventos/ejes', { eje: 'abre' }, { 'X-Crear-Ejes': 'prueba' })).cuerpo;
+  const cab = { 'X-Clave-Lectura': claveLectura };
+  const claves = await generarClaves();
+  const eje = await Eje.genesis({ identidad: 'vg', foco: ['abrir con tanda'], t: T(0), clave: claves.publica, privada: claves.privada, exigirFirmas: true, contexto: { tanda: { n: 1, de: 2 } } });
+  const genesis = eje.obtener(eje.genesisId);
+  // El 2 no paga el coste de escribir: la forma pasa y las reglas no.
+  const sinCoste = await registro({ privada: claves.privada, sobre: genesis.id, payload: ['sin coste'], contexto: { tanda: { n: 2, de: 2, anterior: genesis.id } } });
+  const r = await llamar('/eventos/tanda', { eje: 'abre', eventos: [genesis, sinCoste] }, cab);
+  assert.deepEqual([r.estado, r.cuerpo.indice, r.cuerpo.id], [422, 1, sinCoste.id], JSON.stringify(r.cuerpo));
+  assert.equal(s.autoridad.ejes.has('abre'), false, 'sin libro');
+  assert.equal(s.rele.consultar({ kinds: [KIND_EVENTO] }).length, 0);
+  assert.equal(s.rele.consultar({ kinds: [KIND_RECHAZO] }).length, 1, 'un solo 7703, el del miembro 2');
 });

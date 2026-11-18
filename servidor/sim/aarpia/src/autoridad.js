@@ -68,7 +68,7 @@ export class Autoridad {
   /**
    * Juzga y aplica una tanda entera (CONTRATO_TANDA de AGRAM), todos o ninguno, con el núcleo de verdad: eje.anadirTanda
    * valida en orden, cada miembro viendo los anteriores, y si uno falla no toca el libro. En un eje que la autoridad aún
-   * no tiene, el génesis es el miembro 1 y la tanda que abre entra con Eje.desde, igual de entera. → { ok: true } o
+   * no tiene, el génesis es el miembro 1 y la tanda que abre entra con Eje.abrirConTanda, igual de entera. → { ok: true } o
    * { ok: false, indice (desde 0; null si falla la lista entera), reason, sinTandas? }. Con un núcleo sin anadirTanda
    * (uno viejo) no entra ninguna (sinTandas: 501). Como la rama `tanda` de aarpia-transporte (1ba105c), sin el código de
    * límite, que esta copia aún no tiene.
@@ -77,17 +77,13 @@ export class Autoridad {
     const textos = (motivos) => (motivos ?? []).map((m) => m?.texto ?? m?.mensaje ?? String(m));
     const eje = this.ejes.get(nombre);
     if (!eje) {
-      try {
-        this.ejes.set(nombre, await Eje.desde(eventos, { exigirFirmas: this.exigirFirmas }));
-        return { ok: true };
-      } catch (e) {
-        // Eje.desde lanza con e.indice (desde 0) del miembro que falla. Con un núcleo viejo, que no lo trae, el respaldo es
-        // el texto («el miembro N no pasa»); si tampoco lo dice, es el génesis (el miembro 1).
-        const m = /miembro (\d+)/.exec(String(e?.message));
-        const delTexto = m && Number(m[1]) >= 1 && Number(m[1]) <= eventos.length ? Number(m[1]) - 1 : 0;
-        const indice = Number.isInteger(e?.indice) && e.indice >= 0 && e.indice < eventos.length ? e.indice : delTexto;
-        return { ok: false, indice, reason: e?.motivos ? textos(e.motivos) : [String(e?.message)] };
-      }
+      // Un eje que la autoridad aún no tiene: la tanda lo abre (su miembro 1 es el génesis) con Eje.abrirConTanda del
+      // núcleo, entera o nada. Mira además la marca de la lista entera (fallosDeTanda) y da el índice desde 0, o null si
+      // falla la lista: lo mismo que eje.anadirTanda para un eje que ya existe.
+      const r = await Eje.abrirConTanda(eventos, { exigirFirmas: this.exigirFirmas });
+      if (!r.ok) return { ok: false, indice: Number.isInteger(r.indice) ? r.indice : null, reason: textos(r.motivos) };
+      this.ejes.set(nombre, r.eje);
+      return { ok: true };
     }
     if (typeof eje.anadirTanda !== 'function') return { ok: false, indice: null, reason: ['el núcleo de esta puerta aún no trae tandas (eje.anadirTanda)'], sinTandas: true };
     let r;
