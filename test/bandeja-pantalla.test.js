@@ -409,3 +409,19 @@ test('un archivo elegido aquí sin servidor donde subirlo: la prueba en seco ya 
   assert.match(app, /const revisar = \(entrada\) => faltaParaLosArchivos\(entrada\.valores, \{[^]*?hayServidor: Boolean\(destinoDeArchivos\(\)\)/);
 });
 const escaparTexto = (s) => String(s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+
+test('en una fila cerrada (Sequenced), la marca de la bandeja va dentro de la cabecera, en su misma línea', async () => {
+  const { eje, X, b } = await escena();
+  const a = await arbol({ foco: { X, pv: 0 } }, eje, 'huesped', { ancho: 400, alto: 700 });
+  assert.ok(a.secuencia, 'el móvil, en Sequenced');
+  const fila = a.secuencia.filas.find((f) => !f.hilo && !f.abierta && f.acciones?.total);
+  const accion = [...fila.acciones.nombradas, ...fila.acciones.resto][0];
+  b.poner({ accion: accion.id, X, valores: {}, donde: { X, pv: fila.pv }, completa: false });
+  const v = vistaDeLaBandeja(await b.probar(eje, 'huesped'));
+  const h = html(a, { bandeja: v });
+  const i = h.indexOf(`class="pv-acciones marca" data-nodo="acciones" data-pv-acciones="${fila.pv}"`);
+  assert.ok(i >= 0, 'la cabecera comprimida de la fila');
+  const span = h.slice(i, h.indexOf('</span>', h.indexOf('pv-acciones-cuantas', i)) + 7);
+  assert.match(span, new RegExp(`<small class="bandeja-marca" data-bandeja-marca="${fila.pv}"`), 'dentro del span');
+  assert.ok(!h.slice(i + span.length, i + span.length + 40).includes('bandeja-marca'), 'no detrás, en línea propia');
+});

@@ -245,8 +245,15 @@ export function ponerAlDiaEnPantalla(raiz, v) {
     const X = cabecera.dataset.x;
     const pv = Number(cabecera.dataset.pvAcciones);
     while (cabecera.nextElementSibling?.matches?.('.bandeja-tira, .bandeja-marca')) cabecera.nextElementSibling.remove();
-    const nuevo = cabecera.classList.contains('marca') ? htmlMarcaDeLaBandeja(v, X, pv) : htmlTiraDeLaBandeja(v, X, pv);
-    if (nuevo) cabecera.insertAdjacentHTML('afterend', nuevo);
+    if (cabecera.classList.contains('marca')) {
+      // Comprimida (una fila cerrada): la marca va dentro de la cabecera, en su misma línea.
+      for (const vieja of cabecera.querySelectorAll('.bandeja-marca')) vieja.remove();
+      const marca = htmlMarcaDeLaBandeja(v, X, pv);
+      if (marca) cabecera.insertAdjacentHTML('beforeend', marca);
+    } else {
+      const tira = htmlTiraDeLaBandeja(v, X, pv);
+      if (tira) cabecera.insertAdjacentHTML('afterend', tira);
+    }
     for (const boton of cabecera.querySelectorAll('[data-lanzar]')) boton.classList.toggle('pendiente', tienePendiente(v, X, boton.dataset.lanzar));
   }
   for (const cuatro of raiz.querySelectorAll('[data-bandeja-cuatro]')) {
