@@ -57,7 +57,7 @@ const IDS = Object.freeze({
   state: '38540840c23107ce405fa4d454672eaef97d4efa07f79e15bd34ff29ff0af7c5',
   'guia-libro': '7d81ba8a633c24ec06bf3f6630ec4313092741974f77b1e106cbe673e6c858bf',
   roadmap: '50fbac2fee8f81cdc3390c03ba28546f7a2a88cf363b36db10540a8cb12fbbe3',
-  cuenta: '8f3c81dafe504c5700702408000b824175e013c209e20f128c008ce47c06fd0e',
+  cuenta: '58d457eed36e43b19b611d5bb3487c2eb7e461c52b8ce19d110aac026a4c0558',
 });
 
 /** Las cuatro épocas hijas, escritas (las de datos/epocas/<nombre>/). */
