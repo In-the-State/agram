@@ -5,7 +5,7 @@
 import { test, before } from 'node:test';
 import assert from 'node:assert/strict';
 import { arbol, formulario, ceroDe } from '../carta/carta.js';
-import { t } from '../carta/textos.js';
+import { t, usarRetoques, idiomaDeInterfaz } from '../carta/textos.js';
 import * as A from '../src/acciones.js';
 import * as compraFood from '../ejemplos/ikisai/compra-food.mjs';
 import { EJEMPLOS } from '../carta/ejemplos.js';
@@ -101,6 +101,7 @@ test('3. ni los ejemplos de la regla corta como marcador (notas en español de q
     assert.ok(ejemplos.length > 0, 'la regla corta trae ejemplos');
     assert.deepEqual(marcadores.filter((m) => ejemplos.includes(m)), [], idioma);
   }
+  usarRetoques(null); // la interfaz sigue al último que pintó: se deja como sin libro
 });
 
 // ---------- segunda revisión en pantalla (19-11) ----------
@@ -128,5 +129,36 @@ test('7. lo escrito desde el aro se dice como la bandeja, sin ids; un hueco es s
 test('8. las ayudas propias de la carta sin números de posición («el 4», «el 9 de mi alta», «en su 2»)', () => {
   for (const clave of ['segundoFactorAyuda', 'segundoFactorNinguno', 'ajustesGuiaExteriorTitulo', 'aroNuevoTitulo', 'aroCrearNombreTitulo', 'sitioCero', 'sitioCeroDe', 'personaTitulo', 'personaCae', 'cajaFuera', 'volverAl0', 'opinarPv']) {
     for (const idioma of ['es', 'en']) assert.doesNotMatch(t(clave, { que: 'X', n: 2, pv: 3 }, idioma), /\b(el|al|del|su|en su) \d\b|\b\d\.\d\b|\bPV\b/, clave + ' ' + idioma);
+  }
+});
+
+test('9. la interfaz sigue el idioma de la cuenta que se pinta, sin pasarlo llamada a llamada; sin libro, el del navegador', async () => {
+  for (const [idioma, esperado] of [['en', 'write here'], ['es', 'escribir aquí']]) {
+    const c = await Q.crearCuenta({ nombre: 'Ana Prueba', idioma });
+    await arbol({ foco: c.cuenta.alta, niveles: {} }, c.eje, c.cuenta.identidad, {}, {});
+    assert.equal(idiomaDeInterfaz(), idioma);
+    assert.equal(t('escribirAqui'), esperado, idioma);
+  }
+  // Sin libro (la app llama usarRetoques(null)): en Node, el primero; en un navegador en inglés, el inglés.
+  usarRetoques(null);
+  assert.equal(t('crearMiCuenta'), 'crear mi cuenta');
+  const navegador = Object.getOwnPropertyDescriptor(globalThis, 'navigator');
+  globalThis.document = {};
+  Object.defineProperty(globalThis, 'navigator', { value: { language: 'en-US', languages: ['en-US', 'en'] }, configurable: true });
+  try {
+    assert.equal(t('crearMiCuenta'), 'create my account');
+    Object.defineProperty(globalThis, 'navigator', { value: { language: 'fr-FR', languages: ['fr-FR'] }, configurable: true });
+    assert.equal(t('crearMiCuenta'), 'crear mi cuenta', 'un idioma sin textos de la carta: el español');
+  } finally {
+    delete globalThis.document;
+    if (navegador) Object.defineProperty(globalThis, 'navigator', navegador);
+  }
+});
+
+test('10. los demás mensajes de éxito, sin ids', () => {
+  for (const idioma of ['es', 'en']) {
+    for (const clave of ['archivoAdjuntado', 'archivoPendiente', 'retoqueGuardado', 'retoqueRetirado', 'opinarAnclada', 'esteRatoEnElEje', 'reglasPropuesto', 'reglasHecho']) {
+      assert.doesNotMatch(t(clave, { id: '005f221a', accion: 'apoyar' }, idioma), /005f221a/, clave + ' ' + idioma);
+    }
   }
 });

@@ -365,8 +365,8 @@ export const TEXTOS = Object.freeze({
     archivoRechazado: 'el servidor no admite el archivo ({estado}): {motivo}',
     archivoOtroId: 'el servidor devolvió otro id para el archivo',
     archivoSinFormato: 'la época no tiene formato para «{tipo}»',
-    archivoAdjuntado: 'archivo adjuntado: {id}',
-    archivoPendiente: 'archivo adjuntado: {id}; sin red, se subirá en la próxima sincronización (si cierras la pestaña antes, se pierde)',
+    archivoAdjuntado: 'archivo adjuntado',
+    archivoPendiente: 'archivo adjuntado; sin red, se subirá en la próxima sincronización (si cierras la pestaña antes, se pierde)',
     archivoCargando: 'cargando…',
     archivoNoDisponible: 'archivo no disponible',
     archivoTitulo: '{que} (archivo aislado: sin scripts)',
@@ -436,8 +436,8 @@ export const TEXTOS = Object.freeze({
     retoqueHuecos: 'Lo que va entre llaves se rellena solo: déjalo tal cual ({huecos}). Puedes quitar alguno, no añadir otros.',
     retoqueCoste: 'Guardarlo escribe un registro en tu libro, firmado: cuesta {t} de T ({paga}).',
     retoqueOriginal: 'volver al texto original',
-    retoqueGuardado: 'texto retocado: {id}',
-    retoqueRetirado: 'vuelve el texto original: {id}',
+    retoqueGuardado: 'texto retocado',
+    retoqueRetirado: 'vuelve el texto original',
     retoqueHuecoNuevo: 'No se guarda: {huecos} no está en el texto de nacimiento. Deja los huecos tal cual.',
     retoqueVacio: 'No se guarda un texto vacío: para volver al de nacimiento, «volver al texto original».',
     retoqueIgual: 'Es el mismo texto de hoy: no hay nada que guardar.',
@@ -814,7 +814,7 @@ export const TEXTOS = Object.freeze({
     propuestaAceptada: 'propuesta aceptada: {accion}',
     opiniones: 'opiniones',
     opinionesRespuestas: '{cuantas} respuestas',
-    opinarAnclada: 'anclada en el proyecto: {id}',
+    opinarAnclada: 'anclada en el proyecto',
     opinarSoloLocal: 'solo en local: {motivo}',
     opinarAnclaNoExiste: 'el registro donde anclar las opiniones («{ancla}») no está en el libro',
     opinarSinPlantilla: 'la época no trae la acción de opinar',
@@ -841,7 +841,7 @@ export const TEXTOS = Object.freeze({
     configuracionGuardada: 'configuración guardada como un registro de mi alta',
     escrito: 'Registrado: escribir «{texto}»',
     unRatoEnLaCarta: 'un rato en la carta',
-    esteRatoEnElEje: 'este rato queda en el eje como un minuto: {id}',
+    esteRatoEnElEje: 'este rato queda en el eje como un minuto',
     nadaQueEnglobar: 'nada que englobar',
     hechos: 'hechos: {cuales}',
     ningunPasoDado: 'ningún paso dado',
@@ -927,8 +927,8 @@ export const TEXTOS = Object.freeze({
     reglasNoSePuedeProponer: 'Así no se puede proponer. No se ha escrito nada.',
     reglasNoHayCambio: 'ese cambio no está en el libro',
     reglasNoAprobado: 'ese cambio no está aprobado y esperando firmeza',
-    reglasPropuesto: 'Propuesto: {id}',
-    reglasHecho: '{accion}: {id}',
+    reglasPropuesto: 'Propuesto.',
+    reglasHecho: '{accion}: hecho.',
     reglaPosicion_7_9_1: 'apoyo que necesita un cambio corriente (de 0 a 1)',
     reglaPosicion_7_9_2: 'apoyo que necesita un cambio de cómo se cambian las reglas (de 0 a 1)',
     reglaPosicion_7_9_3: 'nivel de firmeza que pide un cambio corriente',
@@ -1617,8 +1617,8 @@ export const TEXTOS = Object.freeze({
     archivoRechazado: 'the server does not accept the file ({estado}): {motivo}',
     archivoOtroId: 'the server returned another id for the file',
     archivoSinFormato: 'the epoch has no format for “{tipo}”',
-    archivoAdjuntado: 'file attached: {id}',
-    archivoPendiente: 'file attached: {id}; without a connection, it will be uploaded at the next sync (if you close the tab before, it is lost)',
+    archivoAdjuntado: 'file attached',
+    archivoPendiente: 'file attached; without a connection, it will be uploaded at the next sync (if you close the tab before, it is lost)',
     archivoCargando: 'loading…',
     archivoNoDisponible: 'file not available',
     archivoTitulo: '{que} (isolated file: no scripts)',
@@ -1684,8 +1684,8 @@ export const TEXTOS = Object.freeze({
     retoqueHuecos: 'What goes between braces is filled in by itself: leave it as it is ({huecos}). You can remove some, not add others.',
     retoqueCoste: 'Saving it writes a signed record in your book: it costs {t} of time ({paga}).',
     retoqueOriginal: 'back to the original text',
-    retoqueGuardado: 'text touched up: {id}',
-    retoqueRetirado: 'the original text is back: {id}',
+    retoqueGuardado: 'text touched up',
+    retoqueRetirado: 'the original text is back',
     retoqueHuecoNuevo: 'Not saved: {huecos} is not in the original text. Leave the gaps as they are.',
     retoqueVacio: 'An empty text is not saved: to go back to the original, use “back to the original text”.',
     retoqueIgual: 'It is the same as today\'s text: there is nothing to save.',
@@ -2038,7 +2038,7 @@ export const TEXTOS = Object.freeze({
     propuestaAceptada: 'proposal accepted: {accion}',
     opiniones: 'feedback',
     opinionesRespuestas: '{cuantas} answers',
-    opinarAnclada: 'anchored in the project: {id}',
+    opinarAnclada: 'anchored in the project',
     opinarSoloLocal: 'only local: {motivo}',
     opinarAnclaNoExiste: 'the record where feedback is anchored (“{ancla}”) is not in the book',
     opinarSinPlantilla: 'the epoch does not carry the action to give feedback',
@@ -2064,7 +2064,7 @@ export const TEXTOS = Object.freeze({
     configuracionGuardada: 'settings saved as a record of my sign-up',
     escrito: 'Recorded: write “{texto}”',
     unRatoEnLaCarta: 'a while in the app',
-    esteRatoEnElEje: 'this while stays in the ledger as one minute: {id}',
+    esteRatoEnElEje: 'this while stays in the ledger as one minute',
     nadaQueEnglobar: 'nothing to bundle',
     hechos: 'done: {cuales}',
     ningunPasoDado: 'no step taken',
@@ -2149,8 +2149,8 @@ export const TEXTOS = Object.freeze({
     reglasNoSePuedeProponer: 'It cannot be proposed like this. Nothing has been written.',
     reglasNoHayCambio: 'that change is not in the book',
     reglasNoAprobado: 'that change is not approved and waiting to be firm',
-    reglasPropuesto: 'Proposed: {id}',
-    reglasHecho: '{accion}: {id}',
+    reglasPropuesto: 'Proposed.',
+    reglasHecho: '{accion}: done.',
     reglaPosicion_7_9_1: 'support an ordinary change needs (from 0 to 1)',
     reglaPosicion_7_9_2: 'support a change of how the rules are changed needs (from 0 to 1)',
     reglaPosicion_7_9_3: 'level of firmness an ordinary change asks for',
@@ -2500,9 +2500,30 @@ export const TEXTOS = Object.freeze({
   }),
 });
 
-/** El idioma de la interfaz propia: el de la configuración si hay textos en él; si no, el primero que haya. */
+/**
+ * El idioma de la interfaz propia, en un solo sitio (VG 19-11, supuesto por confirmar): el que se pide si hay textos en él;
+ * si no, el de quien mira (el de las preferencias de su cuenta, que arbol instala en cada pintado con usarRetoques); antes
+ * de haber libro, el del navegador si la carta lo tiene; y si no, el primero (español).
+ */
 export function idiomaDeInterfaz(idioma) {
-  return idioma && TEXTOS[idioma] ? idioma : Object.keys(TEXTOS)[0];
+  if (idioma && TEXTOS[idioma]) return idioma;
+  if (idiomaDeQuienMira && TEXTOS[idiomaDeQuienMira]) return idiomaDeQuienMira;
+  return idiomaDelNavegador() ?? Object.keys(TEXTOS)[0];
+}
+
+/**
+ * El idioma del navegador, si la carta corre en uno y tiene textos en él («en-US» → «en»); null fuera del navegador (en Node,
+ * las pruebas: ahí la interfaz es la de siempre) o si no tiene ninguno de los suyos.
+ */
+function idiomaDelNavegador() {
+  if (typeof globalThis.document === 'undefined') return null;
+  const n = globalThis.navigator;
+  const lista = [...(Array.isArray(n?.languages) ? n.languages : []), n?.language].filter((x) => typeof x === 'string');
+  for (const l of lista) {
+    const corto = l.slice(0, 2).toLowerCase();
+    if (TEXTOS[corto]) return corto;
+  }
+  return null;
 }
 
 /**
