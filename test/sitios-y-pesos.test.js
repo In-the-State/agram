@@ -165,7 +165,7 @@ const HUELLAS = {
   'html · aro ordenador': '3bac2e6c78b714ec67e7a850',
   'otras · filas con paso: jardín, mapped tope 1': '3a862c50922479056ec3602d',
   'otras · matriz del 4: celdas cerradas': 'd2fa44ec9fdb2c478056b897',
-  'otras · matriz del 4: la celda 4.4 abierta': 'ad59669ab274ca5680ff0144',
+  'otras · matriz del 4: la celda 4.4 abierta': 'ee8adf7e0aa159686afd941f',
   'otras · cuenta del banco: quién puede proponer': 'f7d713a497f1c2fad07f8f06',
 };
 

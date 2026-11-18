@@ -67,10 +67,12 @@ test('el idioma es mi configuración: un registro «preferences» en el 9 de mi 
   assert.equal(cuenta.idioma, 'en');
   const porDefecto = await Q.crearCuenta({ nombre: 'Víctor', idioma: C.configuracion(null).language, t: T1 });
   assert.equal(porDefecto.eje.orden.length, 1);
-  // Los campos que pide crear salen del núcleo: la etiqueta del 0 (la regla corta) y la posición del idioma de la plantilla de preferencias, con los idiomas de la época.
+  // Los campos que pide crear: el nombre en llano (textos de la carta, no la etiqueta «representación» ni la ayuda «PV0: …»
+  // de la época) y la posición del idioma de la plantilla de preferencias, con los idiomas de la época.
   const campos = Q.camposDelAlta({ idioma: 'es' });
   assert.deepEqual(campos.map((c) => c.nombre), ['nombre', 'idioma']);
-  assert.equal(campos[0].etiqueta, C.etiqueta(eje, cuenta.alta, 0, { idioma: 'es' }));
+  assert.deepEqual([campos[0].etiqueta, campos[0].ayuda], ['tu nombre', 'cómo quieres que te vean los demás']);
+  assert.doesNotMatch(campos[0].etiqueta + ' ' + campos[0].ayuda, /PV ?d|representación/);
   assert.deepEqual([campos[1].clave, campos[1].opciones, campos[1].valor], ['language', C.idiomas(), 'es']);
   assert.equal(campos[1].etiqueta, C.texto(null, C.claves.parametro('preferences', 'language', 'label'), 'es'));
 });

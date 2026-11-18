@@ -110,7 +110,7 @@ test('#89 el formulario de ejecutar enseña solo lo que se decide: sin tipos, f�
   assert.match(reverso(l), /ver en BTML|<small>tipo /);
 });
 
-test('#89 con el botón apagado, una línea arriba dice qué le falta al registro (el rango en que está y el que lo marca); marcado, no hay línea', async () => {
+test('#89 con el botón apagado, una línea arriba dice en llano en qué punto está el registro (sin rangos en cifras) y que se puede hacer igual; marcado, no hay línea', async () => {
   const m = await mundo();
   const a = await formPago(m);
   const b = a.formulario.ejecucion.boton;
@@ -118,13 +118,14 @@ test('#89 con el botón apagado, una línea arriba dice qué le falta al registr
   const h = html(a);
   const linea = h.match(/<p class="boton-apagado-motivo" role="status">([^<]+)<\/p>/);
   assert.ok(linea, 'la línea');
-  assert.equal(linea[1], `el botón sigue apagado: este registro está en «${b.nombre}» (${b.nivel}.${b.grado}) y se marca al llegar al ${b.marca.nivel}.${b.marca.grado}`);
+  assert.equal(linea[1], `este registro aún está en «${b.nombre}»: se puede hacer igual; el botón se encenderá cuando avance`);
+  assert.doesNotMatch(linea[1], /\d\.\d/, 'sin el rango en cifras');
   assert.ok(h.indexOf('boton-apagado-motivo') < h.indexOf('<div class="campo'), 'arriba, antes de los campos');
   // con el botón marcado, ninguna línea; sin rango, otra frase
   const marcado = { ...a, formulario: { ...a.formulario, ejecucion: { ...a.formulario.ejecucion, boton: { ...b, estado: 'marcado' } } } };
   assert.doesNotMatch(html(marcado), /boton-apagado-motivo/);
   const sinRango = { ...a, formulario: { ...a.formulario, ejecucion: { ...a.formulario.ejecucion, boton: { ...b, nombre: null } } } };
-  assert.match(html(sinRango), /el botón sigue apagado: este registro aún no tiene rango y se marca al llegar al 3\.1/);
+  assert.match(html(sinRango), /este registro aún no ha empezado su camino: se puede hacer igual/);
   // y el aro (interactuar) no lleva ni línea ni cuenta de T
   const sin = html(await arbol({ foco: { X: m.encargo.id, pv: 4 }, formulario: { X: m.encargo.id, accion: 'pay', valores: {} } }, m.eje, 'huesped', GRANDE, ES));
   assert.doesNotMatch(sin, /boton-apagado-motivo|ejecucion-t/);
