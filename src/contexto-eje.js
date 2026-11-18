@@ -53,6 +53,37 @@ import { pendiente, Parada, Presupuesto, SIMBOLOS, NADIE, leerRegla, posicionDeL
 import { epocaDelEje } from './epocas.js';
 import { LECTURAS_PROVISIONALES } from './provisional.js';
 
+/**
+ * El índice de los asientos de un libro por serie y por titular (Core AGRAM 18-11, NUCLEO_6_7_8 quinta tanda, punto 4):
+ * `moves` de una serie o de una identidad no recorre el diario entero en cada lectura. El diario solo crece (un libro
+ * asienta, nunca quita), así que el índice se pone al día con lo que se haya asentado desde la última vez (libro.longitud
+ * dice si hay algo nuevo). Uno por libro (WeakMap): un eje que rehace su libro tiene otro índice. No cambia lo que da
+ * `moves` ni lo que cuesta en el presupuesto (eso lo fija la definición: un ocupante por asiento que da); solo el trabajo.
+ */
+const INDICES_DE_ASIENTOS = new WeakMap();
+function indiceDeAsientos(libro) {
+  let i = INDICES_DE_ASIENTOS.get(libro);
+  const longitud = libro.longitud;
+  if (!i || (typeof longitud === 'number' && longitud < i.longitud)) {
+    i = { longitud: -1, hasta: 0, porSerie: new Map(), porTitular: new Map() };
+    INDICES_DE_ASIENTOS.set(libro, i);
+  }
+  if (typeof longitud !== 'number' || longitud !== i.longitud) {
+    const poner = (mapa, clave, a) => {
+      if (!mapa.has(clave)) mapa.set(clave, []);
+      mapa.get(clave).push(a);
+    };
+    for (const a of libro.asientos({ desde: i.hasta })) {
+      poner(i.porSerie, a.serie, a);
+      if (a.de !== null && a.de !== undefined) poner(i.porTitular, a.de, a);
+      if (a.a !== null && a.a !== undefined && a.a !== a.de) poner(i.porTitular, a.a, a);
+      i.hasta = Math.max(i.hasta, a.n + 1);
+    }
+    i.longitud = longitud;
+  }
+  return i;
+}
+
 /** ¿Lleva un árbol del BQL mínimo un keep en alguna parte? (para no leer en pantalla lo que una regla leería distinto). */
 function llevaKeep(arbol) {
   const pila = [arbol];
@@ -546,9 +577,10 @@ export class ContextoEje {
       return [...lista.map((a) => ({ k: 'asiento', a })), ...anunciados];
     } else if (nodo?.k === 'serie' || nodo?.k === 'salida' || nodo?.k === 'clave') {
       if (nodo.k === 'salida' && !this.#esSerie(nodo.clave)) return undefined;
-      lista = libro.asientos({ serie: nodo.clave });
+      // Por el índice del libro (una copia de cada uno, como libro.asientos), si el libro lo permite; si no, recorriéndolo.
+      lista = typeof libro.longitud === 'number' ? (indiceDeAsientos(libro).porSerie.get(nodo.clave) ?? []).map((a) => ({ ...a })) : libro.asientos({ serie: nodo.clave });
     } else if (typeof nodo === 'string' && this.#eje.alta(nodo)) {
-      lista = libro.asientos().filter((a) => a.de === nodo || a.a === nodo);
+      lista = typeof libro.longitud === 'number' ? (indiceDeAsientos(libro).porTitular.get(nodo) ?? []).map((a) => ({ ...a })) : libro.asientos().filter((a) => a.de === nodo || a.a === nodo);
     } else return undefined;
     pres.gastar(lista.length);
     return lista.map((a) => ({ k: 'asiento', a }));

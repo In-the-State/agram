@@ -812,3 +812,21 @@ Fórmulas de `src/`, `datos/` y `ejemplos/` que leen el 9 de algo:
 **Ninguna fórmula de hoy cambia de resultado.**
 
 **Recomendación:** no cambiar la semántica. Es la regla de siempre: «lo que el núcleo lee en un registro va delante», y ya vale para el 4, el 6, el 7 y el 8. Quien quiera lo escrito en el 9 de un registro, que lea `(payload(X)).9`, o `X.9 where …` con una condición sobre lo escrito. Que lo diga `docs/BQLM.md` §4 en la línea de «Lo que el núcleo lee en un registro va delante», con el 9 en la lista. Es un documento del agente del lenguaje: no lo he tocado.
+
+**4. El coste del alta ya no crece con el libro.**
+
+- **Dato:** «path steps» lee las peticiones de atención de los asientos de la serie R del dueño de X (`moves R.(first it.3)`), no de todo lo que ha movido. Su coste crece con su R (las peticiones mismas), no con lo que compra o paga.
+- **Código, un índice:** `src/contexto-eje.js` pone al día un índice de los asientos del libro por serie y por titular (`indiceDeAsientos`, uno por libro). Se actualiza con lo asentado desde la última vez, porque el diario solo crece. `moves` de una serie o de una identidad ya no recorre el diario entero en cada lectura. Lo que da y lo que cuesta en el presupuesto no cambian (eso lo fija la definición); cambia el trabajo de la máquina.
+- **La prueba:** `test/indice-asientos.test.js` compara el índice con el recorrido, antes y después de asentar más, y comprueba que el alta cuesta lo mismo con 15 compras más.
+
+Medido con `node test/medida-camino.mjs`, en ocupantes de X.9.8:
+
+| Lectura | Antes, sin memoria | Ahora, sin memoria | Ahora, con memoria la primera vez |
+|---|---|---|---|
+| Booking, alta de la casa | 5 576 | 5 255 | 2 163 |
+| Compra ×10, alta de la huésped | 4 565 | 4 275 | 1 511 |
+| Compra ×30, alta de la huésped | 5 045 | 4 275 | 1 511 |
+| Compra ×60, alta de la huésped | 5 765 | 4 275 | 1 511 |
+| Compra ×60, génesis | 4 391 | 4 312 | 1 548 |
+
+Lo demás no cambia: reserva 3 356, habitación 2 320, Tasks 5 498, menú 1 583, última compra 994. El máximo medido sin memoria es 5 498 (la tarea de Tasks), con un 45 % de holgura sobre los 10 000.
