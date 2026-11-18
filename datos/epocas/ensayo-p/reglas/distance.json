@@ -1,0 +1,17 @@
+[
+  ["distance"],
+  ["A.2.1", "epoch.1.1.1"],
+  ["=(epoch where sum (((first it.3).2.1 where first it3.0 = first it.0 and count it3.5 > 0) each 1) > 0 and sum (((first (first it.0).3).2.1 where first it3.0 = first it.0 and count it3.5 > 0) each 1) > 0) each (1 - sum ((0 with 1 with 2 with 3 with 4 with 5 with 6 with 7 with 8 with 9) each (min (sum (((first it.3).2.1 where first it4.0 = first it.0 and it4.5 = it3) each 1) / sum (((first it.3).2.1 where first it4.0 = first it.0 and count it4.5 > 0) each 1) with sum (((first (first it.0).3).2.1 where first it4.0 = first it.0 and it4.5 = it3) each 1) / sum (((first (first it.0).3).2.1 where first it4.0 = first it.0 and count it4.5 > 0) each 1)))))"],
+  ["A.2.1.8"],
+  ["read"],
+  ["*"],
+  [
+    "VG 18-11, por Core State (ensayo de P): el criterio de una persona sobre un registro son diez medidas, el reparto de su P entre los diez puntos de vista del registro; se compara en proporciones, no en cantidades; cerca del reparto del autor es apoyo, lejos es crítica, y nadie dice el sentido",
+    "Reparto de A sobre X: para cada punto de vista d (el 5 de cada entrada de A.2.1; los dígitos 0 a 9 van escritos en la fórmula, porque el BQL mínimo no enumera las diez etiquetas del 1.1.1: si la época cambia sus puntos de vista, hay que cambiarlos aquí), el P de A en X.d entre todo el P de A en puntos de vista de X (el P sobre el registro entero no cuenta); diez proporciones que suman 1; sin P en puntos de vista de X no hay reparto, y la lectura no da nada",
+    "Distancia de A al autor de X: la mitad de la suma, sobre los diez puntos de vista, de la diferencia sin signo entre la proporción de A y la del autor; como los dos repartos suman 1, es lo mismo que 1 menos la suma de los mínimos, que es lo que escribe la fórmula (el BQL mínimo no tiene valor absoluto). 0 es el mismo reparto; 1, nada en común",
+    "Sujeto: una entrada de A.2.1 (el registro en su 0, el titular en su 3); da lo mismo en todas las entradas del mismo registro de la misma persona. Los it del BQL mínimo cuentan desde fuera: it es la entrada; el where de la época (it2) no la cambia; dentro de él, it3 es la entrada candidata; en el each de los dígitos, it3 es el dígito y it4 la entrada candidata"
+  ],
+  ["P rehearsal epoch 0"],
+  ["after weight"],
+  ["distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P put in each view by a holder and by the author of the record (0 the same share, 1 nothing in common)"]
+]

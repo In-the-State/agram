@@ -1,8 +1,13 @@
 {
-  "epoca": "632a0acebd0addd7797dd68bdddb2721fca3c80fc3b7f389181d922809ba450a",
+  "epoca": "4facc0c13043feda027988b01e61492cb705c434b72110c2f92409936e5efb35",
   "hereda": "7c1d49087209c41e03a38ef5e1c6aec6007a7515d1030f37ddea13e8a35a8448",
-  "registrosAlPublicar": 3,
+  "registrosAlPublicar": 4,
   "reglas": [
+    {
+      "nombre": "distance",
+      "archivo": "distance.json",
+      "id": "e9ce6447fe7e8fa519efd9753ddf9395eeb1f3b1dbb8a0589fde82b7d8ce1772"
+    },
     {
       "nombre": "P is repositioned one step at a time",
       "archivo": "p-is-repositioned-one-step-at-a-time.json",

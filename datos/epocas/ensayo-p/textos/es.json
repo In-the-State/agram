@@ -1,3 +1,5 @@
 [
-  "P is repositioned one step at a time: P se reposiciona de un paso en un paso: {first ev.3} acuña P que no es un paso de su propio P (subir una décima, bajar una décima más o pasar a otro punto de vista del mismo registro sin pérdida), conservando su origen"
+  "P is repositioned one step at a time: P se reposiciona de un paso en un paso: {first ev.3} acuña P que no es un paso de su propio P (subir una décima, bajar una décima más o pasar a otro punto de vista del mismo registro sin pérdida), conservando su origen",
+  "distance: distancia: la mitad de la suma, sobre los diez puntos de vista de un registro, de la diferencia sin signo entre la proporción de P que pone en cada uno su titular y la que pone el autor del registro (0 el mismo reparto, 1 nada en común)",
+  "template distance from the author: distancia al autor"
 ]

@@ -43,14 +43,14 @@ test('la época de ensayo de P se genera desde su fuente, al día, hereda de la 
   const g = generar();
   assert.equal(g.fallos, 0, g.informe.join('\n'));
   for (const [ruta, texto] of Object.entries(archivos(g))) assert.equal(readFileSync(ruta, 'utf8'), texto, `${ruta} no está al día: node datos/epocas/ensayo-p/generar.mjs`);
-  assert.deepEqual(g.reglas.map((r) => r.nombre), ['P is repositioned one step at a time']);
+  assert.deepEqual(g.reglas.map((r) => r.nombre), ['distance', 'P is repositioned one step at a time']);
   assert.deepEqual(g.plantillas, []);
   assert.equal(EPOCA_0_BTML.id, ID_DE_LA_0, 'la 0 no cambia');
   assert.equal(g.hereda, ID_DE_LA_0);
   const e = cargarEpocaEscrita(epocaEnsayoP());
   assert.equal(e.id, g.id);
   assert.equal(e.transacciones.length, EPOCA_0_BTML.transacciones.length);
-  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length, 'la regla sustituye a la de la 0: ni más ni menos');
+  assert.equal(e.reglasConId.length, EPOCA_0_BTML.reglasConId.length + 1, 'la de los pasos sustituye a la de la 0 y la lectura «distance» se suma: una más');
   assert.deepEqual(sinTraducir('es', { epoca: e }).map((x) => x.clave), []);
   const fuentes = readdirSync('src').filter((f) => f.endsWith('.js')).map((f) => readFileSync(join('src', f), 'utf8'));
   assert.ok(!fuentes.some((s) => /(from|import)\s*\(?\s*['"][^'"]*(epocas\/ensayo-p|ensayo-p-0)/.test(s)), 'la época no viaja con el núcleo (#115)');

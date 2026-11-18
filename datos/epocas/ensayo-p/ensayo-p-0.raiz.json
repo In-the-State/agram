@@ -50,7 +50,20 @@
   "<hereda>",
   "<hereda>",
   [
-    "<hereda>",
+    [
+      [
+        "<hereda>",
+        [
+          "<hereda>",
+          "<hereda>",
+          "<hereda>",
+          [
+            ["distance from the author"],
+            ["=sum (((before.3 each 2.1) where first it2.0 = first it.6.5 and count it2.5 > 0 and first it2.3 != first (first it.6.5).3 and count it2.8 > 0) each (it2.1 * (1 - first it2.8))) with sum (((before.3 each 2.1) where first it2.0 = first it.6.5 and count it2.5 > 0 and first it2.3 != first (first it.6.5).3 and count it2.8 > 0) each (it2.1 * first it2.8))"]
+          ]
+        ]
+      ]
+    ],
     "<hereda>",
     "<hereda>",
     "<hereda>",

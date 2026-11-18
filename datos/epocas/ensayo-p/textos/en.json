@@ -1,3 +1,5 @@
 [
-  "P is repositioned one step at a time: P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P (up a tenth, down a tenth more, or sideways to another view of the same record without loss), keeping its origin"
+  "P is repositioned one step at a time: P is repositioned one step at a time: {first ev.3} mints P that is not one step of its own P (up a tenth, down a tenth more, or sideways to another view of the same record without loss), keeping its origin",
+  "distance: distance: half the sum, over the ten views of a record, of the unsigned difference between the share of P put in each view by a holder and by the author of the record (0 the same share, 1 nothing in common)",
+  "template distance from the author: distance from the author"
 ]
