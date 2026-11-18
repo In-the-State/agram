@@ -1750,7 +1750,9 @@ export async function camino(eje, X, yo, opciones = {}) {
   for (const f of filas.filter((x) => x.porque === 'attended')) {
     const peticion = eje.obtener(f.sobre);
     if (!peticion) continue;
-    const que = (mensaje(eje, 'attended', idioma, opciones) ?? 'attended') + ' · ' + String(peticion.payload?.[0] ?? peticion.payload);
+    // Su 0: la primera hoja de su payload si es una décupla; si el payload es un texto, el texto entero (no su primer carácter).
+    const ceroDeLaPeticion = Array.isArray(peticion.payload) ? [peticion.payload[0]].flat(Infinity)[0] : peticion.payload;
+    const que = (mensaje(eje, 'attended', idioma, opciones) ?? 'attended') + ' · ' + String(ceroDeLaPeticion ?? '');
     const quien = f.de[0] ?? ev.autor;
     if (quien === yo && f.accion) { const paso = mio(f.accion, f.parametros, peticion); if (paso) pasos.push({ fuente: 'reglas', regla: 'attended', ...paso, falta: que, espera: null }); } else pasos.push({ fuente: 'reglas', regla: 'attended', falta: que, hacer: null, espera: quien, hecho: false, peticion: peticion.id });
   }

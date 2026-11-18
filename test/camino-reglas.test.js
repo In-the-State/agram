@@ -87,3 +87,16 @@ test('los finales del proceso son dato: FINES sale de datos/provisional/finales.
   await eje.anadir(r.evento);
   assert.equal(cerrado(eje, reserva.id).fin, 'decidido');
 });
+
+test('el texto de una petición de atención: su 0 si es una décupla y el texto entero si su payload es un texto (no su primer carácter)', async () => {
+  const eje = await Eje.genesis({ demostracion: true, identidad: 'g', t: T0, foco: 'raíz', emision: [{ token: 'R', cantidad: 10 }] });
+  await entrarPorInvitacion(eje, { por: 'g', quien: 'ana', t: T0, grupo: 3 });
+  await entrarPorInvitacion(eje, { por: 'g', quien: 'bea', t: T0 });
+  const plaza = (await eje.escribir({ autor: 'g', sobre: eje.genesisId, t: T0, payload: ['Plaza'], movimientos: [pagaElCoste('g')] })).id;
+  await eje.escribir({ autor: 'ana', sobre: plaza, t: T0, payload: 'mi R', movimientos: [pagaElCoste('ana'), R('ana', 10, null, 'ana'), R('ana', 4, 'ana', 'bea')] });
+  const alta = eje.alta('ana').id;
+  await eje.escribir({ autor: 'bea', sobre: alta, en: '3000000000', t: T0, payload: 'ana, te pido atención', movimientos: [pagaElCoste('bea'), R('ana', 1, 'bea', 'ana')] });
+  await eje.escribir({ autor: 'bea', sobre: alta, en: '3000000000', t: T0, payload: [['otra vez'], ['x']], movimientos: [pagaElCoste('bea'), R('ana', 1, 'bea', 'ana')] });
+  const faltas = (await camino(eje, alta, 'bea')).pasos.filter((p) => p.regla === 'attended').map((p) => p.falta.split(' · ').pop());
+  assert.deepEqual(faltas, ['ana, te pido atención', 'otra vez']);
+});
