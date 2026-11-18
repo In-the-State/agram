@@ -19,7 +19,8 @@
 // por el definitivo (reescribe los ids enteros).
 
 import * as acciones from '../src/acciones.js';
-import { marcarTanda, TANDA_MINIMA, TANDA_MAXIMA, TANDA_TOPES, bytesDeMiembro, bytesDeTanda } from '../src/evento.js';
+import * as salida from '../src/escritura.js';
+import { crearEvento, marcarTanda, TANDA_MINIMA, TANDA_MAXIMA, TANDA_TOPES, bytesDeMiembro, bytesDeTanda } from '../src/evento.js';
 import { SEGUNDOS } from '../src/tokens.js';
 import { antesDelMensaje, horaDeEscribir } from './carta.js';
 
@@ -85,7 +86,13 @@ const esPv = (pv) => pv === null || (Number.isInteger(pv) && pv >= 0 && pv <= 9)
 function fallaDeEntrada(e, ids) {
   if (!esObjetoPlano(e)) return 'la entrada no es un objeto';
   if (!esTextoCorto(e.id)) return 'la entrada no tiene id local';
-  if (!esTextoCorto(e.accion)) return 'falta la acción (su id)';
+  if (e.tipo !== undefined && e.tipo !== 'campo') return 'una entrada es una acción o un campo';
+  if (e.tipo === 'campo') {
+    // Tocar un valor en un campo (A33): un registro «pointed» en la posición `en` de X, sin acción.
+    if (e.accion !== null) return 'un campo no lleva acción';
+    if (typeof e.en !== 'string' || !/^[0-9]{10}$/.test(e.en)) return 'un campo dice en qué posición (diez dígitos)';
+    if (!esObjetoPlano(e.valores) || typeof e.valores.texto !== 'string' || !e.valores.texto.trim() || Object.keys(e.valores).length !== 1) return 'un campo lleva su texto y nada más';
+  } else if (!esTextoCorto(e.accion)) return 'falta la acción (su id)';
   if (!(esTextoCorto(e.X) || esRefPendiente(e.X))) return 'falta sobre qué (X): un id o { pendiente }';
   if (!esObjetoPlano(e.valores)) return 'los valores no son un objeto';
   if (!cabeLaHondura(e.valores)) return 'los valores anidan demasiado';
@@ -144,7 +151,7 @@ function leerBorrador(almacen, clave) {
 }
 
 /** Solo los campos de una entrada (lo demás que trajera, fuera). */
-const limpia = (e) => ({ id: e.id, accion: e.accion, X: e.X, valores: e.valores, donde: { X: e.donde.X, pv: e.donde.pv }, completa: e.completa, de: [...e.de] });
+const limpia = (e) => ({ id: e.id, ...(e.tipo === 'campo' ? { tipo: 'campo', en: e.en } : {}), accion: e.accion, X: e.X, valores: e.valores, donde: { X: e.donde.X, pv: e.donde.pv }, completa: e.completa, de: [...e.de] });
 
 function guardarBorrador(almacen, clave, b) {
   const texto = JSON.stringify({ v: VERSION_DEL_BORRADOR, siguiente: b.siguiente, entradas: b.entradas.map(limpia) });
@@ -157,7 +164,7 @@ function guardarBorrador(almacen, clave, b) {
 }
 
 /** La misma entrada, para «poner»: misma acción, mismo X, compuesta en el mismo sitio (X y punto de vista). */
-const mismoSitio = (a, b) => a.accion === b.accion && JSON.stringify(a.X) === JSON.stringify(b.X) && a.donde.X === b.donde.X && a.donde.pv === b.donde.pv;
+const mismoSitio = (a, b) => (a.tipo ?? null) === (b.tipo ?? null) && (a.en ?? null) === (b.en ?? null) && a.accion === b.accion && JSON.stringify(a.X) === JSON.stringify(b.X) && a.donde.X === b.donde.X && a.donde.pv === b.donde.pv;
 
 /** Las entradas en el orden en que se componen: el de composición, con cada una después de las que nombra (estable). */
 function enOrden(entradas) {
@@ -209,13 +216,14 @@ export function crearBandeja({ almacen, libro, cuenta }) {
      * otra aunque la haya. Actualizar cambia sus valores y si está completa, y la deja en su sitio del orden.
      * → { ok: true, entrada, actualizada } o { ok: false, motivo }.
      */
-    poner({ accion, X, valores = {}, donde = {}, completa = true, id = null, nueva = false } = {}) {
+    poner({ tipo, en, accion = null, X, valores = {}, donde = {}, completa = true, id = null, nueva = false } = {}) {
+      const deCampo = tipo === 'campo' ? { tipo, en } : {};
       const b = leer();
       const ids = new Set(b.entradas.map((e) => e.id));
-      const previa = id !== null ? b.entradas.find((e) => e.id === id) : nueva ? null : b.entradas.find((e) => mismoSitio(e, { accion, X, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null } }));
+      const previa = id !== null ? b.entradas.find((e) => e.id === id) : nueva ? null : b.entradas.find((e) => mismoSitio(e, { ...deCampo, accion, X, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null } }));
       if (id !== null && !previa) return { ok: false, motivo: 'no hay ninguna entrada ' + id + ' en el borrador' };
       if (!previa && b.entradas.length >= MAXIMO_DE_ENTRADAS) return { ok: false, motivo: 'el borrador está lleno: ' + MAXIMO_DE_ENTRADAS + ' entradas' };
-      const entrada = { id: previa ? previa.id : 'b' + b.siguiente, accion, X, valores, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null }, completa, de: [] };
+      const entrada = { id: previa ? previa.id : 'b' + b.siguiente, ...deCampo, accion, X, valores, donde: { X: donde?.X ?? null, pv: donde?.pv ?? null }, completa, de: [] };
       try {
         entrada.de = dependenciasDe(entrada);
       } catch {
@@ -288,7 +296,7 @@ export function crearBandeja({ almacen, libro, cuenta }) {
 
 /** Las opciones que pasan a acciones.transaccion: sin lo de la bandeja ni `firmar` (la candidata va SIN firmar). */
 function opcionesDeTransaccion(opciones) {
-  const { firmar: _f, firmarTanda: _ft, posesion: _p, topeDePropuesta: _tp, ...resto } = opciones ?? {};
+  const { firmar: _f, firmarTanda: _ft, posesion: _p, topeDePropuesta: _tp, revisar: _r, ...resto } = opciones ?? {};
   return resto;
 }
 
@@ -360,9 +368,10 @@ async function conPruebas(ev, opciones) {
  * Compone una acción sobre la vista en seco: el candidato SIN firmar (acciones.transaccion), validado viendo lo de
  * antes; si pasa, entra en la vista. → { entra, motivos, candidato, r }.
  */
-async function componerUna(vista, yo, accion, X, valores, opciones) {
+async function componerUna(vista, yo, accion, X, valores, opciones, { hecho = null } = {}) {
   const o = conHora(vista, opcionesDeTransaccion(opciones));
-  const r = await acciones.transaccion(vista, accion, { X, ...valores }, yo, o);
+  // `hecho`: un candidato ya construido (un campo, componerCampo) que solo falta validar y meter en la vista.
+  const r = hecho ?? await acciones.transaccion(vista, accion, { X, ...valores }, yo, o);
   if (!r.evento) return { entra: false, motivos: r.ok ? [motivo(MOTIVOS.noEscribe)] : r.motivos ?? [], candidato: null, r };
   let candidato = r.evento;
   let motivos = r.ok ? [] : r.motivos ?? [];
@@ -382,6 +391,24 @@ async function componerUna(vista, yo, accion, X, valores, opciones) {
     return { entra: false, motivos: (e.motivos ?? [{ texto: e.message }]).map((m) => motivo(m.texto ?? m.mensaje ?? String(m))), candidato, r };
   }
   return { entra: true, motivos: [], candidato, r };
+}
+
+/**
+ * Compone un campo (tocar un valor): el registro «pointed» que escribía escribirDesde (src/escritura.js), sin firmar, con
+ * su texto como terminal y la quema del coste de escribir de quien lo escribe, validado sobre la vista y, si pasa, dentro.
+ */
+async function componerCampo(vista, yo, X, en, texto, opciones) {
+  let candidato;
+  try {
+    const payload = salida.desdePointed(vista, texto);
+    const ms = vista.tMaximo?.();
+    const t = opciones.t ?? horaDeEscribir(vista) ?? (Number.isFinite(ms) ? new Date(ms).toISOString().replace('.000Z', 'Z') : new Date().toISOString());
+    candidato = await crearEvento({ autor: yo, sobre: X, en, t, movimientos: [salida.quemaDelCoste(yo, payload, 'minuto', { eje: vista })], payload, contexto: { modo: 'pointed' } });
+  } catch (e) {
+    return { entra: false, motivos: [motivo(String(e?.message ?? e))], candidato: null };
+  }
+  const textos = await vista.validar(candidato);
+  return componerUna(vista, yo, null, X, null, opciones, { hecho: { ok: textos.length === 0, evento: candidato, motivos: textos.map((m) => motivo(String(m))) } });
 }
 
 /** Lo que le falta por rellenar a una entrada (los parámetros requeridos sin valor ni defecto), si se puede saber. */
@@ -418,7 +445,7 @@ async function componer(eje, yo, entradas, opciones = {}) {
     bytes: 0, // se mide al final (topes), cuando se sabe cuántos van en la tanda
   });
   for (const e of orden) {
-    const base = { id: e.id, puesta: false, accion: nombreDe(e.accion), entrada: limpia(e) };
+    const base = { id: e.id, puesta: false, accion: e.tipo === 'campo' ? null : nombreDe(e.accion), entrada: limpia(e) };
     if (circulares.has(e.id)) {
       items.push(item(base, { entra: false, motivos: [motivo(MOTIVOS.circular)], candidato: null }));
       continue;
@@ -433,6 +460,18 @@ async function componer(eje, yo, entradas, opciones = {}) {
     }
     if (sinResolver) {
       items.push(item(base, { entra: false, motivos: [motivo(MOTIVOS.depende(sinResolver))], candidato: null }));
+      continue;
+    }
+    // Lo que la lente sabe que falta fuera del libro (opciones.revisar(entrada) → texto o null): un archivo que ya no está en este aparato.
+    const fuera = typeof opciones.revisar === 'function' ? opciones.revisar(limpia(e)) : null;
+    if (fuera) {
+      items.push(item(base, { entra: false, motivos: [motivo(String(fuera))], candidato: null }));
+      continue;
+    }
+    if (e.tipo === 'campo') {
+      const c = await componerCampo(vista, yo, X, e.en, valores.texto, opciones);
+      if (c.entra) ids.set(e.id, c.candidato.id);
+      items.push(item(base, c));
       continue;
     }
     // Lo que la acción exige antes: entradas propias, delante, con su coste.
@@ -591,8 +630,8 @@ async function lanzar(eje, yo, firmar, entradas, opciones = {}) {
  * «Ejecutar ahora» desde el aro: una bandeja de un solo uso con esa acción y lo que exige antes, por el MISMO camino que
  * el 4 (lanzar desde el paso 1). No lee ni toca el borrador guardado.
  */
-export async function ejecutarAhora(eje, yo, firmar, { accion, X, valores = {} } = {}, opciones = {}) {
-  const entrada = { id: 'ahora', accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
+export async function ejecutarAhora(eje, yo, firmar, { tipo, en, accion = null, X, valores = {} } = {}, opciones = {}) {
+  const entrada = { id: 'ahora', ...(tipo === 'campo' ? { tipo, en } : {}), accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
   const falla = fallaDeEntrada(entrada, new Set());
   if (falla) return { ok: false, fase: 'componer', motivos: [motivo(falla)] };
   return lanzar(eje, yo, firmar, [entrada], opciones);
@@ -602,8 +641,8 @@ export async function ejecutarAhora(eje, yo, firmar, { accion, X, valores = {} }
  * Lo que enseña el aro antes de «ejecutar ahora»: la misma prueba en seco que el 4 (componer), con esa acción y lo que
  * exige antes, sin borrador. → lo que da probar.
  */
-export async function probarAhora(eje, yo, { accion, X, valores = {} } = {}, opciones = {}) {
-  const entrada = { id: 'ahora', accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
+export async function probarAhora(eje, yo, { tipo, en, accion = null, X, valores = {} } = {}, opciones = {}) {
+  const entrada = { id: 'ahora', ...(tipo === 'campo' ? { tipo, en } : {}), accion, X, valores, donde: { X: null, pv: null }, completa: true, de: [] };
   const falla = fallaDeEntrada(entrada, new Set());
   if (falla) return { ok: false, items: [], motivos: [motivo(falla)], cuesta: { segundos: 0 } };
   return componer(eje, yo, [entrada], opciones);

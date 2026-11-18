@@ -426,3 +426,44 @@ test('los topes se miden como el núcleo y la puerta: bytesDeMiembro por registr
   assert.equal((await b.ejecutar(eje, 'vg', firmarVg)).ok, false);
   assert.equal(eje.orden.length, antes);
 });
+
+test('tocar un valor en un campo compone en la bandeja: el registro «pointed» en su posición, que se actualiza en el mismo campo; y por el aro, ahora', async () => {
+  const { direccion } = await import('../src/btml.js');
+  const { eje, firmarVg } = await libro();
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'vg' });
+  const campo = (texto, pv = 3) => ({ tipo: 'campo', en: direccion([pv]), X: eje.genesisId, valores: { texto }, donde: { X: eje.genesisId, pv } });
+  assert.equal(b.poner(campo('primero')).ok, true);
+  const otra = b.poner(campo('segundo'));
+  assert.equal(otra.actualizada, true, 'el mismo campo: se actualiza');
+  assert.equal(b.poner(campo('en el 6', 6)).actualizada, false);
+  assert.equal(b.poner({ ...campo(''), nueva: true }).ok, false, 'sin texto no hay campo');
+  assert.equal(b.poner({ ...campo('x'), accion: 'write to X' }).ok, false, 'un campo no lleva acción');
+  assert.equal(b.poner({ ...campo('x'), en: '3' }).ok, false);
+  const p = await b.probar(eje, 'vg');
+  assert.equal(p.ok, true, JSON.stringify(p.items.map((x) => x.motivos)));
+  assert.equal(p.items[0].resumen.nace.accion, null, 'no es una acción');
+  const n = eje.orden.length;
+  const r = await b.ejecutar(eje, 'vg', firmarVg);
+  assert.equal(r.ok, true, JSON.stringify(r.motivos));
+  assert.equal(eje.orden.length, n + 2);
+  const [tres, seis] = r.eventos;
+  assert.deepEqual([tres.en, tres.sobre, tres.contexto.modo, JSON.stringify(tres.payload).includes('segundo')], [direccion([3]), eje.genesisId, 'pointed', true]);
+  assert.equal(seis.en, direccion([6]));
+  assert.ok(tres.movimientos.some((m) => m.token === 'T' && m.de === 'vg' && m.a === null), 'paga el coste de escribir');
+  const ahora = await ejecutarAhora(eje, 'vg', firmarVg, { tipo: 'campo', en: direccion([3]), X: eje.genesisId, valores: { texto: 'por el aro' } });
+  assert.equal(ahora.ok, true, JSON.stringify(ahora.motivos));
+  assert.equal(eje.orden.length, n + 3);
+});
+
+test('lo que la lente sabe que falta fuera del libro (opciones.revisar: un archivo que ya no está aquí) deja la entrada fuera, con su motivo', async () => {
+  const { eje, firmarVg } = await libro();
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'vg' });
+  b.poner(nota(eje, 'archivo:' + 'a'.repeat(64)));
+  const revisar = (e) => (JSON.stringify(e.valores).includes('archivo:') ? 'el archivo ya no está' : null);
+  const p = await b.probar(eje, 'vg', { revisar });
+  assert.deepEqual([p.ok, p.items[0].entra, p.items[0].motivos[0].mensaje], [false, false, 'el archivo ya no está']);
+  const antes = eje.orden.length;
+  assert.equal((await b.ejecutar(eje, 'vg', firmarVg, { revisar })).ok, false);
+  assert.equal(eje.orden.length, antes);
+  assert.equal((await b.probar(eje, 'vg')).ok, true, 'sin revisar, entra');
+});
