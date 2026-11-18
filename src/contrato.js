@@ -4363,4 +4363,4 @@ export { cadenas, NOMBRES_DE_LAS_CADENAS, FINES_QUE_DESBLOQUEAN, ENTREGADA_DESBL
 // Los sitios y los pesos de la pantalla (docs/notas/SITIOS_Y_PESOS.md): dónde va cada PV y cuánto se enseña, leídos de la época y del archivo de la lente.
 export { sitios, pesos } from './sitios.js';
 // Lo que la lente necesita saber de unas acciones y aún es provisional: las de «Ajustes de este elemento» y lo que va antes y después (src/lente-provisional.js).
-export { accionesDeAjuste, antesDe, despuesDe, nivelesDeLosHitos, nombreDelHito, lecturaDeLaLente, datosDelSiDelDueno } from './lente-provisional.js';
+export { accionesDeAjuste, antesDe, despuesDe, nivelesDeLosHitos, nombreDelHito, lecturaDeLaLente, datosDelSiDelDueno, destinoDeGesto } from './lente-provisional.js';

@@ -70,3 +70,18 @@ test("el sí del dueño: la acción y la lectura con nombre «who has the owner'
   assert.equal(r[4][0], 'read');
   assert.equal(C.lecturaDeLaLente('no existe'), null);
 });
+
+test('el destino del gesto «drop a person in a box» es dato: la acción y sus parámetros existen, y salen de lo que el gesto da', async () => {
+  const A = await import('../src/acciones.js');
+  const d = C.destinoDeGesto('drop a person in a box');
+  assert.equal(d.vista, 3);
+  assert.equal(d.sobre, 'the alta of the person');
+  const p = A.plantillasDeTransaccion({}).find((x) => x.nombre === d.accion);
+  assert.ok(p, 'la acción es de la época 0');
+  const nombres = A.parametros(p.plantilla, {}).map((x) => x.nombre);
+  for (const [nombre, de] of Object.entries(d.parametros)) {
+    assert.ok(nombres.includes(nombre), 'el parámetro ' + nombre + ' es de la acción');
+    assert.ok(['person', 'box'].includes(de), 'lo da el gesto: ' + de);
+  }
+  assert.equal(C.destinoDeGesto('no existe'), null);
+});

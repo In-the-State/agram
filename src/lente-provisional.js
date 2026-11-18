@@ -10,6 +10,8 @@
 //   lecturaDeLaLente(nombre)  una lectura con nombre que la lente lee y la época aún no tiene (la décupla, molde de una
 //                        regla: su 2 la fórmula), o null (datos/provisional/lecturas-de-la-lente.json)
 //   datosDelSiDelDueno() lo que la lente necesita para el sí del dueño: { accion, lectura (la fórmula) }, o nulls
+//   destinoDeGesto(gesto)  qué hace en el libro un gesto que suelta algo en un sitio: { vista, accion, parametros: { <nombre>:
+//                        lo que el gesto da }, sobre } o null (datos/provisional/destinos-de-gestos.json)
 //   nivelesDeLosHitos()  los diez niveles nivel.grado de los hitos, en su orden (datos/provisional/hitos.json)
 //   nombreDelHito(nivel, idioma)  el nombre de un hito en un idioma (si no lo hay, en inglés, el canónico); sin idioma, en
 //                        español, como hasta hoy (supuesto: la pasada única decide si el canónico sin idioma pasa a ser el inglés)
@@ -18,6 +20,7 @@ import { AJUSTES_PROVISIONALES, ANTES_Y_DESPUES_PROVISIONALES } from './provisio
 import { HITOS_PROVISIONALES_DATOS } from '../datos/provisional/hitos.js';
 import { LECTURAS_DE_LA_LENTE_PROVISIONALES_DATOS } from '../datos/provisional/lecturas-de-la-lente.js';
 import { SI_DEL_DUENO_PROVISIONAL_DATOS } from '../datos/provisional/si-del-dueno.js';
+import { DESTINOS_DE_GESTOS_PROVISIONALES_DATOS } from '../datos/provisional/destinos-de-gestos.js';
 
 const hoja = (x) => (Array.isArray(x) ? x[0] : x);
 const texto = (x) => (typeof hoja(x) === 'string' ? hoja(x) : null);
@@ -91,3 +94,16 @@ const SI = (() => {
 
 /** El sí del dueño (CH1): la acción con que se da o se retira y la fórmula de la lectura que dice quién lo tiene (it = la cosa). */
 export const datosDelSiDelDueno = () => SI;
+
+// ---------- los destinos de los gestos ----------
+
+const DESTINOS = (Array.isArray(DESTINOS_DE_GESTOS_PROVISIONALES_DATOS) ? DESTINOS_DE_GESTOS_PROVISIONALES_DATOS : []).filter(Array.isArray).map((d) => {
+  const pares = Array.isArray(d[3]) ? d[3] : [];
+  const parametros = {};
+  for (let i = 0; i + 1 < pares.length; i += 2) if (typeof pares[i] === 'string' && typeof pares[i + 1] === 'string') parametros[pares[i]] = pares[i + 1];
+  const vista = hoja(d[1]);
+  return [texto(d[0]), Object.freeze({ vista: Number.isInteger(vista) ? vista : null, accion: texto(d[2]), parametros: Object.freeze(parametros), sobre: texto(d[4]) })];
+});
+
+/** Qué hace en el libro el gesto `gesto` (su nombre en la lista de la lente): { vista, accion, parametros, sobre } o null. */
+export const destinoDeGesto = (gesto) => DESTINOS.find(([n]) => n === gesto)?.[1] ?? null;
