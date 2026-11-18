@@ -428,8 +428,17 @@ test('en una fila cerrada (Sequenced), la marca de la bandeja va dentro de la ca
 
 test('en el escritorio la cuenta va en el marco, fuera de la escena donde están los rosetones; con la configuración o cualquier diálogo abierto no se pinta', async () => {
   const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
-  const fijas = [...css.matchAll(/([^{}]*\.bandeja-cuenta[^{}]*)\{([^}]*)\}/g)].filter((m) => /position:fixed/.test(m[2])).map((m) => m[1].trim());
-  assert.deepEqual(fijas, ['.carta-apilada>.bandeja-cuenta'], 'solo es fija en Sequenced; en el escritorio, en el flujo');
+  const fijas = [...css.matchAll(/([^{}]*\.bandeja-cuenta[^{}]*)\{([^}]*)\}/g)].filter((m) => /position:fixed/.test(m[2])).map((m) => m[1].replace(/\/\*[^]*?\*\//g, '').trim());
+  assert.deepEqual(fijas, ['.carta-matriz>.bandeja-cuenta', '.carta-apilada>.bandeja-cuenta'], 'fija en los dos: en el escritorio no empuja el marco');
+  // En el escritorio, en el anillo de 30 px de la escena (el de los rosetones), abajo a la derecha, entre el 5 y el 4.
+  const matriz = css.slice(css.indexOf('.carta-matriz>.bandeja-cuenta{'), css.indexOf('}', css.indexOf('.carta-matriz>.bandeja-cuenta{')));
+  assert.match(matriz, /height:26px/, 'cabe en el anillo de 30 px');
+  assert.ok(matriz.includes('bottom:calc(var(--emparejar-alto,0px) + 9px)'), 'dentro del anillo: la escena deja 8 px abajo');
+  assert.ok(matriz.includes('right:48px'), 'a la izquierda del rosetón de la esquina (12 + 28 + 8)');
+  assert.ok(matriz.includes('max-width:calc(50vw - 120px)'), 'a la derecha del rosetón del 5');
+  assert.ok(matriz.includes('text-overflow:ellipsis'));
+  assert.ok(css.includes('.mapa-celdas{position:absolute;inset:30px}'), 'si cambia el anillo, cambia el sitio de la cuenta');
+  assert.ok(css.includes('.carta-matriz .escena{flex:1 1 auto;min-height:0;margin:6px 0 8px;'), 'ni si cambia el margen de abajo de la escena');
   const oculta = css.match(/\.carta:has\(([^)]*)\)>\.bandeja-cuenta\{display:none\}/);
   assert.ok(oculta, 'se esconde con un diálogo abierto');
   for (const fondo of ['.formulario-fondo', '.aro-fondo', '.sitio-fondo', '.puente-fondo', '.core-fondo', '.roseton-pantalla']) assert.ok(oculta[1].split(',').includes(fondo), fondo);
@@ -452,4 +461,72 @@ test('la app ya no escribe con escribirDesde: preferencias, ajustes de la guía 
   const v = vistaDeLaBandeja({ ok: true, items: [reg], motivos: [] }, { nombre: () => 'NO' });
   assert.equal(v.items[0].nombre, t('bandejaRegistro'));
   assert.ok(!htmlTiraDeLaBandeja(v, 'X1', 9).includes('data-bandeja-abrir'), 'no tiene formulario que reabrir');
+});
+
+test('cada tipo de entrada dice su nombre (nunca «null»): en la vista y en el mensaje de lo registrado', async () => {
+  const { nombreDeLaEntrada } = await import('../carta/bandeja-pantalla.js');
+  const { direccion } = await import('../src/btml.js');
+
+  const { eje, X, deLa } = await escena();
+  const nombre = (a) => 'N:' + a;
+  assert.equal(nombreDeLaEntrada({ tipo: 'campo', valores: { texto: 'hola' } }, null, nombre), t('bandejaCampo', { texto: 'hola' }));
+  assert.equal(nombreDeLaEntrada({ tipo: 'registro', valores: { payload: [] } }, null, nombre), t('bandejaRegistro'));
+  assert.equal(nombreDeLaEntrada({ accion: 'a1' }, 'a1', nombre), 'N:a1');
+  assert.equal(nombreDeLaEntrada(null, 'reserva', nombre), 'N:reserva', 'lo que pone la bandeja: su acción');
+  assert.ok(!String(nombreDeLaEntrada({}, null, nombre)).includes('null'));
+  // Una tanda de verdad con una acción y un campo: los nombres del mensaje.
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'huesped' });
+  const P = deLa(2).nombradas.find((x) => x.nombre === 'comprometer P');
+  b.poner({ accion: P.id, X, valores: {}, donde: { X, pv: 2 } });
+  b.poner({ tipo: 'campo', en: direccion([6]), X, valores: { texto: 'una nota' }, donde: { X, pv: 6 } });
+  const r = await b.ejecutar(eje, 'huesped', (ev) => ev);
+  assert.equal(r.ok, true, JSON.stringify(r.motivos));
+  const nombres = r.items.map((x) => nombreDeLaEntrada(x.puesta ? null : x.entrada, x.accion, nombre));
+  assert.deepEqual(nombres, ['N:' + r.items[0].accion, t('bandejaCampo', { texto: 'una nota' })]);
+  assert.ok(nombres.every((n) => !n.includes('null')));
+  const app = readFileSync(new URL('../carta/app.js', import.meta.url), 'utf8');
+  assert.match(app, /t\('registrado', \{ accion: nombreDeLaEntrada\(x\.puesta \? null : x\.entrada, x\.accion, nombreDeAccion\)/);
+});
+
+test('la marca de una fila cerrada no se parte a 400 px: solo la cifra en corto, sin saltos, y el texto entero en su título', () => {
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1', { pv: 4 })], motivos: [] });
+  const m = htmlMarcaDeLaBandeja(v, 'X1', 4);
+  assert.match(m, new RegExp(`>${t('bandejaMarcaCorta', { n: 1 })}</small>$`), 'a la vista, «✎1»');
+  assert.ok(m.includes(`title="${t('bandejaMarcaTitulo', { n: 1 })}"`) && m.includes(`aria-label="${t('bandejaMarca', { n: 1 })}"`));
+  assert.ok(!/\s/.test(t('bandejaMarcaCorta', { n: 12 })), 'sin espacios por donde partir');
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const regla = css.slice(css.indexOf('.bandeja-marca{'), css.indexOf('}', css.indexOf('.bandeja-marca{')));
+  assert.match(regla, /white-space:nowrap/);
+  assert.match(regla, /flex:0 0 auto/);
+});
+
+test('en el 4 la bandeja no se come la matriz: un tercio de su caja como mucho y la lista se desplaza dentro (1366×768, tres borradores o más)', async () => {
+  const css = readFileSync(new URL('../carta/estilo.css', import.meta.url), 'utf8');
+  const regla = (sel) => { const i = css.indexOf(sel + '{'); assert.ok(i >= 0, 'falta ' + sel); return css.slice(i, css.indexOf('}', i)); };
+  const caja = regla('.bandeja-cuatro');
+  assert.match(caja, /max-height:33%/);
+  assert.match(caja, /min-height:0/);
+  assert.match(caja, /overflow:hidden/);
+  assert.match(regla('.bandeja-cuatro>.bandeja-lista'), /overflow:auto/);
+  assert.match(regla('.bandeja-cuatro>h3,.bandeja-cuatro>small,.bandeja-cuatro>footer,.bandeja-cuatro>.motivos'), /flex:0 0 auto/, 'la cabecera y el botón, siempre a la vista');
+  // El HTML: la lista es hija directa de la caja (lo que se desplaza) y el botón va fuera de ella.
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1'), item('b2'), item('b3'), item('b4')], motivos: [] });
+  const h = htmlBandejaDelCuatro(v, 'X1');
+  assert.match(h, /^<section class="bandeja-cuatro"[^>]*><h3>[^<]*<\/h3><ol class="bandeja-lista">/);
+  assert.ok(h.indexOf('data-bandeja-ejecutar') > h.indexOf('</ol>'));
+});
+
+test('el 4 enseña la tanda en su orden, con subir y bajar por entrada (no en los bordes ni en lo que pone la bandeja), y lo de este registro marcado', () => {
+  const v = vistaDeLaBandeja({ ok: true, items: [item('b1', { X: 'X2' }), item(null, { puesta: true, para: 'b2', accion: 'reserva' }), item('b2'), item('b3', { X: 'X2' })], motivos: [] });
+  const h = htmlBandejaDelCuatro(v, 'X1');
+  const ids = [...h.matchAll(/data-bandeja-quitar="(b\d)"/g)].map((m) => m[1]);
+  assert.deepEqual(ids, ['b1', 'b2', 'b3'], 'el orden de la tanda, no primero lo de X1');
+  const movidas = [...h.matchAll(/data-bandeja-mover="(b\d)" data-delta="(-?1)"/g)].map((m) => m[1] + m[2]);
+  assert.deepEqual(movidas, ['b11', 'b2-1', 'b21', 'b3-1'], 'el primero no sube, el último no baja');
+  assert.match(h, /class="bandeja-item aqui"[^>]*>[^]*?data-bandeja-quitar="b2"/, 'lo compuesto sobre X1, marcado');
+  assert.ok(h.includes(t('bandejaMarcadoAqui', { n: 2 })), 'la reserva y la entrada de X1');
+  const g = gestos();
+  g.disparar('click', { target: el({ '[data-bandeja-mover]': true, 'button': true }, { bandejaMover: 'b2', delta: '-1' }) });
+  assert.deepEqual(g.llamadas, [['bandejaMover', 'b2', -1]]);
+  for (const k of ['bandejaSubirTitulo', 'bandejaBajarTitulo', 'bandejaNoSeMueve', 'bandejaMarcadoAqui']) assert.ok(TEXTOS.es[k] && TEXTOS.en?.[k], k + ', con su par en inglés');
 });

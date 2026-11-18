@@ -518,3 +518,23 @@ test('un registro hecho por la lente (preferencias, ajustes, formato) va por la 
   assert.equal(b.poner({ tipo: 'registro', modo: 'sequenced', en: p.en, X: p.sobre, valores: { payload: 'no' } }).ok, false, 'un registro lleva un payload');
   assert.equal((await b.probar(eje, 'vg')).ok, true);
 });
+
+test('el orden de la tanda se cambia a mano (subir, bajar), sin pasar a una entrada por delante de lo que nombra; y se ejecuta en ese orden', async () => {
+  const { eje, firmarVg } = await libro();
+  const b = crearBandeja({ almacen: memoria(), libro: eje.genesisId, cuenta: 'vg' });
+  b.poner(nota(eje, 'uno'));
+  b.poner(nota(eje, 'dos', { donde: { X: eje.genesisId, pv: 6 } }));
+  b.poner({ accion: 'propose', X: eje.genesisId, valores: { title: 'Tarea', content: 'algo' }, donde: { X: eje.genesisId, pv: 4 } }); // b3
+  b.poner({ accion: 'write to X', X: { pendiente: 'b3' }, valores: { text: 'sobre la tarea' }, donde: { X: eje.genesisId, pv: 4 } }); // b4
+  assert.deepEqual(b.mover('b2', -1), { ok: true, orden: ['b2', 'b1', 'b3', 'b4'] });
+  assert.deepEqual(b.mover('b2', -1), { ok: false, porque: 'borde' });
+  assert.deepEqual(b.mover('b4', -1), { ok: false, porque: 'depende' }, 'no pasa por delante de la tarea que nombra');
+  assert.deepEqual(b.mover('b3', 1), { ok: false, porque: 'depende' }, 'ni la tarea por detrás de la nota que la nombra');
+  assert.deepEqual(b.mover('b9', 1), { ok: false, porque: 'no-esta' });
+  assert.deepEqual(b.mover('b1', 1), { ok: true, orden: ['b2', 'b3', 'b1', 'b4'] });
+  assert.deepEqual(b.listar().entradas.map((e) => e.id), ['b2', 'b3', 'b1', 'b4'], 'guardado');
+  const r = await b.ejecutar(eje, 'vg', firmarVg);
+  assert.equal(r.ok, true, JSON.stringify(r.motivos));
+  assert.deepEqual(r.items.map((x) => x.id), ['b2', 'b3', 'b1', 'b4'], 'se ejecuta en ese orden');
+  assert.deepEqual(eje.orden.slice(-4), r.eventos.map((e) => e.id));
+});
