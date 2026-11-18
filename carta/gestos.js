@@ -201,7 +201,10 @@ export function instalar(raiz, m) {
     if ((el = b('[data-retocar]'))) { e.preventDefault(); m.retocarTexto?.(el.dataset.retocar, el.dataset.retocarIdioma || null); return; }
     if ((el = b('[data-retoque-original]'))) { e.preventDefault(); m.retoqueOriginal?.(el.dataset.clave, el.dataset.idioma); return; }
     // Dentro del aro: un valor de una lista se escribe; un clic en el centro (sin editarlo) entra en el elemento.
-    if ((el = b('.aro [data-opcion]'))) { e.preventDefault(); m.opcion?.(el.dataset.x ?? el.closest('.aro')?.dataset.x, Number(el.dataset.opcion), el.dataset.valor); return; }
+    // Un valor para escribir en una posición: en el aro o en la franja de un punto de vista (VG 18-11).
+    if ((el = b('[data-opcion]'))) { e.preventDefault(); m.opcion?.(el.dataset.x ?? el.closest('.aro, [data-pv-acciones]')?.dataset.x, Number(el.dataset.opcion), el.dataset.valor); return; }
+    // El atajo visible al aro de un ocupante (lo mismo que mantenerlo pulsado).
+    if ((el = b('[data-aro-abrir]'))) { e.preventDefault(); m.aro?.(el.dataset.aroAbrir, null, { ancla: anclaDe(el.closest('li, .rejilla-celda') ?? el, e.clientX, e.clientY) }); return; }
     if ((el = b('.aro:not(.editando) [data-aro-centro]'))) { e.preventDefault(); m.aroEntrar?.(el.dataset.x ?? el.closest('.aro')?.dataset.x); return; }
     if (t.closest('.formulario, .aro, .guia') && !t.closest('button')) return; // dentro de un diálogo (o de la guía), nada más que los botones
     if ((el = b('[data-guia-rapida]'))) { e.preventDefault(); m.guiaRapida?.(Number(el.dataset.guiaRapida)); return; }

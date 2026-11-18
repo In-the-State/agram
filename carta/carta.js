@@ -702,6 +702,9 @@ function nodoLateral(eje, X, pv, nivel, ctx, medidas, hueco, mapa = null, { secu
   if (nivel < NIVEL.tarjeta) return nodo;
   // El personaje del sitio (VG, 12-11, #38): cada cuadrante abierto tiene su responsable, el nodo X.<pv>.
   nodo.sitio = sitioDe(ctx, eje, X, String(pv), pv);
+  // Las acciones a la vista (VG 18-11): la franja del punto de vista, en tarjeta y en bloque.
+  const franja = franjaDe(eje, X, pv, ctx);
+  if (franja) nodo.franja = franja;
   // Tarjeta y bloque: los ocupantes que caben, paginados por el paso de la configuración (en Mapped, por páginas).
   const cuantos = mapa ? mapa.cuantos : nivel >= NIVEL.bloque ? paso * (ctx.estado.paginas?.[pv] ?? 1) : nodo.tamano?.datos ?? paso;
   const pagina = mapa ? paginaDe(ctx, eje, X, pv, cuantos) : null;
@@ -830,6 +833,9 @@ function nodoCentro(eje, X, pv, ctx, medidas, hueco, mapa = null) {
   // El anverso (issues #21, #24): arriba la representación del foco (su HTML adjunto si lo tiene) y un solo input, el del 0;
   // los campos de los laterales siguen en el árbol para las filas de Sequenced (en Mapped están en los mundos).
   // La cuenta del banco (encargo «cuenta del banco»): su saldo y el estado de su permiso, si X es una cuenta.
+  // Las acciones a la vista del punto de vista que se pinta (VG 18-11): el 0 en el anverso, el 5 en el reverso, el abierto en los demás.
+  const franja = franjaDe(eje, X, g.cara === 'anverso' ? CENTROS[0] : g.cara === 'reverso' ? CENTROS[1] ?? 5 : pv, ctx);
+  if (franja) base.franja = franja;
   if (g.cara === 'anverso') return { ...base, ...zonasDeLaCara(eje, X), ...fichaDe(eje, X), representacion: representacionDelFoco(eje, X, tamano, ctx), textoDelFoco: representacionQueCabe(eje, X, tamanoDeNivel(1, ctx.opciones), ctx)?.texto ?? null, campos: camposDe(eje, X, ctx), cuenta: cuentaDe(eje, X, ctx) };
   if (g.cara === 'reverso') {
     const o = contrato.ocupantes(eje, X, pv, 0, ctx.paso, ctx.opciones);
@@ -946,13 +952,7 @@ const opcionesDe = (eje, X, pv, ctx) => contrato.opciones(eje, X, pv, { yo: ctx.
 function nodoAro(eje, X, yo, ctx) {
   const abierto = ctx.estado.aro?.pv ?? null;
   const huecos = LATERALES.map((pv) => {
-    // Con «retocar textos» (A20), las claves con que el núcleo leyó los nombres (contrato.conClaves).
-    const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, yo, ctx.opciones), lecturas: null };
-    const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
-    const resumen = (a) => ({ id: a.id, nombre: a.etiqueta, lectura: a.lectura, camino: a.camino, faltan: a.parametros.filter((p) => p.falta && !p.archivo).map((p) => p.etiqueta), // lo que sale de subir un archivo no «falta»: lo pone el selector
-      ...(lecturas ? { retocar: claveLeida(lecturas, contrato.claves.plantilla(a.nombre), ctx.opciones) } : {}) });
-    const accion = porDefecto ? resumen(porDefecto) : null;
-    const otras = lista.filter((a) => a !== porDefecto).map(resumen);
+    const { accion, otras } = accionesDelPv(eje, X, pv, { ...ctx, yo });
     const opciones = opcionesDe(eje, X, pv, ctx);
     return {
       pv,
@@ -993,7 +993,12 @@ function nodoAro(eje, X, yo, ctx) {
 export function creableEn(eje, R, ruta, yo, opciones = {}) {
   const sitio = Number(ruta?.[0]);
   if (!Number.isInteger(sitio) || !yo) return [];
-  return acciones.acciones(eje, R, sitio, yo, opciones)
+  return creablesDe(acciones.acciones(eje, R, sitio, yo, opciones), ruta);
+}
+
+/** De una lista de acciones del núcleo (acciones.acciones en el sitio del primer dígito), las que crean en la ruta (creableEn). */
+function creablesDe(lista, ruta) {
+  return lista
     .filter((a) => !a.lectura && !a.camino && a.puedeLanzar !== false)
     .filter((a) => {
       const ancla = hojas(a.plantilla?.[5])[0];
@@ -1002,6 +1007,69 @@ export function creableEn(eje, R, ruta, yo, opciones = {}) {
       return trozos.every((x, i) => i >= ruta.length || x.startsWith('{') || Number(x) === Number(ruta[i]));
     })
     .map((a) => ({ id: a.id, nombre: a.etiqueta }));
+}
+
+// ---------- las acciones a la vista en cada punto de vista (VG 18-11: «el aro son atajos de lo que se hace en los puntos de vista») ----------
+
+/** El resumen de una acción del núcleo, el mismo en el aro y en la franja: { id, nombre, lectura, camino, faltan, retocar? }. */
+const resumenDeAccion = (a, lecturas, ctx) => ({ id: a.id, nombre: a.etiqueta, lectura: a.lectura, camino: a.camino, faltan: a.parametros.filter((p) => p.falta && !p.archivo).map((p) => p.etiqueta), // lo que sale de subir un archivo no «falta»: lo pone el selector
+  ...(lecturas ? { retocar: claveLeida(lecturas, contrato.claves.plantilla(a.nombre), ctx.opciones) } : {}) });
+
+/**
+ * Las acciones que el núcleo ofrece a quien mira (ctx.yo) sobre X en el punto de vista pv (acciones.acciones: qué se ofrece
+ * lo decide él, aquí no hay lógica de oferta): { accion (la por defecto), otras, crear (las que crean algo nuevo en X.pv:
+ * creableEn) }. La misma lista para el aro (sus huecos) y para la franja de cada punto de vista; se calcula una vez por
+ * pintado y por (X, pv). Con «retocar textos» (A20), con las claves con que se leyeron los nombres.
+ */
+const ACCIONES_POR_PINTADO = new WeakMap(); // ctx.opciones (uno por pintado; las copias de ctx lo comparten) → Map
+/**
+ * Lo calculado, guardado entre pintados mientras el libro no cambie (VG 18-11: que la franja no cueste): por eje, su versión
+ * (cuántos registros y el último) y lo de cada (X, pv, quien mira, idioma). Sin «retocar textos» (lleva sus claves) ni
+ * un reloj pedido aparte (opciones.t): entonces, solo el del pintado.
+ */
+const ACCIONES_GUARDADAS = new WeakMap(); // eje → { version, mapa }
+const versionDe = (eje) => (eje.orden?.length ?? 0) + ':' + (eje.orden?.at?.(-1) ?? '');
+function guardadasDe(eje, ctx) {
+  if (ctx.retocar || ctx.opciones?.t || !eje || typeof eje !== 'object') return null;
+  const v = versionDe(eje);
+  let g = ACCIONES_GUARDADAS.get(eje);
+  if (!g || g.version !== v) { g = { version: v, mapa: new Map() }; ACCIONES_GUARDADAS.set(eje, g); }
+  return g.mapa;
+}
+function accionesDelPv(eje, X, pv, ctx) {
+  const llave = ctx.opciones && typeof ctx.opciones === 'object' ? ctx.opciones : null;
+  if (llave && !ACCIONES_POR_PINTADO.has(llave)) ACCIONES_POR_PINTADO.set(llave, new Map());
+  const memo = llave ? ACCIONES_POR_PINTADO.get(llave) : new Map();
+  const clave = X + '|' + pv + '|' + (ctx.yo ?? '') + '|' + (ctx.opciones?.idioma ?? '') + '|' + (ctx.opciones?.epoca?.id ?? '');
+  if (memo.has(clave)) return memo.get(clave);
+  const guardadas = guardadasDe(eje, ctx);
+  if (guardadas?.has(clave)) { memo.set(clave, guardadas.get(clave)); return guardadas.get(clave); }
+  const { valor: lista, lecturas } = ctx.retocar ? contrato.conClaves(() => acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones)) : { valor: acciones.acciones(eje, X, pv, ctx.yo, ctx.opciones), lecturas: null };
+  const porDefecto = lista.find((a) => a.porDefecto) ?? lista[0] ?? null;
+  const r = {
+    accion: porDefecto ? resumenDeAccion(porDefecto, lecturas, ctx) : null,
+    otras: lista.filter((a) => a !== porDefecto).map((a) => resumenDeAccion(a, lecturas, ctx)),
+    crear: creablesDe(lista, [pv]).length > 0,
+  };
+  memo.set(clave, r);
+  guardadas?.set(clave, r);
+  return r;
+}
+
+/**
+ * La franja de acciones de un punto de vista sobre X, a la vista (VG 18-11): todo lo que el aro ofrece en ese sitio, la
+ * acción por defecto, las demás y los valores que se pueden escribir en la posición (contrato.opciones), y si se puede
+ * crear algo nuevo ahí (con el nombre, como en el aro de un hueco vacío). En el 0 y el 5 (el anverso y el reverso), sus
+ * acciones y los valores del 0 y del 5 que el centro del aro ofrece. → { pv, X, etiqueta, accion, otras, opciones, crear }
+ * o null si no hay nada que hacer ahí o no hay quien mire.
+ */
+function franjaDe(eje, X, pv, ctx) {
+  if (!ctx.yo || typeof X !== 'string' || !eje.obtener(X)) return null;
+  const { accion, otras, crear } = accionesDelPv(eje, X, pv, ctx);
+  const opciones = opcionesDe(eje, X, pv, ctx);
+  const conCrear = crear && LATERALES.includes(pv);
+  if (!accion && !otras.length && !opciones.length && !conCrear) return null;
+  return { pv, X, etiqueta: contrato.etiqueta(eje, X, pv, ctx.opciones), accion, otras, opciones, crear: conCrear };
 }
 
 /**
@@ -1925,14 +1993,10 @@ const tieneHijos = (eje, X, pv, nivel, ctx) => contrato.hijosDe(eje, X, pv, { ni
  * del vacío). null si no hay ninguna. Una vez por registro y PV.
  */
 function accionPorDefecto(eje, R, pv, ctx) {
-  const memo = (ctx.porDefecto ??= new Map());
-  const clave = R + '|' + pv;
-  if (!memo.has(clave)) {
-    const lista = typeof R === 'string' && eje.obtener(R) ? acciones.acciones(eje, R, pv, ctx.yo, ctx.opciones) : [];
-    const a = lista.find((x) => x.porDefecto) ?? lista[0] ?? null;
-    memo.set(clave, a ? { id: a.id, nombre: a.etiqueta } : null);
-  }
-  return memo.get(clave);
+  // La misma lista que la franja y el aro (accionesDelPv): una sola llamada al núcleo por (R, pv) y pintado.
+  if (typeof R !== 'string' || !eje.obtener(R) || !ctx.yo) return null;
+  const a = accionesDelPv(eje, R, pv, ctx).accion;
+  return a ? { id: a.id, nombre: a.nombre } : null;
 }
 
 /**

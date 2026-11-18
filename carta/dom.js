@@ -321,8 +321,10 @@ function htmlElementoDeBanda(o) {
 
 /** Un ocupante de una celda de la rejilla: si se puede entrar, un clic baja un nivel (data-celda) y un botoncito abre el registro. */
 function htmlOcupanteDeCelda(o) {
+  // La rejilla solo sale en bloque o a pantalla completa: cada registro, con su atajo visible al aro.
+  if (o.X && !o.entra) return htmlOcupanteSolo(o) + htmlAbrirAro(o);
   if (o.entra) {
-    return `<button type="button" class="ocupante ocupante-ref ocupante-celda"${nodo('ocupante', { x0: o.texto })} data-pv="${o.pv}"${dataId(o)} data-celda="${o.X}" data-x="${o.X}" title="${attr(t('entrarEnCelda', { que: o.texto }))}">${htmlIconoPropio(o)}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button><button type="button" class="celda-abrir"${nodo('control')} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('abrirEnCelda', { que: o.texto }))}" aria-label="${attr(t('abrirEnCelda', { que: o.texto }))}">↗</button>`;
+    return `<button type="button" class="ocupante ocupante-ref ocupante-celda"${nodo('ocupante', { x0: o.texto })} data-pv="${o.pv}"${dataId(o)} data-celda="${o.X}" data-x="${o.X}" title="${attr(t('entrarEnCelda', { que: o.texto }))}">${htmlIconoPropio(o)}<span class="texto">${escapar(o.texto)}</span>${o.autor ? `<small class="quien">${escapar(o.autor)}</small>` : ''}</button><button type="button" class="celda-abrir"${nodo('control')} data-abrir="${o.X}" data-x="${o.X}" title="${attr(t('abrirEnCelda', { que: o.texto }))}" aria-label="${attr(t('abrirEnCelda', { que: o.texto }))}">↗</button>${htmlAbrirAro(o)}`;
   }
   return htmlOcupanteSolo(o);
 }
@@ -1159,9 +1161,9 @@ function htmlRejilla(r, { completa = false, arbol = null, apilada = false } = {}
 }
 
 /** La lista o la matriz de ocupantes de un PV, con «cargar más» al final si hay más. */
-function htmlOcupantes(oc, { pv, disposicion } = {}) {
+function htmlOcupantes(oc, { pv, disposicion, conAro = false } = {}) {
   if (!oc) return '';
-  const lista = oc.lista.length ? oc.lista.map((o) => `<li>${htmlOcupante(o)}</li>`).join('') : `<li class="nada">${t('nada')}</li>`;
+  const lista = oc.lista.length ? oc.lista.map((o) => `<li>${htmlOcupante(o)}${conAro ? htmlAbrirAro(o) : ''}</li>`).join('') : `<li class="nada">${t('nada')}</li>`;
   const mas = oc.cargarMas ? `<li class="cargar-mas"><button type="button"${nodo('control')} data-cargar-mas="${pv}">${escapar(t('cargarMas', { cuantos: oc.total - oc.lista.length }))}</button></li>` : htmlPagina(oc.pagina, pv);
   return `<ul class="ocupantes ${disposicion ? 'disposicion-' + attr(disposicion) : ''}" data-total="${oc.total}">${lista}${mas}</ul>`;
 }
@@ -1407,8 +1409,14 @@ function htmlLateral(n, arbol, { enFila = false } = {}) {
     // En animado, el bloque (en Mapped y en la fila abierta de Sequenced) lleva el primero de los dos sitios del arte (VG
     // 14-11, #94): el fondo del mundo, detrás de todo. El marco, con sus huecos, es de la pantalla completa (htmlEscena).
     const fondo = arbol?.animado ? htmlFondo(n.fondo) : '';
-    const lista = n.vacio ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</p>` : htmlOcupantes(n.ocupantes, { pv: n.pv, disposicion: n.disposicion });
-    cuerpo = fondo + (enFila ? '' : cabeza) + (n.rejilla ? htmlRejilla(n.rejilla, { apilada: enFila }) : lista) + (n.nivel >= NIVEL.tarjeta ? htmlPorAutorizar(n.porAutorizar) : '') + (n.nivel >= NIVEL.bloque ? htmlDiario(n.diario) + htmlOpiniones(n.opiniones) : '') + camino
+    // El vacío que ya dice «escribir aquí · <acción>» la lanza él mismo (y la franja no la repite).
+    const escribe = n.vacio && n.escribir?.id;
+    const vacio = escribe
+      ? `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}><button type="button" class="enlace escribir-aqui"${nodo('accion')} data-lanzar="${attr(n.escribir.id)}" data-x="${attr(n.X)}">${htmlEscribir(n.escribir)}</button></p>`
+      : `<p class="vacio-pv"${htmlHueco(n.X, n.pv)}>${htmlEscribir(n.escribir)}</p>`;
+    const lista = n.vacio ? vacio : htmlOcupantes(n.ocupantes, { pv: n.pv, disposicion: n.disposicion, conAro: n.nivel >= NIVEL.bloque });
+    const franja = htmlFranja(n.franja, { compacta: true, sin: escribe ? n.escribir.id : null, crear: !enFila });
+    cuerpo = fondo + (enFila ? '' : cabeza) + franja + (n.rejilla ? htmlRejilla(n.rejilla, { apilada: enFila }) : lista) + (n.nivel >= NIVEL.tarjeta ? htmlPorAutorizar(n.porAutorizar) : '') + (n.nivel >= NIVEL.bloque ? htmlDiario(n.diario) + htmlOpiniones(n.opiniones) : '') + camino
       + `<footer class="pv-pie"><button type="button" class="entrar" data-foco-pv="${n.pv}" data-x="${n.X}">${t('entrar')}</button><small class="ayuda">${escapar(n.ayuda ?? '')}</small></footer>`;
   }
   return `<section class="${clases}"${nodo('pv', { tam: n.pasoDeTamano?.nombre ?? NOMBRE_NIVEL[n.nivel], rep: repDe(n.representacion) })} data-pv="${n.pv}" data-x="${n.X}" data-nivel="${n.nivel}" aria-label="${attr(n.etiqueta)}" tabindex="0">${cuerpo}</section>`;
@@ -1463,7 +1471,8 @@ function htmlHilo(n) {
   // Una forma que pinta el hilo (las cadenas del 7 del roadmap) va en lugar de la lista de tarjetas.
   const lista = n.rejilla ? htmlRejilla(n.rejilla, { apilada: true }) : `<ol class="hilo-cartas">${vacio}${cartas.join('')}${mas}</ol>`;
   const clases = ['pv', `pv-${n.pv}`, 'zona-hilo', `zona-${n.hilo}`, `grupo-${n.grupo}`, `lado-${n.lado ?? ''}`, `nivel-${n.nivel}`].join(' ');
-  return `<section class="${clases}"${nodo('pv', { tam: NOMBRE_NIVEL[n.nivel] })} data-pv="${n.pv}" data-x="${n.X}" data-nivel="${n.nivel}" data-hilo-zona="${n.pv}" aria-label="${attr(n.etiqueta)}">${pasado ? htmlPorAutorizar(n.porAutorizar) + htmlOpiniones(n.opiniones) + lista + cabeza : cabeza + lista}</section>`;
+  const franja = htmlFranja(n.franja, { compacta: true });
+  return `<section class="${clases}"${nodo('pv', { tam: NOMBRE_NIVEL[n.nivel] })} data-pv="${n.pv}" data-x="${n.X}" data-nivel="${n.nivel}" data-hilo-zona="${n.pv}" aria-label="${attr(n.etiqueta)}">${pasado ? htmlPorAutorizar(n.porAutorizar) + htmlOpiniones(n.opiniones) + lista + franja + cabeza : cabeza + franja + lista}</section>`;
 }
 
 /** Sequenced: la fila fina y fija de abajo con los diez dígitos en su color; tocar uno lleva a su fila y la abre (los del hilo, a su zona). */
@@ -1504,6 +1513,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
       ${puntos}
       <h1 class="representacion${c.representacion?.aislada ? ' con-aislada' : ''}${c.zonas?.length ? ' con-zonas' : ''}">${c.zonas?.length ? htmlCaraConZonas(htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta }), c) : htmlRepresentacion(c.representacion, { nombre: c.textoDelFoco ?? c.etiqueta })}</h1>
       ${htmlFicha(c.ficha)}
+      ${htmlFranja(c.franja)}
       ${htmlCuentaDelBanco(c.cuenta)}
       ${arbol.secuencia ? htmlFilas(arbol, c) : `<label class="campo campo-0 campo-unico"${nodo('campo', { d: 0 })}><span class="etiqueta-0">${escapar(c.etiqueta)}</span><input class="campo-input" data-campo="${c.pv}" data-x="${c.X}" value="" placeholder="${attr(t('nuevoAquiMarcador', { que: c.textoDelFoco ?? c.representacion?.texto ?? '' }))}" title="${attr(c.ayuda ?? '')}" autocomplete="off"></label>`}
       ${leido}
@@ -1518,6 +1528,7 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
     return `<section class="nucleo reverso tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'reverso', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}" aria-label="${attr(c.etiqueta)}">
       <header class="nucleo-cabeza">${htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${madurez}${quien}${cero}${voltear}</header>
       ${puntos}
+      ${htmlFranja(c.franja)}
       <p class="tipo">${c.plantilla ? `${t('plantilla')} <b>${escapar(c.plantilla)}</b>` : t('sinPlantilla')}${c.t ? ` · <time datetime="${attr(c.t)}">${escapar(c.tLegible ?? c.t)}</time>` : ''}</p>
       ${ancla}${htmlFirmeza(c.firmeza)}${htmlCustodia(c.custodia)}${c.pendienteDeSegundoFactor ? `<p class="verificado-linea">${htmlPendienteDeSegundoFactor(c)}</p>` : ''}${htmlPago(c.pago, c.X)}
       ${htmlBtml(c.btml)}
@@ -1526,9 +1537,10 @@ function htmlCentro(c, arbol, { leidoTexto } = {}) {
   }
   // A pantalla completa, los dos sitios del arte (#94): con rejilla, los pinta la rejilla (htmlRejilla); sin ella, aquí: el
   // fondo detrás de todo y el marco alrededor de la lista de ocupantes (htmlEscena).
-  const lista = htmlOcupantes(c.ocupantes, { pv: c.pv, disposicion: c.disposicion });
+  const lista = htmlOcupantes(c.ocupantes, { pv: c.pv, disposicion: c.disposicion, conAro: true });
   return `<section class="nucleo abierto tamano-${c.tamano?.tamano ?? 1}"${nodo('foco', { tam: 'foco', cara: 'abierto', rep: repDe(c.representacion) })} data-centro="${c.pv}" data-x="${c.X}"${c.estilo && !c.rejilla ? ` data-id="${attr(c.X)}"` : ''} aria-label="${attr(c.etiqueta)}">
     <header class="nucleo-cabeza"><span class="numero">${c.pv}</span>${c.rejilla?.flotante ? '' : htmlIconoPropio(c)}<span class="etiqueta">${escapar(c.etiqueta)}</span>${htmlMedida(c.medida)}${quien}${cero}${arbol.mapa?.completa ? `<button type="button" class="volver volver-claro"${nodo('control')} ${c.rejilla?.ruta?.length ? `data-subir="${c.pv}"` : `data-foco-pv="${arbol.mapa.completa.volver}"`} data-x="${c.X}" title="${attr(t('volverTitulo'))}">← ${t('volver')}</button>` : `<button type="button" class="volver" data-foco-pv="0" data-x="${c.X}" title="${attr(t('volverAl0'))}">0</button>`}</header>
+    ${htmlFranja(c.franja)}
     ${c.rejilla ? '' : htmlFondo(c.escena?.fondo)}
     ${htmlPorAutorizar(c.porAutorizar)}${c.rejilla ? htmlRejilla(c.rejilla, { completa: true, arbol }) : htmlEscena(c.escena, lista)}
     <p class="ayuda">${escapar(c.ayuda ?? '')}</p>${GEOMETRIA[c.pv]?.grupo === 'cruz' && GEOMETRIA[c.pv]?.fila === 'abajo' && !c.rejilla?.camino ? htmlGuia(arbol.guia) : ''}
@@ -1603,6 +1615,52 @@ function htmlRosetones(lista, { apilada = false, parte, guia = null } = {}) {
   const mias = lista.filter((r) => (ARRIBA.includes(r.pv) ? 'arriba' : 'abajo') === parte);
   return mias.length ? nav(mias, `rosetones-${parte}`) : '';
 }
+
+/** Cuántas acciones se ven sin desplegar en la franja de un punto de vista abierto; las demás, en su propio desplegable. */
+const A_LA_VISTA = 6;
+
+/** Un botón de acción de la franja: lanza igual que el aro (data-lanzar, data-x; gestos.js → app.js lanzar). */
+const htmlBotonDeAccion = (a, X, clase = 'accion') => `<button type="button" class="${clase}"${nodo('accion')} data-lanzar="${attr(a.id)}" data-x="${attr(X)}" title="${attr(a.nombre)}">${retocable(a.nombre, a.retocar)}${a.faltan?.length ? ` <small>[${escapar(a.faltan.join(', '))}]</small>` : ''}</button>`;
+
+/**
+ * La franja de acciones de un punto de vista (VG 18-11: el sitio de cada acción es su punto de vista; el aro, un atajo):
+ * todo lo que el aro ofrece ahí sobre X, a la vista. La acción por defecto destacada; las demás al lado (en `compacta`,
+ * la de tarjeta y la fila de Sequenced, tras un «+n» que las despliega); los valores que se escriben en la posición
+ * (data-opcion, como en el aro) y, si se puede, crear algo nuevo ahí con su nombre (data-campo con data-nuevo, como el aro
+ * de un hueco vacío). Nada queda fuera de la franja: lo plegado se despliega en ella misma. `sin`: el id de una acción
+ * que el punto de vista ya enseña como botón (la del vacío, «escribir aquí · …»); `crear`: false si el punto de vista
+ * ya tiene su campo para escribir (la fila de Sequenced).
+ */
+export function htmlFranja(f, { compacta = false, sin = null, crear = true } = {}) {
+  if (!f) return '';
+  const X = f.X;
+  const todas = [f.accion, ...(f.otras ?? [])].filter((a) => a && a.id !== sin);
+  const valores = f.opciones?.length
+    ? `<div class="pv-acciones-valores"><small class="pv-acciones-titulo">${escapar(t('aroEscribir'))}</small>${f.opciones.map((o) => `<button type="button" class="opcion"${nodo('opcion')} data-opcion="${f.pv}" data-valor="${attr(o.valor)}" data-x="${attr(X)}" title="${attr(o.texto)}">${escapar(o.texto)}</button>`).join('')}</div>`
+    : '';
+  const nuevo = f.crear && crear
+    ? `<label class="pv-acciones-crear"><span>${escapar(t('franjaCrear'))}</span><input class="campo-input campo-nuevo" data-campo="${f.pv}" data-x="${attr(X)}" data-nuevo value="" placeholder="${attr(t('aroCrearNombre'))}" title="${attr(t('aroCrearNombreTitulo', { que: f.etiqueta ?? '' }))}" autocomplete="off"></label>`
+    : '';
+  if (!todas.length && !valores && !nuevo) return '';
+  const [primera, ...resto] = todas;
+  const principal = primera ? htmlBotonDeAccion(primera, X, 'accion por-defecto principal') : '';
+  const lista = (l) => l.map((a) => htmlBotonDeAccion(a, X)).join('');
+  let cuerpo;
+  if (compacta) {
+    const mas = resto.length + (f.opciones?.length ?? 0) + (nuevo ? 1 : 0);
+    cuerpo = principal + (mas ? `<details class="pv-acciones-mas"><summary title="${attr(t('franjaMasTitulo', { que: f.etiqueta ?? '' }))}">+${mas}</summary><div class="pv-acciones-desplegadas">${lista(resto)}${valores}${nuevo}</div></details>` : '');
+  } else {
+    const vista = resto.slice(0, A_LA_VISTA - 1);
+    const plegadas = resto.slice(A_LA_VISTA - 1);
+    cuerpo = principal + lista(vista)
+      + (plegadas.length ? `<details class="pv-acciones-mas"><summary>${escapar(t('franjaMas', { n: plegadas.length }))}</summary><div class="pv-acciones-desplegadas">${lista(plegadas)}</div></details>` : '')
+      + valores + nuevo;
+  }
+  return `<div class="pv-acciones${compacta ? ' compacta' : ''}"${nodo('acciones')} data-pv-acciones="${f.pv}" data-x="${attr(X)}" role="group" aria-label="${attr(t('franjaTitulo', { que: f.etiqueta ?? '' }))}">${cuerpo}</div>`;
+}
+
+/** El atajo visible al aro de un ocupante (VG 18-11): lo mismo que mantenerlo pulsado (app.js aro). Pequeño, junto a él. */
+const htmlAbrirAro = (o) => (o?.X ? `<button type="button" class="abrir-aro"${nodo('control')} data-aro-abrir="${attr(o.X)}" title="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}" aria-label="${attr(t('abrirAroTitulo', { que: o.texto ?? '' }))}">⋯</button>` : '');
 
 /** Una lista de valores posibles (contrato.opciones) para escribir en la posición pv de X: cada uno, un botón (data-opcion, data-valor). */
 const htmlOpciones = (lista, pv, X, clase = 'opciones') => (lista?.length ? `<ul class="${clase}" data-opciones="${pv}">${lista.map((o) => `<li><button type="button" class="opcion"${nodo('opcion')} data-opcion="${pv}" data-valor="${attr(o.valor)}" data-x="${attr(X)}" title="${attr(o.texto)}">${escapar(o.texto)}</button></li>`).join('')}</ul>` : '');
