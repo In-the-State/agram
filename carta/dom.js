@@ -2383,12 +2383,16 @@ export function htmlArranque(ar, { cuentas = [], sobreCarta = false, emparejar =
       return `<div class="campo"><label for="${id}">${escapar(c.etiqueta)}</label>${control}<small class="ayuda">${escapar(c.ayuda ?? '')}</small></div>`;
     }).join('');
     // Un libro nuevo con mi clave (A24, §4.2): el mismo formulario; la clave es la del libro abierto.
-    const titulo = ar.conMiClave ? t('libroNuevoConMiClave') : ar.conClave ? t('personaNueva') : t('crearMiCuenta');
+    // Recién emparejada con la app, sin libro de su clave y con su permiso (Carril F): la cuenta nace con la app; restaurar
+    // una copia y entrar por invitación siguen a mano, debajo.
+    const titulo = ar.conMiClave ? t('libroNuevoConMiClave') : ar.conLaApp ? t('cuentaConLaApp') : ar.conClave ? t('personaNueva') : t('crearMiCuenta');
+    const otros = ar.conLaApp && !ar.conMiClave ? `<p class="opciones" data-crear-otros><small class="ayuda">${escapar(t('cuentaConLaAppOtros'))}</small> <button type="button" data-libro-invitado>${escapar(t('invitadoEntrar'))}</button> <button type="button" data-arranque="restaurar">${escapar(t('emparejarRestaurar'))}</button></p>` : '';
     cuerpo = `<form class="formulario arranque-form" data-crear${ar.conMiClave ? ' data-con-mi-clave' : ''} aria-label="${attr(titulo)}">
       <header><h2>${escapar(titulo)}</h2>${volver}</header>
-      <p class="ayuda">${escapar(t(ar.conMiClave ? 'libroNuevoConMiClaveAyuda' : 'crearAyuda'))}</p>
+      <p class="ayuda">${escapar(t(ar.conMiClave ? 'libroNuevoConMiClaveAyuda' : ar.conLaApp ? 'cuentaConLaAppAyuda' : 'crearAyuda'))}</p>
       ${campos}${motivos}
       <footer><button type="submit" ${ar.ocupado ? 'disabled' : ''}>${t(ar.ocupado ? 'creando' : 'crear')}</button></footer>
+      ${otros}
     </form>`;
   } else if (ar.modo === 'restaurar') {
     cuerpo = `<form class="formulario arranque-form" data-restaurar aria-label="${attr(t('restaurarUnaCuenta'))}">

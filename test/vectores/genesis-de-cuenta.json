@@ -1,0 +1,32 @@
+{
+  "nota": "Vectores INVENTADOS del génesis de cuenta por la app (Carril F, 18-11). Generados por test/vectores/genesis-de-cuenta.mjs; nada es real.",
+  "entradas": {
+    "privada": "0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c0c",
+    "nombre": "Ana Inventada",
+    "t": "2026-11-18T10:00:00Z",
+    "eje": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+    "next": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"
+  },
+  "epoca": "58d457eed36e43b19b611d5bb3487c2eb7e461c52b8ce19d110aac026a4c0558",
+  "casos": [
+    {
+      "caso": "con eje y next (permiso vivo)",
+      "contexto": {
+        "eje": "e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1",
+        "next": "f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2"
+      },
+      "publica": "0f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d177",
+      "identidad": "ana-inventada",
+      "canonico": "{\"autor\":\"ana-inventada\",\"contexto\":{\"claves\":{\"ana-inventada\":\"0f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d177\"},\"eje\":\"e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1e1\",\"epoca\":\"58d457eed36e43b19b611d5bb3487c2eb7e461c52b8ce19d110aac026a4c0558\",\"genesis\":true,\"next\":\"f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2f2\"},\"en\":\"0000000000\",\"movimientos\":[],\"payload\":\"Ana Inventada\",\"sobre\":null,\"t\":\"2026-11-18T10:00:00Z\"}",
+      "id": "c92b8f4cb226ef96d8b9ceb2b468a6367f68871396fda9f678c489550e496ceb"
+    },
+    {
+      "caso": "sin eje ni next (sin permiso)",
+      "contexto": {},
+      "publica": "0f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d177",
+      "identidad": "ana-inventada",
+      "canonico": "{\"autor\":\"ana-inventada\",\"contexto\":{\"claves\":{\"ana-inventada\":\"0f0fb9a244ad31a369ee02b7abfbbb0bfa3812b9a39ed93346d03d67d412d177\"},\"epoca\":\"58d457eed36e43b19b611d5bb3487c2eb7e461c52b8ce19d110aac026a4c0558\",\"genesis\":true},\"en\":\"0000000000\",\"movimientos\":[],\"payload\":\"Ana Inventada\",\"sobre\":null,\"t\":\"2026-11-18T10:00:00Z\"}",
+      "id": "a72067d1fbef8d8b3a3d81e4d07bb21a9ec875ee167c38989d8c2d0a1c479eba"
+    }
+  ]
+}

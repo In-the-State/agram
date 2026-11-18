@@ -175,8 +175,11 @@ export function camposDelAlta({ idioma, epoca } = {}) {
  * `epoca` (opcional): la época con que nace el libro, en su forma escrita (la de `epocaEscritaDe`, también con `cambios` o
  * `{ base, cambios }`: la época por referencia, docs/notas/VERSIONES.md §11); Eje.genesis la valida y la escribe. Sin ella,
  * el génesis nombra la 0 que trae el código.
+ *
+ * `contexto` (opcional): lo que el génesis lleva además en su contexto. Hoy, el génesis de cuenta emparejado con la app
+ * (agram-equipo/LIBRO_DE_CUENTA_ALOJADO.md §6): `{ eje, next }`, los que dio la app; aquí no se interpretan.
  */
-export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, htmlInicial = false, guardian = null, conClave = null, identidad = null, dialogo = false } = {}) {
+export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toISOString(), epoca, contexto, htmlInicial = false, guardian = null, conClave = null, identidad = null, dialogo = false } = {}) {
   const limpio = String(nombre ?? '').trim();
   if (!limpio) throw new Error('la cuenta necesita un nombre: el 0 de tu alta');
   const propia = typeof identidad === 'string' && identidad ? identidad : null;
@@ -184,14 +187,14 @@ export async function crearCuenta({ nombre, idioma, ajustes, t = new Date().toIS
   // navegador, la privada de la entrada abierta, que ha de ser la pareja de la pública.
   if (conClave) {
     if (!autoridad.clavePublicaValida(conClave.publica)) throw new Error('la clave que ya tienes no es una clave pública válida');
-    if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, guardian, publica: conClave.publica, identidad: propia, dialogo });
+    if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, contexto, htmlInicial, guardian, publica: conClave.publica, identidad: propia, dialogo });
     const privada = conClave.privada;
     if (typeof privada !== 'string' || !mismaClave(autoridad.publicaDe(privada), conClave.publica)) throw new Error('la clave privada no es la pareja de la pública de este libro');
-    return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica: conClave.publica, privada, firmar: firmarCon(privada), identidad: propia });
+    return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, contexto, htmlInicial, publica: conClave.publica, privada, firmar: firmarCon(privada), identidad: propia });
   }
-  if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, guardian, identidad: propia, dialogo });
+  if (guardian) return crearEnGuardian({ nombre: limpio, idioma, ajustes, t, epoca, contexto, htmlInicial, guardian, identidad: propia, dialogo });
   const { publica, privada } = await autoridad.generarClaves();
-  return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar: firmarCon(privada), identidad: propia });
+  return crearCon({ nombre: limpio, idioma, ajustes, t, epoca, contexto, htmlInicial, publica, privada, firmar: firmarCon(privada), identidad: propia });
 }
 
 /**
@@ -210,9 +213,9 @@ async function crearEnGuardian({ guardian, nombre, publica: yaTengo = null, dial
 }
 
 /** Lo común a los dos caminos: el génesis y lo que nace con él, firmado con `privada` (una clave o un firmante) y `firmar`. */
-async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, htmlInicial, publica, privada, firmar, alNacer = () => {}, identidad: propia = null }) {
+async function crearCon({ nombre: limpio, idioma, ajustes, t, epoca, contexto, htmlInicial, publica, privada, firmar, alNacer = () => {}, identidad: propia = null }) {
   const identidad = propia ?? identidadDe(limpio, publica);
-  const eje = await Eje.genesis({ identidad, foco: limpio, t, clave: publica, privada, ...(epoca ? { epoca } : {}) });
+  const eje = await Eje.genesis({ identidad, foco: limpio, t, clave: publica, privada, ...(epoca ? { epoca } : {}), ...(contexto ? { contexto } : {}) });
   alNacer(eje);
   const alta = eje.alta(identidad).id;
   // La época que se dio (escrita) ya vive en el eje: las lecturas de abajo la toman de él.

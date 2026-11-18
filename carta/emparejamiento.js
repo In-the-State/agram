@@ -17,7 +17,10 @@
 //   envolver / abrir                        el gift wrap (con los mensajes del SIP)
 //   eventoAuth                              el AUTH de la sesión
 //   ClienteRele                             NIP-42, suscripción a los 1059 de la sesión, envío y reconexión sobria
-//   Emparejamiento                          el flujo: emparejar, proponer, recibir firma / rechazo / revocada, caducar
+//   Emparejamiento                          el flujo: emparejar, proponer, recibir firma / rechazo / revocada, caducar;
+//                                           y, para el libro de cuenta (agram-equipo/LIBRO_DE_CUENTA_ALOJADO.md §6 y §9),
+//                                           anunciar su época en «hola», guardar el permiso de «emparejada», pedir las
+//                                           claves de la cuenta y pedir la firma de una orden de gobierno
 
 import { schnorr } from '../src/vendor/noble-secp256k1.js';
 import { canonico, hash } from '../src/evento.js';
@@ -39,8 +42,8 @@ export const USO_REVOCACION = 'StateArk/Sesion/Revocacion/v1';
 /** El alcance exacto de la sesión, en orden. */
 export const ALCANCE = Object.freeze([KINDS.SELLO, KINDS.AUTH]);
 /** Lo que manda cada lado. */
-export const DE_LA_CARTA = Object.freeze(['hola', 'propuesta']);
-export const DE_LA_APP = Object.freeze(['emparejada', 'firma', 'rechazo', 'revocada']);
+export const DE_LA_CARTA = Object.freeze(['hola', 'propuesta', 'pedir_claves', 'gobierno']);
+export const DE_LA_APP = Object.freeze(['emparejada', 'firma', 'rechazo', 'revocada', 'claves', 'firma_gobierno']);
 /** Los estados de una propuesta. */
 export const ESTADOS = Object.freeze(['propuesto', 'firmado', 'rechazado', 'caducado', 'revocado']);
 
@@ -56,6 +59,7 @@ export const LIMITES = Object.freeze({
   cola: 100, // eventos esperando el OK del relé
   propuestas: 500, // registros de propuestas guardados (se tiran los terminados más viejos)
   vistos: 2000,
+  respuestaMs: 60_000, // lo que se espera a «claves» o a «firma_gobierno» antes de dejarlo (no_answer)
 });
 const ESPERAS_RECONEXION = Object.freeze([1000, 2000, 5000, 10_000, 30_000, 60_000]);
 
@@ -69,6 +73,7 @@ const esFirma = (x) => typeof x === 'string' && HEX128.test(x);
 const esObjeto = (x) => x !== null && typeof x === 'object' && !Array.isArray(x);
 const clavesExactas = (o, ...k) => Object.keys(o).sort().join(',') === [...k].sort().join(',');
 const textoCorto = (t, max) => typeof t === 'string' && t.length > 0 && t.length <= max;
+const esN = (n) => Number.isSafeInteger(n) && n >= 0;
 const instante = (t) => (typeof t === 'string' && ISO.test(t) ? Date.parse(t) : NaN);
 const segundos = (ms) => Math.floor(ms / 1000);
 
@@ -223,8 +228,27 @@ export function formaDelMensaje(m) {
   const k = Object.keys(m);
   const exactas = (...extra) => clavesExactas(m, 'schema', 'tipo', ...extra);
   switch (m.tipo) {
-    case 'hola': return exactas('agente') && textoCorto(m.agente, LIMITES.agente) ? null : '«hola» lleva solo «agente»';
-    case 'emparejada': return exactas() ? null : '«emparejada» no lleva nada más';
+    // «hola» puede anunciar la época del libro de cuenta (§6): al terminar, la carta abrirá o recuperará ese libro.
+    case 'hola': {
+      if (!(exactas('agente') || exactas('agente', 'cuenta')) || !textoCorto(m.agente, LIMITES.agente)) return '«hola» lleva «agente» y, si la anuncia, «cuenta»';
+      if ('cuenta' in m && !(esObjeto(m.cuenta) && clavesExactas(m.cuenta, 'epoca') && esId(m.cuenta.epoca))) return 'la cuenta de «hola» es { epoca } (64 hex)';
+      return null;
+    }
+    // «emparejada» puede traer el permiso de un solo uso para el génesis de cuenta (§9: 10 minutos).
+    case 'emparejada': {
+      if (!(exactas() || exactas('cuenta'))) return '«emparejada» no lleva nada más que, si acaso, «cuenta»';
+      if (!('cuenta' in m)) return null;
+      const c = m.cuenta;
+      const bien = esObjeto(c) && clavesExactas(c, 'epoca', 'permiso') && esId(c.epoca) && esObjeto(c.permiso) && clavesExactas(c.permiso, 'hasta') && Number.isFinite(instante(c.permiso.hasta));
+      return bien ? null : 'la cuenta de «emparejada» es { epoca, permiso: { hasta } }';
+    }
+    case 'pedir_claves': return exactas('publica') && esId(m.publica) ? null : '«pedir_claves» lleva solo «publica»';
+    case 'claves': {
+      if (!exactas('eje', 'gobierno', 'n', 'lectura', 'escritura', 'contenido', 'next')) return '«claves» lleva eje, gobierno, n, lectura, escritura, contenido y next';
+      return ['eje', 'gobierno', 'lectura', 'escritura', 'contenido', 'next'].every((k) => esId(m[k])) && esN(m.n) ? null : 'las claves son de 64 hex y n un entero de 0 en adelante';
+    }
+    case 'gobierno': return exactas('publica', 'orden') && esId(m.publica) && esObjeto(m.orden) ? null : '«gobierno» lleva publica y orden (un objeto)';
+    case 'firma_gobierno': return exactas('id', 'firma') && esId(m.id) && esFirma(m.firma) ? null : '«firma_gobierno» lleva id y firma';
     case 'propuesta': {
       const opcionales = k.filter((x) => x === 'nota' || x === 'libro');
       if (!exactas('publica', 'canonico', 'id', 'segundoFactor', ...opcionales)) return '«propuesta» lleva publica, canonico, id, segundoFactor y, si los hay, nota y libro';
@@ -513,25 +537,37 @@ const claveSesion = (sesion) => 'sesion:' + sesion;
  *   e.estado()                             null o { sesion, huella, hasta, app, rele, aceptada, conectado }
  *   await e.proponer({ publica, canonico, id, segundoFactor, nota?, libro? })   → { id, firma } verificada, o lanza su code
  *   e.firmante({ publica, segundoFactor, nota?, libro? })                      el firmante del camino B: ({ canonico, id }) → { id, firma }
+ *   await e.pedirClaves({ publica })        → { eje, gobierno, n, lectura, escritura, contenido, next }, o lanza su code
+ *   await e.firmarGobierno({ publica, orden })   → { id, firma } (id: el SHA-256 del canónico de la orden), o lanza su code
  *   await e.reenviar(id)  ·  e.propuestas()  ·  await e.descartar(id)  ·  await e.olvidar()  ·  e.cerrar()
  *
  * `avisar(aviso)` recibe { tipo: 'emparejada' | 'rechazada' | 'firma' | 'rechazo' | 'caducada' | 'revocada' |
  * 'firma_invalida' | 'conectado' | 'desconectado' | 'auth_rechazado', … }. Lo guardado: `sesion:<clave de sesión>` (el
  * objeto del QR con su privada, y si la app aceptó) y `propuestas` (las propuestas por id, con su sesión y su estado).
+ *
+ * El libro de cuenta (§6 y §9): con `epocaDeCuenta` (el id de su época; la carta pasa el de src/epoca-cuenta.js si no es
+ * nulo), «hola» lleva `cuenta: { epoca }`; si «emparejada» trae `cuenta: { epoca, permiso: { hasta } }` con esa época, se
+ * guarda con la sesión y estado() lo dice en `cuenta`. Lo que da «claves» (lectura, escritura y contenido son SECRETOS)
+ * solo se devuelve a quien lo pidió: no se guarda en el almacén, no se avisa y no sale por consola.
  */
 export class Emparejamiento {
-  #almacen; #abrirSocket; #reloj; #temporizador; #agente; #local; #avisar;
-  #sesion = null; // { rele, privada, delegacion, aceptada, hola }
+  #almacen; #abrirSocket; #reloj; #temporizador; #agente; #local; #avisar; #epocaDeCuenta;
+  #sesion = null; // { rele, privada, delegacion, aceptada, hola, cuenta }
+  #pedidos = new Map(); // 'claves' | 'gobierno:<id>' → [{ ok, mal, plazo }]: lo pedido a la app que no es una propuesta
   #propuestas = {}; // id → registro
   #cliente = null;
   #esperas = new Map(); // id → [{ ok, mal }]
   #vistos = new Set();
   #alarma = null;
   #escritura = Promise.resolve();
+  #pidiendoClaves = null; // la pública de la última petición de claves (un «rechazo» con ese id la responde)
+  #gobierno = null; // la pública de gobierno de la última «claves» (pública: con ella se comprueba firma_gobierno)
 
-  constructor({ almacen, abrirSocket = (url) => new globalThis.WebSocket(url), reloj = () => Date.now(), temporizador = temporizadorDeSiempre, agente = 'navegador', local = false, avisar = () => {} }) {
+  constructor({ almacen, abrirSocket = (url) => new globalThis.WebSocket(url), reloj = () => Date.now(), temporizador = temporizadorDeSiempre, agente = 'navegador', local = false, avisar = () => {}, epocaDeCuenta = null }) {
     if (!almacen || ['obtener', 'poner', 'borrar', 'claves'].some((f) => typeof almacen[f] !== 'function')) throw new TypeError('emparejamiento: falta el almacén');
     if (!textoCorto(agente, LIMITES.agente)) throw new TypeError('emparejamiento: el agente es un texto corto');
+    if (epocaDeCuenta !== null && !esId(epocaDeCuenta)) throw new TypeError('emparejamiento: la época de cuenta es su id (64 hex) o null');
+    this.#epocaDeCuenta = epocaDeCuenta;
     this.#almacen = almacen;
     this.#abrirSocket = abrirSocket;
     this.#reloj = reloj;
@@ -551,7 +587,7 @@ export class Emparejamiento {
   #guardarSesion() {
     const s = this.#sesion;
     if (!s) return Promise.resolve();
-    const copia = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada, hola: s.hola };
+    const copia = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada, hola: s.hola, ...(s.cuenta ? { cuenta: s.cuenta } : {}) };
     return this.#guardar(() => this.#almacen.poner(claveSesion(s.delegacion.sesion), copia));
   }
 
@@ -572,7 +608,7 @@ export class Emparejamiento {
 
   estado() {
     const p = this.#publica();
-    return p && { ...p, aceptada: this.#sesion.aceptada, conectado: Boolean(this.#cliente?.autenticado) };
+    return p && { ...p, aceptada: this.#sesion.aceptada, conectado: Boolean(this.#cliente?.autenticado), cuenta: this.#sesion.cuenta ? structuredClone(this.#sesion.cuenta) : null };
   }
 
   /** Recupera lo guardado: las propuestas y la sesión, si sigue en plazo (si no, la caduca). Se conecta. */
@@ -592,7 +628,7 @@ export class Emparejamiento {
     for (const viejo of sesiones.slice(1)) await this.#terminarGuardada(viejo.delegacion.sesion, 'caducado', 'pairing_replaced', 'otro emparejamiento lo sustituye');
     const s = sesiones[0];
     if (!s) return null;
-    this.#sesion = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada === true, hola: s.hola === true };
+    this.#sesion = { rele: s.rele, privada: s.privada, delegacion: s.delegacion, aceptada: s.aceptada === true, hola: s.hola === true, cuenta: this.#cuentaValida(s.cuenta) };
     if (this.#caducadaSiToca()) return null;
     this.#arrancar();
     if (!this.#sesion.hola) this.#mandarHola();
@@ -603,7 +639,7 @@ export class Emparejamiento {
   async emparejar(texto) {
     const leido = leerQR(texto, { ahora: this.#reloj(), local: this.#local });
     if (this.#sesion) await this.#terminar('caducado', 'pairing_replaced', 'otro emparejamiento lo sustituye', 'sustituida');
-    this.#sesion = { rele: leido.rele, privada: leido.privada, delegacion: leido.delegacion, aceptada: false, hola: false };
+    this.#sesion = { rele: leido.rele, privada: leido.privada, delegacion: leido.delegacion, aceptada: false, hola: false, cuenta: null };
     this.#vistos.clear();
     await this.#guardarSesion();
     this.#arrancar();
@@ -643,7 +679,7 @@ export class Emparejamiento {
 
   #mandarHola() {
     const sesion = this.#sesion.delegacion.sesion;
-    this.#mandar({ schema: ESQUEMA_MENSAJE, tipo: 'hola', agente: this.#agente })
+    this.#mandar({ schema: ESQUEMA_MENSAJE, tipo: 'hola', agente: this.#agente, ...(this.#epocaDeCuenta ? { cuenta: { epoca: this.#epocaDeCuenta } } : {}) })
       .then(({ enviado }) => enviado)
       .then(() => {
         if (this.#sesion?.delegacion.sesion !== sesion) return;
@@ -711,6 +747,83 @@ export class Emparejamiento {
     return ({ canonico: texto, id }) => this.proponer({ publica, canonico: texto, id, segundoFactor, nota, libro });
   }
 
+  /** El permiso de «emparejada», si tiene su forma y es de la época que se anunció; si no, null. */
+  #cuentaValida(c) {
+    if (!this.#epocaDeCuenta || !esObjeto(c) || c.epoca !== this.#epocaDeCuenta) return null;
+    return formaDelMensaje({ schema: ESQUEMA_MENSAJE, tipo: 'emparejada', cuenta: c }) === null ? { epoca: c.epoca, permiso: { hasta: c.permiso.hasta } } : null;
+  }
+
+  /** Espera la respuesta `clave` de la app, con plazo (no_answer). */
+  #pedir(clave) {
+    return new Promise((ok, mal) => {
+      const l = this.#pedidos.get(clave) ?? [];
+      const e = { ok, mal, plazo: null };
+      e.plazo = this.#temporizador.poner(() => this.#responder(clave, fallo('no_answer', 'la app no ha respondido'), undefined, e), LIMITES.respuestaMs);
+      l.push(e);
+      this.#pedidos.set(clave, l);
+    });
+  }
+
+  /** Resuelve lo pedido con `clave` (o solo la espera `una`, si se da: la de un plazo cumplido). */
+  #responder(clave, error, valor, una = null) {
+    const l = this.#pedidos.get(clave);
+    if (!l) return;
+    const estas = una ? l.filter((e) => e === una) : l;
+    const quedan = l.filter((e) => !estas.includes(e));
+    if (quedan.length) this.#pedidos.set(clave, quedan);
+    else this.#pedidos.delete(clave);
+    for (const e of estas) {
+      this.#temporizador.quitar(e.plazo);
+      if (error) e.mal(error);
+      else e.ok(valor);
+    }
+  }
+
+  /**
+   * Pide a la app las claves de la cuenta `publica` (§9; StateArk, claves_de_cuenta): manda «pedir_claves» y resuelve
+   * con { eje, gobierno, n, lectura, escritura, contenido, next } cuando llega «claves». Lanza con el code de un «rechazo»
+   * (el de la app con id = `publica`, o con id = la sesión y code not_accepted: aún no ha aceptado), no_answer si no
+   * responde a tiempo, o el del final de la sesión. Lectura, escritura y contenido son secretos: solo los recibe quien
+   * llama, y nada de esto se guarda ni se avisa.
+   */
+  async pedirClaves({ publica } = {}) {
+    this.#requiereSesion();
+    if (!esId(publica) || !clavePublicaValida(publica)) throw fallo('message_invalid', 'la pública de la cuenta es x-only');
+    const espera = this.#pedir('claves');
+    espera.catch(() => {});
+    this.#pidiendoClaves = publica;
+    try {
+      const { enviado } = await this.#mandar({ schema: ESQUEMA_MENSAJE, tipo: 'pedir_claves', publica });
+      enviado.catch(() => {}); // si el relé no lo guarda, la espera acaba por su plazo
+    } catch (e) {
+      this.#responder('claves', e);
+    }
+    return espera;
+  }
+
+  /**
+   * Pide a la app que firme con gobierno una orden (§9, `agram.orden@1`; StateArk, firmar_gobierno). Su id es el SHA-256 de
+   * su canónico; resuelve con { id, firma } cuando llega «firma_gobierno» con ese id (si la carta ya sabe la pública de
+   * gobierno, por «claves», la firma ha de verificar con ella). Lanza con el code de un «rechazo» con ese id (o
+   * not_accepted), no_answer o el del final de la sesión. En este carril nadie la llama todavía.
+   */
+  async firmarGobierno({ publica, orden } = {}) {
+    this.#requiereSesion();
+    if (!esId(publica) || !clavePublicaValida(publica)) throw fallo('message_invalid', 'la pública de la cuenta es x-only');
+    if (!esObjeto(orden)) throw fallo('message_invalid', 'la orden es un objeto');
+    const id = await hash(canonico(orden));
+    const clave = 'gobierno:' + id;
+    const espera = this.#pedir(clave);
+    espera.catch(() => {});
+    try {
+      const { enviado } = await this.#mandar({ schema: ESQUEMA_MENSAJE, tipo: 'gobierno', publica, orden });
+      enviado.catch(() => {});
+    } catch (e) {
+      this.#responder(clave, e);
+    }
+    return espera;
+  }
+
   /** Vuelve a mandar una propuesta que sigue «propuesto» (la app responde lo mismo). */
   async reenviar(id) {
     this.#requiereSesion();
@@ -753,6 +866,9 @@ export class Emparejamiento {
     const sesion = s.delegacion.sesion;
     this.#sesion = null;
     this.cerrar();
+    for (const clave of [...this.#pedidos.keys()]) this.#responder(clave, fallo(code, motivo));
+    this.#pidiendoClaves = null;
+    this.#gobierno = null;
     await this.#terminarGuardada(sesion, final, code, motivo);
     avisoSeguro(this.#avisar, { tipo: aviso, sesion, code });
   }
@@ -781,7 +897,10 @@ export class Emparejamiento {
     if (!a || a.motivo || a.remitente !== s.delegacion.larga || !DE_LA_APP.includes(a.mensaje.tipo)) return;
     const m = a.mensaje;
     if (m.tipo === 'emparejada') {
-      if (!s.aceptada) { s.aceptada = true; await this.#guardarSesion(); }
+      const cuenta = this.#cuentaValida(m.cuenta);
+      const nueva = Boolean(cuenta) && canonico(cuenta) !== canonico(s.cuenta ?? null);
+      if (nueva) s.cuenta = cuenta;
+      if (!s.aceptada || nueva) { s.aceptada = true; await this.#guardarSesion(); }
       avisoSeguro(this.#avisar, { tipo: 'emparejada', sesion });
     } else if (m.tipo === 'firma') {
       const p = this.#propuestas[m.id];
@@ -794,9 +913,39 @@ export class Emparejamiento {
       await this.#guardarPropuestas();
       this.#cumplir(m.id, null, { id: m.id, firma: m.firma });
       avisoSeguro(this.#avisar, { tipo: 'firma', id: m.id });
+    } else if (m.tipo === 'claves') {
+      // Solo a quien lo pidió: ni se guarda ni se avisa (lectura, escritura y contenido son secretos).
+      if (!this.#pedidos.has('claves')) return;
+      this.#gobierno = m.gobierno;
+      this.#pidiendoClaves = null;
+      this.#responder('claves', null, { eje: m.eje, gobierno: m.gobierno, n: m.n, lectura: m.lectura, escritura: m.escritura, contenido: m.contenido, next: m.next });
+    } else if (m.tipo === 'firma_gobierno') {
+      const clave = 'gobierno:' + m.id;
+      if (!this.#pedidos.has(clave)) return;
+      if (this.#gobierno && !verificarBip340(deHex(m.firma), deHex(m.id), deHex(this.#gobierno))) {
+        avisoSeguro(this.#avisar, { tipo: 'firma_invalida', id: m.id });
+        return;
+      }
+      this.#responder(clave, null, { id: m.id, firma: m.firma });
     } else if (m.tipo === 'rechazo') {
       if (m.id === sesion && m.code === 'pairing_refused') {
         await this.#terminar('rechazado', 'pairing_refused', m.motivo, 'rechazada');
+        return;
+      }
+      // Lo pedido que no es una propuesta: «not_accepted» con el id de la sesión (aún no ha aceptado) lo responde todo; si
+      // no, el rechazo de las claves lleva la pública pedida, y el de una orden de gobierno, su id.
+      if (m.id === sesion && m.code === 'not_accepted') {
+        for (const clave of [...this.#pedidos.keys()]) this.#responder(clave, fallo(m.code, m.motivo));
+        this.#pidiendoClaves = null;
+        return;
+      }
+      if (m.id === this.#pidiendoClaves && this.#pedidos.has('claves')) {
+        this.#pidiendoClaves = null;
+        this.#responder('claves', fallo(m.code, m.motivo));
+        return;
+      }
+      if (this.#pedidos.has('gobierno:' + m.id)) {
+        this.#responder('gobierno:' + m.id, fallo(m.code, m.motivo));
         return;
       }
       const p = this.#propuestas[m.id];
